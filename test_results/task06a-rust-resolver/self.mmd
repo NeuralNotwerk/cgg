@@ -1,0 +1,604 @@
+flowchart LR
+  C0["cgg_walk::WalkOutcome::is_empty"]
+  C1["cgg_walk::&lt;WalkConfig as Default&gt;::default"]
+  C2["cgg_walk::walk"]
+  C3["cgg_walk::walk_one"]
+  C4["cgg_walk::push_candidate"]
+  C5["cgg_walk::is_symlink_chain"]
+  C6["cgg_walk::classify_file"]
+  C7["cgg_walk::is_binary"]
+  C8["cgg_walk::builtin_reason"]
+  C9["cgg_walk::extract_err_path"]
+  C10["cgg_walk::tests::write"]
+  C11["cgg_walk::tests::discovers_plain_files"]
+  C12["cgg_walk::tests::builtin_deny_skips_node_modules_and_target"]
+  C13["cgg_walk::tests::cggignore_is_honored"]
+  C14["cgg_walk::tests::gitignore_is_honored"]
+  C15["cgg_walk::tests::binary_file_is_skipped"]
+  C16["cgg_walk::tests::too_large_is_skipped"]
+  C17["cgg_walk::tests::single_file_input_works"]
+  C18["cgg::cgg"]
+  C19["cgg::write"]
+  C20["cgg::python_cross_file_import_resolves"]
+  C21["cgg::python_module_alias_chain_resolves"]
+  C22["cgg::audit_records_medium_confidence_for_cross_file"]
+  C23["cgg::rust_cross_crate_use_resolves"]
+  C24["cgg::node_id"]
+  C25["cgg::rust_pub_use_reexport_chains"]
+  C26["cgg::node_id"]
+  C27["cgg::cgg"]
+  C28["cgg::help_succeeds_and_mentions_flags"]
+  C29["cgg::missing_positional_is_error"]
+  C30["cgg::nonexistent_path_is_clear_error"]
+  C31["cgg::valid_path_runs_placeholder"]
+  C32["cgg::bad_format_rejected"]
+  C33["cgg::cgg"]
+  C34["cgg::write"]
+  C35["cgg::rust_intra_file_edges_emit_mermaid"]
+  C36["cgg::recursion_preserves_self_edge"]
+  C37["cgg::python_intra_file_method_to_method"]
+  C38["cgg::unresolved_reference_shows_up_in_audit"]
+  C39["cgg::metrics_count_edges_and_confidence"]
+  C40["cgg::cgg"]
+  C41["cgg::write"]
+  C42["cgg::jsonl_audit_streams_events"]
+  C43["cgg::json_audit_is_single_pretty_document"]
+  C44["cgg::skip_reasons_are_audit_visible"]
+  C45["cgg::cgg"]
+  C46["cgg::write"]
+  C47["cgg::parse_jsonl"]
+  C48["cgg::nine_language_sample_all_detect"]
+  C49["cgg::header_disambiguation_prefers_cpp_when_sibling_exists"]
+  C50["cgg::shebang_beats_extension"]
+  C51["cgg::unknown_extension_skip_appears_in_audit"]
+  C52["cgg::lang_filter_excludes_and_reports"]
+  C53["cgg::main"]
+  C54["cgg::init_tracing"]
+  C55["cgg::run"]
+  C56["cgg::langs_enabled"]
+  C57["cgg::count_lines"]
+  C58["cgg::read_file"]
+  C59["cgg::variant_to_kind"]
+  C60["cgg::emit_graph"]
+  C61["cgg::resolve_primary_sink"]
+  C62["cgg::emit_audit"]
+  C63["cgg::open_sink"]
+  C64["cgg::cli::&lt;cgg_format::OutputFormat as From&lt;OutputFormatArg&gt;&gt;::from"]
+  C65["cgg::cli::tests::help_renders"]
+  C66["cgg::cli::tests::requires_path"]
+  C67["cgg::cli::tests::parses_full_surface"]
+  C68["cgg::cli::tests::default_hops_is_sentinel_minus_one"]
+  C69["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C70["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C71["cgg_lang::detect::LanguageDetector&lt;'r&gt;::match_ext"]
+  C72["cgg_lang::detect::extension"]
+  C73["cgg_lang::detect::read_shebang"]
+  C74["cgg_lang::detect::header_verdict"]
+  C75["cgg_lang::detect::tests::reg"]
+  C76["cgg_lang::detect::tests::write"]
+  C77["cgg_lang::detect::tests::each_v1_extension_detects"]
+  C78["cgg_lang::detect::tests::python_shebang_beats_extension"]
+  C79["cgg_lang::detect::tests::node_shebang_maps_to_javascript"]
+  C80["cgg_lang::detect::tests::header_sibling_picks_cpp"]
+  C81["cgg_lang::detect::tests::header_without_cpp_sibling_is_c"]
+  C82["cgg_lang::detect::tests::unknown_extension_is_unknown"]
+  C83["cgg_lang::plugins::go::&lt;GoPlugin as LanguagePlugin&gt;::id"]
+  C84["cgg_lang::plugins::go::&lt;GoPlugin as LanguagePlugin&gt;::extensions"]
+  C85["cgg_lang::plugins::go::&lt;GoPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C86["cgg_lang::plugins::go::&lt;GoPlugin as LanguagePlugin&gt;::ts_language"]
+  C87["cgg_lang::plugins::javascript::&lt;JavaScriptPlugin as LanguagePlugin&gt;::id"]
+  C88["cgg_lang::plugins::javascript::&lt;JavaScriptPlugin as LanguagePlugin&gt;::extensions"]
+  C89["cgg_lang::plugins::javascript::&lt;JavaScriptPlugin as LanguagePlugin&gt;::shebangs"]
+  C90["cgg_lang::plugins::javascript::&lt;JavaScriptPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C91["cgg_lang::plugins::javascript::&lt;JavaScriptPlugin as LanguagePlugin&gt;::ts_language"]
+  C92["cgg_lang::plugins::cpp::&lt;CppPlugin as LanguagePlugin&gt;::id"]
+  C93["cgg_lang::plugins::cpp::&lt;CppPlugin as LanguagePlugin&gt;::extensions"]
+  C94["cgg_lang::plugins::cpp::&lt;CppPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C95["cgg_lang::plugins::cpp::&lt;CppPlugin as LanguagePlugin&gt;::ts_language"]
+  C96["cgg_lang::plugins::java::&lt;JavaPlugin as LanguagePlugin&gt;::id"]
+  C97["cgg_lang::plugins::java::&lt;JavaPlugin as LanguagePlugin&gt;::extensions"]
+  C98["cgg_lang::plugins::java::&lt;JavaPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C99["cgg_lang::plugins::java::&lt;JavaPlugin as LanguagePlugin&gt;::ts_language"]
+  C100["cgg_lang::plugins::typescript::&lt;TypeScriptPlugin as LanguagePlugin&gt;::id"]
+  C101["cgg_lang::plugins::typescript::&lt;TypeScriptPlugin as LanguagePlugin&gt;::extensions"]
+  C102["cgg_lang::plugins::typescript::&lt;TypeScriptPlugin as LanguagePlugin&gt;::shebangs"]
+  C103["cgg_lang::plugins::typescript::&lt;TypeScriptPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C104["cgg_lang::plugins::typescript::&lt;TypeScriptPlugin as LanguagePlugin&gt;::ts_language"]
+  C105["cgg_lang::plugins::csharp::&lt;CSharpPlugin as LanguagePlugin&gt;::id"]
+  C106["cgg_lang::plugins::csharp::&lt;CSharpPlugin as LanguagePlugin&gt;::extensions"]
+  C107["cgg_lang::plugins::csharp::&lt;CSharpPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C108["cgg_lang::plugins::csharp::&lt;CSharpPlugin as LanguagePlugin&gt;::ts_language"]
+  C109["cgg_lang::plugins::c::&lt;CPlugin as LanguagePlugin&gt;::id"]
+  C110["cgg_lang::plugins::c::&lt;CPlugin as LanguagePlugin&gt;::extensions"]
+  C111["cgg_lang::plugins::c::&lt;CPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C112["cgg_lang::plugins::c::&lt;CPlugin as LanguagePlugin&gt;::ts_language"]
+  C113["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::id"]
+  C114["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::extensions"]
+  C115["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::shebangs"]
+  C116["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C117["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::ts_language"]
+  C118["cgg_lang::plugins::python::&lt;PythonPlugin as LanguagePlugin&gt;::extract"]
+  C119["cgg_lang::plugins::python::module_name"]
+  C120["cgg_lang::plugins::python::Walker&lt;'a&gt;::text"]
+  C121["cgg_lang::plugins::python::Walker&lt;'a&gt;::walk"]
+  C122["cgg_lang::plugins::python::Walker&lt;'a&gt;::walk_children"]
+  C123["cgg_lang::plugins::python::Walker&lt;'a&gt;::record_function"]
+  C124["cgg_lang::plugins::python::Walker&lt;'a&gt;::named_lambda"]
+  C125["cgg_lang::plugins::python::Walker&lt;'a&gt;::record_import"]
+  C126["cgg_lang::plugins::python::Walker&lt;'a&gt;::ref_from_call"]
+  C127["cgg_lang::plugins::python::parse_import"]
+  C128["cgg_lang::plugins::python::qualified_name"]
+  C129["cgg_lang::plugins::python::line_range"]
+  C130["cgg_lang::plugins::python::single_line"]
+  C131["cgg_lang::plugins::python::collect_decorators"]
+  C132["cgg_lang::plugins::python::starts_uppercase"]
+  C133["cgg_lang::plugins::python::tests::extract_with"]
+  C134["cgg_lang::plugins::python::tests::extract"]
+  C135["cgg_lang::plugins::python::tests::free_functions"]
+  C136["cgg_lang::plugins::python::tests::class_methods_get_class_in_name"]
+  C137["cgg_lang::plugins::python::tests::static_and_class_methods_are_variants"]
+  C138["cgg_lang::plugins::python::tests::named_lambda_is_callable"]
+  C139["cgg_lang::plugins::python::tests::imports_parsed"]
+  C140["cgg_lang::plugins::python::tests::method_calls_captured"]
+  C141["cgg_lang::plugins::python::tests::init_is_constructor"]
+  C142["cgg_lang::plugins::python::tests::async_function"]
+  C143["cgg_lang::plugins::python::tests::nested_function_qualified_name"]
+  C144["cgg_lang::plugins::rust::&lt;RustPlugin as LanguagePlugin&gt;::id"]
+  C145["cgg_lang::plugins::rust::&lt;RustPlugin as LanguagePlugin&gt;::extensions"]
+  C146["cgg_lang::plugins::rust::&lt;RustPlugin as LanguagePlugin&gt;::resolver_kind"]
+  C147["cgg_lang::plugins::rust::&lt;RustPlugin as LanguagePlugin&gt;::ts_language"]
+  C148["cgg_lang::plugins::rust::&lt;RustPlugin as LanguagePlugin&gt;::extract"]
+  C149["cgg_lang::plugins::rust::rust_module_path"]
+  C150["cgg_lang::plugins::rust::crate_dir_for"]
+  C151["cgg_lang::plugins::rust::extract_package_name"]
+  C152["cgg_lang::plugins::rust::ScopeSegment::display"]
+  C153["cgg_lang::plugins::rust::Walker&lt;'a&gt;::text"]
+  C154["cgg_lang::plugins::rust::Walker&lt;'a&gt;::walk"]
+  C155["cgg_lang::plugins::rust::Walker&lt;'a&gt;::walk_children"]
+  C156["cgg_lang::plugins::rust::Walker&lt;'a&gt;::record_function"]
+  C157["cgg_lang::plugins::rust::Walker&lt;'a&gt;::named_closure"]
+  C158["cgg_lang::plugins::rust::Walker&lt;'a&gt;::record_use"]
+  C159["cgg_lang::plugins::rust::Walker&lt;'a&gt;::ref_from_call"]
+  C160["cgg_lang::plugins::rust::qualified_name"]
+  C161["cgg_lang::plugins::rust::line_range"]
+  C162["cgg_lang::plugins::rust::single_line"]
+  C163["cgg_lang::plugins::rust::collect_attributes"]
+  C164["cgg_lang::plugins::rust::expand_use_payload"]
+  C165["cgg_lang::plugins::rust::split_top_level"]
+  C166["cgg_lang::plugins::rust::tests::extract"]
+  C167["cgg_lang::plugins::rust::tests::free_function"]
+  C168["cgg_lang::plugins::rust::tests::method_in_impl"]
+  C169["cgg_lang::plugins::rust::tests::trait_impl_method"]
+  C170["cgg_lang::plugins::rust::tests::mod_prefix"]
+  C171["cgg_lang::plugins::rust::tests::named_closure_is_callable"]
+  C172["cgg_lang::plugins::rust::tests::call_expressions_captured"]
+  C173["cgg_lang::plugins::rust::tests::use_imports_captured"]
+  C174["cgg_lang::plugins::rust::tests::use_block_imports_flatten"]
+  C175["cgg_lang::plugins::rust::tests::use_self_in_block"]
+  C176["cgg_lang::plugins::rust::tests::pub_use_is_tagged"]
+  C177["cgg_lang::plugins::rust::tests::nested_use_block_flatten"]
+  C178["cgg_lang::plugins::rust::tests::visibility_and_async_captured"]
+  C179["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C180["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C181["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C182["cgg_lang::parser::set_language"]
+  C183["cgg_lang::parser::tests::parses_all_v1_languages"]
+  C184["cgg_lang::parser::tests::amortizes_across_calls"]
+  C185["cgg_lang::parser::tests::unknown_plugin_errors"]
+  C186["cgg_lang::&lt;ResolverKind as fmt::Display&gt;::fmt"]
+  C187["cgg_lang::LanguagePlugin::id"]
+  C188["cgg_lang::LanguagePlugin::extensions"]
+  C189["cgg_lang::LanguagePlugin::shebangs"]
+  C190["cgg_lang::LanguagePlugin::resolver_kind"]
+  C191["cgg_lang::LanguagePlugin::ts_language"]
+  C192["cgg_lang::LanguagePlugin::extract"]
+  C193["cgg_lang::PluginRegistry::new"]
+  C194["cgg_lang::PluginRegistry::register"]
+  C195["cgg_lang::PluginRegistry::all"]
+  C196["cgg_lang::PluginRegistry::by_id"]
+  C197["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C198["cgg_lang::tests::v1_registry_has_9_languages"]
+  C199["cgg_lang::plugins::register_all"]
+  C200["cgg_lang::plugins::tests::every_plugin_returns_a_language"]
+  C201["cgg_format::mermaid::MermaidFormatter::new"]
+  C202["cgg_format::mermaid::&lt;MermaidFormatter as GraphFormatter&gt;::format"]
+  C203["cgg_format::mermaid::&lt;MermaidFormatter as GraphFormatter&gt;::render"]
+  C204["cgg_format::mermaid::mermaid_escape"]
+  C205["cgg_format::mermaid::tests::mk_graph"]
+  C206["cgg_format::mermaid::tests::renders_nodes_and_edge"]
+  C207["cgg_format::mermaid::tests::empty_graph_is_still_valid"]
+  C208["cgg_format::mermaid::tests::angle_brackets_escaped"]
+  C209["cgg_format::OutputFormat::default_extension"]
+  C210["cgg_format::&lt;OutputFormat as fmt::Display&gt;::fmt"]
+  C211["cgg_format::GraphFormatter::format"]
+  C212["cgg_format::GraphFormatter::render"]
+  C213["cgg_format::tests::default_extension_is_stable"]
+  C214["cgg_resolve::ResolverService::id"]
+  C215["cgg_resolve::ResolverService::document_symbols"]
+  C216["cgg_resolve::ResolverService::definition"]
+  C217["cgg_resolve::ResolverService::references"]
+  C218["cgg_resolve::ResolverService::enclosing_callable"]
+  C219["cgg_resolve::ResolverService::incoming_calls"]
+  C220["cgg_resolve::ResolverService::outgoing_calls"]
+  C221["cgg_resolve::NoopResolver::new"]
+  C222["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::id"]
+  C223["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::document_symbols"]
+  C224["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::definition"]
+  C225["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::references"]
+  C226["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::enclosing_callable"]
+  C227["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::incoming_calls"]
+  C228["cgg_resolve::&lt;NoopResolver as ResolverService&gt;::outgoing_calls"]
+  C229["cgg_resolve::tests::noop_is_noop"]
+  C230["cgg_resolve::stack_graphs_resolver::resolve"]
+  C231["cgg_resolve::stack_graphs_resolver::is_supported_language"]
+  C232["cgg_resolve::stack_graphs_resolver::resolve_language"]
+  C233["cgg_resolve::stack_graphs_resolver::span_for_node"]
+  C234["cgg_resolve::stack_graphs_resolver::enclosing_callable"]
+  C235["cgg_resolve::stack_graphs_resolver::callable_at"]
+  C236["cgg_resolve::stack_graphs_resolver::language_configuration"]
+  C237["cgg_resolve::cross_file::resolve"]
+  C238["cgg_resolve::cross_file::try_resolve_ref"]
+  C239["cgg_resolve::cross_file::lookup_with_reexports"]
+  C240["cgg_resolve::cross_file::enclosing_callable_id"]
+  C241["cgg_resolve::cross_file::tests::mk_file"]
+  C242["cgg_resolve::cross_file::tests::mk_callable"]
+  C243["cgg_resolve::cross_file::tests::mk_def"]
+  C244["cgg_resolve::cross_file::tests::facts_for"]
+  C245["cgg_resolve::cross_file::tests::python_from_import_direct_call"]
+  C246["cgg_resolve::cross_file::tests::python_module_alias_attribute_call"]
+  C247["cgg_resolve::cross_file::tests::rust_use_direct_call"]
+  C248["cgg_resolve::intra_file::link_file"]
+  C249["cgg_resolve::intra_file::enclosing_def_index"]
+  C250["cgg_resolve::intra_file::tests::mk_def"]
+  C251["cgg_resolve::intra_file::tests::mk_ref"]
+  C252["cgg_resolve::intra_file::tests::facts_with"]
+  C253["cgg_resolve::intra_file::tests::mk_map"]
+  C254["cgg_resolve::intra_file::tests::single_match_emits_edge"]
+  C255["cgg_resolve::intra_file::tests::zero_candidates_unresolved_no_candidate"]
+  C256["cgg_resolve::intra_file::tests::ambiguous_name_flags_unresolved"]
+  C257["cgg_resolve::intra_file::tests::smallest_enclosing_wins"]
+  C258["cgg_resolve::intra_file::tests::self_call_is_preserved_as_edge"]
+  C259["cgg_resolve::intra_file::tests::ref_outside_any_def_is_unresolved"]
+  C260["cgg_core::facts::DefVariant::to_callable_kind"]
+  C261["cgg_core::facts::FileFacts::new"]
+  C262["cgg_core::facts::FileFacts::is_empty"]
+  C263["cgg_core::facts::tests::variant_to_callable_kind_mapping"]
+  C264["cgg_core::facts::tests::facts_round_trip"]
+  C265["cgg_core::audit::SkipReason::slug"]
+  C266["cgg_core::audit::FileAuditBuilder::new"]
+  C267["cgg_core::audit::FileAuditBuilder::begin"]
+  C268["cgg_core::audit::FileAuditBuilder::finish"]
+  C269["cgg_core::audit::RunAuditBuilder::new"]
+  C270["cgg_core::audit::RunAuditBuilder::finish"]
+  C271["cgg_core::audit::AuditWriter::emit"]
+  C272["cgg_core::audit::AuditWriter::flush"]
+  C273["cgg_core::audit::JsonlAuditWriter&lt;W&gt;::new"]
+  C274["cgg_core::audit::&lt;JsonlAuditWriter&lt;W&gt; as std::fmt::Debug&gt;::fmt"]
+  C275["cgg_core::audit::&lt;JsonlAuditWriter&lt;W&gt; as AuditWriter&gt;::emit"]
+  C276["cgg_core::audit::&lt;JsonlAuditWriter&lt;W&gt; as AuditWriter&gt;::flush"]
+  C277["cgg_core::audit::JsonAuditWriter&lt;W&gt;::new"]
+  C278["cgg_core::audit::JsonAuditWriter&lt;W&gt;::finalize"]
+  C279["cgg_core::audit::JsonAuditWriter&lt;W&gt;::buffer"]
+  C280["cgg_core::audit::&lt;JsonAuditWriter&lt;W&gt; as std::fmt::Debug&gt;::fmt"]
+  C281["cgg_core::audit::&lt;JsonAuditWriter&lt;W&gt; as AuditWriter&gt;::emit"]
+  C282["cgg_core::audit::&lt;JsonAuditWriter&lt;W&gt; as AuditWriter&gt;::flush"]
+  C283["cgg_core::audit::tests::skip_reason_slug_stable"]
+  C284["cgg_core::audit::tests::metrics_round_trip"]
+  C285["cgg_core::audit::tests::jsonl_writer_one_per_line"]
+  C286["cgg_core::audit::tests::json_writer_emits_single_doc"]
+  C287["cgg_core::ids::ResolverId::new"]
+  C288["cgg_core::ids::ResolverId::as_str"]
+  C289["cgg_core::ids::&lt;ResolverId as fmt::Display&gt;::fmt"]
+  C290["cgg_core::ids::&lt;ResolverId as From&lt;&str&gt;&gt;::from"]
+  C291["cgg_core::graph::Graph::new"]
+  C292["cgg_core::graph::Graph::add_callable"]
+  C293["cgg_core::graph::Graph::add_file"]
+  C294["cgg_core::graph::Graph::add_edge"]
+  C295["cgg_core::graph::Graph::size"]
+  C296["cgg_core::graph::tests::mk_callable"]
+  C297["cgg_core::graph::tests::mk_file"]
+  C298["cgg_core::graph::tests::insert_and_count"]
+  C299["cgg_core::graph::tests::round_trip_json"]
+  C2 --> C3
+  C3 --> C8
+  C3 --> C6
+  C3 --> C4
+  C3 --> C9
+  C3 --> C8
+  C3 --> C5
+  C3 --> C6
+  C3 --> C4
+  C6 --> C7
+  C9 --> C9
+  C9 --> C9
+  C11 --> C10
+  C11 --> C10
+  C11 --> C2
+  C12 --> C10
+  C12 --> C10
+  C12 --> C10
+  C12 --> C2
+  C13 --> C10
+  C13 --> C10
+  C13 --> C10
+  C13 --> C2
+  C14 --> C10
+  C14 --> C10
+  C14 --> C10
+  C14 --> C2
+  C15 --> C10
+  C15 --> C2
+  C16 --> C10
+  C16 --> C2
+  C17 --> C10
+  C17 --> C2
+  C20 --> C19
+  C20 --> C19
+  C20 --> C18
+  C21 --> C19
+  C21 --> C19
+  C21 --> C18
+  C22 --> C19
+  C22 --> C19
+  C22 --> C18
+  C23 --> C19
+  C23 --> C19
+  C23 --> C19
+  C23 --> C19
+  C23 --> C19
+  C23 --> C18
+  C25 --> C19
+  C25 --> C19
+  C25 --> C19
+  C25 --> C19
+  C25 --> C19
+  C25 --> C19
+  C25 --> C19
+  C25 --> C18
+  C28 --> C27
+  C29 --> C27
+  C30 --> C27
+  C31 --> C27
+  C32 --> C27
+  C35 --> C34
+  C35 --> C33
+  C36 --> C34
+  C36 --> C33
+  C37 --> C34
+  C37 --> C33
+  C38 --> C34
+  C38 --> C33
+  C39 --> C34
+  C39 --> C33
+  C42 --> C41
+  C42 --> C41
+  C42 --> C41
+  C42 --> C41
+  C42 --> C41
+  C42 --> C40
+  C43 --> C41
+  C43 --> C40
+  C44 --> C41
+  C44 --> C41
+  C44 --> C41
+  C44 --> C40
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C46
+  C48 --> C45
+  C48 --> C47
+  C49 --> C46
+  C49 --> C46
+  C49 --> C45
+  C49 --> C47
+  C50 --> C46
+  C50 --> C46
+  C50 --> C45
+  C50 --> C47
+  C51 --> C46
+  C51 --> C46
+  C51 --> C45
+  C52 --> C46
+  C52 --> C46
+  C52 --> C45
+  C52 --> C47
+  C53 --> C54
+  C53 --> C55
+  C55 --> C56
+  C55 --> C58
+  C55 --> C57
+  C55 --> C59
+  C55 --> C60
+  C55 --> C62
+  C60 --> C61
+  C60 --> C63
+  C60 --> C61
+  C60 --> C63
+  C62 --> C61
+  C62 --> C63
+  C70 --> C73
+  C70 --> C72
+  C70 --> C71
+  C70 --> C74
+  C70 --> C71
+  C70 --> C74
+  C77 --> C75
+  C77 --> C76
+  C78 --> C75
+  C78 --> C76
+  C79 --> C75
+  C79 --> C76
+  C80 --> C75
+  C80 --> C76
+  C80 --> C76
+  C81 --> C75
+  C81 --> C76
+  C81 --> C76
+  C82 --> C75
+  C82 --> C76
+  C121 --> C120
+  C121 --> C122
+  C121 --> C123
+  C121 --> C120
+  C121 --> C122
+  C121 --> C124
+  C121 --> C122
+  C121 --> C125
+  C121 --> C126
+  C121 --> C122
+  C121 --> C122
+  C122 --> C121
+  C123 --> C120
+  C123 --> C131
+  C123 --> C132
+  C123 --> C128
+  C123 --> C129
+  C123 --> C130
+  C123 --> C120
+  C124 --> C120
+  C124 --> C128
+  C124 --> C129
+  C124 --> C130
+  C124 --> C120
+  C125 --> C120
+  C125 --> C127
+  C126 --> C120
+  C126 --> C120
+  C126 --> C120
+  C134 --> C133
+  C148 --> C149
+  C149 --> C150
+  C150 --> C151
+  C154 --> C153
+  C154 --> C155
+  C154 --> C153
+  C154 --> C153
+  C154 --> C155
+  C154 --> C153
+  C154 --> C155
+  C154 --> C156
+  C154 --> C155
+  C154 --> C156
+  C154 --> C158
+  C154 --> C155
+  C154 --> C157
+  C154 --> C155
+  C154 --> C159
+  C154 --> C155
+  C154 --> C155
+  C155 --> C154
+  C156 --> C153
+  C156 --> C153
+  C156 --> C160
+  C156 --> C161
+  C156 --> C162
+  C156 --> C153
+  C156 --> C163
+  C157 --> C153
+  C157 --> C160
+  C157 --> C161
+  C157 --> C162
+  C157 --> C153
+  C158 --> C153
+  C158 --> C164
+  C159 --> C153
+  C159 --> C153
+  C159 --> C153
+  C159 --> C153
+  C164 --> C165
+  C164 --> C164
+  C180 --> C182
+  C180 --> C180
+  C182 --> C182
+  C192 --> C187
+  C197 --> C193
+  C198 --> C197
+  C200 --> C199
+  C203 --> C204
+  C206 --> C205
+  C208 --> C205
+  C229 --> C221
+  C230 --> C231
+  C230 --> C232
+  C232 --> C236
+  C232 --> C233
+  C232 --> C234
+  C232 --> C233
+  C232 --> C235
+  C237 --> C238
+  C237 --> C240
+  C238 --> C239
+  C238 --> C239
+  C238 --> C239
+  C238 --> C239
+  C238 --> C239
+  C245 --> C241
+  C245 --> C241
+  C245 --> C242
+  C245 --> C242
+  C245 --> C244
+  C245 --> C244
+  C245 --> C237
+  C246 --> C241
+  C246 --> C241
+  C246 --> C242
+  C246 --> C242
+  C246 --> C244
+  C246 --> C244
+  C246 --> C237
+  C247 --> C241
+  C247 --> C241
+  C247 --> C242
+  C247 --> C242
+  C247 --> C244
+  C247 --> C244
+  C247 --> C237
+  C248 --> C249
+  C254 --> C252
+  C254 --> C253
+  C254 --> C248
+  C255 --> C252
+  C255 --> C253
+  C255 --> C248
+  C256 --> C252
+  C256 --> C253
+  C256 --> C248
+  C257 --> C252
+  C257 --> C253
+  C257 --> C248
+  C258 --> C252
+  C258 --> C253
+  C258 --> C248
+  C259 --> C252
+  C259 --> C253
+  C259 --> C248
+  C264 --> C261
+  C298 --> C291
+  C298 --> C297
+  C298 --> C296
+  C298 --> C296
+  C299 --> C291
+  C299 --> C297
+  C299 --> C296
+  C55 --> C2
+  C55 --> C197
+  C55 --> C291
+  C55 --> C248
+  C55 --> C230
+  C55 --> C237
+  C205 --> C291
+  C205 --> C287
+  C207 --> C291
+  C232 --> C287
+  C232 --> C287
+  C237 --> C287
+  C245 --> C291
+  C246 --> C291
+  C247 --> C291
+  C248 --> C287

@@ -90,7 +90,10 @@ pub fn resolve(
 }
 
 fn is_supported_language(lang: &str) -> bool {
-    matches!(lang, "python" | "javascript" | "typescript" | "java")
+    matches!(
+        lang,
+        "python" | "javascript" | "typescript" | "java" | "rust"
+    )
 }
 
 fn resolve_language(
@@ -206,7 +209,11 @@ fn resolve_language(
         refs_by_file.entry(cgg_file).or_default().push((node, byte));
     }
 
-    let resolver_id = ResolverId::new(format!("stack-graphs:{lang}"));
+    let resolver_id = if lang == "rust" {
+        ResolverId::new("tsg:rust")
+    } else {
+        ResolverId::new(format!("stack-graphs:{lang}"))
+    };
     let mut out = ResolveOutput::default();
 
     // Drive resolution from our tree-sitter call-site records, not
@@ -437,6 +444,26 @@ fn language_configuration(
             .map_err(|e| anyhow::anyhow!("typescript language-configuration: {e}"))?,
         "java" => tree_sitter_stack_graphs_java::try_language_configuration(cancel)
             .map_err(|e| anyhow::anyhow!("java language-configuration: {e}"))?,
+        "rust" => {
+            // Minimal hand-rolled rules (see src/tsg/rust.tsg). The
+            // scope it covers is intentionally narrow — the
+            // cross-file resolver carries the weight for Rust.
+            LanguageConfiguration::from_sources(
+                tree_sitter_rust::LANGUAGE.into(),
+                Some(String::from("source.rust")),
+                None,
+                vec![String::from("rs")],
+                std::path::PathBuf::from("rust.tsg"),
+                RUST_TSG_SOURCE,
+                None,
+                None,
+                cancel,
+            )
+            .map_err(|e| anyhow::anyhow!("rust language-configuration: {e}"))?
+        }
         other => return Err(anyhow::anyhow!("unsupported stack-graphs language: {other}")),
     })
 }
+
+/// In-tree stack-graphs rules for Rust, embedded at compile time.
+const RUST_TSG_SOURCE: &str = include_str!("tsg/rust.tsg");

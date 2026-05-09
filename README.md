@@ -40,16 +40,16 @@ cgg ./crates/cgg-walk -t mermaid -o walk.mmd
 <!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
-  C0["WalkOutcome::is_empty"]
-  C1["<WalkConfig as Default>::default"]
-  C2["walk"]
-  C3["walk_one"]
-  C4["push_candidate"]
-  C5["is_symlink_chain"]
-  C6["classify_file"]
-  C7["is_binary"]
-  C8["builtin_reason"]
-  C9["extract_err_path"]
+  C0["cgg_walk::WalkOutcome::is_empty"]
+  C1["cgg_walk::<WalkConfig as Default>::default"]
+  C2["cgg_walk::walk"]
+  C3["cgg_walk::walk_one"]
+  C4["cgg_walk::push_candidate"]
+  C5["cgg_walk::is_symlink_chain"]
+  C6["cgg_walk::classify_file"]
+  C7["cgg_walk::is_binary"]
+  C8["cgg_walk::builtin_reason"]
+  C9["cgg_walk::extract_err_path"]
   C2 --> C3
   C3 --> C4
   C3 --> C5
@@ -79,33 +79,35 @@ cgg ./crates/cgg-lang/src/detect.rs ./crates/cgg-lang/src/parser.rs \
 <!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
-  C0["LanguageDetector<'r>::new"]
-  C1["LanguageDetector<'r>::detect"]
-  C2["LanguageDetector<'r>::match_ext"]
-  C3["extension"]
-  C4["read_shebang"]
-  C5["header_verdict"]
-  C14["ParserPool<'r>::new"]
-  C15["ParserPool<'r>::parse"]
-  C16["ParserPool<'r>::plugin"]
-  C17["set_language"]
-  C21["<ResolverKind as fmt::Display>::fmt"]
-  C22["LanguagePlugin::id"]
-  C23["LanguagePlugin::extensions"]
-  C24["LanguagePlugin::shebangs"]
-  C25["LanguagePlugin::resolver_kind"]
-  C26["LanguagePlugin::ts_language"]
-  C27["LanguagePlugin::extract"]
-  C28["PluginRegistry::new"]
-  C29["PluginRegistry::register"]
-  C30["PluginRegistry::all"]
-  C31["PluginRegistry::by_id"]
-  C32["PluginRegistry::with_v1_plugins"]
+  C0["cgg_lang::detect::LanguageDetector<'r>::new"]
+  C1["cgg_lang::detect::LanguageDetector<'r>::detect"]
+  C2["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
+  C3["cgg_lang::detect::extension"]
+  C4["cgg_lang::detect::read_shebang"]
+  C5["cgg_lang::detect::header_verdict"]
+  C14["cgg_lang::parser::ParserPool<'r>::new"]
+  C15["cgg_lang::parser::ParserPool<'r>::parse"]
+  C16["cgg_lang::parser::ParserPool<'r>::plugin"]
+  C17["cgg_lang::parser::set_language"]
+  C21["cgg_lang::<ResolverKind as fmt::Display>::fmt"]
+  C22["cgg_lang::LanguagePlugin::id"]
+  C23["cgg_lang::LanguagePlugin::extensions"]
+  C24["cgg_lang::LanguagePlugin::shebangs"]
+  C25["cgg_lang::LanguagePlugin::resolver_kind"]
+  C26["cgg_lang::LanguagePlugin::ts_language"]
+  C27["cgg_lang::LanguagePlugin::extract"]
+  C28["cgg_lang::PluginRegistry::new"]
+  C29["cgg_lang::PluginRegistry::register"]
+  C30["cgg_lang::PluginRegistry::all"]
+  C31["cgg_lang::PluginRegistry::by_id"]
+  C32["cgg_lang::PluginRegistry::with_v1_plugins"]
   C1 --> C2
   C1 --> C3
   C1 --> C4
   C1 --> C5
+  C15 --> C15
   C15 --> C17
+  C17 --> C17
   C27 --> C22
   C32 --> C28
 ```

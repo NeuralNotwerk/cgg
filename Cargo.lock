@@ -265,6 +265,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "tree-sitter",
+ "tree-sitter-rust",
  "tree-sitter-stack-graphs",
  "tree-sitter-stack-graphs-java",
  "tree-sitter-stack-graphs-javascript",

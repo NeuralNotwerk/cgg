@@ -14,6 +14,7 @@ serde     = { workspace = true }
 tracing   = { workspace = true }
 
 tree-sitter                         = { workspace = true }
+tree-sitter-rust                    = { workspace = true }
 stack-graphs                        = { workspace = true }
 tree-sitter-stack-graphs            = { workspace = true }
 tree-sitter-stack-graphs-python     = { workspace = true }

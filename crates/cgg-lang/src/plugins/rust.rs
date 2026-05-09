@@ -52,14 +52,154 @@ impl LanguagePlugin for RustPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "rust");
+        let (crate_root, module_segments) = rust_module_path(path);
+        // Record the crate root as a synthetic import so downstream
+        // consumers (cross-file resolver, re-export chain builder)
+        // know which crate this file belongs to, even when the file
+        // has no callable definitions of its own (e.g., a lib.rs
+        // that only re-exports).
+        facts.imports.push(ImportRecord {
+            kind: "crate-root".into(),
+            path: crate_root.clone(),
+            alias: String::new(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut scope: Vec<ScopeSegment> = vec![ScopeSegment::Crate(crate_root)];
+        for seg in module_segments {
+            scope.push(ScopeSegment::Mod(seg));
+        }
         let mut walker = Walker {
             source,
             facts: &mut facts,
-            scope: vec![ScopeSegment::Crate("crate".into())],
+            scope,
         };
         walker.walk(tree.root_node());
         facts
     }
+}
+
+/// Compute `(crate_root, [module_segment, ...])` for a Rust source file.
+///
+/// Walks up to find a `Cargo.toml`. The path from the crate's `src/`
+/// directory down to the file becomes the module segments:
+///
+/// * `src/lib.rs` / `src/main.rs`       -> no module segments.
+/// * `src/foo.rs`                       -> `foo`.
+/// * `src/foo/mod.rs`                   -> `foo`.
+/// * `src/foo/bar.rs`                   -> `foo::bar`.
+/// * `src/bin/name.rs`                  -> `` (binary roots; no segments).
+/// * `tests/name.rs`                    -> `` (integration test root).
+fn rust_module_path(path: &Path) -> (String, Vec<String>) {
+    let (crate_root, crate_dir) = match crate_dir_for(path) {
+        Some((name, dir)) => (name.replace('-', "_"), dir),
+        None => return ("crate".to_string(), Vec::new()),
+    };
+
+    // Relative path from the crate root to the file.
+    let rel = match path.strip_prefix(&crate_dir) {
+        Ok(p) => p.to_path_buf(),
+        Err(_) => return (crate_root, Vec::new()),
+    };
+
+    let components: Vec<String> = rel
+        .components()
+        .filter_map(|c| c.as_os_str().to_str().map(|s| s.to_string()))
+        .collect();
+
+    // Drop the leading `src` or `tests`/`benches`/etc. container.
+    let segs: Vec<String> = match components.first().map(|s| s.as_str()) {
+        Some("src") => components[1..].to_vec(),
+        Some("tests") | Some("benches") | Some("examples") => {
+            // Each test/bench/example is its own compilation unit —
+            // treat them as separate roots with no shared module path.
+            return (crate_root, Vec::new());
+        }
+        _ => components,
+    };
+
+    if segs.is_empty() {
+        return (crate_root, Vec::new());
+    }
+
+    // `lib.rs` and `main.rs` sit at the crate root.
+    let last = segs.last().map(|s| s.as_str()).unwrap_or("");
+    if segs.len() == 1 && matches!(last, "lib.rs" | "main.rs") {
+        return (crate_root, Vec::new());
+    }
+
+    // `bin/<name>.rs` / `bin/<name>/main.rs` — binary target. Strip
+    // the `bin` segment; the bin is its own crate-root-equivalent.
+    if segs.first().map(|s| s.as_str()) == Some("bin") {
+        return (crate_root, Vec::new());
+    }
+
+    // Drop the file extension on the last segment.
+    let mut mods: Vec<String> = segs
+        .iter()
+        .take(segs.len() - 1)
+        .cloned()
+        .collect();
+    let last = segs.last().unwrap();
+    if last == "mod.rs" {
+        // `foo/mod.rs` -> [foo] (mods already contains ["foo"])
+    } else if let Some(stem) = std::path::Path::new(last)
+        .file_stem()
+        .and_then(|s| s.to_str())
+    {
+        mods.push(stem.to_string());
+    }
+    (crate_root, mods)
+}
+
+/// Walk up to find the enclosing `Cargo.toml` and return (crate name, crate root dir).
+fn crate_dir_for(path: &Path) -> Option<(String, std::path::PathBuf)> {
+    let mut dir = path.parent();
+    while let Some(d) = dir {
+        let cargo = d.join("Cargo.toml");
+        if cargo.exists() {
+            if let Ok(text) = std::fs::read_to_string(&cargo) {
+                if let Some(name) = extract_package_name(&text) {
+                    return Some((name, d.to_path_buf()));
+                }
+            }
+            return None;
+        }
+        dir = d.parent();
+    }
+    None
+}
+
+/// Best-effort extraction of `name = "…"` from a `[package]` section.
+/// No full TOML parse to keep the plugin's dependency footprint small.
+fn extract_package_name(text: &str) -> Option<String> {
+    let mut in_package = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_package = trimmed == "[package]";
+            continue;
+        }
+        if !in_package {
+            continue;
+        }
+        if let Some(rest) = trimmed.strip_prefix("name") {
+            let rest = rest.trim_start_matches([' ', '\t']);
+            if let Some(rest) = rest.strip_prefix('=') {
+                let value = rest.trim();
+                if let Some(stripped) = value
+                    .strip_prefix('"')
+                    .and_then(|s| s.strip_suffix('"'))
+                {
+                    return Some(stripped.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// A scope-stack entry tagged by origin. Joined into qualified names
@@ -314,33 +454,36 @@ impl<'a> Walker<'a> {
     }
 
     fn record_use(&mut self, node: Node) {
-        // Strip `use` and `;`, serialize the tree text, and record the
-        // raw path string. Aliases are detected via `as` inside the
-        // path. This is intentionally loose — Task 6 parses paths
-        // structurally for resolution.
+        // Parse the tree-sitter AST of the use declaration properly
+        // so we can split `use a::b::{X, Y as Z};` into per-item
+        // import records, and track `pub use` re-exports.
         let text = self.text(node);
-        let core = text
+        let is_pub = text.trim_start().starts_with("pub");
+        let start_line = (node.start_position().row as u32) + 1;
+        let start_byte = node.start_byte() as u32;
+
+        // The argument of `use_declaration` is always a single
+        // `use_clause`-ish subtree. Rather than re-implementing the
+        // grammar, strip the prose (`use`, optional `pub`, trailing
+        // `;`) and parse the payload string.
+        let payload = text
+            .trim()
+            .trim_start_matches("pub")
+            .trim()
             .trim_start_matches("use")
             .trim()
             .trim_end_matches(';')
-            .trim()
-            .to_string();
-        let (path, alias) = if let Some(idx) = core.rfind(" as ") {
-            (
-                core[..idx].to_string(),
-                core[idx + 4..].to_string(),
-            )
-        } else {
-            (core, String::new())
-        };
-        let start_line = (node.start_position().row as u32) + 1;
-        self.facts.imports.push(ImportRecord {
-            kind: "use".into(),
-            path,
-            alias,
-            site_line: start_line,
-            site_byte: node.start_byte() as u32,
-        });
+            .trim();
+        let kind = if is_pub { "pub-use" } else { "use" };
+        for (path, alias) in expand_use_payload(payload) {
+            self.facts.imports.push(ImportRecord {
+                kind: kind.into(),
+                path,
+                alias,
+                site_line: start_line,
+                site_byte: start_byte,
+            });
+        }
     }
 
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
@@ -417,10 +560,135 @@ fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
     out
 }
 
+/// Expand a `use_declaration` payload into `(path, alias)` pairs.
+///
+/// Handles:
+///   * `a::b::c`                    -> [("a::b::c", "")]
+///   * `a::b::c as d`               -> [("a::b::c", "d")]
+///   * `a::b::{X, Y as Z}`          -> [("a::b::X", ""), ("a::b::Y", "Z")]
+///   * `a::b::{X, self}`            -> [("a::b::X", ""), ("a::b", "")]
+///   * `a::b::*`                    -> [("a::b::*", "")] (marker; the
+///                                     cross-file resolver treats `*`
+///                                     as a wildcard).
+///
+/// Nested groups (`a::{b::{X, Y}, Z}`) are flattened recursively.
+fn expand_use_payload(payload: &str) -> Vec<(String, String)> {
+    let payload = payload.trim();
+    if payload.is_empty() {
+        return Vec::new();
+    }
+
+    // Split at the `::{` that starts the first group, if any, at
+    // depth 0.
+    let bytes = payload.as_bytes();
+    let mut depth: i32 = 0;
+    let mut brace_start: Option<usize> = None;
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'{' => {
+                if depth == 0 && brace_start.is_none() {
+                    brace_start = Some(i);
+                }
+                depth += 1;
+            }
+            b'}' => depth -= 1,
+            _ => {}
+        }
+        i += 1;
+    }
+
+    if let Some(bs) = brace_start {
+        // Strip the trailing `::` (if any) before the group.
+        let head = payload[..bs].trim_end_matches(':').trim_end_matches(':');
+        let head = head.trim_end_matches("::").trim();
+        // Find the matching closing brace.
+        let mut d = 0i32;
+        let mut be: Option<usize> = None;
+        for (j, b) in bytes[bs..].iter().enumerate() {
+            match b {
+                b'{' => d += 1,
+                b'}' => {
+                    d -= 1;
+                    if d == 0 {
+                        be = Some(bs + j);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let Some(be) = be else {
+            // Malformed; emit the raw payload.
+            return vec![(payload.to_string(), String::new())];
+        };
+        let inner = &payload[bs + 1..be];
+
+        // Split inner by top-level commas.
+        let mut out = Vec::new();
+        for item in split_top_level(inner) {
+            let item = item.trim();
+            if item.is_empty() {
+                continue;
+            }
+            // `self` means "the head module itself".
+            if item == "self" {
+                out.push((head.to_string(), String::new()));
+                continue;
+            }
+            for (sub_path, sub_alias) in expand_use_payload(item) {
+                let joined = if head.is_empty() {
+                    sub_path
+                } else {
+                    format!("{head}::{sub_path}")
+                };
+                out.push((joined, sub_alias));
+            }
+        }
+        return out;
+    }
+
+    // No group — handle `a::b::c as d` and `a::b::c`.
+    if let Some(idx) = payload.rfind(" as ") {
+        let path = payload[..idx].trim().to_string();
+        let alias = payload[idx + 4..].trim().to_string();
+        return vec![(path, alias)];
+    }
+    vec![(payload.to_string(), String::new())]
+}
+
+/// Split a string by top-level commas (respecting nested braces).
+fn split_top_level(input: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut depth = 0i32;
+    let mut cur = String::new();
+    for ch in input.chars() {
+        match ch {
+            '{' => {
+                depth += 1;
+                cur.push(ch);
+            }
+            '}' => {
+                depth -= 1;
+                cur.push(ch);
+            }
+            ',' if depth == 0 => {
+                parts.push(std::mem::take(&mut cur));
+            }
+            _ => cur.push(ch),
+        }
+    }
+    if !cur.trim().is_empty() {
+        parts.push(cur);
+    }
+    parts
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use cgg_core::ids::FileId;
+    use cgg_core::ImportRecord;
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
@@ -428,7 +696,17 @@ mod tests {
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
         let tree = parser.parse(src, None).unwrap();
-        RustPlugin.extract(FileId::new(0), &PathBuf::from("x.rs"), &tree, src.as_bytes())
+        // Use an absolute path that lives outside any cargo workspace
+        // so `crate_name_for` falls back to the literal `"crate"`
+        // root — the legacy behavior the rest of the assertions
+        // depend on. Task 6a's integration tests cover the real
+        // crate-name path.
+        RustPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.rs"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]
@@ -539,12 +817,59 @@ fn helper() {}
     fn use_imports_captured() {
         let src = "use a::b::c;\nuse x::y as z;\nfn main() {}\n";
         let f = extract(src);
-        assert_eq!(f.imports.len(), 2);
-        assert_eq!(f.imports[0].kind, "use");
-        assert_eq!(f.imports[0].path, "a::b::c");
-        assert_eq!(f.imports[0].alias, "");
-        assert_eq!(f.imports[1].path, "x::y");
-        assert_eq!(f.imports[1].alias, "z");
+        let uses: Vec<&ImportRecord> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "use" || i.kind == "pub-use")
+            .collect();
+        assert_eq!(uses.len(), 2);
+        assert_eq!(uses[0].kind, "use");
+        assert_eq!(uses[0].path, "a::b::c");
+        assert_eq!(uses[0].alias, "");
+        assert_eq!(uses[1].path, "x::y");
+        assert_eq!(uses[1].alias, "z");
+    }
+
+    #[test]
+    fn use_block_imports_flatten() {
+        let src = "use a::b::{X, Y as Z};\nfn main() {}\n";
+        let f = extract(src);
+        let pairs: Vec<(String, String)> = f
+            .imports
+            .iter()
+            .map(|i| (i.path.clone(), i.alias.clone()))
+            .collect();
+        assert!(pairs.contains(&("a::b::X".into(), "".into())), "got: {pairs:?}");
+        assert!(pairs.contains(&("a::b::Y".into(), "Z".into())), "got: {pairs:?}");
+    }
+
+    #[test]
+    fn use_self_in_block() {
+        let src = "use a::b::{self, X};\nfn main() {}\n";
+        let f = extract(src);
+        let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.contains(&"a::b"), "got: {paths:?}");
+        assert!(paths.contains(&"a::b::X"), "got: {paths:?}");
+    }
+
+    #[test]
+    fn pub_use_is_tagged() {
+        let src = "pub use a::b::c;\nfn main() {}\n";
+        let f = extract(src);
+        let pub_uses: Vec<&ImportRecord> =
+            f.imports.iter().filter(|i| i.kind == "pub-use").collect();
+        assert_eq!(pub_uses.len(), 1);
+        assert_eq!(pub_uses[0].path, "a::b::c");
+    }
+
+    #[test]
+    fn nested_use_block_flatten() {
+        let src = "use a::{b::{X, Y}, c::Z};\nfn main() {}\n";
+        let f = extract(src);
+        let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.contains(&"a::b::X"), "got: {paths:?}");
+        assert!(paths.contains(&"a::b::Y"), "got: {paths:?}");
+        assert!(paths.contains(&"a::c::Z"), "got: {paths:?}");
     }
 
     #[test]

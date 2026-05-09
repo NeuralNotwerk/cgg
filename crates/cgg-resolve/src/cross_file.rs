@@ -57,6 +57,47 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
             .push(c.id);
     }
 
+    // Build a re-export map (Rust only, for now). Every `pub use` in a
+    // file that lives under an identifiable crate makes that symbol
+    // appear under the re-exporting crate's namespace. Example:
+    //   crate cgg_core/src/lib.rs contains `pub use audit::AuditEvent;`
+    //   => `cgg_core::AuditEvent` resolves to whatever
+    //      `cgg_core::audit::AuditEvent` resolves to.
+    let mut reexports: HashMap<(String, String), String> = HashMap::new();
+    for f in facts {
+        if f.language != "rust" {
+            continue;
+        }
+        // Prefer the explicit crate-root marker emitted by the Rust
+        // plugin; fall back to the first definition's crate prefix
+        // or the literal "crate" sentinel.
+        let crate_root = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "crate-root")
+            .map(|i| i.path.clone())
+            .or_else(|| {
+                f.definitions
+                    .first()
+                    .and_then(|d| d.qualified_name.split("::").next())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| "crate".to_string());
+        for imp in &f.imports {
+            if imp.kind != "pub-use" {
+                continue;
+            }
+            let target = imp.path.clone();
+            let exported_name = if imp.alias.is_empty() {
+                target.rsplit("::").next().unwrap_or(&target).to_string()
+            } else {
+                imp.alias.clone()
+            };
+            let alias_qn = format!("{crate_root}::{exported_name}");
+            reexports.insert(("rust".to_string(), alias_qn), target);
+        }
+    }
+
     let facts_by_id: HashMap<FileId, &FileFacts> =
         facts.iter().map(|f| (f.file, f)).collect();
 
@@ -105,7 +146,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         }
                     }
                 }
-                "use" => {
+                "use" | "pub-use" => {
                     // Rust: `a::b::c` or `a::b::c as d`.
                     let full = imp.path.trim();
                     let alias = if imp.alias.is_empty() {
@@ -133,6 +174,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 &module_aliases,
                 &by_qn,
                 &by_simple,
+                &reexports,
             ) {
                 let enclosing = enclosing_callable_id(graph, facts, r.site_byte);
                 for cid in cids {
@@ -177,6 +219,7 @@ fn try_resolve_ref(
     module_aliases: &HashMap<String, String>,
     by_qn: &HashMap<(String, String), CallableId>,
     _by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    reexports: &HashMap<(String, String), String>,
 ) -> Option<Vec<CallableId>> {
     // Step 1: direct import match — `foo()` where `foo` was
     // imported.
@@ -184,7 +227,7 @@ fn try_resolve_ref(
         if let Some(qns) = direct_imports.get(&r.name) {
             let cids: Vec<_> = qns
                 .iter()
-                .filter_map(|qn| by_qn.get(&(lang.to_string(), qn.clone())).copied())
+                .filter_map(|qn| lookup_with_reexports(lang, qn, by_qn, reexports))
                 .collect();
             if !cids.is_empty() {
                 return Some(cids);
@@ -208,15 +251,69 @@ fn try_resolve_ref(
                 "{module}{rest}.{}",
                 r.name
             );
-            if let Some(cid) = by_qn.get(&(lang.to_string(), qn.clone())).copied() {
+            if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
                 return Some(vec![cid]);
             }
             // Rust path joiner.
             let qn2 = format!("{module}{}::{}", rest.replace('.', "::"), r.name);
-            if let Some(cid) = by_qn.get(&(lang.to_string(), qn2)).copied() {
+            if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
                 return Some(vec![cid]);
             }
         }
+
+        // Step 3: qualified-path call `foo::bar::baz()`. The
+        // receiver_hint is already the dotted/colon-joined path. Try
+        // it directly. If the leading segment is an import alias for
+        // a longer path, also try that rewrite.
+        let rh = r.receiver_hint.trim();
+        if !rh.is_empty() {
+            // Direct path: `receiver::name`.
+            let direct = format!("{rh}::{}", r.name);
+            if let Some(cid) = lookup_with_reexports(lang, &direct, by_qn, reexports) {
+                return Some(vec![cid]);
+            }
+            // If the head segment is imported as something else, rewrite.
+            // e.g., `use foo as f; f::bar()` -> receiver=f, name=bar -> foo::bar.
+            if let Some(first) = rh.split("::").next() {
+                if let Some(qns) = direct_imports.get(first) {
+                    for base in qns {
+                        let rewritten = format!(
+                            "{base}{}::{}",
+                            rh.strip_prefix(first).unwrap_or(""),
+                            r.name
+                        );
+                        if let Some(cid) =
+                            lookup_with_reexports(lang, &rewritten, by_qn, reexports)
+                        {
+                            return Some(vec![cid]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Look up `qn` in the callable index, following Rust `pub use`
+/// re-export chains up to a small depth cap so malformed graphs can't
+/// loop.
+fn lookup_with_reexports(
+    lang: &str,
+    qn: &str,
+    by_qn: &HashMap<(String, String), CallableId>,
+    reexports: &HashMap<(String, String), String>,
+) -> Option<CallableId> {
+    let mut current = qn.to_string();
+    for _ in 0..8 {
+        if let Some(cid) = by_qn.get(&(lang.to_string(), current.clone())).copied() {
+            return Some(cid);
+        }
+        if let Some(next) = reexports.get(&(lang.to_string(), current.clone())) {
+            current = next.clone();
+            continue;
+        }
+        return None;
     }
     None
 }

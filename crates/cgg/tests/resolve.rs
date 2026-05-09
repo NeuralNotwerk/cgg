@@ -117,3 +117,173 @@ fn audit_records_medium_confidence_for_cross_file() {
         "expected medium-confidence edge: {confidence}"
     );
 }
+
+#[test]
+fn rust_cross_crate_use_resolves() {
+    // Two-crate workspace; upstream defines `helper`, downstream
+    // calls it via `use upstream::helper`.
+    let tmp = TempDir::new().unwrap();
+
+    // Workspace root
+    write(
+        tmp.path(),
+        "Cargo.toml",
+        br#"[workspace]
+members = ["upstream", "downstream"]
+"#,
+    );
+
+    // Upstream crate
+    write(
+        tmp.path(),
+        "upstream/Cargo.toml",
+        br#"[package]
+name = "upstream"
+version = "0.0.0"
+edition = "2021"
+"#,
+    );
+    write(
+        tmp.path(),
+        "upstream/src/lib.rs",
+        b"pub fn helper() -> u32 { 42 }\npub fn unused() {}\n",
+    );
+
+    // Downstream crate
+    write(
+        tmp.path(),
+        "downstream/Cargo.toml",
+        br#"[package]
+name = "downstream"
+version = "0.0.0"
+edition = "2021"
+"#,
+    );
+    write(
+        tmp.path(),
+        "downstream/src/lib.rs",
+        b"use upstream::helper;\n\npub fn caller() -> u32 { helper() }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    // Both crates must have their callables extracted with the
+    // crate-prefixed qualified name.
+    assert!(g.contains("upstream::helper"), "missing upstream::helper in:\n{g}");
+    assert!(
+        g.contains("downstream::caller"),
+        "missing downstream::caller in:\n{g}"
+    );
+    // And a cross-crate edge downstream::caller -> upstream::helper.
+    // Find the node ids and verify the arrow.
+    let node_id = |qn: &str| {
+        g.lines()
+            .find_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+    };
+    let caller = node_id("downstream::caller").expect("node");
+    let helper = node_id("upstream::helper").expect("node");
+    let arrow = format!("{caller} --> {helper}");
+    assert!(g.contains(&arrow), "missing edge {arrow} in:\n{g}");
+}
+
+#[test]
+fn rust_pub_use_reexport_chains() {
+    // `facade` re-exports `core_::work` as its own symbol; a caller
+    // that imports `facade::work` should still resolve to the
+    // original definition in `core_`.
+    let tmp = TempDir::new().unwrap();
+
+    write(
+        tmp.path(),
+        "Cargo.toml",
+        br#"[workspace]
+members = ["core_", "facade", "caller"]
+"#,
+    );
+
+    write(
+        tmp.path(),
+        "core_/Cargo.toml",
+        br#"[package]
+name = "core_"
+version = "0.0.0"
+edition = "2021"
+"#,
+    );
+    write(
+        tmp.path(),
+        "core_/src/lib.rs",
+        b"pub fn work() -> i32 { 7 }\n",
+    );
+
+    write(
+        tmp.path(),
+        "facade/Cargo.toml",
+        br#"[package]
+name = "facade"
+version = "0.0.0"
+edition = "2021"
+"#,
+    );
+    write(
+        tmp.path(),
+        "facade/src/lib.rs",
+        b"pub use core_::work;\n",
+    );
+
+    write(
+        tmp.path(),
+        "caller/Cargo.toml",
+        br#"[package]
+name = "caller"
+version = "0.0.0"
+edition = "2021"
+"#,
+    );
+    write(
+        tmp.path(),
+        "caller/src/lib.rs",
+        b"use facade::work;\n\npub fn run() -> i32 { work() }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    // caller::run -> core_::work  (through the facade re-export).
+    assert!(g.contains("core_::work"), "missing core_::work in:\n{g}");
+    assert!(g.contains("caller::run"), "missing caller::run in:\n{g}");
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let run = node_id("caller::run").expect("node");
+    let work = node_id("core_::work").expect("node");
+    let arrow = format!("{run} --> {work}");
+    assert!(g.contains(&arrow), "re-export chain missing edge {arrow}:\n{g}");
+}
