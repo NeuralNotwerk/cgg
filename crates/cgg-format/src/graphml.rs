@@ -59,7 +59,7 @@ mod tests {
         g.add_file(FileRecord {
             id: FileId::new(0), path: PathBuf::from("a.rs"),
             language: "rust".into(), detected_via: "ext".into(),
-            sha256: "0".repeat(64), size_bytes: 10, lines: 1,
+            blake3: "0".repeat(64), size_bytes: 10, lines: 1,
             parse_ms: 0.1, parse_status: "ok".into(),
         });
         g.add_callable(CallableNode {

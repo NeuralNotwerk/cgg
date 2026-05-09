@@ -84,7 +84,7 @@ mod tests {
             path: PathBuf::from("t.rs"),
             language: "rust".into(),
             detected_via: "extension:.rs".into(),
-            sha256: "0".repeat(64),
+            blake3: "0".repeat(64),
             size_bytes: 10,
             lines: 1,
             parse_ms: 0.1,

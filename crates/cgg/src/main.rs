@@ -20,8 +20,10 @@ use std::time::Instant;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use tracing::{debug, info};
+use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
+
+use rayon::prelude::*;
 
 use cgg_core::audit::{
     AuditCallableRef, AuditEvent, AuditFileRecord, JsonAuditWriter, JsonlAuditWriter,
@@ -151,150 +153,201 @@ fn run(cli: Cli) -> Result<()> {
     // Retained source bytes per file, used by the stack-graphs resolver.
     let mut sources: Vec<(FileId, String, Vec<u8>)> = Vec::new();
 
-    for cand in &outcome.candidates {
-        metrics.bytes_processed += cand.size_bytes;
-        events.push(AuditEvent::FileDiscovered {
-            path: cand.path.clone(),
-        });
+    // --- Parallel phase: detect + read + hash + parse + extract -----------
+    // Each candidate is processed independently; results are merged below.
+    struct FileResult {
+        path: std::path::PathBuf,
+        lang: String,
+        detected_via: String,
+        hash: String,
+        size_bytes: u64,
+        lines: u32,
+        parse_ms: f64,
+        parse_status: String,
+        facts: Option<FileFacts>,
+        bytes: Vec<u8>,
+    }
+    enum FileOutcome {
+        Analyzed(FileResult),
+        Skipped { path: std::path::PathBuf, reason: SkipReason },
+    }
 
-        let det = detector.detect(&cand.path);
-        let lang = match det.verdict {
-            DetectVerdict::Language(id) if langs_enabled(id) => id,
-            DetectVerdict::Language(id) => {
-                events.push(AuditEvent::FileSkipped {
-                    path: cand.path.clone(),
-                    reason: SkipReason::Builtin(format!("lang-filter:{id}")),
-                });
-                metrics.files_skipped += 1;
-                continue;
-            }
-            DetectVerdict::Unknown => {
-                events.push(AuditEvent::FileSkipped {
-                    path: cand.path.clone(),
-                    reason: SkipReason::UnknownExtension,
-                });
-                metrics.files_skipped += 1;
-                continue;
-            }
-        };
+    // Configure rayon thread pool if --jobs specified.
+    if cli.jobs > 0 {
+        let _ = rayon::ThreadPoolBuilder::new()
+            .num_threads(cli.jobs)
+            .build_global();
+    }
 
-        let bytes = match read_file(&cand.path) {
-            Ok(b) => b,
-            Err(err) => {
-                events.push(AuditEvent::FileSkipped {
-                    path: cand.path.clone(),
-                    reason: SkipReason::ParseError(err.to_string()),
-                });
-                metrics.files_errored += 1;
-                continue;
-            }
-        };
+    let results: Vec<FileOutcome> = outcome
+        .candidates
+        .par_iter()
+        .map(|cand| {
+            let det = detector.detect(&cand.path);
+            let lang = match det.verdict {
+                DetectVerdict::Language(id) if langs_enabled(id) => id,
+                DetectVerdict::Language(id) => {
+                    return FileOutcome::Skipped {
+                        path: cand.path.clone(),
+                        reason: SkipReason::Builtin(format!("lang-filter:{id}")),
+                    };
+                }
+                DetectVerdict::Unknown => {
+                    return FileOutcome::Skipped {
+                        path: cand.path.clone(),
+                        reason: SkipReason::UnknownExtension,
+                    };
+                }
+            };
 
-        let sha = blake3::hash(&bytes).to_hex().to_string();
-        let line_count = count_lines(&bytes);
-        let file_id = FileId::new(next_file_id);
+            let bytes = match read_file(&cand.path) {
+                Ok(b) => b,
+                Err(err) => {
+                    return FileOutcome::Skipped {
+                        path: cand.path.clone(),
+                        reason: SkipReason::ParseError(err.to_string()),
+                    };
+                }
+            };
 
-        let (parse_status, parse_ms, tree) = match pool.parse(lang, &bytes) {
-            Ok(out) => {
-                let status = if out.tree.root_node().has_error() {
-                    "error"
+            let hash = blake3::hash(&bytes).to_hex().to_string();
+            let line_count = count_lines(&bytes);
+
+            let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
+                Ok(out) => {
+                    let status = if out.tree.root_node().has_error() {
+                        "error"
+                    } else {
+                        "ok"
+                    };
+                    let plugin = pool.plugin(lang);
+                    let facts = plugin.map(|p| {
+                        p.extract(FileId::new(0), &cand.path, &out.tree, &bytes)
+                    });
+                    (status.to_string(), out.parse_ms, facts)
+                }
+                Err(_) => ("error".to_string(), 0.0, None),
+            };
+
+            FileOutcome::Analyzed(FileResult {
+                path: cand.path.clone(),
+                lang: lang.to_string(),
+                detected_via: det.detected_via.clone(),
+                hash,
+                size_bytes: cand.size_bytes,
+                lines: line_count,
+                parse_ms,
+                parse_status,
+                facts,
+                bytes,
+            })
+        })
+        .collect();
+
+    // --- Sequential merge: assign IDs and build graph ---------------------
+    for result in results {
+        match result {
+            FileOutcome::Skipped { path, reason } => {
+                events.push(AuditEvent::FileDiscovered { path: path.clone() });
+                events.push(AuditEvent::FileSkipped { path, reason: reason.clone() });
+                if matches!(reason, SkipReason::ParseError(_)) {
+                    metrics.files_errored += 1;
                 } else {
-                    "ok"
-                };
-                (status.to_string(), out.parse_ms, Some(out.tree))
+                    metrics.files_skipped += 1;
+                }
             }
-            Err(e) => {
-                debug!(path = %cand.path.display(), error = %e, "parse failed");
-                ("error".to_string(), 0.0, None)
-            }
-        };
+            FileOutcome::Analyzed(fr) => {
+                events.push(AuditEvent::FileDiscovered { path: fr.path.clone() });
+                metrics.bytes_processed += fr.size_bytes;
 
-        // Insert FileRecord into the graph and the audit record list.
-        graph.add_file(GraphFileRecord {
-            id: file_id,
-            path: cand.path.clone(),
-            language: lang.to_string(),
-            detected_via: det.detected_via.clone(),
-            sha256: sha.clone(),
-            size_bytes: cand.size_bytes,
-            lines: line_count,
-            parse_ms,
-            parse_status: parse_status.clone(),
-        });
+                let file_id = FileId::new(next_file_id);
+                next_file_id += 1;
 
-        // Extract facts and insert callables into the graph.
-        let mut file_audit = AuditFileRecord {
-            file: file_id,
-            path: cand.path.clone(),
-            language: lang.to_string(),
-            detected_via: det.detected_via.clone(),
-            sha256: sha,
-            size_bytes: cand.size_bytes,
-            lines: line_count,
-            parse_ms,
-            parse_status,
-            skip_reason: None,
-            callables: Vec::new(),
-            unresolved_calls: Vec::new(),
-            ffi: Vec::new(),
-        };
-
-        if let (Some(tree), Some(plugin)) = (tree.as_ref(), pool.plugin(lang)) {
-            let facts = plugin.extract(file_id, &cand.path, tree, &bytes);
-            for (idx, d) in facts.definitions.iter().enumerate() {
-                let cid = CallableId::new(next_callable_id);
-                next_callable_id += 1;
-                def_ids.insert((file_id, idx as u32), cid);
-
-                let node = CallableNode {
-                    id: cid,
-                    qualified_name: d.qualified_name.clone(),
-                    simple_name: d.simple_name.clone(),
-                    kind: variant_to_kind(d.variant),
-                    language: lang.to_string(),
-                    file: file_id,
-                    start_line: d.start_line,
-                    end_line: d.end_line,
-                    start_byte: d.start_byte,
-                    end_byte: d.end_byte,
-                    signature_hint: d.signature_hint.clone(),
-                    visibility: d.visibility.clone(),
-                    attributes: d.attributes.clone(),
-                };
-                graph.add_callable(node);
-
-                file_audit.callables.push(AuditCallableRef {
-                    id: cid,
-                    qualified_name: d.qualified_name.clone(),
-                    kind: format!("{:?}", d.variant).to_lowercase(),
-                    start_line: d.start_line,
-                    end_line: d.end_line,
-                    start_byte: d.start_byte,
-                    end_byte: d.end_byte,
+                graph.add_file(GraphFileRecord {
+                    id: file_id,
+                    path: fr.path.clone(),
+                    language: fr.lang.clone(),
+                    detected_via: fr.detected_via.clone(),
+                    blake3: fr.hash.clone(),
+                    size_bytes: fr.size_bytes,
+                    lines: fr.lines,
+                    parse_ms: fr.parse_ms,
+                    parse_status: fr.parse_status.clone(),
                 });
+
+                let mut file_audit = AuditFileRecord {
+                    file: file_id,
+                    path: fr.path,
+                    language: fr.lang.clone(),
+                    detected_via: fr.detected_via,
+                    blake3: fr.hash,
+                    size_bytes: fr.size_bytes,
+                    lines: fr.lines,
+                    parse_ms: fr.parse_ms,
+                    parse_status: fr.parse_status,
+                    skip_reason: None,
+                    callables: Vec::new(),
+                    unresolved_calls: Vec::new(),
+                    ffi: Vec::new(),
+                };
+
+                if let Some(mut facts) = fr.facts {
+                    // Fix the file ID (was placeholder 0 during parallel phase).
+                    facts.file = file_id;
+                    for (idx, d) in facts.definitions.iter().enumerate() {
+                        let cid = CallableId::new(next_callable_id);
+                        next_callable_id += 1;
+                        def_ids.insert((file_id, idx as u32), cid);
+
+                        graph.add_callable(CallableNode {
+                            id: cid,
+                            qualified_name: d.qualified_name.clone(),
+                            simple_name: d.simple_name.clone(),
+                            kind: variant_to_kind(d.variant),
+                            language: fr.lang.clone(),
+                            file: file_id,
+                            start_line: d.start_line,
+                            end_line: d.end_line,
+                            start_byte: d.start_byte,
+                            end_byte: d.end_byte,
+                            signature_hint: d.signature_hint.clone(),
+                            visibility: d.visibility.clone(),
+                            attributes: d.attributes.clone(),
+                        });
+
+                        file_audit.callables.push(AuditCallableRef {
+                            id: cid,
+                            qualified_name: d.qualified_name.clone(),
+                            kind: format!("{:?}", d.variant).to_lowercase(),
+                            start_line: d.start_line,
+                            end_line: d.end_line,
+                            start_byte: d.start_byte,
+                            end_byte: d.end_byte,
+                        });
+                    }
+
+                    let lang_bucket = metrics
+                        .by_language
+                        .entry(fr.lang.clone())
+                        .or_default();
+                    lang_bucket.callables += facts.definitions.len() as u64;
+                    metrics.callables += facts.definitions.len() as u64;
+
+                    all_facts.push(facts);
+                }
+                sources.push((file_id, fr.lang.clone(), fr.bytes));
+
+                metrics.files_analyzed += 1;
+                metrics.phases.parse_ms += fr.parse_ms;
+                metrics
+                    .by_language
+                    .entry(fr.lang)
+                    .or_default()
+                    .files += 1;
+
+                file_records.push(file_audit);
             }
-
-            let lang_bucket = metrics
-                .by_language
-                .entry(lang.to_string())
-                .or_default();
-            lang_bucket.callables += facts.definitions.len() as u64;
-            metrics.callables += facts.definitions.len() as u64;
-
-            all_facts.push(facts);
         }
-        sources.push((file_id, lang.to_string(), bytes));
-
-        next_file_id += 1;
-        metrics.files_analyzed += 1;
-        metrics.phases.parse_ms += parse_ms;
-        metrics
-            .by_language
-            .entry(lang.to_string())
-            .or_default()
-            .files += 1;
-
-        file_records.push(file_audit);
     }
 
     // --- Phase 3: intra-file link -----------------------------------------
@@ -421,19 +474,28 @@ fn run(cli: Cli) -> Result<()> {
     });
 
     // --- Phase 4: emit ----------------------------------------------------
+    // Deduplicate edges (same src+dst+site_byte, keep highest confidence).
+    dedup_edges(&mut graph);
+
     let graph = query::apply_query(&graph, &cli.filter, cli.hops, cli.max_paths);
     emit_graph(&cli, &graph).context("emitting graph")?;
     emit_audit(&cli, &events).context("writing audit")?;
 
+    let cross_file = metrics.edges - graph.edges.iter()
+        .filter(|e| {
+            graph.callables.get(&e.src).map(|s| s.file)
+                == graph.callables.get(&e.dst).map(|d| d.file)
+        })
+        .count() as u64;
     eprintln!(
-        "cgg: {disc} files discovered, {an} analyzed, {sk} skipped; \
-         {ca} callables, {ed} edges, {ur} unresolved ({ms:.1} ms). \
-         [Task 5: intra-file linker wired]",
+        "cgg: {disc} files, {an} analyzed, {sk} skipped; \
+         {ca} callables, {ed} edges ({cf} cross-file), {ur} unresolved ({ms:.1} ms)",
         disc = metrics.files_discovered,
         an = metrics.files_analyzed,
         sk = metrics.files_skipped,
         ca = metrics.callables,
         ed = metrics.edges,
+        cf = cross_file,
         ur = metrics.unresolved_calls,
         ms = metrics.wall_ms
     );
@@ -460,6 +522,33 @@ fn read_file(path: &std::path::Path) -> Result<Vec<u8>> {
 
 fn variant_to_kind(v: DefVariant) -> CallableKind {
     v.to_callable_kind()
+}
+
+/// Deduplicate edges: keep only one edge per (src, dst, site_byte)
+/// triple, preferring the highest confidence.
+fn dedup_edges(graph: &mut Graph) {
+    use std::collections::HashMap;
+    use cgg_core::graph::Confidence;
+    let mut best: HashMap<(u32, u32, u32), usize> = HashMap::new();
+    let conf_rank = |c: Confidence| match c {
+        Confidence::High => 2,
+        Confidence::Medium => 1,
+        Confidence::Low => 0,
+    };
+    for (i, e) in graph.edges.iter().enumerate() {
+        let key = (e.src.as_u32(), e.dst.as_u32(), e.site_byte);
+        let entry = best.entry(key).or_insert(i);
+        if conf_rank(e.confidence) > conf_rank(graph.edges[*entry].confidence) {
+            *entry = i;
+        }
+    }
+    let keep: std::collections::HashSet<usize> = best.into_values().collect();
+    let mut idx = 0;
+    graph.edges.retain(|_| {
+        let k = keep.contains(&idx);
+        idx += 1;
+        k
+    });
 }
 
 /// Emit the graph to the user-facing output destination.

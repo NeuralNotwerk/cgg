@@ -94,7 +94,7 @@ pub struct AuditFileRecord {
     pub path: PathBuf,
     pub language: String,
     pub detected_via: String,
-    pub sha256: String,
+    pub blake3: String,
     pub size_bytes: u64,
     pub lines: u32,
     pub parse_ms: f64,

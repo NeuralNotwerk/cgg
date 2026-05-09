@@ -1,0 +1,1 @@
+cgg: 49 files, 38 analyzed, 11 skipped; 446 callables, 527 edges (26 cross-file), 3388 unresolved (123.8 ms)

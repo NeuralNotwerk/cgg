@@ -510,7 +510,7 @@ mod tests {
             path: PathBuf::from(path),
             language: lang.into(),
             detected_via: "ext:.py".into(),
-            sha256: "0".repeat(64),
+            blake3: "0".repeat(64),
             size_bytes: 10,
             lines: 1,
             parse_ms: 0.0,
