@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+# cgg pre-commit hook.
+#
+# Runs:
+#   1. cargo test --workspace                 (fails -> abort commit)
+#   2. cargo build --release -p cgg           (fails -> abort commit)
+#   3. Regenerates README mermaid graphs      (fails -> abort commit)
+#   4. Stages README.md iff it changed
+#
+# Bypass with `git commit --no-verify` when you need to (e.g., pure
+# docs commits that can't wait for a cold build).
+#
+# Install once per checkout:  scripts/install-hooks.sh
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Respect a user opt-out so CI / rebase flows aren't punished.
+if [[ "${CGG_SKIP_PRECOMMIT:-}" == "1" ]]; then
+    echo "[cgg pre-commit] CGG_SKIP_PRECOMMIT=1 set; skipping."
+    exit 0
+fi
+
+# Tooling sanity.
+for cmd in cargo python3 git; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "[cgg pre-commit] error: $cmd not found on PATH" >&2
+        exit 1
+    fi
+done
+
+echo "[cgg pre-commit] cargo test --workspace"
+cargo test --workspace --quiet
+
+echo "[cgg pre-commit] cargo build --release -p cgg"
+cargo build --release -p cgg --quiet
+
+# Regenerate mermaid inputs into a scratch dir under target/ so we
+# don't pollute /tmp across users/sandboxes.
+MERMAID_DIR="target/cgg-readme-graphs"
+mkdir -p "$MERMAID_DIR"
+
+echo "[cgg pre-commit] regenerating cgg-walk graph"
+./target/release/cgg ./crates/cgg-walk \
+    -t mermaid \
+    -o "$MERMAID_DIR/walk.mmd" \
+    > /dev/null
+
+echo "[cgg pre-commit] regenerating cgg-lang graph"
+./target/release/cgg \
+    ./crates/cgg-lang/src/detect.rs \
+    ./crates/cgg-lang/src/parser.rs \
+    ./crates/cgg-lang/src/lib.rs \
+    -t mermaid \
+    -o "$MERMAID_DIR/lang.mmd" \
+    > /dev/null
+
+echo "[cgg pre-commit] patching README.md"
+python3 scripts/update-readme-graphs.py \
+    walk "$MERMAID_DIR/walk.mmd" \
+    lang "$MERMAID_DIR/lang.mmd"
+
+# Stage README if it was modified (either from this hook or a manual
+# edit the user already had pending).
+if ! git diff --quiet --exit-code README.md; then
+    echo "[cgg pre-commit] README.md updated; staging."
+    git add README.md
+else
+    echo "[cgg pre-commit] README.md unchanged."
+fi
+
+echo "[cgg pre-commit] ok"

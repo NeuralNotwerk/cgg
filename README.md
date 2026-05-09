@@ -37,6 +37,7 @@ Generated with:
 cgg ./crates/cgg-walk -t mermaid -o walk.mmd
 ```
 
+<!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
   C0["WalkOutcome::is_empty"]
@@ -58,6 +59,7 @@ flowchart LR
   C6 --> C7
   C9 --> C9
 ```
+<!-- cgg:end:walk -->
 
 Reading it: `walk` fans out to `walk_one`, which in turn consults the
 built-in deny-list (`builtin_reason`), walks error paths
@@ -74,6 +76,7 @@ cgg ./crates/cgg-lang/src/detect.rs ./crates/cgg-lang/src/parser.rs \
     ./crates/cgg-lang/src/lib.rs -t mermaid
 ```
 
+<!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
   C0["LanguageDetector<'r>::new"]
@@ -106,6 +109,7 @@ flowchart LR
   C27 --> C22
   C32 --> C28
 ```
+<!-- cgg:end:lang -->
 
 Reading it: `LanguageDetector::detect` consults `extension`,
 `read_shebang`, and `header_verdict` (the `.h` disambiguator) before
@@ -115,7 +119,9 @@ plugin in via `register`.
 
 Both graphs are reproducible on any checkout and will grow as the
 codebase grows; Task 10's query engine will let us filter these to
-N-hop neighborhoods around named callables.
+N-hop neighborhoods around named callables. They're kept in sync by
+a pre-commit hook (see `.githooks/pre-commit`); run
+`scripts/install-hooks.sh` once to activate it locally.
 
 ## Output formats
 
