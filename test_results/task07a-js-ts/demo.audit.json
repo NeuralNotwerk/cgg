@@ -1,0 +1,283 @@
+[
+  {
+    "event": "run_started",
+    "cgg_version": "0.1.0",
+    "argv": [
+      "target/release/cgg",
+      "/tmp/cgg-js-ts",
+      "-t",
+      "mermaid",
+      "-o",
+      "test_results/task07a-js-ts/demo.mmd",
+      "--metrics",
+      "test_results/task07a-js-ts/demo.audit.json"
+    ]
+  },
+  {
+    "event": "file_discovered",
+    "path": "/tmp/cgg-js-ts/main.js"
+  },
+  {
+    "event": "file_discovered",
+    "path": "/tmp/cgg-js-ts/utils.js"
+  },
+  {
+    "event": "file_discovered",
+    "path": "/tmp/cgg-js-ts/service.ts"
+  },
+  {
+    "event": "file_analyzed",
+    "file": 0,
+    "path": "/tmp/cgg-js-ts/main.js",
+    "language": "javascript",
+    "detected_via": "extension:.js",
+    "sha256": "11d0ac1e5f84c7324edb39902821001f2b0266e8ef7c95142c22a48fb77900b4",
+    "size_bytes": 334,
+    "lines": 19,
+    "parse_ms": 0.259738,
+    "parse_status": "ok",
+    "callables": [
+      {
+        "id": 0,
+        "qualified_name": "run",
+        "kind": "freefunction",
+        "start_line": 4,
+        "end_line": 8,
+        "start_byte": 78,
+        "end_byte": 141
+      },
+      {
+        "id": 1,
+        "qualified_name": "App.constructor",
+        "kind": "constructor",
+        "start_line": 11,
+        "end_line": 11,
+        "start_byte": 159,
+        "end_byte": 175
+      },
+      {
+        "id": 2,
+        "qualified_name": "App.start",
+        "kind": "inherentmethod",
+        "start_line": 12,
+        "end_line": 12,
+        "start_byte": 180,
+        "end_byte": 205
+      },
+      {
+        "id": 3,
+        "qualified_name": "App.create",
+        "kind": "staticmethod",
+        "start_line": 13,
+        "end_line": 13,
+        "start_byte": 210,
+        "end_byte": 247
+      },
+      {
+        "id": 4,
+        "qualified_name": "entry",
+        "kind": "freefunction",
+        "start_line": 16,
+        "end_line": 19,
+        "start_byte": 266,
+        "end_byte": 333
+      }
+    ],
+    "unresolved_calls": [
+      {
+        "src": 0,
+        "file": 0,
+        "site_line": 5,
+        "site_byte": 99,
+        "name": "helper",
+        "reason": "no-candidate-in-scope"
+      },
+      {
+        "src": 0,
+        "file": 0,
+        "site_line": 6,
+        "site_byte": 113,
+        "name": "scale",
+        "reason": "no-candidate-in-scope"
+      },
+      {
+        "src": 0,
+        "file": 0,
+        "site_line": 7,
+        "site_byte": 127,
+        "name": "double",
+        "reason": "no-candidate-in-scope"
+      },
+      {
+        "src": 4,
+        "file": 0,
+        "site_line": 18,
+        "site_byte": 319,
+        "name": "start",
+        "reason": "no-candidate-in-scope"
+      }
+    ]
+  },
+  {
+    "event": "file_analyzed",
+    "file": 1,
+    "path": "/tmp/cgg-js-ts/utils.js",
+    "language": "javascript",
+    "detected_via": "extension:.js",
+    "sha256": "b517d27ef1110c9621ddd800e6a2ab59973518b758c45b09e365c7b1824c92bd",
+    "size_bytes": 132,
+    "lines": 3,
+    "parse_ms": 0.070119,
+    "parse_status": "ok",
+    "callables": [
+      {
+        "id": 5,
+        "qualified_name": "helper",
+        "kind": "freefunction",
+        "start_line": 1,
+        "end_line": 1,
+        "start_byte": 7,
+        "end_byte": 38
+      },
+      {
+        "id": 6,
+        "qualified_name": "scale",
+        "kind": "freefunction",
+        "start_line": 2,
+        "end_line": 2,
+        "start_byte": 46,
+        "end_byte": 88
+      },
+      {
+        "id": 7,
+        "qualified_name": "double",
+        "kind": "freefunction",
+        "start_line": 3,
+        "end_line": 3,
+        "start_byte": 102,
+        "end_byte": 130
+      }
+    ]
+  },
+  {
+    "event": "file_analyzed",
+    "file": 2,
+    "path": "/tmp/cgg-js-ts/service.ts",
+    "language": "typescript",
+    "detected_via": "extension:.ts",
+    "sha256": "29bd3846e43a230bec5f801f961c5ad631c6209dc4d07dc8bc24ac85e31c976f",
+    "size_bytes": 326,
+    "lines": 13,
+    "parse_ms": 0.354248,
+    "parse_status": "ok",
+    "callables": [
+      {
+        "id": 8,
+        "qualified_name": "Service.constructor",
+        "kind": "constructor",
+        "start_line": 5,
+        "end_line": 5,
+        "start_byte": 88,
+        "end_byte": 135
+      },
+      {
+        "id": 9,
+        "qualified_name": "Service.run",
+        "kind": "inherentmethod",
+        "start_line": 6,
+        "end_line": 6,
+        "start_byte": 140,
+        "end_byte": 165
+      },
+      {
+        "id": 10,
+        "qualified_name": "Service.create",
+        "kind": "staticmethod",
+        "start_line": 7,
+        "end_line": 7,
+        "start_byte": 170,
+        "end_byte": 229
+      },
+      {
+        "id": 11,
+        "qualified_name": "main",
+        "kind": "freefunction",
+        "start_line": 10,
+        "end_line": 13,
+        "start_byte": 240,
+        "end_byte": 325
+      }
+    ],
+    "unresolved_calls": [
+      {
+        "src": 9,
+        "file": 2,
+        "site_line": 6,
+        "site_byte": 154,
+        "name": "helper",
+        "reason": "no-candidate-in-scope"
+      },
+      {
+        "src": 11,
+        "file": 2,
+        "site_line": 12,
+        "site_byte": 315,
+        "name": "run",
+        "reason": "no-candidate-in-scope"
+      }
+    ]
+  },
+  {
+    "event": "run_finished",
+    "metrics": {
+      "wall_ms": 2004.862407,
+      "phases": {
+        "walk_ms": 0.258579,
+        "parse_ms": 0.684105,
+        "extract_ms": 2003.9058240000002,
+        "resolve_ms": 2003.4949759999997,
+        "link_ms": 0.03036,
+        "query_ms": 0.0,
+        "format_ms": 0.0
+      },
+      "files_discovered": 3,
+      "files_analyzed": 3,
+      "files_skipped": 0,
+      "files_errored": 0,
+      "bytes_processed": 792,
+      "callables": 12,
+      "edges": 13,
+      "unresolved_calls": 12,
+      "ffi_detected": 0,
+      "ffi_resolved": 0,
+      "cache": {
+        "hits": 0,
+        "misses": 0,
+        "bytes_read": 0,
+        "bytes_written": 0
+      },
+      "peak_rss_bytes": 0,
+      "by_language": {
+        "javascript": {
+          "files": 2,
+          "callables": 8,
+          "edges": 4,
+          "unresolved": 4
+        },
+        "typescript": {
+          "files": 1,
+          "callables": 4,
+          "edges": 1,
+          "unresolved": 2
+        }
+      },
+      "cycles": [],
+      "longest_path_len": 0,
+      "confidence_histogram": {
+        "high": 10,
+        "medium": 3,
+        "low": 0
+      }
+    }
+  }
+]

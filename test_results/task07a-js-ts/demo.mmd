@@ -1,0 +1,26 @@
+flowchart LR
+  C0["run"]
+  C1["App.constructor"]
+  C2["App.start"]
+  C3["App.create"]
+  C4["entry"]
+  C5["helper"]
+  C6["scale"]
+  C7["double"]
+  C8["Service.constructor"]
+  C9["Service.run"]
+  C10["Service.create"]
+  C11["main"]
+  C2 --> C0
+  C4 --> C3
+  C6 --> C5
+  C7 --> C6
+  C11 --> C10
+  C11 --> C11
+  C2 --> C0
+  C4 --> C4
+  C6 --> C5
+  C7 --> C6
+  C0 --> C5
+  C0 --> C6
+  C0 --> C7

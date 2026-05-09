@@ -118,6 +118,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 "from-import" => {
                     // Python: imp.path is module; imp.alias is the
                     // items list ("greet, compute" or "greet as g").
+                    // JS/TS: imp.path is relative path; items are
+                    // exported names from that file.
                     let module = imp.path.trim();
                     for item in imp.alias.split(',') {
                         let (src, alias) = match item.split_once(" as ") {
@@ -132,6 +134,14 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                             .entry(alias.to_string())
                             .or_default()
                             .push(qn);
+                        // For JS/TS where definitions don't carry a
+                        // module prefix, also try the bare name.
+                        if module.starts_with('.') || module.starts_with('/') {
+                            direct_imports
+                                .entry(alias.to_string())
+                                .or_default()
+                                .push(src.to_string());
+                        }
                     }
                 }
                 "import" => {
@@ -375,6 +385,13 @@ fn try_resolve_ref(
             // Rust path joiner.
             let qn2 = format!("{module}{}::{}", rest.replace('.', "::"), r.name);
             if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
+                return Some(vec![cid]);
+            }
+            // For JS/TS: definitions don't carry a module prefix, so
+            // try bare name as fallback when the module is a relative
+            // path or a short package-like name that doesn't match
+            // any qualified name prefix.
+            if let Some(cid) = lookup_with_reexports(lang, &r.name, by_qn, reexports) {
                 return Some(vec![cid]);
             }
         }

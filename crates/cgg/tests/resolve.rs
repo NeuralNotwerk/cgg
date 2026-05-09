@@ -517,3 +517,99 @@ fn cpp_namespace_cross_file_resolves() {
     let arrow = format!("{run} --> {add}");
     assert!(g.contains(&arrow), "missing C++ cross-file edge:\n{g}");
 }
+
+#[test]
+fn js_esm_import_resolves() {
+    // JS project: utils.js exports helper; main.js imports and calls it.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "utils.js",
+        b"export function helper() { return 1; }\nexport function scale(x) { return helper() * x; }\n",
+    );
+    write(
+        tmp.path(),
+        "main.js",
+        b"import { helper, scale } from './utils.js';\nfunction run() { helper(); scale(2); }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("helper"), "missing helper:\n{g}");
+    assert!(g.contains("scale"), "missing scale:\n{g}");
+    assert!(g.contains("run"), "missing run:\n{g}");
+    // scale -> helper is intra-file; run -> helper and run -> scale are cross-file.
+    let node_ids = |qn: &str| -> Vec<String> {
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    let runs = node_ids("run");
+    let helpers = node_ids("helper");
+    assert!(!runs.is_empty() && !helpers.is_empty());
+    let has_edge = runs.iter().any(|r| {
+        helpers.iter().any(|h| g.contains(&format!("{r} --> {h}")))
+    });
+    assert!(has_edge, "missing JS cross-file edge run->helper:\n{g}");
+}
+
+#[test]
+fn ts_namespace_import_resolves() {
+    // TS project: math.ts exports add; app.ts imports * as math and calls math.add.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "math.ts",
+        b"export function add(a: number, b: number): number { return a + b; }\n",
+    );
+    write(
+        tmp.path(),
+        "app.ts",
+        b"import * as math from './math';\nexport function run(): number { return math.add(1, 2); }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("add"), "missing add:\n{g}");
+    assert!(g.contains("run"), "missing run:\n{g}");
+    let node_ids = |qn: &str| -> Vec<String> {
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    let runs = node_ids("run");
+    let adds = node_ids("add");
+    assert!(!runs.is_empty() && !adds.is_empty());
+    let has_edge = runs.iter().any(|r| {
+        adds.iter().any(|a| g.contains(&format!("{r} --> {a}")))
+    });
+    assert!(has_edge, "missing TS namespace import edge run->add:\n{g}");
+}
