@@ -10,6 +10,7 @@
 //! formatters in Task 9; query engine in Task 10.
 
 mod cli;
+mod query;
 
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Write};
@@ -31,7 +32,9 @@ use cgg_core::graph::{
 };
 use cgg_core::ids::{CallableId, FileId};
 use cgg_core::{FileFacts, DefVariant};
-use cgg_format::{GraphFormatter, MermaidFormatter, OutputFormat};
+use cgg_format::{
+    DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter, OutputFormat,
+};
 use cgg_lang::{
     detect::{DetectVerdict, LanguageDetector},
     parser::ParserPool,
@@ -379,6 +382,18 @@ fn run(cli: Cli) -> Result<()> {
     metrics.edges += cf_out.edges.len() as u64;
     graph.edges.extend(cf_out.edges);
 
+    // --- Phase 3d: FFI linker (cross-language edges) ----------------------
+    let ffi_out = cgg_resolve::ffi::link_ffi(&graph);
+    for e in &ffi_out.edges {
+        match e.confidence {
+            cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
+            cgg_core::graph::Confidence::Medium => metrics.confidence_histogram.medium += 1,
+            cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
+        }
+    }
+    metrics.edges += ffi_out.edges.len() as u64;
+    graph.edges.extend(ffi_out.edges);
+
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {
         events.push(AuditEvent::FileAnalyzed(rec));
@@ -406,6 +421,7 @@ fn run(cli: Cli) -> Result<()> {
     });
 
     // --- Phase 4: emit ----------------------------------------------------
+    let graph = query::apply_query(&graph, &cli.filter, cli.hops, cli.max_paths);
     emit_graph(&cli, &graph).context("emitting graph")?;
     emit_audit(&cli, &events).context("writing audit")?;
 
@@ -447,39 +463,17 @@ fn variant_to_kind(v: DefVariant) -> CallableKind {
 }
 
 /// Emit the graph to the user-facing output destination.
-///
-/// * Mermaid: we own a writer; render.
-/// * JSON: Task 5 wires audit-only JSON; Task 9 replaces with a
-///   unified graph+audit document.
-/// * DOT / GraphML: Task 9 adds these.
 fn emit_graph(cli: &Cli, graph: &Graph) -> Result<()> {
     let format: OutputFormat = cli.format.into();
-    match format {
-        OutputFormat::Mermaid => {
-            let dest = resolve_primary_sink(cli);
-            let mut sink = open_sink(&dest)?;
-            MermaidFormatter::new().render(graph, &mut sink)?;
-        }
-        OutputFormat::Json | OutputFormat::Dot | OutputFormat::Graphml => {
-            // Non-mermaid formats land in Task 9; for Task 5 the audit
-            // path is the only primary output for JSON. DOT/GraphML
-            // are CLI-accepted but emit a friendly "coming soon" note
-            // to the graph sink to avoid silent no-ops.
-            if matches!(format, OutputFormat::Json) {
-                // Audit emitter writes the JSON output in this mode.
-                return Ok(());
-            }
-            let dest = resolve_primary_sink(cli);
-            let mut sink = open_sink(&dest)?;
-            writeln!(
-                sink,
-                "# {format} output not yet implemented (Task 9). \
-                 {n} callables, {e} edges pending render.",
-                n = graph.callables.len(),
-                e = graph.edges.len()
-            )?;
-        }
-    }
+    let dest = resolve_primary_sink(cli);
+    let mut sink = open_sink(&dest)?;
+    let formatter: Box<dyn GraphFormatter> = match format {
+        OutputFormat::Mermaid => Box::new(MermaidFormatter::new()),
+        OutputFormat::Json => Box::new(JsonFormatter::new()),
+        OutputFormat::Dot => Box::new(DotFormatter::new()),
+        OutputFormat::Graphml => Box::new(GraphmlFormatter::new()),
+    };
+    formatter.render(graph, &mut sink)?;
     Ok(())
 }
 
@@ -490,15 +484,12 @@ fn resolve_primary_sink(cli: &Cli) -> PathBuf {
 }
 
 fn emit_audit(cli: &Cli, events: &[AuditEvent]) -> Result<()> {
-    let format: OutputFormat = cli.format.into();
     // Rules:
     //   * `--metrics FILE`           -> audit to FILE.
-    //   * `-t json` + no --metrics   -> audit to primary output.
     //   * other formats + no metrics -> sidecar `<output>.audit.json`.
+    //   * no output file             -> stderr (skip audit).
     let dest = if let Some(p) = &cli.metrics {
         p.clone()
-    } else if matches!(format, OutputFormat::Json) {
-        resolve_primary_sink(cli)
     } else {
         match &cli.output {
             Some(p) if *p != PathBuf::from("-") => {
@@ -506,7 +497,7 @@ fn emit_audit(cli: &Cli, events: &[AuditEvent]) -> Result<()> {
                 s.as_mut_os_string().push(".audit.json");
                 s
             }
-            _ => PathBuf::from("-"),
+            _ => return Ok(()), // No sidecar for stdout output
         }
     };
     let sink = open_sink(&dest)?;

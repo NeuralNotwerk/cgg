@@ -10,6 +10,7 @@
 #![warn(unreachable_pub)]
 
 pub mod cross_file;
+pub mod ffi;
 pub mod intra_file;
 pub mod stack_graphs_resolver;
 

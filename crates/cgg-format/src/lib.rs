@@ -7,8 +7,14 @@
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 
+pub mod dot;
+pub mod graphml;
+pub mod json;
 pub mod mermaid;
 
+pub use dot::DotFormatter;
+pub use graphml::GraphmlFormatter;
+pub use json::JsonFormatter;
 pub use mermaid::MermaidFormatter;
 
 use cgg_core::Graph;

@@ -1,0 +1,213 @@
+
+running 7 tests
+test cli::tests::help_renders ... ok
+test query::tests::glob_pattern ... ok
+test query::tests::filter_selects_seed ... ok
+test cli::tests::parses_full_surface ... ok
+test cli::tests::default_hops_is_sentinel_minus_one ... ok
+test query::tests::n_zero_paths_through ... ok
+test cli::tests::requires_path ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test bad_format_rejected ... ok
+test nonexistent_path_is_clear_error ... ok
+test missing_positional_is_error ... ok
+test valid_path_runs_placeholder ... ok
+test help_succeeds_and_mentions_flags ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 5 tests
+test header_disambiguation_prefers_cpp_when_sibling_exists ... ok
+test unknown_extension_skip_appears_in_audit ... ok
+test lang_filter_excludes_and_reports ... ok
+test shebang_beats_extension ... ok
+test nine_language_sample_all_detect ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.06s
+
+
+running 5 tests
+test recursion_preserves_self_edge ... ok
+test metrics_count_edges_and_confidence ... ok
+test unresolved_reference_shows_up_in_audit ... ok
+test rust_intra_file_edges_emit_mermaid ... ok
+test python_intra_file_method_to_method ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+
+running 12 tests
+test go_aliased_import_resolves ... ok
+test c_include_header_resolves ... ok
+test rust_cross_crate_use_resolves ... ok
+test go_cross_package_call_resolves ... ok
+test rust_pub_use_reexport_chains ... ok
+test cpp_namespace_cross_file_resolves ... ok
+test csharp_cross_file_namespace_call_resolves ... ok
+test audit_records_medium_confidence_for_cross_file ... ok
+test python_module_alias_chain_resolves ... ok
+test python_cross_file_import_resolves ... ok
+test js_esm_import_resolves ... ok
+test ts_namespace_import_resolves ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s
+
+
+running 3 tests
+test json_audit_is_single_pretty_document ... ok
+test jsonl_audit_streams_events ... ok
+test skip_reasons_are_audit_visible ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+
+
+running 8 tests
+test audit::tests::jsonl_writer_one_per_line ... ok
+test audit::tests::json_writer_emits_single_doc ... ok
+test audit::tests::skip_reason_slug_stable ... ok
+test audit::tests::metrics_round_trip ... ok
+test facts::tests::facts_round_trip ... ok
+test facts::tests::variant_to_callable_kind_mapping ... ok
+test graph::tests::insert_and_count ... ok
+test graph::tests::round_trip_json ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 7 tests
+test dot::tests::renders_dot ... ok
+test graphml::tests::renders_graphml ... ok
+test mermaid::tests::empty_graph_is_still_valid ... ok
+test mermaid::tests::angle_brackets_escaped ... ok
+test tests::default_extension_is_stable ... ok
+test mermaid::tests::renders_nodes_and_edge ... ok
+test json::tests::renders_valid_json ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 62 tests
+test parser::tests::amortizes_across_calls ... ok
+test parser::tests::unknown_plugin_errors ... ok
+test detect::tests::python_shebang_beats_extension ... ok
+test detect::tests::header_sibling_picks_cpp ... ok
+test plugins::c::tests::call_expressions_captured ... ok
+test detect::tests::header_without_cpp_sibling_is_c ... ok
+test plugins::c::tests::include_directive_captured ... ok
+test plugins::c::tests::function_definitions_extracted ... ok
+test detect::tests::unknown_extension_is_unknown ... ok
+test detect::tests::node_shebang_maps_to_javascript ... ok
+test plugins::c::tests::macro_call_looks_like_call ... ok
+test plugins::c::tests::prototype_recorded ... ok
+test plugins::cpp::tests::include_directive_captured ... ok
+test plugins::cpp::tests::field_expression_call ... ok
+test plugins::cpp::tests::namespace_qualified_names ... ok
+test plugins::cpp::tests::class_method_and_constructor ... ok
+test parser::tests::parses_all_v1_languages ... ok
+test detect::tests::each_v1_extension_detects ... ok
+test plugins::cpp::tests::qualified_call_expression ... ok
+test plugins::csharp::tests::constructor_and_destructor_variants ... ok
+test plugins::csharp::tests::nested_namespaces_join_dots ... ok
+test plugins::csharp::tests::method_qualified_name_with_namespace_and_class ... ok
+test plugins::csharp::tests::using_directive_captured ... ok
+test plugins::go::tests::free_function ... ok
+test plugins::csharp::tests::invocation_references_extracted ... ok
+test plugins::go::tests::call_expressions_captured ... ok
+test plugins::go::tests::imports_captured ... ok
+test plugins::go::tests::package_root_marker_emitted ... ok
+test plugins::go::tests::method_qualified_name_has_receiver_type ... ok
+test plugins::javascript::tests::arrow_function_named ... ok
+test plugins::javascript::tests::call_expressions_captured ... ok
+test plugins::javascript::tests::class_methods ... ok
+test plugins::javascript::tests::esm_imports_captured ... ok
+test plugins::javascript::tests::function_declarations ... ok
+test plugins::python::tests::async_function ... ok
+test plugins::python::tests::class_methods_get_class_in_name ... ok
+test plugins::python::tests::free_functions ... ok
+test plugins::python::tests::imports_parsed ... ok
+test plugins::python::tests::init_is_constructor ... ok
+test plugins::python::tests::method_calls_captured ... ok
+test plugins::python::tests::named_lambda_is_callable ... ok
+test plugins::python::tests::nested_function_qualified_name ... ok
+test plugins::python::tests::static_and_class_methods_are_variants ... ok
+test plugins::rust::tests::free_function ... ok
+test plugins::rust::tests::call_expressions_captured ... ok
+test plugins::rust::tests::mod_prefix ... ok
+test plugins::rust::tests::method_in_impl ... ok
+test plugins::rust::tests::nested_use_block_flatten ... ok
+test plugins::rust::tests::named_closure_is_callable ... ok
+test plugins::rust::tests::pub_use_is_tagged ... ok
+test plugins::rust::tests::trait_impl_method ... ok
+test plugins::rust::tests::use_block_imports_flatten ... ok
+test plugins::rust::tests::use_imports_captured ... ok
+test plugins::rust::tests::use_self_in_block ... ok
+test plugins::tests::every_plugin_returns_a_language ... ok
+test plugins::rust::tests::visibility_and_async_captured ... ok
+test plugins::typescript::tests::call_expressions ... ok
+test plugins::typescript::tests::import_from_captured ... ok
+test plugins::typescript::tests::class_with_types ... ok
+test plugins::typescript::tests::typed_arrow_function ... ok
+test tests::v1_registry_has_9_languages ... ok
+test plugins::typescript::tests::typed_function_declaration ... ok
+
+test result: ok. 62 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 12 tests
+test cross_file::tests::python_module_alias_attribute_call ... ok
+test cross_file::tests::python_from_import_direct_call ... ok
+test cross_file::tests::rust_use_direct_call ... ok
+test ffi::tests::no_edge_same_language ... ok
+test ffi::tests::pyo3_cross_language_edge ... ok
+test intra_file::tests::ref_outside_any_def_is_unresolved ... ok
+test intra_file::tests::ambiguous_name_flags_unresolved ... ok
+test intra_file::tests::self_call_is_preserved_as_edge ... ok
+test intra_file::tests::single_match_emits_edge ... ok
+test intra_file::tests::smallest_enclosing_wins ... ok
+test intra_file::tests::zero_candidates_unresolved_no_candidate ... ok
+test tests::noop_is_noop ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 7 tests
+test tests::binary_file_is_skipped ... ok
+test tests::single_file_input_works ... ok
+test tests::too_large_is_skipped ... ok
+test tests::discovers_plain_files ... ok
+test tests::builtin_deny_skips_node_modules_and_target ... ok
+test tests::cggignore_is_honored ... ok
+test tests::gitignore_is_honored ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
