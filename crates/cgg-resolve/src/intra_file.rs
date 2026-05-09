@@ -51,13 +51,38 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
             .and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
 
         // Candidate defs by simple-name match in this file.
-        let candidates: Vec<(u32, &DefRecord)> = facts
+        let mut candidates: Vec<(u32, &DefRecord)> = facts
             .definitions
             .iter()
             .enumerate()
             .filter(|(_, d)| d.simple_name == rref.name)
             .map(|(i, d)| (i as u32, d))
             .collect();
+
+        // Receiver-based narrowing. A call of the form `Foo::bar()`
+        // or `obj.bar()` carries a receiver_hint (Rust: `Foo`, `self`;
+        // Python: `obj`, `self`). We narrow the candidate set:
+        //
+        //   * empty receiver            -> no narrowing.
+        //   * `self` / `Self` / `cls`   -> no narrowing (enclosing
+        //                                  scope handles it).
+        //   * anything else             -> candidate qn must contain
+        //                                  the receiver hint as a path
+        //                                  segment (`::` for Rust,
+        //                                  `.` for python). This
+        //                                  filters out `Vec::new` from
+        //                                  matching a local `FileFacts::new`.
+        let rh = rref.receiver_hint.as_str();
+        if !rh.is_empty() && rh != "self" && rh != "Self" && rh != "cls" {
+            candidates.retain(|(_, d)| {
+                d.qualified_name
+                    .split("::")
+                    .any(|seg| seg == rh)
+                    || d.qualified_name
+                        .split('.')
+                        .any(|seg| seg == rh)
+            });
+        }
 
         match candidates.as_slice() {
             [] => {

@@ -1,0 +1,19 @@
+flowchart LR
+  C0["WalkOutcome::is_empty"]
+  C1["<WalkConfig as Default>::default"]
+  C2["walk"]
+  C3["walk_one"]
+  C4["push_candidate"]
+  C5["is_symlink_chain"]
+  C6["classify_file"]
+  C7["is_binary"]
+  C8["builtin_reason"]
+  C9["extract_err_path"]
+  C2 --> C3
+  C3 --> C4
+  C3 --> C5
+  C3 --> C6
+  C3 --> C8
+  C3 --> C9
+  C6 --> C7
+  C9 --> C9
