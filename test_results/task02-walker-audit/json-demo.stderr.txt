@@ -1,0 +1,1 @@
+cgg: 6 files discovered, 3 skipped, 3 candidates queued for analysis (Task 2 walker wired; analysis stages land in later tasks).

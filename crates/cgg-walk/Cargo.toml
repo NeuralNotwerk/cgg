@@ -1,0 +1,19 @@
+[package]
+name        = "cgg-walk"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Directory walker with built-in deny-list, .gitignore and .cggignore support for cgg."
+
+[dependencies]
+cgg-core = { workspace = true }
+
+anyhow    = { workspace = true }
+thiserror = { workspace = true }
+ignore    = { workspace = true }
+tracing   = { workspace = true }
+serde     = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+insta    = { workspace = true }

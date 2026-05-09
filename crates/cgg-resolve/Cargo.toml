@@ -1,0 +1,17 @@
+[package]
+name        = "cgg-resolve"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "ResolverService trait and scope-aware resolvers for the cgg call-graph generator."
+
+[dependencies]
+cgg-core  = { workspace = true }
+cgg-lang  = { workspace = true }
+anyhow    = { workspace = true }
+thiserror = { workspace = true }
+serde     = { workspace = true }
+tracing   = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

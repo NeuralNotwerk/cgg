@@ -1,0 +1,505 @@
+//! Python plugin.
+//!
+//! Two-phase AST pass over a `tree-sitter-python` tree:
+//!
+//! * **Definitions** — `function_definition` (including async),
+//!   `class_definition` methods, decorators treated as attribute
+//!   annotations, and named lambdas bound via `assignment`
+//!   (`foo = lambda x: x+1`).
+//! * **References** — every `call` whose function is an identifier or
+//!   an `attribute`.
+//! * **Imports** — `import_statement` and `import_from_statement`,
+//!   flattened with alias support.
+//!
+//! Module name for qualified names is derived from the file stem for
+//! Task 4. Task 6 will refine this to the full dotted package path by
+//! consulting `__init__.py` chains via stack-graphs.
+
+use std::path::Path;
+
+use cgg_core::{
+    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
+};
+use tree_sitter::{Node, Tree};
+
+use crate::{LanguagePlugin, ResolverKind};
+
+#[derive(Debug)]
+pub struct PythonPlugin;
+
+impl LanguagePlugin for PythonPlugin {
+    fn id(&self) -> &'static str {
+        "python"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".py", ".pyi"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["python3", "python", "python2"]
+    }
+    fn resolver_kind(&self) -> ResolverKind {
+        ResolverKind::StackGraphs
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_python::language()
+    }
+
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
+        let mut facts = FileFacts::new(file, path.to_path_buf(), "python");
+        let mut walker = Walker {
+            source,
+            facts: &mut facts,
+            scope: vec![module_name(path)],
+        };
+        walker.walk(tree.root_node());
+        facts
+    }
+}
+
+/// Derive a module name from the file path (stem without `.py`).
+fn module_name(path: &Path) -> String {
+    path.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("module")
+        .to_string()
+}
+
+struct Walker<'a> {
+    source: &'a [u8],
+    facts: &'a mut FileFacts,
+    scope: Vec<String>,
+}
+
+impl<'a> Walker<'a> {
+    fn text(&self, node: Node) -> &str {
+        node.utf8_text(self.source).unwrap_or("")
+    }
+
+    fn walk(&mut self, node: Node) {
+        match node.kind() {
+            "class_definition" => {
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if !name.is_empty() {
+                    self.scope.push(name);
+                }
+                self.walk_children(node);
+                if node.child_by_field_name("name").is_some() {
+                    self.scope.pop();
+                }
+                return;
+            }
+            "function_definition" => {
+                self.record_function(node);
+                // Push the function name to enable nested-function qualified names.
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if !name.is_empty() {
+                    self.scope.push(name.clone());
+                }
+                self.walk_children(node);
+                if !name.is_empty() {
+                    self.scope.pop();
+                }
+                return;
+            }
+            "expression_statement" => {
+                // Named lambdas: `foo = lambda x: x + 1`
+                if let Some(rec) = self.named_lambda(node) {
+                    self.facts.definitions.push(rec);
+                }
+                self.walk_children(node);
+                return;
+            }
+            "import_statement" | "import_from_statement" => {
+                self.record_import(node);
+                return;
+            }
+            "call" => {
+                if let Some(r) = self.ref_from_call(node) {
+                    self.facts.references.push(r);
+                }
+                self.walk_children(node);
+                return;
+            }
+            _ => {}
+        }
+        self.walk_children(node);
+    }
+
+    fn walk_children(&mut self, node: Node) {
+        let mut cursor = node.walk();
+        if cursor.goto_first_child() {
+            loop {
+                self.walk(cursor.node());
+                if !cursor.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+    }
+
+    fn record_function(&mut self, node: Node) {
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
+        let simple = self.text(name_node).to_string();
+        if simple.is_empty() {
+            return;
+        }
+
+        let is_async = node
+            .children(&mut node.walk())
+            .any(|c| c.kind() == "async");
+
+        let decorators = collect_decorators(node, self.source);
+
+        // Classify variant:
+        //   * inside `class_definition`: method.
+        //   * decorator @staticmethod / @classmethod / @property refine it.
+        //   * `__init__` -> Constructor; `__del__` -> Destructor.
+        let inside_class = self
+            .scope
+            .iter()
+            .skip(1) // skip module name
+            .any(|s| starts_uppercase(s));
+        let variant = if simple == "__init__" && inside_class {
+            DefVariant::Constructor
+        } else if simple == "__del__" && inside_class {
+            DefVariant::Destructor
+        } else if decorators.iter().any(|d| d.contains("staticmethod")) {
+            DefVariant::StaticMethod
+        } else if decorators.iter().any(|d| d.contains("classmethod")) {
+            DefVariant::ClassMethod
+        } else if decorators.iter().any(|d| d.contains("property")) {
+            DefVariant::Property
+        } else if is_async {
+            DefVariant::AsyncFunction
+        } else if inside_class {
+            DefVariant::InherentMethod
+        } else {
+            DefVariant::FreeFunction
+        };
+
+        let qn = qualified_name(&self.scope, &simple);
+        let (sl, el) = line_range(node);
+
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple,
+            qualified_name: qn,
+            variant,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: single_line(self.text(node)),
+            visibility: String::new(),
+            attributes: decorators,
+        });
+    }
+
+    fn named_lambda(&mut self, node: Node) -> Option<DefRecord> {
+        // expression_statement -> assignment (left, right=lambda)
+        let assignment = node.named_child(0)?;
+        if assignment.kind() != "assignment" {
+            return None;
+        }
+        let left = assignment.child_by_field_name("left")?;
+        if left.kind() != "identifier" {
+            return None;
+        }
+        let right = assignment.child_by_field_name("right")?;
+        if right.kind() != "lambda" {
+            return None;
+        }
+        let simple = self.text(left).to_string();
+        if simple.is_empty() {
+            return None;
+        }
+        let qn = qualified_name(&self.scope, &simple);
+        let (sl, el) = line_range(node);
+        Some(DefRecord {
+            simple_name: simple,
+            qualified_name: qn,
+            variant: DefVariant::NamedLambda,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: single_line(self.text(node)),
+            visibility: String::new(),
+            attributes: Vec::new(),
+        })
+    }
+
+    fn record_import(&mut self, node: Node) {
+        let text = self.text(node).trim().to_string();
+        let (kind, path, alias) = parse_import(&text);
+        let site_line = (node.start_position().row as u32) + 1;
+        self.facts.imports.push(ImportRecord {
+            kind,
+            path,
+            alias,
+            site_line,
+            site_byte: node.start_byte() as u32,
+        });
+    }
+
+    fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
+        let func = node.child_by_field_name("function")?;
+        let (name, receiver) = match func.kind() {
+            "identifier" => (self.text(func).to_string(), String::new()),
+            "attribute" => {
+                // a.b.c  -> name=c, receiver=a.b
+                let attr = func.child_by_field_name("attribute")?;
+                let recv = func
+                    .child_by_field_name("object")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                (self.text(attr).to_string(), recv)
+            }
+            _ => return None,
+        };
+        if name.is_empty() {
+            return None;
+        }
+        let site_line = (node.start_position().row as u32) + 1;
+        Some(RefRecord {
+            name,
+            receiver_hint: receiver,
+            site_line,
+            site_byte: node.start_byte() as u32,
+        })
+    }
+}
+
+fn parse_import(text: &str) -> (String, String, String) {
+    // `import a.b as c` | `import a, b` | `from x import y as z`
+    if let Some(rest) = text.strip_prefix("from ") {
+        if let Some((module, items)) = rest.split_once(" import ") {
+            // For Task 4 we record the module + "import items" blob
+            // under `path`. The resolver in Task 6 parses per-item.
+            return (
+                "from-import".into(),
+                module.trim().to_string(),
+                items.trim().to_string(),
+            );
+        }
+    }
+    if let Some(rest) = text.strip_prefix("import ") {
+        let r = rest.trim();
+        if let Some((lhs, alias)) = r.split_once(" as ") {
+            return ("import".into(), lhs.trim().to_string(), alias.trim().to_string());
+        }
+        return ("import".into(), r.to_string(), String::new());
+    }
+    ("import".into(), text.to_string(), String::new())
+}
+
+fn qualified_name(scope: &[String], simple: &str) -> String {
+    let mut parts: Vec<&str> = scope.iter().map(|s| s.as_str()).collect();
+    parts.push(simple);
+    parts.join(".")
+}
+
+fn line_range(node: Node) -> (u32, u32) {
+    let start = (node.start_position().row as u32) + 1;
+    let end = (node.end_position().row as u32) + 1;
+    (start, end)
+}
+
+fn single_line(s: &str) -> String {
+    s.lines().next().unwrap_or("").trim().to_string()
+}
+
+fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
+    // In tree-sitter-python a decorated function lives inside
+    // `decorated_definition`, where previous siblings are `decorator`
+    // nodes. The `function_definition` child stands on its own here;
+    // we check the parent.
+    let mut out = Vec::new();
+    let mut parent = node.parent();
+    if let Some(p) = parent {
+        if p.kind() == "decorated_definition" {
+            let mut c = p.walk();
+            for child in p.children(&mut c) {
+                if child.kind() == "decorator" {
+                    out.push(child.utf8_text(source).unwrap_or("").trim().to_string());
+                }
+            }
+            return out;
+        }
+    }
+    parent = node.prev_sibling();
+    while let Some(s) = parent {
+        if s.kind() == "decorator" {
+            out.push(s.utf8_text(source).unwrap_or("").trim().to_string());
+            parent = s.prev_sibling();
+        } else {
+            break;
+        }
+    }
+    out.reverse();
+    out
+}
+
+fn starts_uppercase(s: &str) -> bool {
+    s.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cgg_core::ids::FileId;
+    use std::path::PathBuf;
+    use tree_sitter::Parser;
+
+    fn extract_with(path: &str, src: &str) -> FileFacts {
+        let mut parser = Parser::new();
+        parser.set_language(&tree_sitter_python::language()).unwrap();
+        let tree = parser.parse(src, None).unwrap();
+        PythonPlugin.extract(FileId::new(0), &PathBuf::from(path), &tree, src.as_bytes())
+    }
+
+    fn extract(src: &str) -> FileFacts {
+        extract_with("m.py", src)
+    }
+
+    #[test]
+    fn free_functions() {
+        let f = extract("def a():\n    b()\n\ndef b():\n    pass\n");
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"m.a"), "got: {names:?}");
+        assert!(names.contains(&"m.b"), "got: {names:?}");
+        let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(refs.contains(&"b"));
+    }
+
+    #[test]
+    fn class_methods_get_class_in_name() {
+        let src = r#"
+class Foo:
+    def bar(self):
+        self.baz()
+    def baz(self):
+        pass
+"#;
+        let f = extract(src);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"m.Foo.bar"), "got: {names:?}");
+        assert!(names.contains(&"m.Foo.baz"), "got: {names:?}");
+    }
+
+    #[test]
+    fn static_and_class_methods_are_variants() {
+        let src = r#"
+class C:
+    @staticmethod
+    def s(): pass
+    @classmethod
+    def c(cls): pass
+    @property
+    def p(self): return 1
+"#;
+        let f = extract(src);
+        let by: std::collections::HashMap<_, _> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.clone(), d.variant))
+            .collect();
+        assert_eq!(by["s"], DefVariant::StaticMethod);
+        assert_eq!(by["c"], DefVariant::ClassMethod);
+        assert_eq!(by["p"], DefVariant::Property);
+    }
+
+    #[test]
+    fn named_lambda_is_callable() {
+        let f = extract("inc = lambda x: x + 1\ninc(1)\n");
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"m.inc"), "got: {names:?}");
+        let defs_by_name: std::collections::HashMap<_, _> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.clone(), d.variant))
+            .collect();
+        assert_eq!(defs_by_name["inc"], DefVariant::NamedLambda);
+    }
+
+    #[test]
+    fn imports_parsed() {
+        let src = "import a.b\nimport c as d\nfrom x import y as z\n";
+        let f = extract(src);
+        assert_eq!(f.imports.len(), 3);
+        assert_eq!(f.imports[0].kind, "import");
+        assert_eq!(f.imports[0].path, "a.b");
+        assert_eq!(f.imports[1].path, "c");
+        assert_eq!(f.imports[1].alias, "d");
+        assert_eq!(f.imports[2].kind, "from-import");
+        assert_eq!(f.imports[2].path, "x");
+        assert_eq!(f.imports[2].alias, "y as z");
+    }
+
+    #[test]
+    fn method_calls_captured() {
+        let src = "class C:\n    def m(self): self.n()\n    def n(self): pass\n";
+        let f = extract(src);
+        let refs: Vec<&RefRecord> = f.references.iter().collect();
+        assert!(
+            refs.iter().any(|r| r.name == "n" && r.receiver_hint == "self"),
+            "got: {refs:?}"
+        );
+    }
+
+    #[test]
+    fn init_is_constructor() {
+        let src = "class X:\n    def __init__(self): pass\n    def __del__(self): pass\n";
+        let f = extract(src);
+        let by: std::collections::HashMap<_, _> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.clone(), d.variant))
+            .collect();
+        assert_eq!(by["__init__"], DefVariant::Constructor);
+        assert_eq!(by["__del__"], DefVariant::Destructor);
+    }
+
+    #[test]
+    fn async_function() {
+        let f = extract("async def a():\n    pass\n");
+        assert_eq!(f.definitions[0].variant, DefVariant::AsyncFunction);
+    }
+
+    #[test]
+    fn nested_function_qualified_name() {
+        let src = "def outer():\n    def inner():\n        pass\n";
+        let f = extract(src);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"m.outer.inner"), "got: {names:?}");
+    }
+}

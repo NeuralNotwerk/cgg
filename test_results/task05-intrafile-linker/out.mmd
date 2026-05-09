@@ -1,0 +1,16 @@
+flowchart LR
+  C0["svc.Service.handle"]
+  C1["svc.Service.parse"]
+  C2["svc.Service.render"]
+  C3["svc.Other.handle"]
+  C4["crate::add"]
+  C5["crate::mul"]
+  C6["crate::dot"]
+  C7["crate::fact"]
+  C8["crate::noop"]
+  C0 --> C1
+  C0 --> C2
+  C5 --> C4
+  C6 --> C4
+  C6 --> C5
+  C7 --> C7

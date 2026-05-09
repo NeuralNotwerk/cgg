@@ -1,0 +1,1 @@
+cgg: 2 files discovered, 2 analyzed, 0 skipped (3.3 ms wall). [Task 3: detection + parsing wired]

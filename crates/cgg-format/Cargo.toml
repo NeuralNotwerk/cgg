@@ -1,0 +1,16 @@
+[package]
+name        = "cgg-format"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Output formatters (mermaid, json, dot, graphml) for the cgg call-graph generator."
+
+[dependencies]
+cgg-core   = { workspace = true }
+anyhow     = { workspace = true }
+thiserror  = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

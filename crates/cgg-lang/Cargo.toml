@@ -1,0 +1,28 @@
+[package]
+name        = "cgg-lang"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Language plugin trait, language detection and parser pool for the cgg call-graph generator."
+
+[dependencies]
+cgg-core   = { workspace = true }
+anyhow     = { workspace = true }
+thiserror  = { workspace = true }
+serde      = { workspace = true }
+tracing    = { workspace = true }
+
+tree-sitter            = { workspace = true }
+tree-sitter-rust       = { workspace = true }
+tree-sitter-python     = { workspace = true }
+tree-sitter-javascript = { workspace = true }
+tree-sitter-typescript = { workspace = true }
+tree-sitter-go         = { workspace = true }
+tree-sitter-java       = { workspace = true }
+tree-sitter-c          = { workspace = true }
+tree-sitter-cpp        = { workspace = true }
+tree-sitter-c-sharp    = { workspace = true }
+
+[dev-dependencies]
+insta    = { workspace = true }
+tempfile = { workspace = true }

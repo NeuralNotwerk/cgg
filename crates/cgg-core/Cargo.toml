@@ -1,0 +1,22 @@
+[package]
+name        = "cgg-core"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Core IR, audit schema, and run-level types for the cgg call-graph generator."
+
+[dependencies]
+anyhow     = { workspace = true }
+thiserror  = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+indexmap   = { workspace = true }
+tracing    = { workspace = true }
+regex      = { workspace = true }
+globset    = { workspace = true }
+petgraph   = { workspace = true }
+blake3     = { workspace = true }
+
+[dev-dependencies]
+insta    = { workspace = true }
+tempfile = { workspace = true }
