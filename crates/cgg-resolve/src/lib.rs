@@ -9,7 +9,9 @@
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 
+pub mod cross_file;
 pub mod intra_file;
+pub mod stack_graphs_resolver;
 
 use cgg_core::{CallableId, FileId};
 use serde::{Deserialize, Serialize};

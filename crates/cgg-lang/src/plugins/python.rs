@@ -41,7 +41,7 @@ impl LanguagePlugin for PythonPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_python::language()
+        tree_sitter_python::LANGUAGE.into()
     }
 
     fn extract(
@@ -62,12 +62,32 @@ impl LanguagePlugin for PythonPlugin {
     }
 }
 
-/// Derive a module name from the file path (stem without `.py`).
+/// Derive a module name from the file path.
+///
+/// Walks the path's parents looking for directories that contain
+/// `__init__.py`; those become module name segments, giving the full
+/// dotted path (`pkg.sub.module`). If no package markers are found,
+/// falls back to the file stem.
 fn module_name(path: &Path) -> String {
-    path.file_stem()
+    let stem = path
+        .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or("module")
-        .to_string()
+        .unwrap_or("module");
+    let mut parts: Vec<String> = vec![stem.to_string()];
+    let mut dir = path.parent();
+    while let Some(d) = dir {
+        let init_py = d.join("__init__.py");
+        if init_py.exists() {
+            if let Some(name) = d.file_name().and_then(|s| s.to_str()) {
+                parts.push(name.to_string());
+                dir = d.parent();
+                continue;
+            }
+        }
+        break;
+    }
+    parts.reverse();
+    parts.join(".")
 }
 
 struct Walker<'a> {
@@ -366,7 +386,7 @@ mod tests {
 
     fn extract_with(path: &str, src: &str) -> FileFacts {
         let mut parser = Parser::new();
-        parser.set_language(&tree_sitter_python::language()).unwrap();
+        parser.set_language(&tree_sitter_python::LANGUAGE.into()).unwrap();
         let tree = parser.parse(src, None).unwrap();
         PythonPlugin.extract(FileId::new(0), &PathBuf::from(path), &tree, src.as_bytes())
     }

@@ -13,5 +13,14 @@ thiserror = { workspace = true }
 serde     = { workspace = true }
 tracing   = { workspace = true }
 
+tree-sitter                         = { workspace = true }
+stack-graphs                        = { workspace = true }
+tree-sitter-stack-graphs            = { workspace = true }
+tree-sitter-stack-graphs-python     = { workspace = true }
+tree-sitter-stack-graphs-javascript = { workspace = true }
+tree-sitter-stack-graphs-typescript = { workspace = true }
+tree-sitter-stack-graphs-java       = { workspace = true }
+
 [dev-dependencies]
-insta = { workspace = true }
+insta    = { workspace = true }
+tempfile = { workspace = true }

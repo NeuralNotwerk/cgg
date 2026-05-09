@@ -22,6 +22,6 @@ impl LanguagePlugin for TypeScriptPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_typescript::language_tsx()
+        tree_sitter_typescript::LANGUAGE_TSX.into()
     }
 }

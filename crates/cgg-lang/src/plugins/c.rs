@@ -16,6 +16,6 @@ impl LanguagePlugin for CPlugin {
         ResolverKind::Custom
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_c::language()
+        tree_sitter_c::LANGUAGE.into()
     }
 }

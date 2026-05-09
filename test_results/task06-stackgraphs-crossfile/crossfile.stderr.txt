@@ -1,0 +1,1 @@
+cgg: 4 files discovered, 4 analyzed, 0 skipped; 7 callables, 12 edges, 14 unresolved (1199.2 ms). [Task 5: intra-file linker wired]

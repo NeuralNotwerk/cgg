@@ -16,6 +16,6 @@ impl LanguagePlugin for JavaPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_java::language()
+        tree_sitter_java::LANGUAGE.into()
     }
 }

@@ -21,6 +21,6 @@ impl LanguagePlugin for JavaScriptPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_javascript::language()
+        tree_sitter_javascript::LANGUAGE.into()
     }
 }

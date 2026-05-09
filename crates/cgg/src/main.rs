@@ -145,6 +145,8 @@ fn run(cli: Cli) -> Result<()> {
     let mut graph = Graph::new();
     // (FileId, def-index) -> CallableId.
     let mut def_ids: DefIdMap = DefIdMap::new();
+    // Retained source bytes per file, used by the stack-graphs resolver.
+    let mut sources: Vec<(FileId, String, Vec<u8>)> = Vec::new();
 
     for cand in &outcome.candidates {
         metrics.bytes_processed += cand.size_bytes;
@@ -278,6 +280,7 @@ fn run(cli: Cli) -> Result<()> {
 
             all_facts.push(facts);
         }
+        sources.push((file_id, lang.to_string(), bytes));
 
         next_file_id += 1;
         metrics.files_analyzed += 1;
@@ -325,6 +328,56 @@ fn run(cli: Cli) -> Result<()> {
         graph.unresolved.extend(outcome.unresolved);
     }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
+
+    // --- Phase 3b: stack-graphs resolution (Python/JS/TS/Java) ------------
+    let resolve_started = Instant::now();
+    let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> = sources
+        .iter()
+        .map(|(fid, lang, bytes)| cgg_resolve::stack_graphs_resolver::FileInput {
+            file: *fid,
+            language: lang.as_str(),
+            source: bytes.as_slice(),
+        })
+        .collect();
+    let sg_out = cgg_resolve::stack_graphs_resolver::resolve(&graph, &all_facts, &sg_inputs);
+
+    for e in &sg_out.edges {
+        match e.confidence {
+            cgg_core::graph::Confidence::High => {
+                metrics.confidence_histogram.high += 1
+            }
+            cgg_core::graph::Confidence::Medium => {
+                metrics.confidence_histogram.medium += 1
+            }
+            cgg_core::graph::Confidence::Low => {
+                metrics.confidence_histogram.low += 1
+            }
+        }
+    }
+    metrics.edges += sg_out.edges.len() as u64;
+    metrics.unresolved_calls += sg_out.unresolved.len() as u64;
+    graph.edges.extend(sg_out.edges);
+    graph.unresolved.extend(sg_out.unresolved);
+    let resolve_ms = resolve_started.elapsed().as_secs_f64() * 1000.0;
+    metrics.phases.resolve_ms = resolve_ms;
+
+    // --- Phase 3c: cross-file import-chain resolver -----------------------
+    let cf_out = cgg_resolve::cross_file::resolve(&graph, &all_facts);
+    for e in &cf_out.edges {
+        match e.confidence {
+            cgg_core::graph::Confidence::High => {
+                metrics.confidence_histogram.high += 1
+            }
+            cgg_core::graph::Confidence::Medium => {
+                metrics.confidence_histogram.medium += 1
+            }
+            cgg_core::graph::Confidence::Low => {
+                metrics.confidence_histogram.low += 1
+            }
+        }
+    }
+    metrics.edges += cf_out.edges.len() as u64;
+    graph.edges.extend(cf_out.edges);
 
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {

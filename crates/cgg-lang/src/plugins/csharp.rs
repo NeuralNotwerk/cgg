@@ -16,6 +16,6 @@ impl LanguagePlugin for CSharpPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_c_sharp::language()
+        tree_sitter_c_sharp::LANGUAGE.into()
     }
 }

@@ -16,6 +16,6 @@ impl LanguagePlugin for GoPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_go::language()
+        tree_sitter_go::LANGUAGE.into()
     }
 }

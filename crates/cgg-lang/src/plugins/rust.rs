@@ -41,7 +41,7 @@ impl LanguagePlugin for RustPlugin {
         ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_rust::language()
+        tree_sitter_rust::LANGUAGE.into()
     }
 
     fn extract(
@@ -426,7 +426,7 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut parser = Parser::new();
-        parser.set_language(&tree_sitter_rust::language()).unwrap();
+        parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
         let tree = parser.parse(src, None).unwrap();
         RustPlugin.extract(FileId::new(0), &PathBuf::from("x.rs"), &tree, src.as_bytes())
     }
