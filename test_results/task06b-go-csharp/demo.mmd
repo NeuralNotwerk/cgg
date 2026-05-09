@@ -1,0 +1,16 @@
+flowchart LR
+  C0["golib.Add"]
+  C1["golib.Multiply"]
+  C2["App.Runner.Go"]
+  C3["App.Runner.Entry"]
+  C4["App.Lib.Helpers.Add"]
+  C5["App.Lib.Helpers.Scale"]
+  C6["main.Run"]
+  C7["main.Start"]
+  C1 --> C0
+  C3 --> C2
+  C5 --> C4
+  C7 --> C6
+  C2 --> C5
+  C6 --> C0
+  C6 --> C1

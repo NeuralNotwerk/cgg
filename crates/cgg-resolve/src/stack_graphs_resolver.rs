@@ -92,7 +92,7 @@ pub fn resolve(
 fn is_supported_language(lang: &str) -> bool {
     matches!(
         lang,
-        "python" | "javascript" | "typescript" | "java" | "rust"
+        "python" | "javascript" | "typescript" | "java" | "rust" | "go" | "csharp"
     )
 }
 
@@ -209,8 +209,8 @@ fn resolve_language(
         refs_by_file.entry(cgg_file).or_default().push((node, byte));
     }
 
-    let resolver_id = if lang == "rust" {
-        ResolverId::new("tsg:rust")
+    let resolver_id = if matches!(lang, "rust" | "go" | "csharp") {
+        ResolverId::new(format!("tsg:{lang}"))
     } else {
         ResolverId::new(format!("stack-graphs:{lang}"))
     };
@@ -461,9 +461,35 @@ fn language_configuration(
             )
             .map_err(|e| anyhow::anyhow!("rust language-configuration: {e}"))?
         }
+        "go" => LanguageConfiguration::from_sources(
+            tree_sitter_go::LANGUAGE.into(),
+            Some(String::from("source.go")),
+            None,
+            vec![String::from("go")],
+            std::path::PathBuf::from("go.tsg"),
+            GO_TSG_SOURCE,
+            None,
+            None,
+            cancel,
+        )
+        .map_err(|e| anyhow::anyhow!("go language-configuration: {e}"))?,
+        "csharp" => LanguageConfiguration::from_sources(
+            tree_sitter_c_sharp::LANGUAGE.into(),
+            Some(String::from("source.csharp")),
+            None,
+            vec![String::from("cs")],
+            std::path::PathBuf::from("csharp.tsg"),
+            CSHARP_TSG_SOURCE,
+            None,
+            None,
+            cancel,
+        )
+        .map_err(|e| anyhow::anyhow!("csharp language-configuration: {e}"))?,
         other => return Err(anyhow::anyhow!("unsupported stack-graphs language: {other}")),
     })
 }
 
 /// In-tree stack-graphs rules for Rust, embedded at compile time.
 const RUST_TSG_SOURCE: &str = include_str!("tsg/rust.tsg");
+const GO_TSG_SOURCE: &str = include_str!("tsg/go.tsg");
+const CSHARP_TSG_SOURCE: &str = include_str!("tsg/csharp.tsg");

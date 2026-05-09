@@ -265,6 +265,8 @@ dependencies = [
  "thiserror",
  "tracing",
  "tree-sitter",
+ "tree-sitter-c-sharp",
+ "tree-sitter-go",
  "tree-sitter-rust",
  "tree-sitter-stack-graphs",
  "tree-sitter-stack-graphs-java",

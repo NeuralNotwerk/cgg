@@ -1,0 +1,13 @@
+;; go.tsg — placeholder stack-graphs rules for Go.
+;;
+;; Holds the architectural slot for a future `tree-sitter-stack-graphs-go`
+;; integration. The bulk of Go cross-package resolution is done by
+;; `cgg_resolve::cross_file` consuming the `package-root` and `import`
+;; records emitted by the extractor.
+;;
+;; What a future real `go.tsg` would add: method dispatch on
+;; receiver types, embedded-struct method promotion, interface
+;; satisfaction, generic instantiation.
+
+(source_file) @_root {
+}

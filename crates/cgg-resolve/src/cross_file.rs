@@ -135,15 +135,48 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     }
                 }
                 "import" => {
-                    // Python: `import a.b.c` or `import a as b`.
+                    // Python: `import a.b.c`               (no alias)
+                    //         `import a.b.c as d`          (aliased)
+                    // Go:     `import "fmt"`               (no alias)
+                    //         `import "net/http"`          (no alias)
+                    //         `import al "other/lib"`      (aliased)
+                    //
+                    // The call we want to resolve looks like
+                    // `<root>.name()` — `<root>` is the alias if
+                    // supplied, else the binding name implied by the
+                    // path. That binding name is:
+                    //   * Go (path contains '/'): last segment.
+                    //   * Python (dotted path):   first segment.
+                    //   * bare identifier:        the path itself.
+                    // The target "module root" we map to:
+                    //   * Go with slashes: the last segment
+                    //                      (package name by
+                    //                      convention = last dir).
+                    //   * Python or bare: the full path.
                     let path = imp.path.trim();
-                    if !imp.alias.is_empty() {
-                        module_aliases.insert(imp.alias.clone(), path.to_string());
+                    let has_slash = path.contains('/');
+                    let (binding, target) = if let Some(stripped_alias) =
+                        Some(imp.alias.trim()).filter(|a| !a.is_empty() && *a != "_")
+                    {
+                        // Aliased — user wrote the binding name.
+                        let target = if has_slash {
+                            path.rsplit('/').next().unwrap_or(path).to_string()
+                        } else {
+                            path.to_string()
+                        };
+                        (stripped_alias.to_string(), target)
+                    } else if has_slash {
+                        let last = path.rsplit('/').next().unwrap_or(path).to_string();
+                        (last.clone(), last)
+                    } else if path.contains('.') {
+                        // Python dotted — bind first segment, target is full.
+                        let first = path.split('.').next().unwrap_or(path).to_string();
+                        (first, path.to_string())
                     } else {
-                        // Last segment is the binding name.
-                        if let Some(last) = path.split('.').next_back() {
-                            module_aliases.insert(last.to_string(), path.to_string());
-                        }
+                        (path.to_string(), path.to_string())
+                    };
+                    if !binding.is_empty() {
+                        module_aliases.insert(binding, target);
                     }
                 }
                 "use" | "pub-use" => {
@@ -158,6 +191,28 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         .entry(alias)
                         .or_default()
                         .push(full.to_string());
+                }
+                "using" => {
+                    // C#: `using X.Y.Z;`                 -> module alias Z -> X.Y.Z
+                    //     `using Alias = X.Y.Z;`         -> alias Alias -> X.Y.Z
+                    let full = imp.path.trim();
+                    if !imp.alias.is_empty() {
+                        module_aliases
+                            .insert(imp.alias.clone(), full.to_string());
+                    } else if let Some(last) = full.rsplit('.').next() {
+                        module_aliases.insert(last.to_string(), full.to_string());
+                    }
+                }
+                "using-static" => {
+                    // C#: `using static X.Y;` — every member of Y is
+                    // callable unqualified. We record each definition
+                    // by its leaf name once we've walked the graph;
+                    // at resolve time we try `X.Y.<name>` directly.
+                    let full = imp.path.trim().to_string();
+                    direct_imports
+                        .entry("__using_static__".into())
+                        .or_default()
+                        .push(full);
                 }
                 _ => {}
             }
@@ -261,30 +316,44 @@ fn try_resolve_ref(
             }
         }
 
-        // Step 3: qualified-path call `foo::bar::baz()`. The
-        // receiver_hint is already the dotted/colon-joined path. Try
-        // it directly. If the leading segment is an import alias for
-        // a longer path, also try that rewrite.
+        // Step 3: qualified-path call `foo::bar::baz()` (Rust) or
+        // `foo.bar.baz()` (Python / Go / C#). The receiver_hint is
+        // already the joined path. Try both the Rust and the dotted
+        // form.
         let rh = r.receiver_hint.trim();
         if !rh.is_empty() {
-            // Direct path: `receiver::name`.
+            // Direct paths in both joiners.
+            let direct_dot = format!("{rh}.{}", r.name);
+            if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports) {
+                return Some(vec![cid]);
+            }
             let direct = format!("{rh}::{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &direct, by_qn, reexports) {
                 return Some(vec![cid]);
             }
             // If the head segment is imported as something else, rewrite.
             // e.g., `use foo as f; f::bar()` -> receiver=f, name=bar -> foo::bar.
-            if let Some(first) = rh.split("::").next() {
+            if let Some(first) = rh.split(|c| c == '.' || c == ':').next() {
                 if let Some(qns) = direct_imports.get(first) {
                     for base in qns {
-                        let rewritten = format!(
-                            "{base}{}::{}",
-                            rh.strip_prefix(first).unwrap_or(""),
-                            r.name
-                        );
-                        if let Some(cid) =
-                            lookup_with_reexports(lang, &rewritten, by_qn, reexports)
-                        {
+                        let rest = rh.strip_prefix(first).unwrap_or("");
+                        let rewritten_colon =
+                            format!("{base}{}::{}", rest.replace('.', "::"), r.name);
+                        if let Some(cid) = lookup_with_reexports(
+                            lang,
+                            &rewritten_colon,
+                            by_qn,
+                            reexports,
+                        ) {
+                            return Some(vec![cid]);
+                        }
+                        let rewritten_dot = format!("{base}{rest}.{}", r.name);
+                        if let Some(cid) = lookup_with_reexports(
+                            lang,
+                            &rewritten_dot,
+                            by_qn,
+                            reexports,
+                        ) {
                             return Some(vec![cid]);
                         }
                     }

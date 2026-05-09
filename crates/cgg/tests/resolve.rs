@@ -287,3 +287,130 @@ edition = "2021"
     let arrow = format!("{run} --> {work}");
     assert!(g.contains(&arrow), "re-export chain missing edge {arrow}:\n{g}");
 }
+
+#[test]
+fn go_cross_package_call_resolves() {
+    // Two-package Go fixture: `lib` defines `Helper`; `main` imports
+    // lib and calls `lib.Helper()`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib/lib.go",
+        b"package lib\n\nfunc Helper() int { return 1 }\n",
+    );
+    write(
+        tmp.path(),
+        "main.go",
+        b"package main\n\nimport \"example.com/lib\"\n\nfunc Run() int { return lib.Helper() }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("main.Run"));
+    assert!(g.contains("lib.Helper"));
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let run = node_id("main.Run").expect("main.Run node");
+    let helper = node_id("lib.Helper").expect("lib.Helper node");
+    let arrow = format!("{run} --> {helper}");
+    assert!(g.contains(&arrow), "missing cross-package edge:\n{g}");
+}
+
+#[test]
+fn go_aliased_import_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "stringz/stringz.go",
+        b"package stringz\n\nfunc Upper(s string) string { return s }\n",
+    );
+    write(
+        tmp.path(),
+        "main.go",
+        b"package main\n\nimport sz \"example.com/stringz\"\n\nfunc Run() string { return sz.Upper(\"hi\") }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("stringz.Upper"), "missing def:\n{g}");
+    assert!(g.contains("main.Run"));
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let run = node_id("main.Run").expect("main.Run node");
+    let upper = node_id("stringz.Upper").expect("stringz.Upper node");
+    let arrow = format!("{run} --> {upper}");
+    assert!(g.contains(&arrow), "aliased Go import failed:\n{g}");
+}
+
+#[test]
+fn csharp_cross_file_namespace_call_resolves() {
+    // Two C# files in the same namespace; one calls the other's
+    // static method via the fully-qualified path.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "helpers.cs",
+        b"namespace App {\n    public static class Helpers {\n        public static int Add(int a, int b) { return a + b; }\n    }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cs",
+        b"namespace App {\n    public class Runner {\n        public int Go() { return App.Helpers.Add(1, 2); }\n    }\n}\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("App.Helpers.Add"), "missing def:\n{g}");
+    assert!(g.contains("App.Runner.Go"), "missing def:\n{g}");
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let gogo = node_id("App.Runner.Go").expect("App.Runner.Go node");
+    let add = node_id("App.Helpers.Add").expect("App.Helpers.Add node");
+    let arrow = format!("{gogo} --> {add}");
+    assert!(g.contains(&arrow), "missing C# cross-file edge:\n{g}");
+}

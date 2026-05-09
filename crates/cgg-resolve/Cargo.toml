@@ -15,6 +15,8 @@ tracing   = { workspace = true }
 
 tree-sitter                         = { workspace = true }
 tree-sitter-rust                    = { workspace = true }
+tree-sitter-go                      = { workspace = true }
+tree-sitter-c-sharp                 = { workspace = true }
 stack-graphs                        = { workspace = true }
 tree-sitter-stack-graphs            = { workspace = true }
 tree-sitter-stack-graphs-python     = { workspace = true }
