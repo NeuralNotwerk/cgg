@@ -1,0 +1,12 @@
+;; cpp.tsg — placeholder stack-graphs rules for C++.
+;;
+;; Holds the architectural slot for a future scope-graph-based C++
+;; resolver. Cross-file resolution is done by `cgg_resolve::cross_file`
+;; consuming `#include` import records and matching qualified names.
+;;
+;; What a future real `cpp.tsg` would add: template instantiation,
+;; ADL (argument-dependent lookup), virtual dispatch, overload
+;; resolution, using-declarations in namespace scope.
+
+(translation_unit) @_root {
+}

@@ -92,7 +92,7 @@ pub fn resolve(
 fn is_supported_language(lang: &str) -> bool {
     matches!(
         lang,
-        "python" | "javascript" | "typescript" | "java" | "rust" | "go" | "csharp"
+        "python" | "javascript" | "typescript" | "java" | "rust" | "go" | "csharp" | "c" | "cpp"
     )
 }
 
@@ -209,7 +209,7 @@ fn resolve_language(
         refs_by_file.entry(cgg_file).or_default().push((node, byte));
     }
 
-    let resolver_id = if matches!(lang, "rust" | "go" | "csharp") {
+    let resolver_id = if matches!(lang, "rust" | "go" | "csharp" | "c" | "cpp") {
         ResolverId::new(format!("tsg:{lang}"))
     } else {
         ResolverId::new(format!("stack-graphs:{lang}"))
@@ -485,6 +485,30 @@ fn language_configuration(
             cancel,
         )
         .map_err(|e| anyhow::anyhow!("csharp language-configuration: {e}"))?,
+        "c" => LanguageConfiguration::from_sources(
+            tree_sitter_c::LANGUAGE.into(),
+            Some(String::from("source.c")),
+            None,
+            vec![String::from("c"), String::from("h")],
+            std::path::PathBuf::from("c.tsg"),
+            C_TSG_SOURCE,
+            None,
+            None,
+            cancel,
+        )
+        .map_err(|e| anyhow::anyhow!("c language-configuration: {e}"))?,
+        "cpp" => LanguageConfiguration::from_sources(
+            tree_sitter_cpp::LANGUAGE.into(),
+            Some(String::from("source.cpp")),
+            None,
+            vec![String::from("cpp"), String::from("cc"), String::from("cxx"), String::from("hpp")],
+            std::path::PathBuf::from("cpp.tsg"),
+            CPP_TSG_SOURCE,
+            None,
+            None,
+            cancel,
+        )
+        .map_err(|e| anyhow::anyhow!("cpp language-configuration: {e}"))?,
         other => return Err(anyhow::anyhow!("unsupported stack-graphs language: {other}")),
     })
 }
@@ -493,3 +517,5 @@ fn language_configuration(
 const RUST_TSG_SOURCE: &str = include_str!("tsg/rust.tsg");
 const GO_TSG_SOURCE: &str = include_str!("tsg/go.tsg");
 const CSHARP_TSG_SOURCE: &str = include_str!("tsg/csharp.tsg");
+const C_TSG_SOURCE: &str = include_str!("tsg/c.tsg");
+const CPP_TSG_SOURCE: &str = include_str!("tsg/cpp.tsg");

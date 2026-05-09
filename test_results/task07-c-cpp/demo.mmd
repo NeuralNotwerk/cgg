@@ -1,0 +1,25 @@
+flowchart LR
+  C0["start"]
+  C1["math::Calc::Calc"]
+  C2["math::~Calc"]
+  C3["math::Calc::compute"]
+  C4["math::Calc::zero"]
+  C5["math::helper"]
+  C6["add"]
+  C7["multiply"]
+  C8["add"]
+  C9["multiply"]
+  C10["math::Calc::Calc"]
+  C11["math::Calc::~Calc"]
+  C12["math::helper"]
+  C13["SQUARE"]
+  C14["run"]
+  C15["entry"]
+  C7 --> C6
+  C14 --> C13
+  C15 --> C14
+  C0 --> C4
+  C0 --> C12
+  C7 --> C8
+  C14 --> C8
+  C14 --> C9

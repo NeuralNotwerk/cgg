@@ -414,3 +414,106 @@ fn csharp_cross_file_namespace_call_resolves() {
     let arrow = format!("{gogo} --> {add}");
     assert!(g.contains(&arrow), "missing C# cross-file edge:\n{g}");
 }
+
+#[test]
+fn c_include_header_resolves() {
+    // C project: header defines `add`, two TUs include it and call it.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "helpers.h",
+        b"int add(int a, int b);\n",
+    );
+    write(
+        tmp.path(),
+        "helpers.c",
+        b"#include \"helpers.h\"\nint add(int a, int b) { return a + b; }\n",
+    );
+    write(
+        tmp.path(),
+        "main.c",
+        b"#include \"helpers.h\"\nint run() { return add(1, 2); }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("run"), "missing run:\n{g}");
+    assert!(g.contains("add"), "missing add:\n{g}");
+    // Find the run node and any add node, then check an edge exists.
+    let node_id = |qn: &str| -> Vec<String> {
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    let runs = node_id("run");
+    let adds = node_id("add");
+    assert!(!runs.is_empty(), "no run node");
+    assert!(!adds.is_empty(), "no add node");
+    let has_edge = runs.iter().any(|r| {
+        adds.iter().any(|a| g.contains(&format!("{r} --> {a}")))
+    });
+    assert!(has_edge, "missing C include edge:\n{g}");
+}
+
+#[test]
+fn cpp_namespace_cross_file_resolves() {
+    // C++ project: header declares namespace::class::method; impl
+    // file defines it; caller includes header and calls it.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "math.hpp",
+        b"namespace math {\nclass Calc {\npublic:\n    static int add(int a, int b);\n};\n}\n",
+    );
+    write(
+        tmp.path(),
+        "math.cpp",
+        b"#include \"math.hpp\"\nnamespace math {\nint Calc::add(int a, int b) { return a + b; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"math.hpp\"\nint run() { return math::Calc::add(1, 2); }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("run"), "missing run:\n{g}");
+    // The qualified call `math::Calc::add` should resolve.
+    assert!(g.contains("math::Calc::add"), "missing math::Calc::add:\n{g}");
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let run = node_id("run").expect("run node");
+    let add = node_id("math::Calc::add").expect("math::Calc::add node");
+    let arrow = format!("{run} --> {add}");
+    assert!(g.contains(&arrow), "missing C++ cross-file edge:\n{g}");
+}

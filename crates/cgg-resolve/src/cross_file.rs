@@ -214,6 +214,23 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         .or_default()
                         .push(full);
                 }
+                "include" => {
+                    // C/C++: `#include "helpers.h"` — all definitions
+                    // from the included file become available in this
+                    // TU. We resolve the path relative to the current
+                    // file and transitively chase includes up to 8
+                    // levels deep.
+                    let included_path = imp.path.trim();
+                    if !included_path.is_empty() {
+                        collect_include_defs(
+                            included_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            8,
+                        );
+                    }
+                }
                 _ => {}
             }
         }
@@ -265,6 +282,52 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
     }
 
     out
+}
+
+/// Collect definitions from an included header file and add them as
+/// direct imports. Transitively follows `#include` directives in the
+/// header up to `depth` levels.
+fn collect_include_defs(
+    include_path: &str,
+    includer_facts: &FileFacts,
+    facts_by_id: &HashMap<FileId, &FileFacts>,
+    direct_imports: &mut HashMap<String, Vec<String>>,
+    depth: u8,
+) {
+    if depth == 0 {
+        return;
+    }
+    // Resolve the include path relative to the includer's directory.
+    let includer_dir = includer_facts
+        .path
+        .parent()
+        .unwrap_or(std::path::Path::new(""));
+    let resolved = includer_dir.join(include_path);
+    // Find the matching FileFacts by path suffix (handles both
+    // absolute and relative paths in the index).
+    let target = facts_by_id.values().find(|f| {
+        f.path == resolved || f.path.ends_with(include_path)
+    });
+    let Some(target) = target else { return };
+    // Import all definitions from the target.
+    for d in &target.definitions {
+        direct_imports
+            .entry(d.simple_name.clone())
+            .or_default()
+            .push(d.qualified_name.clone());
+    }
+    // Transitively follow includes in the target.
+    for imp in &target.imports {
+        if imp.kind == "include" {
+            collect_include_defs(
+                imp.path.trim(),
+                target,
+                facts_by_id,
+                direct_imports,
+                depth - 1,
+            );
+        }
+    }
 }
 
 fn try_resolve_ref(
