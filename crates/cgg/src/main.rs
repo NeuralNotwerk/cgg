@@ -403,8 +403,8 @@ fn run(cli: Cli) -> Result<()> {
             cgg_resolve::stack_graphs_resolver::resolve(&graph, &all_facts, &sg_inputs)
         }
         cli::StackGraphsArg::Auto => {
-            // Run in a detached thread with a 60-second timeout.
-            // We clone the inputs so the thread owns them.
+            // Run full resolve in a detached thread with a 60-second timeout.
+            // If it times out, run the lightweight BFS-based resolver instead.
             let graph_clone = graph.clone();
             let facts_clone = all_facts.clone();
             let owned_sources: Vec<(FileId, String, Vec<u8>)> = sources
@@ -434,10 +434,36 @@ fn run(cli: Cli) -> Result<()> {
             rx.recv_timeout(std::time::Duration::from_secs(60))
                 .unwrap_or_else(|_| {
                     eprintln!(
-                        "cgg: stack-graphs timed out (>60s), \
-                         falling back to cross-file resolver only"
+                        "cgg: stack-graphs full resolve timed out (>60s), \
+                         running lightweight fallback"
                     );
-                    cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
+                    // Run the light BFS-based resolver (fast, no path stitching).
+                    // Skip if there are too many files (tsg compilation dominates).
+                    let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> =
+                        sources
+                            .iter()
+                            .filter(|(_, lang, _)| {
+                                cgg_resolve::stack_graphs_resolver::is_sg_language(lang)
+                            })
+                            .map(|(fid, lang, bytes)| {
+                                cgg_resolve::stack_graphs_resolver::FileInput {
+                                    file: *fid,
+                                    language: lang.as_str(),
+                                    source: bytes.as_slice(),
+                                }
+                            })
+                            .collect();
+                    if sg_inputs.len() > 200 {
+                        eprintln!(
+                            "cgg: too many files ({}) for light fallback, skipping",
+                            sg_inputs.len()
+                        );
+                        cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
+                    } else {
+                        cgg_resolve::stack_graphs_resolver::resolve_light(
+                            &graph, &all_facts, &sg_inputs,
+                        )
+                    }
                 })
         }
     };

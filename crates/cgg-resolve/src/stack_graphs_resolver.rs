@@ -63,19 +63,40 @@ pub fn resolve(
     facts: &[FileFacts],
     inputs: &[FileInput<'_>],
 ) -> ResolveOutput {
+    resolve_inner(graph, facts, inputs, false)
+}
+
+/// Lightweight stack-graphs pass: builds the scope graph but skips the
+/// expensive path-stitching phase. Instead, walks direct push/pop
+/// symbol edges from reference nodes to find adjacent definitions.
+/// Much faster but finds fewer cross-file edges.
+pub fn resolve_light(
+    graph: &Graph,
+    facts: &[FileFacts],
+    inputs: &[FileInput<'_>],
+) -> ResolveOutput {
+    resolve_inner(graph, facts, inputs, true)
+}
+
+fn resolve_inner(
+    graph: &Graph,
+    facts: &[FileFacts],
+    inputs: &[FileInput<'_>],
+    light_mode: bool,
+) -> ResolveOutput {
     let mut out = ResolveOutput::default();
 
     // Group inputs by language and keep only the four stack-graphs v1 languages.
     let mut by_lang: HashMap<&str, Vec<&FileInput<'_>>> = HashMap::new();
     for inp in inputs {
-        if is_supported_language(inp.language) {
+        if is_sg_language(inp.language) {
             by_lang.entry(inp.language).or_default().push(inp);
         }
     }
 
     // Build one stack graph + path database per language.
     for (lang, inputs) in by_lang {
-        match resolve_language(lang, &inputs, graph, facts) {
+        match resolve_language(lang, &inputs, graph, facts, light_mode) {
             Ok(mut partial) => {
                 out.edges.append(&mut partial.edges);
                 out.unresolved.append(&mut partial.unresolved);
@@ -89,7 +110,7 @@ pub fn resolve(
     out
 }
 
-fn is_supported_language(lang: &str) -> bool {
+pub fn is_sg_language(lang: &str) -> bool {
     matches!(
         lang,
         "python" | "javascript" | "typescript" | "java" | "rust" | "go" | "csharp" | "c" | "cpp"
@@ -101,6 +122,7 @@ fn resolve_language(
     inputs: &[&FileInput<'_>],
     graph: &Graph,
     facts: &[FileFacts],
+    light_mode: bool,
 ) -> anyhow::Result<ResolveOutput> {
     let cancel = SgNoCancellation;
     let lang_cfg = language_configuration(lang, &cancel)?;
@@ -146,29 +168,32 @@ fn resolve_language(
     // Populate a path database from each file's minimal partial path set.
     let mut db = Database::new();
     let file_handles: Vec<Handle<SgFile>> = stack_graph.iter_files().collect();
-    let mut total_paths = 0usize;
-    for file_handle in &file_handles {
-        let mut per_file = 0usize;
-        let _ = ForwardPartialPathStitcher::find_minimal_partial_path_set_in_file(
-            &stack_graph,
-            &mut partials,
-            *file_handle,
-            StitcherConfig::default().with_detect_similar_paths(true),
-            &NoCancellation,
-            |g, ps, p| {
-                per_file += 1;
-                db.add_partial_path(g, ps, p.clone());
-            },
-        );
-        total_paths += per_file;
-        tracing::debug!(
-            lang,
-            file = stack_graph[*file_handle].name(),
-            paths = per_file,
-            "stack-graphs: added partial paths",
-        );
+
+    if !light_mode {
+        let mut total_paths = 0usize;
+        for file_handle in &file_handles {
+            let mut per_file = 0usize;
+            let _ = ForwardPartialPathStitcher::find_minimal_partial_path_set_in_file(
+                &stack_graph,
+                &mut partials,
+                *file_handle,
+                StitcherConfig::default().with_detect_similar_paths(true),
+                &NoCancellation,
+                |g, ps, p| {
+                    per_file += 1;
+                    db.add_partial_path(g, ps, p.clone());
+                },
+            );
+            total_paths += per_file;
+            tracing::debug!(
+                lang,
+                file = stack_graph[*file_handle].name(),
+                paths = per_file,
+                "stack-graphs: added partial paths",
+            );
+        }
+        tracing::debug!(lang, total_paths, "stack-graphs: per-language path totals");
     }
-    tracing::debug!(lang, total_paths, "stack-graphs: per-language path totals");
 
     // Dump a summary of the first few DB paths for debugging.
     let mut path_summary: Vec<String> = Vec::new();
@@ -247,45 +272,87 @@ fn resolve_language(
             let src_cid = enclosing_callable(facts, r.site_byte, graph);
 
             let mut target_cids: Vec<CallableId> = Vec::new();
-            for sg_ref in &matching {
-                let _ = ForwardPartialPathStitcher::find_all_complete_partial_paths(
-                    &mut DatabaseCandidates::new(
-                        &stack_graph,
-                        &mut partials,
-                        &mut db,
-                    ),
-                    vec![*sg_ref],
-                    StitcherConfig::default().with_detect_similar_paths(true),
-                    &NoCancellation,
-                    |g, _ps, path| {
-                        if let Some((def_file_handle, def_byte, _)) =
-                            span_for_node(g, path.end_node)
-                        {
-                            tracing::debug!(
-                                ref_name = %r.name,
-                                end_file = g[def_file_handle].name(),
-                                end_byte = def_byte,
-                                end_is_def = g[path.end_node].is_definition(),
-                                end_is_ref = g[path.end_node].is_reference(),
-                                "stack-graphs: resolved path endpoint",
-                            );
-                            if !g[path.end_node].is_definition() {
-                                return;
-                            }
-                            if let Some(cid) = callable_at(
-                                &sg_to_cgg,
-                                &facts_by_file,
-                                graph,
-                                def_file_handle,
-                                def_byte,
-                            ) {
-                                if !target_cids.contains(&cid) {
-                                    target_cids.push(cid);
+
+            if light_mode {
+                // Light mode: BFS from each reference node following
+                // outgoing edges up to depth 6 looking for definition
+                // nodes. Much faster than full path stitching.
+                for sg_ref in &matching {
+                    let mut visited = std::collections::HashSet::new();
+                    let mut queue = std::collections::VecDeque::new();
+                    queue.push_back((*sg_ref, 0u8));
+                    visited.insert(*sg_ref);
+                    while let Some((node, depth)) = queue.pop_front() {
+                        if depth > 6 {
+                            continue;
+                        }
+                        if stack_graph[node].is_definition() && depth > 0 {
+                            if let Some((def_file_handle, def_byte, _)) =
+                                span_for_node(&stack_graph, node)
+                            {
+                                if let Some(cid) = callable_at(
+                                    &sg_to_cgg,
+                                    &facts_by_file,
+                                    graph,
+                                    def_file_handle,
+                                    def_byte,
+                                ) {
+                                    if !target_cids.contains(&cid) {
+                                        target_cids.push(cid);
+                                    }
                                 }
                             }
+                            continue; // Don't traverse past definitions
                         }
-                    },
-                );
+                        // Follow outgoing edges.
+                        for edge in stack_graph.outgoing_edges(node) {
+                            if visited.insert(edge.sink) {
+                                queue.push_back((edge.sink, depth + 1));
+                            }
+                        }
+                    }
+                }
+            } else {
+                for sg_ref in &matching {
+                    let _ = ForwardPartialPathStitcher::find_all_complete_partial_paths(
+                        &mut DatabaseCandidates::new(
+                            &stack_graph,
+                            &mut partials,
+                            &mut db,
+                        ),
+                        vec![*sg_ref],
+                        StitcherConfig::default().with_detect_similar_paths(true),
+                        &NoCancellation,
+                        |g, _ps, path| {
+                            if let Some((def_file_handle, def_byte, _)) =
+                                span_for_node(g, path.end_node)
+                            {
+                                tracing::debug!(
+                                    ref_name = %r.name,
+                                    end_file = g[def_file_handle].name(),
+                                    end_byte = def_byte,
+                                    end_is_def = g[path.end_node].is_definition(),
+                                    end_is_ref = g[path.end_node].is_reference(),
+                                    "stack-graphs: resolved path endpoint",
+                                );
+                                if !g[path.end_node].is_definition() {
+                                    return;
+                                }
+                                if let Some(cid) = callable_at(
+                                    &sg_to_cgg,
+                                    &facts_by_file,
+                                    graph,
+                                    def_file_handle,
+                                    def_byte,
+                                ) {
+                                    if !target_cids.contains(&cid) {
+                                        target_cids.push(cid);
+                                    }
+                                }
+                            }
+                        },
+                    );
+                }
             }
 
             match target_cids.as_slice() {
