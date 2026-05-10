@@ -89,6 +89,13 @@ pub struct Cli {
     #[arg(long = "audit-format", value_enum, default_value_t = AuditFormatArg::Json)]
     pub audit_format: AuditFormatArg,
 
+    /// Control stack-graphs deep resolution. `auto` (default) runs it
+    /// with a 60-second timeout — if exceeded, falls back to the
+    /// cross-file resolver only. `on` forces it without timeout; `off`
+    /// skips it entirely.
+    #[arg(long = "stack-graphs", value_enum, default_value_t = StackGraphsArg::Auto)]
+    pub stack_graphs: StackGraphsArg,
+
     /// Force a sidecar metrics file. Useful when `-t json` already
     /// embeds the audit but an external tool wants a split file.
     #[arg(long = "metrics", value_name = "FILE")]
@@ -128,6 +135,16 @@ pub enum AuditFormatArg {
     Json,
     /// One JSON object per line.
     Jsonl,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum StackGraphsArg {
+    /// Run with 60-second timeout; fall back if exceeded.
+    Auto,
+    /// Always run (no timeout).
+    On,
+    /// Skip entirely.
+    Off,
 }
 
 #[cfg(test)]

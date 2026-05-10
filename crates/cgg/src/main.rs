@@ -385,17 +385,62 @@ fn run(cli: Cli) -> Result<()> {
     }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
 
-    // --- Phase 3b: stack-graphs resolution (Python/JS/TS/Java) ------------
+    // --- Phase 3b: stack-graphs resolution (with timeout) ------------------
     let resolve_started = Instant::now();
-    let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> = sources
-        .iter()
-        .map(|(fid, lang, bytes)| cgg_resolve::stack_graphs_resolver::FileInput {
-            file: *fid,
-            language: lang.as_str(),
-            source: bytes.as_slice(),
-        })
-        .collect();
-    let sg_out = cgg_resolve::stack_graphs_resolver::resolve(&graph, &all_facts, &sg_inputs);
+    let sg_out = match cli.stack_graphs {
+        cli::StackGraphsArg::Off => {
+            cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
+        }
+        cli::StackGraphsArg::On => {
+            let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> = sources
+                .iter()
+                .map(|(fid, lang, bytes)| cgg_resolve::stack_graphs_resolver::FileInput {
+                    file: *fid,
+                    language: lang.as_str(),
+                    source: bytes.as_slice(),
+                })
+                .collect();
+            cgg_resolve::stack_graphs_resolver::resolve(&graph, &all_facts, &sg_inputs)
+        }
+        cli::StackGraphsArg::Auto => {
+            // Run in a detached thread with a 60-second timeout.
+            // We clone the inputs so the thread owns them.
+            let graph_clone = graph.clone();
+            let facts_clone = all_facts.clone();
+            let owned_sources: Vec<(FileId, String, Vec<u8>)> = sources
+                .iter()
+                .map(|(fid, lang, bytes)| (*fid, lang.clone(), bytes.clone()))
+                .collect();
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> =
+                    owned_sources
+                        .iter()
+                        .map(|(fid, lang, bytes)| {
+                            cgg_resolve::stack_graphs_resolver::FileInput {
+                                file: *fid,
+                                language: lang.as_str(),
+                                source: bytes.as_slice(),
+                            }
+                        })
+                        .collect();
+                let result = cgg_resolve::stack_graphs_resolver::resolve(
+                    &graph_clone,
+                    &facts_clone,
+                    &sg_inputs,
+                );
+                let _ = tx.send(result);
+            });
+            rx.recv_timeout(std::time::Duration::from_secs(60))
+                .unwrap_or_else(|_| {
+                    eprintln!(
+                        "cgg: stack-graphs timed out (>60s), \
+                         falling back to cross-file resolver only"
+                    );
+                    cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
+                })
+        }
+    };
 
     for e in &sg_out.edges {
         match e.confidence {
@@ -622,3 +667,5 @@ fn open_sink(dest: &PathBuf) -> Result<Box<dyn Write + Send>> {
         Ok(Box::new(BufWriter::new(f)))
     }
 }
+
+
