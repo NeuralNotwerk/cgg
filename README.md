@@ -11,7 +11,8 @@ Java, C, C++, C#**.
 ## Quick start
 
 ```
-cgg ./some/folder ./other/folder -o me-app.mmd -t mermaid
+cargo install --path crates/cgg
+cgg ./some/folder ./other/folder -o my-app.mmd -t mermaid
 ```
 
 Optional filtering to N-hop neighborhoods or full entry-to-exit call
@@ -21,6 +22,61 @@ paths:
 cgg ./src --filter 'process_order' -n 2
 cgg ./src --filter 'glob:handle_*' -n 0 -t json -o paths.json
 ```
+
+## CLI options
+
+```
+cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
+              [--filter PATTERN]... [-n N] [--max-paths N]
+              [--stack-graphs auto|on|off]
+              [--jobs N] [--lang rust,python,...]
+              [--audit-format json|jsonl] [--metrics FILE]
+              [-v|-vv|-q]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
+| `-o` | stdout | Output file (use `-` for stdout) |
+| `--filter` | (none) | Regex pattern on qualified names; prefix `glob:` for glob |
+| `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
+| `--stack-graphs` | auto | `auto`: 60s timeout + light fallback; `on`: no timeout; `off`: skip |
+| `--jobs` | 0 (auto) | Rayon thread count for parallel extraction |
+| `--lang` | (all) | Comma-separated language filter |
+| `--metrics` | sidecar | Force audit output to a specific file |
+| `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
+
+## Performance
+
+Benchmarked on real-world projects (default `--stack-graphs=auto`):
+
+| Project | Language | Files | Callables | Edges | Time |
+|---------|----------|-------|-----------|-------|------|
+| ripgrep | Rust | 102 | 2,851 | 1,625 | 1.4s |
+| flask | Python | 83 | 1,460 | 955 | 2.8s |
+| express | JS | 141 | 127 | 199 | 10.4s |
+| zod | TS | 409 | 1,462 | 1,857 | 32.6s |
+| fzf | Go | 80 | 893 | 760 | **0.38s** |
+| caddy | Go | 310 | 2,506 | 1,725 | **0.73s** |
+| jq | C | 55 | 1,111 | 21,030 | 1.4s |
+| redis | C | 802 | 14,594 | 500,681 | 29.6s |
+| nlohmann/json | C++ | 489 | 4,941 | 3,896 | 2.7s |
+| spdlog | C++ | 148 | 1,400 | 9,708 | 1.5s |
+| Newtonsoft.Json | C# | 945 | 11,688 | 2,661 | **2.1s** |
+| serilog | C# | 214 | 1,705 | 916 | **0.34s** |
+
+With `--stack-graphs=off` (fastest, cross-file resolver only):
+
+| Project | Time | Notes |
+|---------|------|-------|
+| lodash (JS) | 0.3s | vs 60s with auto timeout |
+| bat (Rust) | 0.5s | vs 68s with auto timeout |
+| typeorm (TS, 3545 files) | 15s | vs 60s with auto timeout |
+
+The 60-second timeout fires automatically for pathological codebases
+that trigger exponential path stitching in the stack-graphs library.
+A lightweight BFS fallback recovers ~20-25% of the edges that full
+resolution would find.
 
 ## Self-analysis
 
@@ -120,23 +176,43 @@ delegating to `match_ext`. `ParserPool::parse` calls the private
 plugin in via `register`.
 
 Both graphs are reproducible on any checkout and will grow as the
-codebase grows; Task 10's query engine will let us filter these to
-N-hop neighborhoods around named callables. They're kept in sync by
-a pre-commit hook (see `.githooks/pre-commit`); run
-`scripts/install-hooks.sh` once to activate it locally.
+codebase grows. They're kept in sync by a pre-commit hook (see
+`.githooks/pre-commit`); run `scripts/install-hooks.sh` once to
+activate it locally.
+
+## Architecture
+
+```
+cgg (binary)
+├── Phase 1: cgg-walk        — file discovery (.gitignore, deny-list, binary sniff)
+├── Phase 2: cgg-lang        — detect language, parse (tree-sitter), extract callables
+│   └── 9 plugins            — rust, python, javascript, typescript, go, java, c, cpp, csharp
+├── Phase 3: cgg-resolve     — resolution pipeline
+│   ├── intra-file linker    — scope-based, smallest-enclosing-range
+│   ├── stack-graphs         — tree-sitter-stack-graphs (with timeout + light fallback)
+│   ├── cross-file resolver  — import-chain walking, #include transitive, pub-use chains
+│   └── FFI linker           — PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI
+├── Phase 4: query engine    — --filter + -n (BFS neighborhood / full paths)
+└── Phase 5: cgg-format      — mermaid, json, dot, graphml
+```
 
 ## Output formats
 
 `-t mermaid | json | dot | graphml`. The internal graph is shared; each
 formatter is a thin transform over the same IR.
 
+- **mermaid**: `flowchart LR` with `C<n>` node IDs and qualified-name labels.
+- **json**: Full graph serialized via serde (callables, edges, files, metrics).
+- **dot**: Graphviz `digraph` with `rankdir=LR` and box nodes.
+- **graphml**: XML with node label and language data keys.
+
 ## Audit / metrics
 
 Every file considered, every file skipped, every callable extracted,
-and every unresolved call is tracked in a structured audit log. For
-`-t json`, the audit is embedded in the output. For any other format,
-an audit sidecar (`<output>.audit.json`) is written. `--audit-format
-jsonl` streams per-file audit events for SIEM ingestion.
+and every unresolved call is tracked in a structured audit log. An
+audit sidecar (`<output>.audit.json`) is written alongside the graph.
+Use `--metrics FILE` to force a specific path, or `--audit-format
+jsonl` for streaming per-file events (SIEM-friendly).
 
 ## Scope
 
@@ -148,6 +224,7 @@ jsonl` streams per-file audit events for SIEM ingestion.
   Emergent HTTP handlers and registered callbacks surface naturally.
 - Cycles (recursion, mutual recursion) are preserved — never silently
   removed.
+- Edge deduplication: same (src, dst, site_byte) keeps highest confidence.
 
 ## Out of scope (v1)
 
@@ -158,6 +235,7 @@ jsonl` streams per-file audit events for SIEM ingestion.
 - Daemon / watch mode.
 - Macro expansion for C / C++ (macro call sites are emitted as
   unresolved with an audit note).
+- Java callable extraction (grammar wired, extractor is a stub).
 
 ## License
 
