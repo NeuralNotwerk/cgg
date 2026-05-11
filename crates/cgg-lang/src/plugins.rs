@@ -12,9 +12,11 @@ pub mod javascript;
 pub mod typescript;
 pub mod go;
 pub mod java;
+pub mod kotlin;
 pub mod c;
 pub mod cpp;
 pub mod csharp;
+pub mod bash;
 
 use crate::PluginRegistry;
 
@@ -26,9 +28,11 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(typescript::TypeScriptPlugin));
     reg.register(Box::new(go::GoPlugin));
     reg.register(Box::new(java::JavaPlugin));
+    reg.register(Box::new(kotlin::KotlinPlugin));
     reg.register(Box::new(c::CPlugin));
     reg.register(Box::new(cpp::CppPlugin));
     reg.register(Box::new(csharp::CSharpPlugin));
+    reg.register(Box::new(bash::BashPlugin));
 }
 
 #[cfg(test)]

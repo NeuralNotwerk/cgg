@@ -59,6 +59,10 @@ tree-sitter-c           = "0.23"
 tree-sitter-cpp         = "0.23"
 tree-sitter-c-sharp     = "=0.23.1"
 
+# --- Additional language grammars ---
+tree-sitter-kotlin-sg   = "0.4"
+tree-sitter-bash        = "0.23"
+
 # --- Stack graphs (Apache-2.0 OR MIT) ---
 stack-graphs                            = "0.14"
 tree-sitter-stack-graphs                = "0.10"

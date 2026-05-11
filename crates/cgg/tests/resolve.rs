@@ -613,3 +613,70 @@ fn ts_namespace_import_resolves() {
     });
     assert!(has_edge, "missing TS namespace import edge run->add:\n{g}");
 }
+
+#[test]
+fn java_cross_file_import_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "Helper.java", b"package lib;\npublic class Helper {\n  public static int add(int a, int b) { return a + b; }\n}\n");
+    write(tmp.path(), "Main.java", b"package app;\nimport lib.Helper;\npublic class Main {\n  public void run() { Helper.add(1, 2); }\n}\n");
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("add"), "missing add:\n{g}");
+    assert!(g.contains("run"), "missing run:\n{g}");
+    // Cross-file edge: run -> add
+    let node_ids = |qn: &str| -> Vec<String> {
+        g.lines().filter_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else { None }
+        }).collect()
+    };
+    let runs = node_ids("app.Main.run");
+    let adds = node_ids("lib.Helper.add");
+    assert!(!runs.is_empty(), "no run node:\n{g}");
+    assert!(!adds.is_empty(), "no add node:\n{g}");
+    let has_edge = runs.iter().any(|r| adds.iter().any(|a| g.contains(&format!("{r} --> {a}"))));
+    assert!(has_edge, "missing Java cross-file edge:\n{g}");
+}
+
+#[test]
+fn kotlin_cross_file_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "Helper.kt", b"package lib\nfun helper(): Int = 42\n");
+    write(tmp.path(), "Main.kt", b"package app\nimport lib.helper\nfun run(): Int = helper()\n");
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("helper"), "missing helper:\n{g}");
+    assert!(g.contains("run"), "missing run:\n{g}");
+}
+
+#[test]
+fn bash_source_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "lib.sh", b"#!/bin/bash\nhelper() { echo hi; }\n");
+    write(tmp.path(), "main.sh", b"#!/bin/bash\nsource ./lib.sh\nmain() { helper; }\n");
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("helper"), "missing helper:\n{g}");
+    assert!(g.contains("main"), "missing main:\n{g}");
+    let node_ids = |qn: &str| -> Vec<String> {
+        g.lines().filter_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else { None }
+        }).collect()
+    };
+    let mains = node_ids("main");
+    let helpers = node_ids("helper");
+    assert!(!mains.is_empty() && !helpers.is_empty());
+    let has_edge = mains.iter().any(|m| helpers.iter().any(|h| g.contains(&format!("{m} --> {h}"))));
+    assert!(has_edge, "missing bash source edge:\n{g}");
+}

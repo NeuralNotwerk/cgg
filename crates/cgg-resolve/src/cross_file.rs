@@ -241,6 +241,21 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         );
                     }
                 }
+                "source" => {
+                    // Bash: `source ./lib.sh` — same semantics as
+                    // C #include: all definitions from the sourced
+                    // file become available.
+                    let sourced_path = imp.path.trim();
+                    if !sourced_path.is_empty() {
+                        collect_include_defs(
+                            sourced_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
+                    }
+                }
                 _ => {}
             }
         }

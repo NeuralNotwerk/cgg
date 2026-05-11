@@ -6,7 +6,7 @@ callable-to-callable edges to near-LSP quality without running any
 language server.
 
 Supported v1 languages: **Rust, Python, JavaScript, TypeScript, Go,
-Java, C, C++, C#**.
+Java, Kotlin, C, C++, C#, Shell/Bash**.
 
 ## Quick start
 
@@ -186,7 +186,7 @@ activate it locally.
 cgg (binary)
 ├── Phase 1: cgg-walk        — file discovery (.gitignore, deny-list, binary sniff)
 ├── Phase 2: cgg-lang        — detect language, parse (tree-sitter), extract callables
-│   └── 9 plugins            — rust, python, javascript, typescript, go, java, c, cpp, csharp
+│   └── 11 plugins           — rust, python, javascript, typescript, go, java, kotlin, c, cpp, csharp, bash
 ├── Phase 3: cgg-resolve     — resolution pipeline
 │   ├── intra-file linker    — scope-based, smallest-enclosing-range
 │   ├── stack-graphs         — tree-sitter-stack-graphs (with timeout + light fallback)
@@ -228,14 +228,13 @@ jsonl` for streaming per-file events (SIEM-friendly).
 
 ## Out of scope (v1)
 
-- Additional top-20 languages (Ruby, PHP, Kotlin, Swift, Scala, Dart,
-  Lua, Shell, HCL). Plugin trait makes these straightforward to add.
+- Additional top-20 languages (Ruby, PHP, Swift, Scala, Dart,
+  Lua, HCL). Plugin trait makes these straightforward to add.
 - Real-LSP implementation behind the `ResolverService` trait — seam
   exists; implementation deferred.
 - Daemon / watch mode.
 - Macro expansion for C / C++ (macro call sites are emitted as
   unresolved with an audit note).
-- Java callable extraction (grammar wired, extractor is a stub).
 
 ## License
 

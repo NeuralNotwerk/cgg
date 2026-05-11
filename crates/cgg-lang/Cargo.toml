@@ -22,6 +22,8 @@ tree-sitter-java       = { workspace = true }
 tree-sitter-c          = { workspace = true }
 tree-sitter-cpp        = { workspace = true }
 tree-sitter-c-sharp    = { workspace = true }
+tree-sitter-kotlin-sg  = { workspace = true }
+tree-sitter-bash       = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }

@@ -1,21 +1,240 @@
-//! Java plugin. Task 6 adds extraction + stack-graphs wiring.
+//! Java plugin — full callable extraction.
 
+use std::path::Path;
+use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
+use tree_sitter::{Node, Tree};
 use crate::{LanguagePlugin, ResolverKind};
 
 #[derive(Debug)]
 pub struct JavaPlugin;
 
 impl LanguagePlugin for JavaPlugin {
-    fn id(&self) -> &'static str {
-        "java"
+    fn id(&self) -> &'static str { "java" }
+    fn extensions(&self) -> &'static [&'static str] { &[".java"] }
+    fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
+    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
+
+    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+        let mut facts = FileFacts::new(file, path.to_path_buf(), "java");
+        let mut w = JavaWalker { source, facts: &mut facts, scope: Vec::new() };
+        w.walk(tree.root_node());
+        facts
     }
-    fn extensions(&self) -> &'static [&'static str] {
-        &[".java"]
+}
+
+struct JavaWalker<'a> {
+    source: &'a [u8],
+    facts: &'a mut FileFacts,
+    scope: Vec<String>,
+}
+
+impl<'a> JavaWalker<'a> {
+    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+
+    fn qn(&self, simple: &str) -> String {
+        if self.scope.is_empty() { simple.to_string() }
+        else { format!("{}.{simple}", self.scope.join(".")) }
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+
+    fn walk(&mut self, node: Node) {
+        match node.kind() {
+            "package_declaration" => {
+                if let Some(name) = node.child_by_field_name("name")
+                    .or_else(|| node.children(&mut node.walk()).find(|c| c.kind() == "scoped_identifier" || c.kind() == "identifier"))
+                {
+                    self.scope.push(self.text(name).replace(';', "").trim().to_string());
+                }
+                return;
+            }
+            "import_declaration" => {
+                self.record_import(node);
+                return;
+            }
+            "class_declaration" | "interface_declaration" | "enum_declaration" | "record_declaration" => {
+                let name = node.child_by_field_name("name")
+                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                if !name.is_empty() {
+                    self.scope.push(name);
+                    self.walk_children(node);
+                    self.scope.pop();
+                } else {
+                    self.walk_children(node);
+                }
+                return;
+            }
+            "method_declaration" => {
+                self.record_method(node);
+                self.walk_children(node);
+                return;
+            }
+            "constructor_declaration" => {
+                let name = node.child_by_field_name("name")
+                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                if !name.is_empty() {
+                    self.record_def(node, &name, DefVariant::Constructor);
+                }
+                self.walk_children(node);
+                return;
+            }
+            "method_invocation" => {
+                self.record_call(node);
+                self.walk_children(node);
+                return;
+            }
+            "object_creation_expression" => {
+                // new Foo(...)
+                if let Some(t) = node.child_by_field_name("type") {
+                    let name = self.text(t).to_string();
+                    if !name.is_empty() {
+                        self.facts.references.push(RefRecord {
+                            name,
+                            receiver_hint: String::new(),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
+            _ => {}
+        }
+        self.walk_children(node);
     }
-    fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_java::LANGUAGE.into()
+
+    fn walk_children(&mut self, node: Node) {
+        let mut c = node.walk();
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() { break; }
+            }
+        }
+    }
+
+    fn record_method(&mut self, node: Node) {
+        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let simple = self.text(name_node).to_string();
+        if simple.is_empty() { return; }
+        let is_static = node.children(&mut node.walk())
+            .any(|c| c.kind() == "modifiers" && self.text(c).contains("static"));
+        let variant = if is_static { DefVariant::StaticMethod } else { DefVariant::InherentMethod };
+        self.record_def(node, &simple, variant);
+    }
+
+    fn record_def(&mut self, node: Node, simple: &str, variant: DefVariant) {
+        let qn = self.qn(simple);
+        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple.to_string(),
+            qualified_name: qn,
+            variant,
+            start_line: sl, end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
+            visibility: String::new(),
+            attributes: Vec::new(),
+        });
+    }
+
+    fn record_import(&mut self, node: Node) {
+        // Get the full import path from the scoped_identifier child.
+        let ident_node = node.children(&mut node.walk())
+            .find(|c| c.kind() == "scoped_identifier" || c.kind() == "identifier");
+        let Some(ident_node) = ident_node else { return };
+        let path = self.text(ident_node).to_string();
+        if path.is_empty() { return; }
+
+        // Check for `static` modifier
+        let text = self.text(node);
+        let is_static = text.contains("static ");
+
+        if is_static {
+            let alias = path.rsplit('.').next().unwrap_or("").to_string();
+            self.facts.imports.push(ImportRecord {
+                kind: "from-import".into(),
+                path,
+                alias,
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
+        } else {
+            let alias = path.rsplit('.').next().unwrap_or("").to_string();
+            self.facts.imports.push(ImportRecord {
+                kind: "import".into(),
+                path,
+                alias,
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
+        }
+    }
+
+    fn record_call(&mut self, node: Node) {
+        let name = node.child_by_field_name("name")
+            .map(|n| self.text(n).to_string()).unwrap_or_default();
+        let recv = node.child_by_field_name("object")
+            .map(|n| self.text(n).to_string()).unwrap_or_default();
+        if name.is_empty() { return; }
+        self.facts.references.push(RefRecord {
+            name, receiver_hint: recv,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cgg_core::ids::FileId;
+    use std::path::PathBuf;
+    use tree_sitter::Parser;
+
+    fn extract(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        JavaPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/X.java"), &tree, src.as_bytes())
+    }
+
+    #[test]
+    fn class_methods_with_package() {
+        let src = "package com.example;\npublic class Service {\n  public void run() {}\n  private int process(String s) { return 0; }\n}\n";
+        let f = extract(src);
+        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        assert!(qns.contains(&"com.example.Service.run"), "got: {qns:?}");
+        assert!(qns.contains(&"com.example.Service.process"), "got: {qns:?}");
+    }
+
+    #[test]
+    fn constructor_variant() {
+        let src = "class Foo { public Foo(int x) {} }\n";
+        let f = extract(src);
+        assert!(f.definitions.iter().any(|d| d.simple_name == "Foo" && d.variant == DefVariant::Constructor));
+    }
+
+    #[test]
+    fn imports_captured() {
+        let src = "import java.util.List;\nimport static java.lang.Math.abs;\nclass C {}\n";
+        let f = extract(src);
+        assert!(f.imports.iter().any(|i| i.path.contains("java.util.List")));
+        assert!(f.imports.iter().any(|i| i.kind == "from-import" && i.alias == "abs"));
+    }
+
+    #[test]
+    fn method_invocation_captured() {
+        let src = "class C { void f() { helper(); obj.run(); } }\n";
+        let f = extract(src);
+        assert!(f.references.iter().any(|r| r.name == "helper" && r.receiver_hint.is_empty()));
+        assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"));
+    }
+
+    #[test]
+    fn static_method_variant() {
+        let src = "class C { public static void create() {} }\n";
+        let f = extract(src);
+        assert!(f.definitions.iter().any(|d| d.simple_name == "create" && d.variant == DefVariant::StaticMethod));
     }
 }
