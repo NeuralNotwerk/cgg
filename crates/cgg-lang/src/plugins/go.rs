@@ -346,13 +346,37 @@ impl<'a> Walker<'a> {
     }
 
     fn record_short_var_type(&mut self, node: Node) {
-        // short_var_declaration: `helper := NewHelper()`
-        // Heuristic: if RHS is a call to NewFoo(), type is Foo.
+        // short_var_declaration: `helper := NewHelper()` or `add := func() {}`
         let left = node.child_by_field_name("left");
         let right = node.child_by_field_name("right");
         let (Some(left), Some(right)) = (left, right) else { return };
         let var_name = self.text(left).to_string();
         if var_name.is_empty() { return; }
+
+        // Check if RHS is a func_literal — emit as a callable
+        let rhs = if right.kind() == "expression_list" {
+            right.child(0)
+        } else {
+            Some(right)
+        };
+        if let Some(rhs) = rhs {
+            if rhs.kind() == "func_literal" {
+                let qn = format!("{}.{var_name}", self.pkg);
+                let (sl, el) = ((node.start_position().row as u32)+1, (node.end_position().row as u32)+1);
+                self.facts.definitions.push(cgg_core::DefRecord {
+                    simple_name: var_name.clone(),
+                    qualified_name: qn,
+                    variant: cgg_core::DefVariant::FreeFunction,
+                    start_line: sl, end_line: el,
+                    start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+                    signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
+                    visibility: String::new(), attributes: Vec::new(),
+                });
+                return;
+            }
+        }
+
+        // Heuristic: if RHS is a call to NewFoo(), type is Foo.
         let call = if right.kind() == "expression_list" {
             right.child(0).filter(|c| c.kind() == "call_expression")
         } else if right.kind() == "call_expression" {

@@ -132,6 +132,8 @@ impl<'a> JsWalker<'a> {
             }
             "call_expression" => {
                 self.record_call(node);
+                // Also check for named function arguments (defineGetter pattern)
+                self.extract_named_fn_args(node);
                 self.walk_children(node);
                 return;
             }
@@ -470,6 +472,33 @@ impl<'a> JsWalker<'a> {
                 alias: items,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
+            });
+        }
+    }
+
+    fn extract_named_fn_args(&mut self, node: Node) {
+        // defineGetter(obj, 'name', function name() {...})
+        // or any call with a named function_expression argument
+        let args = node.child_by_field_name("arguments");
+        let Some(args) = args else { return };
+        let count = args.child_count();
+        for i in 0..count as u32 {
+            let Some(arg) = args.child(i) else { continue };
+            if arg.kind() != "function_expression" && arg.kind() != "function" { continue; }
+            // Check if the function has a name
+            let name = arg.child_by_field_name("name")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
+            if name.is_empty() { continue; }
+            let qn = self.qn(&name);
+            let (sl, el) = ((arg.start_position().row as u32)+1, (arg.end_position().row as u32)+1);
+            self.facts.definitions.push(DefRecord {
+                simple_name: name, qualified_name: qn,
+                variant: DefVariant::FreeFunction,
+                start_line: sl, end_line: el,
+                start_byte: arg.start_byte() as u32, end_byte: arg.end_byte() as u32,
+                signature_hint: self.text(arg).lines().next().unwrap_or("").trim().to_string(),
+                visibility: String::new(), attributes: Vec::new(),
             });
         }
     }

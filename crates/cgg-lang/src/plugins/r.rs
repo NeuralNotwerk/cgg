@@ -51,8 +51,11 @@ impl<'a> RWalker<'a> {
 
     fn try_record_function_assign(&mut self, node: Node) {
         // binary_operator: lhs <- rhs where rhs is function_definition
-        let lhs = node.child_by_field_name("lhs");
-        let rhs = node.child_by_field_name("rhs");
+        // equals_assignment: lhs = rhs where rhs is function_definition
+        let lhs = node.child_by_field_name("lhs")
+            .or_else(|| node.child(0));
+        let rhs = node.child_by_field_name("rhs")
+            .or_else(|| node.child(2));
         let (Some(lhs), Some(rhs)) = (lhs, rhs) else { return };
         if rhs.kind() != "function_definition" { return; }
         if lhs.kind() != "identifier" { return; }
