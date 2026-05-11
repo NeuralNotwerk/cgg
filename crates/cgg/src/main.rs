@@ -12,6 +12,7 @@
 mod cli;
 mod query;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Write};
 use std::path::PathBuf;
@@ -352,8 +353,12 @@ fn run(cli: Cli) -> Result<()> {
 
     // --- Phase 3: type propagation + intra-file link -----------------------
     let link_started = Instant::now();
+    let return_types_owned: HashMap<String, String> = cgg_resolve::type_hints::build_return_type_map(&all_facts)
+        .into_iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    let return_types: HashMap<&str, &str> = return_types_owned.iter()
+        .map(|(k, v)| (k.as_str(), v.as_str())).collect();
     for facts in &mut all_facts {
-        cgg_resolve::type_hints::propagate_types(facts);
+        cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
     }
     for facts in &all_facts {
         let outcome = link_file(facts, &def_ids);

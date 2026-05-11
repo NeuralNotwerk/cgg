@@ -18,6 +18,31 @@ use std::collections::HashMap;
 
 /// Rewrite receiver hints in-place using inferred type information.
 pub fn propagate_types(facts: &mut FileFacts) {
+    propagate_types_with_returns(facts, &HashMap::new());
+}
+
+/// Build a map of function_simple_name -> return_type from all
+/// definitions across all files. Parses return types from signature_hint.
+pub fn build_return_type_map<'a>(all_facts: &'a [FileFacts]) -> HashMap<&'a str, &'a str> {
+    let mut map: HashMap<&'a str, &'a str> = HashMap::new();
+    for facts in all_facts {
+        for def in &facts.definitions {
+            if let Some(ret) = extract_return_type(&def.signature_hint) {
+                if ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
+                    map.entry(def.simple_name.as_str()).or_insert(ret);
+                }
+            }
+        }
+    }
+    map
+}
+
+/// Rewrite receiver hints using both local type info and a global
+/// return-type map built from all files' definitions.
+pub fn propagate_types_with_returns(
+    facts: &mut FileFacts,
+    return_types: &HashMap<&str, &str>,
+) {
     // Build type map per enclosing callable (by byte range).
     // Key: (enclosing_start_byte, variable_name) -> type_name
     let mut type_map: HashMap<(u32, &str), &str> = HashMap::new();
@@ -63,6 +88,43 @@ pub fn propagate_types(facts: &mut FileFacts) {
         if let Some(&ty) = local_type_map.get(rh) {
             rewrites.push((i, ty.to_string()));
             continue;
+        }
+
+        // Strategy 4: return-type inference. If the receiver variable
+        // was assigned from a function call whose return type we know,
+        // use that. We check if any ref in this file is a bare call
+        // to a function with a known return type, appearing before
+        // this ref, and the ref's name matches our receiver.
+        // Simplified: just check if receiver_hint matches a known
+        // function name's return type (covers `let x = getService(); x.run()`)
+        if !return_types.is_empty() {
+            // Check if there's a ref earlier in this file that calls
+            // a function whose return type matches. We use a heuristic:
+            // if the variable name is a common derivative of the return
+            // type (e.g., "service" from "Service", "config" from "Config")
+            // OR if we find a bare call to a function returning that type.
+            let rh_lower = rh.to_lowercase();
+            for (&fn_name, &ret_type) in return_types.iter() {
+                let ret_lower = ret_type.to_lowercase();
+                // Match: variable named "service" and a function "getService" returns "Service"
+                // Match: variable named "config" and a function "loadConfig" returns "Config"
+                if rh_lower == ret_lower
+                    || rh_lower == format!("{}s", ret_lower)  // plurals
+                {
+                    // Verify this function is actually called in this scope
+                    let called = facts.references.iter().any(|r| {
+                        r.name == fn_name && r.receiver_hint.is_empty()
+                            && r.site_byte < rref.site_byte
+                    });
+                    if called {
+                        rewrites.push((i, ret_type.to_string()));
+                        break;
+                    }
+                }
+            }
+            if rewrites.last().map(|(idx, _)| *idx) == Some(i) {
+                continue;
+            }
         }
 
         // Strategy 2: constructor/lowercase heuristic
@@ -211,6 +273,41 @@ fn enclosing_def<'a>(facts: &'a FileFacts, byte: u32) -> Option<&'a DefRecord> {
         }
     }
     best.map(|(d, _)| d)
+}
+
+fn extract_return_type(sig: &str) -> Option<&str> {
+    // Rust: `fn foo() -> Config`
+    if let Some(pos) = sig.find("->") {
+        let ret = sig[pos + 2..].trim();
+        let ret = ret.trim_start_matches('&').trim_start_matches("mut ").trim();
+        let ret = ret.split(|c: char| c == '<' || c == '{' || c == ',' || c == ' ')
+            .next().unwrap_or(ret).trim();
+        if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
+            return Some(ret);
+        }
+    }
+    // Java/C#/Go: return type is before the function name
+    // `public Service getService()` or `func GetConfig() Config`
+    // TS/Kotlin: `fun foo(): Config` or `foo(): Config`
+    if let Some(pos) = sig.find("): ") {
+        let ret = sig[pos + 3..].trim();
+        let ret = ret.split(|c: char| c == '<' || c == '{' || c == ' ' || c == '?')
+            .next().unwrap_or(ret).trim();
+        if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
+            return Some(ret);
+        }
+    }
+    // Go: `func Foo() Config {` — return type after ) and before {
+    if let Some(paren_close) = sig.rfind(')') {
+        let after = sig[paren_close + 1..].trim();
+        let after = after.trim_start_matches('*');
+        let ret = after.split(|c: char| c == '{' || c == ',' || c == ' ')
+            .next().unwrap_or("").trim();
+        if !ret.is_empty() && ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
+            return Some(ret);
+        }
+    }
+    None
 }
 
 fn is_primitive(ty: &str) -> bool {
