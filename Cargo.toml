@@ -66,6 +66,9 @@ tree-sitter-php         = "0.24"
 tree-sitter-dart        = "0.2"
 tree-sitter-scala       = "0.26"
 tree-sitter-hcl         = "1.1"
+tree-sitter-zig         = "1.1"
+tree-sitter-objc        = "3.0"
+tree-sitter-r           = "1.2"
 
 # --- Dev / test ---
 assert_cmd    = "2.0"

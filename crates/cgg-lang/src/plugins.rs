@@ -16,6 +16,9 @@ pub mod php;
 pub mod dart;
 pub mod scala;
 pub mod hcl;
+pub mod zig;
+pub mod objc;
+pub mod r;
 
 use crate::PluginRegistry;
 
@@ -39,6 +42,9 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(dart::DartPlugin));
     reg.register(Box::new(scala::ScalaPlugin));
     reg.register(Box::new(hcl::HclPlugin));
+    reg.register(Box::new(zig::ZigPlugin));
+    reg.register(Box::new(objc::ObjcPlugin));
+    reg.register(Box::new(r::RPlugin));
 }
 
 #[cfg(test)]

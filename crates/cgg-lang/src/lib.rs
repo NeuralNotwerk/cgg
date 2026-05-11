@@ -107,8 +107,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn v1_registry_has_18_languages() {
+    fn v1_registry_has_21_languages() {
         let reg = PluginRegistry::with_v1_plugins();
-        assert_eq!(reg.all().len(), 18);
+        assert_eq!(reg.all().len(), 21);
     }
 }

@@ -31,6 +31,9 @@ tree-sitter-php        = { workspace = true }
 tree-sitter-dart       = { workspace = true }
 tree-sitter-scala      = { workspace = true }
 tree-sitter-hcl        = { workspace = true }
+tree-sitter-zig        = { workspace = true }
+tree-sitter-objc       = { workspace = true }
+tree-sitter-r          = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }
