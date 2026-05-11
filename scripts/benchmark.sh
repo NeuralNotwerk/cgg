@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/benchmark.sh — Clone/update test repos and calculate support stats.
 # Usage: ./scripts/benchmark.sh [--update] [--lang LANG]
-set -euo pipefail
+set -uo pipefail
 
 REPOS_DIR="${CGG_BENCH_DIR:-/storage/tmp}"
 CGG="${CGG_BIN:-$(dirname "$0")/../target/release/cgg}"
@@ -30,11 +30,11 @@ REPOS=(
     "objc-afnetworking|https://github.com/AFNetworking/AFNetworking.git|objc|AFNetworking|ObjectiveC|m"
     "r-ggplot2|https://github.com/tidyverse/ggplot2.git|r|R|R|f"
     "swift-alamofire|https://github.com/Alamofire/Alamofire.git|swift|Source|Swift|f"
-    "lua-kong|https://github.com/Kong/kong.git|lua||Lua|f"
-    "dart-flame|https://github.com/flame-engine/flame.git|dart||Dart|f"
-    "scala-play|https://github.com/playframework/playframework.git|scala||Scala|fm"
+    "lua-kong|https://github.com/Kong/kong.git|lua|kong|Lua|f"
+    "dart-flame|https://github.com/flame-engine/flame.git|dart|packages/flame/lib|Dart|f"
+    "scala-play|https://github.com/playframework/playframework.git|scala|core/play/src/main|Scala|fm"
     "hcl-vpc|https://github.com/terraform-aws-modules/terraform-aws-vpc.git|hcl||HCL|f"
-    "zig-http|https://github.com/karlseguin/http.zig.git|zig||Zig|f"
+    "zig-http|https://github.com/karlseguin/http.zig.git|zig|src|Zig|f"
 )
 
 # Clone or update repos
@@ -84,9 +84,9 @@ run_benchmark() {
             ct=$(ctags -R --languages="$ctags_lang" --kinds-${ctags_lang}="$ctags_kinds" \
                 --exclude='test*' --exclude='*_test*' --exclude='spec' --exclude='vendor' \
                 --exclude='node_modules' -f - "$scan_path" 2>/dev/null | \
-                grep -v "Anonymous\|__anon\|anonFunc" | \
+                grep -av "Anonymous\|__anon\|anonFunc" | \
                 awk -F'\t' '{print $1}' | \
-                grep -v "^[A-Z_]*$" | \
+                grep -av "^[A-Z_]*$" | \
                 sort -u | wc -l)
         fi
 
@@ -101,7 +101,7 @@ run_benchmark() {
 
         # Calculate ratio
         local ratio="n/a" tier="—"
-        if [ "$ct" -gt 0 ]; then
+        if [ "${ct:-0}" -gt 0 ] 2>/dev/null; then
             ratio=$(echo "scale=0; $cg * 100 / $ct" | bc)
             if [ "$ratio" -ge 90 ]; then tier="✅ Fully"; ((fully++)) || true
             elif [ "$ratio" -ge 75 ]; then tier="◐ Partial"; ((partial++)) || true
@@ -110,7 +110,7 @@ run_benchmark() {
             ratio="${ratio}%"
         else
             # No ctags baseline — mark as OK if we found callables
-            if [ "$cg" -gt 0 ]; then tier="✅ Fully"; ((fully++)) || true; fi
+            if [ "${cg:-0}" -gt 0 ] 2>/dev/null; then tier="✅ Fully"; ((fully++)) || true; fi
             ratio="—"
         fi
 
