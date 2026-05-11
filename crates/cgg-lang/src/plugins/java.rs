@@ -81,6 +81,11 @@ impl<'a> JavaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "local_variable_declaration" => {
+                self.record_local_type(node);
+                self.walk_children(node);
+                return;
+            }
             "object_creation_expression" => {
                 // new Foo(...)
                 if let Some(t) = node.child_by_field_name("type") {
@@ -181,6 +186,34 @@ impl<'a> JavaWalker<'a> {
             name, receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+        });
+    }
+
+    fn record_local_type(&mut self, node: Node) {
+        // local_variable_declaration -> type_identifier + variable_declarator
+        let type_node = node.children(&mut node.walk())
+            .find(|c| c.kind() == "type_identifier" || c.kind() == "generic_type");
+        let Some(type_node) = type_node else { return };
+        let type_name = if type_node.kind() == "generic_type" {
+            // Generic: take just the base type (List<Foo> -> List)
+            type_node.child(0).map(|n| self.text(n).to_string()).unwrap_or_default()
+        } else {
+            self.text(type_node).to_string()
+        };
+        if type_name.is_empty() || !type_name.starts_with(char::is_uppercase) { return; }
+
+        // Find variable name from variable_declarator
+        let var_node = node.children(&mut node.walk())
+            .find(|c| c.kind() == "variable_declarator");
+        let Some(var_node) = var_node else { return };
+        let var_name = var_node.child_by_field_name("name")
+            .map(|n| self.text(n).to_string()).unwrap_or_default();
+        if var_name.is_empty() { return; }
+
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name,
+            type_name,
+            scope_byte: node.start_byte() as u32,
         });
     }
 }

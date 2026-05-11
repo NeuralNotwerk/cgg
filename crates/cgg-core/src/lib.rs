@@ -27,7 +27,7 @@ pub use audit::{
     FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter, RunAuditBuilder, RunMetrics,
     SkipReason,
 };
-pub use facts::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
+pub use facts::{DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord};
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };

@@ -32,6 +32,12 @@ pub fn propagate_types(facts: &mut FileFacts) {
     // refs that look like constructors (name matches a type pattern).
     let constructor_types = find_constructor_assignments(facts);
 
+    // Pass 2b: Build map from explicit local variable type declarations.
+    let mut local_type_map: HashMap<&str, &str> = HashMap::new();
+    for lt in &facts.local_types {
+        local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
+    }
+
     // Pass 3: Rewrite receiver_hints.
     let mut rewrites: Vec<(usize, String)> = Vec::new();
     for (i, rref) in facts.references.iter().enumerate() {
@@ -45,6 +51,7 @@ pub fn propagate_types(facts: &mut FileFacts) {
 
         let enclosing = enclosing_def(facts, rref.site_byte);
 
+        // Strategy 1: parameter type annotations
         if let Some(enc) = enclosing {
             if let Some(&ty) = type_map.get(&(enc.start_byte, rh)) {
                 rewrites.push((i, ty.to_string()));
@@ -52,6 +59,13 @@ pub fn propagate_types(facts: &mut FileFacts) {
             }
         }
 
+        // Strategy 3: explicit local variable type declarations
+        if let Some(&ty) = local_type_map.get(rh) {
+            rewrites.push((i, ty.to_string()));
+            continue;
+        }
+
+        // Strategy 2: constructor/lowercase heuristic
         if let Some(ty) = constructor_types.get(rh) {
             rewrites.push((i, ty.clone()));
         }

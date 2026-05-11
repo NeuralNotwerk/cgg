@@ -200,6 +200,7 @@ mod tests {
             definitions: defs,
             references: refs,
             imports: Vec::new(),
+            local_types: Vec::new(),
         }
     }
 

@@ -122,6 +122,10 @@ pub struct FileFacts {
     /// source slice with a structural tag. Task 6 consumes these for
     /// scope-aware resolution.
     pub imports: Vec<ImportRecord>,
+    /// Local variable type annotations: (var_name, type_name, scope_byte).
+    /// Used by the type propagator to rewrite receiver_hints.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub local_types: Vec<LocalType>,
 }
 
 /// A top-level import / use / include descriptor — not yet interpreted.
@@ -139,6 +143,15 @@ pub struct ImportRecord {
     pub site_byte: u32,
 }
 
+/// A local variable with a known type (from explicit declaration).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalType {
+    pub var_name: String,
+    pub type_name: String,
+    /// Byte offset of the enclosing scope (function body start).
+    pub scope_byte: u32,
+}
+
 impl FileFacts {
     pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
         Self {
@@ -148,6 +161,7 @@ impl FileFacts {
             definitions: Vec::new(),
             references: Vec::new(),
             imports: Vec::new(),
+            local_types: Vec::new(),
         }
     }
 
