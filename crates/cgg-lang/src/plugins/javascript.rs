@@ -293,7 +293,7 @@ impl<'a> JsWalker<'a> {
             let path = args.and_then(|a| {
                 let count = a.child_count();
                 for i in 0..count {
-                    let arg = a.child(i).unwrap();
+                    let arg = a.child(i as u32).unwrap();
                     if arg.kind() == "string" {
                         return Some(self.text(arg).trim_matches(|c| c == '\'' || c == '"').to_string());
                     }
@@ -354,7 +354,7 @@ impl<'a> JsWalker<'a> {
                 // Fallback: find the string child directly.
                 let count = node.child_count();
                 for i in 0..count {
-                    let child = node.child(i).unwrap();
+                    let child = node.child(i as u32).unwrap();
                     if child.kind() == "string" {
                         return Some(child);
                     }

@@ -45,33 +45,27 @@ memory-stats       = "1.2"
 petgraph           = { version = "0.6", features = ["serde-1"] }
 
 # --- Parsers and grammars (all MIT) ---
-# Pinned to ABI-14 grammar versions because tree-sitter 0.24.x only
-# understands language ABI 13-14. Stack-graphs-* crates pin their own
-# grammar versions; our remaining pins just match their ABI.
-tree-sitter             = "0.24"
-tree-sitter-rust        = "0.23"
-tree-sitter-python      = "=0.23.5"
-tree-sitter-javascript  = "=0.23.1"
-tree-sitter-typescript  = "=0.23.2"
-tree-sitter-go          = "0.23"
-tree-sitter-java        = "=0.23.4"
-tree-sitter-c           = "0.23"
+tree-sitter             = "0.26"
+tree-sitter-rust        = "0.24"
+tree-sitter-python      = "0.25"
+tree-sitter-javascript  = "0.25"
+tree-sitter-typescript  = "0.23"
+tree-sitter-go          = "0.25"
+tree-sitter-java        = "0.23"
+tree-sitter-c           = "0.24"
 tree-sitter-cpp         = "0.23"
-tree-sitter-c-sharp     = "=0.23.1"
+tree-sitter-c-sharp     = "0.23"
 
 # --- Additional language grammars ---
 tree-sitter-kotlin-sg   = "0.4"
-tree-sitter-bash        = "0.23"
+tree-sitter-bash        = "0.25"
 tree-sitter-ruby        = "0.23"
-tree-sitter-swift       = "0.6"
-
-# --- Stack graphs (Apache-2.0 OR MIT) ---
-stack-graphs                            = "0.14"
-tree-sitter-stack-graphs                = "0.10"
-tree-sitter-stack-graphs-python         = "0.3"
-tree-sitter-stack-graphs-javascript     = "0.3"
-tree-sitter-stack-graphs-typescript     = "0.4"
-tree-sitter-stack-graphs-java           = "0.5"
+tree-sitter-swift       = "0.7"
+tree-sitter-lua         = "0.5"
+tree-sitter-php         = "0.24"
+tree-sitter-dart        = "0.2"
+tree-sitter-scala       = "0.26"
+tree-sitter-hcl         = "1.1"
 
 # --- Dev / test ---
 assert_cmd    = "2.0"

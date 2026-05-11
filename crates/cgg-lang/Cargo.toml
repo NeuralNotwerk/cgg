@@ -26,6 +26,11 @@ tree-sitter-kotlin-sg  = { workspace = true }
 tree-sitter-bash       = { workspace = true }
 tree-sitter-ruby       = { workspace = true }
 tree-sitter-swift      = { workspace = true }
+tree-sitter-lua        = { workspace = true }
+tree-sitter-php        = { workspace = true }
+tree-sitter-dart       = { workspace = true }
+tree-sitter-scala      = { workspace = true }
+tree-sitter-hcl        = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }

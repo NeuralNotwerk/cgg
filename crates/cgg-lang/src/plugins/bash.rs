@@ -100,7 +100,7 @@ impl<'a> BashWalker<'a> {
                 .or_else(|| {
                     let count = node.child_count();
                     for i in 0..count {
-                        let c = node.child(i).unwrap();
+                        let c = node.child(i as u32).unwrap();
                         if c.kind() == "word" || c.kind() == "string" {
                             return Some(c);
                         }

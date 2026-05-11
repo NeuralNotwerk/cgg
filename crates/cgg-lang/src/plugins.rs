@@ -1,11 +1,3 @@
-//! Per-language plugin registrations.
-//!
-//! Each plugin lives in a sibling file; this module wires them into
-//! the [`PluginRegistry`]. Full extraction logic for Rust and Python
-//! lands in their respective `extract.rs` files (Task 4). Other
-//! languages currently return empty [`FileFacts`]; they pick up real
-//! extraction in Task 7a (JS/TS), Task 7 (C/C++), and Task 6b (Go, C#).
-
 pub mod rust;
 pub mod python;
 pub mod javascript;
@@ -19,6 +11,11 @@ pub mod csharp;
 pub mod bash;
 pub mod ruby;
 pub mod swift;
+pub mod lua;
+pub mod php;
+pub mod dart;
+pub mod scala;
+pub mod hcl;
 
 use crate::PluginRegistry;
 
@@ -37,6 +34,11 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(bash::BashPlugin));
     reg.register(Box::new(ruby::RubyPlugin));
     reg.register(Box::new(swift::SwiftPlugin));
+    reg.register(Box::new(lua::LuaPlugin));
+    reg.register(Box::new(php::PhpPlugin));
+    reg.register(Box::new(dart::DartPlugin));
+    reg.register(Box::new(scala::ScalaPlugin));
+    reg.register(Box::new(hcl::HclPlugin));
 }
 
 #[cfg(test)]
