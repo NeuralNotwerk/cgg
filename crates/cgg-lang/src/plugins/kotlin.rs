@@ -193,16 +193,38 @@ impl<'a> KtWalker<'a> {
             .find(|c| c.kind() == "simple_identifier")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
+        if var_name.is_empty() { return; }
+
+        // Try explicit type annotation first
         let type_name = var_decl.children(&mut var_decl.walk())
             .find(|c| c.kind() == "user_type")
             .and_then(|ut| ut.children(&mut ut.walk()).find(|c| c.kind() == "type_identifier"))
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if var_name.is_empty() || type_name.is_empty() { return; }
-        if !type_name.starts_with(char::is_uppercase) { return; }
-        self.facts.local_types.push(cgg_core::LocalType {
-            var_name, type_name, scope_byte: node.start_byte() as u32,
-        });
+        if !type_name.is_empty() && type_name.starts_with(char::is_uppercase) {
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name, type_name, scope_byte: node.start_byte() as u32,
+            });
+            return;
+        }
+
+        // Infer from RHS constructor: val x = Foo(...) or val x = Foo.create(...)
+        // The RHS is a sibling of variable_declaration in property_declaration
+        let call = node.children(&mut node.walk())
+            .find(|c| c.kind() == "call_expression");
+        if let Some(call) = call {
+            let callee = call.child(0);
+            if let Some(callee) = callee {
+                let callee_text = self.text(callee);
+                // Direct constructor: Foo(...)
+                if callee_text.starts_with(char::is_uppercase) && !callee_text.contains('.') {
+                    self.facts.local_types.push(cgg_core::LocalType {
+                        var_name, type_name: callee_text.to_string(),
+                        scope_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+        }
     }
 
     fn record_call(&mut self, node: Node) {

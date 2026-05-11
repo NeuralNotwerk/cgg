@@ -320,10 +320,12 @@ impl<'a> Walker<'a> {
             }
 
             // `let foo = |x| { ... };` -> named closure.
+            // `let x = Foo::new(...)` -> infer type Foo for x.
             "let_declaration" => {
                 if let Some(rec) = self.named_closure(node) {
                     self.facts.definitions.push(rec);
                 }
+                self.infer_let_type(node);
                 self.walk_children(node);
                 return;
             }
@@ -424,6 +426,43 @@ impl<'a> Walker<'a> {
 
     /// Detect `let NAME = |..| {..};` and treat the binding as a
     /// named closure definition.
+    fn infer_let_type(&mut self, node: Node) {
+        // `let x = Foo::new(...)` or `let x = Foo::builder()`
+        // Pattern field: let_declaration has "pattern" (identifier) and "value" (call_expression)
+        let pat = node.child_by_field_name("pattern");
+        let val = node.child_by_field_name("value");
+        let (Some(pat), Some(val)) = (pat, val) else { return };
+        // Get variable name
+        let var_name = if pat.kind() == "identifier" {
+            self.text(pat).to_string()
+        } else { return; };
+        if var_name.is_empty() { return; }
+        // Check if value is a call_expression with a path that starts with a type
+        let call = if val.kind() == "call_expression" {
+            Some(val)
+        } else if val.kind() == "try_expression" || val.kind() == "await_expression" {
+            // `Foo::new()?` or `Foo::new().await`
+            val.child(0).filter(|c| c.kind() == "call_expression")
+        } else { None };
+        let Some(call) = call else { return };
+        let func = call.child_by_field_name("function");
+        let Some(func) = func else { return };
+        // Look for `Foo::new`, `Foo::builder`, `Foo::default`, `Foo::from`
+        if func.kind() == "scoped_identifier" || func.kind() == "field_expression" {
+            let text = self.text(func);
+            if let Some(pos) = text.find("::") {
+                let type_part = &text[..pos];
+                if type_part.starts_with(char::is_uppercase) && !type_part.contains('<') {
+                    self.facts.local_types.push(cgg_core::LocalType {
+                        var_name,
+                        type_name: type_part.to_string(),
+                        scope_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+        }
+    }
+
     fn named_closure(&mut self, node: Node) -> Option<DefRecord> {
         let pattern = node.child_by_field_name("pattern")?;
         if pattern.kind() != "identifier" {

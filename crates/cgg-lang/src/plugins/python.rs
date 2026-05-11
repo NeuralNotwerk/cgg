@@ -138,6 +138,8 @@ impl<'a> Walker<'a> {
                 if let Some(rec) = self.named_lambda(node) {
                     self.facts.definitions.push(rec);
                 }
+                // Constructor inference: `x = Foo(...)`
+                self.infer_assignment_type(node);
                 self.walk_children(node);
                 return;
             }
@@ -226,6 +228,43 @@ impl<'a> Walker<'a> {
             visibility: String::new(),
             attributes: decorators,
         });
+    }
+
+    fn infer_assignment_type(&mut self, node: Node) {
+        // `x = Foo(...)` where Foo starts with uppercase -> x has type Foo
+        let assign = node.named_child(0);
+        let Some(assign) = assign else { return };
+        if assign.kind() != "assignment" { return; }
+        let left = assign.child_by_field_name("left");
+        let right = assign.child_by_field_name("right");
+        let (Some(left), Some(right)) = (left, right) else { return };
+        if left.kind() != "identifier" { return; }
+        let var_name = self.text(left).to_string();
+        if var_name.is_empty() { return; }
+        // RHS must be a call where the function name starts with uppercase
+        if right.kind() != "call" { return; }
+        let func = right.child_by_field_name("function");
+        let Some(func) = func else { return };
+        let func_text = self.text(func);
+        // Direct constructor: Foo(...)
+        if func.kind() == "identifier" && func_text.starts_with(char::is_uppercase) {
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name: var_name.clone(), type_name: func_text.to_string(),
+                scope_byte: node.start_byte() as u32,
+            });
+        }
+        // Attribute constructor: module.Foo(...)
+        if func.kind() == "attribute" {
+            if let Some(attr) = func.child_by_field_name("attribute") {
+                let attr_text = self.text(attr);
+                if attr_text.starts_with(char::is_uppercase) {
+                    self.facts.local_types.push(cgg_core::LocalType {
+                        var_name, type_name: attr_text.to_string(),
+                        scope_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+        }
     }
 
     fn named_lambda(&mut self, node: Node) -> Option<DefRecord> {

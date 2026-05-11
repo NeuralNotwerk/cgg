@@ -225,12 +225,13 @@ impl<'a> Walker<'a> {
         let var_decl = node.children(&mut node.walk())
             .find(|c| c.kind() == "variable_declaration");
         let Some(var_decl) = var_decl else { return };
+
+        // Check if explicit type or implicit (var)
         let mut children = var_decl.walk();
         let type_node = var_decl.children(&mut children)
-            .find(|c| c.kind() == "identifier" || c.kind() == "qualified_name" || c.kind() == "generic_name");
+            .find(|c| c.kind() == "identifier" || c.kind() == "qualified_name"
+                || c.kind() == "generic_name" || c.kind() == "implicit_type");
         let Some(type_node) = type_node else { return };
-        let type_name = self.text(type_node).to_string();
-        if type_name.is_empty() || !type_name.starts_with(char::is_uppercase) { return; }
 
         let declarator = var_decl.children(&mut var_decl.walk())
             .find(|c| c.kind() == "variable_declarator");
@@ -241,9 +242,29 @@ impl<'a> Walker<'a> {
             .unwrap_or_default();
         if var_name.is_empty() { return; }
 
-        self.facts.local_types.push(cgg_core::LocalType {
-            var_name, type_name, scope_byte: node.start_byte() as u32,
-        });
+        if type_node.kind() == "implicit_type" {
+            // `var x = new Foo(...)` — infer type from object_creation_expression
+            let new_expr = declarator.children(&mut declarator.walk())
+                .find(|c| c.kind() == "object_creation_expression");
+            if let Some(new_expr) = new_expr {
+                let type_id = new_expr.child_by_field_name("type")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if !type_id.is_empty() && type_id.starts_with(char::is_uppercase) {
+                    self.facts.local_types.push(cgg_core::LocalType {
+                        var_name, type_name: type_id, scope_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+        } else {
+            // Explicit type: `Service svc = ...`
+            let type_name = self.text(type_node).to_string();
+            if !type_name.is_empty() && type_name.starts_with(char::is_uppercase) {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name, type_name, scope_byte: node.start_byte() as u32,
+                });
+            }
+        }
     }
 
     fn record_using(&mut self, node: Node) {
