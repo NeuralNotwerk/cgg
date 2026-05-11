@@ -61,6 +61,21 @@ impl<'a> KtWalker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !name.is_empty() {
+                    // Emit the class as a Constructor callable so that
+                    // `Foo()` calls resolve to it.
+                    let qn = self.qn(&name);
+                    let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+                    self.facts.definitions.push(cgg_core::DefRecord {
+                        simple_name: name.clone(),
+                        qualified_name: qn,
+                        variant: cgg_core::DefVariant::Constructor,
+                        start_line: sl, end_line: el,
+                        start_byte: node.start_byte() as u32,
+                        end_byte: node.end_byte() as u32,
+                        signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
+                        visibility: String::new(),
+                        attributes: Vec::new(),
+                    });
                     self.scope.push(name);
                     self.walk_children(node);
                     self.scope.pop();

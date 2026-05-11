@@ -376,6 +376,19 @@ fn try_resolve_ref(
                 return Some(cids);
             }
         }
+        // Also check module_aliases for bare calls — handles
+        // Kotlin/Java `import com.example.Foo` + `Foo()` constructor
+        // and `import com.example.helper` + `helper()` top-level fn.
+        if let Some(target) = module_aliases.get(&r.name) {
+            // Try target.name (the full path IS the callable)
+            if let Some(cid) = lookup_with_reexports(lang, target, by_qn, reexports) {
+                return Some(vec![cid]);
+            }
+            // Try just the name itself as a qualified name
+            if let Some(cid) = lookup_with_reexports(lang, &r.name, by_qn, reexports) {
+                return Some(vec![cid]);
+            }
+        }
     } else {
         // Step 2: attribute call `mod.fn()` where `mod` is aliased.
         // receiver_hint is the full receiver expression (e.g., "mod"
