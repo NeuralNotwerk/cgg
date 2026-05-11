@@ -256,6 +256,29 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         );
                     }
                 }
+                "require" => {
+                    // Ruby: `require './helper'` — all definitions
+                    // from the required file become available.
+                    let req_path = imp.path.trim();
+                    if !req_path.is_empty() {
+                        // Try with .rb extension appended
+                        let with_ext = format!("{req_path}.rb");
+                        collect_include_defs(
+                            &with_ext,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
+                        collect_include_defs(
+                            req_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
+                    }
+                }
                 _ => {}
             }
         }

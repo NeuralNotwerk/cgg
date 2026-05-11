@@ -17,6 +17,8 @@ pub mod c;
 pub mod cpp;
 pub mod csharp;
 pub mod bash;
+pub mod ruby;
+pub mod swift;
 
 use crate::PluginRegistry;
 
@@ -33,6 +35,8 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(cpp::CppPlugin));
     reg.register(Box::new(csharp::CSharpPlugin));
     reg.register(Box::new(bash::BashPlugin));
+    reg.register(Box::new(ruby::RubyPlugin));
+    reg.register(Box::new(swift::SwiftPlugin));
 }
 
 #[cfg(test)]

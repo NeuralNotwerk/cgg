@@ -107,7 +107,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn v1_registry_has_11_languages() {
+    fn v1_registry_has_13_languages() {
         let reg = PluginRegistry::with_v1_plugins();
         let ids: Vec<_> = reg.all().iter().map(|p| p.id()).collect();
         let expected = [
@@ -122,6 +122,8 @@ mod tests {
             "cpp",
             "csharp",
             "bash",
+            "ruby",
+            "swift",
         ];
         for id in expected {
             assert!(ids.contains(&id), "missing plugin id: {id}");

@@ -6,7 +6,7 @@ callable-to-callable edges to near-LSP quality without running any
 language server.
 
 Supported v1 languages: **Rust, Python, JavaScript, TypeScript, Go,
-Java, Kotlin, C, C++, C#, Shell/Bash**.
+Java, Kotlin, C, C++, C#, Shell/Bash, Ruby, Swift**.
 
 ## Quick start
 
@@ -185,7 +185,7 @@ activate it locally.
 cgg (binary)
 ├── Phase 1: cgg-walk        — file discovery (.gitignore, deny-list, binary sniff)
 ├── Phase 2: cgg-lang        — detect language, parse (tree-sitter), extract callables
-│   └── 11 plugins           — rust, python, javascript, typescript, go, java, kotlin, c, cpp, csharp, bash
+│   └── 13 plugins           — rust, python, javascript, typescript, go, java, kotlin, c, cpp, csharp, bash, ruby, swift
 ├── Phase 3: cgg-resolve     — resolution pipeline
 │   ├── intra-file linker    — scope-based, smallest-enclosing-range
 │   ├── stack-graphs         — tree-sitter-stack-graphs (with timeout + light fallback)
@@ -227,8 +227,10 @@ jsonl` for streaming per-file events (SIEM-friendly).
 
 ## Out of scope (v1)
 
-- Additional top-20 languages (Ruby, PHP, Swift, Scala, Dart,
-  Lua, HCL). Plugin trait makes these straightforward to add.
+- Additional languages (PHP, Scala, Dart, Lua, HCL). These require
+  tree-sitter 0.25+ (ABI 15) which is incompatible with our current
+  stack-graphs dependency. Plugin trait makes them straightforward to
+  add once the tree-sitter ecosystem upgrades.
 - Real-LSP implementation behind the `ResolverService` trait — seam
   exists; implementation deferred.
 - Daemon / watch mode.
