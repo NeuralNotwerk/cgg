@@ -106,42 +106,60 @@ Run `./scripts/benchmark.sh` to reproduce. Results on real-world projects:
 ## Self-analysis
 
 `cgg` analyzed on its own source (682 callables, 874 edges, 60
-cross-file, 78ms). This graph shows the 5-phase pipeline as `cgg`
-sees it — every edge is a real cross-crate function call discovered
-by the tool:
+cross-file, 78ms). This graph shows `cgg::run` and its 1-hop
+neighborhood — every edge is a real cross-crate function call
+discovered by running:
+
+```bash
+cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
+```
 
 ```mermaid
 flowchart LR
-  run["cgg::run"]
-  walk["cgg_walk::walk"]
-  registry["cgg_lang::PluginRegistry::with_v1_plugins"]
-  detect["cgg_lang::detect::LanguageDetector::detect"]
-  parse["cgg_lang::parser::ParserPool::parse"]
-  extract["cgg_lang::LanguagePlugin::extract"]
-  type_map["cgg_resolve::type_hints::build_return_type_map"]
-  propagate["cgg_resolve::type_hints::propagate_types_with_returns"]
-  link["cgg_resolve::intra_file::link_file"]
-  sg["cgg_resolve::stack_graphs_resolver::resolve"]
-  crossfile["cgg_resolve::cross_file::resolve"]
-  ffi["cgg_resolve::ffi::link_ffi"]
-  dedup["cgg::dedup_edges"]
-  query["cgg::query::apply_query"]
-  emit["cgg::emit_graph"]
-
-  run --> walk
-  run --> registry
-  run --> detect
-  run --> parse
-  run --> extract
-  run --> type_map
-  run --> propagate
-  run --> link
-  run --> sg
-  run --> crossfile
-  run --> ffi
-  run --> dedup
-  run --> query
-  run --> emit
+  C2["cgg_walk::walk"]
+  C84["cgg::main"]
+  C86["cgg::run"]
+  C87["cgg::langs_enabled"]
+  C88["cgg::count_lines"]
+  C89["cgg::read_file"]
+  C90["cgg::variant_to_kind"]
+  C91["cgg::dedup_edges"]
+  C93["cgg::emit_graph"]
+  C95["cgg::emit_audit"]
+  C545["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C577["cgg_resolve::type_hints::build_return_type_map"]
+  C578["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C594["cgg_resolve::ffi::link_ffi"]
+  C615["cgg_resolve::stack_graphs_resolver::resolve"]
+  C616["cgg_resolve::stack_graphs_resolver::resolve_light"]
+  C617["cgg_resolve::stack_graphs_resolver::is_sg_language"]
+  C618["cgg_resolve::cross_file::resolve"]
+  C630["cgg_resolve::intra_file::link_file"]
+  C673["cgg_core::graph::Graph::new"]
+  C674["cgg_core::graph::Graph::add_callable"]
+  C675["cgg_core::graph::Graph::add_file"]
+  C84 --> C86
+  C86 --> C87
+  C86 --> C89
+  C86 --> C88
+  C86 --> C90
+  C86 --> C91
+  C86 --> C93
+  C86 --> C95
+  C86 --> C2
+  C86 --> C545
+  C86 --> C673
+  C86 --> C675
+  C86 --> C674
+  C86 --> C577
+  C86 --> C578
+  C86 --> C630
+  C86 --> C615
+  C86 --> C615
+  C86 --> C617
+  C86 --> C616
+  C86 --> C618
+  C86 --> C594
 ```
 
 The raw mermaid output (unfiltered) contains 682 nodes and 874 edges.
