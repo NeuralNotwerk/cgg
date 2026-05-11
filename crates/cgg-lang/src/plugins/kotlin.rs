@@ -148,7 +148,6 @@ impl<'a> KtWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        // import_header -> identifier (with simple_identifier children)
         let ident = node.children(&mut node.walk())
             .find(|c| c.kind() == "identifier")
             .map(|n| self.text(n).replace(" ", "").replace("\n", ""))
@@ -156,11 +155,19 @@ impl<'a> KtWalker<'a> {
         if ident.is_empty() { return; }
 
         // Check for alias: `import ... as Alias`
-        let alias = node.children(&mut node.walk())
+        let explicit_alias = node.children(&mut node.walk())
             .find(|c| c.kind() == "import_alias")
             .and_then(|a| a.children(&mut a.walk()).find(|c| c.kind() == "type_identifier" || c.kind() == "simple_identifier"))
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
+
+        // For non-aliased imports, the binding name is the last segment.
+        // `import com.example.Helper` -> alias "Helper"
+        let alias = if !explicit_alias.is_empty() {
+            explicit_alias
+        } else {
+            ident.rsplit('.').next().unwrap_or("").to_string()
+        };
 
         self.facts.imports.push(ImportRecord {
             kind: "import".into(),

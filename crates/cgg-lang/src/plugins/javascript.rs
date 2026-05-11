@@ -110,11 +110,19 @@ impl<'a> JsWalker<'a> {
             }
             "lexical_declaration" | "variable_declaration" => {
                 self.try_record_named_fn(node);
+                self.try_record_require(node);
                 self.walk_children(node);
                 return;
             }
             "export_statement" => {
                 // Walk into the exported declaration.
+                self.walk_children(node);
+                return;
+            }
+            "expression_statement" => {
+                // Handle `exports.foo = function() {}` and
+                // `module.exports.foo = function() {}` patterns (CJS).
+                self.try_record_exports_assign(node);
                 self.walk_children(node);
                 return;
             }
@@ -204,6 +212,37 @@ impl<'a> JsWalker<'a> {
         });
     }
 
+    fn try_record_exports_assign(&mut self, node: Node) {
+        // `exports.foo = function() {}` or `module.exports.foo = function() {}`
+        // or `app.get = function() {}`
+        let child = node.child(0);
+        let Some(child) = child else { return };
+        if child.kind() != "assignment_expression" { return; }
+        let Some(left) = child.child_by_field_name("left") else { return };
+        let Some(right) = child.child_by_field_name("right") else { return };
+        if !matches!(right.kind(), "arrow_function" | "function_expression" | "function") {
+            return;
+        }
+        if left.kind() != "member_expression" { return; }
+        let prop = left.child_by_field_name("property")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if prop.is_empty() { return; }
+        let qn = self.qn(&prop);
+        let (sl, el) = ((child.start_position().row as u32) + 1, (child.end_position().row as u32) + 1);
+        self.facts.definitions.push(DefRecord {
+            simple_name: prop,
+            qualified_name: qn,
+            variant: DefVariant::FreeFunction,
+            start_line: sl, end_line: el,
+            start_byte: child.start_byte() as u32,
+            end_byte: child.end_byte() as u32,
+            signature_hint: self.text(child).lines().next().unwrap_or("").trim().to_string(),
+            visibility: String::new(),
+            attributes: Vec::new(),
+        });
+    }
+
     fn try_record_named_fn(&mut self, node: Node) {
         // `const foo = (x) => ...` or `const foo = function() {}`
         let mut c = node.walk();
@@ -237,6 +276,75 @@ impl<'a> JsWalker<'a> {
                 visibility: String::new(),
                 attributes: Vec::new(),
             });
+        }
+    }
+
+    fn try_record_require(&mut self, node: Node) {
+        // `const foo = require('./mod')` or `const { bar } = require('./mod')`
+        let mut c = node.walk();
+        for child in node.children(&mut c) {
+            if child.kind() != "variable_declarator" { continue; }
+            let Some(value) = child.child_by_field_name("value") else { continue };
+            if value.kind() != "call_expression" { continue; }
+            let func = value.child_by_field_name("function");
+            if func.map(|f| self.text(f)) != Some("require") { continue; }
+            // Extract the path from arguments
+            let args = value.child_by_field_name("arguments");
+            let path = args.and_then(|a| {
+                let count = a.child_count();
+                for i in 0..count {
+                    let arg = a.child(i).unwrap();
+                    if arg.kind() == "string" {
+                        return Some(self.text(arg).trim_matches(|c| c == '\'' || c == '"').to_string());
+                    }
+                }
+                None
+            });
+            let Some(path) = path else { continue };
+            if path.is_empty() { continue; }
+
+            let Some(name_node) = child.child_by_field_name("name") else { continue };
+            match name_node.kind() {
+                "identifier" => {
+                    // `const foo = require('./mod')` -> namespace import
+                    let alias = self.text(name_node).to_string();
+                    self.facts.imports.push(ImportRecord {
+                        kind: "import".into(),
+                        path,
+                        alias,
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
+                }
+                "object_pattern" => {
+                    // `const { bar, baz } = require('./mod')` -> from-import
+                    let mut names = Vec::new();
+                    let mut ic = name_node.walk();
+                    for prop in name_node.children(&mut ic) {
+                        match prop.kind() {
+                            "shorthand_property_identifier_pattern" => {
+                                names.push(self.text(prop).to_string());
+                            }
+                            "pair_pattern" => {
+                                if let Some(v) = prop.child_by_field_name("value") {
+                                    names.push(self.text(v).to_string());
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    if !names.is_empty() {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "from-import".into(),
+                            path,
+                            alias: names.join(", "),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
