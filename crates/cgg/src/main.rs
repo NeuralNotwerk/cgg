@@ -350,8 +350,11 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
 
-    // --- Phase 3: intra-file link -----------------------------------------
+    // --- Phase 3: type propagation + intra-file link -----------------------
     let link_started = Instant::now();
+    for facts in &mut all_facts {
+        cgg_resolve::type_hints::propagate_types(facts);
+    }
     for facts in &all_facts {
         let outcome = link_file(facts, &def_ids);
         let lang = facts.language.clone();

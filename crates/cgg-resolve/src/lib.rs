@@ -12,6 +12,7 @@
 pub mod cross_file;
 pub mod ffi;
 pub mod intra_file;
+pub mod type_hints;
 pub mod stack_graphs_resolver;
 
 use cgg_core::{CallableId, FileId};
