@@ -106,6 +106,11 @@ impl<'a> CppWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "template_declaration" => {
+                // template<typename T> void foo() {} — unwrap to find the function inside
+                self.walk_children(node);
+                return;
+            }
             "declaration" => {
                 self.try_record_prototype(node);
                 self.walk_children(node);
@@ -208,6 +213,9 @@ impl<'a> CppWalker<'a> {
                 } else {
                     (self.text(d).to_string(), DefVariant::InherentMethod)
                 }
+            }
+            "operator_name" | "operator_cast" => {
+                (self.text(d).to_string(), DefVariant::InherentMethod)
             }
             _ => (String::new(), DefVariant::FreeFunction),
         }

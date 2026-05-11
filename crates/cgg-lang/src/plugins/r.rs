@@ -30,8 +30,8 @@ impl<'a> RWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "binary_operator" => {
-                // name <- function(...) { ... }
+            "binary_operator" | "equals_assignment" => {
+                // name <- function(...) { ... } OR name = function(...) { ... }
                 self.try_record_function_assign(node);
                 self.walk_children(node); return;
             }

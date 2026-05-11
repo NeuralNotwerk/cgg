@@ -126,6 +126,12 @@ impl<'a> Walker<'a> {
                 self.record_imports(node);
                 return;
             }
+            "type_declaration" => {
+                // Extract interface method specs
+                self.extract_interface_methods(node);
+                self.walk_children(node);
+                return;
+            }
             "call_expression" => {
                 if let Some(r) = self.ref_from_call(node) {
                     self.facts.references.push(r);
@@ -284,6 +290,41 @@ impl<'a> Walker<'a> {
             site_line,
             site_byte: spec.start_byte() as u32,
         });
+    }
+
+    fn extract_interface_methods(&mut self, node: Node) {
+        // type_declaration -> type_spec -> type_identifier + interface_type -> method_spec_list
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if child.kind() != "type_spec" { continue; }
+            let type_name = child.child_by_field_name("name")
+                .map(|n| self.text(n).to_string()).unwrap_or_default();
+            let type_node = child.child_by_field_name("type");
+            let Some(type_node) = type_node else { continue };
+            if type_node.kind() != "interface_type" { continue; }
+            // Walk method specs inside the interface
+            let mut ic = type_node.walk();
+            for spec in type_node.children(&mut ic) {
+                if spec.kind() != "method_elem" && spec.kind() != "method_spec" { continue; }
+                let method_name = spec.child_by_field_name("name")
+                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                if method_name.is_empty() { continue; }
+                let qn = format!("{}.{method_name}", self.package_prefix(&type_name));
+                let (sl, el) = ((spec.start_position().row as u32)+1, (spec.end_position().row as u32)+1);
+                self.facts.definitions.push(cgg_core::DefRecord {
+                    simple_name: method_name, qualified_name: qn,
+                    variant: cgg_core::DefVariant::InherentMethod,
+                    start_line: sl, end_line: el,
+                    start_byte: spec.start_byte() as u32, end_byte: spec.end_byte() as u32,
+                    signature_hint: self.text(spec).trim().to_string(),
+                    visibility: String::new(), attributes: Vec::new(),
+                });
+            }
+        }
+    }
+
+    fn package_prefix(&self, type_name: &str) -> String {
+        format!("{}.{type_name}", self.pkg)
     }
 
     fn record_var_type(&mut self, node: Node) {

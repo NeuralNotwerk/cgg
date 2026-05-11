@@ -213,31 +213,53 @@ impl<'a> JsWalker<'a> {
     }
 
     fn try_record_exports_assign(&mut self, node: Node) {
-        // `exports.foo = function() {}` or `module.exports.foo = function() {}`
-        // or `app.get = function() {}`
+        // Handle various CJS patterns:
+        // `exports.foo = function() {}`
+        // `obj.method = function name() {}`
+        // `req.get = req.header = function header() {}` (chained)
         let child = node.child(0);
         let Some(child) = child else { return };
         if child.kind() != "assignment_expression" { return; }
-        let Some(left) = child.child_by_field_name("left") else { return };
-        let Some(right) = child.child_by_field_name("right") else { return };
-        if !matches!(right.kind(), "arrow_function" | "function_expression" | "function") {
+        self.extract_assignment_fn(child);
+    }
+
+    fn extract_assignment_fn(&mut self, node: Node) {
+        let Some(left) = node.child_by_field_name("left") else { return };
+        let Some(right) = node.child_by_field_name("right") else { return };
+
+        // If RHS is another assignment, recurse (chained: a = b = function(){})
+        if right.kind() == "assignment_expression" {
+            self.extract_assignment_fn(right);
+        }
+
+        // Check if RHS is a function
+        if !matches!(right.kind(), "arrow_function" | "function_expression" | "function" | "assignment_expression") {
             return;
         }
+        // For chained assignments, the function is in the inner one
+        let func_node = if right.kind() == "assignment_expression" {
+            right.child_by_field_name("right")
+                .filter(|r| matches!(r.kind(), "arrow_function" | "function_expression" | "function"))
+        } else {
+            Some(right)
+        };
+        let Some(_) = func_node else { return };
+
         if left.kind() != "member_expression" { return; }
         let prop = left.child_by_field_name("property")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
         if prop.is_empty() { return; }
         let qn = self.qn(&prop);
-        let (sl, el) = ((child.start_position().row as u32) + 1, (child.end_position().row as u32) + 1);
+        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
         self.facts.definitions.push(DefRecord {
             simple_name: prop,
             qualified_name: qn,
             variant: DefVariant::FreeFunction,
             start_line: sl, end_line: el,
-            start_byte: child.start_byte() as u32,
-            end_byte: child.end_byte() as u32,
-            signature_hint: self.text(child).lines().next().unwrap_or("").trim().to_string(),
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
             visibility: String::new(),
             attributes: Vec::new(),
         });
