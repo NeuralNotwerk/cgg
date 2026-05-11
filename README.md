@@ -106,7 +106,54 @@ Run `./scripts/benchmark.sh` to reproduce. Results on real-world projects:
 ## Self-analysis
 
 `cgg` analyzed on its own source (682 callables, 874 edges, 60
-cross-file, 78ms):
+cross-file, 78ms). This graph shows the 5-phase pipeline as `cgg`
+sees it — every edge is a real cross-crate function call discovered
+by the tool:
+
+```mermaid
+flowchart LR
+  run["cgg::run"]
+  walk["cgg_walk::walk"]
+  registry["cgg_lang::PluginRegistry::with_v1_plugins"]
+  detect["cgg_lang::detect::LanguageDetector::detect"]
+  parse["cgg_lang::parser::ParserPool::parse"]
+  extract["cgg_lang::LanguagePlugin::extract"]
+  type_map["cgg_resolve::type_hints::build_return_type_map"]
+  propagate["cgg_resolve::type_hints::propagate_types_with_returns"]
+  link["cgg_resolve::intra_file::link_file"]
+  sg["cgg_resolve::stack_graphs_resolver::resolve"]
+  crossfile["cgg_resolve::cross_file::resolve"]
+  ffi["cgg_resolve::ffi::link_ffi"]
+  dedup["cgg::dedup_edges"]
+  query["cgg::query::apply_query"]
+  emit["cgg::emit_graph"]
+
+  run --> walk
+  run --> registry
+  run --> detect
+  run --> parse
+  run --> extract
+  run --> type_map
+  run --> propagate
+  run --> link
+  run --> sg
+  run --> crossfile
+  run --> ffi
+  run --> dedup
+  run --> query
+  run --> emit
+```
+
+The raw mermaid output (unfiltered) contains 682 nodes and 874 edges.
+Use `--filter` to focus on specific subsystems:
+
+```bash
+# Show just the walker internals
+cgg ./crates/cgg-walk -t mermaid
+
+# Show the resolution pipeline
+cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid
+```
 
 <!-- cgg:begin:walk -->
 ```mermaid
