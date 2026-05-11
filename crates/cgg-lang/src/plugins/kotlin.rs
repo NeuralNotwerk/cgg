@@ -98,6 +98,12 @@ impl<'a> KtWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "property_declaration" => {
+                // val svc: Service = ... / var helper: Helper = ...
+                self.record_local_type(node);
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -175,6 +181,27 @@ impl<'a> KtWalker<'a> {
             alias,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+        });
+    }
+
+    fn record_local_type(&mut self, node: Node) {
+        // property_declaration -> variable_declaration -> simple_identifier + user_type -> type_identifier
+        let var_decl = node.children(&mut node.walk())
+            .find(|c| c.kind() == "variable_declaration");
+        let Some(var_decl) = var_decl else { return };
+        let var_name = var_decl.children(&mut var_decl.walk())
+            .find(|c| c.kind() == "simple_identifier")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        let type_name = var_decl.children(&mut var_decl.walk())
+            .find(|c| c.kind() == "user_type")
+            .and_then(|ut| ut.children(&mut ut.walk()).find(|c| c.kind() == "type_identifier"))
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if var_name.is_empty() || type_name.is_empty() { return; }
+        if !type_name.starts_with(char::is_uppercase) { return; }
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name, type_name, scope_byte: node.start_byte() as u32,
         });
     }
 

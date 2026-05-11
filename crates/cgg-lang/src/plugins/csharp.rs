@@ -161,6 +161,11 @@ impl<'a> Walker<'a> {
                 self.record_using(node);
                 return;
             }
+            "local_declaration_statement" => {
+                self.record_local_type(node);
+                self.walk_children(node);
+                return;
+            }
             "invocation_expression" => {
                 if let Some(r) = self.ref_from_invoke(node) {
                     self.facts.references.push(r);
@@ -212,6 +217,32 @@ impl<'a> Walker<'a> {
             signature_hint: single_line(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+        });
+    }
+
+    fn record_local_type(&mut self, node: Node) {
+        // local_declaration_statement -> variable_declaration -> type + variable_declarator
+        let var_decl = node.children(&mut node.walk())
+            .find(|c| c.kind() == "variable_declaration");
+        let Some(var_decl) = var_decl else { return };
+        let mut children = var_decl.walk();
+        let type_node = var_decl.children(&mut children)
+            .find(|c| c.kind() == "identifier" || c.kind() == "qualified_name" || c.kind() == "generic_name");
+        let Some(type_node) = type_node else { return };
+        let type_name = self.text(type_node).to_string();
+        if type_name.is_empty() || !type_name.starts_with(char::is_uppercase) { return; }
+
+        let declarator = var_decl.children(&mut var_decl.walk())
+            .find(|c| c.kind() == "variable_declarator");
+        let Some(declarator) = declarator else { return };
+        let var_name = declarator.children(&mut declarator.walk())
+            .find(|c| c.kind() == "identifier")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if var_name.is_empty() { return; }
+
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name, type_name, scope_byte: node.start_byte() as u32,
         });
     }
 

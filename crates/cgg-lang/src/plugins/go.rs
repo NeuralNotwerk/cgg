@@ -133,6 +133,16 @@ impl<'a> Walker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "var_declaration" => {
+                self.record_var_type(node);
+                self.walk_children(node);
+                return;
+            }
+            "short_var_declaration" => {
+                self.record_short_var_type(node);
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -273,6 +283,53 @@ impl<'a> Walker<'a> {
             alias,
             site_line,
             site_byte: spec.start_byte() as u32,
+        });
+    }
+
+    fn record_var_type(&mut self, node: Node) {
+        // var_declaration -> var_spec -> name + type
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if child.kind() != "var_spec" { continue; }
+            let var_name = child.child_by_field_name("name")
+                .map(|n| self.text(n).to_string()).unwrap_or_default();
+            let type_name = child.child_by_field_name("type")
+                .map(|n| self.text(n).to_string()).unwrap_or_default();
+            if var_name.is_empty() || type_name.is_empty() { return; }
+            let type_name = type_name.trim_start_matches('*').to_string();
+            if !type_name.starts_with(char::is_uppercase) { return; }
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name, type_name, scope_byte: node.start_byte() as u32,
+            });
+        }
+    }
+
+    fn record_short_var_type(&mut self, node: Node) {
+        // short_var_declaration: `helper := NewHelper()`
+        // Heuristic: if RHS is a call to NewFoo(), type is Foo.
+        let left = node.child_by_field_name("left");
+        let right = node.child_by_field_name("right");
+        let (Some(left), Some(right)) = (left, right) else { return };
+        let var_name = self.text(left).to_string();
+        if var_name.is_empty() { return; }
+        let call = if right.kind() == "expression_list" {
+            right.child(0).filter(|c| c.kind() == "call_expression")
+        } else if right.kind() == "call_expression" {
+            Some(right)
+        } else { None };
+        let Some(call) = call else { return };
+        let func = call.child_by_field_name("function");
+        let Some(func) = func else { return };
+        let func_name = self.text(func);
+        let type_name = if func_name.starts_with("New") && func_name.len() > 3 {
+            func_name[3..].to_string()
+        } else if func_name.starts_with("new") && func_name.len() > 3 {
+            let rest = &func_name[3..];
+            if rest.starts_with(char::is_uppercase) { rest.to_string() } else { return; }
+        } else { return; };
+        if !type_name.starts_with(char::is_uppercase) { return; }
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name, type_name, scope_byte: node.start_byte() as u32,
         });
     }
 
