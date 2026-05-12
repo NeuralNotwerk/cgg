@@ -148,7 +148,7 @@ cgg ./src --filter 'parse_config' -n 0 -t mermaid
 # Shows every entry-to-exit path through parse_config
 ```
 
-## Supported languages (21)
+## Supported languages (30)
 
 | Language | Cross-file resolution | Type inference | Notes |
 |----------|----------------------|----------------|-------|
@@ -176,7 +176,7 @@ cgg ./src --filter 'parse_config' -n 0 -t mermaid
 
 ## Self-analysis
 
-`cgg` run on its own source (831 callables, 1175 edges, 192 cross-file, 112ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source (831 callables, 1178 edges, 192 cross-file, 117ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -357,36 +357,36 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 |---------|----------|-----------|-------|------------|------|
-| ripgrep | rust | 2,766 | 4,041 | 54% | 462ms |
-| flask | python | 388 | 234 | 30% | 48ms |
+| ripgrep | rust | 2,766 | 4,041 | 54% | 492ms |
+| flask | python | 388 | 234 | 30% | 49ms |
 | express | javascript | 92 | 59 | 20% | 18ms |
-| zod | typescript | 1,675 | 2,410 | 65% | 200ms |
-| fzf | go | 1,048 | 4,785 | 47% | 165ms |
-| gson | java | 943 | 1,354 | 54% | 55ms |
-| okio | kotlin | 3,673 | 5,484 | 72% | 325ms |
-| jq | c | 1,073 | 20,819 | 93% | 122ms |
-| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 115ms |
-| serilog | csharp | 826 | 432 | 68% | 60ms |
-| acme.sh | bash | 1,433 | 3,904 | 0% | 153ms |
-| jekyll | ruby | 902 | 1,237 | 63% | 69ms |
-| laravel | php | 13,464 | 253 | 0% | 1550ms |
-| AFNetworking | objc | 299 | 113 | 7% | 62ms |
-| ggplot2 | r | 946 | 419 | 3% | 96ms |
-| Alamofire | swift | 829 | 998 | 63% | 87ms |
-| kong | lua | 2,782 | 0 | — | 189ms |
-| flame | dart | 1,647 | 0 | — | 73ms |
-| play | scala | 1,989 | 487 | 0% | 194ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 79ms |
-| http.zig | zig | 451 | 832 | 52% | 67ms |
-| gradle | groovy | 1,289 | 980 | 59% | 280ms |
-| Flux.jl | julia | 252 | 193 | 0% | 33ms |
-| mojolicious | perl | 1,126 | 687 | 45% | 98ms |
-| phoenix | elixir | 1,537 | 1,416 | 0% | 100ms |
-| otp/stdlib | erlang | 17,290 | 6,137 | 0% | 410ms |
-| stdlib | fortran | 335 | 0 | — | 43ms |
-| ring | clojure | 0 | 0 | — | 13ms |
-| pandoc | haskell | 21,002 | 7,647 | 0% | 439ms |
-| dune | ocaml | 21,110 | 5,670 | 0% | 625ms |
+| zod | typescript | 1,675 | 2,410 | 65% | 227ms |
+| fzf | go | 1,048 | 4,785 | 47% | 191ms |
+| gson | java | 943 | 1,354 | 54% | 60ms |
+| okio | kotlin | 3,673 | 5,484 | 72% | 339ms |
+| jq | c | 1,073 | 20,819 | 93% | 132ms |
+| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 84ms |
+| serilog | csharp | 826 | 432 | 68% | 69ms |
+| acme.sh | bash | 1,433 | 3,904 | 0% | 152ms |
+| jekyll | ruby | 902 | 1,237 | 63% | 73ms |
+| laravel | php | 13,464 | 253 | 0% | 1555ms |
+| AFNetworking | objc | 299 | 113 | 7% | 64ms |
+| ggplot2 | r | 946 | 419 | 3% | 102ms |
+| Alamofire | swift | 829 | 998 | 63% | 89ms |
+| kong | lua | 2,782 | 2,287 | 0% | 528ms |
+| flame | dart | 1,572 | 4 | 0% | 111ms |
+| play | scala | 1,989 | 487 | 0% | 233ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 86ms |
+| http.zig | zig | 451 | 832 | 52% | 64ms |
+| gradle | groovy | 1,289 | 980 | 59% | 278ms |
+| Flux.jl | julia | 252 | 193 | 0% | 42ms |
+| mojolicious | perl | 1,126 | 687 | 45% | 99ms |
+| phoenix | elixir | 1,537 | 1,416 | 0% | 113ms |
+| otp/stdlib | erlang | 17,290 | 6,137 | 0% | 440ms |
+| stdlib | fortran | 335 | 0 | — | 45ms |
+| ring | clojure | 174 | 183 | 0% | 21ms |
+| pandoc | haskell | 21,002 | 7,647 | 0% | 492ms |
+| dune | ocaml | 21,110 | 5,670 | 0% | 610ms |
 
 ## Limitations
 
