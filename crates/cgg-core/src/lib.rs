@@ -17,6 +17,7 @@
 #![warn(unreachable_pub)]
 
 pub mod audit;
+pub mod external;
 pub mod facts;
 pub mod graph;
 pub mod ids;
@@ -28,6 +29,7 @@ pub use audit::{
     SkipReason,
 };
 pub use facts::{DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord};
+pub use external::{classify_external, build_known_names, ClassifyResult};
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };

@@ -92,6 +92,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     site_line: rref.site_line,
                     site_byte: rref.site_byte,
                     name: rref.name.clone(),
+                    receiver_hint: rref.receiver_hint.clone(),
                     reason: "no-candidate-in-scope".into(),
                 });
             }
@@ -107,6 +108,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                         site_line: rref.site_line,
                         site_byte: rref.site_byte,
                         name: rref.name.clone(),
+                        receiver_hint: rref.receiver_hint.clone(),
                         reason: "no-enclosing-callable".into(),
                     });
                     continue;
@@ -129,6 +131,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     site_line: rref.site_line,
                     site_byte: rref.site_byte,
                     name: rref.name.clone(),
+                    receiver_hint: rref.receiver_hint.clone(),
                     reason: "ambiguous-in-file".into(),
                 });
             }
