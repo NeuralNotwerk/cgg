@@ -60,6 +60,9 @@ cgg ./src -t json -o graph.json
 ```
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--filter PATTERN]... [-n N] [--max-paths N]
+              [--exclude-partial SUBSTRING]...
+              [--exclude-glob PATTERN]...
+              [--exclude-regex PATTERN]...
               [--stack-graphs auto|on|off]
               [--jobs N] [--lang rust,python,...]
               [--audit-format json|jsonl] [--metrics FILE]
@@ -72,6 +75,9 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `-o` | stdout | Output file (use `-` for stdout) |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
+| `--exclude-partial` | (none) | Exclude nodes containing substring |
+| `--exclude-glob` | (none) | Exclude nodes matching glob |
+| `--exclude-regex` | (none) | Exclude nodes matching regex |
 | `--stack-graphs` | auto | `auto`: 60s timeout + light fallback; `on`/`off` |
 | `--jobs` | 0 (auto) | Rayon thread count for parallel extraction |
 | `--lang` | (all) | Comma-separated language filter |
@@ -170,8 +176,7 @@ cgg ./src --filter 'parse_config' -n 0 -t mermaid
 
 ## Self-analysis
 
-`cgg` run on its own source (682 callables, 874 edges, 60 cross-file,
-78ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source (685 callables, 978 edges, 165 cross-file, 100ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -181,49 +186,54 @@ cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
 ```mermaid
 flowchart LR
   C2["cgg_walk::walk"]
-  C84["cgg::main"]
-  C86["cgg::run"]
-  C87["cgg::langs_enabled"]
-  C88["cgg::count_lines"]
-  C89["cgg::read_file"]
-  C90["cgg::variant_to_kind"]
-  C91["cgg::dedup_edges"]
-  C93["cgg::emit_graph"]
-  C95["cgg::emit_audit"]
-  C545["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C577["cgg_resolve::type_hints::build_return_type_map"]
-  C578["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C594["cgg_resolve::ffi::link_ffi"]
-  C615["cgg_resolve::stack_graphs_resolver::resolve"]
-  C616["cgg_resolve::stack_graphs_resolver::resolve_light"]
-  C617["cgg_resolve::stack_graphs_resolver::is_sg_language"]
-  C618["cgg_resolve::cross_file::resolve"]
-  C630["cgg_resolve::intra_file::link_file"]
-  C673["cgg_core::graph::Graph::new"]
-  C674["cgg_core::graph::Graph::add_callable"]
-  C675["cgg_core::graph::Graph::add_file"]
-  C84 --> C86
-  C86 --> C87
-  C86 --> C89
-  C86 --> C88
-  C86 --> C90
-  C86 --> C91
-  C86 --> C93
-  C86 --> C95
-  C86 --> C2
-  C86 --> C545
-  C86 --> C673
-  C86 --> C675
-  C86 --> C674
-  C86 --> C577
-  C86 --> C578
-  C86 --> C630
-  C86 --> C615
-  C86 --> C615
-  C86 --> C617
-  C86 --> C616
-  C86 --> C618
-  C86 --> C594
+  C72["cgg::query::apply_query"]
+  C73["cgg::query::apply_exclusions"]
+  C85["cgg::main"]
+  C87["cgg::run"]
+  C88["cgg::langs_enabled"]
+  C89["cgg::count_lines"]
+  C90["cgg::read_file"]
+  C91["cgg::variant_to_kind"]
+  C92["cgg::dedup_edges"]
+  C94["cgg::emit_graph"]
+  C96["cgg::emit_audit"]
+  C541["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C574["cgg_resolve::type_hints::build_return_type_map"]
+  C575["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C591["cgg_resolve::ffi::link_ffi"]
+  C612["cgg_resolve::stack_graphs_resolver::resolve"]
+  C613["cgg_resolve::stack_graphs_resolver::resolve_light"]
+  C614["cgg_resolve::stack_graphs_resolver::is_sg_language"]
+  C615["cgg_resolve::cross_file::resolve"]
+  C627["cgg_resolve::intra_file::link_file"]
+  C676["cgg_core::graph::Graph::new"]
+  C677["cgg_core::graph::Graph::add_callable"]
+  C678["cgg_core::graph::Graph::add_file"]
+  C85 --> C87
+  C87 --> C88
+  C87 --> C90
+  C87 --> C89
+  C87 --> C91
+  C87 --> C92
+  C87 --> C94
+  C87 --> C96
+  C72 --> C676
+  C87 --> C2
+  C87 --> C541
+  C87 --> C676
+  C87 --> C678
+  C87 --> C677
+  C87 --> C574
+  C87 --> C575
+  C87 --> C627
+  C87 --> C612
+  C87 --> C612
+  C87 --> C614
+  C87 --> C613
+  C87 --> C615
+  C87 --> C591
+  C87 --> C72
+  C87 --> C73
 ```
 
 Focus on subsystems with `--filter`:
@@ -345,29 +355,29 @@ integration.
 
 Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
-| Project | Language | Callables | Cross-file | Time |
-|---------|----------|-----------|------------|------|
-| ripgrep | Rust | 2,733 | 8% | 255ms |
-| flask | Python | 388 | — | 38ms |
-| express | JavaScript | 92 | 13% | 15ms |
-| zod | TypeScript | 1,675 | 64% | 415ms |
-| fzf | Go | 1,048 | 12% | 159ms |
-| gson | Java | 943 | 29% | 32ms |
-| okio | Kotlin | 3,673 | 39% | 188ms |
-| jq | C | 1,073 | 93% | 124ms |
-| nlohmann/json | C++ | 1,122 | 15% | 110ms |
-| serilog | C# | 828 | 67% | 55ms |
-| acme.sh | Bash | 1,433 | — | 120ms |
-| jekyll | Ruby | 902 | 31% | 38ms |
-| laravel | PHP | 13,464 | — | 256ms |
-| AFNetworking | Obj-C | 299 | 5% | 66ms |
-| ggplot2 | R | 946 | — | 84ms |
-| Alamofire | Swift | 829 | 6% | 69ms |
-| kong | Lua | 2,782 | — | 119ms |
-| flame | Dart | 1,647 | — | 70ms |
-| play | Scala | 1,989 | — | 172ms |
-| terraform-vpc | HCL | 1,779 | — | 97ms |
-| http.zig | Zig | 451 | 37% | 81ms |
+| Project | Language | Callables | Edges | Cross-file | Time |
+|---------|----------|-----------|-------|------------|------|
+| ripgrep | rust | 2,766 | 4,041 | 54% | 469ms |
+| flask | python | 388 | 234 | 30% | 52ms |
+| express | javascript | 92 | 59 | 20% | 21ms |
+| zod | typescript | 1,675 | 2,410 | 65% | 225ms |
+| fzf | go | 1,048 | 4,785 | 47% | 154ms |
+| gson | java | 943 | 1,354 | 54% | 61ms |
+| okio | kotlin | 3,673 | 5,484 | 72% | 345ms |
+| jq | c | 1,073 | 20,819 | 93% | 112ms |
+| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 111ms |
+| serilog | csharp | 828 | 432 | 68% | 70ms |
+| acme.sh | bash | 1,433 | 3,904 | 0% | 156ms |
+| jekyll | ruby | 902 | 1,237 | 63% | 72ms |
+| laravel | php | 13,464 | 253 | 0% | 1585ms |
+| AFNetworking | objc | 299 | 113 | 7% | 53ms |
+| ggplot2 | r | 946 | 419 | 3% | 104ms |
+| Alamofire | swift | 829 | 998 | 63% | 82ms |
+| kong | lua | 2,782 | 0 | — | 203ms |
+| flame | dart | 1,647 | 0 | — | 88ms |
+| play | scala | 1,989 | 487 | 0% | 217ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 81ms |
+| http.zig | zig | 451 | 832 | 52% | 87ms |
 
 ## Limitations
 
