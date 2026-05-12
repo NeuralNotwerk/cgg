@@ -170,7 +170,7 @@ mod tests {
     fn plugin_loads() {
         let plugin = HaskellPlugin;
         assert_eq!(plugin.id(), "haskell");
-        assert!(plugin.extensions().contains(&"hs"));
-        assert!(plugin.extensions().contains(&"lhs"));
+        assert!(plugin.extensions().contains(&".hs"));
+        assert!(plugin.extensions().contains(&".lhs"));
     }
 }
