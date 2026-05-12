@@ -32,6 +32,7 @@ static ZIG: &str = include_str!("stdlib/zig.txt");
 static GROOVY: &str = include_str!("stdlib/groovy.txt");
 static JULIA: &str = include_str!("stdlib/julia.txt");
 static PERL: &str = include_str!("stdlib/perl.txt");
+static ELIXIR: &str = include_str!("stdlib/elixir.txt");
 
 fn parse(src: &str) -> HashSet<&str> {
     src.lines().filter(|l| !l.is_empty()).collect()
@@ -67,6 +68,7 @@ pub fn stdlib_names(lang: &str) -> Option<&'static HashSet<&'static str>> {
             ("groovy", parse(GROOVY)),
             ("julia", parse(JULIA)),
             ("perl", parse(PERL)),
+            ("elixir", parse(ELIXIR)),
         ]
     });
     all.iter().find(|(id, _)| *id == lang).map(|(_, set)| set)

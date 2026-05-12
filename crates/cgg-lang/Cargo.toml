@@ -37,6 +37,7 @@ tree-sitter-r          = { workspace = true }
 tree-sitter-groovy     = { workspace = true }
 tree-sitter-julia      = { workspace = true }
 tree-sitter-perl       = { workspace = true }
+tree-sitter-elixir     = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }
