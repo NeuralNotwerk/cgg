@@ -40,6 +40,7 @@ tree-sitter-perl       = { workspace = true }
 tree-sitter-elixir     = { workspace = true }
 tree-sitter-erlang     = { workspace = true }
 tree-sitter-fortran    = { workspace = true }
+tree-sitter-haskell    = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }
