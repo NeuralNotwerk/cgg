@@ -369,7 +369,7 @@ impl<'a> Walker<'a> {
                     variant: cgg_core::DefVariant::FreeFunction,
                     start_line: sl, end_line: el,
                     start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
-                    signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
+                    signature_hint: self.text(node).lines().next().unwrap_or("").trim().trim_end_matches('{').trim().to_string(),
                     visibility: String::new(), attributes: Vec::new(),
                 });
                 return;
@@ -429,7 +429,7 @@ fn line_range(n: Node) -> (u32, u32) {
 }
 
 fn single_line(s: &str) -> String {
-    s.lines().next().unwrap_or("").trim().to_string()
+    s.lines().next().unwrap_or("").trim().trim_end_matches('{').trim().to_string()
 }
 
 #[cfg(test)]

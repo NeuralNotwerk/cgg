@@ -562,7 +562,7 @@ fn line_range(n: Node) -> (u32, u32) {
 }
 
 fn single_line(s: &str) -> String {
-    s.lines().next().unwrap_or("").trim().to_string()
+    s.lines().next().unwrap_or("").trim().trim_end_matches('{').trim_end_matches(':').trim().to_string()
 }
 
 #[cfg(test)]
