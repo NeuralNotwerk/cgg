@@ -266,7 +266,7 @@ impl<'a> JsWalker<'a> {
             start_line: sl, end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
-            signature_hint: self.text(node).lines().next().unwrap_or("").trim().to_string(),
+            signature_hint: self.text(node).lines().next().unwrap_or("").trim().trim_end_matches('{').trim_end_matches(':').trim().to_string(),
             visibility: String::new(),
             attributes: Vec::new(),
         });
@@ -497,7 +497,7 @@ impl<'a> JsWalker<'a> {
                 variant: DefVariant::FreeFunction,
                 start_line: sl, end_line: el,
                 start_byte: child.start_byte() as u32, end_byte: child.end_byte() as u32,
-                signature_hint: self.text(child).lines().next().unwrap_or("").trim().to_string(),
+                signature_hint: self.text(child).lines().next().unwrap_or("").trim().trim_end_matches('{').trim_end_matches(':').trim().to_string(),
                 visibility: String::new(), attributes: Vec::new(),
             });
         }
@@ -524,7 +524,7 @@ impl<'a> JsWalker<'a> {
                 variant: DefVariant::FreeFunction,
                 start_line: sl, end_line: el,
                 start_byte: arg.start_byte() as u32, end_byte: arg.end_byte() as u32,
-                signature_hint: self.text(arg).lines().next().unwrap_or("").trim().to_string(),
+                signature_hint: self.text(arg).lines().next().unwrap_or("").trim().trim_end_matches('{').trim_end_matches(':').trim().to_string(),
                 visibility: String::new(), attributes: Vec::new(),
             });
         }
