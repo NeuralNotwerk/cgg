@@ -122,8 +122,9 @@ fn unresolved_reference_shows_up_in_audit() {
         .success();
 
     let text = fs::read_to_string(&audit).unwrap();
+    // `mystery` is not defined in the scanned files, so it's external.
     assert!(text.contains("\"name\":\"mystery\""));
-    assert!(text.contains("no-candidate-in-scope"));
+    assert!(text.contains("external_calls"));
 }
 
 #[test]

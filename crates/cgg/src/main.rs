@@ -34,7 +34,7 @@ use cgg_core::graph::{
     CallableKind, CallableNode, FileRecord as GraphFileRecord, Graph,
 };
 use cgg_core::ids::{CallableId, FileId};
-use cgg_core::{FileFacts, DefVariant};
+use cgg_core::{classify_external, build_known_names, FileFacts, DefVariant};
 use cgg_format::{
     DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter, OutputFormat,
 };
@@ -289,6 +289,7 @@ fn run(cli: Cli) -> Result<()> {
                     skip_reason: None,
                     callables: Vec::new(),
                     unresolved_calls: Vec::new(),
+                    external_calls: Vec::new(),
                     ffi: Vec::new(),
                 };
 
@@ -360,14 +361,12 @@ fn run(cli: Cli) -> Result<()> {
     for facts in &mut all_facts {
         cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
     }
+    let known_names = build_known_names(&all_facts);
     for facts in &all_facts {
         let outcome = link_file(facts, &def_ids);
         let lang = facts.language.clone();
         let lang_bucket = metrics.by_language.entry(lang).or_default();
         lang_bucket.edges += outcome.edges.len() as u64;
-        lang_bucket.unresolved += outcome.unresolved.len() as u64;
-        metrics.edges += outcome.edges.len() as u64;
-        metrics.unresolved_calls += outcome.unresolved.len() as u64;
 
         // Fold edges into the graph and per-file audit.
         for e in &outcome.edges {
@@ -385,11 +384,24 @@ fn run(cli: Cli) -> Result<()> {
         }
         graph.edges.extend(outcome.edges.clone());
 
-        // Attach unresolved calls to the per-file audit record.
+        // Classify unresolved calls as internal vs external.
+        let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
+        let classified = classify_external(outcome.unresolved, &known_refs);
+
+        let lang = facts.language.clone();
+        let lang_bucket = metrics.by_language.entry(lang).or_default();
+        lang_bucket.unresolved += classified.unresolved.len() as u64;
+        lang_bucket.external += classified.external.len() as u64;
+        metrics.unresolved_calls += classified.unresolved.len() as u64;
+        metrics.external_calls += classified.external.len() as u64;
+        metrics.edges += outcome.edges.len() as u64;
+
+        // Attach only truly-unresolved calls to the per-file audit record.
         if let Some(rec) = file_records.iter_mut().find(|r| r.file == facts.file) {
-            rec.unresolved_calls = outcome.unresolved.clone();
+            rec.unresolved_calls = classified.unresolved.clone();
+            rec.external_calls = classified.external.clone();
         }
-        graph.unresolved.extend(outcome.unresolved);
+        graph.unresolved.extend(classified.unresolved);
     }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
 
@@ -490,9 +502,14 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
     metrics.edges += sg_out.edges.len() as u64;
-    metrics.unresolved_calls += sg_out.unresolved.len() as u64;
+    let sg_classified = {
+        let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
+        classify_external(sg_out.unresolved, &known_refs)
+    };
+    metrics.unresolved_calls += sg_classified.unresolved.len() as u64;
+    metrics.external_calls += sg_classified.external.len() as u64;
     graph.edges.extend(sg_out.edges);
-    graph.unresolved.extend(sg_out.unresolved);
+    graph.unresolved.extend(sg_classified.unresolved);
     let resolve_ms = resolve_started.elapsed().as_secs_f64() * 1000.0;
     metrics.phases.resolve_ms = resolve_ms;
 
@@ -568,7 +585,8 @@ fn run(cli: Cli) -> Result<()> {
         .count() as u64;
     eprintln!(
         "cgg: {disc} files, {an} analyzed, {sk} skipped; \
-         {ca} callables, {ed} edges ({cf} cross-file), {ur} unresolved ({ms:.1} ms)",
+         {ca} callables, {ed} edges ({cf} cross-file), \
+         {ur} unresolved, {ext} external ({ms:.1} ms)",
         disc = metrics.files_discovered,
         an = metrics.files_analyzed,
         sk = metrics.files_skipped,
@@ -576,6 +594,7 @@ fn run(cli: Cli) -> Result<()> {
         ed = metrics.edges,
         cf = cross_file,
         ur = metrics.unresolved_calls,
+        ext = metrics.external_calls,
         ms = metrics.wall_ms
     );
 

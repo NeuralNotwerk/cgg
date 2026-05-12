@@ -67,6 +67,10 @@ pub struct AuditUnresolvedCall {
     pub site_line: u32,
     pub site_byte: u32,
     pub name: String,
+    /// The receiver/qualifier on the call (e.g. `Vec` in `vec.push()`).
+    /// Empty if the call is unqualified.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub receiver_hint: String,
     /// Human-readable explanation (`"no-candidate-in-scope"`,
     /// `"ambiguous"`, `"macro-expansion"`, `"dynamic-dispatch"`).
     pub reason: String,
@@ -105,6 +109,8 @@ pub struct AuditFileRecord {
     pub callables: Vec<AuditCallableRef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unresolved_calls: Vec<AuditUnresolvedCall>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub external_calls: Vec<AuditUnresolvedCall>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ffi: Vec<AuditFfiRecord>,
 }
@@ -159,6 +165,9 @@ pub struct RunMetrics {
     pub callables: u64,
     pub edges: u64,
     pub unresolved_calls: u64,
+    /// Call sites targeting symbols not defined in any scanned file
+    /// (stdlib, third-party deps, framework methods, etc.).
+    pub external_calls: u64,
     pub ffi_detected: u64,
     pub ffi_resolved: u64,
     pub cache: CacheMetrics,
@@ -194,6 +203,7 @@ pub struct LanguageMetrics {
     pub callables: u64,
     pub edges: u64,
     pub unresolved: u64,
+    pub external: u64,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
