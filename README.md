@@ -272,9 +272,6 @@ alongside the graph. Use `--metrics FILE` to force a path, or
 
 ## Not yet supported
 
-- **PHP, Scala, Dart, Lua, HCL** — blocked on tree-sitter ABI on the
-  `main` branch with stack-graphs; available on the `tree-sitter-0.25-upgrade`
-  branch (now merged).
 - Additional languages: Elixir, Haskell, OCaml, Perl, Groovy.
 - Macro expansion for C/C++.
 - Full type inference (trait dispatch, generics, dynamic typing).
