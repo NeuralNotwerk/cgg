@@ -176,7 +176,7 @@ cgg ./src --filter 'parse_config' -n 0 -t mermaid
 
 ## Self-analysis
 
-`cgg` run on its own source (685 callables, 978 edges, 165 cross-file, 100ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source (831 callables, 1175 edges, 192 cross-file, 104ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -197,18 +197,18 @@ flowchart LR
   C92["cgg::dedup_edges"]
   C94["cgg::emit_graph"]
   C96["cgg::emit_audit"]
-  C541["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C574["cgg_resolve::type_hints::build_return_type_map"]
-  C575["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C591["cgg_resolve::ffi::link_ffi"]
-  C612["cgg_resolve::stack_graphs_resolver::resolve"]
-  C613["cgg_resolve::stack_graphs_resolver::resolve_light"]
-  C614["cgg_resolve::stack_graphs_resolver::is_sg_language"]
-  C615["cgg_resolve::cross_file::resolve"]
-  C627["cgg_resolve::intra_file::link_file"]
-  C676["cgg_core::graph::Graph::new"]
-  C677["cgg_core::graph::Graph::add_callable"]
-  C678["cgg_core::graph::Graph::add_file"]
+  C687["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C720["cgg_resolve::type_hints::build_return_type_map"]
+  C721["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C737["cgg_resolve::ffi::link_ffi"]
+  C758["cgg_resolve::stack_graphs_resolver::resolve"]
+  C759["cgg_resolve::stack_graphs_resolver::resolve_light"]
+  C760["cgg_resolve::stack_graphs_resolver::is_sg_language"]
+  C761["cgg_resolve::cross_file::resolve"]
+  C773["cgg_resolve::intra_file::link_file"]
+  C822["cgg_core::graph::Graph::new"]
+  C823["cgg_core::graph::Graph::add_callable"]
+  C824["cgg_core::graph::Graph::add_file"]
   C85 --> C87
   C87 --> C88
   C87 --> C90
@@ -217,21 +217,21 @@ flowchart LR
   C87 --> C92
   C87 --> C94
   C87 --> C96
-  C72 --> C676
+  C72 --> C822
   C87 --> C2
-  C87 --> C541
-  C87 --> C676
-  C87 --> C678
-  C87 --> C677
-  C87 --> C574
-  C87 --> C575
-  C87 --> C627
-  C87 --> C612
-  C87 --> C612
-  C87 --> C614
-  C87 --> C613
-  C87 --> C615
-  C87 --> C591
+  C87 --> C687
+  C87 --> C822
+  C87 --> C824
+  C87 --> C823
+  C87 --> C720
+  C87 --> C721
+  C87 --> C773
+  C87 --> C758
+  C87 --> C758
+  C87 --> C760
+  C87 --> C759
+  C87 --> C761
+  C87 --> C737
   C87 --> C72
   C87 --> C73
 ```
@@ -357,27 +357,36 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 |---------|----------|-----------|-------|------------|------|
-| ripgrep | rust | 2,766 | 4,041 | 54% | 469ms |
-| flask | python | 388 | 234 | 30% | 52ms |
-| express | javascript | 92 | 59 | 20% | 21ms |
-| zod | typescript | 1,675 | 2,410 | 65% | 225ms |
-| fzf | go | 1,048 | 4,785 | 47% | 154ms |
-| gson | java | 943 | 1,354 | 54% | 61ms |
-| okio | kotlin | 3,673 | 5,484 | 72% | 345ms |
-| jq | c | 1,073 | 20,819 | 93% | 112ms |
-| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 111ms |
-| serilog | csharp | 828 | 432 | 68% | 70ms |
-| acme.sh | bash | 1,433 | 3,904 | 0% | 156ms |
-| jekyll | ruby | 902 | 1,237 | 63% | 72ms |
-| laravel | php | 13,464 | 253 | 0% | 1585ms |
-| AFNetworking | objc | 299 | 113 | 7% | 53ms |
-| ggplot2 | r | 946 | 419 | 3% | 104ms |
-| Alamofire | swift | 829 | 998 | 63% | 82ms |
-| kong | lua | 2,782 | 0 | — | 203ms |
-| flame | dart | 1,647 | 0 | — | 88ms |
-| play | scala | 1,989 | 487 | 0% | 217ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 81ms |
-| http.zig | zig | 451 | 832 | 52% | 87ms |
+| ripgrep | rust | 2,766 | 4,041 | 54% | 567ms |
+| flask | python | 388 | 234 | 30% | 58ms |
+| express | javascript | 92 | 59 | 20% | 19ms |
+| zod | typescript | 1,675 | 2,410 | 65% | 371ms |
+| fzf | go | 1,048 | 4,785 | 47% | 220ms |
+| gson | java | 943 | 1,354 | 54% | 85ms |
+| okio | kotlin | 3,673 | 5,484 | 72% | 432ms |
+| jq | c | 1,073 | 20,819 | 93% | 151ms |
+| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 95ms |
+| serilog | csharp | 826 | 432 | 68% | 101ms |
+| acme.sh | bash | 1,433 | 3,904 | 0% | 235ms |
+| jekyll | ruby | 902 | 1,237 | 63% | 108ms |
+| laravel | php | 13,464 | 253 | 0% | 1927ms |
+| AFNetworking | objc | 299 | 113 | 7% | 82ms |
+| ggplot2 | r | 946 | 419 | 3% | 175ms |
+| Alamofire | swift | 829 | 998 | 63% | 98ms |
+| kong | lua | 2,782 | 0 | — | 345ms |
+| flame | dart | 1,647 | 0 | — | 150ms |
+| play | scala | 1,989 | 487 | 0% | 293ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 121ms |
+| http.zig | zig | 451 | 832 | 52% | 69ms |
+| gradle | groovy | 1,289 | 980 | 59% | 277ms |
+| Flux.jl | julia | 252 | 0 | — | 33ms |
+| mojolicious | perl | 1,126 | 0 | — | 109ms |
+| phoenix | elixir | 1,537 | 1,416 | 0% | 110ms |
+| otp/stdlib | erlang | 17,290 | 6,137 | 0% | 467ms |
+| stdlib | fortran | 335 | 0 | — | 37ms |
+| ring | clojure | 0 | 0 | — | 20ms |
+| pandoc | haskell | 21,002 | 0 | — | 383ms |
+| dune | ocaml | 21,110 | 0 | — | 567ms |
 
 ## Limitations
 

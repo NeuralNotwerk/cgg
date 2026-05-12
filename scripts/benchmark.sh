@@ -35,6 +35,15 @@ REPOS=(
     "scala-play|https://github.com/playframework/playframework.git|scala|core/play/src/main|Scala|fm"
     "hcl-vpc|https://github.com/terraform-aws-modules/terraform-aws-vpc.git|hcl||HCL|f"
     "zig-http|https://github.com/karlseguin/http.zig.git|zig|src|Zig|f"
+    "groovy-gradle|https://github.com/gradle/gradle.git|groovy|subprojects/core/src|Groovy|f"
+    "julia-flux|https://github.com/FluxML/Flux.jl.git|julia|src||f"
+    "perl-mojolicious|https://github.com/mojolicious/mojo.git|perl|lib|Perl|f"
+    "elixir-phoenix|https://github.com/phoenixframework/phoenix.git|elixir|lib|Elixir|f"
+    "erlang-otp|https://github.com/erlang/otp.git|erlang|lib/stdlib/src|Erlang|f"
+    "fortran-stdlib|https://github.com/fortran-lang/stdlib.git|fortran|src|Fortran|f"
+    "clojure-ring|https://github.com/ring-clojure/ring.git|clojure|ring-core/src||f"
+    "haskell-pandoc|https://github.com/jgm/pandoc.git|haskell|src|Haskell|f"
+    "ocaml-dune|https://github.com/ocaml/dune.git|ocaml|src|OCaml|f"
 )
 
 # Clone or update repos

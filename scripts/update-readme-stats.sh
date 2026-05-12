@@ -44,6 +44,15 @@ declare -a ENTRIES=(
     "play|scala-play|scala|core/play/src/main"
     "terraform-vpc|hcl-vpc|hcl|"
     "http.zig|zig-http|zig|src"
+    "gradle|groovy-gradle|groovy|subprojects/core/src"
+    "Flux.jl|julia-flux|julia|src"
+    "mojolicious|perl-mojolicious|perl|lib"
+    "phoenix|elixir-phoenix|elixir|lib"
+    "otp/stdlib|erlang-otp|erlang|lib/stdlib/src"
+    "stdlib|fortran-stdlib|fortran|src"
+    "ring|clojure-ring|clojure|ring-core/src"
+    "pandoc|haskell-pandoc|haskell|src"
+    "dune|ocaml-dune|ocaml|src"
 )
 
 for entry in "${ENTRIES[@]}"; do
