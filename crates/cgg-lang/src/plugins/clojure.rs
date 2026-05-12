@@ -13,7 +13,7 @@ impl LanguagePlugin for ClojurePlugin {
     fn extensions(&self) -> &'static [&'static str] { &["clj", "cljs", "cljc", "edn"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_lua::LANGUAGE.into() }
+    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_clojure_orchard::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "clojure");
