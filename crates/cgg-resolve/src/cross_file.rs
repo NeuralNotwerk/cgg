@@ -384,7 +384,7 @@ fn try_resolve_ref(
     direct_imports: &HashMap<String, Vec<String>>,
     module_aliases: &HashMap<String, String>,
     by_qn: &HashMap<(String, String), CallableId>,
-    _by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
 ) -> Option<Vec<CallableId>> {
     // Step 1: direct import match — `foo()` where `foo` was
@@ -487,6 +487,60 @@ fn try_resolve_ref(
                         ) {
                             return Some(vec![cid]);
                         }
+                    }
+                }
+            }
+        }
+
+        // Step 4: Type-qualified method call fallback.
+        // When receiver_hint is a type name (e.g. "MermaidFormatter") and
+        // name is "new", search all callables for one whose qualified_name
+        // ends with "::MermaidFormatter::new" or "::MermaidFormatter::new".
+        // This handles cross-crate constructor/method calls without needing
+        // explicit import tracking.
+        let rh = r.receiver_hint.trim();
+        if !rh.is_empty()
+            && rh != "self" && rh != "Self" && rh != "cls"
+            && rh.chars().next().map_or(false, |c| c.is_uppercase())
+        {
+            let suffix_colon = format!("::{}::{}", rh, r.name);
+            let suffix_dot = format!(".{}.{}", rh, r.name);
+            let cids: Vec<_> = by_qn
+                .iter()
+                .filter(|((l, qn), _)| {
+                    l == lang && (qn.ends_with(&suffix_colon) || qn.ends_with(&suffix_dot))
+                })
+                .map(|(_, &cid)| cid)
+                .collect();
+            if cids.len() == 1 {
+                return Some(cids);
+            }
+            // If multiple matches, still return them — let the caller
+            // pick the best or emit all as medium-confidence.
+            if !cids.is_empty() {
+                return Some(cids);
+            }
+        }
+
+        // Step 5: Trait/interface method dispatch.
+        // When receiver_hint is a variable name (lowercase) and the method
+        // name exists on definitions in other files, find all callables
+        // with that simple_name. This handles `formatter.render()` where
+        // formatter is a trait object — we emit edges to all implementors.
+        // Only applies when the method name is NOT a common stdlib method
+        // (to avoid matching `vec.is_empty()` to `WalkOutcome::is_empty`).
+        if !rh.is_empty()
+            && rh != "self" && rh != "Self" && rh != "cls"
+            && rh.chars().next().map_or(false, |c| c.is_lowercase())
+        {
+            // Skip if the method name is in the stdlib manifest for this language
+            let is_stdlib_method = cgg_core::stdlib::stdlib_names(lang)
+                .map_or(false, |std| std.contains(r.name.as_str()));
+            if !is_stdlib_method {
+                if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
+                    // Only use this if there's a small number of candidates
+                    if cids.len() <= 5 && !cids.is_empty() {
+                        return Some(cids.clone());
                     }
                 }
             }

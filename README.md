@@ -283,12 +283,20 @@ flowchart LR
   C31["cgg_lang::PluginRegistry::by_id"]
   C32["cgg_lang::PluginRegistry::with_v1_plugins"]
   C1 --> C2
+  C1 --> C22
+  C1 --> C24
   C1 --> C3
   C1 --> C4
   C1 --> C5
   C15 --> C15
   C15 --> C17
+  C15 --> C26
+  C15 --> C31
+  C16 --> C31
+  C2 --> C22
+  C2 --> C23
   C27 --> C22
+  C31 --> C22
   C32 --> C28
 ```
 <!-- cgg:end:lang -->
