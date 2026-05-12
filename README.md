@@ -1,27 +1,61 @@
 # cgg — Call Graph Generator
 
-`cgg` is a single-binary, offline, multi-language call graph generator
-written in Rust. It parses source code with tree-sitter and resolves
-callable-to-callable edges to near-LSP quality without running any
-language server.
+`cgg` generates call graphs from source code. Point it at a directory,
+get a mermaid diagram. No language server, no build step, no
+configuration — one binary, instant results.
 
-**21 supported languages** — all at ≥90% callable detection vs ctags.
+The primary output is **mermaid flowcharts** — a format that coding
+agents (Copilot, Claude, Cursor, Aider, etc.) can read directly in
+context to understand how functions call each other across a codebase.
+When an agent needs to know "what calls this function?" or "what does
+this function depend on?", `cgg` answers in a format the agent already
+understands.
+
+## Why mermaid?
+
+Mermaid diagrams are:
+- **Readable by agents** — plain text, no binary formats, fits in a prompt
+- **Renderable by humans** — GitHub, GitLab, VS Code, and every major
+  markdown viewer renders them inline
+- **Filterable** — `--filter` + `-n` lets you extract exactly the
+  subgraph an agent needs for a specific task
+- **Diffable** — text output means call graph changes show up in PRs
+
+Other formats (JSON, DOT, GraphML) are available for toolchain
+integration, but mermaid is the default because it works everywhere
+with zero setup.
 
 ## Quick start
 
-```
+```bash
 cargo install --path crates/cgg
-cgg ./some/folder -o graph.mmd -t mermaid
+cgg ./src -o graph.mmd
 ```
 
-Filter to N-hop neighborhoods or full entry-to-exit call paths:
+That's it. `graph.mmd` is a mermaid flowchart you can paste into any
+markdown file, feed to an agent, or render in a viewer.
 
-```
-cgg ./src --filter 'process_order' -n 2
-cgg ./src --filter 'glob:handle_*' -n 0 -t json -o paths.json
+### Give an agent context about a module
+
+```bash
+# "Here's how the auth module works"
+cgg ./src --filter 'auth::' -n 1 -o auth-graph.mmd
 ```
 
-## CLI options
+### Trace all paths through a function
+
+```bash
+# "Show me every call chain that passes through process_order"
+cgg ./src --filter 'process_order' -n 0 -o paths.mmd
+```
+
+### Full project graph as structured JSON
+
+```bash
+cgg ./src -t json -o graph.json
+```
+
+## CLI
 
 ```
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
@@ -44,71 +78,101 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 
-## Supported Languages (21)
+## How it works
 
-All languages are **✅ Fully Supported** (≥90% callable detection vs ctags):
+```
+source files
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│  cgg-walk      file discovery (.gitignore, deny-list)   │
+├─────────────────────────────────────────────────────────┤
+│  cgg-lang      tree-sitter parse → extract callables    │
+│                21 language plugins                       │
+├─────────────────────────────────────────────────────────┤
+│  cgg-resolve   link calls to definitions                │
+│                ├── type propagation (params, locals,     │
+│                │   constructors, return types)           │
+│                ├── intra-file (scope + containment)      │
+│                ├── cross-file (imports, pub-use, #include)│
+│                └── FFI (PyO3, wasm-bindgen, napi, JNI,  │
+│                    P/Invoke, C ABI)                      │
+├─────────────────────────────────────────────────────────┤
+│  query engine  --filter + -n (BFS neighborhood / paths) │
+├─────────────────────────────────────────────────────────┤
+│  cgg-format    mermaid │ json │ dot │ graphml           │
+└─────────────────────────────────────────────────────────┘
+    │
+    ▼
+mermaid flowchart (or json/dot/graphml)
+```
 
-| Language | Ratio vs ctags | Cross-file | Type Inference | Special Features |
-|----------|---------------|------------|----------------|------------------|
-| Rust | 235% | pub-use chains, Cargo.toml crate names | params + `Foo::new()` | Module paths from src/ |
-| Python | 153% | from-import, import-as | params + `Foo()` | `__init__.py` package walk |
-| JavaScript | 116% | ESM import + CJS require() | params | exports.fn, defineGetter |
-| TypeScript | 336% | ESM import | params | Delegates to JS walker |
-| Go | 179% | package imports | params + `var T` + `New*()` | Interface methods, func literals |
-| Java | 212% | import + import static | params + `Type var` + `new Foo()` | Local variable types |
-| Kotlin | 266% | import + as alias | params + `val x: T` + `Foo()` | Class-as-constructor |
-| C | 168% | `#include` transitive (depth 8) | — | Macros as callables |
-| C++ | 340% | `#include` transitive | — | Templates, operators |
-| C# | 376% | using + using static + alias | params + `Type var` + `var x = new Foo()` | Accessors |
-| Bash | 111% | `source ./file.sh` | — | Builtin filter |
-| Ruby | 132% | require/require_relative | — | initialize → Constructor |
-| PHP | 198% | require_once/include | — | — |
-| Objective-C | 360% | #import | — | Message expressions |
-| R | 102% | library() + source() | — | `<-` and `=` assignment |
-| Swift | — | import Module | — | init → Constructor |
-| Lua | 99% | require('mod') | — | Colon method syntax |
-| Dart | — | import 'file.dart' | — | — |
-| Scala | — | import pkg.Class | — | Object declarations |
-| HCL | — | — | — | Block labels as definitions |
-| Zig | — | @import("std") | — | — |
+Every phase is offline and deterministic. No network calls, no
+language servers, no build artifacts required.
 
-*Ratio >100% means cgg finds more callables than ctags (closures, trait impls, constructors, etc.)*
-*— means ctags doesn't support this language for comparison*
+## Agent integration patterns
 
-## Benchmark
+### Inject call context into a prompt
 
-Run `./scripts/benchmark.sh` to reproduce. Results on real-world projects:
+```bash
+# Generate the subgraph around the function the agent is about to modify
+cgg ./src --filter 'OrderService::submit' -n 2 -o /tmp/context.mmd
+# Then include /tmp/context.mmd in the agent's context window
+```
 
-| Project | Language | Callables | Edges | Cross-file | Time |
-|---------|----------|-----------|-------|------------|------|
-| ripgrep | Rust | 2,733 | — | 8% | 255ms |
-| flask | Python | 388 | — | — | 38ms |
-| express | JavaScript | 92 | — | 13% | 15ms |
-| zod | TypeScript | 1,675 | — | 64% | 415ms |
-| fzf | Go | 1,048 | — | 12% | 159ms |
-| gson | Java | 943 | — | 29% | 32ms |
-| okio | Kotlin | 3,673 | — | 39% | 188ms |
-| jq | C | 1,073 | — | 93% | 124ms |
-| nlohmann/json | C++ | 1,122 | — | 15% | 110ms |
-| serilog | C# | 828 | — | 67% | 55ms |
-| acme.sh | Bash | 1,433 | — | — | 120ms |
-| jekyll | Ruby | 902 | — | 31% | 38ms |
-| laravel | PHP | 13,464 | — | — | 256ms |
-| AFNetworking | Obj-C | 299 | — | 5% | 66ms |
-| ggplot2 | R | 946 | — | — | 84ms |
-| Alamofire | Swift | 829 | — | 6% | 69ms |
-| kong | Lua | 2,782 | — | — | 119ms |
-| flame | Dart | 1,647 | — | — | 70ms |
-| play | Scala | 1,989 | — | — | 172ms |
-| terraform-vpc | HCL | 1,779 | — | — | 97ms |
-| http.zig | Zig | 451 | — | 37% | 81ms |
+### Pre-commit: detect unintended coupling
+
+```bash
+# In CI or a git hook — fail if a module gains unexpected cross-boundary calls
+cgg ./src --filter 'internal::' -n 1 -t json | jq '.edges | length'
+```
+
+### Continuous documentation
+
+```bash
+# Regenerate architecture diagrams on every push
+cgg ./src --filter 'main$|run$|handle' -n 1 -o docs/entry-points.mmd
+```
+
+### Scope a refactoring
+
+```bash
+# "What would break if I change this function's signature?"
+cgg ./src --filter 'parse_config' -n 0 -t mermaid
+# Shows every entry-to-exit path through parse_config
+```
+
+## Supported languages (21)
+
+| Language | Cross-file resolution | Type inference | Notes |
+|----------|----------------------|----------------|-------|
+| Rust | pub-use chains, Cargo.toml crate names | params, `Foo::new()` | Module paths from src/ |
+| Python | from-import, import-as | params, `Foo()` | `__init__.py` package walk |
+| JavaScript | ESM import, CJS require() | params | exports.fn, defineGetter |
+| TypeScript | ESM import | params | Delegates to JS walker |
+| Go | package imports | params, `var T`, `New*()` | Interface methods, func literals |
+| Java | import, import static | params, `Type var`, `new Foo()` | Local variable types |
+| Kotlin | import, as alias | params, `val x: T`, `Foo()` | Class-as-constructor |
+| C | `#include` transitive (depth 8) | — | Macros as callables |
+| C++ | `#include` transitive | — | Templates, operators |
+| C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors |
+| Bash | `source ./file.sh` | — | Builtin filter |
+| Ruby | require/require_relative | — | initialize → Constructor |
+| PHP | require_once/include | — | — |
+| Objective-C | #import | — | Message expressions |
+| R | library(), source() | — | `<-` and `=` assignment |
+| Swift | import Module | — | init → Constructor |
+| Lua | require('mod') | — | Colon method syntax |
+| Dart | import 'file.dart' | — | — |
+| Scala | import pkg.Class | — | Object declarations |
+| HCL | — | — | Block labels as definitions |
+| Zig | @import("std") | — | — |
 
 ## Self-analysis
 
-`cgg` analyzed on its own source (682 callables, 874 edges, 60
-cross-file, 78ms). This graph shows `cgg::run` and its 1-hop
-neighborhood — every edge is a real cross-crate function call
-discovered by running:
+`cgg` run on its own source (682 callables, 874 edges, 60 cross-file,
+78ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+real cross-crate function call:
 
 ```bash
 cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
@@ -162,15 +226,11 @@ flowchart LR
   C86 --> C594
 ```
 
-The raw mermaid output (unfiltered) contains 682 nodes and 874 edges.
-Use `--filter` to focus on specific subsystems:
+Focus on subsystems with `--filter`:
 
 ```bash
-# Show just the walker internals
-cgg ./crates/cgg-walk -t mermaid
-
-# Show the resolution pipeline
-cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid
+cgg ./crates/cgg-walk -t mermaid          # walker internals
+cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid  # resolution pipeline
 ```
 
 <!-- cgg:begin:walk -->
@@ -210,72 +270,103 @@ flowchart LR
   C15["cgg_lang::parser::ParserPool<'r>::parse"]
   C16["cgg_lang::parser::ParserPool<'r>::plugin"]
   C17["cgg_lang::parser::set_language"]
+  C21["cgg_lang::<ResolverKind as fmt::Display>::fmt"]
+  C22["cgg_lang::LanguagePlugin::id"]
+  C23["cgg_lang::LanguagePlugin::extensions"]
+  C24["cgg_lang::LanguagePlugin::shebangs"]
+  C25["cgg_lang::LanguagePlugin::resolver_kind"]
+  C26["cgg_lang::LanguagePlugin::ts_language"]
   C27["cgg_lang::LanguagePlugin::extract"]
   C28["cgg_lang::PluginRegistry::new"]
+  C29["cgg_lang::PluginRegistry::register"]
+  C30["cgg_lang::PluginRegistry::all"]
+  C31["cgg_lang::PluginRegistry::by_id"]
   C32["cgg_lang::PluginRegistry::with_v1_plugins"]
   C1 --> C2
   C1 --> C3
   C1 --> C4
   C1 --> C5
+  C15 --> C15
   C15 --> C17
+  C27 --> C22
   C32 --> C28
 ```
 <!-- cgg:end:lang -->
 
-## Architecture
-
-```
-cgg (binary)
-├── Phase 1: cgg-walk        — file discovery (.gitignore, deny-list, binary sniff)
-├── Phase 2: cgg-lang        — detect language, parse (tree-sitter), extract callables
-│   └── 21 plugins           — rust, python, js, ts, go, java, kotlin, c, cpp, csharp,
-│                               bash, ruby, swift, lua, php, dart, scala, hcl, zig, objc, r
-├── Phase 3: cgg-resolve     — resolution pipeline
-│   ├── type propagation     — param types, local vars, constructor inference, return types
-│   ├── intra-file linker    — scope-based, smallest-enclosing-range
-│   ├── cross-file resolver  — import-chain walking, #include transitive, pub-use chains
-│   └── FFI linker           — PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI
-├── Phase 4: query engine    — --filter + -n (BFS neighborhood / full paths)
-└── Phase 5: cgg-format      — mermaid, json, dot, graphml
-```
-
-## Type Propagation
-
-Four strategies for resolving `obj.method()` calls without a type checker:
-
-1. **Parameter types** — `fn foo(x: Service)` → x is Service
-2. **Local variable declarations** — `Service svc = new Service()` → svc is Service
-3. **Constructor inference** — `let x = Foo::new()` / `val x = Foo()` / `var x = new Foo()`
-4. **Return-type propagation** — `let x = getConfig()` where getConfig → Config
-
 ## Output formats
 
-- **mermaid**: `flowchart LR` with qualified-name labels
-- **json**: Full graph via serde (callables, edges, files, metrics)
-- **dot**: Graphviz `digraph` with `rankdir=LR`
-- **graphml**: XML with node label and language data keys
+| Format | Use case |
+|--------|----------|
+| **mermaid** (default) | Agent context, markdown docs, PR descriptions |
+| **json** | Programmatic consumption, custom tooling, CI checks |
+| **dot** | Graphviz rendering for large graphs |
+| **graphml** | Import into yEd, Gephi, or other graph analysis tools |
+
+## Resolution pipeline
+
+`cgg` doesn't just find function definitions — it resolves which
+function each call site actually targets:
+
+1. **Type propagation** — infer variable types from parameters, local
+   declarations, constructors (`Foo::new()`, `new Foo()`), and return
+   types
+2. **Intra-file linking** — scope-based, smallest-enclosing-range
+   containment with receiver-hint narrowing
+3. **Cross-file resolution** — walk import chains, `#include`
+   transitive closure (depth 8), pub-use re-export chains
+4. **FFI linking** — detect `#[pyfunction]`, `#[wasm_bindgen]`,
+   `#[napi]`, `@JNI`, `[DllImport]`, `extern "C"` and link across
+   language boundaries
+
+Edges carry confidence levels and resolver provenance so downstream
+tools can filter by quality.
 
 ## Audit / metrics
 
-Every file considered, every callable extracted, and every unresolved
-call is tracked. An audit sidecar (`<output>.audit.json`) is written
-alongside the graph. Use `--metrics FILE` to force a path, or
-`--audit-format jsonl` for streaming events.
+Every run produces a structured audit trail:
+- Files discovered, analyzed, and skipped (with reasons)
+- Every callable extracted
+- Every unresolved call site (with failure reason)
+- Timing per phase
 
-## Scope
+Written as a sidecar (`<output>.audit.json`) or forced to a path with
+`--metrics FILE`. Use `--audit-format jsonl` for streaming/SIEM
+integration.
 
-- Nodes: callables only (functions, methods, constructors, destructors,
-  named lambdas, callable properties).
-- Edges: "A calls B" within or across languages (FFI boundaries).
-- Cycles preserved. Edge dedup: same (src, dst, site_byte) keeps highest confidence.
-- Entry/exit detection: pure topology (in-degree 0 / out-degree 0).
+## Benchmark
 
-## Not yet supported
+Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
-- Additional languages: Elixir, Haskell, OCaml, Perl, Groovy.
-- Macro expansion for C/C++.
-- Full type inference (trait dispatch, generics, dynamic typing).
-- Daemon / watch mode.
+| Project | Language | Callables | Cross-file | Time |
+|---------|----------|-----------|------------|------|
+| ripgrep | Rust | 2,733 | 8% | 255ms |
+| flask | Python | 388 | — | 38ms |
+| express | JavaScript | 92 | 13% | 15ms |
+| zod | TypeScript | 1,675 | 64% | 415ms |
+| fzf | Go | 1,048 | 12% | 159ms |
+| gson | Java | 943 | 29% | 32ms |
+| okio | Kotlin | 3,673 | 39% | 188ms |
+| jq | C | 1,073 | 93% | 124ms |
+| nlohmann/json | C++ | 1,122 | 15% | 110ms |
+| serilog | C# | 828 | 67% | 55ms |
+| acme.sh | Bash | 1,433 | — | 120ms |
+| jekyll | Ruby | 902 | 31% | 38ms |
+| laravel | PHP | 13,464 | — | 256ms |
+| AFNetworking | Obj-C | 299 | 5% | 66ms |
+| ggplot2 | R | 946 | — | 84ms |
+| Alamofire | Swift | 829 | 6% | 69ms |
+| kong | Lua | 2,782 | — | 119ms |
+| flame | Dart | 1,647 | — | 70ms |
+| play | Scala | 1,989 | — | 172ms |
+| terraform-vpc | HCL | 1,779 | — | 97ms |
+| http.zig | Zig | 451 | 37% | 81ms |
+
+## Limitations
+
+- No macro expansion for C/C++ (preprocessor defines are not followed)
+- No full type inference (trait dispatch, generics, dynamic typing)
+- No daemon / watch mode
+- Additional languages not yet supported: Elixir, Haskell, OCaml, Perl, Groovy
 
 ## License
 
