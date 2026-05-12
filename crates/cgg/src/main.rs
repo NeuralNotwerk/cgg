@@ -386,7 +386,7 @@ fn run(cli: Cli) -> Result<()> {
 
         // Classify unresolved calls as internal vs external.
         let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        let classified = classify_external(outcome.unresolved, &known_refs);
+        let classified = classify_external(outcome.unresolved, &known_refs, &facts.language);
 
         let lang = facts.language.clone();
         let lang_bucket = metrics.by_language.entry(lang).or_default();
@@ -504,7 +504,7 @@ fn run(cli: Cli) -> Result<()> {
     metrics.edges += sg_out.edges.len() as u64;
     let sg_classified = {
         let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        classify_external(sg_out.unresolved, &known_refs)
+        classify_external(sg_out.unresolved, &known_refs, "")
     };
     metrics.unresolved_calls += sg_classified.unresolved.len() as u64;
     metrics.external_calls += sg_classified.external.len() as u64;

@@ -21,6 +21,7 @@ pub mod external;
 pub mod facts;
 pub mod graph;
 pub mod ids;
+pub mod stdlib;
 pub mod version;
 
 pub use audit::{
