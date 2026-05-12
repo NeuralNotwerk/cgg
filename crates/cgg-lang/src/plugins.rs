@@ -21,6 +21,7 @@ pub mod objc;
 pub mod r;
 pub mod groovy;
 pub mod julia;
+pub mod perl;
 
 use crate::PluginRegistry;
 
@@ -92,6 +93,7 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(r::RPlugin));
     reg.register(Box::new(groovy::GroovyPlugin));
     reg.register(Box::new(julia::JuliaPlugin));
+    reg.register(Box::new(perl::PerlPlugin));
 }
 
 #[cfg(test)]

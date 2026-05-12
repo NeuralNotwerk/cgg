@@ -229,6 +229,7 @@ dependencies = [
  "tree-sitter-kotlin-sg",
  "tree-sitter-lua",
  "tree-sitter-objc",
+ "tree-sitter-perl",
  "tree-sitter-php",
  "tree-sitter-python",
  "tree-sitter-r",
@@ -1156,6 +1157,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ca8bb556423fc176f0535e79d525f783a6684d3c9da81bf9d905303c129e1d2"
 dependencies = [
  "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-perl"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e79d4ae71b42e595c24c354b59905ade8162bd400ebc53ab916ea8aec54da92d"
+dependencies = [
+ "cc",
+ "tree-sitter",
  "tree-sitter-language",
 ]
 

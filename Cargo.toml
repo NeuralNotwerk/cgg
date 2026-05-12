@@ -75,6 +75,7 @@ tree-sitter-erlang      = "0.16"
 tree-sitter-julia       = "0.23"
 tree-sitter-elixir      = "0.3"
 tree-sitter-fortran     = "0.6"
+tree-sitter-perl        = "1.1"
 
 # --- Dev / test ---
 assert_cmd    = "2.0"
