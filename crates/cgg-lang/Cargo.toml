@@ -41,6 +41,7 @@ tree-sitter-elixir     = { workspace = true }
 tree-sitter-erlang     = { workspace = true }
 tree-sitter-fortran    = { workspace = true }
 tree-sitter-haskell    = { workspace = true }
+tree-sitter-ocaml      = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }
