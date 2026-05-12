@@ -20,6 +20,7 @@ pub mod zig;
 pub mod objc;
 pub mod r;
 pub mod groovy;
+pub mod julia;
 
 use crate::PluginRegistry;
 
@@ -33,7 +34,6 @@ pub fn extract_signature(full_text: &str) -> String {
     // that is followed by a newline (Python/Ruby body delimiter).
     let mut depth = 0i32;
     let mut sig_end = full_text.len();
-    let bytes = full_text.as_bytes();
     for (i, ch) in full_text.char_indices() {
         match ch {
             '(' | '[' | '<' => depth += 1,
@@ -91,6 +91,7 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(objc::ObjcPlugin));
     reg.register(Box::new(r::RPlugin));
     reg.register(Box::new(groovy::GroovyPlugin));
+    reg.register(Box::new(julia::JuliaPlugin));
 }
 
 #[cfg(test)]
