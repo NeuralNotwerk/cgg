@@ -19,6 +19,7 @@ pub mod hcl;
 pub mod zig;
 pub mod objc;
 pub mod r;
+pub mod groovy;
 
 use crate::PluginRegistry;
 
@@ -89,6 +90,7 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(zig::ZigPlugin));
     reg.register(Box::new(objc::ObjcPlugin));
     reg.register(Box::new(r::RPlugin));
+    reg.register(Box::new(groovy::GroovyPlugin));
 }
 
 #[cfg(test)]

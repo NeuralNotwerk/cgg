@@ -34,6 +34,7 @@ tree-sitter-hcl        = { workspace = true }
 tree-sitter-zig        = { workspace = true }
 tree-sitter-objc       = { workspace = true }
 tree-sitter-r          = { workspace = true }
+tree-sitter-groovy     = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }
