@@ -23,6 +23,7 @@ pub mod groovy;
 pub mod julia;
 pub mod perl;
 pub mod elixir;
+pub mod erlang;
 
 use crate::PluginRegistry;
 
@@ -96,6 +97,7 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(julia::JuliaPlugin));
     reg.register(Box::new(perl::PerlPlugin));
     reg.register(Box::new(elixir::ElixirPlugin));
+    reg.register(Box::new(erlang::ErlangPlugin));
 }
 
 #[cfg(test)]
