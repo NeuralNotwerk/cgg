@@ -25,6 +25,7 @@ pub mod perl;
 pub mod elixir;
 pub mod erlang;
 pub mod fortran;
+pub mod clojure;
 
 use crate::PluginRegistry;
 
@@ -100,6 +101,7 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(elixir::ElixirPlugin));
     reg.register(Box::new(erlang::ErlangPlugin));
     reg.register(Box::new(fortran::FortranPlugin));
+    reg.register(Box::new(clojure::ClojurePlugin));
 }
 
 #[cfg(test)]
