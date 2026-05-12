@@ -574,6 +574,9 @@ fn run(cli: Cli) -> Result<()> {
     dedup_edges(&mut graph);
 
     let graph = query::apply_query(&graph, &cli.filter, cli.hops, cli.max_paths);
+    let graph = query::apply_exclusions(
+        &graph, &cli.exclude_partial, &cli.exclude_glob, &cli.exclude_regex,
+    );
     emit_graph(&cli, &graph).context("emitting graph")?;
     emit_audit(&cli, &events).context("writing audit")?;
 

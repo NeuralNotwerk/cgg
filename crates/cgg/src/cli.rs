@@ -47,6 +47,21 @@ pub struct Cli {
     #[arg(long = "filter", value_name = "PATTERN")]
     pub filter: Vec<String>,
 
+    /// Exclude callables whose qualified name contains SUBSTRING.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-partial", value_name = "SUBSTRING")]
+    pub exclude_partial: Vec<String>,
+
+    /// Exclude callables whose qualified name matches a glob pattern.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-glob", value_name = "PATTERN")]
+    pub exclude_glob: Vec<String>,
+
+    /// Exclude callables whose qualified name matches a regex.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-regex", value_name = "PATTERN")]
+    pub exclude_regex: Vec<String>,
+
     /// Neighborhood depth around each `--filter` match. `-n 0` enumerates
     /// full entry-to-exit call paths passing through matches.
     #[arg(short = 'n', long = "hops", value_name = "N", default_value_t = -1)]
@@ -183,6 +198,12 @@ mod tests {
             "foo",
             "--filter",
             "glob:bar_*",
+            "--exclude-partial",
+            "tests::",
+            "--exclude-glob",
+            "*::internal::*",
+            "--exclude-regex",
+            "^test_.*",
             "-n",
             "2",
             "--max-paths",
@@ -200,6 +221,9 @@ mod tests {
         .expect("should parse");
         assert_eq!(cli.paths.len(), 2);
         assert_eq!(cli.filter.len(), 2);
+        assert_eq!(cli.exclude_partial, vec!["tests::".to_string()]);
+        assert_eq!(cli.exclude_glob, vec!["*::internal::*".to_string()]);
+        assert_eq!(cli.exclude_regex, vec!["^test_.*".to_string()]);
         assert_eq!(cli.hops, 2);
         assert_eq!(cli.max_paths, 50);
         assert_eq!(cli.jobs, 4);
