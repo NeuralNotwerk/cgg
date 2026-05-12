@@ -311,6 +311,22 @@ impl<'a> Walker<'a> {
                 return;
             }
 
+            // `macro_rules! name { ... }` — define a macro as a callable.
+            "macro_definition" => {
+                self.record_macro(node);
+                // Don't walk into macro body (token trees aren't useful).
+                return;
+            }
+
+            // `name!(args)` — macro invocation is a call site.
+            "macro_invocation" => {
+                if let Some(r) = self.ref_from_macro_invocation(node) {
+                    self.facts.references.push(r);
+                }
+                self.walk_children(node);
+                return;
+            }
+
             // `use a::b::c;`, `use a::b::c as d;`
             "use_declaration" => {
                 self.record_use(node);
@@ -489,6 +505,50 @@ impl<'a> Walker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+        })
+    }
+
+    fn record_macro(&mut self, node: Node) {
+        // macro_definition has a child `identifier` (the macro name)
+        // after the `macro_rules!` keyword.
+        let name = node.children(&mut node.walk())
+            .find(|c| c.kind() == "identifier")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if name.is_empty() {
+            return;
+        }
+        let qn = qualified_name(&self.scope, &name);
+        let (sl, el) = line_range(node);
+        self.facts.definitions.push(DefRecord {
+            simple_name: name,
+            qualified_name: qn,
+            variant: DefVariant::FreeFunction,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: vec!["macro".to_string()],
+        });
+    }
+
+    fn ref_from_macro_invocation(&self, node: Node) -> Option<RefRecord> {
+        // macro_invocation: first child is the macro name (identifier or scoped_identifier)
+        let macro_node = node.children(&mut node.walk())
+            .find(|c| c.kind() == "identifier" || c.kind() == "scoped_identifier")?;
+        let name = self.text(macro_node).to_string();
+        // Strip trailing ! if present (shouldn't be in the identifier, but defensive)
+        let name = name.trim_end_matches('!').to_string();
+        if name.is_empty() {
+            return None;
+        }
+        Some(RefRecord {
+            name,
+            site_line: node.start_position().row as u32 + 1,
+            site_byte: node.start_byte() as u32,
+            receiver_hint: String::new(),
         })
     }
 
