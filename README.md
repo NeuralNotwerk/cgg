@@ -381,8 +381,8 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 ## Limitations
 
-- No macro expansion for C/C++ (preprocessor defines are not followed)
-- No full type inference (trait dispatch, generics, dynamic typing)
+- C/C++ macros are extracted as callables but not expanded (no preprocessor simulation)
+- Type inference is partial — handles parameters, constructors, return types, and trait dispatch to known implementors; does not handle generics or fully dynamic typing
 - No daemon / watch mode
 - Additional languages not yet supported: Elixir, Haskell, OCaml, Perl, Groovy
 
