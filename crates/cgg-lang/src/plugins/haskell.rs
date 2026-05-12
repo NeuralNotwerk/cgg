@@ -10,7 +10,7 @@ pub struct HaskellPlugin;
 
 impl LanguagePlugin for HaskellPlugin {
     fn id(&self) -> &'static str { "haskell" }
-    fn extensions(&self) -> &'static [&'static str] { &["hs", "lhs"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".hs", ".lhs"] }
     fn shebangs(&self) -> &'static [&'static str] { &["runhaskell", "runghc"] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_haskell::LANGUAGE.into() }

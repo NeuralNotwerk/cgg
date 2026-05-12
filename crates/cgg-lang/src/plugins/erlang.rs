@@ -10,7 +10,7 @@ pub struct ErlangPlugin;
 
 impl LanguagePlugin for ErlangPlugin {
     fn id(&self) -> &'static str { "erlang" }
-    fn extensions(&self) -> &'static [&'static str] { &["erl", "hrl"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".erl", ".hrl"] }
     fn shebangs(&self) -> &'static [&'static str] { &["escript"] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_erlang::LANGUAGE.into() }

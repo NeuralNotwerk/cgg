@@ -10,7 +10,7 @@ pub struct PerlPlugin;
 
 impl LanguagePlugin for PerlPlugin {
     fn id(&self) -> &'static str { "perl" }
-    fn extensions(&self) -> &'static [&'static str] { &["pl", "pm", "t"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".pl", ".pm", ".t"] }
     fn shebangs(&self) -> &'static [&'static str] { &["perl"] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_perl::LANGUAGE.into() }

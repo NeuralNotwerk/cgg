@@ -10,7 +10,7 @@ pub struct JuliaPlugin;
 
 impl LanguagePlugin for JuliaPlugin {
     fn id(&self) -> &'static str { "julia" }
-    fn extensions(&self) -> &'static [&'static str] { &["jl"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".jl"] }
     fn shebangs(&self) -> &'static [&'static str] { &["julia"] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_julia::LANGUAGE.into() }

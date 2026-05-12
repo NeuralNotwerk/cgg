@@ -10,7 +10,7 @@ pub struct ElixirPlugin;
 
 impl LanguagePlugin for ElixirPlugin {
     fn id(&self) -> &'static str { "elixir" }
-    fn extensions(&self) -> &'static [&'static str] { &["ex", "exs"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".ex", ".exs"] }
     fn shebangs(&self) -> &'static [&'static str] { &["elixir"] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_elixir::LANGUAGE.into() }

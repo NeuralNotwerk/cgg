@@ -10,7 +10,7 @@ pub struct ClojurePlugin;
 
 impl LanguagePlugin for ClojurePlugin {
     fn id(&self) -> &'static str { "clojure" }
-    fn extensions(&self) -> &'static [&'static str] { &["clj", "cljs", "cljc", "edn"] }
+    fn extensions(&self) -> &'static [&'static str] { &[".clj", ".cljs", ".cljc", ".edn"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
     fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_clojure_orchard::LANGUAGE.into() }
@@ -166,7 +166,7 @@ mod tests {
     fn plugin_loads() {
         let p = ClojurePlugin;
         assert_eq!(p.id(), "clojure");
-        assert_eq!(p.extensions(), &["clj", "cljs", "cljc", "edn"]);
+        assert_eq!(p.extensions(), &[".clj", ".cljs", ".cljc", ".edn"]);
         assert_eq!(p.resolver_kind(), ResolverKind::Custom);
     }
 }
