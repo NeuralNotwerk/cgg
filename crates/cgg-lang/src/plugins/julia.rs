@@ -154,7 +154,7 @@ impl<'a> JuliaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        if let Some(func_node) = node.child_by_field_name("function") {
+        if let Some(func_node) = node.child(0) {
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
                 self.facts.references.push(RefRecord {

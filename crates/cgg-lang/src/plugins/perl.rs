@@ -74,12 +74,13 @@ impl<'a> PerlWalker<'a> {
                 self.walk_children(node);
                 return;
             }
-            "call_expression" => {
+            "call_expression" | "call_expression_with_args_with_brackets"
+            | "call_expression_with_bareword" | "call_expression_with_spaced_args" => {
                 self.record_call(node);
                 self.walk_children(node);
                 return;
             }
-            "method_call" => {
+            "method_call" | "method_invocation" => {
                 self.record_method_call(node);
                 self.walk_children(node);
                 return;
@@ -142,7 +143,7 @@ impl<'a> PerlWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        if let Some(func_node) = node.child_by_field_name("function") {
+        if let Some(func_node) = node.child(0) {
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
                 self.facts.references.push(RefRecord {

@@ -50,7 +50,7 @@ impl<'a> HaskellWalker<'a> {
                 self.extract_function(node);
                 self.walk_children(node);
             }
-            "exp_apply" => {
+            "apply" => {
                 self.record_call(node);
                 self.walk_children(node);
             }

@@ -50,7 +50,7 @@ impl<'a> OcamlWalker<'a> {
                 self.extract_function(node);
                 self.walk_children(node);
             }
-            "application" => {
+            "application_expression" => {
                 self.record_call(node);
                 self.walk_children(node);
             }
@@ -130,7 +130,7 @@ impl<'a> OcamlWalker<'a> {
     fn record_call(&mut self, node: Node) {
         // application: function applied to arguments
         if let Some(func_node) = node.child(0) {
-            if func_node.kind() == "identifier" || func_node.kind() == "value_name" {
+            if func_node.kind() == "value_name" || func_node.kind() == "value_path" || func_node.kind() == "identifier" {
                 let name = self.text(func_node).to_string();
                 if !name.is_empty() {
                     self.facts.references.push(RefRecord {
