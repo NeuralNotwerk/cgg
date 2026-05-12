@@ -36,6 +36,46 @@ pub fn apply_query(graph: &Graph, filters: &[String], hops: i32, max_paths: u32)
     neighborhood(graph, &seeds, depth)
 }
 
+/// Remove nodes matching any exclusion pattern from the graph.
+/// Applied after --filter + -n.
+pub fn apply_exclusions(
+    graph: &Graph,
+    partials: &[String],
+    globs: &[String],
+    regexes: &[String],
+) -> Graph {
+    if partials.is_empty() && globs.is_empty() && regexes.is_empty() {
+        return graph.clone();
+    }
+
+    let glob_pats: Vec<glob::Pattern> = globs.iter()
+        .filter_map(|g| glob::Pattern::new(g).ok())
+        .collect();
+    let regex_pats: Vec<Regex> = regexes.iter()
+        .filter_map(|r| Regex::new(r).ok())
+        .collect();
+
+    let keep: HashSet<CallableId> = graph.callables.values()
+        .filter(|c| {
+            let qn = &c.qualified_name;
+            // Exclude if any pattern matches
+            if partials.iter().any(|p| qn.contains(p.as_str())) {
+                return false;
+            }
+            if glob_pats.iter().any(|g| g.matches(qn)) {
+                return false;
+            }
+            if regex_pats.iter().any(|r| r.is_match(qn)) {
+                return false;
+            }
+            true
+        })
+        .map(|c| c.id)
+        .collect();
+
+    prune(graph, &keep)
+}
+
 fn find_seeds(graph: &Graph, filters: &[String]) -> HashSet<CallableId> {
     let mut seeds = HashSet::new();
     let patterns: Vec<Pattern> = filters.iter().map(|f| Pattern::new(f)).collect();
