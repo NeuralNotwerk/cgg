@@ -214,7 +214,7 @@ impl<'a> Walker<'a> {
             end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
-            signature_hint: single_line(self.text(node)),
+            signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
         });
@@ -338,9 +338,6 @@ fn line_range(n: Node) -> (u32, u32) {
     (s, e)
 }
 
-fn single_line(s: &str) -> String {
-    s.lines().next().unwrap_or("").trim().trim_end_matches('{').trim_end_matches(':').trim().to_string()
-}
 
 #[cfg(test)]
 mod tests {

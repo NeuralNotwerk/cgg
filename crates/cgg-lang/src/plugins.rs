@@ -22,6 +22,50 @@ pub mod r;
 
 use crate::PluginRegistry;
 
+/// Extract the signature from a function/method node's full text.
+///
+/// Takes everything up to (but not including) the opening body delimiter
+/// (`{`, or `:` followed by newline for Python), collapses internal
+/// whitespace, and trims trailing artifacts.
+pub fn extract_signature(full_text: &str) -> String {
+    // Find the body start: first `{` at depth 0, or `:` at depth 0
+    // that is followed by a newline (Python/Ruby body delimiter).
+    let mut depth = 0i32;
+    let mut sig_end = full_text.len();
+    let bytes = full_text.as_bytes();
+    for (i, ch) in full_text.char_indices() {
+        match ch {
+            '(' | '[' | '<' => depth += 1,
+            ')' | ']' | '>' => depth = (depth - 1).max(0),
+            '{' if depth == 0 => { sig_end = i; break; }
+            ':' if depth == 0 => {
+                // Only treat as body delimiter if followed by newline/space+code
+                // (not a type annotation like `x: int`)
+                let rest = &full_text[i + 1..];
+                let next_non_ws = rest.trim_start();
+                if rest.starts_with('\n') || rest.starts_with("\r\n")
+                    || (next_non_ws.len() < rest.len() && !next_non_ws.is_empty()
+                        && !next_non_ws.starts_with(':'))
+                {
+                    // Check if we're past the closing paren (signature is complete)
+                    let before = &full_text[..i];
+                    let open = before.chars().filter(|&c| c == '(').count();
+                    let close = before.chars().filter(|&c| c == ')').count();
+                    if open > 0 && open == close {
+                        sig_end = i;
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let raw = &full_text[..sig_end];
+    // Collapse whitespace (newlines, indentation) into single spaces.
+    let collapsed: String = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    collapsed.trim_end_matches('{').trim_end_matches(':').trim_end_matches('=').trim().to_string()
+}
+
 /// Register every v1 plugin into `reg`.
 pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(rust::RustPlugin));

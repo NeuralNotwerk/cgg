@@ -406,7 +406,7 @@ impl<'a> Walker<'a> {
 
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
-        let signature = single_line(self.text(node));
+        let signature = super::extract_signature(self.text(node));
 
         let attributes = collect_attributes(node, self.source);
 
@@ -486,7 +486,7 @@ impl<'a> Walker<'a> {
             end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
-            signature_hint: single_line(self.text(node)),
+            signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
         })
@@ -575,9 +575,6 @@ fn line_range(node: Node) -> (u32, u32) {
     (start, end)
 }
 
-fn single_line(s: &str) -> String {
-    s.lines().next().unwrap_or("").trim().trim_end_matches('{').trim().to_string()
-}
 
 fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
     // Attributes appear as preceding siblings of `function_item` in
