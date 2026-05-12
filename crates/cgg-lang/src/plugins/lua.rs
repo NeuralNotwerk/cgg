@@ -84,7 +84,7 @@ impl<'a> LuaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let func = node.child_by_field_name("function")
+        let func = node.child_by_field_name("name")
             .map(|n| self.text(n).to_string()).unwrap_or_default();
         if func.is_empty() { return; }
         

@@ -58,7 +58,7 @@ impl<'a> ClojureWalker<'a> {
     }
 
     fn is_ns_form(&self, node: Node) -> bool {
-        if let Some(first) = node.child(0) {
+        if let Some(first) = node.named_child(0) {
             self.text(first) == "ns"
         } else {
             false
@@ -66,9 +66,9 @@ impl<'a> ClojureWalker<'a> {
     }
 
     fn is_defn_form(&self, node: Node) -> bool {
-        if let Some(first) = node.child(0) {
+        if let Some(first) = node.named_child(0) {
             let text = self.text(first);
-            text == "defn" || text == "defn-"
+            text == "defn" || text == "defn-" || text == "defmacro" || text == "defmacro-"
         } else {
             false
         }
@@ -76,13 +76,13 @@ impl<'a> ClojureWalker<'a> {
 
     fn extract_namespace(&mut self, node: Node) {
         // (ns name ...)
-        if let Some(name_node) = node.child(1) {
+        if let Some(name_node) = node.named_child(1) {
             self.namespace = self.text(name_node).to_string();
             // Extract imports from :require vectors
             for i in 2..node.child_count() {
-                if let Some(child) = node.child(i as u32) {
+                if let Some(child) = node.named_child(i as u32) {
                     if self.text(child) == ":require" {
-                        if let Some(next) = node.child((i + 1) as u32) {
+                        if let Some(next) = node.named_child((i + 1) as u32) {
                             self.extract_requires(next);
                         }
                     }
@@ -118,7 +118,7 @@ impl<'a> ClojureWalker<'a> {
 
     fn record_callable(&mut self, node: Node) {
         // (defn name [...] ...)
-        if let Some(name_node) = node.child(1) {
+        if let Some(name_node) = node.named_child(1) {
             let name = self.text(name_node).to_string();
             if name.is_empty() { return; }
 
@@ -142,7 +142,7 @@ impl<'a> ClojureWalker<'a> {
 
     fn record_call(&mut self, node: Node) {
         // (func_name ...)
-        if let Some(func_node) = node.child(0) {
+        if let Some(func_node) = node.named_child(0) {
             if func_node.kind() == "sym_lit" {
                 let name = self.text(func_node).to_string();
                 if name.is_empty() || name.starts_with(':') { return; }

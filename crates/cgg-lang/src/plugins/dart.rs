@@ -38,7 +38,7 @@ impl<'a> DartWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "class_definition" => {
+            "class_declaration" => {
                 let name = node.child_by_field_name("name")
                     .map(|n| self.text(n).to_string()).unwrap_or_default();
                 if !name.is_empty() {
@@ -48,8 +48,10 @@ impl<'a> DartWalker<'a> {
                 } else { self.walk_children(node); }
                 return;
             }
-            "function_signature" => {
+            "function_declaration" | "local_function_declaration" => {
                 let name = node.child_by_field_name("name")
+                    .or_else(|| node.child_by_field_name("signature")
+                        .and_then(|sig| sig.child_by_field_name("name")))
                     .map(|n| self.text(n).to_string()).unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::FreeFunction);
@@ -58,20 +60,49 @@ impl<'a> DartWalker<'a> {
                 return;
             }
             "method_declaration" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                // method_declaration -> signature -> first identifier is the name
+                let name = node.child_by_field_name("signature")
+                    .and_then(|sig| {
+                        (0..sig.child_count())
+                            .filter_map(|i| sig.child(i as u32))
+                            .find(|ch| ch.kind() == "identifier")
+                    })
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::InherentMethod);
                 }
                 self.walk_children(node);
                 return;
             }
-            "import_directive" => {
+            "function_signature" | "method_signature" => {
+                // Only record if not inside a declaration (avoid double-counting)
+                if node.parent().map_or(true, |p| !p.kind().ends_with("declaration")) {
+                    let name = node.child_by_field_name("name")
+                        .or_else(|| {
+                            (0..node.child_count())
+                                .filter_map(|i| node.child(i as u32))
+                                .find(|ch| ch.kind() == "identifier")
+                        })
+                        .map(|n| self.text(n).to_string()).unwrap_or_default();
+                    if !name.is_empty() {
+                        let variant = if node.kind() == "method_signature" {
+                            DefVariant::InherentMethod
+                        } else {
+                            DefVariant::FreeFunction
+                        };
+                        self.record_def(&name, node, variant);
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
+            "import_or_export" => {
                 self.record_import(node);
                 self.walk_children(node);
                 return;
             }
-            "invocation_expression" => {
+            "call_expression" => {
                 self.record_call(node);
                 self.walk_children(node);
                 return;

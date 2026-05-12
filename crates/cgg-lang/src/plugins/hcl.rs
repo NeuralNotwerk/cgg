@@ -86,15 +86,19 @@ impl<'a> HclWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let func = node.child_by_field_name("function")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        if func.is_empty() { return; }
-
-        self.facts.references.push(RefRecord {
-            name: func, receiver_hint: String::new(),
-            site_line: (node.start_position().row as u32) + 1,
-            site_byte: node.start_byte() as u32,
-        });
+        // function_call has identifier as first child
+        if let Some(func_node) = node.child(0) {
+            if func_node.kind() == "identifier" {
+                let func = self.text(func_node).to_string();
+                if !func.is_empty() {
+                    self.facts.references.push(RefRecord {
+                        name: func, receiver_hint: String::new(),
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+        }
     }
 }
 

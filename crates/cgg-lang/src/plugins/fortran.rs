@@ -50,7 +50,7 @@ impl<'a> FortranWalker<'a> {
                 self.record_callable(node);
                 self.walk_children(node);
             }
-            "call_expression" | "subroutine_call" | "call" => {
+            "call_expression" | "subroutine_call" => {
                 self.record_call(node);
                 self.walk_children(node);
             }
@@ -128,20 +128,20 @@ impl<'a> FortranWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        // call_expression: name ( ... )
-        // First child is the function name
-        if let Some(func_node) = node.child(0) {
-            if func_node.kind() == "name" || func_node.kind() == "identifier" || func_node.kind() == "call_expression" {
-                let name = self.text(func_node).to_string();
-                if name.is_empty() { return; }
-                
-                self.facts.references.push(RefRecord {
-                    name,
-                    receiver_hint: String::new(),
-                    site_line: (node.start_position().row as u32) + 1,
-                    site_byte: node.start_byte() as u32,
-                });
-            }
+        // call_expression has "function" field, subroutine_call has "subroutine" field
+        let func_node = node.child_by_field_name("function")
+            .or_else(|| node.child_by_field_name("subroutine"));
+        
+        if let Some(fn_node) = func_node {
+            let name = self.text(fn_node).to_string();
+            if name.is_empty() { return; }
+            
+            self.facts.references.push(RefRecord {
+                name,
+                receiver_hint: String::new(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
         }
     }
 }
