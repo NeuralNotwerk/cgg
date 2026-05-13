@@ -4,3 +4,7 @@ Cargo.lock.tmp
 .cgg-cache/
 .DS_Store
 *.swp
+
+# Local agent state — not for the repo
+.claude/
+.kiro/
