@@ -5,6 +5,11 @@ Cargo.lock.tmp
 .DS_Store
 *.swp
 
-# Local agent state — not for the repo
-.claude/
-.kiro/
+# Local agent state — track only the shared bits.
+# `.claude/skills/` and `.kiro/skills/` are checked in so repo-scoped
+# skills (docs-sync, etc.) travel with the codebase. Per-user state
+# (settings.local.json, etc.) stays local.
+.claude/*
+!.claude/skills/
+.kiro/*
+!.kiro/skills/

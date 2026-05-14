@@ -7,8 +7,14 @@ HTML-escaped angle brackets cgg emits, and strips the `crate::` prefix
 for readability), then patches `README.md` between
 `<!-- cgg:begin:<marker> -->` and `<!-- cgg:end:<marker> -->`.
 
-Invoked by `.githooks/pre-commit`. Designed to be idempotent: if the
-graphs haven't changed, the README won't change either.
+When this runs:
+  - Automatically on every commit, by `.githooks/pre-commit` (after the
+    release build, before the self-stats patch and docs-check). Patches
+    the `cgg-walk` and `cgg-lang` mermaid blocks.
+  - Manual reruns are fine but rarely needed — the hook keeps these
+    blocks in sync.
+
+Idempotent: if the graphs haven't changed, the README won't either.
 
 Usage:
   update-readme-graphs.py <marker> <mmd-file> [<marker> <mmd-file> ...]

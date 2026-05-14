@@ -1,5 +1,28 @@
 #!/usr/bin/env bash
-# scripts/update-readme-stats.sh — Update README.md with current benchmark and self-analysis data.
+# scripts/update-readme-stats.sh — manual README refresh for the surfaces
+# the pre-commit hook does NOT touch.
+#
+# When to run (manual only):
+#   - After `scripts/benchmark.sh` has cloned/updated the repos under
+#     $CGG_BENCH_DIR — this is what produces the per-project numbers in
+#     the README benchmark table.
+#   - When the self-analysis mermaid graph (the big one under
+#     "## Self-analysis", filtered to `cgg::run`) needs to reflect
+#     resolver/plugin changes.
+#   - As a follow-up after large refactors that change the benchmark
+#     numbers materially.
+#
+# What it patches:
+#   1. Self-stats line  → delegated to scripts/update-readme-stats.py
+#                         (same marker-based path the pre-commit hook uses)
+#   2. Self-analysis mermaid graph → scripts/patch-readme-stats.py
+#   3. Benchmark table             → scripts/patch-readme-stats.py
+#
+# What it does NOT patch (handled elsewhere):
+#   - cgg-walk / cgg-lang mermaid blocks → pre-commit hook
+#     (scripts/update-readme-graphs.py)
+#   - Doc-consistency checks            → pre-commit hook
+#     (scripts/docs-check.py)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,6 +39,10 @@ fi
 echo "Generating self-analysis..."
 $CGG "$ROOT/crates" -t mermaid -o /dev/null --metrics /dev/null 2>/tmp/cgg_self_stats.txt
 $CGG "$ROOT/crates" -t mermaid --filter 'cgg::run$' -n 1 -o /tmp/cgg_self_graph.mmd 2>/dev/null
+
+# Self-stats line is patched separately via marker-based updater so
+# this workflow stays consistent with the pre-commit hook.
+python3 "${ROOT}/scripts/update-readme-stats.py" < /tmp/cgg_self_stats.txt
 
 echo "Generating benchmark data..."
 > /tmp/cgg_bench_table.md
@@ -87,7 +114,6 @@ done
 # --- Patch README ---
 echo "Patching README.md..."
 python3 "${ROOT}/scripts/patch-readme-stats.py" "$README" \
-    /tmp/cgg_self_stats.txt \
     /tmp/cgg_self_graph.mmd \
     /tmp/cgg_bench_table.md
 

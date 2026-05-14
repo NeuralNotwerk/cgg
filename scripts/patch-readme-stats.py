@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
-"""Patch README.md with generated stats, graph, and benchmark table."""
-import re
+"""Patch README.md with the self-analysis mermaid graph and benchmark table.
+
+When this runs:
+  - Manual only. Invoked by `scripts/update-readme-stats.sh` after
+    `scripts/benchmark.sh` has refreshed clones under $CGG_BENCH_DIR.
+  - NEVER invoked by the pre-commit hook — the inputs are too slow to
+    regenerate on every commit (full benchmark sweep + a self-analysis
+    cgg run).
+
+What this owns:
+  - The mermaid graph under README's "## Self-analysis" heading.
+  - The benchmark table at the end of README.
+
+What this does NOT own (don't add it back):
+  - The self-stats line `(N callables, …, Nms)` — patched separately by
+    `scripts/update-readme-stats.py` via
+    `<!-- cgg:begin:self-stats -->` markers. Reintroducing a regex
+    substitution here would strip those markers.
+
+Usage:
+  patch-readme-stats.py <readme> <self-graph.mmd> <bench-table.md>
+"""
 import sys
 
 readme_path = sys.argv[1]
-stats_path = sys.argv[2]
-graph_path = sys.argv[3]
-bench_path = sys.argv[4]
+graph_path = sys.argv[2]
+bench_path = sys.argv[3]
 
 with open(readme_path) as f:
     content = f.read()
 
-# Parse self-analysis stats
-with open(stats_path) as f:
-    stats_line = f.read().strip()
-calls = re.search(r'(\d+) callables', stats_line).group(1)
-edges = re.search(r'(\d+) edges', stats_line).group(1)
-cf = re.search(r'(\d+) cross-file', stats_line).group(1)
-ms = re.search(r'([\d.]+) ms', stats_line).group(1)
-ms_int = str(int(float(ms)))
-
-# 1. Update the self-analysis description line
-content = re.sub(
-    r'`cgg` run on its own source \([^)]*\)',
-    f'`cgg` run on its own source ({calls} callables, {edges} edges, {cf} cross-file, {ms_int}ms)',
-    content
-)
-
-# 2. Replace the self-analysis mermaid graph
+# 1. Replace the self-analysis mermaid graph
 with open(graph_path) as f:
     new_graph = f.read().rstrip()
 
@@ -48,7 +51,7 @@ if start_idx and end_idx:
     lines = lines[:start_idx] + new_graph.split('\n') + lines[end_idx:]
     content = '\n'.join(lines)
 
-# 3. Replace the benchmark table
+# 2. Replace the benchmark table
 with open(bench_path) as f:
     new_table = f.read().rstrip()
 
@@ -69,4 +72,4 @@ if start_idx and end_idx:
 with open(readme_path, 'w') as f:
     f.write(content)
 
-print(f"Patched: stats={calls}/{edges}/{cf}/{ms_int}ms, graph updated, table updated")
+print("Patched: graph updated, table updated")

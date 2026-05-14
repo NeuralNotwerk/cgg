@@ -57,10 +57,18 @@ echo "[cgg pre-commit] regenerating cgg-lang graph"
     -o "$MERMAID_DIR/lang.mmd" \
     > /dev/null
 
-echo "[cgg pre-commit] patching README.md"
+echo "[cgg pre-commit] patching README.md mermaid blocks"
 python3 scripts/update-readme-graphs.py \
     walk "$MERMAID_DIR/walk.mmd" \
     lang "$MERMAID_DIR/lang.mmd"
+
+echo "[cgg pre-commit] patching README.md self-analysis stats"
+./target/release/cgg ./crates --filter 'cgg::run$' -n 1 \
+    -o "$MERMAID_DIR/self.mmd" 2>"$MERMAID_DIR/self.stderr" >/dev/null
+python3 scripts/update-readme-stats.py < "$MERMAID_DIR/self.stderr"
+
+echo "[cgg pre-commit] checking docs consistency"
+python3 scripts/docs-check.py
 
 # Stage README if it was modified (either from this hook or a manual
 # edit the user already had pending).

@@ -2,6 +2,14 @@
 #
 # scripts/install-skill.sh — install the cgg skills into supported agents.
 #
+# When to run (manual, end-user-facing):
+#   - On a fresh checkout, after building/installing `cgg`, to teach
+#     your coding agent how to use it.
+#   - After updating skills/*/SKILL.md if you want existing installs
+#     refreshed (re-runs are idempotent; pass --force to overwrite).
+#   - NEVER invoked automatically — this writes to the user's agent
+#     config, which is out of scope for any commit-time hook.
+#
 # Discovers every skill under skills/*/SKILL.md, detects Claude Code,
 # Kiro, Cline, Roo Code, and OpenCode, asks each detected agent
 # (once) for scope (global vs project) and a target path, then

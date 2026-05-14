@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 # scripts/benchmark.sh — Clone/update test repos and calculate support stats.
+#
 # Usage: ./scripts/benchmark.sh [--update] [--lang LANG]
+#
+# When to run (manual only — never invoked by the pre-commit hook):
+#   - After adding a new language plugin (also add a REPOS entry below).
+#   - To refresh the README benchmark table's per-language numbers.
+#   - To validate a resolver change against real-world projects.
+#
+# Clones each repo into $CGG_BENCH_DIR (default /storage/tmp). First run
+# is multi-minute and network-bound; subsequent runs reuse the clones.
+# Does NOT patch README.md — follow up with
+# `scripts/update-readme-stats.sh` to regenerate the README table.
 set -uo pipefail
 
 REPOS_DIR="${CGG_BENCH_DIR:-/storage/tmp}"
