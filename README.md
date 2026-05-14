@@ -97,24 +97,24 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 source files
     │
     ▼
-┌─────────────────────────────────────────────────────────┐
-│  cgg-walk      file discovery (.gitignore, deny-list)   │
-├─────────────────────────────────────────────────────────┤
-│  cgg-lang      tree-sitter parse → extract callables    │
-│                39 language plugins (+ .ipynb notebooks) │
-├─────────────────────────────────────────────────────────┤
-│  cgg-resolve   link calls to definitions                │
-│                ├── type propagation (params, locals,     │
-│                │   constructors, return types)           │
-│                ├── intra-file (scope + containment)      │
+┌───────────────────────────────────────────────────────────┐
+│  cgg-walk      file discovery (.gitignore, deny-list)     │
+├───────────────────────────────────────────────────────────┤
+│  cgg-lang      tree-sitter parse → extract callables      │
+│                39 language plugins (+ .ipynb notebooks)   │
+├───────────────────────────────────────────────────────────┤
+│  cgg-resolve   link calls to definitions                  │
+│                ├── type propagation (params, locals,      │
+│                │   constructors, return types)            │
+│                ├── intra-file (scope + containment)       │
 │                ├── cross-file (imports, pub-use, #include)│
-│                └── FFI (PyO3, wasm-bindgen, napi, JNI,  │
-│                    P/Invoke, C ABI)                      │
-├─────────────────────────────────────────────────────────┤
-│  query engine  --filter + -n (BFS neighborhood / paths) │
-├─────────────────────────────────────────────────────────┤
-│  cgg-format    mermaid │ json │ dot │ graphml           │
-└─────────────────────────────────────────────────────────┘
+│                └── FFI (PyO3, wasm-bindgen, napi, JNI,    │
+│                    P/Invoke, C ABI)                       │
+├───────────────────────────────────────────────────────────┤
+│  query engine  --filter + -n (BFS neighborhood / paths)   │
+├───────────────────────────────────────────────────────────┤
+│  cgg-format    mermaid │ json │ dot │ graphml             │
+└───────────────────────────────────────────────────────────┘
     │
     ▼
 mermaid flowchart (or json/dot/graphml)
@@ -252,7 +252,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source (992 callables, 1459 edges, 272 cross-file, 125ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source (992 callables, 1459 edges, 272 cross-file, 126ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -441,44 +441,44 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 | ------- | -------- | --------- | ----- | ---------- | ---- |
-| ripgrep | rust | 2,766 | 5,207 | 64% | 498ms |
-| flask | python | 388 | 271 | 36% | 32ms |
+| ripgrep | rust | 2,766 | 5,207 | 64% | 500ms |
+| flask | python | 388 | 271 | 36% | 55ms |
 | express | javascript | 92 | 66 | 28% | 18ms |
-| zod | typescript | 1,675 | 2,516 | 66% | 255ms |
-| fzf | go | 1,048 | 5,875 | 57% | 198ms |
-| gson | java | 943 | 1,976 | 66% | 79ms |
-| okio | kotlin | 3,673 | 10,538 | 81% | 384ms |
-| jq | c | 1,073 | 21,163 | 92% | 101ms |
-| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 135ms |
-| serilog | csharp | 826 | 446 | 67% | 67ms |
-| acme.sh | bash | 1,433 | 3,904 | 0% | 139ms |
-| jekyll | ruby | 902 | 1,246 | 63% | 72ms |
-| laravel | php | 13,464 | 253 | 0% | 1549ms |
-| AFNetworking | objc | 299 | 113 | 7% | 54ms |
-| ggplot2 | r | 946 | 419 | 3% | 104ms |
-| Alamofire | swift | 829 | 1,135 | 59% | 88ms |
-| kong | lua | 2,782 | 3,190 | 28% | 1281ms |
-| flame | dart | 1,572 | 9 | 0% | 550ms |
-| play | scala | 1,989 | 1,455 | 51% | 237ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 103ms |
-| http.zig | zig | 451 | 886 | 55% | 91ms |
-| gradle | groovy | 1,289 | 1,974 | 76% | 401ms |
-| Flux.jl | julia | 252 | 207 | 0% | 40ms |
-| mojolicious | perl | 1,126 | 687 | 45% | 117ms |
-| phoenix | elixir | 1,537 | 3,439 | 35% | 137ms |
-| otp/stdlib | erlang | 17,290 | 12,855 | 29% | 500ms |
-| stdlib | fortran | 335 | 190 | 8% | 50ms |
-| ring | clojure | 209 | 220 | 11% | 25ms |
-| pandoc | haskell | 21,002 | 20,155 | 55% | 1237ms |
-| dune | ocaml | 21,110 | 11,930 | 45% | 1102ms |
-| PowerShellGet | powershell | 62 | 23 | 0% | 63ms |
-| openzeppelin-contracts | solidity | 2,660 | 2,688 | 56% | 315ms |
-| Paket | fsharp | 1,865 | 4,662 | 70% | 381ms |
+| zod | typescript | 1,675 | 2,516 | 66% | 265ms |
+| fzf | go | 1,048 | 5,875 | 57% | 176ms |
+| gson | java | 943 | 1,976 | 66% | 78ms |
+| okio | kotlin | 3,673 | 10,538 | 81% | 382ms |
+| jq | c | 1,073 | 21,163 | 92% | 112ms |
+| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 106ms |
+| serilog | csharp | 826 | 446 | 67% | 64ms |
+| acme.sh | bash | 1,433 | 3,904 | 0% | 141ms |
+| jekyll | ruby | 902 | 1,246 | 63% | 73ms |
+| laravel | php | 13,464 | 253 | 0% | 1563ms |
+| AFNetworking | objc | 299 | 113 | 7% | 55ms |
+| ggplot2 | r | 946 | 419 | 3% | 111ms |
+| Alamofire | swift | 829 | 1,135 | 59% | 69ms |
+| kong | lua | 2,782 | 3,190 | 28% | 1277ms |
+| flame | dart | 1,572 | 9 | 0% | 548ms |
+| play | scala | 1,989 | 1,455 | 51% | 236ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 100ms |
+| http.zig | zig | 451 | 886 | 55% | 88ms |
+| gradle | groovy | 1,289 | 1,974 | 76% | 425ms |
+| Flux.jl | julia | 252 | 207 | 0% | 34ms |
+| mojolicious | perl | 1,126 | 687 | 45% | 109ms |
+| phoenix | elixir | 1,537 | 3,439 | 35% | 125ms |
+| otp/stdlib | erlang | 17,290 | 12,855 | 29% | 489ms |
+| stdlib | fortran | 335 | 190 | 8% | 74ms |
+| ring | clojure | 209 | 220 | 11% | 31ms |
+| pandoc | haskell | 21,002 | 20,155 | 55% | 1222ms |
+| dune | ocaml | 21,110 | 11,930 | 45% | 1131ms |
+| PowerShellGet | powershell | 62 | 23 | 0% | 58ms |
+| openzeppelin-contracts | solidity | 2,660 | 2,688 | 56% | 331ms |
+| Paket | fsharp | 1,865 | 4,662 | 70% | 363ms |
 | bazel-skylib | starlark | 93 | 44 | 0% | 17ms |
-| CMake/Modules | cmake | 944 | 856 | 10% | 3629ms |
-| home-manager | nix | 973 | 1,016 | 52% | 292ms |
+| CMake/Modules | cmake | 944 | 856 | 10% | 3645ms |
+| home-manager | nix | 973 | 1,016 | 52% | 309ms |
 | picorv32 | verilog | 79 | 84 | 0% | 104ms |
-| UVVM | vhdl | 1,036 | 0 | — | 191ms |
+| UVVM | vhdl | 1,036 | 0 | — | 176ms |
 | xv6 | asm | 22 | 4 | 0% | 19ms |
 | xv6 (c+asm) | c,asm | 491 | 2,087 | 83% | 34ms |
 

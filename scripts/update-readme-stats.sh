@@ -20,7 +20,7 @@ $CGG "$ROOT/crates" -t mermaid --filter 'cgg::run$' -n 1 -o /tmp/cgg_self_graph.
 echo "Generating benchmark data..."
 > /tmp/cgg_bench_table.md
 printf "| Project | Language | Callables | Edges | Cross-file | Time |\n" >> /tmp/cgg_bench_table.md
-printf "|---------|----------|-----------|-------|------------|------|\n" >> /tmp/cgg_bench_table.md
+printf "| ------- | -------- | --------- | ----- | ---------- | ---- |\n" >> /tmp/cgg_bench_table.md
 
 declare -a ENTRIES=(
     "ripgrep|rust-ripgrep|rust|crates"
