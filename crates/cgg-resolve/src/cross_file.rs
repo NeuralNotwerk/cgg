@@ -101,6 +101,16 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
     let facts_by_id: HashMap<FileId, &FileFacts> =
         facts.iter().map(|f| (f.file, f)).collect();
 
+    // Build a `(language, file_path_lowercased)` index so we can map
+    // an unqualified import prefix back to the files it covers. Used
+    // by the per-file resolution loop below to scope-narrow the
+    // by-simple-name fallback for languages whose plugins don't include
+    // a module prefix in `qualified_name` (Haskell, OCaml).
+    let files_lower: Vec<(FileId, String, String)> = facts
+        .iter()
+        .map(|f| (f.file, f.language.clone(), f.path.to_string_lossy().to_ascii_lowercase()))
+        .collect();
+
     for facts in facts {
         let lang = facts.language.clone();
 
@@ -112,6 +122,12 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
         // Rust: `use a::b::c;` -> map "c" -> "a::b::c".
         let mut direct_imports: HashMap<String, Vec<String>> = HashMap::new();
         let mut module_aliases: HashMap<String, String> = HashMap::new();
+        // Namespace prefixes that bring symbols into scope unqualified —
+        // e.g. Haskell `import Data.Map`, OCaml `open Foo`, Elixir
+        // `import Foo`, F# `open System`, PowerShell `using namespace`.
+        // Resolution tries `<prefix>.<ref-name>` (and `<prefix>::<name>`
+        // for ::-joined languages) for each prefix.
+        let mut unqualified_prefixes: Vec<String> = Vec::new();
 
         for imp in &facts.imports {
             match imp.kind.as_str() {
@@ -144,7 +160,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         }
                     }
                 }
-                "import" => {
+                "import" if matches!(lang.as_str(), "python" | "go" | "javascript" | "typescript" | "swift" | "zig" | "r" | "perl") => {
                     // Python: `import a.b.c`               (no alias)
                     //         `import a.b.c as d`          (aliased)
                     // Go:     `import "fmt"`               (no alias)
@@ -189,7 +205,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         module_aliases.insert(binding, target);
                     }
                 }
-                "use" | "pub-use" => {
+                "use" | "pub-use" if lang == "rust" => {
                     // Rust: `a::b::c` or `a::b::c as d`.
                     let full = imp.path.trim();
                     let alias = if imp.alias.is_empty() {
@@ -202,7 +218,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         .or_default()
                         .push(full.to_string());
                 }
-                "using" => {
+                "using" if lang == "csharp" => {
                     // C#: `using X.Y.Z;`                 -> module alias Z -> X.Y.Z
                     //     `using Alias = X.Y.Z;`         -> alias Alias -> X.Y.Z
                     let full = imp.path.trim();
@@ -224,7 +240,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         .or_default()
                         .push(full);
                 }
-                "include" => {
+                "include" if matches!(lang.as_str(), "c" | "cpp" | "objc") => {
                     // C/C++: `#include "helpers.h"` — all definitions
                     // from the included file become available in this
                     // TU. We resolve the path relative to the current
@@ -257,29 +273,261 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     }
                 }
                 "require" => {
-                    // Ruby: `require './helper'` — all definitions
-                    // from the required file become available.
+                    // Ruby: `require './helper'`
+                    // Lua:  `local m = require('foo.bar')`  (path = "foo.bar")
+                    // Clojure: `(:require [foo.bar :as fb])`
+                    // Erlang: `-include("x.hrl").`           (kind="include" — handled above)
+                    // All three want every definition from the named file
+                    // to become reachable. We try a few path resolutions.
                     let req_path = imp.path.trim();
-                    if !req_path.is_empty() {
-                        // Try with .rb extension appended
-                        let with_ext = format!("{req_path}.rb");
-                        collect_include_defs(
-                            &with_ext,
-                            facts,
-                            &facts_by_id,
-                            &mut direct_imports,
-                            4,
-                        );
-                        collect_include_defs(
-                            req_path,
-                            facts,
-                            &facts_by_id,
-                            &mut direct_imports,
-                            4,
-                        );
+                    if req_path.is_empty() { continue; }
+
+                    // 1) Direct file-include resolution.
+                    for try_path in [
+                        req_path.to_string(),
+                        format!("{req_path}.rb"),
+                        format!("{req_path}.lua"),
+                        format!("{req_path}.clj"),
+                        req_path.replace('.', "/") + ".lua",
+                        req_path.replace('.', "/") + ".clj",
+                    ] {
+                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                    }
+
+                    // 2) Module-alias / unqualified-prefix.
+                    if !imp.alias.is_empty() {
+                        module_aliases.insert(imp.alias.clone(), req_path.to_string());
+                    } else {
+                        let last = req_path
+                            .rsplit(|c: char| c == '.' || c == '/' || c == ':')
+                            .next()
+                            .unwrap_or(req_path);
+                        if !last.is_empty() {
+                            module_aliases.insert(last.to_string(), req_path.to_string());
+                        }
+                    }
+                    unqualified_prefixes.push(req_path.to_string());
+                }
+                "load" => {
+                    // Starlark: `load("//path:file.bzl", "symbol", aliased="other")`.
+                    // path is the .bzl file ref. We treat it as include-like
+                    // (every def in the loaded file becomes available) since
+                    // tracking the actual symbols list would require a
+                    // separate Starlark-aware import representation.
+                    let raw = imp.path.trim().trim_start_matches("//").trim_matches('"');
+                    let cleaned = raw.replace(':', "/");
+                    for try_path in [cleaned.clone(), format!("{cleaned}.bzl")] {
+                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                    }
+                }
+                "open" => {
+                    // OCaml / F#: `open Module` — brings every symbol in
+                    // `Module` into scope unqualified.
+                    let path = imp.path.trim();
+                    if !path.is_empty() {
+                        unqualified_prefixes.push(path.to_string());
+                        // Last segment also aliases the module.
+                        if let Some(last) = path.rsplit('.').next() {
+                            module_aliases.insert(last.to_string(), path.to_string());
+                        }
+                    }
+                }
+                "alias" => {
+                    // Elixir: `alias Foo.Bar` => Bar refers to Foo.Bar.
+                    // `alias Foo.Bar, as: B` => B refers to Foo.Bar.
+                    let path = imp.path.trim();
+                    let alias = if imp.alias.is_empty() {
+                        path.rsplit('.').next().unwrap_or(path).to_string()
+                    } else {
+                        imp.alias.clone()
+                    };
+                    if !alias.is_empty() {
+                        module_aliases.insert(alias, path.to_string());
+                    }
+                }
+                "use" => {
+                    // Elixir `use Foo` / Fortran `use module` — typically
+                    // brings module contents into scope unqualified.
+                    // Rust `use` is handled above; this arm only fires for
+                    // other languages because match arms above already
+                    // claim the kind for Rust.
+                    let path = imp.path.trim();
+                    if !path.is_empty() {
+                        unqualified_prefixes.push(path.to_string());
+                    }
+                }
+                "import qualified" => {
+                    // Haskell: `import qualified Data.Map [as M]`. Without
+                    // an alias, the module is referenced by its full name
+                    // (`Data.Map.lookup`); with an alias, by `M.lookup`.
+                    let path = imp.path.trim();
+                    let alias = if imp.alias.is_empty() { path } else { imp.alias.as_str() };
+                    if !alias.is_empty() {
+                        module_aliases.insert(alias.to_string(), path.to_string());
+                    }
+                }
+                "import" => {
+                    // Generic "import" — language-specific dispatch. The
+                    // Python/Go/JS variant is handled by the earlier arm
+                    // pattern via specific kinds; here we cover the langs
+                    // whose plugins emit a bare "import" kind.
+                    let path = imp.path.trim();
+                    if path.is_empty() { continue; }
+                    match lang.as_str() {
+                        // Scala / Java-style: `import pkg.{A,B}` or `import pkg.A`.
+                        "scala" | "java" | "kotlin" | "groovy" => {
+                            if let Some(idx) = path.rfind('.') {
+                                let prefix = &path[..idx];
+                                let suffix = &path[idx + 1..];
+                                let suffix = suffix.trim_matches(|c| c == '{' || c == '}');
+                                if suffix == "_" || suffix == "*" {
+                                    unqualified_prefixes.push(prefix.to_string());
+                                } else {
+                                    for name in suffix.split(',') {
+                                        let name = name.trim();
+                                        if name.is_empty() { continue; }
+                                        let (src, alias) = match name.split_once("=>") {
+                                            Some((s, a)) => (s.trim(), a.trim()),
+                                            None => (name, name),
+                                        };
+                                        direct_imports
+                                            .entry(alias.to_string())
+                                            .or_default()
+                                            .push(format!("{prefix}.{src}"));
+                                    }
+                                }
+                                if let Some(last) = prefix.rsplit('.').next() {
+                                    module_aliases.insert(last.to_string(), prefix.to_string());
+                                }
+                            }
+                        }
+                        // Dart / Solidity / Nix: file-relative paths.
+                        "dart" | "solidity" | "nix" => {
+                            let cleaned = path.trim_matches(|c| c == '\'' || c == '"' || c == '<' || c == '>');
+                            for try_path in [cleaned.to_string(), format!("{cleaned}.sol"), format!("{cleaned}.dart"), format!("{cleaned}.nix")] {
+                                collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                            }
+                            if !imp.alias.is_empty() {
+                                let derived = cleaned
+                                    .rsplit('/')
+                                    .next()
+                                    .unwrap_or(cleaned)
+                                    .trim_end_matches(".dart")
+                                    .trim_end_matches(".sol")
+                                    .trim_end_matches(".nix")
+                                    .to_string();
+                                module_aliases.insert(imp.alias.clone(), derived);
+                            }
+                        }
+                        // Haskell / Erlang / Elixir / generic: dotted module name,
+                        // unqualified import.
+                        "haskell" | "erlang" | "elixir" | "fsharp" | "ocaml" | "julia" => {
+                            unqualified_prefixes.push(path.to_string());
+                            if let Some(last) = path.rsplit('.').next() {
+                                module_aliases.insert(last.to_string(), path.to_string());
+                            }
+                        }
+                        _ => {
+                            // Fall back to module-alias on last segment.
+                            let last = path
+                                .rsplit(|c: char| c == '.' || c == '/' || c == ':')
+                                .next()
+                                .unwrap_or(path);
+                            if !last.is_empty() {
+                                module_aliases.insert(last.to_string(), path.to_string());
+                            }
+                        }
+                    }
+                }
+                "using" if lang == "powershell" => {
+                    // PowerShell `using namespace System.IO` — namespace open.
+                    let path = imp.path.trim();
+                    if !path.is_empty() {
+                        unqualified_prefixes.push(path.to_string());
+                    }
+                }
+                k if k.starts_with("using-") && lang == "powershell" => {
+                    let path = imp.path.trim();
+                    if !path.is_empty() {
+                        unqualified_prefixes.push(path.to_string());
+                    }
+                }
+                "import-module" | "dot-source" => {
+                    // PowerShell: include-like.
+                    let path = imp.path.trim();
+                    for try_path in [path.to_string(), format!("{path}.psm1"), format!("{path}.ps1")] {
+                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                    }
+                    unqualified_prefixes.push(path.to_string());
+                }
+                "include" | "add_subdirectory" | "find_package" => {
+                    // CMake-style file inclusion (the C/C++ "include" arm
+                    // above already claims the kind for those languages).
+                    if lang == "cmake" || lang == "verilog" || lang == "vhdl"
+                        || lang == "erlang" || lang == "fortran"
+                    {
+                        let path = imp.path.trim();
+                        for try_path in [
+                            path.to_string(),
+                            format!("{path}.cmake"),
+                            format!("{path}.v"),
+                            format!("{path}.hrl"),
+                            format!("{path}.f90"),
+                            format!("{path}.f95"),
+                            format!("CMakeLists.txt"),
+                        ] {
+                            collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                        }
+                    }
+                }
+                "using-namespace" => {
+                    let path = imp.path.trim();
+                    if !path.is_empty() {
+                        unqualified_prefixes.push(path.to_string());
                     }
                 }
                 _ => {}
+            }
+        }
+
+        // Compute "scoped candidates": for each unqualified_prefix,
+        // collect the callables defined in files whose path matches
+        // the prefix (e.g. `Text.Pandoc` matches `*/Text/Pandoc.hs`).
+        // This is what lets Haskell / OCaml — whose plugins don't put
+        // module prefixes on qualified_name — still get cross-file
+        // resolution without resorting to global by-simple noise.
+        let mut scoped_simple: HashMap<String, Vec<CallableId>> = HashMap::new();
+        if !unqualified_prefixes.is_empty()
+            || !direct_imports.is_empty()
+            || !module_aliases.is_empty()
+        {
+            let mut path_fragments: Vec<String> = unqualified_prefixes
+                .iter()
+                .map(|p| p.replace('.', "/").to_ascii_lowercase())
+                .collect();
+            // Also include single-segment module aliases (Lua `require('foo')`,
+            // Scala `import play.Foo` last segment, etc.)
+            for (_, target) in &module_aliases {
+                path_fragments.push(target.replace('.', "/").to_ascii_lowercase());
+            }
+            for (fid, flang, fpath) in &files_lower {
+                if flang != &lang { continue; }
+                if !path_fragments.iter().any(|frag| !frag.is_empty() && fpath.contains(frag.as_str())) {
+                    continue;
+                }
+                if let Some(target) = facts_by_id.get(fid) {
+                    for d in &target.definitions {
+                        if let Some(cid) = by_qn
+                            .get(&(lang.clone(), d.qualified_name.clone()))
+                            .copied()
+                        {
+                            scoped_simple
+                                .entry(d.simple_name.clone())
+                                .or_default()
+                                .push(cid);
+                        }
+                    }
+                }
             }
         }
 
@@ -292,6 +540,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 r,
                 &direct_imports,
                 &module_aliases,
+                &unqualified_prefixes,
+                &scoped_simple,
                 &by_qn,
                 &by_simple,
                 &reexports,
@@ -383,6 +633,8 @@ fn try_resolve_ref(
     r: &cgg_core::RefRecord,
     direct_imports: &HashMap<String, Vec<String>>,
     module_aliases: &HashMap<String, String>,
+    unqualified_prefixes: &[String],
+    scoped_simple: &HashMap<String, Vec<CallableId>>,
     by_qn: &HashMap<(String, String), CallableId>,
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
@@ -410,6 +662,44 @@ fn try_resolve_ref(
             // Try just the name itself as a qualified name
             if let Some(cid) = lookup_with_reexports(lang, &r.name, by_qn, reexports) {
                 return Some(vec![cid]);
+            }
+        }
+        // Step 1b: bare-name lookup via unqualified-import prefixes
+        // (Haskell `import Data.Map` + `lookup`, OCaml `open Foo` + `bar`,
+        // Elixir `import Foo` + `bar`, F# `open System.IO` + `File`, …).
+        for prefix in unqualified_prefixes {
+            for joiner in [".", "::"] {
+                let qn = format!("{prefix}{joiner}{}", r.name);
+                if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
+                    return Some(vec![cid]);
+                }
+            }
+        }
+        // Step 1c: scoped by-simple lookup — restricted to callables
+        // defined in files whose path matches one of this file's
+        // import prefixes. This carries Haskell/OCaml/Dart over the
+        // gap where the plugin omits the module prefix from
+        // qualified_name. Cap candidates at 8 to bound noise.
+        if let Some(cids) = scoped_simple.get(&r.name) {
+            if !cids.is_empty() && cids.len() <= 8 {
+                return Some(cids.clone());
+            }
+        }
+        // Step 1d: global by-simple fallback. Last resort — only when
+        // the file has at least one import and the simple name is
+        // unique-ish (≤3 candidates). Skip stdlib-ish names.
+        let has_imports = !direct_imports.is_empty()
+            || !module_aliases.is_empty()
+            || !unqualified_prefixes.is_empty();
+        if has_imports {
+            let is_stdlib = cgg_core::stdlib::stdlib_names(lang)
+                .map_or(false, |s| s.contains(r.name.as_str()));
+            if !is_stdlib {
+                if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
+                    if !cids.is_empty() && cids.len() <= 3 {
+                        return Some(cids.clone());
+                    }
+                }
             }
         }
     } else {

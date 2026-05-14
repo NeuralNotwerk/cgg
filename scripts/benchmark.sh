@@ -44,6 +44,16 @@ REPOS=(
     "clojure-ring|https://github.com/ring-clojure/ring.git|clojure|ring-core/src||f"
     "haskell-pandoc|https://github.com/jgm/pandoc.git|haskell|src|Haskell|f"
     "ocaml-dune|https://github.com/ocaml/dune.git|ocaml|src|OCaml|f"
+    "powershell-psget|https://github.com/PowerShell/PowerShellGet.git|powershell|||"
+    "solidity-openzeppelin|https://github.com/OpenZeppelin/openzeppelin-contracts.git|solidity|contracts||"
+    "fsharp-paket|https://github.com/fsprojects/Paket.git|fsharp|src||"
+    "starlark-skylib|https://github.com/bazelbuild/bazel-skylib.git|starlark|lib||"
+    "cmake-kitware|https://github.com/Kitware/CMake.git|cmake|Modules||"
+    "nix-home-manager|https://github.com/nix-community/home-manager.git|nix|modules||"
+    "verilog-picorv32|https://github.com/YosysHQ/picorv32.git|verilog|||"
+    "vhdl-uvvm|https://github.com/UVVM/UVVM.git|vhdl|uvvm_util/src||"
+    "asm-xv6|https://github.com/mit-pdos/xv6-public.git|asm|||"
+    "asm-xv6-mixed|https://github.com/mit-pdos/xv6-public.git|c,asm|||"
 )
 
 # Clone or update repos

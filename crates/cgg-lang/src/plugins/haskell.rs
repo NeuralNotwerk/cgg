@@ -42,7 +42,7 @@ impl<'a> HaskellWalker<'a> {
                 self.extract_module(node);
                 self.walk_children(node);
             }
-            "import_declaration" => {
+            "import" => {
                 self.extract_import(node);
                 self.walk_children(node);
             }
@@ -76,21 +76,27 @@ impl<'a> HaskellWalker<'a> {
     }
 
     fn extract_import(&mut self, node: Node) {
-        // import Module or import qualified Module as M
-        let mut module_name = String::new();
+        // import [qualified] Module [as Alias] [(item, ...)]
+        // tree-sitter-haskell layout:
+        //   import     -> [import] [qualified?] [module] [as module]? [import_list]?
+        let mut modules: Vec<String> = Vec::new();
         let mut alias = String::new();
         let mut qualified = false;
-
+        let mut saw_as = false;
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
                 match child.kind() {
                     "qualified" => qualified = true,
-                    "module_name" => module_name = self.text(child).to_string(),
-                    "module_alias" => alias = self.text(child).to_string(),
+                    "as" => saw_as = true,
+                    "module" => {
+                        let text = self.text(child).to_string();
+                        if saw_as { alias = text; } else { modules.push(text); }
+                    }
                     _ => {}
                 }
             }
         }
+        let module_name = modules.into_iter().next().unwrap_or_default();
 
         if !module_name.is_empty() {
             self.facts.imports.push(ImportRecord {

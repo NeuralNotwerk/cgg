@@ -10,6 +10,7 @@ cgg-core   = { workspace = true }
 anyhow     = { workspace = true }
 thiserror  = { workspace = true }
 serde      = { workspace = true }
+serde_json = { workspace = true }
 tracing    = { workspace = true }
 
 tree-sitter            = { workspace = true }
@@ -43,6 +44,15 @@ tree-sitter-fortran    = { workspace = true }
 tree-sitter-haskell    = { workspace = true }
 tree-sitter-clojure-orchard = { workspace = true }
 tree-sitter-ocaml      = { workspace = true }
+tree-sitter-powershell = { workspace = true }
+tree-sitter-solidity   = { workspace = true }
+tree-sitter-fsharp     = { workspace = true }
+tree-sitter-starlark   = { workspace = true }
+tree-sitter-cmake      = { workspace = true }
+tree-sitter-nix        = { workspace = true }
+tree-sitter-verilog    = { workspace = true }
+tree-sitter-vhdl       = { workspace = true }
+tree-sitter-asm        = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }

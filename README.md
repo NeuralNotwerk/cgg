@@ -20,6 +20,7 @@ understands.
 ## Why mermaid?
 
 Mermaid diagrams are:
+
 - **Readable by agents** — plain text, no binary formats, fits in a prompt
 - **Renderable by humans** — GitHub, GitLab, VS Code, and every major
   markdown viewer renders them inline
@@ -63,7 +64,7 @@ cgg ./src -t json -o graph.json
 
 ## CLI
 
-```
+```text
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--filter PATTERN]... [-n N] [--max-paths N]
               [--exclude-partial SUBSTRING]...
@@ -76,7 +77,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 ```
 
 | Flag | Default | Description |
-|------|---------|-------------|
+| ---- | ------- | ----------- |
 | `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
 | `-o` | stdout | Output file (use `-` for stdout) |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
@@ -92,7 +93,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 
 ## How it works
 
-```
+```tests
 source files
     │
     ▼
@@ -100,7 +101,7 @@ source files
 │  cgg-walk      file discovery (.gitignore, deny-list)   │
 ├─────────────────────────────────────────────────────────┤
 │  cgg-lang      tree-sitter parse → extract callables    │
-│                21 language plugins                       │
+│                39 language plugins (+ .ipynb notebooks) │
 ├─────────────────────────────────────────────────────────┤
 │  cgg-resolve   link calls to definitions                │
 │                ├── type propagation (params, locals,     │
@@ -202,12 +203,15 @@ confirm caller/callee impact. Grep finds string matches; `cgg` finds
 resolved calls — including method dispatch and cross-file edges that
 grep will miss or over-match.
 
-## Supported languages (30)
+## Supported languages (39)
+
+Plus Jupyter notebooks (`.ipynb`) — code cells are extracted and routed
+through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 | Language | Cross-file resolution | Type inference | Notes |
-|----------|----------------------|----------------|-------|
+| -------- | --------------------- | -------------- | ----- |
 | Rust | pub-use chains, Cargo.toml crate names | params, `Foo::new()` | Module paths from src/ |
-| Python | from-import, import-as | params, `Foo()` | `__init__.py` package walk |
+| Python | from-import, import-as | params, `Foo()` | `__init__.py` package walk; `.ipynb` supported |
 | JavaScript | ESM import, CJS require() | params | exports.fn, defineGetter |
 | TypeScript | ESM import | params | Delegates to JS walker |
 | Go | package imports | params, `var T`, `New*()` | Interface methods, func literals |
@@ -227,10 +231,28 @@ grep will miss or over-match.
 | Scala | import pkg.Class | — | Object declarations |
 | HCL | — | — | Block labels as definitions |
 | Zig | @import("std") | — | — |
+| Groovy | import | — | Closures, methods |
+| Julia | using, import | — | Multiple dispatch |
+| Perl | use, require | — | Subs and packages |
+| Elixir | alias, import, require | — | def/defp/defmacro |
+| Erlang | -include, -import | — | OTP modules |
+| Fortran | use module | — | Subroutines and functions |
+| Clojure | (ns :require ...) | — | defn/defmacro/deftype/defprotocol |
+| Haskell | import | — | Top-level bindings |
+| OCaml | open, include | — | let/let rec, modules |
+| PowerShell | Import-Module, dot-source, using | — | Cmdlets, classes, filters |
+| Solidity | import "./X.sol" | — | Contracts, libraries, modifiers |
+| F# | open | — | let bindings, members, type defs |
+| Starlark | load("//path:f.bzl", …) | — | def/call/attribute; Bazel/Buck/Pants |
+| CMake | include(), add_subdirectory() | — | function()/macro()/normal commands |
+| Nix | import &lt;path&gt; | — | function-valued bindings, apply expressions |
+| Verilog / SV | — | — | Modules, tasks, functions; module instantiation as edges |
+| VHDL | library, use clauses | — | Entities, architectures, procedures/functions |
+| Assembly | — | — | x86 / ARM / RISC-V / MIPS: labels + `call`/`jmp`/`bl`/`jal` |
 
 ## Self-analysis
 
-`cgg` run on its own source (831 callables, 1178 edges, 192 cross-file, 117ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source (992 callables, 1459 edges, 272 cross-file, 125ms). This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -251,18 +273,21 @@ flowchart LR
   C92["cgg::dedup_edges"]
   C94["cgg::emit_graph"]
   C96["cgg::emit_audit"]
-  C687["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C720["cgg_resolve::type_hints::build_return_type_map"]
-  C721["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C737["cgg_resolve::ffi::link_ffi"]
-  C758["cgg_resolve::stack_graphs_resolver::resolve"]
-  C759["cgg_resolve::stack_graphs_resolver::resolve_light"]
-  C760["cgg_resolve::stack_graphs_resolver::is_sg_language"]
-  C761["cgg_resolve::cross_file::resolve"]
-  C773["cgg_resolve::intra_file::link_file"]
-  C822["cgg_core::graph::Graph::new"]
-  C823["cgg_core::graph::Graph::add_callable"]
-  C824["cgg_core::graph::Graph::add_file"]
+  C840["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C845["cgg_lang::notebook::extract_python_source"]
+  C879["cgg_resolve::type_hints::build_return_type_map"]
+  C880["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C896["cgg_resolve::ffi::link_ffi"]
+  C919["cgg_resolve::stack_graphs_resolver::resolve"]
+  C920["cgg_resolve::stack_graphs_resolver::resolve_light"]
+  C921["cgg_resolve::stack_graphs_resolver::is_sg_language"]
+  C922["cgg_resolve::cross_file::resolve"]
+  C934["cgg_resolve::intra_file::link_file"]
+  C980["cgg_core::external::classify_external"]
+  C982["cgg_core::external::build_known_names"]
+  C983["cgg_core::graph::Graph::new"]
+  C984["cgg_core::graph::Graph::add_callable"]
+  C985["cgg_core::graph::Graph::add_file"]
   C85 --> C87
   C87 --> C88
   C87 --> C90
@@ -271,21 +296,25 @@ flowchart LR
   C87 --> C92
   C87 --> C94
   C87 --> C96
-  C72 --> C822
+  C72 --> C983
   C87 --> C2
-  C87 --> C687
-  C87 --> C822
-  C87 --> C824
-  C87 --> C823
-  C87 --> C720
-  C87 --> C721
-  C87 --> C773
-  C87 --> C758
-  C87 --> C758
-  C87 --> C760
-  C87 --> C759
-  C87 --> C761
-  C87 --> C737
+  C87 --> C840
+  C87 --> C983
+  C87 --> C845
+  C87 --> C985
+  C87 --> C984
+  C87 --> C879
+  C87 --> C880
+  C87 --> C982
+  C87 --> C934
+  C87 --> C980
+  C87 --> C919
+  C87 --> C919
+  C87 --> C921
+  C87 --> C920
+  C87 --> C980
+  C87 --> C922
+  C87 --> C896
   C87 --> C72
   C87 --> C73
 ```
@@ -368,7 +397,7 @@ flowchart LR
 ## Output formats
 
 | Format | Use case |
-|--------|----------|
+| ------ | -------- |
 | **mermaid** (default) | Agent context, markdown docs, PR descriptions |
 | **json** | Programmatic consumption, custom tooling, CI checks |
 | **dot** | Graphviz rendering for large graphs |
@@ -396,6 +425,7 @@ tools can filter by quality.
 ## Audit / metrics
 
 Every run produces a structured audit trail:
+
 - Files discovered, analyzed, and skipped (with reasons)
 - Every callable extracted
 - Every unresolved call site (with failure reason)
@@ -410,44 +440,54 @@ integration.
 Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 | Project | Language | Callables | Edges | Cross-file | Time |
-|---------|----------|-----------|-------|------------|------|
-| ripgrep | rust | 2,766 | 4,041 | 54% | 492ms |
-| flask | python | 388 | 234 | 30% | 49ms |
-| express | javascript | 92 | 59 | 20% | 18ms |
-| zod | typescript | 1,675 | 2,410 | 65% | 227ms |
-| fzf | go | 1,048 | 4,785 | 47% | 191ms |
-| gson | java | 943 | 1,354 | 54% | 60ms |
-| okio | kotlin | 3,673 | 5,484 | 72% | 339ms |
-| jq | c | 1,073 | 20,819 | 93% | 132ms |
-| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 84ms |
-| serilog | csharp | 826 | 432 | 68% | 69ms |
-| acme.sh | bash | 1,433 | 3,904 | 0% | 152ms |
-| jekyll | ruby | 902 | 1,237 | 63% | 73ms |
-| laravel | php | 13,464 | 253 | 0% | 1555ms |
-| AFNetworking | objc | 299 | 113 | 7% | 64ms |
-| ggplot2 | r | 946 | 419 | 3% | 102ms |
-| Alamofire | swift | 829 | 998 | 63% | 89ms |
-| kong | lua | 2,782 | 2,287 | 0% | 528ms |
-| flame | dart | 1,572 | 4 | 0% | 111ms |
-| play | scala | 1,989 | 487 | 0% | 233ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 86ms |
-| http.zig | zig | 451 | 832 | 52% | 64ms |
-| gradle | groovy | 1,289 | 980 | 59% | 278ms |
-| Flux.jl | julia | 252 | 193 | 0% | 42ms |
-| mojolicious | perl | 1,126 | 687 | 45% | 99ms |
-| phoenix | elixir | 1,537 | 1,416 | 0% | 113ms |
-| otp/stdlib | erlang | 17,290 | 6,137 | 0% | 440ms |
-| stdlib | fortran | 335 | 0 | — | 45ms |
-| ring | clojure | 174 | 183 | 0% | 21ms |
-| pandoc | haskell | 21,002 | 7,647 | 0% | 492ms |
-| dune | ocaml | 21,110 | 5,670 | 0% | 610ms |
+| ------- | -------- | --------- | ----- | ---------- | ---- |
+| ripgrep | rust | 2,766 | 5,207 | 64% | 498ms |
+| flask | python | 388 | 271 | 36% | 32ms |
+| express | javascript | 92 | 66 | 28% | 18ms |
+| zod | typescript | 1,675 | 2,516 | 66% | 255ms |
+| fzf | go | 1,048 | 5,875 | 57% | 198ms |
+| gson | java | 943 | 1,976 | 66% | 79ms |
+| okio | kotlin | 3,673 | 10,538 | 81% | 384ms |
+| jq | c | 1,073 | 21,163 | 92% | 101ms |
+| nlohmann/json | cpp | 1,122 | 2,244 | 58% | 135ms |
+| serilog | csharp | 826 | 446 | 67% | 67ms |
+| acme.sh | bash | 1,433 | 3,904 | 0% | 139ms |
+| jekyll | ruby | 902 | 1,246 | 63% | 72ms |
+| laravel | php | 13,464 | 253 | 0% | 1549ms |
+| AFNetworking | objc | 299 | 113 | 7% | 54ms |
+| ggplot2 | r | 946 | 419 | 3% | 104ms |
+| Alamofire | swift | 829 | 1,135 | 59% | 88ms |
+| kong | lua | 2,782 | 3,190 | 28% | 1281ms |
+| flame | dart | 1,572 | 9 | 0% | 550ms |
+| play | scala | 1,989 | 1,455 | 51% | 237ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 103ms |
+| http.zig | zig | 451 | 886 | 55% | 91ms |
+| gradle | groovy | 1,289 | 1,974 | 76% | 401ms |
+| Flux.jl | julia | 252 | 207 | 0% | 40ms |
+| mojolicious | perl | 1,126 | 687 | 45% | 117ms |
+| phoenix | elixir | 1,537 | 3,439 | 35% | 137ms |
+| otp/stdlib | erlang | 17,290 | 12,855 | 29% | 500ms |
+| stdlib | fortran | 335 | 190 | 8% | 50ms |
+| ring | clojure | 209 | 220 | 11% | 25ms |
+| pandoc | haskell | 21,002 | 20,155 | 55% | 1237ms |
+| dune | ocaml | 21,110 | 11,930 | 45% | 1102ms |
+| PowerShellGet | powershell | 62 | 23 | 0% | 63ms |
+| openzeppelin-contracts | solidity | 2,660 | 2,688 | 56% | 315ms |
+| Paket | fsharp | 1,865 | 4,662 | 70% | 381ms |
+| bazel-skylib | starlark | 93 | 44 | 0% | 17ms |
+| CMake/Modules | cmake | 944 | 856 | 10% | 3629ms |
+| home-manager | nix | 973 | 1,016 | 52% | 292ms |
+| picorv32 | verilog | 79 | 84 | 0% | 104ms |
+| UVVM | vhdl | 1,036 | 0 | — | 191ms |
+| xv6 | asm | 22 | 4 | 0% | 19ms |
+| xv6 (c+asm) | c,asm | 491 | 2,087 | 83% | 34ms |
 
 ## Limitations
 
 - C/C++ macros are extracted as callables but not expanded (no preprocessor simulation)
 - Type inference is partial — handles parameters, constructors, return types, and trait dispatch to known implementors; does not handle generics or fully dynamic typing
 - No daemon / watch mode
-- Additional languages not yet supported: Elixir, Haskell, OCaml, Perl, Groovy
+- Languages without a published Rust tree-sitter grammar are not supported: notably Tcl and Hack. Adding them would require vendoring C grammar sources.
 
 ## License
 

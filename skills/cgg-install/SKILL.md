@@ -87,7 +87,7 @@ Notes:
 - The binary lands in `~/.cargo/bin/cgg`.
 - Re-running this command upgrades to the latest commit on the
   default branch.
-- First-time build pulls ~30 grammar crates and takes several
+- First-time build pulls ~40 grammar crates and takes several
   minutes. Don't cancel.
 
 ### 3b. Developer install

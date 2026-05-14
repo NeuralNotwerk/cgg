@@ -46,7 +46,10 @@ impl<'a> FortranWalker<'a> {
                 self.record_import(node);
                 self.walk_children(node);
             }
-            "function_statement" | "subroutine_statement" | "program_statement" => {
+            // Match the enclosing form so the byte range covers the
+            // body, not just the header line — needed for intra-file
+            // edges to attribute call sites to their containing routine.
+            "function" | "subroutine" | "program" => {
                 self.record_callable(node);
                 self.walk_children(node);
             }
@@ -81,7 +84,7 @@ impl<'a> FortranWalker<'a> {
         // Find the name child
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
-                if child.kind() == "name" {
+                if matches!(child.kind(), "name" | "module_name") {
                     let module_name = self.text(child).to_string();
                     self.facts.imports.push(ImportRecord {
                         kind: "use".to_string(),
@@ -97,17 +100,21 @@ impl<'a> FortranWalker<'a> {
     }
 
     fn record_callable(&mut self, node: Node) {
-        // function/subroutine/program name(...) ... end
-        // Find the name child
-        let mut name = String::new();
-        for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "name" {
-                    name = self.text(child).to_string();
-                    break;
-                }
-            }
-        }
+        // The header (`subroutine_statement` / `function_statement` /
+        // `program_statement`) is a direct child of the enclosing form;
+        // the routine's name lives inside that header.
+        let header_kind = match node.kind() {
+            "subroutine" => "subroutine_statement",
+            "function" => "function_statement",
+            "program" => "program_statement",
+            _ => return,
+        };
+        let header = node.children(&mut node.walk()).find(|c| c.kind() == header_kind);
+        let Some(header) = header else { return };
+        let name = header.children(&mut header.walk())
+            .find(|c| c.kind() == "name")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
         if name.is_empty() { return; }
 
         let qn = self.qn(&name);
@@ -128,20 +135,25 @@ impl<'a> FortranWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        // call_expression has "function" field, subroutine_call has "subroutine" field
-        let func_node = node.child_by_field_name("function")
-            .or_else(|| node.child_by_field_name("subroutine"));
-        
-        if let Some(fn_node) = func_node {
-            let name = self.text(fn_node).to_string();
-            if name.is_empty() { return; }
-            
-            self.facts.references.push(RefRecord {
-                name,
-                receiver_hint: String::new(),
-                site_line: (node.start_position().row as u32) + 1,
-                site_byte: node.start_byte() as u32,
-            });
+        // tree-sitter-fortran doesn't expose field names on call_expression /
+        // subroutine_call. The callee is the first named `identifier` child.
+        let mut c = node.walk();
+        if !c.goto_first_child() { return; }
+        loop {
+            let n = c.node();
+            if n.kind() == "identifier" {
+                let name = self.text(n).to_string();
+                if !name.is_empty() {
+                    self.facts.references.push(RefRecord {
+                        name,
+                        receiver_hint: String::new(),
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
+                }
+                return;
+            }
+            if !c.goto_next_sibling() { return; }
         }
     }
 }

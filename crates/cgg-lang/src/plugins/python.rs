@@ -32,7 +32,7 @@ impl LanguagePlugin for PythonPlugin {
         "python"
     }
     fn extensions(&self) -> &'static [&'static str] {
-        &[".py", ".pyi"]
+        &[".py", ".pyi", ".ipynb"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
         &["python3", "python", "python2"]

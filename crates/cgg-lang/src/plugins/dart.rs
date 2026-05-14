@@ -130,25 +130,102 @@ impl<'a> DartWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        let uri = node.child_by_field_name("uri")
-            .map(|n| self.text(n).trim_matches('\'').trim_matches('"').to_string())
-            .unwrap_or_default();
-        if !uri.is_empty() {
-            self.facts.imports.push(ImportRecord {
-                kind: "import".into(), path: uri, alias: String::new(),
-                site_line: (node.start_position().row as u32) + 1,
-                site_byte: node.start_byte() as u32,
-            });
+        // tree-sitter-dart: import_or_export -> library_import ->
+        // import_specification -> configurable_uri -> uri -> string_literal.
+        // The literal text we want sits inside template_chars_* under
+        // string_literal_*. Descend to find it.
+        fn find_uri_text<'a>(n: tree_sitter::Node<'a>, src: &[u8]) -> Option<String> {
+            let mut stack = vec![n];
+            while let Some(cur) = stack.pop() {
+                let kind = cur.kind();
+                if kind.starts_with("template_chars_") {
+                    return Some(cur.utf8_text(src).ok()?.to_string());
+                }
+                if kind == "uri" {
+                    // Grab text and strip outer quotes/braces.
+                    let raw = cur.utf8_text(src).ok()?.trim();
+                    let stripped = raw.trim_matches(|c: char| c == '\'' || c == '"' || c == '`').to_string();
+                    if !stripped.is_empty() { return Some(stripped); }
+                }
+                let mut c = cur.walk();
+                if c.goto_first_child() {
+                    loop { stack.push(c.node()); if !c.goto_next_sibling() { break; } }
+                }
+            }
+            None
         }
+        // Find an `as <ident>` sibling for the alias.
+        fn find_alias<'a>(n: tree_sitter::Node<'a>, src: &[u8]) -> String {
+            let mut stack = vec![n];
+            while let Some(cur) = stack.pop() {
+                let mut c = cur.walk();
+                if !c.goto_first_child() { continue; }
+                let mut saw_as = false;
+                loop {
+                    let ch = c.node();
+                    if ch.kind() == "as" { saw_as = true; }
+                    else if saw_as && ch.kind() == "identifier" {
+                        return ch.utf8_text(src).unwrap_or("").to_string();
+                    } else {
+                        stack.push(ch);
+                    }
+                    if !c.goto_next_sibling() { break; }
+                }
+            }
+            String::new()
+        }
+
+        let uri = find_uri_text(node, self.source).unwrap_or_default();
+        if uri.is_empty() { return; }
+        let alias = find_alias(node, self.source);
+        self.facts.imports.push(ImportRecord {
+            kind: "import".into(), path: uri, alias,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     fn record_call(&mut self, node: Node) {
-        let func = node.child_by_field_name("function")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        if func.is_empty() { return; }
+        // call_expression layout:
+        //   call_expression -> [identifier | member_expression] arguments
+        //   member_expression -> [identifier | super | call_expression] . identifier
+        let callee = node.child(0);
+        let Some(callee) = callee else { return };
+        let (name, receiver) = match callee.kind() {
+            "identifier" => (self.text(callee).to_string(), String::new()),
+            "member_expression" => {
+                // Last identifier child is the called name; preceding text is the receiver.
+                let mut last_ident: Option<Node> = None;
+                let mut first_recv: Option<Node> = None;
+                let mut c = callee.walk();
+                if c.goto_first_child() {
+                    loop {
+                        let n = c.node();
+                        if n.kind() == "identifier" {
+                            if first_recv.is_none() && last_ident.is_none() {
+                                // identifier in receiver position
+                            }
+                            last_ident = Some(n);
+                        } else if matches!(n.kind(), "super" | "this" | "call_expression") && first_recv.is_none() {
+                            first_recv = Some(n);
+                        }
+                        if !c.goto_next_sibling() { break; }
+                    }
+                }
+                let name_node = last_ident;
+                let recv_node = first_recv.or_else(|| callee.child(0));
+                let name = name_node.map(|n| self.text(n).to_string()).unwrap_or_default();
+                let mut receiver = recv_node.map(|n| self.text(n).to_string()).unwrap_or_default();
+                // If receiver == name (only one identifier was found), receiver is empty.
+                if name == receiver { receiver.clear(); }
+                (name, receiver)
+            }
+            _ => return,
+        };
+        if name.is_empty() { return; }
 
         self.facts.references.push(RefRecord {
-            name: func, receiver_hint: String::new(),
+            name, receiver_hint: receiver,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
         });

@@ -201,7 +201,7 @@ fn run(cli: Cli) -> Result<()> {
                 }
             };
 
-            let bytes = match read_file(&cand.path) {
+            let raw_bytes = match read_file(&cand.path) {
                 Ok(b) => b,
                 Err(err) => {
                     return FileOutcome::Skipped {
@@ -209,6 +209,26 @@ fn run(cli: Cli) -> Result<()> {
                         reason: SkipReason::ParseError(err.to_string()),
                     };
                 }
+            };
+
+            // `.ipynb` is JSON, not Python source. Pull the code cells
+            // out so the Python plugin sees ordinary Python text.
+            let bytes = if lang == "python"
+                && cand.path.extension().and_then(|e| e.to_str()) == Some("ipynb")
+            {
+                match cgg_lang::notebook::extract_python_source(&raw_bytes) {
+                    Some(transformed) => transformed,
+                    None => {
+                        return FileOutcome::Skipped {
+                            path: cand.path.clone(),
+                            reason: SkipReason::ParseError(
+                                "ipynb: malformed notebook JSON".into(),
+                            ),
+                        };
+                    }
+                }
+            } else {
+                raw_bytes
             };
 
             let hash = blake3::hash(&bytes).to_hex().to_string();
@@ -532,7 +552,7 @@ fn run(cli: Cli) -> Result<()> {
     graph.edges.extend(cf_out.edges);
 
     // --- Phase 3d: FFI linker (cross-language edges) ----------------------
-    let ffi_out = cgg_resolve::ffi::link_ffi(&graph);
+    let ffi_out = cgg_resolve::ffi::link_ffi(&graph, &all_facts);
     for e in &ffi_out.edges {
         match e.confidence {
             cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,

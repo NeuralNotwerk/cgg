@@ -68,52 +68,88 @@ impl<'a> ClojureWalker<'a> {
     fn is_defn_form(&self, node: Node) -> bool {
         if let Some(first) = node.named_child(0) {
             let text = self.text(first);
-            text == "defn" || text == "defn-" || text == "defmacro" || text == "defmacro-"
+            matches!(
+                text,
+                "defn" | "defn-" | "defmacro" | "defmacro-"
+                | "def" | "defonce"
+                | "defprotocol" | "definterface"
+                | "deftype" | "defrecord" | "defstruct"
+                | "defmulti" | "defmethod"
+            )
         } else {
             false
         }
     }
 
     fn extract_namespace(&mut self, node: Node) {
-        // (ns name ...)
+        // (ns name (:require [foo.bar :as fb] [baz]) (:use [qux]) ...)
         if let Some(name_node) = node.named_child(1) {
             self.namespace = self.text(name_node).to_string();
-            // Extract imports from :require vectors
-            for i in 2..node.child_count() {
-                if let Some(child) = node.named_child(i as u32) {
-                    if self.text(child) == ":require" {
-                        if let Some(next) = node.named_child((i + 1) as u32) {
-                            self.extract_requires(next);
+            // Each top-level form after the namespace name is its own
+            // `list_lit` like `(:require ...)`. Walk siblings, look for
+            // those that start with `:require` / `:use` / `:import`.
+            let mut c = node.walk();
+            if c.goto_first_child() {
+                let _ = c.goto_next_sibling(); // past `(`
+                let _ = c.goto_next_sibling(); // past `ns`
+                let _ = c.goto_next_sibling(); // past name
+                loop {
+                    let n = c.node();
+                    if n.kind() == "list_lit" {
+                        // First inner child after `(` is the keyword.
+                        let kw = n.named_child(0).map(|k| self.text(k).to_string()).unwrap_or_default();
+                        if kw == ":require" || kw == ":use" || kw == ":import" {
+                            // The rest of the form is a sequence of vec_lits / sym_lits.
+                            for i in 1..n.named_child_count() {
+                                if let Some(entry) = n.named_child(i as u32) {
+                                    self.record_require_entry(entry, &kw);
+                                }
+                            }
                         }
                     }
+                    if !c.goto_next_sibling() { break; }
                 }
             }
         }
     }
 
-    fn extract_requires(&mut self, node: Node) {
-        // Vector of requires: [lib1 lib2 ...]
-        let mut c = node.walk();
-        if c.goto_first_child() {
-            loop {
-                let child = c.node();
-                if child.kind() != "sym_lit" && child.kind() != "list_lit" {
-                    if !c.goto_next_sibling() { break; }
-                    continue;
+    fn record_require_entry(&mut self, node: Node, kw: &str) {
+        // Entry is either `sym_lit "foo.bar"` or `vec_lit "[foo.bar :as fb]"`.
+        let kind = match kw {
+            ":use" => "use",
+            ":import" => "import",
+            _ => "require",
+        };
+        let (path, alias) = match node.kind() {
+            "sym_lit" => (self.text(node).to_string(), String::new()),
+            "vec_lit" => {
+                let mut path = String::new();
+                let mut alias = String::new();
+                let mut seen_as = false;
+                let mut c = node.walk();
+                if c.goto_first_child() {
+                    loop {
+                        let ch = c.node();
+                        if ch.kind() == "sym_lit" {
+                            let t = self.text(ch).to_string();
+                            if seen_as { alias = t; seen_as = false; }
+                            else if path.is_empty() { path = t; }
+                        } else if ch.kind() == "kwd_lit" && self.text(ch) == ":as" {
+                            seen_as = true;
+                        }
+                        if !c.goto_next_sibling() { break; }
+                    }
                 }
-                let lib_name = self.text(child).to_string();
-                if !lib_name.is_empty() && lib_name != "[" && lib_name != "]" {
-                    self.facts.imports.push(ImportRecord {
-                        kind: "require".to_string(),
-                        path: lib_name,
-                        alias: String::new(),
-                        site_line: (node.start_position().row as u32) + 1,
-                        site_byte: node.start_byte() as u32,
-                    });
-                }
-                if !c.goto_next_sibling() { break; }
+                (path, alias)
             }
-        }
+            _ => return,
+        };
+        if path.is_empty() { return; }
+        self.facts.imports.push(ImportRecord {
+            kind: kind.into(), path, alias,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     fn record_callable(&mut self, node: Node) {

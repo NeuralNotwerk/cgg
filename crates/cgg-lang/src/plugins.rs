@@ -28,6 +28,15 @@ pub mod fortran;
 pub mod clojure;
 pub mod haskell;
 pub mod ocaml;
+pub mod powershell;
+pub mod solidity;
+pub mod fsharp;
+pub mod starlark;
+pub mod cmake;
+pub mod nix;
+pub mod verilog;
+pub mod vhdl;
+pub mod asm;
 
 use crate::PluginRegistry;
 
@@ -106,6 +115,15 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(clojure::ClojurePlugin));
     reg.register(Box::new(haskell::HaskellPlugin));
     reg.register(Box::new(ocaml::OcamlPlugin));
+    reg.register(Box::new(powershell::PowerShellPlugin));
+    reg.register(Box::new(solidity::SolidityPlugin));
+    reg.register(Box::new(fsharp::FsharpPlugin));
+    reg.register(Box::new(starlark::StarlarkPlugin));
+    reg.register(Box::new(cmake::CmakePlugin));
+    reg.register(Box::new(nix::NixPlugin));
+    reg.register(Box::new(verilog::VerilogPlugin));
+    reg.register(Box::new(vhdl::VhdlPlugin));
+    reg.register(Box::new(asm::AsmPlugin));
 }
 
 #[cfg(test)]

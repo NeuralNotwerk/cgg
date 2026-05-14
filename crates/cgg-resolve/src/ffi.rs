@@ -16,6 +16,7 @@ use std::collections::HashMap;
 
 use cgg_core::graph::{CallEdge, Confidence, Graph, Via};
 use cgg_core::ids::{CallableId, ResolverId};
+use cgg_core::FileFacts;
 
 #[derive(Debug, Default)]
 pub struct FfiOutput {
@@ -23,18 +24,101 @@ pub struct FfiOutput {
 }
 
 /// Detect FFI boundaries and emit cross-language edges.
-pub fn link_ffi(graph: &Graph) -> FfiOutput {
+pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
     let mut out = FfiOutput::default();
     let resolver = ResolverId::new("ffi-linker");
 
-    // Index: simple_name -> Vec<(CallableId, language)>
+    // --- Pass A: asm ↔ C/C++ bridge ---------------------------------
+    //
+    // Assembly is almost always glued to C. Every `call <name>` site
+    // in an asm file that doesn't resolve intra-file should try to
+    // link to a C/C++ callable of the same name (or with leading `_`
+    // stripped — macOS / MSVC name mangling convention). And every C
+    // call to a function that's actually defined in asm should resolve
+    // to the asm label. We do both by scanning asm file refs and asm
+    // labels in turn.
     let mut by_name: HashMap<&str, Vec<(CallableId, &str)>> = HashMap::new();
     for c in graph.callables.values() {
-        by_name
-            .entry(c.simple_name.as_str())
-            .or_default()
-            .push((c.id, c.language.as_str()));
+        by_name.entry(c.simple_name.as_str()).or_default().push((c.id, c.language.as_str()));
     }
+    let asm_simple: std::collections::HashSet<&str> = graph
+        .callables
+        .values()
+        .filter(|c| c.language == "asm")
+        .map(|c| c.simple_name.as_str())
+        .collect();
+
+    // Helper: candidates with this simple name from C-family languages.
+    let c_family_lookup = |name: &str| -> Vec<CallableId> {
+        let stripped = name.trim_start_matches('_');
+        let mut out: Vec<CallableId> = Vec::new();
+        for candidate_name in [name, stripped] {
+            if let Some(rows) = by_name.get(candidate_name) {
+                for &(cid, lang) in rows {
+                    if matches!(lang, "c" | "cpp" | "objc") {
+                        out.push(cid);
+                    }
+                }
+            }
+        }
+        out
+    };
+
+    for f in facts {
+        if f.language == "asm" {
+            // For each ref in an asm file, locate the enclosing asm
+            // label and link the ref to matching C/C++ callables.
+            for r in &f.references {
+                let candidates = c_family_lookup(&r.name);
+                if candidates.is_empty() { continue; }
+                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else { continue };
+                for dst in candidates {
+                    if dst == src_id { continue; }
+                    let dup = graph.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte)
+                        || out.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte);
+                    if dup { continue; }
+                    out.edges.push(CallEdge {
+                        src: src_id, dst,
+                        site_line: r.site_line,
+                        site_byte: r.site_byte,
+                        confidence: Confidence::Medium,
+                        via: Via::Ffi("asm-c".into()),
+                        resolver: resolver.clone(),
+                    });
+                }
+            }
+        } else if matches!(f.language.as_str(), "c" | "cpp" | "objc") {
+            // For each ref in a C-family file whose target name (or its
+            // `_name` variant) matches an asm label, link C → asm.
+            for r in &f.references {
+                let stripped = r.name.trim_start_matches('_');
+                let names = [r.name.as_str(), stripped];
+                let asm_targets: Vec<CallableId> = names.iter()
+                    .filter(|n| asm_simple.contains(*n))
+                    .flat_map(|n| by_name.get(*n).into_iter().flatten())
+                    .filter(|(_, lang)| *lang == "asm")
+                    .map(|(cid, _)| *cid)
+                    .collect();
+                if asm_targets.is_empty() { continue; }
+                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else { continue };
+                for dst in asm_targets {
+                    if dst == src_id { continue; }
+                    let dup = graph.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte)
+                        || out.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte);
+                    if dup { continue; }
+                    out.edges.push(CallEdge {
+                        src: src_id, dst,
+                        site_line: r.site_line,
+                        site_byte: r.site_byte,
+                        confidence: Confidence::Medium,
+                        via: Via::Ffi("c-asm".into()),
+                        resolver: resolver.clone(),
+                    });
+                }
+            }
+        }
+    }
+    // --- Pass B: existing attribute-driven FFI ---------------------
 
     // For each callable with FFI attributes, find matching call sites
     // in other languages.
@@ -94,6 +178,21 @@ pub fn link_ffi(graph: &Graph) -> FfiOutput {
     }
 
     out
+}
+
+/// Smallest-enclosing-range callable for `(file, byte)`.
+fn enclosing_callable(graph: &Graph, f: &FileFacts, byte: u32) -> Option<CallableId> {
+    let mut best: Option<(&cgg_core::graph::CallableNode, u32)> = None;
+    for c in graph.callables.values() {
+        if c.file != f.file { continue; }
+        if c.start_byte > byte || c.end_byte < byte { continue; }
+        let span = c.end_byte.saturating_sub(c.start_byte);
+        match best {
+            Some((_, sp)) if sp <= span => {}
+            _ => best = Some((c, span)),
+        }
+    }
+    best.map(|(c, _)| c.id)
 }
 
 fn detect_ffi_family(c: &cgg_core::graph::CallableNode) -> &'static str {
@@ -193,7 +292,7 @@ mod tests {
     #[test]
     fn pyo3_cross_language_edge() {
         let g = mk_graph();
-        let out = link_ffi(&g);
+        let out = link_ffi(&g, &[]);
         assert_eq!(out.edges.len(), 1);
         assert_eq!(out.edges[0].src, CallableId::new(1));
         assert_eq!(out.edges[0].dst, CallableId::new(0));
@@ -205,7 +304,7 @@ mod tests {
         let mut g = mk_graph();
         // Change python callable to rust — should not emit FFI edge.
         g.callables.get_mut(&CallableId::new(1)).unwrap().language = "rust".into();
-        let out = link_ffi(&g);
+        let out = link_ffi(&g, &[]);
         assert!(out.edges.is_empty());
     }
 }

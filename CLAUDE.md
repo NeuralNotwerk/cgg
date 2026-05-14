@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`cgg` is a CLI that generates call graphs (mermaid by default; also json/dot/graphml) from source trees. It is offline, deterministic, single-binary — no language servers, no build artifacts required. Supports 30 languages via tree-sitter plugins. Primary consumer of the output is coding agents reading mermaid in their context window.
+`cgg` is a CLI that generates call graphs (mermaid by default; also json/dot/graphml) from source trees. It is offline, deterministic, single-binary — no language servers, no build artifacts required. Supports 39 languages via tree-sitter plugins, plus Jupyter notebooks (`.ipynb`) via a JSON cell extractor that feeds the Python plugin. Primary consumer of the output is coding agents reading mermaid in their context window.
 
 ## Commands
 
@@ -48,7 +48,7 @@ cgg-walk  →  cgg-lang  →  cgg-resolve  →  cgg (query)  →  cgg-format
 
 - **cgg-core** — the substrate. `Graph`, callable/edge IDs, audit records, facts, stdlib lookup tables. Every other crate depends on this; it depends on nothing internal.
 - **cgg-walk** — file discovery. Honors `.gitignore` + a built-in deny list, classifies files (binary detection, symlink-chain guards), emits `WalkOutcome`.
-- **cgg-lang** — language plugin layer. `LanguageDetector` (extension/shebang/header), `ParserPool` (tree-sitter parser caching), and `PluginRegistry::with_v1_plugins` which wires in all 30 `LanguagePlugin` impls under `crates/cgg-lang/src/plugins/`. Each plugin implements `extract` to pull callables + raw call sites out of a tree-sitter AST.
+- **cgg-lang** — language plugin layer. `LanguageDetector` (extension/shebang/header), `ParserPool` (tree-sitter parser caching), and `PluginRegistry::with_v1_plugins` which wires in all 39 `LanguagePlugin` impls under `crates/cgg-lang/src/plugins/`. `.ipynb` files are pre-processed in `cgg-lang::notebook::extract_python_source` before being handed to the Python plugin. Each plugin implements `extract` to pull callables + raw call sites out of a tree-sitter AST.
 - **cgg-resolve** — links call sites to definitions. The order in `cgg::run` matters:
   1. `type_hints::build_return_type_map` + `propagate_types_with_returns` — infer variable types from params, locals, constructors, return types
   2. `intra_file::link_file` — scope/containment within a single file

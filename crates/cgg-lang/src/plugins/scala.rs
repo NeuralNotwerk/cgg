@@ -90,15 +90,23 @@ impl<'a> ScalaWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        let path = node.child_by_field_name("path")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        if !path.is_empty() {
-            self.facts.imports.push(ImportRecord {
-                kind: "import".into(), path, alias: String::new(),
-                site_line: (node.start_position().row as u32) + 1,
-                site_byte: node.start_byte() as u32,
-            });
-        }
+        // tree-sitter-scala flattens the import: `import a.b.{X,Y}` =>
+        // `import` `a` `.` `b` `.` `namespace_selectors{X,Y}`. The
+        // simplest reliable reconstruction is the node's own text with
+        // the leading "import" stripped and whitespace collapsed.
+        let raw = self.text(node);
+        let path = raw
+            .trim_start_matches("import")
+            .trim()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join("");
+        if path.is_empty() { return; }
+        self.facts.imports.push(ImportRecord {
+            kind: "import".into(), path, alias: String::new(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     fn record_call(&mut self, node: Node) {

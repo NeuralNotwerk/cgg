@@ -53,6 +53,16 @@ declare -a ENTRIES=(
     "ring|clojure-ring|clojure|ring-core/src"
     "pandoc|haskell-pandoc|haskell|src"
     "dune|ocaml-dune|ocaml|src"
+    "PowerShellGet|powershell-psget|powershell|"
+    "openzeppelin-contracts|solidity-openzeppelin|solidity|contracts"
+    "Paket|fsharp-paket|fsharp|src"
+    "bazel-skylib|starlark-skylib|starlark|lib"
+    "CMake/Modules|cmake-kitware|cmake|Modules"
+    "home-manager|nix-home-manager|nix|modules"
+    "picorv32|verilog-picorv32|verilog|"
+    "UVVM|vhdl-uvvm|vhdl|uvvm_util/src"
+    "xv6|asm-xv6|asm|"
+    "xv6 (c+asm)|asm-xv6|c,asm|"
 )
 
 for entry in "${ENTRIES[@]}"; do

@@ -42,7 +42,7 @@ impl<'a> OcamlWalker<'a> {
                 self.extract_module(node);
                 self.walk_children(node);
             }
-            "open_statement" => {
+            "open_statement" | "open_module" => {
                 self.extract_import(node);
                 self.walk_children(node);
             }

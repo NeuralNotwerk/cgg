@@ -135,7 +135,7 @@ impl<'a> JuliaWalker<'a> {
         if c.goto_first_child() {
             loop {
                 let child = c.node();
-                if child.kind() == "identifier" || child.kind() == "dotted_identifier" {
+                if matches!(child.kind(), "identifier" | "dotted_identifier" | "scoped_identifier") {
                     let path = self.text(child).to_string();
                     if !path.is_empty() {
                         let alias = path.split('.').last().unwrap_or("").to_string();

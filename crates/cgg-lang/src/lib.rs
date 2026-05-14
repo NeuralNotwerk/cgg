@@ -8,6 +8,7 @@
 #![warn(unreachable_pub)]
 
 pub mod detect;
+pub mod notebook;
 pub mod parser;
 pub mod plugins;
 
@@ -107,8 +108,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn v1_registry_has_21_languages() {
+    fn v1_registry_has_all_languages() {
         let reg = PluginRegistry::with_v1_plugins();
-        assert_eq!(reg.all().len(), 30);
+        assert_eq!(reg.all().len(), 39);
     }
 }
