@@ -150,6 +150,18 @@ pub enum AuditEvent {
         reason: SkipReason,
     },
     FileAnalyzed(AuditFileRecord),
+    /// `--since <revspec>` resolved a git diff into seed callables.
+    /// `matched_seeds` are the qualified names that became extra
+    /// `--filter` patterns. `unmatched_files` lists files that git
+    /// reported as changed but for which no current callable's body
+    /// overlapped a hunk (deletions, comment-only edits, or
+    /// non-source files like docs).
+    SinceResolved {
+        revspec: String,
+        files_changed: u64,
+        matched_seeds: Vec<String>,
+        unmatched_files: Vec<PathBuf>,
+    },
 }
 
 /// Run-level metrics rolled up once, after the last file is done.

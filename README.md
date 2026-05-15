@@ -62,6 +62,23 @@ cgg ./src --filter 'process_order' -n 0 -o paths.mmd
 cgg ./src -t json -o graph.json
 ```
 
+### Review the call surface of a PR
+
+```bash
+# Every entry-to-exit path passing through anything you changed
+# in this branch — perfect for "what could this PR break?" reviews.
+cgg ./src --since main..HEAD -n 0 -o pr-surface.mmd
+
+# Or a 2-hop neighborhood around your last 5 commits.
+cgg ./src --since HEAD~5 -n 2 -o recent.mmd
+```
+
+`--since` shells out to `git diff <revspec>` and turns every callable
+whose body overlaps a changed line range into a `--filter` seed. It
+*adds* to any explicit `--filter` you also pass. Files that changed
+but produced no seeds (deletions, comment-only edits, non-source
+files) are listed in the audit log under `since_resolved`.
+
 ## CLI
 
 ```text
@@ -81,6 +98,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
 | `-o` | stdout | Output file (use `-` for stdout) |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
+| `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
 | `--exclude-partial` | (none) | Exclude nodes containing substring |
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
@@ -252,7 +270,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(992 callables, 1459 edges, 1451 cross-file, 129ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1007 callables, 1476 edges, 1467 cross-file, 140ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash

@@ -11,6 +11,7 @@
 
 mod cli;
 mod query;
+mod since;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -593,7 +594,34 @@ fn run(cli: Cli) -> Result<()> {
     // Deduplicate edges (same src+dst+site_byte, keep highest confidence).
     dedup_edges(&mut graph);
 
-    let graph = query::apply_query(&graph, &cli.filter, cli.hops, cli.max_paths);
+    // `--since` augments `--filter` with the qualified names of every
+    // callable whose body overlaps a changed line range from the diff.
+    let mut effective_filters = cli.filter.clone();
+    if let Some(revspec) = cli.since.as_deref() {
+        let cwd = std::env::current_dir().context("getting current dir for --since")?;
+        let ranges = since::resolve_since(revspec, &cwd)
+            .with_context(|| format!("resolving --since {revspec}"))?;
+        let (seeds, unmatched) = since_seeds(&graph, &ranges);
+        events.push(AuditEvent::SinceResolved {
+            revspec: revspec.to_string(),
+            files_changed: ranges.len() as u64,
+            matched_seeds: seeds.clone(),
+            unmatched_files: unmatched.clone(),
+        });
+        eprintln!(
+            "cgg: --since {revspec}: {} file(s) changed, {} callable seed(s), {} unmatched file(s)",
+            ranges.len(),
+            seeds.len(),
+            unmatched.len()
+        );
+        for name in &seeds {
+            // Anchor with `^…$` so each seed selects exactly that one
+            // qualified name, not anything containing it.
+            effective_filters.push(format!("^{}$", regex::escape(name)));
+        }
+    }
+
+    let graph = query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths);
     let graph = query::apply_exclusions(
         &graph, &cli.exclude_partial, &cli.exclude_glob, &cli.exclude_regex,
     );
@@ -622,6 +650,66 @@ fn run(cli: Cli) -> Result<()> {
     );
 
     Ok(())
+}
+
+/// Walk the graph's files, intersect each file's callable spans against
+/// the diff ranges, and return (matched qualified names,
+/// changed-but-unmatched file paths). Both vectors are sorted &
+/// deduped for stable audit output and idempotent runs.
+fn since_seeds(
+    graph: &Graph,
+    ranges: &since::ChangedRanges,
+) -> (Vec<String>, Vec<PathBuf>) {
+    use std::collections::BTreeSet;
+
+    // Index callables by file for O(F + C) instead of O(F·C).
+    let mut by_file: HashMap<FileId, Vec<&CallableNode>> = HashMap::new();
+    for c in graph.callables.values() {
+        by_file.entry(c.file).or_default().push(c);
+    }
+
+    // Build a path → FileId lookup. Try canonicalised first, fall back
+    // to the raw stored path so non-existent / sandboxed paths still
+    // match on string equality.
+    let mut path_to_file: HashMap<PathBuf, FileId> = HashMap::new();
+    for f in graph.files.values() {
+        let key = f.path.canonicalize().unwrap_or_else(|_| f.path.clone());
+        path_to_file.insert(key, f.id);
+    }
+
+    let mut seeds: BTreeSet<String> = BTreeSet::new();
+    let mut unmatched: BTreeSet<PathBuf> = BTreeSet::new();
+
+    for (path, hunks) in ranges {
+        let key = path.canonicalize().unwrap_or_else(|_| path.clone());
+        let Some(&fid) = path_to_file.get(&key) else {
+            // Not a file cgg analyzed (could be a doc, a binary, an
+            // ignored path, or a non-source language).
+            unmatched.insert(path.clone());
+            continue;
+        };
+        let Some(callables) = by_file.get(&fid) else {
+            unmatched.insert(path.clone());
+            continue;
+        };
+        let before = seeds.len();
+        for c in callables {
+            if since::overlaps_any(c.start_line, c.end_line, hunks) {
+                seeds.insert(c.qualified_name.clone());
+            }
+        }
+        if seeds.len() == before {
+            // File was analyzed but no callable's body overlapped the
+            // hunks — pure-comment edits, whitespace, deleted bodies,
+            // or hunks landing in module-level prelude.
+            unmatched.insert(path.clone());
+        }
+    }
+
+    (
+        seeds.into_iter().collect(),
+        unmatched.into_iter().collect(),
+    )
 }
 
 fn count_lines(bytes: &[u8]) -> u32 {

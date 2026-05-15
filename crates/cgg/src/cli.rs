@@ -47,6 +47,21 @@ pub struct Cli {
     #[arg(long = "filter", value_name = "PATTERN")]
     pub filter: Vec<String>,
 
+    /// Seed `--filter` from the functions touched by a git revspec.
+    /// Anything `git diff` accepts works: `HEAD~5`, `main..HEAD`,
+    /// `abc123..def456`, `main...feature`. The resolved seeds are
+    /// *added* to any explicit `--filter` patterns — they do not
+    /// replace them.
+    ///
+    /// A bare ref (e.g. `HEAD~5`) is interpreted by git as
+    /// "<ref> vs working tree", which includes uncommitted edits. Use
+    /// `HEAD~5..HEAD` if you want committed changes only.
+    ///
+    /// Requires `git` on PATH and the analysis path to be inside a
+    /// repository.
+    #[arg(long = "since", value_name = "REVSPEC")]
+    pub since: Option<String>,
+
     /// Exclude callables whose qualified name contains SUBSTRING.
     /// Repeatable. Applied after --filter.
     #[arg(long = "exclude-partial", value_name = "SUBSTRING")]

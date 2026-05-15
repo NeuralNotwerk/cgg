@@ -56,7 +56,7 @@ cgg-walk  →  cgg-lang  →  cgg-resolve  →  cgg (query)  →  cgg-format
   4. `cross_file::resolve` — import chains, `#include` transitive closure (depth 8), pub-use chains
   5. `ffi::link_ffi` — PyO3 / wasm-bindgen / napi / JNI / P/Invoke / `extern "C"` cross-language edges
   Every edge carries a confidence level and resolver provenance, so downstream consumers can filter by quality.
-- **cgg** (the binary) — `main.rs` → `run` orchestrates the pipeline; `cli.rs` parses flags; `query.rs` applies `--filter` + `-n` (BFS neighborhood / path extraction) and `--exclude-*`.
+- **cgg** (the binary) — `main.rs` → `run` orchestrates the pipeline; `cli.rs` parses flags; `query.rs` applies `--filter` + `-n` (BFS neighborhood / path extraction) and `--exclude-*`. `since.rs` resolves `--since <revspec>` by shelling out to `git diff` and intersecting changed line ranges with callable spans; the resulting qualified names are appended to `--filter` as `^name$` regexes before `apply_query` runs.
 - **cgg-format** — terminal emitters: `mermaid.rs` (default), `json.rs`, `dot.rs`, `graphml.rs`.
 
 ### Adding a new language
