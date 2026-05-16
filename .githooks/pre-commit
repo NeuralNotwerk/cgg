@@ -3,10 +3,13 @@
 # cgg pre-commit hook.
 #
 # Runs:
-#   1. cargo test --workspace                 (fails -> abort commit)
-#   2. cargo build --release -p cgg           (fails -> abort commit)
-#   3. Regenerates README mermaid graphs      (fails -> abort commit)
-#   4. Stages README.md iff it changed
+#   1. cargo test --workspace                  (fails -> abort commit)
+#   2. cargo build --release -p cgg            (fails -> abort commit)
+#   3. Install the fresh binary to PATH        (so other tools see it)
+#   4. Regenerates README mermaid graphs       (fails -> abort commit)
+#   5. Patches self-analysis stats             (fails -> abort commit)
+#   6. Runs scripts/docs-check.py              (fails -> abort commit)
+#   7. Stages README.md iff it changed
 #
 # Bypass with `git commit --no-verify` when you need to (e.g., pure
 # docs commits that can't wait for a cold build).
@@ -36,6 +39,21 @@ cargo test --workspace --quiet
 
 echo "[cgg pre-commit] cargo build --release -p cgg"
 cargo build --release -p cgg --quiet
+
+# Publish the freshly-built binary to a PATH location so anything else
+# on the system (agents, ad-hoc invocations, sibling repos like
+# neurosymbolic_kb) picks up the same code we're about to commit.
+# Honors CGG_INSTALL_DIR; defaults to ~/.local/bin which is on the
+# user's PATH. Uses `install` so the new binary appears atomically.
+CGG_INSTALL_DIR="${CGG_INSTALL_DIR:-$HOME/.local/bin}"
+if [[ -n "$CGG_INSTALL_DIR" ]]; then
+    if [[ ! -d "$CGG_INSTALL_DIR" ]]; then
+        echo "[cgg pre-commit] creating $CGG_INSTALL_DIR"
+        mkdir -p "$CGG_INSTALL_DIR"
+    fi
+    echo "[cgg pre-commit] installing to $CGG_INSTALL_DIR/cgg"
+    install -m 755 target/release/cgg "$CGG_INSTALL_DIR/cgg"
+fi
 
 # Regenerate mermaid inputs into a scratch dir under target/ so we
 # don't pollute /tmp across users/sandboxes.

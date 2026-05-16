@@ -270,7 +270,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1007 callables, 1476 edges, 1467 cross-file, 140ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1013 callables, 1491 edges, 1482 cross-file, 160ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -397,6 +397,7 @@ flowchart LR
   C1 --> C22
   C1 --> C24
   C1 --> C3
+  C1 --> C30
   C1 --> C4
   C1 --> C5
   C15 --> C15
@@ -406,6 +407,7 @@ flowchart LR
   C16 --> C31
   C2 --> C22
   C2 --> C23
+  C2 --> C30
   C27 --> C22
   C31 --> C22
   C32 --> C28

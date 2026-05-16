@@ -59,8 +59,17 @@ pub fn propagate_types_with_returns(
 
     // Pass 2b: Build map from explicit local variable type declarations.
     let mut local_type_map: HashMap<&str, &str> = HashMap::new();
+    // Scoped lookup for self-field LocalTypes: keyed by the method's
+    // body start_byte so we don't bleed Type A's `self.store` into
+    // Type B's methods within the same file. Built from any LocalType
+    // whose var_name starts with `self.`.
+    let mut self_field_map: HashMap<(u32, &str), &str> = HashMap::new();
     for lt in &facts.local_types {
-        local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
+        if lt.var_name.starts_with("self.") {
+            self_field_map.insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
+        } else {
+            local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
+        }
     }
 
     // Pass 3: Rewrite receiver_hints.
@@ -70,6 +79,22 @@ pub fn propagate_types_with_returns(
         if rh.is_empty() || rh == "self" || rh == "Self" || rh == "cls" || rh == "this" {
             continue;
         }
+
+        // Special-case `self.<field>` BEFORE the dot/colon filter
+        // below — the field's type comes from the per-method scoped
+        // self_field_map populated by the Rust extractor.
+        if rh.starts_with("self.") {
+            if let Some(enc) = enclosing_def(facts, rref.site_byte) {
+                if let Some(&ty) = self_field_map.get(&(enc.start_byte, rh)) {
+                    rewrites.push((i, ty.to_string()));
+                    continue;
+                }
+            }
+            // No match — leave as-is so the resolver can still try a
+            // direct lookup downstream.
+            continue;
+        }
+
         if rh.starts_with(char::is_uppercase) || rh.contains("::") || rh.contains('.') {
             continue;
         }

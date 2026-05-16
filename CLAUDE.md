@@ -77,9 +77,10 @@ Every run emits a sidecar `<output>.audit.json` (override with `--metrics FILE`,
 
 1. `cargo test --workspace`
 2. `cargo build --release -p cgg`
-3. Regenerates the two mermaid blocks in `README.md` (between `<!-- cgg:begin:walk -->` / `cgg:begin:lang` markers) by running the freshly built `cgg` against `crates/cgg-walk` and a subset of `crates/cgg-lang`, via `scripts/update-readme-graphs.py`.
-4. Re-runs `cgg ./crates --filter 'cgg::run$' -n 1` and patches the self-analysis stat line (between `<!-- cgg:begin:self-stats -->` markers) via `scripts/update-readme-stats.py`. Sub-millisecond timing variation is rounded to keep commits stable.
-5. Runs `scripts/docs-check.py`, which fails the commit if (a) the plugin count, README "Supported languages (N)" heading, README language-table row count, and `scripts/benchmark.sh` `REPOS=()` count disagree, or (b) the README `## CLI` flag table names a flag that no longer exists in `cgg --help`. The reverse direction (every help flag must appear in README) is intentionally not enforced — the README's flag table is curated.
-6. Stages `README.md` if any of the patches changed it.
+3. Installs the freshly-built binary to `$CGG_INSTALL_DIR` (default `~/.local/bin/cgg`) so other tools on the system — agents, sibling repos — pick up the same code about to be committed. Set `CGG_INSTALL_DIR=""` to opt out.
+4. Regenerates the two mermaid blocks in `README.md` (between `<!-- cgg:begin:walk -->` / `cgg:begin:lang` markers) by running the freshly built `cgg` against `crates/cgg-walk` and a subset of `crates/cgg-lang`, via `scripts/update-readme-graphs.py`.
+5. Re-runs `cgg ./crates --filter 'cgg::run$' -n 1` and patches the self-analysis stat line (between `<!-- cgg:begin:self-stats -->` markers) via `scripts/update-readme-stats.py`. Sub-millisecond timing variation is rounded to keep commits stable.
+6. Runs `scripts/docs-check.py`, which fails the commit if (a) the plugin count, README "Supported languages (N)" heading, README language-table row count, and `scripts/benchmark.sh` `REPOS=()` count disagree, or (b) the README `## CLI` flag table names a flag that no longer exists in `cgg --help`. The reverse direction (every help flag must appear in README) is intentionally not enforced — the README's flag table is curated.
+7. Stages `README.md` if any of the patches changed it.
 
 If you intentionally edit the mermaid blocks or the self-stats line by hand, the hook will overwrite them — edit the generators (`scripts/update-readme-graphs.py`, `scripts/update-readme-stats.py`) or the underlying code instead.

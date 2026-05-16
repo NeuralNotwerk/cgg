@@ -532,9 +532,16 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
         }
 
         for r in &facts.references {
-            // Only try to resolve direct name refs we haven't already
-            // emitted — attribute `a.b.c()` receivers are handled by
-            // module_aliases when the receiver root is aliased.
+            // Compute enclosing callable up front so we can pass its
+            // qualified name into the resolver — needed for the
+            // intra-crate qualified-path retry (e.g., `crawl::foo()`
+            // inside `nkb_research::ResearchRunner::run` should find
+            // `nkb_research::crawl::foo`).
+            let enclosing = enclosing_callable_id(graph, facts, r.site_byte);
+            let caller_qn = enclosing
+                .and_then(|id| graph.callables.get(&id))
+                .map(|c| c.qualified_name.as_str());
+
             if let Some(cids) = try_resolve_ref(
                 &lang,
                 r,
@@ -545,8 +552,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 &by_qn,
                 &by_simple,
                 &reexports,
+                caller_qn,
             ) {
-                let enclosing = enclosing_callable_id(graph, facts, r.site_byte);
                 for cid in cids {
                     // Skip self-edges that coincide with intra-file's
                     // ones (they'd be duplicates with the same resolver).
@@ -638,6 +645,7 @@ fn try_resolve_ref(
     by_qn: &HashMap<(String, String), CallableId>,
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
+    caller_qn: Option<&str>,
 ) -> Option<Vec<CallableId>> {
     // Step 1: direct import match — `foo()` where `foo` was
     // imported.
@@ -751,6 +759,30 @@ fn try_resolve_ref(
             let direct = format!("{rh}::{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &direct, by_qn, reexports) {
                 return Some(vec![cid]);
+            }
+            // Step 3b: Rust intra-crate retry — when `mod::fn()` lives
+            // inside `crate::other::Type::method`, the qualified name
+            // we want is `crate::mod::fn`. Walk every prefix of the
+            // caller's qualified name, prepending it to `<rh>::<name>`,
+            // until we hit a match. Shortest prefix first (just the
+            // crate) is the most common hit. Limit to `::` joiner —
+            // dot-joined languages don't have this resolution rule.
+            if lang == "rust" {
+                if let Some(qn) = caller_qn {
+                    let segs: Vec<&str> = qn.split("::").collect();
+                    // Try crate-only first, then progressively longer
+                    // prefixes. Stop before the last segment (that's
+                    // the callable's own name).
+                    for i in 1..segs.len() {
+                        let prefix = segs[..i].join("::");
+                        let candidate = format!("{prefix}::{rh}::{}", r.name);
+                        if let Some(cid) =
+                            lookup_with_reexports(lang, &candidate, by_qn, reexports)
+                        {
+                            return Some(vec![cid]);
+                        }
+                    }
+                }
             }
             // If the head segment is imported as something else, rewrite.
             // e.g., `use foo as f; f::bar()` -> receiver=f, name=bar -> foo::bar.

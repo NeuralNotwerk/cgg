@@ -73,8 +73,15 @@ impl LanguagePlugin for RustPlugin {
             source,
             facts: &mut facts,
             scope,
+            struct_fields: std::collections::HashMap::new(),
         };
         walker.walk(tree.root_node());
+        // Post-pass: emit synthetic LocalTypes of the form
+        // `self.<field>` -> `<FieldType>` for each method in an impl
+        // block, so the type propagator + cross-file resolver can map
+        // `self.store.foo()` to `ChunkStore::foo()` etc.
+        let struct_fields = std::mem::take(&mut walker.struct_fields);
+        emit_self_field_local_types(&mut facts, &struct_fields);
         facts
     }
 }
@@ -231,6 +238,10 @@ struct Walker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<ScopeSegment>,
+    /// Per-file map of struct definitions to their fields. Populated by
+    /// the `struct_item` visit case; consumed in the post-pass that
+    /// emits `self.<field>` LocalTypes for methods.
+    struct_fields: std::collections::HashMap<String, Vec<(String, String)>>,
 }
 
 impl<'a> Walker<'a> {
@@ -315,6 +326,17 @@ impl<'a> Walker<'a> {
             "macro_definition" => {
                 self.record_macro(node);
                 // Don't walk into macro body (token trees aren't useful).
+                return;
+            }
+
+            // `struct Foo { a: A, b: B }` — record field names+types so
+            // the post-pass can emit `self.a` / `self.b` LocalTypes for
+            // methods in `impl Foo`. Tuple structs (`struct Foo(A, B);`)
+            // and unit structs are intentionally skipped — they have no
+            // named field receivers.
+            "struct_item" => {
+                self.record_struct_fields(node);
+                self.walk_children(node);
                 return;
             }
 
@@ -544,6 +566,14 @@ impl<'a> Walker<'a> {
         if name.is_empty() {
             return None;
         }
+        // Filter common stdlib / logging / serde / anyhow macros that
+        // are pure noise in a call graph — they expand to formatters,
+        // panicking handlers, or value constructors, not user-defined
+        // functions. Keeping them inflates the `external` bucket and
+        // drowns out genuine unresolved calls in audit output.
+        if is_rust_noise_macro(&name) {
+            return None;
+        }
         Some(RefRecord {
             name,
             site_line: node.start_position().row as u32 + 1,
@@ -585,8 +615,65 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// Record a `struct Foo { … }` definition's named fields into
+    /// `self.struct_fields`. Tuple/unit structs produce no entries.
+    fn record_struct_fields(&mut self, node: Node) {
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
+        let struct_name = self.text(name_node).to_string();
+        if struct_name.is_empty() {
+            return;
+        }
+        // The body is a `field_declaration_list` containing
+        // `field_declaration` nodes. tree-sitter-rust exposes it as the
+        // `body` field on `struct_item`.
+        let Some(body) = node.child_by_field_name("body") else {
+            return;
+        };
+        if body.kind() != "field_declaration_list" {
+            return;
+        }
+        let mut fields: Vec<(String, String)> = Vec::new();
+        for child in body.named_children(&mut body.walk()) {
+            if child.kind() != "field_declaration" {
+                continue;
+            }
+            let Some(fname) = child.child_by_field_name("name") else {
+                continue;
+            };
+            let Some(ftype) = child.child_by_field_name("type") else {
+                continue;
+            };
+            let fname_s = self.text(fname).to_string();
+            // Normalise the type: strip leading `&`, `&mut `, lifetimes,
+            // and unwrap one level of `Arc<…>` / `Box<…>` / `Rc<…>` /
+            // `Option<…>` / `Vec<…>` so the resolver sees a bare
+            // nominal type to look up. This is a heuristic — anything
+            // we can't simplify is left as-is and falls back to no-op.
+            let ftype_s = simplify_rust_type(self.text(ftype));
+            if !fname_s.is_empty() && !ftype_s.is_empty() {
+                fields.push((fname_s, ftype_s));
+            }
+        }
+        if !fields.is_empty() {
+            self.struct_fields.insert(struct_name, fields);
+        }
+    }
+
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
         let callee = node.child_by_field_name("function")?;
+        // Skip enum-variant constructors that look like calls but aren't
+        // function calls in any useful graph-edge sense: `Ok(x)`,
+        // `Err(e)`, `Some(v)`. Filtering here (rather than in
+        // classify_external) keeps them out of `external_calls` too,
+        // declutter audits.
+        if callee.kind() == "identifier" {
+            let n = self.text(callee);
+            if matches!(n, "Ok" | "Err" | "Some") {
+                return None;
+            }
+        }
         let (name, receiver_hint) = match callee.kind() {
             "identifier" => (self.text(callee).to_string(), String::new()),
             "field_expression" => {
@@ -621,6 +708,174 @@ impl<'a> Walker<'a> {
             site_byte: node.start_byte() as u32,
         })
     }
+}
+
+/// Post-pass: for each inherent/trait method, push one LocalType per
+/// known struct-field receiver, scoped to that method's body start.
+/// Pure data plumbing — the type propagator does the lookup work.
+fn emit_self_field_local_types(
+    facts: &mut FileFacts,
+    struct_fields: &std::collections::HashMap<String, Vec<(String, String)>>,
+) {
+    use cgg_core::LocalType;
+
+    // Snapshot the defs we care about; iterating refs while mutating
+    // facts.local_types is fine because the two collections are disjoint.
+    let methods: Vec<(u32, String)> = facts
+        .definitions
+        .iter()
+        .filter(|d| {
+            matches!(
+                d.variant,
+                cgg_core::DefVariant::InherentMethod | cgg_core::DefVariant::TraitMethod
+            )
+        })
+        .map(|d| (d.start_byte, d.qualified_name.clone()))
+        .collect();
+
+    for (start_byte, qn) in methods {
+        let Some(owner) = self_type_from_qualified_name(&qn) else {
+            continue;
+        };
+        let Some(fields) = struct_fields.get(&owner) else {
+            continue;
+        };
+        for (fname, ftype) in fields {
+            facts.local_types.push(LocalType {
+                var_name: format!("self.{fname}"),
+                type_name: ftype.clone(),
+                scope_byte: start_byte,
+            });
+        }
+    }
+}
+
+/// Pull the bare owner type out of a Rust qualified name. Handles both
+/// inherent (`crate::mod::Type::method`) and trait-impl
+/// (`crate::mod::<Type as Trait>::method`) forms.
+fn self_type_from_qualified_name(qn: &str) -> Option<String> {
+    let segs: Vec<&str> = qn.split("::").collect();
+    if segs.len() < 2 {
+        return None;
+    }
+    let owner = segs[segs.len() - 2];
+    if let Some(stripped) = owner.strip_prefix('<') {
+        // `<Type as Trait>` -> `Type`
+        let t = stripped.split(" as ").next()?;
+        return Some(t.trim_end_matches('>').to_string());
+    }
+    // Strip generic parameters: `Type<V>` -> `Type`.
+    Some(owner.split('<').next()?.to_string())
+}
+
+/// Lightweight Rust type simplifier: strips references / lifetimes /
+/// one level of common wrapper types so the cross-file resolver sees a
+/// bare nominal name. Anything ambiguous is returned unchanged — the
+/// resolver will then just fail the lookup (no harm done).
+fn simplify_rust_type(raw: &str) -> String {
+    let mut s = raw.trim().to_string();
+    // Drop leading reference + mutability + lifetime.
+    s = s.trim_start_matches('&').trim_start().to_string();
+    if let Some(rest) = s.strip_prefix("mut ") {
+        s = rest.trim_start().to_string();
+    }
+    if s.starts_with('\'') {
+        // `'a Foo` — drop the lifetime token.
+        if let Some(space) = s.find(' ') {
+            s = s[space + 1..].trim_start().to_string();
+        }
+    }
+    // Unwrap one level of a common single-arg wrapper.
+    for wrapper in ["Arc", "Rc", "Box", "Option", "Vec", "RefCell", "Mutex", "RwLock"] {
+        let prefix = format!("{wrapper}<");
+        if let Some(inner) = s.strip_prefix(&prefix) {
+            if let Some(end) = matching_angle(inner) {
+                s = inner[..end].trim().to_string();
+                break;
+            }
+        }
+    }
+    // Strip `dyn ` so `Arc<dyn Trait>` becomes `Trait`.
+    if let Some(rest) = s.strip_prefix("dyn ") {
+        s = rest.trim_start().to_string();
+    }
+    // Drop a trailing generic suffix on the bare type so
+    // `HashMap<K, V>` matches the unparameterised callable owner name.
+    if let Some(idx) = s.find('<') {
+        s.truncate(idx);
+    }
+    s.trim().to_string()
+}
+
+/// Given a string like `T, U>` (positioned just after the opening `<`),
+/// return the byte index of the matching `>`. Balances nesting.
+fn matching_angle(s: &str) -> Option<usize> {
+    let mut depth: i32 = 1;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '<' => depth += 1,
+            '>' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Macros whose expansion produces no user-callable target and which
+/// therefore add only noise to a call graph. Names are matched after
+/// stripping any leading path — both `format!` and `std::format!` map
+/// to the bare `format` here.
+///
+/// Categories:
+///   - core formatting: format, print*, eprint*, write*
+///   - core panics/asserts: panic, assert, assert_eq, assert_ne, todo,
+///     unimplemented, unreachable, debug_assert*, matches
+///   - construction: vec
+///   - tracing/log: trace, debug, info, warn, error, log, span
+///   - anyhow / thiserror: anyhow, bail, ensure
+///   - serde_json: json
+///   - dbg
+fn is_rust_noise_macro(name: &str) -> bool {
+    let bare = name.rsplit("::").next().unwrap_or(name);
+    matches!(
+        bare,
+        "format"
+            | "print"
+            | "println"
+            | "eprint"
+            | "eprintln"
+            | "write"
+            | "writeln"
+            | "panic"
+            | "assert"
+            | "assert_eq"
+            | "assert_ne"
+            | "debug_assert"
+            | "debug_assert_eq"
+            | "debug_assert_ne"
+            | "todo"
+            | "unimplemented"
+            | "unreachable"
+            | "matches"
+            | "vec"
+            | "trace"
+            | "debug"
+            | "info"
+            | "warn"
+            | "error"
+            | "log"
+            | "span"
+            | "anyhow"
+            | "bail"
+            | "ensure"
+            | "json"
+            | "dbg"
+    )
 }
 
 fn qualified_name(scope: &[ScopeSegment], simple: &str) -> String {
