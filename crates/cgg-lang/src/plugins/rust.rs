@@ -368,6 +368,26 @@ impl<'a> Walker<'a> {
                 return;
             }
 
+            // Anonymous closure / async block. We only treat these as
+            // standalone callables when they're being *spawned* — i.e.,
+            // passed as the argument to `tokio::spawn`, `std::thread::spawn`,
+            // `rayon::spawn`, `*::spawn_blocking`, `*::spawn_local`.
+            // Tight callbacks like `.map(|x| x + 1)` stay inline.
+            //
+            // For a spawned closure we (a) emit a DefRecord so the body's
+            // calls attribute to it (smallest-enclosing-byte-range), and
+            // (b) emit a synthetic RefRecord at the spawn call site so the
+            // graph carries an `enclosing_fn -> closure` edge. The reader
+            // sees the disjoint subgraph plus an explicit "this is where
+            // it gets spawned" pointer.
+            "closure_expression" | "async_block" => {
+                if let Some(spawn_call) = self.spawn_call_for(node) {
+                    self.emit_spawned_closure(node, spawn_call);
+                }
+                self.walk_children(node);
+                return;
+            }
+
             // References.
             "call_expression" => {
                 if let Some(r) = self.ref_from_call(node) {
@@ -528,6 +548,117 @@ impl<'a> Walker<'a> {
             visibility: String::new(),
             attributes: Vec::new(),
         })
+    }
+
+    /// Walk up from a closure / async-block node looking for the
+    /// enclosing `spawn`-style call. Returns the `call_expression` node
+    /// if the parent chain is `closure -> arguments -> call_expression`
+    /// and the called function's last `::`-segment is `spawn`,
+    /// `spawn_blocking`, or `spawn_local`. Stops at any enclosing
+    /// function/closure boundary so we don't traverse out of scope.
+    fn spawn_call_for<'b>(&self, node: Node<'b>) -> Option<Node<'b>> {
+        let mut cur = node.parent()?;
+        loop {
+            match cur.kind() {
+                "arguments" => {
+                    let call = cur.parent()?;
+                    if call.kind() != "call_expression" {
+                        return None;
+                    }
+                    let fn_node = call.child_by_field_name("function")?;
+                    let text = self.text(fn_node);
+                    let last = text.rsplit("::").next().unwrap_or(text);
+                    if matches!(last, "spawn" | "spawn_blocking" | "spawn_local") {
+                        return Some(call);
+                    }
+                    return None;
+                }
+                // Stop at any enclosing callable boundary — a closure
+                // that's nested two levels deep inside another closure
+                // isn't "spawned" by the outer call.
+                "function_item"
+                | "function_signature_item"
+                | "closure_expression"
+                | "async_block" => return None,
+                _ => cur = cur.parent()?,
+            }
+        }
+    }
+
+    /// Emit (a) a DefRecord for an anonymous closure/async-block so
+    /// calls inside its body attribute to it, and (b) a synthetic
+    /// RefRecord at the spawn call site so the graph carries an
+    /// `enclosing_fn -> closure` edge once intra-file resolution runs.
+    fn emit_spawned_closure(&mut self, node: Node, spawn_call: Node) {
+        let line = (node.start_position().row as u32) + 1;
+        // `closure_at_42` for `|args| body`, `async_at_42` for
+        // `async move { ... }`. The line number makes the simple name
+        // unique within the file, which is what intra-file resolution
+        // matches on.
+        let simple = if node.kind() == "async_block" {
+            format!("async_at_{line}")
+        } else {
+            format!("closure_at_{line}")
+        };
+        // Nest under the enclosing function: the Walker's scope stack
+        // tracks modules/impls/traits but not functions, so we find the
+        // smallest-byte-range function-like definition already recorded
+        // and append the closure's simple name to its qualified name.
+        // Falls back to the module-scope path when no enclosing fn is
+        // present (free-standing closures, etc.).
+        let closure_byte = node.start_byte() as u32;
+        let enclosing = self
+            .facts
+            .definitions
+            .iter()
+            .filter(|d| {
+                d.start_byte <= closure_byte
+                    && closure_byte < d.end_byte
+                    && matches!(
+                        d.variant,
+                        DefVariant::FreeFunction
+                            | DefVariant::AsyncFunction
+                            | DefVariant::InherentMethod
+                            | DefVariant::TraitMethod
+                            | DefVariant::TraitDefaultMethod
+                            | DefVariant::StaticMethod
+                            | DefVariant::NamedClosure
+                    )
+            })
+            .min_by_key(|d| d.end_byte - d.start_byte)
+            .map(|d| d.qualified_name.clone());
+        let qn = match enclosing {
+            Some(parent_qn) => format!("{parent_qn}::{simple}"),
+            None => qualified_name(&self.scope, &simple),
+        };
+        let end_line = (node.end_position().row as u32) + 1;
+        let start_byte = node.start_byte() as u32;
+        let end_byte = node.end_byte() as u32;
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple.clone(),
+            qualified_name: qn,
+            variant: DefVariant::NamedClosure,
+            start_line: line,
+            end_line,
+            start_byte,
+            end_byte,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            // Tag it so downstream consumers can spot the synthetic
+            // origin if they want to (audit log, custom filters).
+            attributes: vec!["spawned".into()],
+        });
+
+        // Synthetic "spawn" call edge: place the RefRecord at the spawn
+        // call's start byte so it attributes to the enclosing function
+        // (not to the closure body itself).
+        let spawn_line = (spawn_call.start_position().row as u32) + 1;
+        self.facts.references.push(RefRecord {
+            name: simple,
+            receiver_hint: String::new(),
+            site_line: spawn_line,
+            site_byte: spawn_call.start_byte() as u32,
+        });
     }
 
     fn record_macro(&mut self, node: Node) {
@@ -1236,5 +1367,87 @@ fn helper() {}
         assert_eq!(by_name["f"].variant, DefVariant::AsyncFunction);
         assert_eq!(by_name["g"].variant, DefVariant::AsyncFunction);
         assert!(by_name["h"].visibility.starts_with("pub"));
+    }
+
+    #[test]
+    fn tokio_spawn_extracts_async_block_as_disjoint_callable() {
+        let src = "\
+async fn outer() {
+    tokio::spawn(async move {
+        inner_called().await;
+    });
+}
+async fn inner_called() {}
+";
+        let f = extract(src);
+        let names: Vec<&str> =
+            f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        // The async block becomes its own callable; line 2 is the
+        // `tokio::spawn(async move {` line.
+        assert!(
+            names.iter().any(|n| n.starts_with("crate::outer::async_at_")),
+            "expected an async_at_* callable under outer; got {names:?}"
+        );
+        // The synthetic spawn-edge RefRecord must point at the
+        // synthesized closure name from inside `outer`.
+        let async_simple = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name.starts_with("async_at_"))
+            .unwrap()
+            .simple_name
+            .clone();
+        let ref_names: Vec<&str> =
+            f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(
+            ref_names.contains(&async_simple.as_str()),
+            "expected a synthetic RefRecord referencing {async_simple}; got {ref_names:?}"
+        );
+        // Tag survives so callers can filter.
+        let asyncs = f
+            .definitions
+            .iter()
+            .filter(|d| d.simple_name.starts_with("async_at_"))
+            .collect::<Vec<_>>();
+        assert!(asyncs[0].attributes.contains(&"spawned".to_string()));
+    }
+
+    #[test]
+    fn inline_callback_closure_not_extracted_as_disjoint() {
+        // `.map(|x| x + 1)` is a tight callback — keep it inline so the
+        // graph doesn't drown in single-expression closure noise.
+        let src = "\
+fn outer() {
+    let v: Vec<i32> = vec![1, 2, 3].into_iter().map(|x| x + 1).collect();
+}
+";
+        let f = extract(src);
+        assert!(
+            !f.definitions
+                .iter()
+                .any(|d| d.simple_name.starts_with("closure_at_")),
+            "inline .map closure should NOT become a separate callable"
+        );
+    }
+
+    #[test]
+    fn thread_spawn_also_extracts_closure() {
+        // `std::thread::spawn` should be detected by the
+        // last-segment-is-`spawn` heuristic, same as tokio.
+        let src = "\
+fn outer() {
+    std::thread::spawn(|| {
+        worker();
+    });
+}
+fn worker() {}
+";
+        let f = extract(src);
+        let names: Vec<&str> =
+            f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        assert!(
+            names.iter().any(|n| n.starts_with("crate::outer::closure_at_")),
+            "expected std::thread::spawn closure to be extracted; got {names:?}"
+        );
     }
 }
