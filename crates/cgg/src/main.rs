@@ -310,6 +310,7 @@ fn run(cli: Cli) -> Result<()> {
                     skip_reason: None,
                     callables: Vec::new(),
                     unresolved_calls: Vec::new(),
+                    stdlib_calls: Vec::new(),
                     external_calls: Vec::new(),
                     ffi: Vec::new(),
                 };
@@ -405,21 +406,24 @@ fn run(cli: Cli) -> Result<()> {
         }
         graph.edges.extend(outcome.edges.clone());
 
-        // Classify unresolved calls as internal vs external.
+        // Classify unresolved calls into unresolved / stdlib / external.
         let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
         let classified = classify_external(outcome.unresolved, &known_refs, &facts.language);
 
         let lang = facts.language.clone();
         let lang_bucket = metrics.by_language.entry(lang).or_default();
         lang_bucket.unresolved += classified.unresolved.len() as u64;
+        lang_bucket.stdlib += classified.stdlib.len() as u64;
         lang_bucket.external += classified.external.len() as u64;
         metrics.unresolved_calls += classified.unresolved.len() as u64;
+        metrics.stdlib_calls += classified.stdlib.len() as u64;
         metrics.external_calls += classified.external.len() as u64;
         metrics.edges += outcome.edges.len() as u64;
 
-        // Attach only truly-unresolved calls to the per-file audit record.
+        // Attach the three buckets to the per-file audit record.
         if let Some(rec) = file_records.iter_mut().find(|r| r.file == facts.file) {
             rec.unresolved_calls = classified.unresolved.clone();
+            rec.stdlib_calls = classified.stdlib.clone();
             rec.external_calls = classified.external.clone();
         }
         graph.unresolved.extend(classified.unresolved);
@@ -528,6 +532,7 @@ fn run(cli: Cli) -> Result<()> {
         classify_external(sg_out.unresolved, &known_refs, "")
     };
     metrics.unresolved_calls += sg_classified.unresolved.len() as u64;
+    metrics.stdlib_calls += sg_classified.stdlib.len() as u64;
     metrics.external_calls += sg_classified.external.len() as u64;
     graph.edges.extend(sg_out.edges);
     graph.unresolved.extend(sg_classified.unresolved);
@@ -586,8 +591,10 @@ fn run(cli: Cli) -> Result<()> {
         .collect();
 
     let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();
+    let mut removed_per_lang_stdlib: HashMap<String, u64> = HashMap::new();
     let mut removed_per_lang_external: HashMap<String, u64> = HashMap::new();
     let mut total_removed_unresolved: u64 = 0;
+    let mut total_removed_stdlib: u64 = 0;
     let mut total_removed_external: u64 = 0;
     for rec in &mut file_records {
         let lang = graph
@@ -605,6 +612,15 @@ fn run(cli: Cli) -> Result<()> {
         }
         total_removed_unresolved += dropped_u;
 
+        let before_s = rec.stdlib_calls.len();
+        rec.stdlib_calls
+            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+        let dropped_s = (before_s - rec.stdlib_calls.len()) as u64;
+        if dropped_s > 0 {
+            *removed_per_lang_stdlib.entry(lang.clone()).or_default() += dropped_s;
+        }
+        total_removed_stdlib += dropped_s;
+
         let before_e = rec.external_calls.len();
         rec.external_calls
             .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
@@ -616,10 +632,16 @@ fn run(cli: Cli) -> Result<()> {
     }
 
     metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(total_removed_unresolved);
+    metrics.stdlib_calls = metrics.stdlib_calls.saturating_sub(total_removed_stdlib);
     metrics.external_calls = metrics.external_calls.saturating_sub(total_removed_external);
     for (lang, n) in removed_per_lang_unresolved {
         if let Some(b) = metrics.by_language.get_mut(&lang) {
             b.unresolved = b.unresolved.saturating_sub(n);
+        }
+    }
+    for (lang, n) in removed_per_lang_stdlib {
+        if let Some(b) = metrics.by_language.get_mut(&lang) {
+            b.stdlib = b.stdlib.saturating_sub(n);
         }
     }
     for (lang, n) in removed_per_lang_external {
@@ -734,7 +756,7 @@ fn run(cli: Cli) -> Result<()> {
     eprintln!(
         "cgg: {disc} files, {an} analyzed, {sk} skipped{breakdown}; \
          {ca} callables, {ed} edges ({cf} cross-file), \
-         {ur} unresolved, {ext} external ({ms:.1} ms)",
+         {ur} unresolved, {sl} stdlib, {ext} external ({ms:.1} ms)",
         disc = metrics.files_discovered,
         an = metrics.files_analyzed,
         sk = metrics.files_skipped,
@@ -743,6 +765,7 @@ fn run(cli: Cli) -> Result<()> {
         ed = metrics.edges,
         cf = cross_file,
         ur = metrics.unresolved_calls,
+        sl = metrics.stdlib_calls,
         ext = metrics.external_calls,
         ms = metrics.wall_ms
     );

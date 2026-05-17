@@ -109,6 +109,10 @@ pub struct AuditFileRecord {
     pub callables: Vec<AuditCallableRef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unresolved_calls: Vec<AuditUnresolvedCall>,
+    /// Calls into the language standard library — split out so the
+    /// `external_calls` bucket reflects third-party surface only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stdlib_calls: Vec<AuditUnresolvedCall>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub external_calls: Vec<AuditUnresolvedCall>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -177,8 +181,11 @@ pub struct RunMetrics {
     pub callables: u64,
     pub edges: u64,
     pub unresolved_calls: u64,
-    /// Call sites targeting symbols not defined in any scanned file
-    /// (stdlib, third-party deps, framework methods, etc.).
+    /// Call sites targeting the language standard library
+    /// (`Vec::push`, `clone()`, `format!`, …). Expected; not a gap.
+    pub stdlib_calls: u64,
+    /// Call sites targeting code not in the project and not in stdlib
+    /// — third-party crates, framework methods, etc.
     pub external_calls: u64,
     pub ffi_detected: u64,
     pub ffi_resolved: u64,
@@ -215,6 +222,7 @@ pub struct LanguageMetrics {
     pub callables: u64,
     pub edges: u64,
     pub unresolved: u64,
+    pub stdlib: u64,
     pub external: u64,
 }
 
