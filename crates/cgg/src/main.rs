@@ -191,7 +191,7 @@ fn run(cli: Cli) -> Result<()> {
                 DetectVerdict::Language(id) => {
                     return FileOutcome::Skipped {
                         path: cand.path.clone(),
-                        reason: SkipReason::Builtin(format!("lang-filter:{id}")),
+                        reason: SkipReason::LanguageFilter(id.to_string()),
                     };
                 }
                 DetectVerdict::Unknown => {
@@ -734,10 +734,18 @@ fn run(cli: Cli) -> Result<()> {
     // detector returned nothing) and those don't appear in
     // outcome.skips. Sorted by count, descending; ties broken
     // alphabetically.
+    //
+    // Also tally per-language for the LanguageFilter variant so we
+    // can emit an actionable hint ("note: 5 file(s) detected as
+    // 'python' were excluded by --lang ...").
     let mut skip_counts: HashMap<&'static str, u64> = HashMap::new();
+    let mut lang_filter_counts: HashMap<String, u64> = HashMap::new();
     for ev in &events {
         if let AuditEvent::FileSkipped { reason, .. } = ev {
             *skip_counts.entry(reason.slug()).or_default() += 1;
+            if let SkipReason::LanguageFilter(lang) = reason {
+                *lang_filter_counts.entry(lang.clone()).or_default() += 1;
+            }
         }
     }
     let skip_breakdown = if skip_counts.is_empty() {
@@ -769,6 +777,31 @@ fn run(cli: Cli) -> Result<()> {
         ext = metrics.external_calls,
         ms = metrics.wall_ms
     );
+
+    // Actionable hint when --lang excluded files whose language IS
+    // supported by a plugin. Listing each excluded language with its
+    // count and the suggested `--lang` value tells the user exactly
+    // what to add.
+    if !lang_filter_counts.is_empty() {
+        let mut pairs: Vec<_> = lang_filter_counts.into_iter().collect();
+        pairs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        let user_langs = if cli.lang.is_empty() {
+            String::new()
+        } else {
+            cli.lang.join(",")
+        };
+        for (lang, n) in pairs {
+            let suggestion = if user_langs.is_empty() {
+                format!("--lang {lang}")
+            } else {
+                format!("--lang {user_langs},{lang}")
+            };
+            eprintln!(
+                "note: {n} file(s) detected as '{lang}' were excluded by --lang; \
+                 pass `{suggestion}` to include them"
+            );
+        }
+    }
 
     Ok(())
 }

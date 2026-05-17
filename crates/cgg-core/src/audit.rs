@@ -31,6 +31,10 @@ pub enum SkipReason {
     Builtin(String),
     /// Extension is not one of the recognized source extensions for v1.
     UnknownExtension,
+    /// File's language IS recognized by a plugin, but that language was
+    /// excluded by the `--lang` filter. Payload carries the detected
+    /// language id so the runner can suggest the right `--lang` value.
+    LanguageFilter(String),
     /// Content was flagged as binary (non-UTF-8 / NUL bytes within the
     /// first N bytes, or declared binary by git attributes).
     Binary,
@@ -50,6 +54,7 @@ impl SkipReason {
             SkipReason::Cggignore(_) => "cggignore",
             SkipReason::Builtin(_) => "builtin",
             SkipReason::UnknownExtension => "unknown-extension",
+            SkipReason::LanguageFilter(_) => "language-filter",
             SkipReason::Binary => "binary",
             SkipReason::SymlinkOutsideRoot => "symlink-outside-root",
             SkipReason::ParseError(_) => "parse-error",

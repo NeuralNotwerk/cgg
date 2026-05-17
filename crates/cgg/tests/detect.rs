@@ -194,12 +194,14 @@ fn lang_filter_excludes_and_reports() {
             && e["language"] == "python"
             && e["path"].as_str().unwrap().ends_with("a.py")
     });
+    // b.rs is skipped with the dedicated LanguageFilter("rust")
+    // variant (kind=language-filter, detail="rust") rather than the
+    // old overloaded Builtin("lang-filter:rust").
     let rs_skipped = events.iter().any(|e| {
         e["event"] == "file_skipped"
             && e["path"].as_str().unwrap().ends_with("b.rs")
-            && e["reason"]["detail"]
-                .as_str()
-                .map_or(false, |s| s.contains("lang-filter:rust"))
+            && e["reason"]["kind"] == "language-filter"
+            && e["reason"]["detail"] == "rust"
     });
     assert!(py_analyzed, "python not analyzed");
     assert!(rs_skipped, "rust not lang-filtered");
