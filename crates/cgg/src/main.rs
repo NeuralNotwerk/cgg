@@ -13,7 +13,7 @@ mod cli;
 mod query;
 mod since;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Write};
 use std::path::PathBuf;
@@ -564,6 +564,75 @@ fn run(cli: Cli) -> Result<()> {
     metrics.edges += ffi_out.edges.len() as u64;
     graph.edges.extend(ffi_out.edges);
 
+    // --- Phase 3e: audit reconciliation -----------------------------------
+    // intra_file is the first resolver and gets first crack at every
+    // call site. Calls it can't bind go into per-file `unresolved_calls`
+    // / `external_calls` audit buckets. Later resolvers (stack_graphs,
+    // cross_file, ffi) often resolve those calls and emit edges into
+    // `graph.edges`, but they never reach back to prune the audit
+    // buckets. Without this pass the audit log reads like "I couldn't
+    // resolve N calls" when in fact most of them got resolved later —
+    // misleading anyone trying to diagnose real gaps.
+    //
+    // Reconciliation: collect every (src_file, site_byte) pair that
+    // ended up with a resolved edge, then strip those pairs from the
+    // per-file unresolved/external lists, the run-level rollups, and
+    // the by-language metrics. After this, "X unresolved, Y external"
+    // means what it sounds like.
+    let resolved_sites: HashSet<(FileId, u32)> = graph
+        .edges
+        .iter()
+        .filter_map(|e| graph.callables.get(&e.src).map(|c| (c.file, e.site_byte)))
+        .collect();
+
+    let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();
+    let mut removed_per_lang_external: HashMap<String, u64> = HashMap::new();
+    let mut total_removed_unresolved: u64 = 0;
+    let mut total_removed_external: u64 = 0;
+    for rec in &mut file_records {
+        let lang = graph
+            .files
+            .get(&rec.file)
+            .map(|f| f.language.clone())
+            .unwrap_or_default();
+
+        let before_u = rec.unresolved_calls.len();
+        rec.unresolved_calls
+            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+        let dropped_u = (before_u - rec.unresolved_calls.len()) as u64;
+        if dropped_u > 0 {
+            *removed_per_lang_unresolved.entry(lang.clone()).or_default() += dropped_u;
+        }
+        total_removed_unresolved += dropped_u;
+
+        let before_e = rec.external_calls.len();
+        rec.external_calls
+            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+        let dropped_e = (before_e - rec.external_calls.len()) as u64;
+        if dropped_e > 0 {
+            *removed_per_lang_external.entry(lang).or_default() += dropped_e;
+        }
+        total_removed_external += dropped_e;
+    }
+
+    metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(total_removed_unresolved);
+    metrics.external_calls = metrics.external_calls.saturating_sub(total_removed_external);
+    for (lang, n) in removed_per_lang_unresolved {
+        if let Some(b) = metrics.by_language.get_mut(&lang) {
+            b.unresolved = b.unresolved.saturating_sub(n);
+        }
+    }
+    for (lang, n) in removed_per_lang_external {
+        if let Some(b) = metrics.by_language.get_mut(&lang) {
+            b.external = b.external.saturating_sub(n);
+        }
+    }
+
+    // graph.unresolved is the cross-file rollup. Same prune.
+    graph
+        .unresolved
+        .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {
         events.push(AuditEvent::FileAnalyzed(rec));
@@ -634,13 +703,42 @@ fn run(cli: Cli) -> Result<()> {
                 == graph.callables.get(&e.dst).map(|d| d.file)
         })
         .count() as u64;
+
+    // Break "X skipped" down by reason so users don't see e.g. "22
+    // skipped" and assume cgg missed 22 Rust files when it's actually
+    // 22 Cargo.toml/yaml/.comp files (unknown-extension). We tally
+    // from the audit events list rather than outcome.skips because
+    // files can also be skipped *during* processing (e.g., language
+    // detector returned nothing) and those don't appear in
+    // outcome.skips. Sorted by count, descending; ties broken
+    // alphabetically.
+    let mut skip_counts: HashMap<&'static str, u64> = HashMap::new();
+    for ev in &events {
+        if let AuditEvent::FileSkipped { reason, .. } = ev {
+            *skip_counts.entry(reason.slug()).or_default() += 1;
+        }
+    }
+    let skip_breakdown = if skip_counts.is_empty() {
+        String::new()
+    } else {
+        let mut pairs: Vec<_> = skip_counts.into_iter().collect();
+        pairs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+        let inner = pairs
+            .iter()
+            .map(|(slug, n)| format!("{n} {slug}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(" ({inner})")
+    };
+
     eprintln!(
-        "cgg: {disc} files, {an} analyzed, {sk} skipped; \
+        "cgg: {disc} files, {an} analyzed, {sk} skipped{breakdown}; \
          {ca} callables, {ed} edges ({cf} cross-file), \
          {ur} unresolved, {ext} external ({ms:.1} ms)",
         disc = metrics.files_discovered,
         an = metrics.files_analyzed,
         sk = metrics.files_skipped,
+        breakdown = skip_breakdown,
         ca = metrics.callables,
         ed = metrics.edges,
         cf = cross_file,
