@@ -24,6 +24,14 @@
 //!      let `t.TypeVar` (after `import typing as t`) be recognized as a
 //!      stdlib call, and bare `TypeVar(...)` (after `from typing import
 //!      TypeVar`) likewise.
+//!
+//! When the project also defines a callable of the same name, the
+//! classifier prefers the project reading over a bare-name stdlib match:
+//! we'd rather surface a real `Unresolved` resolver gap than silently
+//! mask it as stdlib because of a manifest entry. The stdlib bucket
+//! still wins when there is positive evidence the receiver is stdlib —
+//! a stdlib receiver hint, a stdlib import alias, or a `from <stdlib>
+//! import name` binding.
 
 use std::collections::{HashMap, HashSet};
 
@@ -213,12 +221,22 @@ fn classify_one(
             }
         }
         if rh.is_empty() {
-            // (c) Bare call into stdlib (e.g. `len(...)`, `format(...)`).
-            if std.contains(name) {
+            // (c) Bare call whose name is in stdlib AND the project does
+            //     NOT define a function of that name → Stdlib. When the
+            //     project also defines the name we deliberately fall
+            //     through to the project rules below: the call is a real
+            //     resolver gap (`Unresolved`) and we'd rather surface it
+            //     than silently mask it with a stdlib reading. This is
+            //     the safety net for bad manifest entries — a stray
+            //     keyword like `break` in the manifest can no longer
+            //     swallow every project method of the same name.
+            if std.contains(name) && !known_names.contains(name) {
                 return Verdict::Stdlib;
             }
             // (d) Bare call to a name brought in by `from <module> import
-            //     name` where <module> is stdlib.
+            //     name` where <module> is stdlib. Import alias is strong
+            //     positive evidence the call really is stdlib, so this
+            //     rule applies even when the project also defines `name`.
             if let Some(a) = aliases {
                 if let Some(source) = a.from_imports.get(name) {
                     if module_is_stdlib(source, std) {
@@ -228,18 +246,24 @@ fn classify_one(
             }
         } else if !is_self_receiver && std.contains(name) {
             // (e) Method whose name is in the stdlib manifest, called on
-            //     a receiver that is neither stdlib nor a known project
-            //     type — typically a variable like `lst.append(...)` or
-            //     `s.lower()`. Without type inference the receiver type
-            //     is unknown, so we treat the name match as stdlib.
-            //     This is the same trade-off the plan explicitly endorses
-            //     for ambiguous method names: bare/unknown receivers go
-            //     to stdlib so the bucket reflects "calls into stdlib"
-            //     even when the project happens to define a method with
-            //     the same name.
-            let receiver_is_unknown = !known_names.contains(rh)
-                && rh.split('.').next().map(|h| !known_names.contains(h)).unwrap_or(true);
-            if receiver_is_unknown {
+            //     some receiver `rh`. We classify as stdlib only when
+            //     there is positive evidence `rh` is a stdlib module or
+            //     a known stdlib type — receiver matches stdlib directly
+            //     (already handled by rule (a) above), or `rh` is an
+            //     import alias for a stdlib module. If we have no project
+            //     corpus to compare against (`known_names` empty — e.g.
+            //     stack-graphs reclassification path) we keep the old
+            //     permissive behaviour. Otherwise we fall through so the
+            //     project / external rules below decide. The previous
+            //     "unknown receiver → stdlib" trade-off was too eager:
+            //     it let one bad manifest entry mask hundreds of project
+            //     edges through receivers whose type we simply couldn't
+            //     infer.
+            let receiver_aliases_stdlib = aliases
+                .and_then(|a| a.import_aliases.get(rh))
+                .map(|resolved| module_is_stdlib(resolved, std))
+                .unwrap_or(false);
+            if receiver_aliases_stdlib || known_names.is_empty() {
                 return Verdict::Stdlib;
             }
         }
@@ -292,4 +316,152 @@ pub fn build_known_names(facts: &[crate::FileFacts]) -> HashSet<String> {
 /// `FileAliases::from_facts` directly.
 pub fn build_alias_map(facts: &[FileFacts]) -> HashMap<FileId, FileAliases> {
     facts.iter().map(|f| (f.file, FileAliases::from_facts(f))).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ids::FileId;
+
+    fn mk_call(name: &str, rh: &str) -> AuditUnresolvedCall {
+        AuditUnresolvedCall {
+            src: None,
+            file: FileId::new(0),
+            site_line: 1,
+            site_byte: 0,
+            name: name.to_string(),
+            receiver_hint: rh.to_string(),
+            reason: "no-candidate-in-scope".to_string(),
+        }
+    }
+
+    fn names<'a>(items: &'a [&'a str]) -> HashSet<&'a str> {
+        items.iter().copied().collect()
+    }
+
+    #[test]
+    fn bare_stdlib_name_no_project_collision_is_stdlib() {
+        let std = names(&["len"]);
+        let known: HashSet<&str> = HashSet::new();
+        assert_eq!(
+            classify_one(&mk_call("len", ""), &known, Some(&std), None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn bare_stdlib_name_with_project_collision_falls_through() {
+        let std = names(&["clone"]);
+        let known = names(&["clone"]);
+        assert_eq!(
+            classify_one(&mk_call("clone", ""), &known, Some(&std), None),
+            Verdict::Unresolved
+        );
+    }
+
+    #[test]
+    fn dotted_receiver_stdlib_module_is_stdlib() {
+        let std = names(&["os"]);
+        let known: HashSet<&str> = HashSet::new();
+        assert_eq!(
+            classify_one(&mk_call("getcwd", "os.path"), &known, Some(&std), None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn import_alias_receiver_resolves_to_stdlib() {
+        let std = names(&["typing"]);
+        let known: HashSet<&str> = HashSet::new();
+        let aliases = FileAliases {
+            import_aliases: [("t".to_string(), "typing".to_string())]
+                .into_iter()
+                .collect(),
+            from_imports: Default::default(),
+        };
+        assert_eq!(
+            classify_one(&mk_call("TypeVar", "t"), &known, Some(&std), Some(&aliases)),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn from_import_brings_name_into_stdlib_even_with_collision() {
+        let std = names(&["typing"]);
+        let known = names(&["TypeVar"]);
+        let aliases = FileAliases {
+            import_aliases: Default::default(),
+            from_imports: [("TypeVar".to_string(), "typing".to_string())]
+                .into_iter()
+                .collect(),
+        };
+        assert_eq!(
+            classify_one(&mk_call("TypeVar", ""), &known, Some(&std), Some(&aliases)),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn unknown_receiver_no_stdlib_evidence_is_external() {
+        // The tightened rule (e): name `push` is in stdlib, receiver
+        // `myvec` is not a known project type AND not stdlib-shaped, so
+        // we no longer eagerly call it stdlib. The project does not
+        // define `push` either, so it falls through to External.
+        let std = names(&["push"]);
+        let known: HashSet<&str> = HashSet::new();
+        let known_with_project = names(&["MyType"]);
+        assert_eq!(
+            classify_one(
+                &mk_call("push", "myvec"),
+                &known_with_project,
+                Some(&std),
+                None
+            ),
+            Verdict::External
+        );
+        // But when there's no project corpus at all, we keep the
+        // permissive fallback so single-file / stack-graph paths still
+        // attribute reasonably.
+        assert_eq!(
+            classify_one(&mk_call("push", "myvec"), &known, Some(&std), None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn method_on_known_stdlib_receiver_is_stdlib() {
+        // Rule (a): receiver itself matches stdlib directly.
+        let std = names(&["Vec", "push"]);
+        let known = names(&["push"]);
+        assert_eq!(
+            classify_one(&mk_call("push", "Vec"), &known, Some(&std), None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn self_receiver_skips_stdlib_match() {
+        // self/Self/this/cls receivers should not be classified as
+        // stdlib even when the name appears in the manifest — they're
+        // calls into the enclosing project type.
+        let std = names(&["clone"]);
+        let known = names(&["clone", "MyType"]);
+        for rh in ["self", "Self", "this", "cls"] {
+            assert_eq!(
+                classify_one(&mk_call("clone", rh), &known, Some(&std), None),
+                Verdict::Unresolved,
+                "receiver={rh}"
+            );
+        }
+    }
+
+    #[test]
+    fn dotted_first_segment_match_in_stdlib() {
+        // `module_is_stdlib` should match the head segment when the
+        // full dotted path isn't in the manifest.
+        let std = names(&["os"]);
+        assert!(module_is_stdlib("os.path", &std));
+        assert!(module_is_stdlib("os", &std));
+        assert!(!module_is_stdlib("requests.get", &std));
+    }
 }
