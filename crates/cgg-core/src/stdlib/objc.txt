@@ -262,7 +262,6 @@ NSUserDefaults
 NSUUID
 NSValue
 NSValueTransformer
-null
 numberOfRowsInSection
 numberOfSections
 numberWithBool
@@ -278,7 +277,6 @@ objectAtIndexedSubscript
 objectForKey
 objectForKeyedSubscript
 objectsPassingTest
-parameterEncoding
 path
 pathComponents
 pathExtension
