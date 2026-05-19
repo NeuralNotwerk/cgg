@@ -241,7 +241,6 @@ dumps
 dup
 dup2
 DynamicClassAttribute
-Ellipsis
 email
 encode
 encodings
@@ -297,7 +296,6 @@ expm1
 extend
 fabs
 factorial
-False
 fatal
 faulthandler
 fchdir
@@ -667,13 +665,11 @@ nextafter
 nice
 nis
 nntplib
-None
 nonmember
 NoReturn
 normcase
 normpath
 NotADirectoryError
-NotImplemented
 NotImplementedError
 NotRequired
 no_type_check
@@ -1071,7 +1067,6 @@ total_seconds
 trace
 traceback
 tracemalloc
-True
 trunc
 truncate
 tty
