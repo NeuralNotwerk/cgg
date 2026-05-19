@@ -3,6 +3,10 @@ acos
 asin
 assert
 atan
+band
+bnot
+bor
+bxor
 byte
 ceil
 char
@@ -49,6 +53,7 @@ load
 loadfile
 log
 lower
+lshift
 match
 math
 max
@@ -81,6 +86,7 @@ rep
 require
 resume
 reverse
+rshift
 running
 seek
 select
