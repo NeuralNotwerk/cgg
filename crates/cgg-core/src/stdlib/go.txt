@@ -9,7 +9,6 @@ adler32
 aes
 After
 AfterFunc
-alias
 amd64v1
 any
 append
@@ -47,13 +46,11 @@ base32
 base64
 bbig
 bcache
-benchmarks
 big
 bigmod
 binary
 bits
 Body
-bool
 boring
 buffer
 Buffer
@@ -136,7 +133,6 @@ Copysign
 Cos
 Cosh
 Count
-coverage
 crc32
 crc64
 Create
@@ -223,7 +219,6 @@ elf
 elliptic
 embed
 embed/internal/embedtest
-embedtest
 Encode
 Encoder
 encoding
@@ -246,7 +241,6 @@ Erfc
 Erfcinv
 Erfinv
 Err
-error
 Error
 Errorf
 errors
@@ -271,7 +265,6 @@ Fatalf
 Fatalln
 fcgi
 Fd
-fdtest
 fiat
 field
 Fields
@@ -311,7 +304,6 @@ Flusher
 FMA
 fmt
 fnv
-for
 format
 Format
 FormatBool
@@ -408,7 +400,6 @@ image/gif
 image/internal/imageutil
 image/jpeg
 image/png
-imageutil
 importer
 Indent
 Index
@@ -815,9 +806,7 @@ SliceIsSorted
 slices
 SliceStable
 slog
-slogtest
 smtp
-socktest
 sort
 Sort
 Split
@@ -838,7 +827,6 @@ Sscan
 Sscanf
 Sscanln
 Stable
-startlinetest
 State
 Status
 StatusText
@@ -880,8 +868,6 @@ TCPListener
 TempDir
 TempFile
 template
-testcert
-testdeps
 testing
 testing/fstest
 testing/internal/testdeps
@@ -973,7 +959,6 @@ WaitGroup
 Walk
 WalkDir
 WalkFunc
-wasitest
 Weekday
 WithCancel
 WithCancelCause
