@@ -297,7 +297,6 @@ UnsupportedOperationException
 until
 unzip
 uppercase
-URLClassLoader
 usePinned
 windowed
 with
