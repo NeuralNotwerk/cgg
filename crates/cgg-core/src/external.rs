@@ -208,6 +208,22 @@ fn classify_one(
                     }
                 }
             }
+        } else if !is_self_receiver && std.contains(name) {
+            // (e) Method whose name is in the stdlib manifest, called on
+            //     a receiver that is neither stdlib nor a known project
+            //     type — typically a variable like `lst.append(...)` or
+            //     `s.lower()`. Without type inference the receiver type
+            //     is unknown, so we treat the name match as stdlib.
+            //     This is the same trade-off the plan explicitly endorses
+            //     for ambiguous method names: bare/unknown receivers go
+            //     to stdlib so the bucket reflects "calls into stdlib"
+            //     even when the project happens to define a method with
+            //     the same name.
+            let receiver_is_unknown = !known_names.contains(rh)
+                && rh.split('.').next().map(|h| !known_names.contains(h)).unwrap_or(true);
+            if receiver_is_unknown {
+                return Verdict::Stdlib;
+            }
         }
     }
 
