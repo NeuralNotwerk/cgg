@@ -270,7 +270,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1019 callables, 1499 edges, 1489 cross-file, 142ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1019 callables, 1499 edges, 1489 cross-file, 156ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -508,6 +508,47 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 - Type inference is partial — handles parameters, constructors, return types, and trait dispatch to known implementors; does not handle generics or fully dynamic typing
 - No daemon / watch mode
 - Languages without a published Rust tree-sitter grammar are not supported: notably Tcl and Hack. Adding them would require vendoring C grammar sources.
+
+## Potential future improvements
+
+Known gaps that would meaningfully improve resolution quality or audit
+fidelity. Each is scoped enough to implement on its own; none are in
+flight.
+
+- **Generic trait-bound dispatch (Rust).** Calls of the form
+  `engine.embed()` where `engine: E, E: EmbeddingClient` currently land
+  in the `external` bucket. Closing this needs an impl-index (every
+  `impl Trait for T` block) and a multi-candidate edge model — one
+  low-confidence edge per known impl, marked so downstream consumers
+  can filter. Highest single-feature value on real-world Rust
+  workspaces; biggest design lift because it changes the
+  one-edge-per-call assumption.
+- **`Arc<dyn Trait>` / true virtual dispatch enumeration (Rust).**
+  Partial today via the `self.<field>` type tracking (resolves when the
+  field has a single concrete type), but doesn't enumerate impls when
+  the receiver is genuinely a trait object. Shares infrastructure with
+  the generic trait-bound work above — would ship together.
+- **Per-language stdlib filter audit.** The `stdlib` bucket
+  infrastructure works for every language with a `crates/cgg-core/src/stdlib/*.txt`
+  file (30+). The Rust list is well-tuned (`clone`, `unwrap`, `push`,
+  `len`, …); the other lists were seeded from language references and
+  haven't been audited against real-world `external` bucket noise.
+  Concrete fix: for each language, run cgg on a few representative
+  open-source repos, scan the top-N `external` names, and add the
+  obvious stdlib entries to the corresponding `.txt`.
+- **`cross_file` column in the summary line.** Uses a formula that
+  predates edge deduplication, so the number doesn't sum perfectly
+  with the `edges` total. Cosmetic, but worth tightening — should be
+  `edges_in_graph_that_cross_files` rather than `metrics.edges_predup -
+  same_file_postdedup`.
+- **Calls inside `tokio::spawn`-style closures, cross-closure type
+  propagation.** Spawned closures already extract as their own
+  callables (since the closure-disjoint-callables commit), so the
+  graph *structure* is right. What's still missing: when a captured
+  variable's type is known in the enclosing scope (e.g.
+  `let store: ChunkStore = …; tokio::spawn(async move { store.foo() })`),
+  type_hints doesn't follow the variable into the closure body, so
+  `store.foo()` reads as an unresolved method on an opaque receiver.
 
 ## License
 
