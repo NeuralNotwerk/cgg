@@ -67,7 +67,6 @@ BYTES_PER_ELEMENT
 cancelAnimationFrame
 Capitalize
 captureStackTrace
-catch
 cbrt
 ceil
 charAt
@@ -169,7 +168,6 @@ Float64Array
 floor
 fontcolor
 fontsize
-for
 forEach
 FormData
 freeze
@@ -548,7 +546,6 @@ trimLeft
 trimRight
 trimStart
 trunc
-try
 tty
 TypeError
 types
