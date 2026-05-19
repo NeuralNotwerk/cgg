@@ -30,7 +30,9 @@ pub use audit::{
     SkipReason,
 };
 pub use facts::{DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord};
-pub use external::{classify_external, build_known_names, ClassifyResult};
+pub use external::{
+    build_alias_map, build_known_names, classify_external, ClassifyResult, FileAliases,
+};
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };

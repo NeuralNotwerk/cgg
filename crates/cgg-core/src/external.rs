@@ -14,13 +14,22 @@
 //!     Useful for spotting dependency surface area.
 //!
 //! Stdlib detection uses the per-language manifest under `stdlib/*.txt`.
-//! A receiver hint matching a stdlib type (e.g. `Vec`, `HashMap`,
-//! `Arc`) or a bare name matching a stdlib function/method/macro
-//! routes the call into the `stdlib` bucket instead of `external`.
+//! Three matching strategies, in order:
+//!   1. Exact: receiver hint or bare name equals an entry in the manifest
+//!      (`Vec`, `HashMap`, `format`).
+//!   2. Dotted-first-segment: for languages that emit module-qualified
+//!      receivers like Python `os.path` or Go `fmt.Sprintf`, the first
+//!      segment of the receiver (`os`, `fmt`) is tested too.
+//!   3. Import-alias resolution: per-file alias maps from `FileFacts.imports`
+//!      let `t.TypeVar` (after `import typing as t`) be recognized as a
+//!      stdlib call, and bare `TypeVar(...)` (after `from typing import
+//!      TypeVar`) likewise.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::audit::AuditUnresolvedCall;
+use crate::facts::FileFacts;
+use crate::ids::FileId;
 use crate::stdlib;
 
 /// Result of classifying unresolved calls into three buckets.
@@ -36,6 +45,76 @@ pub struct ClassifyResult {
     pub external: Vec<AuditUnresolvedCall>,
 }
 
+/// Per-file import-alias tables. Built from `FileFacts.imports`.
+///
+/// * `import_aliases` — locally-bound receiver name → canonical module
+///   path. Populated from `import M` (M→M), `import M as A` (A→M),
+///   and `import M.N as A` (A→M.N).
+/// * `from_imports` — locally-bound bare name → source module. Populated
+///   from `from M import X` (X→M) and `from M import X as Y` (Y→M).
+///
+/// Empty for languages whose plugin doesn't surface imports this way,
+/// in which case classification falls back to exact + dotted-segment
+/// matching only.
+#[derive(Debug, Default, Clone)]
+pub struct FileAliases {
+    pub import_aliases: HashMap<String, String>,
+    pub from_imports: HashMap<String, String>,
+}
+
+impl FileAliases {
+    /// Build an alias table from a single file's import records.
+    /// The interpretation of `ImportRecord.path` / `.alias` is the same
+    /// across the language plugins that surface dotted module access
+    /// (Python primarily; other plugins are tolerated — bogus entries
+    /// just produce inert map keys).
+    pub fn from_facts(facts: &FileFacts) -> Self {
+        let mut import_aliases = HashMap::new();
+        let mut from_imports = HashMap::new();
+        for imp in &facts.imports {
+            match imp.kind.as_str() {
+                "import" => {
+                    // `import a.b` → bind "a" (the head receiver) to "a.b".
+                    // `import a.b as c` → bind "c" to "a.b".
+                    let path = imp.path.trim();
+                    if path.is_empty() {
+                        continue;
+                    }
+                    if !imp.alias.is_empty() {
+                        import_aliases.insert(imp.alias.trim().to_string(), path.to_string());
+                    } else {
+                        let head = path.split('.').next().unwrap_or(path);
+                        import_aliases.insert(head.to_string(), path.to_string());
+                    }
+                }
+                "from-import" => {
+                    // `from m import X, Y as Z` → X→m, Z→m.
+                    let module = imp.path.trim();
+                    if module.is_empty() {
+                        continue;
+                    }
+                    for item in imp.alias.split(',') {
+                        let item = item.trim();
+                        if item.is_empty() {
+                            continue;
+                        }
+                        let bound = if let Some((_orig, alias)) = item.split_once(" as ") {
+                            alias.trim()
+                        } else {
+                            item
+                        };
+                        if !bound.is_empty() && bound != "*" {
+                            from_imports.insert(bound.to_string(), module.to_string());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        Self { import_aliases, from_imports }
+    }
+}
+
 /// Verdict for a single call.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum Verdict {
@@ -45,15 +124,22 @@ enum Verdict {
 }
 
 /// Classify unresolved calls into unresolved / stdlib / external buckets.
+///
+/// `aliases` is a per-file table of import aliases used to recognize
+/// stdlib calls written through `import x as y` or `from x import y`.
+/// Pass `None` when alias resolution is not available (e.g. multi-file
+/// batches with no language-specific stdlib).
 pub fn classify_external(
     unresolved: Vec<AuditUnresolvedCall>,
     known_names: &HashSet<&str>,
     language: &str,
+    aliases: Option<&HashMap<FileId, FileAliases>>,
 ) -> ClassifyResult {
     let stdlib = stdlib::stdlib_names(language);
     let mut result = ClassifyResult::default();
     for call in unresolved {
-        match classify_one(&call, known_names, stdlib) {
+        let file_aliases = aliases.and_then(|m| m.get(&call.file));
+        match classify_one(&call, known_names, stdlib, file_aliases) {
             Verdict::Unresolved => result.unresolved.push(call),
             Verdict::Stdlib => result.stdlib.push(call),
             Verdict::External => result.external.push(call),
@@ -62,10 +148,26 @@ pub fn classify_external(
     result
 }
 
+/// Test whether a module path (possibly dotted) belongs to stdlib.
+/// Checks the full path first, then its first dotted segment. The
+/// first-segment fallback handles cases like `os.path` where the bare
+/// stdlib manifest only contains `os`.
+fn module_is_stdlib(path: &str, std: &HashSet<&str>) -> bool {
+    if std.contains(path) {
+        return true;
+    }
+    let head = path.split('.').next().unwrap_or(path);
+    if head != path && std.contains(head) {
+        return true;
+    }
+    false
+}
+
 fn classify_one(
     call: &AuditUnresolvedCall,
     known_names: &HashSet<&str>,
     stdlib: Option<&HashSet<&str>>,
+    aliases: Option<&FileAliases>,
 ) -> Verdict {
     let name = call.name.as_str();
     let rh = call.receiver_hint.as_str();
@@ -76,13 +178,36 @@ fn classify_one(
     // the stdlib bucket even when the project also defines a `push`
     // or `clone` method of its own.
     if let Some(std) = stdlib {
-        // Receiver type is a known stdlib type → method call into stdlib.
-        if !rh.is_empty() && !is_self_receiver && std.contains(rh) {
-            return Verdict::Stdlib;
+        if !rh.is_empty() && !is_self_receiver {
+            // (a) Receiver hint matches stdlib directly, or its first
+            //     dotted segment does (`os.path` → check `os`).
+            if module_is_stdlib(rh, std) {
+                return Verdict::Stdlib;
+            }
+            // (b) Receiver hint is a local alias for a stdlib module
+            //     (`import typing as t` → check `typing`).
+            if let Some(a) = aliases {
+                if let Some(resolved) = a.import_aliases.get(rh) {
+                    if module_is_stdlib(resolved, std) {
+                        return Verdict::Stdlib;
+                    }
+                }
+            }
         }
-        // Bare name (no receiver) is a stdlib function or macro.
-        if rh.is_empty() && std.contains(name) {
-            return Verdict::Stdlib;
+        if rh.is_empty() {
+            // (c) Bare call into stdlib (e.g. `len(...)`, `format(...)`).
+            if std.contains(name) {
+                return Verdict::Stdlib;
+            }
+            // (d) Bare call to a name brought in by `from <module> import
+            //     name` where <module> is stdlib.
+            if let Some(a) = aliases {
+                if let Some(source) = a.from_imports.get(name) {
+                    if module_is_stdlib(source, std) {
+                        return Verdict::Stdlib;
+                    }
+                }
+            }
         }
     }
 
@@ -126,4 +251,11 @@ pub fn build_known_names(facts: &[crate::FileFacts]) -> HashSet<String> {
         }
     }
     names
+}
+
+/// Build per-file alias tables for an entire fact set. Convenience for
+/// the multi-file classification path; per-file callers can use
+/// `FileAliases::from_facts` directly.
+pub fn build_alias_map(facts: &[FileFacts]) -> HashMap<FileId, FileAliases> {
+    facts.iter().map(|f| (f.file, FileAliases::from_facts(f))).collect()
 }

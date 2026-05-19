@@ -35,7 +35,9 @@ use cgg_core::graph::{
     CallableKind, CallableNode, FileRecord as GraphFileRecord, Graph,
 };
 use cgg_core::ids::{CallableId, FileId};
-use cgg_core::{classify_external, build_known_names, FileFacts, DefVariant};
+use cgg_core::{
+    build_known_names, classify_external, DefVariant, FileAliases, FileFacts,
+};
 use cgg_format::{
     DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter, OutputFormat,
 };
@@ -408,7 +410,15 @@ fn run(cli: Cli) -> Result<()> {
 
         // Classify unresolved calls into unresolved / stdlib / external.
         let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        let classified = classify_external(outcome.unresolved, &known_refs, &facts.language);
+        let aliases = FileAliases::from_facts(&facts);
+        let mut per_file_aliases = std::collections::HashMap::new();
+        per_file_aliases.insert(facts.file, aliases);
+        let classified = classify_external(
+            outcome.unresolved,
+            &known_refs,
+            &facts.language,
+            Some(&per_file_aliases),
+        );
 
         let lang = facts.language.clone();
         let lang_bucket = metrics.by_language.entry(lang).or_default();
@@ -529,7 +539,7 @@ fn run(cli: Cli) -> Result<()> {
     metrics.edges += sg_out.edges.len() as u64;
     let sg_classified = {
         let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        classify_external(sg_out.unresolved, &known_refs, "")
+        classify_external(sg_out.unresolved, &known_refs, "", None)
     };
     metrics.unresolved_calls += sg_classified.unresolved.len() as u64;
     metrics.stdlib_calls += sg_classified.stdlib.len() as u64;
