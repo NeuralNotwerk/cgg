@@ -85,9 +85,12 @@ ctime
 data
 decltype
 delete
+denorm_min
 deque
 detach
 difftime
+digits
+digits10
 DIR
 directory_iterator
 distance
@@ -114,6 +117,7 @@ EOF
 epoll_create
 epoll_ctl
 epoll_wait
+epsilon
 equal_range
 equal_to
 erase
@@ -212,6 +216,7 @@ ifstream
 ignore
 inet_ntop
 inet_pton
+infinity
 INFINITY
 initializer_list
 inner_product
@@ -234,11 +239,13 @@ isdigit
 isfinite
 isgraph
 isinf
+is_integer
 islower
 isnan
 is_open
 isprint
 ispunct
+is_signed
 isspace
 istream
 istream_iterator
@@ -266,6 +273,7 @@ log10
 log2
 logic_error
 lower_bound
+lowest
 lseek
 lstat
 make_pair
@@ -275,7 +283,9 @@ make_unique
 malloc
 map
 max
+max_digits10
 max_element
+max_exponent
 max_load_factor
 max_size
 memchr
@@ -288,6 +298,7 @@ merge
 milliseconds
 min
 min_element
+min_exponent
 minmax
 minutes
 mkdir
@@ -373,6 +384,7 @@ puts
 qsort
 queue
 quick_exit
+quiet_NaN
 raise
 rand
 ranges
@@ -571,6 +583,7 @@ wait_for
 waitpid
 wait_until
 weak_ptr
+what
 write
 wstring
 yield
