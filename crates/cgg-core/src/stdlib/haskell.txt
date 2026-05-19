@@ -1,4 +1,3 @@
-adjust
 all
 alter
 and
@@ -11,7 +10,6 @@ assert
 async
 Async
 atomically
-basename
 Bool
 bracket
 bracket_
