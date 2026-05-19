@@ -50,7 +50,6 @@ bin2hex
 boolval
 call_user_func
 call_user_func_array
-catch
 ceil
 chr
 chunk_split
@@ -59,7 +58,6 @@ class_exists
 class_implements
 class_parents
 clearstatcache
-clone
 Closure
 compact
 constant
@@ -78,9 +76,7 @@ debug_backtrace
 debug_zval_dump
 define
 defined
-die
 dirname
-echo
 empty
 end
 enum_exists
@@ -88,7 +84,6 @@ Error
 error_reporting
 escapeshellarg
 Exception
-exit
 explode
 extension_loaded
 extract
@@ -104,7 +99,6 @@ fileperms
 file_put_contents
 filesize
 filter_var
-finally
 floatval
 flock
 floor
@@ -140,9 +134,6 @@ htmlspecialchars
 http_build_query
 implode
 in_array
-include
-include_once
-instanceof
 intdiv
 intval
 InvalidArgumentException
@@ -180,7 +171,6 @@ json_validate
 krsort
 ksort
 lcfirst
-list
 log
 LogicException
 ltrim
@@ -203,7 +193,6 @@ mkdir
 mktime
 move_uploaded_file
 mt_rand
-new
 nl2br
 number_format
 ob_end_clean
@@ -214,7 +203,6 @@ ob_get_level
 ob_start
 OutOfRangeException
 OverflowException
-parent
 parse_str
 parse_url
 password_get_info
@@ -233,7 +221,6 @@ preg_quote
 preg_replace
 preg_replace_callback
 preg_split
-print
 printf
 print_r
 property_exists
@@ -250,8 +237,6 @@ ReflectionClass
 ReflectionMethod
 ReflectionProperty
 rename
-require
-require_once
 rewind
 rmdir
 round
@@ -259,7 +244,6 @@ rsort
 rtrim
 RuntimeException
 scandir
-self
 Serializable
 session_destroy
 session_start
@@ -281,7 +265,6 @@ SplStack
 sprintf
 sqrt
 sscanf
-static
 stdClass
 strcasecmp
 str_contains
@@ -316,15 +299,12 @@ substr_count
 substr_replace
 sys_get_temp_dir
 tempnam
-this
-throw
 time
 tmpfile
 token_get_all
 Traversable
 trigger_error
 trim
-try
 TypeError
 uasort
 ucfirst
@@ -332,7 +312,6 @@ ucwords
 uksort
 umask
 unlink
-unset
 urldecode
 urlencode
 usleep
