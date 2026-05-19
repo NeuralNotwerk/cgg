@@ -1,6 +1,7 @@
 abs
 abspath
 alltrue
+any
 anytrue
 base64decode
 base64encode
@@ -9,6 +10,7 @@ base64sha256
 base64sha512
 basename
 bcrypt
+bool
 can
 ceil
 chomp
@@ -68,6 +70,8 @@ min
 module
 nonsensitive
 null_resource
+number
+object
 one
 output
 parseint
@@ -85,6 +89,7 @@ reverse
 rsadecrypt
 self
 sensitive
+set
 setintersection
 setproduct
 setsubtract
@@ -97,6 +102,7 @@ slice
 sort
 split
 startswith
+string
 strrev
 substr
 sum
@@ -120,6 +126,7 @@ trimprefix
 trimspace
 trimsuffix
 try
+tuple
 type
 upper
 urlencode
