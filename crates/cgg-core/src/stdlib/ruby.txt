@@ -52,7 +52,6 @@ backtrace
 backtrace_locations
 base64
 basename
-begin
 benchmark
 between?
 binding
@@ -212,7 +211,6 @@ encode
 encode!
 encoding
 Encoding
-end
 end_with?
 entries
 Enumerable
@@ -686,7 +684,6 @@ tell
 tempfile
 terminate
 test
-then
 Thread
 thread_variable?
 thread_variable_get
