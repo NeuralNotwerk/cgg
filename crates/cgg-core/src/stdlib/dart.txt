@@ -16,16 +16,12 @@ AsciiCodec
 asFuture
 asin
 asMap
-assert
 AssertionError
 asStream
 asUint8List
-async
-async_
 atan
 atan2
 authority
-await
 base64
 Base64Codec
 Base64Decoder
@@ -81,7 +77,6 @@ dotAll
 double
 DoubleLinkedQueue
 Duration
-e
 elementAt
 elementAtOrNull
 elementSizeInBytes
@@ -101,7 +96,6 @@ exitCode
 exp
 expand
 Expando
-expandSync
 extension
 File
 FileSystemEntity
@@ -116,7 +110,6 @@ floor
 fold
 followedBy
 forEach
-forEachAsync
 FormatException
 fragment
 from
@@ -219,7 +212,6 @@ ListQueue
 log
 map
 Map
-mapIndexed
 Match
 matchAsPrefix
 max
@@ -237,7 +229,6 @@ namedGroup
 Never
 none
 normalize
-noSuchMethod
 now
 Null
 num
@@ -251,8 +242,6 @@ padLeft
 padRight
 parent
 parse
-parseLoose
-parseStrict
 partition
 path
 pattern
@@ -301,7 +290,6 @@ reverse
 reversed
 round
 Runes
-runtimeType
 runZoned
 runZonedGuarded
 scheduleMicrotask
@@ -320,7 +308,6 @@ sink
 skip
 skipWhile
 sleep
-slices
 Socket
 sort
 SplayTreeMap
@@ -346,7 +333,6 @@ sublist
 substring
 subtract
 Symbol
-sync
 take
 takeWhile
 tan
@@ -358,7 +344,6 @@ toFilePath
 toFuture
 toInt
 toList
-toListSync
 toLocal
 toLowerCase
 toRadixString
@@ -375,7 +360,6 @@ trimLeft
 trimRight
 truncate
 tryParse
-tryParseStrict
 Type
 TypeError
 Uint8List
@@ -406,6 +390,5 @@ writeAsString
 writeAsStringSync
 writeln
 year
-yield
 Zone
 ZoneDelegate
