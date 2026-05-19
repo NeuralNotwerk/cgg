@@ -28,7 +28,6 @@ clearRetainingCapacity
 Clock
 close
 closesocket
-comptime
 Condition
 contains
 count
@@ -65,9 +64,7 @@ hash
 HashMap
 heap
 http
-import
 init
-inline
 insert
 intRangeAtMost
 io
