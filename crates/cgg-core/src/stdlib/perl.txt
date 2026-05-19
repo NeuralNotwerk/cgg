@@ -22,18 +22,14 @@ chr
 chroot
 close
 closedir
-cmp_deeply
-cmp_ok
 confess
 cos
 croak
 defined
 delete
-diag
 die
 dirname
 do
-done_testing
 Dumper
 each
 eof
@@ -42,7 +38,6 @@ exec
 exists
 exit
 exp
-fail
 fileno
 fileparse
 first
@@ -60,10 +55,6 @@ grep
 hex
 index
 int
-is
-isa_ok
-is_deeply
-isnt
 join
 keys
 kill
@@ -71,7 +62,6 @@ last
 lc
 lcfirst
 length
-like
 link
 List::Util
 local
@@ -88,9 +78,7 @@ nanosleep
 next
 no
 none
-note
 oct
-ok
 open
 opendir
 ord
@@ -99,8 +87,6 @@ pack
 pairgrep
 pairmap
 pairs
-pass
-plan
 pop
 pos
 print
@@ -131,8 +117,6 @@ seekdir
 select
 shift
 sin
-skip
-skip_all
 sleep
 socketpair
 sort
@@ -147,7 +131,6 @@ STDIN
 STDOUT
 strict
 substr
-subtest
 sum
 sum0
 symlink
@@ -160,14 +143,12 @@ tie
 tied
 time
 times
-todo
 tv_interval
 uc
 ucfirst
 umask
 undef
 uniq
-unlike
 unlink
 unpack
 unshift
