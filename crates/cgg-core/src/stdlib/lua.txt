@@ -62,7 +62,6 @@ maxn
 min
 mininteger
 move
-new
 next
 open
 os
@@ -85,7 +84,6 @@ rename
 rep
 require
 resume
-reverse
 rshift
 running
 seek
