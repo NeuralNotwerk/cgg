@@ -169,8 +169,26 @@ fn classify_one(
     stdlib: Option<&HashSet<&str>>,
     aliases: Option<&FileAliases>,
 ) -> Verdict {
-    let name = call.name.as_str();
-    let rh = call.receiver_hint.as_str();
+    // Some language plugins emit dotted callable names like Lua
+    // `table.insert` or `string.format` as the bare `name` field with
+    // an empty receiver. Split on the last separator so the rest of
+    // this function can apply receiver-based rules uniformly.
+    let (rh_owned, name_owned);
+    if call.receiver_hint.is_empty() {
+        let n = call.name.as_str();
+        if let Some(idx) = n.rfind(|c: char| c == '.' || c == ':').filter(|&i| i > 0 && i < n.len() - 1) {
+            rh_owned = n[..idx].to_string();
+            name_owned = n[idx + 1..].to_string();
+        } else {
+            rh_owned = String::new();
+            name_owned = call.name.clone();
+        }
+    } else {
+        rh_owned = call.receiver_hint.clone();
+        name_owned = call.name.clone();
+    }
+    let name = name_owned.as_str();
+    let rh = rh_owned.as_str();
     let is_self_receiver =
         rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
 
