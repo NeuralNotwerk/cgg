@@ -36,15 +36,29 @@ impl GraphFormatter for MermaidFormatter {
             writeln!(out, "  C{id_n}[\"{label}\"]", id_n = id.as_u32())?;
         }
 
-        // Edges. `-->` is the default directed arrow. The resolver and
-        // confidence travel through to Task 9's richer rendering.
+        // Edges. The internal graph keeps one edge per call site (per
+        // distinct `site_byte`), which makes JSON/GraphML faithful to
+        // call frequency. For mermaid that produces visually-stacked
+        // arrows; collapse identical `(src, dst)` pairs into a single
+        // arrow and surface the multiplicity as a `|Nx|` edge label
+        // when N > 1. First-occurrence order is preserved so output is
+        // deterministic and diff-friendly.
+        let mut order: Vec<(u32, u32)> = Vec::new();
+        let mut counts: std::collections::HashMap<(u32, u32), u32> =
+            std::collections::HashMap::new();
         for edge in &graph.edges {
-            writeln!(
-                out,
-                "  C{src} --> C{dst}",
-                src = edge.src.as_u32(),
-                dst = edge.dst.as_u32()
-            )?;
+            let key = (edge.src.as_u32(), edge.dst.as_u32());
+            if counts.insert(key, counts.get(&key).copied().unwrap_or(0) + 1).is_none() {
+                order.push(key);
+            }
+        }
+        for (src, dst) in order {
+            let n = counts[&(src, dst)];
+            if n > 1 {
+                writeln!(out, "  C{src} -->|{n}x| C{dst}")?;
+            } else {
+                writeln!(out, "  C{src} --> C{dst}")?;
+            }
         }
 
         if graph.callables.is_empty() {
@@ -163,5 +177,92 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("&lt;A as B&gt;"));
         assert!(!s.contains("<A"));
+    }
+
+    #[test]
+    fn parallel_edges_collapse_with_count_label() {
+        // Three call sites from a -> b at distinct byte positions.
+        // The graph keeps three CallEdge entries; the renderer must
+        // collapse them into a single arrow with a `|3x|` label.
+        let mut g = mk_graph();
+        for site in [11_u32, 22, 33] {
+            g.add_edge(CallEdge {
+                src: CallableId::new(0),
+                dst: CallableId::new(1),
+                site_line: 1,
+                site_byte: site,
+                confidence: Confidence::High,
+                via: Via::Direct,
+                resolver: ResolverId::new("intra-file"),
+            });
+        }
+        let mut buf = Vec::new();
+        MermaidFormatter.render(&g, &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        // The original edge from mk_graph + 3 new ones = 4 total.
+        assert!(s.contains("C0 -->|4x| C1"), "got:\n{s}");
+        // Exactly one rendered arrow line for this pair.
+        let arrows = s.lines().filter(|l| l.contains("--> ") || l.contains("-->|")).count();
+        assert_eq!(arrows, 1, "got:\n{s}");
+        // The bare-arrow form must not appear when a label is required.
+        assert!(!s.contains("C0 --> C1"), "got:\n{s}");
+    }
+
+    #[test]
+    fn single_edge_renders_without_label() {
+        // mk_graph emits one a->b edge — must NOT carry a count label.
+        let mut buf = Vec::new();
+        MermaidFormatter.render(&mk_graph(), &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("C0 --> C1"), "got:\n{s}");
+        assert!(!s.contains("|1x|"), "got:\n{s}");
+    }
+
+    #[test]
+    fn first_occurrence_order_preserved() {
+        // Build edges in a deliberate non-sorted order; emitted arrows
+        // must follow first-occurrence order so output is deterministic
+        // and diffs cleanly.
+        let mut g = mk_graph();
+        let c = g.add_callable(CallableNode {
+            id: CallableId::new(2),
+            qualified_name: "crate::c".into(),
+            simple_name: "c".into(),
+            kind: CallableKind::Function,
+            language: "rust".into(),
+            file: FileId::new(0),
+            start_line: 3,
+            end_line: 3,
+            start_byte: 20,
+            end_byte: 30,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
+        });
+        // Order: a->c first, then a second occurrence of a->b, then a->c again.
+        g.add_edge(CallEdge {
+            src: CallableId::new(0), dst: c, site_line: 2, site_byte: 100,
+            confidence: Confidence::High, via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+        });
+        g.add_edge(CallEdge {
+            src: CallableId::new(0), dst: CallableId::new(1), site_line: 3, site_byte: 200,
+            confidence: Confidence::High, via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+        });
+        g.add_edge(CallEdge {
+            src: CallableId::new(0), dst: c, site_line: 4, site_byte: 300,
+            confidence: Confidence::High, via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+        });
+        let mut buf = Vec::new();
+        MermaidFormatter.render(&g, &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        // a->b was the very first edge from mk_graph(), so it must
+        // render before a->c despite a->c being added before the second
+        // a->b.
+        let ab = s.find("C0 -->|2x| C1").expect("a->b arrow");
+        let ac = s.find("C0 -->|2x| C2").expect("a->c arrow");
+        assert!(ab < ac, "expected a->b before a->c in output:\n{s}");
     }
 }

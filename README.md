@@ -270,7 +270,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1033 callables, 1519 edges, 1509 cross-file, 150ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1039 callables, 1542 edges, 1532 cross-file, 162ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -282,59 +282,68 @@ flowchart LR
   C2["cgg_walk::walk"]
   C72["cgg::query::apply_query"]
   C73["cgg::query::apply_exclusions"]
-  C85["cgg::main"]
-  C87["cgg::run"]
-  C88["cgg::langs_enabled"]
-  C89["cgg::count_lines"]
-  C90["cgg::read_file"]
-  C91["cgg::variant_to_kind"]
-  C92["cgg::dedup_edges"]
-  C94["cgg::emit_graph"]
-  C96["cgg::emit_audit"]
-  C840["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C845["cgg_lang::notebook::extract_python_source"]
-  C879["cgg_resolve::type_hints::build_return_type_map"]
-  C880["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C896["cgg_resolve::ffi::link_ffi"]
-  C919["cgg_resolve::stack_graphs_resolver::resolve"]
-  C920["cgg_resolve::stack_graphs_resolver::resolve_light"]
-  C921["cgg_resolve::stack_graphs_resolver::is_sg_language"]
-  C922["cgg_resolve::cross_file::resolve"]
-  C934["cgg_resolve::intra_file::link_file"]
-  C980["cgg_core::external::classify_external"]
-  C982["cgg_core::external::build_known_names"]
-  C983["cgg_core::graph::Graph::new"]
-  C984["cgg_core::graph::Graph::add_callable"]
-  C985["cgg_core::graph::Graph::add_file"]
-  C85 --> C87
-  C87 --> C88
-  C87 --> C90
-  C87 --> C89
-  C87 --> C91
-  C87 --> C92
-  C87 --> C94
-  C87 --> C96
-  C72 --> C983
-  C87 --> C2
-  C87 --> C840
-  C87 --> C983
-  C87 --> C845
-  C87 --> C985
-  C87 --> C984
-  C87 --> C879
-  C87 --> C880
-  C87 --> C982
-  C87 --> C934
-  C87 --> C980
-  C87 --> C919
-  C87 --> C919
-  C87 --> C921
-  C87 --> C920
-  C87 --> C980
-  C87 --> C922
-  C87 --> C896
-  C87 --> C72
-  C87 --> C73
+  C85["cgg::since::resolve_since"]
+  C99["cgg::main"]
+  C101["cgg::run"]
+  C102["cgg::langs_enabled"]
+  C103["cgg::run::closure_at_470"]
+  C104["cgg::since_seeds"]
+  C105["cgg::count_lines"]
+  C106["cgg::read_file"]
+  C107["cgg::variant_to_kind"]
+  C108["cgg::dedup_edges"]
+  C110["cgg::emit_graph"]
+  C112["cgg::emit_audit"]
+  C867["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C872["cgg_lang::notebook::extract_python_source"]
+  C912["cgg_resolve::type_hints::build_return_type_map"]
+  C913["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C929["cgg_resolve::ffi::link_ffi"]
+  C952["cgg_resolve::stack_graphs_resolver::resolve"]
+  C953["cgg_resolve::stack_graphs_resolver::resolve_light"]
+  C954["cgg_resolve::stack_graphs_resolver::is_sg_language"]
+  C955["cgg_resolve::cross_file::resolve"]
+  C967["cgg_resolve::intra_file::link_file"]
+  C984["cgg_core::audit::SkipReason::slug"]
+  C1013["cgg_core::external::FileAliases::from_facts"]
+  C1014["cgg_core::external::classify_external"]
+  C1017["cgg_core::external::build_known_names"]
+  C1030["cgg_core::graph::Graph::new"]
+  C1031["cgg_core::graph::Graph::add_callable"]
+  C1032["cgg_core::graph::Graph::add_file"]
+  C99 --> C101
+  C101 --> C102
+  C101 --> C106
+  C101 --> C105
+  C101 --> C107
+  C101 --> C103
+  C101 --> C108
+  C101 --> C104
+  C101 --> C110
+  C101 --> C112
+  C72 --> C1030
+  C101 --> C2
+  C101 --> C867
+  C101 --> C1030
+  C101 --> C872
+  C101 --> C1032
+  C101 --> C1031
+  C101 --> C912
+  C101 --> C913
+  C101 --> C1017
+  C101 --> C967
+  C101 --> C1013
+  C101 -->|2x| C1014
+  C101 --> C952
+  C103 --> C952
+  C101 --> C954
+  C101 --> C953
+  C101 --> C955
+  C101 --> C929
+  C101 --> C85
+  C101 --> C72
+  C101 --> C73
+  C101 --> C984
 ```
 
 Focus on subsystems with `--filter`:
@@ -358,13 +367,9 @@ flowchart LR
   C8["cgg_walk::builtin_reason"]
   C9["cgg_walk::extract_err_path"]
   C2 --> C3
-  C3 --> C4
   C3 --> C5
-  C3 --> C6
-  C3 --> C8
   C3 --> C9
   C6 --> C7
-  C9 --> C9
 ```
 <!-- cgg:end:walk -->
 
@@ -393,13 +398,11 @@ flowchart LR
   C30["cgg_lang::PluginRegistry::all"]
   C31["cgg_lang::PluginRegistry::by_id"]
   C32["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1 --> C2
   C1 --> C22
   C1 --> C24
   C1 --> C3
   C1 --> C30
   C1 --> C4
-  C1 --> C5
   C15 --> C15
   C15 --> C17
   C15 --> C26

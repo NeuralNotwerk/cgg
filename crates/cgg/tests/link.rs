@@ -72,9 +72,16 @@ fn fib(n: u32) -> u32 { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } }
         .success();
 
     let g = fs::read_to_string(&mmd).unwrap();
-    // One node, two self-edges preserved (cycle not removed).
+    // One node, self-edge preserved (cycle not removed). The mermaid
+    // renderer collapses parallel call sites into a single arrow with
+    // a `|Nx|` label when the same caller calls the same callee more
+    // than once, so for `fib` (two recursive calls) we expect either
+    // the bare `C0 --> C0` form (one site) or the labelled form
+    // (multiple sites). Either proves the cycle wasn't dropped.
     assert!(g.contains("fib"));
-    assert!(g.contains("C0 --> C0"), "want self-edge:\n{g}");
+    let has_bare = g.contains("C0 --> C0");
+    let has_labelled = g.lines().any(|l| l.starts_with("  C0 -->|") && l.ends_with("| C0"));
+    assert!(has_bare || has_labelled, "want self-edge:\n{g}");
 }
 
 #[test]

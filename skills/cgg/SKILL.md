@@ -197,6 +197,14 @@ edge is a *resolved* call site — cgg doesn't emit edges it can't
 prove, so unresolved sites go to the audit sidecar instead of cluttering
 the graph with guesses.
 
+When the same caller calls the same callee at multiple distinct call
+sites in the source, the mermaid and dot renderers collapse those
+into a single arrow with a multiplicity label — e.g. `C87 -->|3x| C90`
+in mermaid, or `n87 -> n90 [label="3x"];` in dot. The bare arrow form
+is used when the count is 1. JSON and GraphML still emit one edge per
+call site (with `site_line`/`site_byte`) so programmatic consumers
+don't lose call-frequency information.
+
 If an edge you expected is missing, check the audit:
 
 ```bash
