@@ -84,11 +84,13 @@ files) are listed in the audit log under `since_resolved`.
 ```text
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--filter PATTERN]... [-n N] [--max-paths N]
+              [--include-tests] [--ignore-file PATH]
               [--exclude-partial SUBSTRING]...
               [--exclude-glob PATTERN]...
               [--exclude-regex PATTERN]...
               [--stack-graphs auto|on|off]
               [--jobs N] [--lang rust,python,...]
+              [--cache DIR] [--no-cache]
               [--audit-format json|jsonl] [--metrics FILE]
               [-v|-vv|-q]
 ```
@@ -100,12 +102,17 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
+| `--max-paths` | 1000 | Cap per-match path count in `-n 0` mode; overflow logged in audit |
+| `--include-tests` | off | Reserved knob — honored as a no-op in v1 |
+| `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
 | `--exclude-partial` | (none) | Exclude nodes containing substring |
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
 | `--exclude-regex` | (none) | Exclude nodes matching regex |
 | `--stack-graphs` | auto | `auto`: 60s timeout + light fallback; `on`/`off` |
 | `--jobs` | 0 (auto) | Rayon thread count for parallel extraction |
 | `--lang` | (all) | Comma-separated language filter |
+| `--cache` | `./.cgg-cache` | Cache directory |
+| `--no-cache` | (off) | Disable reading and writing the on-disk cache |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 
@@ -125,6 +132,8 @@ source files
 │                ├── type propagation (params, locals,      │
 │                │   constructors, return types)            │
 │                ├── intra-file (scope + containment)       │
+│                ├── stack-graphs (precise name resolution  │
+│                │   with 60s timeout + light fallback)     │
 │                ├── cross-file (imports, pub-use, #include)│
 │                └── FFI (PyO3, wasm-bindgen, napi, JNI,    │
 │                    P/Invoke, C ABI)                       │
@@ -270,7 +279,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1039 callables, 1542 edges, 1532 cross-file, 162ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1039 callables, 1542 edges, 1532 cross-file, 158ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -436,9 +445,12 @@ function each call site actually targets:
    types
 2. **Intra-file linking** — scope-based, smallest-enclosing-range
    containment with receiver-hint narrowing
-3. **Cross-file resolution** — walk import chains, `#include`
+3. **Stack-graphs resolution** — precise name resolution using
+   stack-graphs with a 60-second timeout; falls back to a lightweight
+   BFS resolver if exceeded (`--stack-graphs auto|on|off`)
+4. **Cross-file resolution** — walk import chains, `#include`
    transitive closure (depth 8), pub-use re-export chains
-4. **FFI linking** — detect `#[pyfunction]`, `#[wasm_bindgen]`,
+5. **FFI linking** — detect `#[pyfunction]`, `#[wasm_bindgen]`,
    `#[napi]`, `@JNI`, `[DllImport]`, `extern "C"` and link across
    language boundaries
 
