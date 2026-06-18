@@ -1,8 +1,23 @@
 //! DOT (Graphviz) formatter.
 
 use std::io;
+use cgg_core::graph::Via;
 use cgg_core::Graph;
 use crate::{GraphFormatter, OutputFormat};
+
+/// Per-`via` DOT rendering: a short label tag and extra edge attributes
+/// so over-approximated (dynamic/reference) and exit-node
+/// (external/stdlib) edges are visually distinct from direct calls.
+fn via_dot(via: &Via) -> (&'static str, &'static str) {
+    match via {
+        Via::Direct => ("", ""),
+        Via::Dynamic => ("dyn", ", style=dashed"),
+        Via::Reference => ("ref", ", style=dotted"),
+        Via::External => ("ext", ", color=\"#2266cc\""),
+        Via::Stdlib => ("std", ", color=\"#22aa66\""),
+        Via::Ffi(_) => ("ffi", ", color=\"#cc6622\""),
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct DotFormatter;
@@ -27,21 +42,32 @@ impl GraphFormatter for DotFormatter {
         // first-occurrence order for deterministic, diff-friendly
         // output. JSON/GraphML still emit one entry per call site —
         // this is purely a render-time concern.
-        let mut order: Vec<(u32, u32)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32), u32> =
+        let mut order: Vec<(u32, u32, &str, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
-            let key = (edge.src.as_u32(), edge.dst.as_u32());
+            let (tag, style) = via_dot(&edge.via);
+            let key = (edge.src.as_u32(), edge.dst.as_u32(), tag);
             if counts.insert(key, counts.get(&key).copied().unwrap_or(0) + 1).is_none() {
-                order.push(key);
+                order.push((edge.src.as_u32(), edge.dst.as_u32(), tag, style));
             }
         }
-        for (src, dst) in order {
-            let n = counts[&(src, dst)];
-            if n > 1 {
-                writeln!(out, "  n{src} -> n{dst} [label=\"{n}x\"];")?;
-            } else {
+        for (src, dst, tag, style) in order {
+            let n = counts[&(src, dst, tag)];
+            let label = match (tag.is_empty(), n > 1) {
+                (true, false) => String::new(),
+                (true, true) => format!("{n}x"),
+                (false, false) => tag.to_string(),
+                (false, true) => format!("{tag} {n}x"),
+            };
+            if label.is_empty() && style.is_empty() {
                 writeln!(out, "  n{src} -> n{dst};")?;
+            } else if style.is_empty() {
+                writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"];")?;
+            } else if label.is_empty() {
+                writeln!(out, "  n{src} -> n{dst} [{}];", style.trim_start_matches(", "))?;
+            } else {
+                writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"{style}];")?;
             }
         }
         if graph.callables.is_empty() {
@@ -93,6 +119,8 @@ mod tests {
                 signature_hint: String::new(),
                 visibility: String::new(),
                 attributes: vec![],
+                synthetic: false,
+                trait_impl_target: None,
             });
         }
         for &(s, d, byte) in edge_pairs {

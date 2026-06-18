@@ -32,9 +32,9 @@ use cgg_core::audit::{
     RunMetrics, SkipReason,
 };
 use cgg_core::graph::{
-    CallableKind, CallableNode, FileRecord as GraphFileRecord, Graph,
+    CallEdge, CallableKind, CallableNode, Confidence, FileRecord as GraphFileRecord, Graph, Via,
 };
-use cgg_core::ids::{CallableId, FileId};
+use cgg_core::ids::{CallableId, FileId, ResolverId};
 use cgg_core::{
     build_known_names, classify_external, DefVariant, FileAliases, FileFacts,
 };
@@ -339,6 +339,11 @@ fn run(cli: Cli) -> Result<()> {
                             signature_hint: d.signature_hint.clone(),
                             visibility: d.visibility.clone(),
                             attributes: d.attributes.clone(),
+                            synthetic: d
+                                .attributes
+                                .iter()
+                                .any(|a| a == "synthetic" || a.starts_with("derive:")),
+                            trait_impl_target: trait_impl_target_from_qn(&d.qualified_name),
                         });
 
                         file_audit.callables.push(AuditCallableRef {
@@ -437,6 +442,12 @@ fn run(cli: Cli) -> Result<()> {
             rec.external_calls = classified.external.clone();
         }
         graph.unresolved.extend(classified.unresolved);
+    }
+    // Reference edges (function-as-value, Issue 4) are captured during
+    // extraction but only surfaced under `--reference-edges`. Drop them
+    // here when off, before reconciliation/metrics see them.
+    if !cli.reference_edges {
+        graph.edges.retain(|e| !matches!(e.via, Via::Reference));
     }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
 
@@ -665,6 +676,45 @@ fn run(cli: Cli) -> Result<()> {
         .unresolved
         .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
 
+    // Synthesize external/stdlib exit nodes from the *post-reconciliation*
+    // buckets, so calls that a later resolver bound are not surfaced.
+    if cli.include_external || cli.include_stdlib {
+        synthesize_exit_nodes(
+            &mut graph,
+            &file_records,
+            &mut next_file_id,
+            &mut next_callable_id,
+            cli.include_external,
+            cli.include_stdlib,
+        );
+    }
+
+    // Interface/trait dynamic-dispatch fan-out (Issue 3). Over-approximated
+    // declaration → implementation edges, tagged `Via::Dynamic`; opt-in.
+    if cli.dynamic_dispatch {
+        for e in cgg_resolve::dispatch::fanout(&graph) {
+            graph.add_edge(e);
+        }
+    }
+
+    // Account any synthesized nodes/edges (exit nodes, dispatch fan-out)
+    // in the run metrics so the audit and summary stay consistent with
+    // the emitted graph. A no-op when no synthesis ran.
+    metrics.callables = graph.callables.len() as u64;
+    metrics.edges = graph.edges.len() as u64;
+    // Inter-file edges of the full graph — computed here (pre-query) so
+    // the summary's `cross-file` count is consistent with `edges` even
+    // for a `--filter`'d run. (`--filter`/`-n` later narrows what's
+    // *emitted*, but the summary reports the whole-analysis totals.)
+    let cross_file = graph
+        .edges
+        .iter()
+        .filter(|e| {
+            graph.callables.get(&e.src).map(|s| s.file)
+                != graph.callables.get(&e.dst).map(|d| d.file)
+        })
+        .count() as u64;
+
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {
         events.push(AuditEvent::FileAnalyzed(rec));
@@ -728,13 +778,6 @@ fn run(cli: Cli) -> Result<()> {
     );
     emit_graph(&cli, &graph).context("emitting graph")?;
     emit_audit(&cli, &events).context("writing audit")?;
-
-    let cross_file = metrics.edges - graph.edges.iter()
-        .filter(|e| {
-            graph.callables.get(&e.src).map(|s| s.file)
-                == graph.callables.get(&e.dst).map(|d| d.file)
-        })
-        .count() as u64;
 
     // Break "X skipped" down by reason so users don't see e.g. "22
     // skipped" and assume cgg missed 22 Rust files when it's actually
@@ -895,6 +938,158 @@ fn read_file(path: &std::path::Path) -> Result<Vec<u8>> {
 
 fn variant_to_kind(v: DefVariant) -> CallableKind {
     v.to_callable_kind()
+}
+
+/// A synthetic `FileRecord` standing in for the external / stdlib
+/// "module" that exit nodes belong to.
+fn sentinel_file(id: FileId, path: &str, lang: &str) -> GraphFileRecord {
+    GraphFileRecord {
+        id,
+        path: PathBuf::from(path),
+        language: lang.to_string(),
+        detected_via: "synthesized".to_string(),
+        blake3: "0".repeat(64),
+        size_bytes: 0,
+        lines: 0,
+        parse_ms: 0.0,
+        parse_status: "synthetic".to_string(),
+    }
+}
+
+/// Synthesize deduplicated leaf "exit nodes" for calls into external /
+/// stdlib code (`--include-external` / `--include-stdlib`). One node per
+/// `(language, receiver, name)` symbol; every call site becomes a Low /
+/// `Via::External|Stdlib` edge onto it, so the formatters' parallel-edge
+/// collapse surfaces the call multiplicity. Nodes are minted in
+/// first-encounter order over the already-deterministic file walk, so
+/// ids are stable across runs. Consumes the *post-reconciliation*
+/// per-file buckets, so resolved calls are not surfaced.
+fn synthesize_exit_nodes(
+    graph: &mut Graph,
+    file_records: &[AuditFileRecord],
+    next_file_id: &mut u32,
+    next_callable_id: &mut u32,
+    include_external: bool,
+    include_stdlib: bool,
+) {
+    let resolver = ResolverId::new("exit-node");
+    // (language, receiver, name, is_external) -> exit node id.
+    let mut node_ids: HashMap<(String, String, String, bool), CallableId> = HashMap::new();
+    let mut external_file: Option<FileId> = None;
+    let mut stdlib_file: Option<FileId> = None;
+    let mut edges: Vec<CallEdge> = Vec::new();
+
+    for rec in file_records {
+        let lang = graph
+            .files
+            .get(&rec.file)
+            .map(|f| f.language.clone())
+            .unwrap_or_default();
+        for is_external in [true, false] {
+            let calls = if is_external {
+                if !include_external {
+                    continue;
+                }
+                &rec.external_calls
+            } else {
+                if !include_stdlib {
+                    continue;
+                }
+                &rec.stdlib_calls
+            };
+            let (kind_label, via) = if is_external {
+                ("external", Via::External)
+            } else {
+                ("stdlib", Via::Stdlib)
+            };
+            for call in calls {
+                // An exit node needs a caller to point from.
+                let Some(src) = call.src else { continue };
+                let key = (
+                    lang.clone(),
+                    call.receiver_hint.clone(),
+                    call.name.clone(),
+                    is_external,
+                );
+                let node_id = if let Some(&id) = node_ids.get(&key) {
+                    id
+                } else {
+                    let file_id = if is_external {
+                        *external_file.get_or_insert_with(|| {
+                            let fid = FileId::new(*next_file_id);
+                            *next_file_id += 1;
+                            graph.add_file(sentinel_file(fid, "<external>", "external"))
+                        })
+                    } else {
+                        *stdlib_file.get_or_insert_with(|| {
+                            let fid = FileId::new(*next_file_id);
+                            *next_file_id += 1;
+                            graph.add_file(sentinel_file(fid, "<stdlib>", "stdlib"))
+                        })
+                    };
+                    let id = CallableId::new(*next_callable_id);
+                    *next_callable_id += 1;
+                    let qn = if call.receiver_hint.is_empty() {
+                        format!("<{kind_label}>::{}", call.name)
+                    } else {
+                        format!("<{kind_label}>::{}::{}", call.receiver_hint, call.name)
+                    };
+                    graph.add_callable(CallableNode {
+                        id,
+                        qualified_name: qn,
+                        simple_name: call.name.clone(),
+                        kind: CallableKind::Function,
+                        language: lang.clone(),
+                        file: file_id,
+                        start_line: 0,
+                        end_line: 0,
+                        start_byte: 0,
+                        end_byte: 0,
+                        signature_hint: String::new(),
+                        visibility: String::new(),
+                        attributes: vec![kind_label.to_string()],
+                        synthetic: true,
+                        trait_impl_target: None,
+                    });
+                    node_ids.insert(key, id);
+                    id
+                };
+                edges.push(CallEdge {
+                    src,
+                    dst: node_id,
+                    site_line: call.site_line,
+                    site_byte: call.site_byte,
+                    confidence: Confidence::Low,
+                    via: via.clone(),
+                    resolver: resolver.clone(),
+                });
+            }
+        }
+    }
+    for e in edges {
+        graph.add_edge(e);
+    }
+}
+
+/// Extract the implemented trait from a Rust trait-impl qualified name
+/// (Issue 3): `<DiskStorage as Storage>::put` → `Some("Storage")`,
+/// possibly nested under a module path. Returns `None` for non-impl
+/// names. The bare trait name (last path segment) is returned so it
+/// matches a trait declaration's owner.
+fn trait_impl_target_from_qn(qn: &str) -> Option<String> {
+    let open = qn.find('<')?;
+    let rest = &qn[open + 1..];
+    let close = rest.find('>')?;
+    let inner = &rest[..close];
+    let as_pos = inner.find(" as ")?;
+    let trait_part = inner[as_pos + 4..].trim();
+    Some(
+        trait_part
+            .rsplit("::")
+            .next()
+            .unwrap_or(trait_part)
+            .to_string(),
+    )
 }
 
 /// Deduplicate edges: keep only one edge per (src, dst, site_byte)

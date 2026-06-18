@@ -19,11 +19,13 @@
 //! normally; no deduplication or cycle-breaking is performed.
 
 use cgg_core::{
-    audit::AuditUnresolvedCall,
+    audit::{AuditUnresolvedCall, UnresolvedReason},
     graph::{CallEdge, Confidence, Via},
     ids::{CallableId, FileId, ResolverId},
     DefRecord, FileFacts, RefRecord,
 };
+
+use crate::names::owner_from_qn;
 
 /// Map from a file's definition index (matching `FileFacts.definitions`
 /// order) to the final `CallableId` assigned when inserting into the
@@ -50,6 +52,35 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
         let src = enclosing
             .and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
 
+        // Value-reference (Issue 4): `register(handler)` names `handler`
+        // as a value. Resolve it by name to a same-file callable and emit
+        // a `Via::Reference` edge; if it names no known callable, drop it
+        // silently — value refs must never reach the unresolved/external
+        // buckets.
+        if rref.receiver_hint == cgg_core::VALUE_REF_HINT {
+            let Some(src_id) = src else { continue };
+            let matches: Vec<u32> = facts
+                .definitions
+                .iter()
+                .enumerate()
+                .filter(|(_, d)| d.simple_name == rref.name)
+                .map(|(i, _)| i as u32)
+                .collect();
+            if let [cand_idx] = matches.as_slice() {
+                let dst_id = def_ids[&(facts.file, *cand_idx)];
+                out.edges.push(CallEdge {
+                    src: src_id,
+                    dst: dst_id,
+                    site_line: rref.site_line,
+                    site_byte: rref.site_byte,
+                    confidence: Confidence::Medium,
+                    via: Via::Reference,
+                    resolver: resolver_id.clone(),
+                });
+            }
+            continue;
+        }
+
         // Candidate defs by simple-name match in this file.
         let mut candidates: Vec<(u32, &DefRecord)> = facts
             .definitions
@@ -59,42 +90,78 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
             .map(|(i, d)| (i as u32, d))
             .collect();
 
-        // Receiver-based narrowing. A call of the form `Foo::bar()`
-        // or `obj.bar()` carries a receiver_hint (Rust: `Foo`, `self`;
-        // Python: `obj`, `self`). We narrow the candidate set:
+        // Receiver-based narrowing (Issue 1). A call of the form
+        // `Foo::bar()` or `obj.bar()` carries a receiver_hint that names
+        // the owning type. We resolve it to a target owner and narrow:
         //
         //   * empty receiver            -> no narrowing.
-        //   * `self` / `Self` / `cls`   -> no narrowing (enclosing
-        //                                  scope handles it).
-        //   * anything else             -> candidate qn must contain
-        //                                  the receiver hint as a path
-        //                                  segment (`::` for Rust,
-        //                                  `.` for python). This
-        //                                  filters out `Vec::new` from
-        //                                  matching a local `FileFacts::new`.
+        //   * `self`/`Self`/`cls`/`this`-> owner is the *enclosing*
+        //                                  impl/class's owner type.
+        //   * anything else             -> owner is the receiver hint.
+        //
+        // We first try a strict match (the candidate's *owner* segment —
+        // the one right before the simple name — equals the target),
+        // which alone disambiguates `Parser::new` vs `Cursor::new` and
+        // `Self::new`. Only if that yields nothing do we fall back to
+        // the looser "any path segment equals owner" match, which keeps
+        // module-qualified forms reachable.
         let rh = rref.receiver_hint.as_str();
-        if !rh.is_empty() && rh != "self" && rh != "Self" && rh != "cls" {
-            candidates.retain(|(_, d)| {
-                d.qualified_name
-                    .split("::")
-                    .any(|seg| seg == rh)
-                    || d.qualified_name
-                        .split('.')
-                        .any(|seg| seg == rh)
-            });
+        let is_self = rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
+        if is_self {
+            // `self`/`Self`-qualified call. The owner is the *enclosing
+            // method's* type. We resolve it from the enclosing definition,
+            // but that owner is **derived** (and wrong when the enclosing
+            // def is a nested function whose owner segment is the outer
+            // function, not the class), so we narrow ONLY on an exact
+            // owner match and never fall back to the looser segment match —
+            // a wrong derived owner must not drop otherwise-valid
+            // candidates. When no candidate matches, we leave the set
+            // unnarrowed (resolve by name), which is the historical
+            // behavior for `self` receivers.
+            if let Some(owner) =
+                enclosing.and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
+            {
+                let strict: Vec<(u32, &DefRecord)> = candidates
+                    .iter()
+                    .copied()
+                    .filter(|(_, d)| owner_from_qn(&d.qualified_name) == Some(owner))
+                    .collect();
+                if !strict.is_empty() {
+                    candidates = strict;
+                }
+            }
+        } else if !rh.is_empty() {
+            // Explicit qualifier names the owner. Try a strict owner match
+            // first (disambiguates `Parser::new` vs `Cursor::new`); only
+            // if that yields nothing fall back to the looser "any path
+            // segment equals the qualifier" match, which keeps
+            // module-qualified forms reachable.
+            let strict: Vec<(u32, &DefRecord)> = candidates
+                .iter()
+                .copied()
+                .filter(|(_, d)| owner_from_qn(&d.qualified_name) == Some(rh))
+                .collect();
+            if !strict.is_empty() {
+                candidates = strict;
+            } else {
+                candidates.retain(|(_, d)| {
+                    d.qualified_name.split("::").any(|seg| seg == rh)
+                        || d.qualified_name.split('.').any(|seg| seg == rh)
+                });
+            }
         }
 
         match candidates.as_slice() {
             [] => {
-                out.unresolved.push(AuditUnresolvedCall {
+                out.unresolved.push(AuditUnresolvedCall::new(
                     src,
-                    file: facts.file,
-                    site_line: rref.site_line,
-                    site_byte: rref.site_byte,
-                    name: rref.name.clone(),
-                    receiver_hint: rref.receiver_hint.clone(),
-                    reason: "no-candidate-in-scope".into(),
-                });
+                    facts.file,
+                    rref.site_line,
+                    rref.site_byte,
+                    rref.name.clone(),
+                    rref.receiver_hint.clone(),
+                    UnresolvedReason::NoCandidateInFile,
+                ));
             }
             [(cand_idx, _)] => {
                 let Some(src_id) = src else {
@@ -102,15 +169,15 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     // level) — the edge has no source; record it as
                     // unresolved with a specific reason so Task 6's
                     // resolver can pick it up.
-                    out.unresolved.push(AuditUnresolvedCall {
-                        src: None,
-                        file: facts.file,
-                        site_line: rref.site_line,
-                        site_byte: rref.site_byte,
-                        name: rref.name.clone(),
-                        receiver_hint: rref.receiver_hint.clone(),
-                        reason: "no-enclosing-callable".into(),
-                    });
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        None,
+                        facts.file,
+                        rref.site_line,
+                        rref.site_byte,
+                        rref.name.clone(),
+                        rref.receiver_hint.clone(),
+                        UnresolvedReason::NoEnclosingCallable,
+                    ));
                     continue;
                 };
                 let dst_id = def_ids[&(facts.file, *cand_idx)];
@@ -125,15 +192,17 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                 });
             }
             _ => {
-                out.unresolved.push(AuditUnresolvedCall {
+                let mut rec = AuditUnresolvedCall::new(
                     src,
-                    file: facts.file,
-                    site_line: rref.site_line,
-                    site_byte: rref.site_byte,
-                    name: rref.name.clone(),
-                    receiver_hint: rref.receiver_hint.clone(),
-                    reason: "ambiguous-in-file".into(),
-                });
+                    facts.file,
+                    rref.site_line,
+                    rref.site_byte,
+                    rref.name.clone(),
+                    rref.receiver_hint.clone(),
+                    UnresolvedReason::AmbiguousInFile,
+                );
+                rec.candidates.file_local = candidates.len() as u32;
+                out.unresolved.push(rec);
             }
         }
     }
@@ -246,7 +315,7 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
         assert_eq!(out.unresolved.len(), 1);
-        assert_eq!(out.unresolved[0].reason, "no-candidate-in-scope");
+        assert_eq!(out.unresolved[0].reason, UnresolvedReason::NoCandidateInFile);
         assert_eq!(out.unresolved[0].name, "baz");
     }
 
@@ -264,7 +333,57 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
         assert_eq!(out.unresolved.len(), 1);
-        assert_eq!(out.unresolved[0].reason, "ambiguous-in-file");
+        assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
+        // Evidence is recorded for the regression instrument (Issue 9).
+        assert_eq!(out.unresolved[0].candidates.file_local, 2);
+    }
+
+    #[test]
+    fn owner_qualifier_disambiguates_same_name() {
+        // Both `Parser::new` and `Cursor::new` exist; `Parser::new()`
+        // names the owner, so exactly one candidate must win (Issue 1).
+        let defs = vec![
+            mk_def("build", "m::build", DefVariant::FreeFunction, (0, 50)),
+            mk_def("new", "m::Parser::new", DefVariant::Constructor, (50, 80)),
+            mk_def("new", "m::Cursor::new", DefVariant::Constructor, (80, 110)),
+        ];
+        let refs = vec![RefRecord {
+            name: "new".into(),
+            receiver_hint: "Parser".into(),
+            site_line: 1,
+            site_byte: 10,
+        }];
+        let facts = facts_with(defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.unresolved.len(), 0);
+        assert_eq!(out.edges.len(), 1);
+        assert_eq!(out.edges[0].src, CallableId::new(0)); // m::build
+        assert_eq!(out.edges[0].dst, CallableId::new(1)); // m::Parser::new
+    }
+
+    #[test]
+    fn self_qualifier_resolves_to_enclosing_owner() {
+        // Inside `Widget::build`, `Self::new()` must bind to
+        // `Widget::new`, not the same-named `Gadget::new` (Issue 1).
+        let defs = vec![
+            mk_def("build", "m::Widget::build", DefVariant::InherentMethod, (0, 50)),
+            mk_def("new", "m::Widget::new", DefVariant::Constructor, (50, 80)),
+            mk_def("new", "m::Gadget::new", DefVariant::Constructor, (80, 110)),
+        ];
+        let refs = vec![RefRecord {
+            name: "new".into(),
+            receiver_hint: "Self".into(),
+            site_line: 1,
+            site_byte: 10,
+        }];
+        let facts = facts_with(defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.unresolved.len(), 0);
+        assert_eq!(out.edges.len(), 1);
+        assert_eq!(out.edges[0].src, CallableId::new(0)); // Widget::build
+        assert_eq!(out.edges[0].dst, CallableId::new(1)); // Widget::new
     }
 
     #[test]
@@ -309,6 +428,6 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
         assert_eq!(out.unresolved.len(), 1);
-        assert_eq!(out.unresolved[0].reason, "no-enclosing-callable");
+        assert_eq!(out.unresolved[0].reason, UnresolvedReason::NoEnclosingCallable);
     }
 }

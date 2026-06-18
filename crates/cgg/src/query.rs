@@ -138,7 +138,7 @@ fn paths_through(graph: &Graph, seeds: &HashSet<CallableId>, max_paths: u32) -> 
 
     let entries: Vec<CallableId> = in_degree
         .iter()
-        .filter(|(_, &d)| d == 0)
+        .filter(|(_, d)| **d == 0)
         .map(|(&id, _)| id)
         .collect();
 
@@ -280,6 +280,7 @@ mod tests {
                 start_byte: i * 10, end_byte: (i + 1) * 10,
                 signature_hint: String::new(), visibility: String::new(),
                 attributes: vec![],
+                synthetic: false, trait_impl_target: None,
             });
         }
         // Chain: fn_0 -> fn_1 -> fn_2 -> fn_3

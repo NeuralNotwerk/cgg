@@ -69,6 +69,7 @@ mod tests {
             start_line: 1, end_line: 1, start_byte: 0, end_byte: 10,
             signature_hint: String::new(), visibility: String::new(),
             attributes: vec![],
+            synthetic: false, trait_impl_target: None,
         });
         let mut buf = Vec::new();
         GraphmlFormatter.render(&g, &mut buf).unwrap();

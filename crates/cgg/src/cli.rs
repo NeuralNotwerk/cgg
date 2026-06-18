@@ -126,6 +126,32 @@ pub struct Cli {
     #[arg(long = "stack-graphs", value_enum, default_value_t = StackGraphsArg::Auto)]
     pub stack_graphs: StackGraphsArg,
 
+    /// Include calls into third-party code as deduplicated leaf "exit
+    /// nodes" — one node per external symbol, with each call site
+    /// collapsed onto it. Off by default; the edges are tagged so
+    /// consumers can filter them.
+    #[arg(long = "include-external", action = ArgAction::SetTrue)]
+    pub include_external: bool,
+
+    /// Include calls into the language standard library as deduplicated
+    /// leaf "exit nodes", same as `--include-external` but for the
+    /// stdlib bucket.
+    #[arg(long = "include-stdlib", action = ArgAction::SetTrue)]
+    pub include_stdlib: bool,
+
+    /// Emit interface/trait dynamic-dispatch fan-out edges (declaration
+    /// → each implementation), tagged `dynamic`/low-confidence. The
+    /// exact call-site → declaration edge is always emitted; this flag
+    /// adds the over-approximated fan-out. Off by default.
+    #[arg(long = "dynamic-dispatch", action = ArgAction::SetTrue)]
+    pub dynamic_dispatch: bool,
+
+    /// Emit reference edges for functions passed by name as values
+    /// (`register(handler)`), distinct from call edges and tagged
+    /// `reference`. Off by default.
+    #[arg(long = "reference-edges", action = ArgAction::SetTrue)]
+    pub reference_edges: bool,
+
     /// Force a sidecar metrics file. Useful when `-t json` already
     /// embeds the audit but an external tool wants a split file.
     #[arg(long = "metrics", value_name = "FILE")]

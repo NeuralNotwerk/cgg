@@ -393,6 +393,7 @@ impl<'a> Walker<'a> {
                 if let Some(r) = self.ref_from_call(node) {
                     self.facts.references.push(r);
                 }
+                self.refs_from_args(node);
                 self.walk_children(node);
                 return;
             }
@@ -485,12 +486,15 @@ impl<'a> Walker<'a> {
     /// Detect `let NAME = |..| {..};` and treat the binding as a
     /// named closure definition.
     fn infer_let_type(&mut self, node: Node) {
-        // `let x = Foo::new(...)` or `let x = Foo::builder()`
-        // Pattern field: let_declaration has "pattern" (identifier) and "value" (call_expression)
+        // Infer the type of `let x = Foo::new(...)` / `Foo::builder()` from
+        // the initializer's syntax alone (Issue 5). Deliberately limited to
+        // an *unqualified* `Type::assoc_fn()` call: typing more initializer
+        // forms (qualified paths, struct/enum literals) over-types locals
+        // and, with same-named locals of different builder types in one
+        // file, mis-resolves their method calls.
         let pat = node.child_by_field_name("pattern");
         let val = node.child_by_field_name("value");
         let (Some(pat), Some(val)) = (pat, val) else { return };
-        // Get variable name
         let var_name = if pat.kind() == "identifier" {
             self.text(pat).to_string()
         } else { return; };
@@ -838,6 +842,51 @@ impl<'a> Walker<'a> {
             site_line: start_line,
             site_byte: node.start_byte() as u32,
         })
+    }
+
+    /// Capture functions passed *by name* as arguments — `register(f)`,
+    /// `route("/", handler)` (Issue 4). Each bare identifier in argument
+    /// position is recorded as a value-reference (sentinel receiver), to
+    /// be resolved into a `Via::Reference` edge if it names a known
+    /// callable. Pure syntax; the value is not tracked through the call.
+    fn refs_from_args(&mut self, call: Node) {
+        let Some(args) = call.child_by_field_name("arguments") else { return };
+        let mut cursor = args.walk();
+        for arg in args.named_children(&mut cursor) {
+            // Only a bare `identifier` / `scoped_identifier` standing
+            // alone is a function-as-value reference; calls, literals,
+            // closures, field accesses etc. are not.
+            let ident = match arg.kind() {
+                "identifier" | "scoped_identifier" => self.text(arg),
+                // `&handler` — a reference to the function item.
+                "reference_expression" => {
+                    match arg.named_child(0) {
+                        Some(inner)
+                            if matches!(
+                                inner.kind(),
+                                "identifier" | "scoped_identifier"
+                            ) =>
+                        {
+                            self.text(inner)
+                        }
+                        _ => continue,
+                    }
+                }
+                _ => continue,
+            };
+            if ident.is_empty() || matches!(ident, "Ok" | "Err" | "Some" | "None") {
+                continue;
+            }
+            // The simple name is the last path segment; the resolver
+            // matches it against callable definitions by name.
+            let simple = ident.rsplit("::").next().unwrap_or(ident).to_string();
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: (arg.start_position().row as u32) + 1,
+                site_byte: arg.start_byte() as u32,
+            });
+        }
     }
 }
 

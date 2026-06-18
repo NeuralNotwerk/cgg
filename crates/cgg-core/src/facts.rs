@@ -19,6 +19,15 @@ use std::path::PathBuf;
 use crate::graph::CallableKind;
 use crate::ids::FileId;
 
+/// Sentinel `RefRecord::receiver_hint` value marking a function
+/// referenced as a *value* (passed by name to a registrar/callback)
+/// rather than called — Issue 4. The leading control char can never
+/// appear in real source, so it cannot collide with a real receiver.
+/// The resolver turns these into `Via::Reference` edges (gated behind
+/// `--reference-edges`) and never lets them reach the unresolved /
+/// external buckets.
+pub const VALUE_REF_HINT: &str = "\u{1}value-ref";
+
 /// Variant tag on a definition, refining the callable kind with
 /// language-specific hints. The pipeline collapses this onto the
 /// [`CallableKind`] enum when building the final graph node.

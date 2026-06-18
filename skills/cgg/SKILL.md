@@ -153,6 +153,26 @@ cgg . --lang rust,python -o /tmp/cgg.mmd
 
 Useful in monorepos when you only care about one slice.
 
+### See more than the direct call graph (opt-in)
+
+By default the graph shows resolved internal calls only. Four opt-in
+flags add more, each tagged so you can tell them apart in the mermaid
+edge labels:
+
+```bash
+cgg . --filter 'Service::handle' -n 1 --include-external -o /tmp/cgg.mmd
+```
+
+- `--include-external` / `--include-stdlib` — adds leaf "exit nodes" for
+  third-party / stdlib calls (edges tagged `ext` / `std`). Answers
+  "what does this touch outside the project?"
+- `--dynamic-dispatch` — adds interface/trait declaration → impl fan-out
+  edges (tagged `dyn`). Answers "what could a `dyn Trait` call reach?"
+- `--reference-edges` — adds edges for functions passed by name as
+  values (tagged `ref`), so registered handlers aren't invisible.
+
+Leave them off when you want the clean, high-confidence call graph.
+
 ## Filter tips that save tokens
 
 - **Anchor specifically.** `--filter 'foo$'` matches only callables

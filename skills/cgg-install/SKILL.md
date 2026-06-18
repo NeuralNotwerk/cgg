@@ -18,7 +18,7 @@ Run these checks first. **Do not start the install until every
 prerequisite is green or the user has confirmed the bootstrap step.**
 
 ```bash
-# 1. Rust toolchain (cargo + rustc >= 1.80)
+# 1. Rust toolchain (cargo + rustc >= 1.85, for the 2024 edition)
 command -v cargo && cargo --version
 command -v rustc && rustc --version
 
@@ -49,7 +49,7 @@ shell rc files, and pulls down ~300 MB. Not something to do silently.
 After installation:
 - The user needs to either restart their shell or `source
   $HOME/.cargo/env` so `cargo` is on PATH for the current session.
-- Verify: `rustc --version` should report 1.80 or newer. If older,
+- Verify: `rustc --version` should report 1.85 or newer. If older,
   run `rustup update stable`.
 
 Windows: rustup has its own installer (`rustup-init.exe`) — point

@@ -157,3 +157,29 @@ fn b() {}
     assert!(text.contains("\"edges\":1"));
     assert!(text.contains("\"callables\":2"));
 }
+
+#[test]
+fn exit_nodes_surface_and_dedup_external_calls() {
+    let tmp = TempDir::new().unwrap();
+    // `serde_json::from_str` is called from two functions; both must
+    // collapse onto ONE deduped exit node.
+    let src = "fn a() { serde_json::from_str(\"x\"); }\nfn b() { serde_json::from_str(\"y\"); }\n";
+    write(tmp.path(), "x.rs", src.as_bytes());
+
+    // Default: no exit nodes.
+    let plain = tmp.path().join("plain.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&plain).unwrap();
+    assert!(!g.contains("<external>"), "exit node leaked into default output:\n{g}");
+
+    // --include-external: one shared exit node, two edges onto it.
+    let ext = tmp.path().join("ext.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "--include-external", "-o"]).arg(&ext).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&ext).unwrap();
+    assert!(g.contains("&lt;external&gt;::serde_json::from_str"), "missing exit node:\n{g}");
+    // Exactly one external node for from_str (dedup across the two callers).
+    let node_lines = g.lines().filter(|l| l.contains("serde_json::from_str") && l.contains('[')).count();
+    assert_eq!(node_lines, 1, "expected one deduped exit node, got {node_lines}:\n{g}");
+    // Two |ext| edges land on it.
+    assert_eq!(g.matches("-->|ext|").count(), 2, "expected two ext edges:\n{g}");
+}

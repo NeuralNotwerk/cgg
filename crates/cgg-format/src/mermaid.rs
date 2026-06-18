@@ -7,9 +7,26 @@
 
 use std::io;
 
+use cgg_core::graph::Via;
 use cgg_core::Graph;
 
 use crate::{GraphFormatter, OutputFormat};
+
+/// Short label prefix distinguishing an edge's `via` kind in the
+/// mermaid label slot (mermaid has no native per-edge styling). Direct
+/// edges get no tag so the common case stays clean for agents reading
+/// the graph. Over-approximated edges (`dyn`, `ref`) and exit-node
+/// edges (`ext`, `std`) are tagged so consumers can filter them.
+fn via_tag(via: &Via) -> &'static str {
+    match via {
+        Via::Direct => "",
+        Via::Dynamic => "dyn",
+        Via::Reference => "ref",
+        Via::External => "ext",
+        Via::Stdlib => "std",
+        Via::Ffi(_) => "ffi",
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct MermaidFormatter;
@@ -43,21 +60,30 @@ impl GraphFormatter for MermaidFormatter {
         // arrow and surface the multiplicity as a `|Nx|` edge label
         // when N > 1. First-occurrence order is preserved so output is
         // deterministic and diff-friendly.
-        let mut order: Vec<(u32, u32)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32), u32> =
+        // Collapse identical (src, dst, via-kind) triples. Distinct via
+        // kinds between the same pair stay separate, labeled rows so a
+        // direct call and a dynamic-dispatch fan-out don't merge.
+        let mut order: Vec<(u32, u32, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
-            let key = (edge.src.as_u32(), edge.dst.as_u32());
+            let key = (edge.src.as_u32(), edge.dst.as_u32(), via_tag(&edge.via));
             if counts.insert(key, counts.get(&key).copied().unwrap_or(0) + 1).is_none() {
                 order.push(key);
             }
         }
-        for (src, dst) in order {
-            let n = counts[&(src, dst)];
-            if n > 1 {
-                writeln!(out, "  C{src} -->|{n}x| C{dst}")?;
-            } else {
+        for (src, dst, tag) in order {
+            let n = counts[&(src, dst, tag)];
+            let label = match (tag.is_empty(), n > 1) {
+                (true, false) => String::new(),
+                (true, true) => format!("|{n}x|"),
+                (false, false) => format!("|{tag}|"),
+                (false, true) => format!("|{tag} {n}x|"),
+            };
+            if label.is_empty() {
                 writeln!(out, "  C{src} --> C{dst}")?;
+            } else {
+                writeln!(out, "  C{src} -->{label} C{dst}")?;
             }
         }
 
@@ -118,6 +144,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: Vec::new(),
+            synthetic: false,
+            trait_impl_target: None,
         });
         let b = g.add_callable(CallableNode {
             id: CallableId::new(1),
@@ -133,6 +161,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: Vec::new(),
+            synthetic: false,
+            trait_impl_target: None,
         });
         g.add_edge(CallEdge {
             src: a,
@@ -238,6 +268,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: Vec::new(),
+            synthetic: false,
+            trait_impl_target: None,
         });
         // Order: a->c first, then a second occurrence of a->b, then a->c again.
         g.add_edge(CallEdge {

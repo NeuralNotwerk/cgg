@@ -145,12 +145,19 @@ pub fn classify_external(
 ) -> ClassifyResult {
     let stdlib = stdlib::stdlib_names(language);
     let mut result = ClassifyResult::default();
-    for call in unresolved {
+    for mut call in unresolved {
         let file_aliases = aliases.and_then(|m| m.get(&call.file));
         match classify_one(&call, known_names, stdlib, file_aliases) {
             Verdict::Unresolved => result.unresolved.push(call),
-            Verdict::Stdlib => result.stdlib.push(call),
-            Verdict::External => result.external.push(call),
+            Verdict::Stdlib => {
+                // Record which name-screen fired (Issue 9 evidence).
+                call.name_screen_applied = Some("stdlib".to_string());
+                result.stdlib.push(call);
+            }
+            Verdict::External => {
+                call.name_screen_applied = Some("external".to_string());
+                result.external.push(call);
+            }
         }
     }
     result
@@ -200,14 +207,26 @@ fn classify_one(
     let is_self_receiver =
         rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
 
+    // Owner-aware screen (Issue 6): when the project defines BOTH a
+    // method of this name AND a type matching the receiver, prefer the
+    // project reading over any name-based stdlib screen. A project
+    // `EntityId::len` must not be siphoned into the stdlib bucket just
+    // because `len` is stdlib vocabulary — and a project type that
+    // happens to share a stdlib module's name (`io`, `os`) must not be
+    // masked by rule (a) below either. The owner-based question is asked
+    // *before* the name-based one, which is the whole point of Issue 6.
+    let project_owns_pair =
+        !is_self_receiver && !rh.is_empty() && known_names.contains(name) && known_names.contains(rh);
+
     // Stdlib detection runs first so a Vec::push or .clone() lands in
     // the stdlib bucket even when the project also defines a `push`
     // or `clone` method of its own.
     if let Some(std) = stdlib {
         if !rh.is_empty() && !is_self_receiver {
             // (a) Receiver hint matches stdlib directly, or its first
-            //     dotted segment does (`os.path` → check `os`).
-            if module_is_stdlib(rh, std) {
+            //     dotted segment does (`os.path` → check `os`). Skipped
+            //     when the project owns the (receiver type, method) pair.
+            if !project_owns_pair && module_is_stdlib(rh, std) {
                 return Verdict::Stdlib;
             }
             // (b) Receiver hint is a local alias for a stdlib module
@@ -324,15 +343,15 @@ mod tests {
     use crate::ids::FileId;
 
     fn mk_call(name: &str, rh: &str) -> AuditUnresolvedCall {
-        AuditUnresolvedCall {
-            src: None,
-            file: FileId::new(0),
-            site_line: 1,
-            site_byte: 0,
-            name: name.to_string(),
-            receiver_hint: rh.to_string(),
-            reason: "no-candidate-in-scope".to_string(),
-        }
+        AuditUnresolvedCall::new(
+            None,
+            FileId::new(0),
+            1,
+            0,
+            name.to_string(),
+            rh.to_string(),
+            crate::audit::UnresolvedReason::NoCandidateInFile,
+        )
     }
 
     fn names<'a>(items: &'a [&'a str]) -> HashSet<&'a str> {
@@ -365,6 +384,26 @@ mod tests {
         let known: HashSet<&str> = HashSet::new();
         assert_eq!(
             classify_one(&mk_call("getcwd", "os.path"), &known, Some(&std), None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn project_owned_pair_beats_stdlib_module_name() {
+        // Issue 6: a project type named like a stdlib module (`io`) with
+        // its own method (`read`) must be asked about by owner *before*
+        // the name-based stdlib screen — owner lookup wins.
+        let std = names(&["io", "os", "read"]);
+        let known = names(&["io", "read"]);
+        assert_eq!(
+            classify_one(&mk_call("read", "io"), &known, Some(&std), None),
+            Verdict::Unresolved
+        );
+        // But when the project does NOT own the type, the stdlib module
+        // reading still applies.
+        let known_empty: HashSet<&str> = HashSet::new();
+        assert_eq!(
+            classify_one(&mk_call("read", "io"), &known_empty, Some(&std), None),
             Verdict::Stdlib
         );
     }

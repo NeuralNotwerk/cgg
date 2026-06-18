@@ -10,4 +10,8 @@ pub const CGG_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// output shape changes in a way that invalidates cached results.
 ///
 /// Keep this as a plain integer so ordering checks are trivial.
-pub const RESOLVER_FORMAT_VERSION: u32 = 1;
+///
+/// v2 (0.2.0): Rust extraction now emits function-as-value reference
+/// records, and the resolver/graph gained new edge kinds and node
+/// fields — old cached facts would under-produce the new edges.
+pub const RESOLVER_FORMAT_VERSION: u32 = 2;

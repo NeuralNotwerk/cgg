@@ -63,6 +63,120 @@ impl SkipReason {
     }
 }
 
+/// How the receiver's type was known at a call site (Issue 9). Recorded
+/// so the unresolved population can be sliced by how much was actually
+/// known — a missing edge with a known receiver type is a resolver
+/// defect; one with no hint at all may be unknowable.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReceiverProvenance {
+    /// No receiver hint was available at the site.
+    #[default]
+    None,
+    /// Hint came from a function parameter's type annotation.
+    ParamAnnotation,
+    /// Hint came from a struct/class field's declared type.
+    FieldType,
+    /// Hint came from a local initializer (`let x = Type::new()`).
+    Initializer,
+}
+
+impl ReceiverProvenance {
+    fn is_none(&self) -> bool {
+        matches!(self, ReceiverProvenance::None)
+    }
+}
+
+/// Candidate counts at each index the resolver consulted before giving
+/// up (Issue 9). Lets a precision regression be localized to a stage.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateCounts {
+    #[serde(default)]
+    pub file_local: u32,
+    #[serde(default)]
+    pub package: u32,
+    #[serde(default)]
+    pub workspace: u32,
+}
+
+impl CandidateCounts {
+    fn is_empty(&self) -> bool {
+        self.file_local == 0 && self.package == 0 && self.workspace == 0
+    }
+}
+
+/// Which resolution stage rejected an unresolved call, with the
+/// stage-specific failure (Issue 9). Replaces the old free-form reason
+/// string; legacy string forms still deserialize via [`de_reason`], so
+/// old audit JSON remains readable.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "stage", content = "detail")]
+pub enum UnresolvedReason {
+    /// Intra-file: no same-name candidate in the file.
+    NoCandidateInFile,
+    /// Intra-file: multiple same-name candidates; not disambiguated.
+    AmbiguousInFile,
+    /// Intra-file: the reference is not inside any callable body.
+    NoEnclosingCallable,
+    /// Cross-file: no candidate found across the workspace.
+    NoCandidateCrossFile,
+    /// Rejected by the stack-graphs resolver.
+    StackGraphs,
+    /// Any other / legacy reason, preserving the original text.
+    Other(String),
+}
+
+impl UnresolvedReason {
+    /// Map a legacy free-form reason slug onto the structured form.
+    pub fn from_legacy(s: &str) -> Self {
+        match s {
+            "no-candidate-in-scope" => UnresolvedReason::NoCandidateInFile,
+            "ambiguous-in-file" | "ambiguous" => UnresolvedReason::AmbiguousInFile,
+            "no-enclosing-callable" => UnresolvedReason::NoEnclosingCallable,
+            other => UnresolvedReason::Other(other.to_string()),
+        }
+    }
+
+    /// Short stable slug for metrics bucketing.
+    pub fn slug(&self) -> &str {
+        match self {
+            UnresolvedReason::NoCandidateInFile => "no-candidate-in-file",
+            UnresolvedReason::AmbiguousInFile => "ambiguous-in-file",
+            UnresolvedReason::NoEnclosingCallable => "no-enclosing-callable",
+            UnresolvedReason::NoCandidateCrossFile => "no-candidate-cross-file",
+            UnresolvedReason::StackGraphs => "stack-graphs",
+            UnresolvedReason::Other(s) => s.as_str(),
+        }
+    }
+}
+
+/// Deserialize a reason from either the structured object form
+/// (`{"stage": "..."}`) or a legacy free-form string. Keeps old audit
+/// JSON readable after the Issue 9 schema change.
+fn de_reason<'de, D>(d: D) -> Result<UnresolvedReason, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    struct R;
+    impl<'de> Visitor<'de> for R {
+        type Value = UnresolvedReason;
+        fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("an unresolved-reason string or {stage, detail} object")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<UnresolvedReason, E> {
+            Ok(UnresolvedReason::from_legacy(v))
+        }
+        fn visit_map<A: de::MapAccess<'de>>(
+            self,
+            map: A,
+        ) -> Result<UnresolvedReason, A::Error> {
+            UnresolvedReason::deserialize(de::value::MapAccessDeserializer::new(map))
+        }
+    }
+    d.deserialize_any(R)
+}
+
 /// A single call site that the resolver could not bind to any
 /// in-project callable.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -76,9 +190,48 @@ pub struct AuditUnresolvedCall {
     /// Empty if the call is unqualified.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub receiver_hint: String,
-    /// Human-readable explanation (`"no-candidate-in-scope"`,
-    /// `"ambiguous"`, `"macro-expansion"`, `"dynamic-dispatch"`).
-    pub reason: String,
+    /// Which resolution stage rejected the site (Issue 9). Was a
+    /// free-form string; legacy strings still parse.
+    #[serde(deserialize_with = "de_reason")]
+    pub reason: UnresolvedReason,
+    /// How the receiver's type was known at the site, if at all.
+    #[serde(default, skip_serializing_if = "ReceiverProvenance::is_none")]
+    pub receiver_provenance: ReceiverProvenance,
+    /// Candidate counts at each index consulted before giving up.
+    #[serde(default, skip_serializing_if = "CandidateCounts::is_empty")]
+    pub candidates: CandidateCounts,
+    /// Set when a name-based screen (e.g. stdlib vocabulary) was applied
+    /// before owner-based lookup: `"stdlib"`, `"external"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name_screen_applied: Option<String>,
+}
+
+impl AuditUnresolvedCall {
+    /// Construct from a reference with the given stage reason. Evidence
+    /// fields (provenance, candidate counts, name screen) default to
+    /// unknown and may be filled in by later stages.
+    pub fn new(
+        src: Option<CallableId>,
+        file: FileId,
+        site_line: u32,
+        site_byte: u32,
+        name: String,
+        receiver_hint: String,
+        reason: UnresolvedReason,
+    ) -> Self {
+        Self {
+            src,
+            file,
+            site_line,
+            site_byte,
+            name,
+            receiver_hint,
+            reason,
+            receiver_provenance: ReceiverProvenance::None,
+            candidates: CandidateCounts::default(),
+            name_screen_applied: None,
+        }
+    }
 }
 
 /// An FFI descriptor detected in source.
@@ -428,5 +581,30 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert!(parsed.is_array());
         assert_eq!(parsed.as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn unresolved_reason_round_trip_and_legacy() {
+        // Structured form round-trips.
+        let mut c = AuditUnresolvedCall::new(
+            None,
+            FileId::new(0),
+            1,
+            2,
+            "m".into(),
+            "T".into(),
+            UnresolvedReason::AmbiguousInFile,
+        );
+        c.candidates.file_local = 3;
+        let s = serde_json::to_string(&c).unwrap();
+        assert!(s.contains("\"stage\":\"ambiguous-in-file\""));
+        let c2: AuditUnresolvedCall = serde_json::from_str(&s).unwrap();
+        assert_eq!(c2.reason, UnresolvedReason::AmbiguousInFile);
+        assert_eq!(c2.candidates.file_local, 3);
+
+        // Legacy free-form string form still parses.
+        let legacy = r#"{"src":null,"file":0,"site_line":1,"site_byte":2,"name":"m","reason":"ambiguous-in-file"}"#;
+        let c3: AuditUnresolvedCall = serde_json::from_str(legacy).unwrap();
+        assert_eq!(c3.reason, UnresolvedReason::AmbiguousInFile);
     }
 }

@@ -271,6 +271,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec!["#[pyfunction]".into()],
+            synthetic: false,
+            trait_impl_target: None,
         });
         // Python caller with same name (it imported the binding)
         g.add_callable(CallableNode {
@@ -285,6 +287,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
         });
         g
     }

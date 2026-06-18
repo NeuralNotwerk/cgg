@@ -10,8 +10,10 @@
 #![warn(unreachable_pub)]
 
 pub mod cross_file;
+pub mod dispatch;
 pub mod ffi;
 pub mod intra_file;
+pub mod names;
 pub mod type_hints;
 pub mod stack_graphs_resolver;
 

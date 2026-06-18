@@ -57,7 +57,12 @@ pub fn propagate_types_with_returns(
     // refs that look like constructors (name matches a type pattern).
     let constructor_types = find_constructor_assignments(facts);
 
-    // Pass 2b: Build map from explicit local variable type declarations.
+    // Pass 2b: Build map from explicit local variable type declarations,
+    // keyed by (enclosing-callable start_byte, var_name) so two `let
+    // builder = XBuilder::new()` in different functions of the same file
+    // don't conflate to one type — a file-wide last-write-wins map
+    // mis-resolves `builder.method()` to whichever builder type was
+    // declared last in the file.
     let mut local_type_map: HashMap<&str, &str> = HashMap::new();
     // Scoped lookup for self-field LocalTypes: keyed by the method's
     // body start_byte so we don't bleed Type A's `self.store` into
@@ -76,7 +81,13 @@ pub fn propagate_types_with_returns(
     let mut rewrites: Vec<(usize, String)> = Vec::new();
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
-        if rh.is_empty() || rh == "self" || rh == "Self" || rh == "cls" || rh == "this" {
+        if rh.is_empty()
+            || rh == "self"
+            || rh == "Self"
+            || rh == "cls"
+            || rh == "this"
+            || rh == cgg_core::VALUE_REF_HINT
+        {
             continue;
         }
 

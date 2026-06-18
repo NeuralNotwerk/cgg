@@ -55,8 +55,20 @@ pub enum Via {
     /// An ordinary, resolved call within one language.
     Direct,
     /// An ambiguous dispatch collapsed to a family (dynamic dispatch,
-    /// virtual call, duck typing).
+    /// virtual call, duck typing). Issue 3's interface/trait-dispatch
+    /// fan-out edges (declaration → each implementation) use this and
+    /// are gated behind `--dynamic-dispatch`.
     Dynamic,
+    /// A function referenced as a value (passed by name to a registrar /
+    /// callback slot) rather than called (Issue 4). Gated behind
+    /// `--reference-edges`.
+    Reference,
+    /// An edge to a synthesized leaf "exit node" standing in for a call
+    /// into third-party code, surfaced by `--include-external`.
+    External,
+    /// An edge to a synthesized leaf "exit node" standing in for a call
+    /// into the language standard library, surfaced by `--include-stdlib`.
+    Stdlib,
     /// A cross-language edge produced by the FFI linker. The payload
     /// names the family (`"c-abi"`, `"pyo3"`, `"jni"`, `"napi"`,
     /// `"wasm-bindgen"`, `"cbindgen"`, `"uniffi"`).
@@ -94,6 +106,19 @@ pub struct CallableNode {
     /// (`"#[get]"`, `"@app.route"`, `"@Override"`). Case-preserving.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub attributes: Vec<String>,
+
+    /// True for nodes not written literally in source: synthesized
+    /// exit nodes for external/stdlib calls (`--include-external` /
+    /// `--include-stdlib`) and derive/codegen-surfaced methods (Issue 8).
+    /// Lets consumers filter the over-approximated surface.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub synthetic: bool,
+
+    /// For a concrete trait/interface implementation method, the trait it
+    /// implements (Issue 3). `Some("Storage")` for
+    /// `<DiskStorage as Storage>::put`. Drives the dispatch fan-out index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trait_impl_target: Option<String>,
 }
 
 /// A directed call edge.
@@ -192,6 +217,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
         }
     }
 

@@ -26,10 +26,12 @@ pub mod version;
 
 pub use audit::{
     AuditEvent, AuditFileRecord, AuditFfiRecord, AuditUnresolvedCall, AuditWriter,
-    FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter, RunAuditBuilder, RunMetrics,
-    SkipReason,
+    CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter, ReceiverProvenance,
+    RunAuditBuilder, RunMetrics, SkipReason, UnresolvedReason,
 };
-pub use facts::{DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord};
+pub use facts::{
+    DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord, VALUE_REF_HINT,
+};
 pub use external::{
     build_alias_map, build_known_names, classify_external, ClassifyResult, FileAliases,
 };

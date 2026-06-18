@@ -680,3 +680,162 @@ fn bash_source_resolves() {
     let has_edge = mains.iter().any(|m| helpers.iter().any(|h| g.contains(&format!("{m} --> {h}"))));
     assert!(has_edge, "missing bash source edge:\n{g}");
 }
+
+#[test]
+fn rust_owner_disambiguation_and_constructor_cascade() {
+    // Issues 1 + 5: two `new` methods (World::new, Other::new) are an
+    // ambiguous name, but `World::new()` names its owner and the bound
+    // local `w` types every subsequent `w.method()`. None of these may
+    // mis-resolve to `Other`.
+    let tmp = TempDir::new().unwrap();
+    let src = r#"
+struct World { v: u32 }
+struct Other { v: u32 }
+impl World {
+    fn new() -> Self { World { v: 0 } }
+    fn load(&self) {}
+    fn step(&self) {}
+}
+impl Other {
+    fn new() -> Self { Other { v: 0 } }
+}
+fn run() {
+    let w = World::new();
+    w.load();
+    w.step();
+}
+"#;
+    write(tmp.path(), "w.rs", src.as_bytes());
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "--filter", "crate::run$", "-n", "1", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    // The cascade resolves every call on `w` to World, including the
+    // ambiguous `new`.
+    assert!(g.contains("crate::World::new"), "missing World::new:\n{g}");
+    assert!(g.contains("crate::World::load"), "missing World::load:\n{g}");
+    assert!(g.contains("crate::World::step"), "missing World::step:\n{g}");
+    // The same-named `Other::new` must never appear in run's neighborhood.
+    assert!(!g.contains("crate::Other::new"), "Other::new mis-resolved:\n{g}");
+}
+
+#[test]
+fn rust_cross_file_receiver_method_resolves() {
+    // Issue 2: a method call on a parameter of known type must resolve
+    // to that type's method defined in *another* file, via the
+    // (owner, method) index.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "reg.rs",
+        b"pub struct Registry { v: u32 }\nimpl Registry {\n    pub fn commit(&mut self) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "flush.rs",
+        b"use crate::Registry;\nfn flush(reg: &mut Registry) {\n    reg.commit();\n}\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    assert!(g.contains("crate::flush"), "missing flush:\n{g}");
+    assert!(g.contains("crate::Registry::commit"), "missing commit:\n{g}");
+    // The flush -> commit edge must exist.
+    let flush_id = g.lines().find(|l| l.contains("crate::flush")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
+    let commit_id = g.lines().find(|l| l.contains("crate::Registry::commit")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
+    let (Some(f), Some(c)) = (flush_id, commit_id) else { panic!("ids:\n{g}") };
+    assert!(g.contains(&format!("{f} --> {c}")), "missing flush->commit edge:\n{g}");
+}
+
+#[test]
+fn rust_aliased_type_receiver_resolves() {
+    // Issue 7: a receiver typed through an import alias
+    // (`use ... as Motor`) must canonicalize to the real owner so the
+    // method call resolves to the underlying type's method.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib.rs",
+        b"pub mod engine;\npub use engine::Engine;\n",
+    );
+    write(
+        tmp.path(),
+        "engine.rs",
+        b"pub struct Engine;\nimpl Engine {\n    pub fn start(&self) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "drive.rs",
+        b"use crate::Engine as Motor;\nfn drive(m: &Motor) {\n    m.start();\n}\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    let drive_id = g.lines().find(|l| l.contains("crate::drive")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
+    let start_id = g.lines().find(|l| l.contains("crate::Engine::start")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
+    let (Some(d), Some(s)) = (drive_id, start_id) else { panic!("ids:\n{g}") };
+    assert!(g.contains(&format!("{d} --> {s}")), "missing drive->Engine::start edge:\n{g}");
+}
+
+#[test]
+fn rust_dynamic_dispatch_fanout_is_opt_in() {
+    let tmp = TempDir::new().unwrap();
+    let src = r#"
+trait Storage { fn put(&mut self, k: &str); }
+struct DiskStorage;
+struct MemStorage;
+impl Storage for DiskStorage { fn put(&mut self, k: &str) {} }
+impl Storage for MemStorage { fn put(&mut self, k: &str) {} }
+"#;
+    write(tmp.path(), "s.rs", src.as_bytes());
+
+    // Default: no dynamic fan-out edges.
+    let plain = tmp.path().join("p.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
+    assert_eq!(fs::read_to_string(&plain).unwrap().matches("-->|dyn|").count(), 0);
+
+    // With --dynamic-dispatch: Storage::put fans out to both impls.
+    let dyn_out = tmp.path().join("d.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "--dynamic-dispatch", "-o"]).arg(&dyn_out).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&dyn_out).unwrap();
+    assert_eq!(g.matches("-->|dyn|").count(), 2, "expected 2 dynamic fan-out edges:\n{g}");
+}
+
+#[test]
+fn rust_reference_edges_are_opt_in() {
+    let tmp = TempDir::new().unwrap();
+    let src = "fn tick(w: u32) {}\nfn boot() { register(tick); }\nfn register(f: fn(u32)) {}\n";
+    write(tmp.path(), "r.rs", src.as_bytes());
+
+    // Default: tick has in-degree zero (no reference edge).
+    let plain = tmp.path().join("p.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
+    assert_eq!(fs::read_to_string(&plain).unwrap().matches("-->|ref|").count(), 0);
+
+    // --reference-edges: boot -[ref]-> tick.
+    let refs = tmp.path().join("r.mmd");
+    cgg().args(["--no-cache", "--stack-graphs", "off", "--reference-edges", "-o"]).arg(&refs).arg(tmp.path()).assert().success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("-->|ref|").count(), 1, "expected one reference edge:\n{g}");
+    assert!(g.contains("crate::tick"), "{g}");
+}

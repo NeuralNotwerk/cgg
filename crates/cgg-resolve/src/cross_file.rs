@@ -32,6 +32,8 @@ use cgg_core::{
     FileFacts,
 };
 
+use crate::names::owner_from_qn;
+
 /// Output of the cross-file resolver.
 #[derive(Debug, Default)]
 pub struct CrossFileOutput {
@@ -44,8 +46,13 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
     let resolver_id = ResolverId::new("cross-file:imports");
 
     // Index callables by (language, qualified_name) and (language, simple_name).
+    // Also build a (language, owner_type, method) index (Issue 2) so a
+    // method call on a receiver of known type resolves with an O(1)
+    // lookup instead of scanning every qualified name.
     let mut by_qn: HashMap<(String, String), CallableId> = HashMap::new();
     let mut by_simple: HashMap<(String, String), Vec<CallableId>> = HashMap::new();
+    let mut by_owner_method: HashMap<(String, String, String), Vec<CallableId>> =
+        HashMap::new();
     for c in graph.callables.values() {
         by_qn.insert(
             (c.language.clone(), c.qualified_name.clone()),
@@ -55,6 +62,12 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
             .entry((c.language.clone(), c.simple_name.clone()))
             .or_default()
             .push(c.id);
+        if let Some(owner) = owner_from_qn(&c.qualified_name) {
+            by_owner_method
+                .entry((c.language.clone(), owner.to_string(), c.simple_name.clone()))
+                .or_default()
+                .push(c.id);
+        }
     }
 
     // Build a re-export map (Rust only, for now). Every `pub use` in a
@@ -551,6 +564,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 &scoped_simple,
                 &by_qn,
                 &by_simple,
+                &by_owner_method,
                 &reexports,
                 caller_qn,
             ) {
@@ -644,6 +658,7 @@ fn try_resolve_ref(
     scoped_simple: &HashMap<String, Vec<CallableId>>,
     by_qn: &HashMap<(String, String), CallableId>,
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
     caller_qn: Option<&str>,
 ) -> Option<Vec<CallableId>> {
@@ -814,33 +829,55 @@ fn try_resolve_ref(
             }
         }
 
-        // Step 4: Type-qualified method call fallback.
-        // When receiver_hint is a type name (e.g. "MermaidFormatter") and
-        // name is "new", search all callables for one whose qualified_name
-        // ends with "::MermaidFormatter::new" or "::MermaidFormatter::new".
-        // This handles cross-crate constructor/method calls without needing
-        // explicit import tracking.
+        // Step 4: Type-qualified method call (Issue 2).
+        // When receiver_hint is a type name (e.g. "MermaidFormatter"),
+        // look the owning type up directly in the (owner, method) index —
+        // O(1) — instead of scanning every qualified name. `type_hints`
+        // rewrites a typed local/param receiver to its type name before
+        // this runs, so `reg.commit()` with `reg: Registry` arrives here
+        // as receiver_hint = "Registry".
         let rh = r.receiver_hint.trim();
         if !rh.is_empty()
             && rh != "self" && rh != "Self" && rh != "cls"
             && rh.chars().next().map_or(false, |c| c.is_uppercase())
         {
-            let suffix_colon = format!("::{}::{}", rh, r.name);
-            let suffix_dot = format!(".{}.{}", rh, r.name);
-            let cids: Vec<_> = by_qn
-                .iter()
-                .filter(|((l, qn), _)| {
-                    l == lang && (qn.ends_with(&suffix_colon) || qn.ends_with(&suffix_dot))
-                })
-                .map(|(_, &cid)| cid)
-                .collect();
-            if cids.len() == 1 {
-                return Some(cids);
+            // The owner key in the index is the *bare* type name. A
+            // receiver can arrive as a multi-segment path (`Utils::Platforms`,
+            // `a.b.Thing`), so also try its last segment as the owner —
+            // this is what the previous suffix-scan matched and must not
+            // regress. Additionally canonicalize an aliased receiver type
+            // through the file's import map (Issue 7): `use a::b::Engine as
+            // Motor` means a receiver typed `Motor` owns whatever `Engine`
+            // owns, so try the alias target's bare type name too.
+            let mut owners: Vec<&str> = vec![rh];
+            let last_seg = rh
+                .rsplit(|c| c == ':' || c == '.')
+                .next()
+                .filter(|s| !s.is_empty());
+            if let Some(last) = last_seg {
+                if last != rh {
+                    owners.push(last);
+                }
             }
-            // If multiple matches, still return them — let the caller
-            // pick the best or emit all as medium-confidence.
-            if !cids.is_empty() {
-                return Some(cids);
+            if let Some(paths) = direct_imports.get(rh) {
+                for p in paths {
+                    let last = p.rsplit("::").next().unwrap_or(p);
+                    if last != rh {
+                        owners.push(last);
+                    }
+                }
+            }
+            for owner in owners {
+                if let Some(cids) =
+                    by_owner_method.get(&(lang.to_string(), owner.to_string(), r.name.clone()))
+                {
+                    if !cids.is_empty() {
+                        // One match is exact; multiple share owner+method —
+                        // return all as medium-confidence and let the
+                        // caller decide.
+                        return Some(cids.clone());
+                    }
+                }
             }
         }
 
@@ -967,6 +1004,8 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
         }
     }
 
