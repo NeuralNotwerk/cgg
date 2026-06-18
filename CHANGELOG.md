@@ -15,6 +15,16 @@ overload-distinguishing granularity), and faster.
 
 ### Added
 
+- **Update check.** A best-effort, **opt-out**, once-a-day "newer
+  release available?" notice. It runs on a background thread that
+  overlaps the analysis, prints a single line to stderr only in an
+  interactive terminal, and caches its result in
+  `$XDG_CACHE_HOME/cgg/update-check.json` (so the network is hit at most
+  once per 24h). It is cgg's *only* network access, never affects the
+  graph/output/exit-code, and is disabled by `--no-update-check`,
+  `--quiet`, a non-interactive invocation, or `CGG_NO_UPDATE_CHECK` /
+  `DO_NOT_TRACK` / `CI`. (Adds cgg's first network dependency, `minreq`
+  + rustls — binary stays self-contained, no system OpenSSL.)
 - **`--include-external` / `--include-stdlib`** — surface calls into
   third-party / standard-library code as deduplicated leaf "exit nodes"
   (one node per `(language, receiver, name)` symbol; every call site

@@ -121,6 +121,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
+| `--no-update-check` | off | Disable the once-a-day "newer release?" check (the only network call cgg makes) |
 
 ## How it works
 
@@ -153,8 +154,16 @@ source files
 mermaid flowchart (or json/dot/graphml)
 ```
 
-Every phase is offline and deterministic. No network calls, no
-language servers, no build artifacts required.
+Every analysis phase is offline and deterministic — no network calls, no
+language servers, no build artifacts required. The single exception is an
+optional, opt-out, once-a-day "newer release available?" check that runs
+on a background thread and only ever prints to stderr in an interactive
+terminal. It never touches the graph, the output, or the exit code, and
+is disabled entirely by `--no-update-check`, `--quiet`, a non-interactive
+(piped/CI/agent) invocation, or `CGG_NO_UPDATE_CHECK` / `DO_NOT_TRACK` /
+`CI` in the environment. The result is cached in
+`$XDG_CACHE_HOME/cgg/update-check.json`, so the network is contacted at
+most once per 24h.
 
 ## Agent integration patterns
 
@@ -285,7 +294,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1076 callables, 1762 edges, 401 cross-file, 123ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1088 callables, 1776 edges, 405 cross-file, 133ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash

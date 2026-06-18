@@ -12,6 +12,7 @@
 mod cli;
 mod query;
 mod since;
+mod update_check;
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -98,6 +99,11 @@ fn run(cli: Cli) -> Result<()> {
         format = %OutputFormat::from(cli.format),
         "cgg starting"
     );
+
+    // Kick off the (interactive-only, opt-out, once-a-day) "newer release?"
+    // check on a background thread so it overlaps the analysis. Joined and
+    // printed at the very end of the run.
+    let update_handle = update_check::spawn(cli.quiet || cli.no_update_check);
 
     for p in &cli.paths {
         if !p.exists() {
@@ -855,6 +861,10 @@ fn run(cli: Cli) -> Result<()> {
             );
         }
     }
+
+    // Join the background version check and print its notice last, so it
+    // trails the run summary. No-op unless an interactive check was spawned.
+    update_check::finish(update_handle);
 
     Ok(())
 }

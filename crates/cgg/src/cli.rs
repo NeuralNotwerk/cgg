@@ -164,6 +164,12 @@ pub struct Cli {
     /// Silence everything except errors.
     #[arg(short = 'q', long = "quiet", action = ArgAction::SetTrue)]
     pub quiet: bool,
+
+    /// Disable the once-a-day "newer release available?" check (the only
+    /// network call cgg makes). Also disabled by `CGG_NO_UPDATE_CHECK`,
+    /// `DO_NOT_TRACK`, `CI`, `--quiet`, or non-interactive output.
+    #[arg(long = "no-update-check", action = ArgAction::SetTrue)]
+    pub no_update_check: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
