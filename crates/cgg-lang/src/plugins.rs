@@ -37,6 +37,12 @@ pub mod nix;
 pub mod verilog;
 pub mod vhdl;
 pub mod asm;
+pub mod smithy;
+pub mod proto;
+pub mod graphql;
+pub mod structured;
+pub mod openapi;
+pub mod asyncapi;
 
 use crate::PluginRegistry;
 
@@ -124,6 +130,11 @@ pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(verilog::VerilogPlugin));
     reg.register(Box::new(vhdl::VhdlPlugin));
     reg.register(Box::new(asm::AsmPlugin));
+    reg.register(Box::new(smithy::SmithyPlugin));
+    reg.register(Box::new(proto::ProtoPlugin));
+    reg.register(Box::new(graphql::GraphqlPlugin));
+    reg.register(Box::new(openapi::OpenApiPlugin));
+    reg.register(Box::new(asyncapi::AsyncApiPlugin));
 }
 
 #[cfg(test)]

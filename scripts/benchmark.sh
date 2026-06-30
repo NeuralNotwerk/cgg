@@ -8,13 +8,13 @@
 #   - To refresh the README benchmark table's per-language numbers.
 #   - To validate a resolver change against real-world projects.
 #
-# Clones each repo into $CGG_BENCH_DIR (default /storage/tmp). First run
+# Clones each repo into $CGG_BENCH_DIR (default /storage/cgg-test_repos). First run
 # is multi-minute and network-bound; subsequent runs reuse the clones.
 # Does NOT patch README.md — follow up with
 # `scripts/update-readme-stats.sh` to regenerate the README table.
 set -uo pipefail
 
-REPOS_DIR="${CGG_BENCH_DIR:-/storage/tmp}"
+REPOS_DIR="${CGG_BENCH_DIR:-/storage/cgg-test_repos}"
 CGG="${CGG_BIN:-$(dirname "$0")/../target/release/cgg}"
 
 # Ensure cgg is built
@@ -65,6 +65,11 @@ REPOS=(
     "vhdl-uvvm|https://github.com/UVVM/UVVM.git|vhdl|uvvm_util/src||"
     "asm-xv6|https://github.com/mit-pdos/xv6-public.git|asm|||"
     "asm-xv6-mixed|https://github.com/mit-pdos/xv6-public.git|c,asm|||"
+    "smithy-protocol-tests|https://github.com/smithy-lang/smithy.git|smithy|smithy-aws-protocol-tests/model||"
+    "proto-grpc|https://github.com/grpc/grpc-proto.git|proto|||"
+    "graphql-github|https://github.com/octokit/graphql-schema.git|graphql|||"
+    "openapi-spec|https://github.com/OAI/OpenAPI-Specification.git|openapi|examples||"
+    "asyncapi-spec|https://github.com/asyncapi/spec.git|asyncapi|examples||"
 )
 
 # Clone or update repos

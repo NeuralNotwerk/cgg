@@ -28,7 +28,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CGG="${ROOT}/target/release/cgg"
 README="${ROOT}/README.md"
-REPOS_DIR="${CGG_BENCH_DIR:-/storage/tmp}"
+REPOS_DIR="${CGG_BENCH_DIR:-/storage/cgg-test_repos}"
 
 if [ ! -f "$CGG" ]; then
     echo "Build cgg first: cargo build --release -p cgg" >&2

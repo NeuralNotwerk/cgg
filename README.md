@@ -133,7 +133,7 @@ source files
 │  cgg-walk      file discovery (.gitignore, deny-list)     │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-lang      tree-sitter parse → extract callables      │
-│                39 language plugins (+ .ipynb notebooks)   │
+│                44 language plugins (+ .ipynb notebooks)   │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-resolve   link calls to definitions                  │
 │                ├── type propagation (params, locals,      │
@@ -245,7 +245,14 @@ confirm caller/callee impact. Grep finds string matches; `cgg` finds
 resolved calls — including method dispatch and cross-file edges that
 grep will miss or over-match.
 
-## Supported languages (39)
+## Supported languages (44)
+
+The last five are interface/descriptor languages: cgg maps their shape
+graphs onto the call-graph model, so an API model renders as a topology of
+service → operation → message/structure → field-type edges. OpenAPI/Swagger
+and AsyncAPI documents (YAML **or** JSON) are recognised by their root
+`openapi:` / `swagger:` / `asyncapi:` key, so ordinary `.yaml`/`.json` files
+are left untouched.
 
 Plus Jupyter notebooks (`.ipynb`) — code cells are extracted and routed
 through the Python plugin (`!`, `%`, `?` magics stripped automatically).
@@ -291,10 +298,15 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 | Verilog / SV | — | — | Modules, tasks, functions; module instantiation as edges |
 | VHDL | library, use clauses | — | Entities, architectures, procedures/functions |
 | Assembly | — | — | x86 / ARM / RISC-V / MIPS: labels + `call`/`jmp`/`bl`/`jal` |
+| Smithy | namespace shapes (global) | — | API models: `service`→`operation`→`structure`→shape-member edges; traits & prelude primitives skipped |
+| Protobuf | message/enum by name | — | message field types + gRPC `service` rpc → request/response message edges |
+| GraphQL | type names (global) | — | SDL: `type`→field-type, `implements`, and `union` member edges; built-in scalars skipped |
+| OpenAPI / Swagger | `$ref` by name (global) | — | YAML or JSON; operation→schema and schema→schema edges from `$ref`; content-detected by root `openapi:`/`swagger:` key |
+| AsyncAPI | `$ref` by name (global) | — | YAML or JSON; channel→message, operation→channel/message, message→schema edges from `$ref`; content-detected by root `asyncapi:` key |
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1088 callables, 1776 edges, 405 cross-file, 133ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1178 callables, 1873 edges, 436 cross-file, 137ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -428,40 +440,41 @@ flowchart LR
   C1["cgg_lang::detect::LanguageDetector<'r>::detect"]
   C2["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
   C3["cgg_lang::detect::extension"]
-  C4["cgg_lang::detect::read_shebang"]
-  C5["cgg_lang::detect::header_verdict"]
-  C14["cgg_lang::parser::ParserPool<'r>::new"]
-  C15["cgg_lang::parser::ParserPool<'r>::parse"]
-  C16["cgg_lang::parser::ParserPool<'r>::plugin"]
-  C17["cgg_lang::parser::set_language"]
-  C21["cgg_lang::<ResolverKind as fmt::Display>::fmt"]
-  C22["cgg_lang::LanguagePlugin::id"]
-  C23["cgg_lang::LanguagePlugin::extensions"]
-  C24["cgg_lang::LanguagePlugin::shebangs"]
-  C25["cgg_lang::LanguagePlugin::resolver_kind"]
-  C26["cgg_lang::LanguagePlugin::ts_language"]
-  C27["cgg_lang::LanguagePlugin::extract"]
-  C28["cgg_lang::PluginRegistry::new"]
-  C29["cgg_lang::PluginRegistry::register"]
-  C30["cgg_lang::PluginRegistry::all"]
-  C31["cgg_lang::PluginRegistry::by_id"]
-  C32["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1 --> C22
-  C1 --> C24
-  C1 --> C3
-  C1 --> C30
+  C4["cgg_lang::detect::sniff_structured_descriptor"]
+  C5["cgg_lang::detect::read_shebang"]
+  C6["cgg_lang::detect::header_verdict"]
+  C18["cgg_lang::parser::ParserPool<'r>::new"]
+  C19["cgg_lang::parser::ParserPool<'r>::parse"]
+  C20["cgg_lang::parser::ParserPool<'r>::plugin"]
+  C21["cgg_lang::parser::set_language"]
+  C25["cgg_lang::<ResolverKind as fmt::Display>::fmt"]
+  C26["cgg_lang::LanguagePlugin::id"]
+  C27["cgg_lang::LanguagePlugin::extensions"]
+  C28["cgg_lang::LanguagePlugin::shebangs"]
+  C29["cgg_lang::LanguagePlugin::resolver_kind"]
+  C30["cgg_lang::LanguagePlugin::ts_language"]
+  C31["cgg_lang::LanguagePlugin::extract"]
+  C32["cgg_lang::PluginRegistry::new"]
+  C33["cgg_lang::PluginRegistry::register"]
+  C34["cgg_lang::PluginRegistry::all"]
+  C35["cgg_lang::PluginRegistry::by_id"]
+  C36["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1 --> C26
+  C1 --> C28
+  C1 --> C34
   C1 --> C4
-  C15 --> C15
-  C15 --> C17
-  C15 --> C26
-  C15 --> C31
-  C16 --> C31
-  C2 --> C22
-  C2 --> C23
-  C2 --> C30
-  C27 --> C22
-  C31 --> C22
-  C32 --> C28
+  C1 --> C5
+  C19 --> C19
+  C19 --> C21
+  C19 --> C30
+  C19 --> C35
+  C2 --> C26
+  C2 --> C27
+  C2 --> C34
+  C20 --> C35
+  C31 --> C26
+  C35 --> C26
+  C36 --> C32
 ```
 <!-- cgg:end:lang -->
 

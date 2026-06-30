@@ -662,6 +662,23 @@ fn try_resolve_ref(
     reexports: &HashMap<(String, String), String>,
     caller_qn: Option<&str>,
 ) -> Option<Vec<CallableId>> {
+    // Descriptor / interface-definition languages (Smithy, Protobuf,
+    // GraphQL). Their references are shape/message/type names that are
+    // effectively unique identifiers within the model, so a global
+    // by-simple-name match is both safe and the right resolution — it
+    // links references across files in the same namespace/package (and
+    // same-file edges already emitted by the intra-file linker are
+    // deduplicated by the caller). Bounded to ≤4 candidates to stay
+    // conservative if a name genuinely collides.
+    if matches!(lang, "smithy" | "proto" | "graphql" | "openapi" | "asyncapi") {
+        if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
+            if !cids.is_empty() && cids.len() <= 4 {
+                return Some(cids.clone());
+            }
+        }
+        return None;
+    }
+
     // Step 1: direct import match — `foo()` where `foo` was
     // imported.
     if r.receiver_hint.is_empty() {

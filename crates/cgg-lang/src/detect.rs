@@ -6,6 +6,11 @@
 //! 1. **Shebang** — if the file starts with `#!` and the first line
 //!    contains a substring matching any plugin's registered shebang
 //!    keyword, that language is chosen. `detected_via = "shebang:<word>"`.
+//! 1b. **Structured API descriptors** — for `.yaml`/`.yml`/`.json`, sniff
+//!    the head for a root `openapi:`/`swagger:`/`asyncapi:` key and route
+//!    to the OpenAPI or AsyncAPI plugin. No match → `Unknown` (these
+//!    extensions never fall through to the extension rule, so ordinary
+//!    config/data YAML/JSON is left alone). `detected_via = "content:<id>"`.
 //! 2. **Extension** — case-insensitive match against each plugin's
 //!    extension list. `detected_via = "extension:<ext>"`.
 //! 3. **`.h` ambiguity** — if the extension is `.h`, look for a
@@ -69,6 +74,29 @@ impl<'r> LanguageDetector<'r> {
             }
         }
 
+        // --- Rule 1b: structured API descriptors -----------------------------
+        // `.yaml` / `.yml` / `.json` carry no language by extension alone, so
+        // sniff their content for a root `openapi:` / `swagger:` / `asyncapi:`
+        // key (required, near the top of every such document). A match routes
+        // to the OpenAPI or AsyncAPI plugin; anything else stays Unknown, so
+        // ordinary config/data YAML/JSON is unaffected. This deliberately does
+        // not fall through to the extension rule — no other plugin owns these.
+        if let Some(ext) = extension(path) {
+            let lower = ext.to_ascii_lowercase();
+            if matches!(lower.as_str(), ".yaml" | ".yml" | ".json") {
+                if let Some(id) = sniff_structured_descriptor(path) {
+                    return DetectResult {
+                        verdict: DetectVerdict::Language(id),
+                        detected_via: format!("content:{id}"),
+                    };
+                }
+                return DetectResult {
+                    verdict: DetectVerdict::Unknown,
+                    detected_via: "none".to_string(),
+                };
+            }
+        }
+
         // --- Rule 2: extension ------------------------------------------------
         if let Some(ext) = extension(path) {
             // Case-sensitive match first (so `.C` stays C++).
@@ -119,6 +147,49 @@ fn extension(path: &Path) -> Option<String> {
     path.extension()
         .and_then(|e| e.to_str())
         .map(|e| format!(".{e}"))
+}
+
+/// Sniff a YAML/JSON file for an OpenAPI/Swagger or AsyncAPI root key.
+///
+/// Returns the owning plugin id (`"openapi"` or `"asyncapi"`) or `None`.
+/// `openapi:` and `swagger:` (Swagger 2.0) both map to the OpenAPI plugin.
+/// These are required root keys, so they appear near the top of the
+/// document; we read only a small head. Two matchers cover both layouts:
+/// a line-leading `key:` (block YAML and pretty-printed JSON) and a quoted
+/// `"key"` near the start of brace-led (minified) JSON.
+fn sniff_structured_descriptor(path: &Path) -> Option<&'static str> {
+    use std::io::Read;
+    let mut f = fs::File::open(path).ok()?;
+    let mut buf = [0u8; 8192];
+    let n = f.read(&mut buf).ok()?;
+    let head = String::from_utf8_lossy(&buf[..n]);
+
+    const KEYS: &[(&str, &str)] =
+        &[("openapi", "openapi"), ("swagger", "openapi"), ("asyncapi", "asyncapi")];
+
+    // Line-leading `key:` — YAML, and JSON with one key per line.
+    for line in head.lines().take(64) {
+        let t = line.trim_start().trim_start_matches(['"', '\'']);
+        for (key, id) in KEYS {
+            if let Some(rest) = t.strip_prefix(key) {
+                let rest = rest.trim_start_matches(['"', '\'']).trim_start();
+                if rest.starts_with(':') {
+                    return Some(id);
+                }
+            }
+        }
+    }
+
+    // Minified JSON: a quoted root key within the opening object.
+    if head.trim_start().starts_with('{') {
+        let window = &head[..head.len().min(2048)];
+        for (key, id) in KEYS {
+            if window.contains(&format!("\"{key}\"")) {
+                return Some(id);
+            }
+        }
+    }
+    None
 }
 
 /// Read up to the first 256 bytes; if it starts with `#!`, return the
@@ -277,5 +348,46 @@ mod tests {
         write(tmp.path(), "notes.txt", b"plain text\n");
         let r = det.detect(&tmp.path().join("notes.txt"));
         assert_eq!(r.verdict, DetectVerdict::Unknown);
+    }
+
+    #[test]
+    fn openapi_and_swagger_yaml_json_detect_by_content() {
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "api.yaml", b"openapi: 3.0.0\ninfo:\n  title: x\n");
+        write(tmp.path(), "v2.yaml", b"swagger: \"2.0\"\npaths: {}\n");
+        write(tmp.path(), "api.json", b"{\"openapi\":\"3.0.0\",\"paths\":{}}");
+        for (name, via) in [("api.yaml", "content:openapi"), ("v2.yaml", "content:openapi"), ("api.json", "content:openapi")] {
+            let r = det.detect(&tmp.path().join(name));
+            assert_eq!(r.verdict, DetectVerdict::Language("openapi"), "{name}");
+            assert_eq!(r.detected_via, via, "{name}");
+        }
+    }
+
+    #[test]
+    fn asyncapi_detects_by_content() {
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "events.yaml", b"asyncapi: 2.6.0\ninfo:\n  title: x\n");
+        let r = det.detect(&tmp.path().join("events.yaml"));
+        assert_eq!(r.verdict, DetectVerdict::Language("asyncapi"));
+        assert_eq!(r.detected_via, "content:asyncapi");
+    }
+
+    #[test]
+    fn ordinary_yaml_json_stays_unknown() {
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "config.yaml", b"name: app\nversion: 1.0\n");
+        write(tmp.path(), "package.json", b"{\"name\":\"pkg\",\"scripts\":{}}");
+        // a description mentioning openapi must not trip the sniff
+        write(tmp.path(), "doc.yaml", b"title: about openapi\nbody: text\n");
+        for name in ["config.yaml", "package.json", "doc.yaml"] {
+            let r = det.detect(&tmp.path().join(name));
+            assert_eq!(r.verdict, DetectVerdict::Unknown, "{name} should be Unknown");
+        }
     }
 }

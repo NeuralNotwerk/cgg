@@ -53,6 +53,13 @@ tree-sitter-nix        = { workspace = true }
 tree-sitter-verilog    = { workspace = true }
 tree-sitter-vhdl       = { workspace = true }
 tree-sitter-asm        = { workspace = true }
+tree-sitter-proto      = { workspace = true }
+tree-sitter-graphql    = { workspace = true }
+tree-sitter-yaml       = { workspace = true }
+tree-sitter-language   = { workspace = true }
+
+[build-dependencies]
+cc = { workspace = true }
 
 [dev-dependencies]
 insta    = { workspace = true }

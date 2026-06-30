@@ -88,6 +88,17 @@ tree-sitter-verilog     = "1.0"
 tree-sitter-vhdl        = "1.4"
 tree-sitter-asm         = "0.24"
 
+# --- Descriptor / interface-definition languages ---
+tree-sitter-proto       = "0.4"
+tree-sitter-graphql     = "0.1"
+# YAML grammar — also parses JSON (JSON is flow-style YAML). Used by the
+# OpenAPI/Swagger and AsyncAPI structured-document plugins.
+tree-sitter-yaml        = "0.7"
+# Raw LanguageFn binding for the vendored Smithy grammar (see cgg-lang/build.rs).
+tree-sitter-language    = "0.1"
+# Compiles the vendored Smithy parser.c in cgg-lang/build.rs.
+cc                      = "1"
+
 # --- Dev / test ---
 assert_cmd    = "2.0"
 predicates    = "3.1"

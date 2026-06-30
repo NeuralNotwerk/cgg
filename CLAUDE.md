@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`cgg` is a CLI that generates call graphs (mermaid by default; also json/dot/graphml) from source trees. It is offline, deterministic, single-binary — no language servers, no build artifacts required. Supports 39 languages via tree-sitter plugins, plus Jupyter notebooks (`.ipynb`) via a JSON cell extractor that feeds the Python plugin. Primary consumer of the output is coding agents reading mermaid in their context window.
+`cgg` is a CLI that generates call graphs (mermaid by default; also json/dot/graphml) from source trees. It is offline, deterministic, single-binary — no language servers, no build artifacts required. Supports 44 languages via tree-sitter plugins (including the Smithy, Protobuf, GraphQL, OpenAPI/Swagger, and AsyncAPI interface/descriptor languages, whose shape graphs are mapped onto the call-graph model), plus Jupyter notebooks (`.ipynb`) via a JSON cell extractor that feeds the Python plugin. OpenAPI/AsyncAPI documents are YAML or JSON, both parsed with the YAML grammar and content-detected by their root `openapi:`/`swagger:`/`asyncapi:` key (see `cgg-lang::detect`), so ordinary `.yaml`/`.json` files are untouched. Primary consumer of the output is coding agents reading mermaid in their context window.
 
 ## Commands
 
@@ -24,7 +24,7 @@ cargo test -p cgg-lang detect_python_by_shebang
 # Run cgg against itself (sanity check)
 ./target/release/cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
 
-# Reproduce the README benchmark table (clones repos into $CGG_BENCH_DIR, default /storage/tmp)
+# Reproduce the README benchmark table (clones repos into $CGG_BENCH_DIR, default /storage/cgg-test_repos)
 ./scripts/benchmark.sh
 
 # Install the project pre-commit hook (test + release build + README regen)
@@ -48,7 +48,7 @@ cgg-walk  →  cgg-lang  →  cgg-resolve  →  cgg (query)  →  cgg-format
 
 - **cgg-core** — the substrate. `Graph`, callable/edge IDs, audit records, facts, stdlib lookup tables. Every other crate depends on this; it depends on nothing internal.
 - **cgg-walk** — file discovery. Honors `.gitignore` + a built-in deny list, classifies files (binary detection, symlink-chain guards), emits `WalkOutcome`.
-- **cgg-lang** — language plugin layer. `LanguageDetector` (extension/shebang/header), `ParserPool` (tree-sitter parser caching), and `PluginRegistry::with_v1_plugins` which wires in all 39 `LanguagePlugin` impls under `crates/cgg-lang/src/plugins/`. `.ipynb` files are pre-processed in `cgg-lang::notebook::extract_python_source` before being handed to the Python plugin. Each plugin implements `extract` to pull callables + raw call sites out of a tree-sitter AST.
+- **cgg-lang** — language plugin layer. `LanguageDetector` (extension/shebang/header), `ParserPool` (tree-sitter parser caching), and `PluginRegistry::with_v1_plugins` which wires in all 44 `LanguagePlugin` impls under `crates/cgg-lang/src/plugins/`. `.ipynb` files are pre-processed in `cgg-lang::notebook::extract_python_source` before being handed to the Python plugin. Each plugin implements `extract` to pull callables + raw call sites out of a tree-sitter AST.
 - **cgg-resolve** — links call sites to definitions. The order in `cgg::run` matters:
   1. `type_hints::build_return_type_map` + `propagate_types_with_returns` — infer variable types from params, locals (file-wide, conflict-aware), constructors, return types
   2. `intra_file::link_file` — scope/containment within a single file, with owner-qualified disambiguation of same-name candidates (`names::owner_from_qn`, handling `Self`/qualifier owners)
@@ -62,7 +62,7 @@ cgg-walk  →  cgg-lang  →  cgg-resolve  →  cgg (query)  →  cgg-format
 
 ### Adding a new language
 
-1. Add the `tree-sitter-<lang>` crate to `[workspace.dependencies]` in `Cargo.toml`.
+1. Add the `tree-sitter-<lang>` crate to `[workspace.dependencies]` in `Cargo.toml`. If no crate is compatible with the workspace `tree-sitter` version (e.g. it pins an ancient `tree-sitter` and the deprecated `language()` API, as `tree-sitter-smithy` does), vendor the generated `parser.c` under `crates/cgg-lang/vendor/<lang>/`, compile it in `crates/cgg-lang/build.rs`, and bind the raw `tree_sitter_<lang>()` C symbol via `tree_sitter_language::LanguageFn` (see `plugins/smithy.rs`).
 2. Add a plugin module under `crates/cgg-lang/src/plugins/` implementing `LanguagePlugin` (id, extensions, shebangs, resolver_kind, ts_language, extract).
 3. Register it in `PluginRegistry::with_v1_plugins` (`crates/cgg-lang/src/plugins.rs`).
 4. If the language has cross-file semantics, extend `cgg-resolve::cross_file` to handle its import form.

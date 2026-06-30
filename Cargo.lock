@@ -209,6 +209,7 @@ name = "cgg-lang"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "cc",
  "cgg-core",
  "insta",
  "serde",
@@ -230,6 +231,7 @@ dependencies = [
  "tree-sitter-fortran",
  "tree-sitter-fsharp",
  "tree-sitter-go",
+ "tree-sitter-graphql",
  "tree-sitter-groovy",
  "tree-sitter-haskell",
  "tree-sitter-hcl",
@@ -237,6 +239,7 @@ dependencies = [
  "tree-sitter-javascript",
  "tree-sitter-julia",
  "tree-sitter-kotlin-sg",
+ "tree-sitter-language",
  "tree-sitter-lua",
  "tree-sitter-nix",
  "tree-sitter-objc",
@@ -244,6 +247,7 @@ dependencies = [
  "tree-sitter-perl",
  "tree-sitter-php",
  "tree-sitter-powershell",
+ "tree-sitter-proto",
  "tree-sitter-python",
  "tree-sitter-r",
  "tree-sitter-ruby",
@@ -255,6 +259,7 @@ dependencies = [
  "tree-sitter-typescript",
  "tree-sitter-verilog",
  "tree-sitter-vhdl",
+ "tree-sitter-yaml",
  "tree-sitter-zig",
 ]
 
@@ -1230,6 +1235,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-graphql"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efedc4cac157161cc23a0adc4553a2cedc908e1cd754b6cd033a919bb81ce5d6"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-groovy"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1377,6 +1392,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-proto"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e410ccb5fa3cbd6bf7b8e512ecf7ad9d5254395b822bfe9f751b50fa978f31c"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-python"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1481,6 +1506,16 @@ name = "tree-sitter-vhdl"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0feb025ddf87c45bb98335ef2a2493cac08ec6b74d33201d1bf75df2be08de23"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-yaml"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53c223db85f05e34794f065454843b0668ebc15d240ada63e2b5939f43ce7c97"
 dependencies = [
  "cc",
  "tree-sitter-language",
