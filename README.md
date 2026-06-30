@@ -306,7 +306,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1178 callables, 1873 edges, 436 cross-file, 137ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1178 callables, 1873 edges, 436 cross-file, 130ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -627,17 +627,23 @@ flight.
 - **Synthetic nodes for derived/macro-generated methods (Issue 8).**
   `#[derive(Serialize)]` and similar declare methods that aren't written
   literally in source; emitting flagged synthetic callable nodes would
-  make derived types reachable as dispatch targets. Attribute-wrapped
+  make derived types reachable as dispatch targets. The consumer side is
+  already wired — the driver carries a `synthetic` flag and recognises a
+  `derive:<trait>` callable attribute — but no plugin yet *emits* those
+  synthetic callables, so the feature is dormant. Attribute-wrapped
   function bodies (`#[tokio::main]`, `#[test]`) are already attributed
   correctly.
-- **Per-language stdlib filter audit.** The `stdlib` bucket
-  infrastructure works for every language with a `crates/cgg-core/src/stdlib/*.txt`
-  file (30+). The Rust list is well-tuned (`clone`, `unwrap`, `push`,
-  `len`, …); the other lists were seeded from language references and
-  haven't been audited against real-world `external` bucket noise.
-  Concrete fix: for each language, run cgg on a few representative
-  open-source repos, scan the top-N `external` names, and add the
-  obvious stdlib entries to the corresponding `.txt`.
+- **Per-language stdlib filter audit (8 lists remaining).** The `stdlib`
+  bucket infrastructure works for every language with a
+  `crates/cgg-core/src/stdlib/*.txt` file (30). Most are now tuned:
+  Rust plus 21 others (bash, c, cpp, clojure, dart, elixir, erlang, go,
+  groovy, haskell, hcl, javascript, kotlin, lua, objc, perl, php, python,
+  ruby, typescript, zig) have been audited against real-world `external`
+  bucket noise. Still un-audited — seeded from language references only:
+  `csharp`, `fortran`, `java`, `julia`, `ocaml`, `r`, `scala`, `swift`.
+  Concrete fix: for each, run cgg on a few representative open-source
+  repos, scan the top-N `external` names, and add the obvious stdlib
+  entries to the corresponding `.txt`.
 - **Calls inside `tokio::spawn`-style closures, cross-closure type
   propagation.** Spawned closures already extract as their own
   callables (since the closure-disjoint-callables commit), so the
