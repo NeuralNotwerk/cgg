@@ -5,6 +5,60 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.3.0] - 2026-06-30
+
+Five interface/descriptor languages, taking cgg from 39 to **44**
+languages. These map an API model's shape graph onto the call-graph
+model, so a descriptor renders as a topology of
+service → operation → message/structure → field-type edges. Purely
+additive: no existing language's graph changes.
+
+### Added
+
+- **Smithy, Protobuf, GraphQL, OpenAPI/Swagger, and AsyncAPI plugins.**
+  - Smithy: `service → operation → structure → shape-member` edges;
+    traits and prelude primitives skipped. The published
+    `tree-sitter-smithy` crate pins an incompatible `tree-sitter 0.20`,
+    so its generated `parser.c` is **vendored** under
+    `crates/cgg-lang/vendor/smithy/` (MIT, see `PROVENANCE.md`),
+    compiled by a new `crates/cgg-lang/build.rs`, and bound through
+    `tree_sitter_language::LanguageFn`.
+  - Protobuf: message field types + gRPC `service` rpc →
+    request/response message edges.
+  - GraphQL: SDL `type → field-type`, `implements`, and `union` member
+    edges; built-in scalars skipped.
+  - OpenAPI/Swagger and AsyncAPI: YAML **or** JSON (both parsed with the
+    YAML grammar), content-detected by their root `openapi:` /
+    `swagger:` / `asyncapi:` key via a new `cgg-lang::detect` rule, so
+    ordinary `.yaml`/`.json` config/data files are untouched.
+    Operation → schema and schema → schema (`$ref`) edges; AsyncAPI adds
+    channel/message edges.
+- **Cross-file resolution for descriptor languages.** References in
+  Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI resolve by global simple-name
+  within the model (bounded to ≤4 candidates) — see
+  `cgg-resolve::cross_file`.
+
+### Changed / Improved
+
+- **Per-language stdlib filter audit.** 21 stdlib lists (bash, c, cpp,
+  clojure, dart, elixir, erlang, go, groovy, haskell, hcl, javascript,
+  kotlin, lua, objc, perl, php, python, ruby, typescript, zig) tuned
+  against real-world `external`-bucket noise. Eight remain seeded from
+  language references only (csharp, fortran, java, julia, ocaml, r,
+  scala, swift).
+- Docs synced to the code: README language table/count (44), embedded
+  mermaid graphs, self-stats, and the Limitations / Potential-future-
+  improvements sections; `skills/cgg/SKILL.md`; `CLAUDE.md`; and the
+  `scripts/benchmark.sh` targets for the five new languages.
+
+### Compatibility / migration
+
+- **To keep the previous behavior: do nothing.** The five new languages
+  only add graphs for file types that previously produced none. No
+  existing language's nodes or edges change. `.yaml`/`.json` files are
+  analyzed only when their root key marks them as an OpenAPI/AsyncAPI
+  document.
+
 ## [0.2.0] - 2026-06-18
 
 A resolver-precision pass (the `necessary_fixes.md` program) plus four

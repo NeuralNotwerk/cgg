@@ -149,7 +149,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "cgg"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -194,7 +194,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-format"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cgg-core",
@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-lang"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cc",
@@ -265,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-resolve"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cgg-core",
@@ -280,7 +280,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-walk"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cgg-core",
