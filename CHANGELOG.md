@@ -5,6 +5,90 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.4.0] - 2026-08-05
+
+Dead-code reporting. cgg already computed the thing a dead-code finder
+needs — a resolved call graph — but had no way to ask "what does nothing
+call?". `--dead-code` answers that, annotating the normal graph output
+rather than replacing it.
+
+The report is **best effort by construction**: cgg reports what it could
+not find a caller for, which is not the same as proving no caller
+exists. Every output surface says so, every finding carries the evidence
+both for and against it, and `--why-live` inverts the question so the
+reasoning can be checked in the opposite direction. cgg never modifies
+code and takes no position on what should be done about a finding.
+
+### Added
+
+- **`--dead-code`.** Marks callables nothing appears to reference as
+  `unreferenced` in whatever `-t` selects — mermaid label + `classDef`,
+  dot dashed node + tooltip, a graphml `<data>` key, a json field. The
+  detailed report (evidence, roots, per-language capability table) goes
+  to a `<output>.deadcode.json` sidecar, the same convention the audit
+  already used.
+- **`--why-live PATTERN`.** Prints the shortest path from a root proving
+  a callable is live, preferring high-confidence direct edges and
+  non-test roots. Answers "why do you think this is used?" and, when no
+  path exists, says so as a derivation rather than an assertion.
+- **`cgg-deadcode.toml`.** `roots` entries are entry points and confer
+  liveness transitively; `[[allow]]` entries are reviewed findings that
+  are suppressed *without* being made live, so accepting one hides it
+  and nothing else. Parsed with `deny_unknown_fields`, so a typo is a
+  hard error rather than a silently ignored line. `--write-roots`
+  generates a baseline; `--roots FILE` pins it.
+- **Supporting flags:** `--dead-code-format`, `--dead-code-confidence`,
+  `--dead-code-report`, `--ignore-names`, `--ignore-attributes`,
+  `--fail-on-dead` (exit 3, opt-in).
+- **Calls inside Rust macro arguments are now extracted.** tree-sitter
+  leaves macro bodies as unstructured token trees, so a real call like
+  `writeln!(out, "{}", xml_escape(s))` produced no edge. Rust edge
+  counts rise ~12-27% depending on macro density; no other language is
+  affected.
+- **New extraction signals:** normalized `Vis` for 7 languages (was 2),
+  `TestRole` and test-file classification, `ExportRecord` (Rust
+  `pub use`, Python `__all__`), `DynUse` reflection hints
+  (suppression-only, never an edge), and `UnreachableRegion` for
+  statements after an unconditional terminator across 6 language
+  families.
+- **`LanguagePlugin::signals()`** — a per-plugin manifest of which
+  optional signals it actually extracts, so a report can distinguish
+  "this definition genuinely has no attributes" from "cgg never looked".
+
+### Fixed
+
+- **`#include` resolution was nondeterministic.** `collect_include_defs`
+  picked its target with `HashMap::values().find(...)`; Rust seeds its
+  hasher per process, so when several files matched an include suffix —
+  routine in C/C++, where many directories hold a `common.h` — the
+  winner varied run to run. Measured on `cpp-spdlog`: the same binary on
+  the same input produced 1460/1463/1466/1469 edges across 10 runs. Now
+  prefers the exactly-resolved path, then the lowest `FileId`.
+- **Invalid `--filter` / `--exclude-*` patterns are now a hard error.**
+  A bad regex was silently mapped to match-everything, while
+  `apply_exclusions` silently dropped it — two opposite silent failures
+  for the same mistake.
+
+### Changed
+
+- **`--stack-graphs` has no effect** and its help text now says so. The
+  integration was removed in the tree-sitter 0.26 upgrade (upstream
+  pins tree-sitter 0.24); the orchestration around the resulting stub
+  still ran on every invocation, deep-copying the graph, the facts and
+  every file's source bytes into a thread before blocking on a
+  60-second timeout. Removing it, and the retained source-byte corpus
+  it kept alive, made ordinary runs measurably faster.
+- Dead-code-only extraction is gated behind the mode, so a run without
+  `--dead-code` does not pay for it.
+
+### Compatibility
+
+Default output is unchanged except for the two edge-count effects noted
+above (Rust macro-argument calls, C/C++ `#include` determinism), both of
+which only ever *add* or *stabilise* edges. `--stack-graphs` is still
+accepted. `--include-tests`, previously parsed and never read, now has
+real semantics.
+
 ## [0.3.0] - 2026-06-30
 
 Five interface/descriptor languages, taking cgg from 39 to **44**

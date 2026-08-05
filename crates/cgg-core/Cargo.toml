@@ -14,7 +14,6 @@ indexmap   = { workspace = true }
 tracing    = { workspace = true }
 regex      = { workspace = true }
 globset    = { workspace = true }
-petgraph   = { workspace = true }
 blake3     = { workspace = true }
 
 [dev-dependencies]

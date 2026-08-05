@@ -10,6 +10,7 @@
 //! formatters in Task 9; query engine in Task 10.
 
 mod cli;
+mod deadcode;
 mod query;
 mod since;
 mod update_check;
@@ -64,7 +65,10 @@ fn main() -> ExitCode {
     init_tracing(&cli);
 
     match run(cli) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => code,
+        // An error means the analysis was incomplete, so any findings it
+        // did produce are untrustworthy. Errors therefore dominate the
+        // findings exit code: 1 beats 3.
         Err(e) => {
             eprintln!("error: {e:#}");
             ExitCode::FAILURE
@@ -92,7 +96,7 @@ fn init_tracing(cli: &Cli) {
         .try_init();
 }
 
-fn run(cli: Cli) -> Result<()> {
+fn run(cli: Cli) -> Result<ExitCode> {
     info!(
         version = cgg_core::CGG_VERSION,
         paths = cli.paths.len(),
@@ -113,6 +117,28 @@ fn run(cli: Cli) -> Result<()> {
             ));
         }
     }
+
+    // Dead-code mode biases every knob toward false negatives. Edges
+    // that only ever mark something live are switched on; node-only
+    // additions, which would be reported as findings themselves, are
+    // switched off. The rule: enable anything that can add inbound
+    // edges, disable anything that can only add nodes.
+    let dead_mode = cli.dead_code || !cli.why_live.is_empty();
+    let cli = if dead_mode {
+        Cli {
+            reference_edges: true,
+            dynamic_dispatch: true,
+            include_external: false,
+            include_stdlib: false,
+            ..cli
+        }
+    } else {
+        cli
+    };
+
+    // Extraction signals that only `--dead-code` consumes are an extra
+    // tree walk per file; an ordinary run must not pay for them.
+    cgg_lang::set_deadcode_signals(dead_mode);
 
     let started = Instant::now();
 
@@ -160,8 +186,6 @@ fn run(cli: Cli) -> Result<()> {
     let mut graph = Graph::new();
     // (FileId, def-index) -> CallableId.
     let mut def_ids: DefIdMap = DefIdMap::new();
-    // Retained source bytes per file, used by the stack-graphs resolver.
-    let mut sources: Vec<(FileId, String, Vec<u8>)> = Vec::new();
 
     // --- Parallel phase: detect + read + hash + parse + extract -----------
     // Each candidate is processed independently; results are merged below.
@@ -175,7 +199,6 @@ fn run(cli: Cli) -> Result<()> {
         parse_ms: f64,
         parse_status: String,
         facts: Option<FileFacts>,
-        bytes: Vec<u8>,
     }
     enum FileOutcome {
         Analyzed(FileResult),
@@ -269,7 +292,6 @@ fn run(cli: Cli) -> Result<()> {
                 parse_ms,
                 parse_status,
                 facts,
-                bytes,
             })
         })
         .collect();
@@ -293,6 +315,11 @@ fn run(cli: Cli) -> Result<()> {
                 let file_id = FileId::new(next_file_id);
                 next_file_id += 1;
 
+                // Classify test code once, from (path, language), and
+                // record it on both the graph and the audit so the
+                // reason is inspectable rather than merely asserted.
+                let test_role = cgg_core::classify_test_file(&fr.path, &fr.lang);
+
                 graph.add_file(GraphFileRecord {
                     id: file_id,
                     path: fr.path.clone(),
@@ -303,10 +330,13 @@ fn run(cli: Cli) -> Result<()> {
                     lines: fr.lines,
                     parse_ms: fr.parse_ms,
                     parse_status: fr.parse_status.clone(),
+                    test_role,
+                    ..Default::default()
                 });
 
                 let mut file_audit = AuditFileRecord {
                     file: file_id,
+                    test_role,
                     path: fr.path,
                     language: fr.lang.clone(),
                     detected_via: fr.detected_via,
@@ -344,12 +374,22 @@ fn run(cli: Cli) -> Result<()> {
                             end_byte: d.end_byte,
                             signature_hint: d.signature_hint.clone(),
                             visibility: d.visibility.clone(),
+                            vis: d.vis,
+                            // A definition inside a test file is test
+                            // code even when the plugin found no marker
+                            // on the definition itself: Go puts tests in
+                            // a separate file, Rust puts them inline, and
+                            // neither signal alone covers both.
+                            test_role: d.test_role.or_else(|| {
+                                test_role.map(|_| cgg_core::TestRole::Support)
+                            }),
                             attributes: d.attributes.clone(),
                             synthetic: d
                                 .attributes
                                 .iter()
                                 .any(|a| a == "synthetic" || a.starts_with("derive:")),
                             trait_impl_target: trait_impl_target_from_qn(&d.qualified_name),
+                            ..Default::default()
                         });
 
                         file_audit.callables.push(AuditCallableRef {
@@ -372,7 +412,6 @@ fn run(cli: Cli) -> Result<()> {
 
                     all_facts.push(facts);
                 }
-                sources.push((file_id, fr.lang.clone(), fr.bytes));
 
                 metrics.files_analyzed += 1;
                 metrics.phases.parse_ms += fr.parse_ms;
@@ -457,114 +496,21 @@ fn run(cli: Cli) -> Result<()> {
     }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
 
-    // --- Phase 3b: stack-graphs resolution (with timeout) ------------------
-    let resolve_started = Instant::now();
-    let sg_out = match cli.stack_graphs {
-        cli::StackGraphsArg::Off => {
-            cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
-        }
-        cli::StackGraphsArg::On => {
-            let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> = sources
-                .iter()
-                .map(|(fid, lang, bytes)| cgg_resolve::stack_graphs_resolver::FileInput {
-                    file: *fid,
-                    language: lang.as_str(),
-                    source: bytes.as_slice(),
-                })
-                .collect();
-            cgg_resolve::stack_graphs_resolver::resolve(&graph, &all_facts, &sg_inputs)
-        }
-        cli::StackGraphsArg::Auto => {
-            // Run full resolve in a detached thread with a 60-second timeout.
-            // If it times out, run the lightweight BFS-based resolver instead.
-            let graph_clone = graph.clone();
-            let facts_clone = all_facts.clone();
-            let owned_sources: Vec<(FileId, String, Vec<u8>)> = sources
-                .iter()
-                .map(|(fid, lang, bytes)| (*fid, lang.clone(), bytes.clone()))
-                .collect();
-            let (tx, rx) = std::sync::mpsc::channel();
-            std::thread::spawn(move || {
-                let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> =
-                    owned_sources
-                        .iter()
-                        .map(|(fid, lang, bytes)| {
-                            cgg_resolve::stack_graphs_resolver::FileInput {
-                                file: *fid,
-                                language: lang.as_str(),
-                                source: bytes.as_slice(),
-                            }
-                        })
-                        .collect();
-                let result = cgg_resolve::stack_graphs_resolver::resolve(
-                    &graph_clone,
-                    &facts_clone,
-                    &sg_inputs,
-                );
-                let _ = tx.send(result);
-            });
-            rx.recv_timeout(std::time::Duration::from_secs(60))
-                .unwrap_or_else(|_| {
-                    eprintln!(
-                        "cgg: stack-graphs full resolve timed out (>60s), \
-                         running lightweight fallback"
-                    );
-                    // Run the light BFS-based resolver (fast, no path stitching).
-                    // Skip if there are too many files (tsg compilation dominates).
-                    let sg_inputs: Vec<cgg_resolve::stack_graphs_resolver::FileInput<'_>> =
-                        sources
-                            .iter()
-                            .filter(|(_, lang, _)| {
-                                cgg_resolve::stack_graphs_resolver::is_sg_language(lang)
-                            })
-                            .map(|(fid, lang, bytes)| {
-                                cgg_resolve::stack_graphs_resolver::FileInput {
-                                    file: *fid,
-                                    language: lang.as_str(),
-                                    source: bytes.as_slice(),
-                                }
-                            })
-                            .collect();
-                    if sg_inputs.len() > 200 {
-                        eprintln!(
-                            "cgg: too many files ({}) for light fallback, skipping",
-                            sg_inputs.len()
-                        );
-                        cgg_resolve::stack_graphs_resolver::ResolveOutput::default()
-                    } else {
-                        cgg_resolve::stack_graphs_resolver::resolve_light(
-                            &graph, &all_facts, &sg_inputs,
-                        )
-                    }
-                })
-        }
-    };
-
-    for e in &sg_out.edges {
-        match e.confidence {
-            cgg_core::graph::Confidence::High => {
-                metrics.confidence_histogram.high += 1
-            }
-            cgg_core::graph::Confidence::Medium => {
-                metrics.confidence_histogram.medium += 1
-            }
-            cgg_core::graph::Confidence::Low => {
-                metrics.confidence_histogram.low += 1
-            }
-        }
-    }
-    metrics.edges += sg_out.edges.len() as u64;
-    let sg_classified = {
-        let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        classify_external(sg_out.unresolved, &known_refs, "", None)
-    };
-    metrics.unresolved_calls += sg_classified.unresolved.len() as u64;
-    metrics.stdlib_calls += sg_classified.stdlib.len() as u64;
-    metrics.external_calls += sg_classified.external.len() as u64;
-    graph.edges.extend(sg_out.edges);
-    graph.unresolved.extend(sg_classified.unresolved);
-    let resolve_ms = resolve_started.elapsed().as_secs_f64() * 1000.0;
-    metrics.phases.resolve_ms = resolve_ms;
+    // --- Phase 3b: stack-graphs resolution (removed) -----------------------
+    //
+    // The stack-graphs integration was dropped in the tree-sitter 0.26
+    // upgrade — upstream `tree-sitter-stack-graphs` pins tree-sitter 0.24
+    // (ABI 14) — and `cgg_resolve::stack_graphs_resolver` has been a no-op
+    // stub ever since. The orchestration that used to live here still ran
+    // on every invocation: it deep-cloned the graph, the facts, and every
+    // file's source bytes into a detached thread, then blocked on a
+    // 60-second timeout, all to call a function that returns nothing. It
+    // also kept a full copy of the corpus (`sources`) alive for the whole
+    // run. Both are gone.
+    //
+    // `--stack-graphs` is still accepted so existing command lines keep
+    // working, but it selects between three identical behaviours.
+    let _ = cli.stack_graphs;
 
     // --- Phase 3c: cross-file import-chain resolver -----------------------
     let cf_out = cgg_resolve::cross_file::resolve(&graph, &all_facts);
@@ -721,6 +667,15 @@ fn run(cli: Cli) -> Result<()> {
         })
         .count() as u64;
 
+    // The analysis needs the per-file audit records (for the external
+    // call buckets), but the loop below consumes them into events. Clone
+    // only in dead-code mode so the ordinary path pays nothing.
+    let dead_file_records: Vec<AuditFileRecord> = if dead_mode {
+        file_records.clone()
+    } else {
+        Vec::new()
+    };
+
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {
         events.push(AuditEvent::FileAnalyzed(rec));
@@ -778,10 +733,45 @@ fn run(cli: Cli) -> Result<()> {
         }
     }
 
-    let graph = query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths);
+    // --- Dead-code analysis (pre-query) ------------------------------------
+    //
+    // This must run on the *unpruned* graph. `query::prune` drops
+    // callables outright, so a filtered subgraph would report every
+    // remaining callable's callers as absent. `--filter` and the
+    // `--exclude-*` flags therefore scope the finding list, never the
+    // graph the analysis sees.
+    // `--dead-code` annotates the graph rather than replacing it. The
+    // graph is what cgg is for, and "unreferenced" is a property of a
+    // node in it — so the finding rides on the node and every existing
+    // formatter renders it. The detailed report goes to a sidecar,
+    // following the same convention the audit already uses.
+    let mut exit = ExitCode::SUCCESS;
+    let mut graph = graph;
+    if dead_mode {
+        // `--why-live` asks the opposite question, so it does replace
+        // the output: its answer is a proof, not a graph.
+        if !cli.why_live.is_empty() {
+            let code = run_why_live(&cli, &graph, &all_facts)?;
+            emit_audit(&cli, &events).context("writing audit")?;
+            update_check::finish(update_handle);
+            return Ok(code);
+        }
+        exit = run_dead_code(
+            &cli,
+            &mut graph,
+            &dead_file_records,
+            &all_facts,
+            &effective_filters,
+        )
+        .context("running dead-code analysis")?;
+    }
+
+    let graph = query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths)
+        .map_err(|e| anyhow::anyhow!(e))?;
     let graph = query::apply_exclusions(
         &graph, &cli.exclude_partial, &cli.exclude_glob, &cli.exclude_regex,
-    );
+    )
+    .map_err(|e| anyhow::anyhow!(e))?;
     emit_graph(&cli, &graph).context("emitting graph")?;
     emit_audit(&cli, &events).context("writing audit")?;
 
@@ -866,7 +856,266 @@ fn run(cli: Cli) -> Result<()> {
     // trails the run summary. No-op unless an interactive check was spawned.
     update_check::finish(update_handle);
 
-    Ok(())
+    Ok(exit)
+}
+
+/// Run the dead-code analysis and render its report.
+///
+/// Returns the process exit code: `3` only when `--fail-on-dead` was
+/// asked for and the report is non-empty. The default is unchanged, so
+/// adding `--dead-code` to an existing pipeline cannot break it — and a
+/// tool whose every finding is explicitly a hypothesis has no business
+/// failing a build unless told to.
+fn run_dead_code(
+    cli: &Cli,
+    graph: &mut Graph,
+    file_records: &[AuditFileRecord],
+    all_facts: &[FileFacts],
+    filters: &[String],
+) -> Result<ExitCode> {
+    use cgg_resolve::deadcode::{analyze, DeadCodeOptions};
+
+    use deadcode::config::DeadCodeConfigFile;
+
+    let threshold: Confidence = cli.dead_code_confidence.into();
+
+    // Load declared roots / accepted findings. An explicit --roots
+    // disables the upward search, so a scripted run can be pinned.
+    let cfg_path = match &cli.roots {
+        Some(p) => Some(p.clone()),
+        None => std::env::current_dir()
+            .ok()
+            .and_then(|d| DeadCodeConfigFile::discover(&d)),
+    };
+    let cfg = match &cfg_path {
+        Some(p) => DeadCodeConfigFile::load(p)?,
+        None => DeadCodeConfigFile::default(),
+    };
+
+    // Declared roots confer liveness, so they are resolved against the
+    // graph before the analysis runs.
+    let user_roots: Vec<(String, cgg_core::ids::CallableId)> = {
+        let mut v = Vec::new();
+        for pat in &cfg.roots {
+            for id in query::match_callables(graph, std::slice::from_ref(pat))
+                .map_err(|e| anyhow::anyhow!(e))?
+            {
+                v.push((pat.clone(), id));
+            }
+        }
+        // Attribute-declared roots.
+        if !cfg.root_attributes.is_empty() {
+            let pats = query::compile_patterns(&cfg.root_attributes)
+                .map_err(|e| anyhow::anyhow!(e))?;
+            for c in graph.callables.values() {
+                if c.attributes
+                    .iter()
+                    .any(|a| pats.iter().any(|p| p.matches(a)))
+                {
+                    v.push(("root_attributes".to_string(), c.id));
+                }
+            }
+        }
+        v
+    };
+
+    // A suppression file rots silently unless someone says so.
+    let matched: std::collections::HashSet<&String> =
+        user_roots.iter().map(|(p, _)| p).collect();
+    let mut stale: Vec<String> = cfg
+        .roots
+        .iter()
+        .filter(|p| !matched.contains(p))
+        .cloned()
+        .collect();
+
+    // What each plugin declares it can extract. This is the authority
+    // for confidence capping — see caps::measure.
+    let registry = PluginRegistry::with_v1_plugins();
+    let language_signals: std::collections::BTreeMap<String, cgg_core::LanguageSignals> = registry
+        .all()
+        .iter()
+        .map(|p| {
+            let s = p.signals();
+            (
+                p.id().to_string(),
+                cgg_core::LanguageSignals {
+                    visibility: s.visibility,
+                    attributes: s.attributes,
+                    exports: s.exports,
+                    test_defs: s.test_defs,
+                    value_refs: s.value_refs,
+                    dyn_uses: s.dyn_uses,
+                    unreachable: s.unreachable,
+                    impls: s.impls,
+                },
+            )
+        })
+        .collect();
+
+    let opts = DeadCodeOptions {
+        user_roots,
+        language_signals,
+        include_tests: cli.include_tests,
+        reference_edges: cli.reference_edges,
+        dynamic_dispatch: cli.dynamic_dispatch,
+        confidence_threshold: format!("{threshold:?}").to_lowercase(),
+        roots_file: cfg_path.clone(),
+        ..Default::default()
+    };
+
+    let mut report = analyze(graph, file_records, all_facts, &opts);
+
+    // Scope the *findings*, never the graph. Excluding a caller from the
+    // graph would delete its outgoing edges and manufacture findings for
+    // its callees — the failure mode of file-level exclusion in
+    // name-matching tools.
+    let allow_pats: Vec<String> = cfg.allow.iter().map(|a| a.name.clone()).collect();
+    {
+        let keep = query::compile_patterns(filters).map_err(|e| anyhow::anyhow!(e))?;
+        let mut drop_pats = cli.ignore_names.clone();
+        drop_pats.extend(allow_pats.iter().cloned());
+        let drop = query::compile_patterns(&drop_pats).map_err(|e| anyhow::anyhow!(e))?;
+        let attr_pats =
+            query::compile_patterns(&cli.ignore_attributes).map_err(|e| anyhow::anyhow!(e))?;
+
+        let mut used_allow: std::collections::HashSet<usize> = Default::default();
+        report.findings.retain(|f| {
+            let included = keep.is_empty() || keep.iter().any(|p| p.matches(&f.qualified_name));
+            let ignored = drop.iter().enumerate().any(|(i, p)| {
+                let hit = p.matches(&f.qualified_name);
+                if hit && i >= cli.ignore_names.len() {
+                    used_allow.insert(i - cli.ignore_names.len());
+                }
+                hit
+            });
+            let attr_ignored = !attr_pats.is_empty()
+                && graph.callables.get(&f.id).is_some_and(|c| {
+                    c.attributes.iter().any(|a| attr_pats.iter().any(|p| p.matches(a)))
+                });
+            included && !ignored && !attr_ignored
+        });
+        for (i, a) in cfg.allow.iter().enumerate() {
+            if !used_allow.contains(&i) {
+                stale.push(a.name.clone());
+            }
+        }
+        report.summary.reported = report.findings.len() as u32;
+        report.summary.stale_suppressions = stale;
+    }
+
+    if !cli.ignore_attributes.is_empty()
+        && graph.callables.values().all(|c| c.attributes.is_empty())
+    {
+        eprintln!(
+            "note: --ignore-attributes matched nothing — no callable in this run \
+             carries attributes (attribute capture: python, rust)"
+        );
+    }
+
+    if cli.write_roots {
+        // A baseline is a config file, not a graph, so it goes to the
+        // primary sink and nothing else is emitted.
+        let dest = cli.output.clone().unwrap_or_else(|| PathBuf::from("-"));
+        let mut sink = open_sink(&dest)?;
+        write!(sink, "{}", deadcode::config::render_baseline(&report))?;
+        sink.flush()?;
+        std::process::exit(0);
+    }
+
+
+    // Annotate the graph: the finding rides on the node so mermaid,
+    // dot, graphml and json all render it with no second output path.
+    // Only findings at or above the threshold are marked — a mark in a
+    // diagram travels without its evidence, so a low-confidence one
+    // would mislead.
+    let band = |c: Confidence| match c {
+        Confidence::High => 0u8,
+        Confidence::Medium => 1,
+        Confidence::Low => 2,
+    };
+    let mut shown = 0usize;
+    for f in &report.findings {
+        if band(f.confidence) > band(threshold) {
+            continue;
+        }
+        shown += 1;
+        if let Some(node) = graph.callables.get_mut(&f.id) {
+            node.unreferenced = Some(f.confidence);
+        }
+    }
+
+    // The detailed report — evidence, roots, capability table — goes to
+    // a sidecar, exactly as the audit does. `<output>.deadcode.json`
+    // beside the graph, or `--dead-code-report FILE`.
+    if let Some(path) = dead_code_report_path(cli) {
+        let mut sink = open_sink(&path)?;
+        match cli.dead_code_format {
+            cli::DeadCodeFormatArg::Text => {
+                deadcode::report::render_text(&report, threshold, &mut sink)?
+            }
+            cli::DeadCodeFormatArg::Json => deadcode::report::render_json(&report, &mut sink)?,
+        }
+        sink.flush()?;
+    }
+
+    if !cli.quiet {
+        eprintln!(
+            "cgg: dead-code: {shown} callable(s) marked unreferenced at {} confidence, \
+             {} withheld — BEST EFFORT, every finding is a hypothesis",
+            format!("{threshold:?}").to_lowercase(),
+            report.findings.len().saturating_sub(shown),
+        );
+    }
+
+    Ok(if cli.fail_on_dead && shown > 0 {
+        ExitCode::from(3)
+    } else {
+        ExitCode::SUCCESS
+    })
+}
+
+/// Where the detailed dead-code report goes.
+///
+/// Mirrors `emit_audit`: an explicit `--dead-code-report` wins,
+/// otherwise a sidecar beside `-o`, and nothing at all when the graph is
+/// going to stdout (the graph is the thing being piped; a report
+/// interleaved into it would corrupt it).
+fn dead_code_report_path(cli: &Cli) -> Option<PathBuf> {
+    if let Some(p) = &cli.dead_code_report {
+        return Some(p.clone());
+    }
+    match &cli.output {
+        Some(p) if *p != PathBuf::from("-") => {
+            let mut s = p.clone();
+            s.as_mut_os_string().push(".deadcode.json");
+            Some(s)
+        }
+        _ => None,
+    }
+}
+
+/// `--why-live`: print the shortest path from a root proving a callable
+/// is live. A query, not a graph, so it does replace the output.
+fn run_why_live(cli: &Cli, graph: &Graph, all_facts: &[FileFacts]) -> Result<ExitCode> {
+    use cgg_resolve::deadcode::{why_live, DeadCodeOptions};
+    let opts = DeadCodeOptions {
+        include_tests: cli.include_tests,
+        reference_edges: cli.reference_edges,
+        dynamic_dispatch: cli.dynamic_dispatch,
+        ..Default::default()
+    };
+    let targets =
+        query::match_callables(graph, &cli.why_live).map_err(|e| anyhow::anyhow!(e))?;
+    if targets.is_empty() {
+        eprintln!("cgg: --why-live matched no callables");
+    }
+    let dest = cli.output.clone().unwrap_or_else(|| PathBuf::from("-"));
+    let mut sink = open_sink(&dest)?;
+    let proofs = why_live(graph, all_facts, &opts, &targets);
+    deadcode::report::render_why_live(&proofs, &mut sink)?;
+    sink.flush()?;
+    Ok(ExitCode::SUCCESS)
 }
 
 /// Walk the graph's files, intersect each file's callable spans against
@@ -963,6 +1212,8 @@ fn sentinel_file(id: FileId, path: &str, lang: &str) -> GraphFileRecord {
         lines: 0,
         parse_ms: 0.0,
         parse_status: "synthetic".to_string(),
+        test_role: None,
+        ..Default::default()
     }
 }
 
@@ -1060,6 +1311,7 @@ fn synthesize_exit_nodes(
                         attributes: vec![kind_label.to_string()],
                         synthetic: true,
                         trait_impl_target: None,
+                        ..Default::default()
                     });
                     node_ids.insert(key, id);
                     id

@@ -37,6 +37,8 @@ pub mod nix;
 pub mod verilog;
 pub mod vhdl;
 pub mod asm;
+pub mod cfg;
+pub mod dynuse;
 pub mod smithy;
 pub mod proto;
 pub mod graphql;

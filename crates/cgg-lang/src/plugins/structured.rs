@@ -119,6 +119,7 @@ pub fn push_def(facts: &mut FileFacts, name: &str, qualified: &str, value: Node,
         signature_hint: sig,
         visibility: String::new(),
         attributes: Vec::new(),
+        ..Default::default()
     });
 }
 

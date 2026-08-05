@@ -252,6 +252,7 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -273,6 +274,7 @@ mod tests {
             references: refs,
             imports: Vec::new(),
             local_types: Vec::new(),
+            ..Default::default()
         }
     }
 

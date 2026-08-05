@@ -35,7 +35,18 @@ impl GraphFormatter for DotFormatter {
         writeln!(out, "  node [shape=box, style=rounded];")?;
         for (id, node) in &graph.callables {
             let label = dot_escape(&node.qualified_name);
-            writeln!(out, "  n{} [label=\"{}\"];", id.as_u32(), label)?;
+            if node.unreferenced.is_some() {
+                writeln!(
+                    out,
+                    "  n{} [label=\"{}\", style=dashed, \
+                     tooltip=\"unreferenced (best effort: cgg found no caller, \
+                     which is not proof none exists)\"];",
+                    id.as_u32(),
+                    label
+                )?;
+            } else {
+                writeln!(out, "  n{} [label=\"{}\"];", id.as_u32(), label)?;
+            }
         }
         // Collapse parallel edges (same src/dst pair, different call
         // sites in source) into a single rendered edge. Preserve
@@ -103,6 +114,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.1,
             parse_status: "ok".into(),
+            ..Default::default()
         });
         for id in 0..3 {
             g.add_callable(CallableNode {
@@ -121,6 +133,7 @@ mod tests {
                 attributes: vec![],
                 synthetic: false,
                 trait_impl_target: None,
+                ..Default::default()
             });
         }
         for &(s, d, byte) in edge_pairs {

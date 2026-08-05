@@ -10,7 +10,17 @@ use std::fmt;
 macro_rules! id_type {
     ($name:ident, $prefix:literal) => {
         #[derive(
-            Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+            Copy,
+            Clone,
+            Debug,
+            Default,
+            Eq,
+            PartialEq,
+            Ord,
+            PartialOrd,
+            Hash,
+            Serialize,
+            Deserialize,
         )]
         #[serde(transparent)]
         pub struct $name(pub u32);

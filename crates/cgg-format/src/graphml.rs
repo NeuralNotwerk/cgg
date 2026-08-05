@@ -19,11 +19,28 @@ impl GraphFormatter for GraphmlFormatter {
         writeln!(out, r#"<graphml xmlns="http://graphml.graphstruct.org/xmlns">"#)?;
         writeln!(out, r#"  <key id="label" for="node" attr.name="label" attr.type="string"/>"#)?;
         writeln!(out, r#"  <key id="lang" for="node" attr.name="language" attr.type="string"/>"#)?;
+        writeln!(
+            out,
+            r#"  <key id="unreferenced" for="node" attr.name="unreferenced" attr.type="string"/>"#
+        )?;
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
         for (id, node) in &graph.callables {
             writeln!(out, r#"    <node id="n{}">"#, id.as_u32())?;
             writeln!(out, r#"      <data key="label">{}</data>"#, xml_escape(&node.qualified_name))?;
             writeln!(out, r#"      <data key="lang">{}</data>"#, xml_escape(&node.language))?;
+            if let Some(c) = node.unreferenced {
+                // Best-effort finding: cgg found no caller, which is not
+                // proof that none exists.
+                writeln!(
+                    out,
+                    r#"      <data key="unreferenced">{}</data>"#,
+                    match c {
+                        cgg_core::graph::Confidence::High => "high",
+                        cgg_core::graph::Confidence::Medium => "medium",
+                        cgg_core::graph::Confidence::Low => "low",
+                    }
+                )?;
+            }
             writeln!(out, r#"    </node>"#)?;
         }
         for (i, edge) in graph.edges.iter().enumerate() {
@@ -61,6 +78,7 @@ mod tests {
             language: "rust".into(), detected_via: "ext".into(),
             blake3: "0".repeat(64), size_bytes: 10, lines: 1,
             parse_ms: 0.1, parse_status: "ok".into(),
+            ..Default::default()
         });
         g.add_callable(CallableNode {
             id: CallableId::new(0), qualified_name: "foo<T>".into(),
@@ -70,6 +88,7 @@ mod tests {
             signature_hint: String::new(), visibility: String::new(),
             attributes: vec![],
             synthetic: false, trait_impl_target: None,
+            ..Default::default()
         });
         let mut buf = Vec::new();
         GraphmlFormatter.render(&g, &mut buf).unwrap();

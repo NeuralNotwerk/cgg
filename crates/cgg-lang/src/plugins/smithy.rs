@@ -25,7 +25,7 @@ use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
 use tree_sitter::{Node, Tree};
 use tree_sitter_language::LanguageFn;
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 unsafe extern "C" {
     fn tree_sitter_smithy() -> *const ();
@@ -49,7 +49,6 @@ impl LanguagePlugin for SmithyPlugin {
     fn id(&self) -> &'static str { "smithy" }
     fn extensions(&self) -> &'static [&'static str] { &[".smithy"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { SMITHY_LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -136,6 +135,7 @@ impl<'a> SmithyWalker<'a> {
             end_byte: shape_stmt.end_byte() as u32,
             signature_hint: format!("{kind} {}", self.text(name_node)),
             visibility: String::new(), attributes: Vec::new(),
+            ..Default::default()
         });
 
         // References live in the shape body, not in the leading traits

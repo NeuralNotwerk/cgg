@@ -10,7 +10,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct VerilogPlugin;
@@ -18,7 +18,6 @@ pub struct VerilogPlugin;
 impl LanguagePlugin for VerilogPlugin {
     fn id(&self) -> &'static str { "verilog" }
     fn extensions(&self) -> &'static [&'static str] { &[".v", ".vh", ".sv", ".svh"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_verilog::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -69,6 +68,7 @@ impl<'a> VerilogWalker<'a> {
                         start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(), attributes: vec!["module".into()],
+                        ..Default::default()
                     });
                     self.scope.push(name); self.walk_children(node); self.scope.pop();
                 } else { self.walk_children(node); }
@@ -91,6 +91,7 @@ impl<'a> VerilogWalker<'a> {
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
                         attributes: vec![if node.kind() == "task_declaration" { "task".into() } else { "function".into() }],
+                        ..Default::default()
                     });
                 }
                 self.walk_children(node);

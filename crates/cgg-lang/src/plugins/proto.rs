@@ -19,7 +19,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct ProtoPlugin;
@@ -28,7 +28,6 @@ impl LanguagePlugin for ProtoPlugin {
     fn id(&self) -> &'static str { "proto" }
     fn extensions(&self) -> &'static [&'static str] { &[".proto"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_proto::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -98,6 +97,7 @@ impl<'a> ProtoWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: format!("{keyword} {name}"),
             visibility: String::new(), attributes: Vec::new(),
+            ..Default::default()
         });
 
         // Collect every non-scalar type reference inside the body

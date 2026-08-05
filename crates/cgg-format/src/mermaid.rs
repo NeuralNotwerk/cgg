@@ -43,6 +43,20 @@ impl GraphFormatter for MermaidFormatter {
     }
 
     fn render(&self, graph: &Graph, out: &mut dyn io::Write) -> io::Result<()> {
+        let any_unreferenced = graph.callables.values().any(|n| n.unreferenced.is_some());
+        if any_unreferenced {
+            // A mark in a diagram gets pasted into places its evidence
+            // does not follow, so the caveat rides along in a comment
+            // that survives copy-paste of the block.
+            writeln!(
+                out,
+                "%% cgg: nodes tagged `unreferenced` are BEST-EFFORT findings —"
+            )?;
+            writeln!(
+                out,
+                "%% cgg could not find a caller, which is not proof none exists."
+            )?;
+        }
         writeln!(out, "flowchart LR")?;
 
         // Nodes. Mermaid ids need to be word-safe; we use `C<n>` where
@@ -50,7 +64,27 @@ impl GraphFormatter for MermaidFormatter {
         // qualified name as the display label.
         for (id, node) in &graph.callables {
             let label = mermaid_escape(&node.qualified_name);
-            writeln!(out, "  C{id_n}[\"{label}\"]", id_n = id.as_u32())?;
+            // The tag is part of the label rather than only a style, so
+            // it survives renderers that drop classDef and readers who
+            // only see the text.
+            let tag = if node.unreferenced.is_some() {
+                " ⟨unreferenced⟩"
+            } else {
+                ""
+            };
+            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.as_u32())?;
+        }
+        if any_unreferenced {
+            writeln!(out, "  classDef unreferenced stroke-dasharray: 4 3;")?;
+            let marked: Vec<String> = graph
+                .callables
+                .iter()
+                .filter(|(_, n)| n.unreferenced.is_some())
+                .map(|(id, _)| format!("C{}", id.as_u32()))
+                .collect();
+            for chunk in marked.chunks(32) {
+                writeln!(out, "  class {} unreferenced;", chunk.join(","))?;
+            }
         }
 
         // Edges. The internal graph keeps one edge per call site (per
@@ -129,6 +163,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.1,
             parse_status: "ok".into(),
+            ..Default::default()
         });
         let a = g.add_callable(CallableNode {
             id: CallableId::new(0),
@@ -146,6 +181,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         let b = g.add_callable(CallableNode {
             id: CallableId::new(1),
@@ -163,6 +199,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         g.add_edge(CallEdge {
             src: a,
@@ -270,6 +307,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         // Order: a->c first, then a second occurrence of a->b, then a->c again.
         g.add_edge(CallEdge {

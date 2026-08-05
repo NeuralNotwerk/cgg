@@ -19,7 +19,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct JavaScriptPlugin;
@@ -34,9 +34,10 @@ impl LanguagePlugin for JavaScriptPlugin {
     fn shebangs(&self) -> &'static [&'static str] {
         &["node"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { unreachable: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_javascript::LANGUAGE.into()
     }
@@ -55,7 +56,14 @@ impl LanguagePlugin for JavaScriptPlugin {
             scope: Vec::new(),
         };
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
+        }
+        if crate::deadcode_signals() {
+            out.dyn_uses = super::dynuse::extract(tree, source, "javascript");
+        }
+        out
     }
 }
 
@@ -178,6 +186,7 @@ impl<'a> JsWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -216,6 +225,7 @@ impl<'a> JsWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -269,6 +279,7 @@ impl<'a> JsWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -304,6 +315,7 @@ impl<'a> JsWalker<'a> {
                 signature_hint: super::extract_signature(self.text(child)),
                 visibility: String::new(),
                 attributes: Vec::new(),
+                ..Default::default()
             });
         }
     }
@@ -499,6 +511,7 @@ impl<'a> JsWalker<'a> {
                 start_byte: child.start_byte() as u32, end_byte: child.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(child)),
                 visibility: String::new(), attributes: Vec::new(),
+                ..Default::default()
             });
         }
     }
@@ -526,6 +539,7 @@ impl<'a> JsWalker<'a> {
                 start_byte: arg.start_byte() as u32, end_byte: arg.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(arg)),
                 visibility: String::new(), attributes: Vec::new(),
+                ..Default::default()
             });
         }
     }

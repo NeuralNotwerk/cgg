@@ -14,26 +14,33 @@ use cgg_core::ids::CallableId;
 use regex::Regex;
 
 /// Apply filter + hop logic, returning a pruned graph.
-pub fn apply_query(graph: &Graph, filters: &[String], hops: i32, max_paths: u32) -> Graph {
+///
+/// Errors if any `--filter` pattern fails to compile.
+pub fn apply_query(
+    graph: &Graph,
+    filters: &[String],
+    hops: i32,
+    max_paths: u32,
+) -> Result<Graph, String> {
     if filters.is_empty() {
-        return graph.clone();
+        return Ok(graph.clone());
     }
 
-    let seeds = find_seeds(graph, filters);
+    let seeds = find_seeds(graph, filters)?;
     if seeds.is_empty() {
-        return Graph::new();
+        return Ok(Graph::new());
     }
 
     if hops == 0 {
         // Full-path mode: find all entry→exit paths through seeds.
-        return paths_through(graph, &seeds, max_paths);
+        return Ok(paths_through(graph, &seeds, max_paths));
     }
 
     // N-hop neighborhood (hops > 0, or -1 which we treat as "seeds only
     // with all their direct edges" — but per spec -1 means full graph
     // which is handled above by the empty-filter check).
     let depth = if hops < 0 { 1 } else { hops as u32 };
-    neighborhood(graph, &seeds, depth)
+    Ok(neighborhood(graph, &seeds, depth))
 }
 
 /// Remove nodes matching any exclusion pattern from the graph.
@@ -43,17 +50,24 @@ pub fn apply_exclusions(
     partials: &[String],
     globs: &[String],
     regexes: &[String],
-) -> Graph {
+) -> Result<Graph, String> {
     if partials.is_empty() && globs.is_empty() && regexes.is_empty() {
-        return graph.clone();
+        return Ok(graph.clone());
     }
 
-    let glob_pats: Vec<glob::Pattern> = globs.iter()
-        .filter_map(|g| glob::Pattern::new(g).ok())
-        .collect();
-    let regex_pats: Vec<Regex> = regexes.iter()
-        .filter_map(|r| Regex::new(r).ok())
-        .collect();
+    let glob_pats: Vec<glob::Pattern> = globs
+        .iter()
+        .map(|g| {
+            glob::Pattern::new(g)
+                .map_err(|e| format!("--exclude-glob: invalid glob pattern '{g}': {e}"))
+        })
+        .collect::<Result<_, _>>()?;
+    let regex_pats: Vec<Regex> = regexes
+        .iter()
+        .map(|r| {
+            Regex::new(r).map_err(|e| format!("--exclude-regex: invalid regex pattern '{r}': {e}"))
+        })
+        .collect::<Result<_, _>>()?;
 
     let keep: HashSet<CallableId> = graph.callables.values()
         .filter(|c| {
@@ -73,18 +87,43 @@ pub fn apply_exclusions(
         .map(|c| c.id)
         .collect();
 
-    prune(graph, &keep)
+    Ok(prune(graph, &keep))
 }
 
-fn find_seeds(graph: &Graph, filters: &[String]) -> HashSet<CallableId> {
+/// Compile patterns, surfacing any syntax error.
+///
+/// Shared with dead-code mode so both use the same grammar: regex by
+/// default, `glob:` prefix for glob.
+pub fn compile_patterns(pats: &[String]) -> Result<Vec<Pattern>, String> {
+    pats.iter().map(|p| Pattern::try_new(p)).collect()
+}
+
+/// Callables whose qualified name matches any pattern, in graph order.
+pub fn match_callables(
+    graph: &Graph,
+    patterns: &[String],
+) -> Result<Vec<CallableId>, String> {
+    let pats = compile_patterns(patterns)?;
+    Ok(graph
+        .callables
+        .values()
+        .filter(|c| pats.iter().any(|p| p.matches(&c.qualified_name)))
+        .map(|c| c.id)
+        .collect())
+}
+
+fn find_seeds(graph: &Graph, filters: &[String]) -> Result<HashSet<CallableId>, String> {
     let mut seeds = HashSet::new();
-    let patterns: Vec<Pattern> = filters.iter().map(|f| Pattern::new(f)).collect();
+    let patterns: Vec<Pattern> = filters
+        .iter()
+        .map(|f| Pattern::try_new(f).map_err(|e| format!("--filter: {e}")))
+        .collect::<Result<_, _>>()?;
     for c in graph.callables.values() {
         if patterns.iter().any(|p| p.matches(&c.qualified_name)) {
             seeds.insert(c.id);
         }
     }
-    seeds
+    Ok(seeds)
 }
 
 fn neighborhood(graph: &Graph, seeds: &HashSet<CallableId>, depth: u32) -> Graph {
@@ -231,21 +270,33 @@ fn prune(graph: &Graph, keep: &HashSet<CallableId>) -> Graph {
     out
 }
 
-enum Pattern {
+#[derive(Debug)]
+pub enum Pattern {
     Regex(Regex),
     Glob(glob::Pattern),
 }
 
 impl Pattern {
-    fn new(s: &str) -> Self {
+    /// Compile a pattern, reporting the underlying syntax error.
+    ///
+    /// An invalid pattern is always a user error and is never silently
+    /// absorbed: the previous behaviour mapped a bad regex to `.*` (match
+    /// everything) and a bad glob to `*`, while `apply_exclusions` instead
+    /// dropped bad patterns entirely — two opposite silent failures for the
+    /// same mistake. Both now surface.
+    pub fn try_new(s: &str) -> Result<Self, String> {
         if let Some(g) = s.strip_prefix("glob:") {
-            Pattern::Glob(glob::Pattern::new(g).unwrap_or_else(|_| glob::Pattern::new("*").unwrap()))
+            glob::Pattern::new(g)
+                .map(Pattern::Glob)
+                .map_err(|e| format!("invalid glob pattern '{g}': {e}"))
         } else {
-            Pattern::Regex(Regex::new(s).unwrap_or_else(|_| Regex::new(".*").unwrap()))
+            Regex::new(s)
+                .map(Pattern::Regex)
+                .map_err(|e| format!("invalid regex pattern '{s}': {e}"))
         }
     }
 
-    fn matches(&self, name: &str) -> bool {
+    pub fn matches(&self, name: &str) -> bool {
         match self {
             Pattern::Regex(r) => r.is_match(name),
             Pattern::Glob(g) => g.matches(name),
@@ -267,6 +318,7 @@ mod tests {
             language: "rust".into(), detected_via: "ext".into(),
             blake3: "0".repeat(64), size_bytes: 10, lines: 5,
             parse_ms: 0.1, parse_status: "ok".into(),
+            ..Default::default()
         });
         for i in 0..4u32 {
             g.add_callable(CallableNode {
@@ -281,6 +333,7 @@ mod tests {
                 signature_hint: String::new(), visibility: String::new(),
                 attributes: vec![],
                 synthetic: false, trait_impl_target: None,
+                ..Default::default()
             });
         }
         // Chain: fn_0 -> fn_1 -> fn_2 -> fn_3
@@ -298,7 +351,7 @@ mod tests {
     #[test]
     fn filter_selects_seed() {
         let g = mk_graph();
-        let out = apply_query(&g, &["fn_1".into()], 1, 100);
+        let out = apply_query(&g, &["fn_1".into()], 1, 100).unwrap();
         // 1-hop from fn_1: fn_0, fn_1, fn_2
         assert_eq!(out.callables.len(), 3);
     }
@@ -308,15 +361,54 @@ mod tests {
         let g = mk_graph();
         // fn_0 is entry, fn_3 is exit. Path fn_0->fn_1->fn_2->fn_3
         // passes through fn_2.
-        let out = apply_query(&g, &["fn_2".into()], 0, 100);
+        let out = apply_query(&g, &["fn_2".into()], 0, 100).unwrap();
         assert_eq!(out.callables.len(), 4); // entire chain
     }
 
     #[test]
     fn glob_pattern() {
         let g = mk_graph();
-        let out = apply_query(&g, &["glob:fn_[01]".into()], 1, 100);
+        let out = apply_query(&g, &["glob:fn_[01]".into()], 1, 100).unwrap();
         // Seeds: fn_0, fn_1. 1-hop adds fn_2.
         assert_eq!(out.callables.len(), 3);
     }
+
+    #[test]
+    fn pattern_try_new_rejects_bad_regex() {
+        let err = Pattern::try_new("[").unwrap_err();
+        assert!(err.contains("invalid regex pattern '['"), "{err}");
+    }
+
+    #[test]
+    fn pattern_try_new_rejects_bad_glob() {
+        let err = Pattern::try_new("glob:[").unwrap_err();
+        assert!(err.contains("invalid glob pattern '['"), "{err}");
+    }
+
+    #[test]
+    fn pattern_try_new_accepts_valid() {
+        assert!(Pattern::try_new("^foo$").is_ok());
+        assert!(Pattern::try_new("glob:foo*").is_ok());
+    }
+
+    #[test]
+    fn bad_filter_is_an_error_not_match_all() {
+        // Regression: `Pattern::new` used to map a bad regex to `.*`,
+        // silently selecting every callable.
+        let g = mk_graph();
+        let err = apply_query(&g, &["[".into()], 1, 100).unwrap_err();
+        assert!(err.starts_with("--filter:"), "{err}");
+    }
+
+    #[test]
+    fn bad_exclusion_is_an_error_not_silently_dropped() {
+        // Regression: `apply_exclusions` used to `filter_map(..ok())`,
+        // silently ignoring the exclusion entirely.
+        let g = mk_graph();
+        let err = apply_exclusions(&g, &[], &["[".into()], &[]).unwrap_err();
+        assert!(err.starts_with("--exclude-glob:"), "{err}");
+        let err = apply_exclusions(&g, &[], &[], &["[".into()]).unwrap_err();
+        assert!(err.starts_with("--exclude-regex:"), "{err}");
+    }
+
 }

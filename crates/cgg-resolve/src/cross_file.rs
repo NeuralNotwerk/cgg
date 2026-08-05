@@ -624,9 +624,30 @@ fn collect_include_defs(
     let resolved = includer_dir.join(include_path);
     // Find the matching FileFacts by path suffix (handles both
     // absolute and relative paths in the index).
-    let target = facts_by_id.values().find(|f| {
-        f.path == resolved || f.path.ends_with(include_path)
-    });
+    //
+    // The pick must be deterministic. A `HashMap`'s iteration order is
+    // randomly seeded per process, so taking the first `.find()` match
+    // made the `#include` closure — and therefore the emitted edge set
+    // — vary between runs whenever more than one file matched the
+    // suffix. That is routine in C/C++, where many directories hold
+    // their own `common.h`. Prefer the exactly-resolved path, then the
+    // lowest FileId: a total order over the candidates.
+    // An exact path match is unique, so it can short-circuit; only the
+    // ambiguous suffix case needs the full scan to find the lowest
+    // FileId. Scanning unconditionally costs ~6% on include-heavy C/C++
+    // trees, and the exact match is the common case.
+    let mut target: Option<&&FileFacts> = None;
+    for f in facts_by_id.values() {
+        if f.path == resolved {
+            target = Some(f);
+            break;
+        }
+        if f.path.ends_with(include_path)
+            && target.is_none_or(|best| f.file.as_u32() < best.file.as_u32())
+        {
+            target = Some(f);
+        }
+    }
     let Some(target) = target else { return };
     // Import all definitions from the target.
     for d in &target.definitions {
@@ -996,6 +1017,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.0,
             parse_status: "ok".into(),
+            ..Default::default()
         }
     }
 
@@ -1023,6 +1045,7 @@ mod tests {
             attributes: vec![],
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         }
     }
 
@@ -1043,6 +1066,7 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec![],
+            ..Default::default()
         }
     }
 
@@ -1062,6 +1086,7 @@ mod tests {
             references: refs,
             imports,
             local_types: Vec::new(),
+            ..Default::default()
         }
     }
 

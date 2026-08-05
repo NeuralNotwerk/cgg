@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct ObjcPlugin;
@@ -11,7 +11,6 @@ pub struct ObjcPlugin;
 impl LanguagePlugin for ObjcPlugin {
     fn id(&self) -> &'static str { "objc" }
     fn extensions(&self) -> &'static [&'static str] { &[".m", ".mm"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_objc::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -60,6 +59,7 @@ impl<'a> ObjcWalker<'a> {
                         start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(), attributes: Vec::new(),
+                        ..Default::default()
                     });
                 }
                 self.walk_children(node); return;
@@ -122,6 +122,7 @@ impl<'a> ObjcWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(), attributes: Vec::new(),
+            ..Default::default()
         });
     }
 }

@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct SwiftPlugin;
@@ -11,7 +11,6 @@ pub struct SwiftPlugin;
 impl LanguagePlugin for SwiftPlugin {
     fn id(&self) -> &'static str { "swift" }
     fn extensions(&self) -> &'static [&'static str] { &[".swift"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_swift::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -62,6 +61,7 @@ impl<'a> SwiftWalker<'a> {
                     start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
                     signature_hint: super::extract_signature(self.text(node)),
                     visibility: String::new(), attributes: Vec::new(),
+                    ..Default::default()
                 });
                 self.walk_children(node);
                 return;
@@ -102,6 +102,7 @@ impl<'a> SwiftWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(), attributes: Vec::new(),
+            ..Default::default()
         });
     }
 

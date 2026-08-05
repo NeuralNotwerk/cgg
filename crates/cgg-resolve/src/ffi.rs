@@ -134,21 +134,6 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
             continue;
         };
 
-        // Find refs (edges) targeting this name from other languages.
-        for edge in &graph.edges {
-            if edge.dst != c.id {
-                continue;
-            }
-            let Some(src_node) = graph.callables.get(&edge.src) else {
-                continue;
-            };
-            if src_node.language != c.language {
-                // Already a cross-language edge — tag it as FFI.
-                // (We don't duplicate; the edge already exists.)
-                continue;
-            }
-        }
-
         // Look for unresolved references in other languages that
         // match this callable's simple name. We emit edges from
         // callers in other languages to this FFI-exported callable.
@@ -195,36 +180,68 @@ fn enclosing_callable(graph: &Graph, f: &FileFacts, byte: u32) -> Option<Callabl
     best.map(|(c, _)| c.id)
 }
 
-fn detect_ffi_family(c: &cgg_core::graph::CallableNode) -> &'static str {
-    for attr in &c.attributes {
-        let a = attr.to_lowercase();
-        // PyO3
-        if a.contains("pyfunction") || a.contains("pymethods") || a.contains("pyclass") {
-            return "pyo3";
-        }
-        // wasm-bindgen
-        if a.contains("wasm_bindgen") {
-            return "wasm-bindgen";
-        }
-        // napi-rs
-        if a.contains("napi") || a.contains("module_exports") {
-            return "napi";
-        }
-        // JNI
-        if a.contains("jni") || a == "native" {
-            return "jni";
-        }
-        // C# P/Invoke
-        if a.contains("dllimport") {
-            return "pinvoke";
-        }
-        // C ABI
-        if a.contains("no_mangle") || a.contains("extern \"c\"") || a.contains("dllexport") {
-            return "c-abi";
+/// Which side of an FFI boundary a symbol sits on.
+///
+/// This distinction did not exist before, and it inverts the meaning of
+/// the finding: `#[no_mangle] extern "C" fn` is an **export**, called
+/// from outside the analyzed tree and therefore unfalsifiably live,
+/// whereas `[DllImport]` is an **import**, a call *out* of the tree that
+/// says nothing about liveness. Both used to return the same family.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum FfiDirection {
+    Export,
+    Import,
+}
+
+/// Classify an FFI symbol by family and direction.
+///
+/// Compares normalized attribute *keys* for equality rather than
+/// substring-matching the raw text: `a.contains("jni")` previously
+/// matched any annotation whose text happened to contain those three
+/// letters.
+pub fn classify_ffi(attrs: &[String]) -> Option<(&'static str, FfiDirection)> {
+    use FfiDirection::{Export, Import};
+    for attr in attrs {
+        let raw = attr.trim();
+        let key = raw
+            .trim_start_matches("#[")
+            .trim_start_matches('[')
+            .trim_start_matches('@')
+            .trim_end_matches(']');
+        let key = key.split('(').next().unwrap_or(key);
+        let key = key.split('=').next().unwrap_or(key).trim();
+        let lower = key.to_ascii_lowercase();
+
+        let hit = match lower.as_str() {
+            "pyfunction" | "pymethods" | "pyclass" => Some(("pyo3", Export)),
+            "wasm_bindgen" => Some(("wasm-bindgen", Export)),
+            "napi" | "module_exports" => Some(("napi", Export)),
+            "no_mangle" | "unsafe(no_mangle)" | "export_name" => Some(("c-abi", Export)),
+            "extern:c" => Some(("c-abi", Export)),
+            "uniffi::export" => Some(("uniffi", Export)),
+            "unmanagedcallersonly" => Some(("c-abi", Export)),
+            "jniexport" => Some(("jni", Export)),
+            "dllexport" => Some(("c-abi", Export)),
+            // Imports: a call leaving the tree.
+            "dllimport" => Some(("pinvoke", Import)),
+            "native" => Some(("jni", Import)),
+            "link" => Some(("c-abi", Import)),
+            _ => None,
+        };
+        if hit.is_some() {
+            return hit;
         }
     }
-    // Check visibility for extern "C" in Rust (captured as attribute).
-    ""
+    None
+}
+
+fn detect_ffi_family(c: &cgg_core::graph::CallableNode) -> &'static str {
+    // Only exports get a speculative cross-language peer edge: an
+    // import is a call *out* of the tree and has no in-tree callee.
+    match classify_ffi(&c.attributes) {
+        Some((family, FfiDirection::Export)) => family,
+        _ => "",
+    }
 }
 
 #[cfg(test)]
@@ -246,6 +263,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.0,
             parse_status: "ok".into(),
+            ..Default::default()
         });
         g.add_file(FileRecord {
             id: FileId::new(1),
@@ -257,6 +275,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.0,
             parse_status: "ok".into(),
+            ..Default::default()
         });
         // Rust FFI export
         g.add_callable(CallableNode {
@@ -273,6 +292,7 @@ mod tests {
             attributes: vec!["#[pyfunction]".into()],
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         // Python caller with same name (it imported the binding)
         g.add_callable(CallableNode {
@@ -289,6 +309,7 @@ mod tests {
             attributes: vec![],
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         g
     }
@@ -311,4 +332,41 @@ mod tests {
         let out = link_ffi(&g, &[]);
         assert!(out.edges.is_empty());
     }
+
+    #[test]
+    fn exports_and_imports_are_opposite_directions() {
+        use FfiDirection::{Export, Import};
+        assert_eq!(classify_ffi(&["#[no_mangle]".into()]), Some(("c-abi", Export)));
+        assert_eq!(classify_ffi(&["#[pyfunction]".into()]), Some(("pyo3", Export)));
+        assert_eq!(classify_ffi(&["extern:C".into()]), Some(("c-abi", Export)));
+        // An import is a call *out* of the tree and says nothing about
+        // whether anything here is used.
+        assert_eq!(classify_ffi(&["[DllImport]".into()]), Some(("pinvoke", Import)));
+        assert_eq!(classify_ffi(&["native".into()]), Some(("jni", Import)));
+    }
+
+    #[test]
+    fn classification_is_key_exact_not_substring() {
+        // `a.contains("jni")` used to match anything containing those
+        // three letters.
+        assert_eq!(classify_ffi(&["@InjniSomething".into()]), None);
+        assert_eq!(classify_ffi(&["#[derive(Debug)]".into()]), None);
+        assert_eq!(classify_ffi(&[]), None);
+    }
+
+    #[test]
+    fn only_exports_get_a_speculative_peer_edge() {
+        let mut n = CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "x".into(),
+            simple_name: "x".into(),
+            language: "rust".into(),
+            ..Default::default()
+        };
+        n.attributes = vec!["[DllImport]".into()];
+        assert_eq!(detect_ffi_family(&n), "", "an import has no in-tree callee");
+        n.attributes = vec!["#[no_mangle]".into()];
+        assert_eq!(detect_ffi_family(&n), "c-abi");
+    }
+
 }

@@ -14,10 +14,11 @@ use crate::ids::{CallableId, FileId, ResolverId};
 
 /// Kind of a callable node. Matches the "purely callables" scope from
 /// the plan: anything you'd put executable code inside.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CallableKind {
     /// A free function (`fn foo()`, `def foo():`, `function foo()`).
+    #[default]
     Function,
     /// A method bound to a type (`impl T { fn m() }`, `class C { m() {} }`).
     Method,
@@ -76,7 +77,12 @@ pub enum Via {
 }
 
 /// A callable node in the graph.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+///
+/// `Default` is derived so construction sites can use
+/// `..Default::default()` and stay source-compatible as optional
+/// fields are added. The derived `id`/`file` are placeholder zeros —
+/// every real construction site sets them explicitly.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CallableNode {
     pub id: CallableId,
     pub qualified_name: String,
@@ -119,6 +125,25 @@ pub struct CallableNode {
     /// `<DiskStorage as Storage>::put`. Drives the dispatch fan-out index.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trait_impl_target: Option<String>,
+
+    /// Normalized visibility, mirrored from `DefRecord::vis`.
+    #[serde(default, skip_serializing_if = "crate::facts::Vis::is_unknown")]
+    pub vis: crate::facts::Vis,
+
+    /// Test role, mirrored from `DefRecord::test_role`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_role: Option<crate::facts::TestRole>,
+
+    /// Set by `--dead-code` when nothing in the analyzed source appears
+    /// to reference this callable; the value is the confidence of that
+    /// finding.
+    ///
+    /// Lives on the node so that every formatter can render it without
+    /// a second output path — "unreferenced" is a property of a node in
+    /// the graph, not a separate document. `None` when the analysis did
+    /// not run, so the default graph is byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unreferenced: Option<Confidence>,
 }
 
 /// A directed call edge.
@@ -136,7 +161,7 @@ pub struct CallEdge {
 }
 
 /// Provenance record for a file that entered the analysis.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct FileRecord {
     pub id: FileId,
     pub path: PathBuf,
@@ -147,6 +172,9 @@ pub struct FileRecord {
     pub lines: u32,
     pub parse_ms: f64,
     pub parse_status: String,
+    /// Set when the file is test code, with the rule that decided it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_role: Option<crate::testfile::TestFileReason>,
 }
 
 /// The complete in-memory representation.
@@ -219,6 +247,7 @@ mod tests {
             attributes: vec![],
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         }
     }
 
@@ -233,6 +262,8 @@ mod tests {
             lines: 3,
             parse_ms: 0.1,
             parse_status: "ok".into(),
+            test_role: None,
+            ..Default::default()
         }
     }
 

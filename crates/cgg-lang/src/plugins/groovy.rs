@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct GroovyPlugin;
@@ -11,7 +11,6 @@ pub struct GroovyPlugin;
 impl LanguagePlugin for GroovyPlugin {
     fn id(&self) -> &'static str { "groovy" }
     fn extensions(&self) -> &'static [&'static str] { &[".groovy", ".gradle"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_groovy::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -129,6 +128,7 @@ impl<'a> GroovyWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 

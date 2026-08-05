@@ -390,6 +390,7 @@ mod tests {
             signature_hint: sig.to_string(),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         }
     }
 

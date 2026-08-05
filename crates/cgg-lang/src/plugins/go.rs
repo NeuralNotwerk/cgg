@@ -27,7 +27,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct GoPlugin;
@@ -39,9 +39,10 @@ impl LanguagePlugin for GoPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".go"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { test_defs: true, unreachable: true, visibility: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_go::LANGUAGE.into()
     }
@@ -80,7 +81,14 @@ impl LanguagePlugin for GoPlugin {
             pkg,
         };
         w.walk(root);
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::GO);
+        }
+        if crate::deadcode_signals() {
+            out.dyn_uses = super::dynuse::extract(tree, source, "go");
+        }
+        out
     }
 }
 
@@ -176,6 +184,7 @@ impl<'a> Walker<'a> {
         }
         let qn = format!("{pkg}.{simple}", pkg = self.pkg, simple = simple);
         let (sl, el) = line_range(node);
+        let (vis, test_role) = (go_vis(&simple), go_test_role(&simple));
         self.facts.definitions.push(DefRecord {
             simple_name: simple,
             qualified_name: qn,
@@ -186,7 +195,10 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis,
+            test_role,
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -237,6 +249,7 @@ impl<'a> Walker<'a> {
             format!("{pkg}.{recv_type}.{simple}", pkg = self.pkg)
         };
         let (sl, el) = line_range(node);
+        let (vis, test_role) = (go_vis(&simple), go_test_role(&simple));
         self.facts.definitions.push(DefRecord {
             simple_name: simple,
             qualified_name: qn,
@@ -247,7 +260,10 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis,
+            test_role,
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -311,13 +327,15 @@ impl<'a> Walker<'a> {
                 if method_name.is_empty() { continue; }
                 let qn = format!("{}.{method_name}", self.package_prefix(&type_name));
                 let (sl, el) = ((spec.start_position().row as u32)+1, (spec.end_position().row as u32)+1);
+                let vis = go_vis(&method_name);
                 self.facts.definitions.push(cgg_core::DefRecord {
                     simple_name: method_name, qualified_name: qn,
                     variant: cgg_core::DefVariant::InherentMethod,
                     start_line: sl, end_line: el,
                     start_byte: spec.start_byte() as u32, end_byte: spec.end_byte() as u32,
                     signature_hint: self.text(spec).trim().to_string(),
-                    visibility: String::new(), attributes: Vec::new(),
+                    visibility: String::new(), vis, attributes: Vec::new(),
+                    ..Default::default()
                 });
             }
         }
@@ -363,6 +381,7 @@ impl<'a> Walker<'a> {
             if rhs.kind() == "func_literal" {
                 let qn = format!("{}.{var_name}", self.pkg);
                 let (sl, el) = ((node.start_position().row as u32)+1, (node.end_position().row as u32)+1);
+                let vis = go_vis(&var_name);
                 self.facts.definitions.push(cgg_core::DefRecord {
                     simple_name: var_name.clone(),
                     qualified_name: qn,
@@ -370,7 +389,8 @@ impl<'a> Walker<'a> {
                     start_line: sl, end_line: el,
                     start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
                     signature_hint: super::extract_signature(self.text(node)),
-                    visibility: String::new(), attributes: Vec::new(),
+                    visibility: String::new(), vis, attributes: Vec::new(),
+                    ..Default::default()
                 });
                 return;
             }
@@ -527,4 +547,30 @@ func Helper() {}
         let pkg = f.imports.iter().find(|i| i.kind == "package-root").unwrap();
         assert_eq!(pkg.path, "alpha");
     }
+}
+
+/// Go's visibility rule *is* the identifier's first letter — this is
+/// exact, not a heuristic.
+fn go_vis(simple: &str) -> cgg_core::Vis {
+    match simple.chars().next() {
+        Some(c) if c.is_uppercase() => cgg_core::Vis::Public,
+        _ => cgg_core::Vis::Internal,
+    }
+}
+
+/// `TestXxx`/`BenchmarkXxx`/`FuzzXxx`/`ExampleXxx` — the harness
+/// conventions. Requires more than the bare prefix so `Test` itself and
+/// `Testing` do not qualify.
+fn go_test_role(simple: &str) -> Option<cgg_core::TestRole> {
+    if simple == "TestMain" {
+        return Some(cgg_core::TestRole::Fixture);
+    }
+    for pfx in ["Test", "Benchmark", "Fuzz", "Example"] {
+        if let Some(rest) = simple.strip_prefix(pfx) {
+            if rest.chars().next().is_some_and(|c| c.is_uppercase()) {
+                return Some(cgg_core::TestRole::Case);
+            }
+        }
+    }
+    None
 }

@@ -29,7 +29,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct CSharpPlugin;
@@ -41,9 +41,10 @@ impl LanguagePlugin for CSharpPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".cs", ".csx"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { visibility: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_c_sharp::LANGUAGE.into()
     }
@@ -216,7 +217,9 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis: csharp_vis(&super::extract_signature(self.text(node))),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -457,5 +460,29 @@ namespace A.B.C {
         // text of the name field which includes the dots already.
         assert!(names.iter().any(|n| n.ends_with(".T.M")), "got: {names:?}");
         assert!(names.iter().any(|n| n.contains("A.B.C")), "got: {names:?}");
+    }
+}
+
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Private`.
+fn csharp_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Private
     }
 }

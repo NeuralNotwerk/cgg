@@ -9,7 +9,7 @@ use std::path::Path;
 use cgg_core::{ids::FileId, FileFacts};
 use tree_sitter::Tree;
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 use super::javascript::JsWalker;
 
 #[derive(Debug)]
@@ -24,9 +24,6 @@ impl LanguagePlugin for TypeScriptPlugin {
     }
     fn shebangs(&self) -> &'static [&'static str] {
         &["ts-node", "tsx", "deno", "bun"]
-    }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
     }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_typescript::LANGUAGE_TSX.into()

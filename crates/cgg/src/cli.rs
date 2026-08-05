@@ -119,10 +119,11 @@ pub struct Cli {
     #[arg(long = "audit-format", value_enum, default_value_t = AuditFormatArg::Json)]
     pub audit_format: AuditFormatArg,
 
-    /// Control stack-graphs deep resolution. `auto` (default) runs it
-    /// with a 60-second timeout — if exceeded, falls back to the
-    /// cross-file resolver only. `on` forces it without timeout; `off`
-    /// skips it entirely.
+    /// No effect — accepted for compatibility. Stack-graphs deep
+    /// resolution was removed in the tree-sitter 0.26 upgrade (upstream
+    /// `tree-sitter-stack-graphs` pins tree-sitter 0.24). The cross-file
+    /// resolver and type propagation cover the same ground and run
+    /// unconditionally, so all three values behave identically.
     #[arg(long = "stack-graphs", value_enum, default_value_t = StackGraphsArg::Auto)]
     pub stack_graphs: StackGraphsArg,
 
@@ -151,6 +152,84 @@ pub struct Cli {
     /// `reference`. Off by default.
     #[arg(long = "reference-edges", action = ArgAction::SetTrue)]
     pub reference_edges: bool,
+
+    /// Report callables that nothing in the analyzed source appears to
+    /// call, marking them `unreferenced` in the normal graph output.
+    ///
+    /// BEST EFFORT: every finding is a hypothesis, not a fact. cgg
+    /// reports what it could not find a caller for, which is not the
+    /// same as proving no caller exists.
+    ///
+    /// The graph is emitted as usual in whatever `-t` selects; the
+    /// detailed report goes to a sidecar (see `--dead-code-report`).
+    #[arg(long = "dead-code", action = ArgAction::SetTrue)]
+    pub dead_code: bool,
+
+    /// Shape of the dead-code report. `text` = ranked and
+    /// agent-readable (default); `json` = the stable `cgg.deadcode.v1`
+    /// document.
+    #[arg(long = "dead-code-format", value_enum, default_value_t = DeadCodeFormatArg::Text)]
+    pub dead_code_format: DeadCodeFormatArg,
+
+    /// Lowest confidence band to report. `high` (default) shows only
+    /// findings with no mitigating signal on record. `medium` and `low`
+    /// widen it. Withheld counts are always printed, whatever the band.
+    #[arg(long = "dead-code-confidence", value_enum, default_value_t = DeadCodeConfidenceArg::High)]
+    pub dead_code_confidence: DeadCodeConfidenceArg,
+
+    /// Suppress dead-code findings whose qualified name matches
+    /// PATTERN. Repeatable. Regex by default; prefix with `glob:` for
+    /// glob syntax.
+    ///
+    /// Suppression is report-only: the callable still counts as a
+    /// caller, so its callees do not become findings as a side effect.
+    #[arg(long = "ignore-names", value_name = "PATTERN")]
+    pub ignore_names: Vec<String>,
+
+    /// Declared roots and accepted findings (TOML). Default: the
+    /// nearest `cgg-deadcode.toml`, searching upward from the working
+    /// directory. Passing this disables that search.
+    ///
+    /// `roots` entries are entry points: a match is live, and so is
+    /// everything it transitively calls. `[[allow]]` entries are
+    /// reviewed findings; they are suppressed from the report but are
+    /// NOT made live, so anything they reference is still reported.
+    #[arg(long = "roots", value_name = "FILE")]
+    pub roots: Option<PathBuf>,
+
+    /// Write a `cgg-deadcode.toml` accepting every finding of this run,
+    /// for adopting the tool on an existing codebase. Goes to the
+    /// primary output; cgg never edits files in place.
+    #[arg(long = "write-roots", action = ArgAction::SetTrue)]
+    pub write_roots: bool,
+
+    /// Suppress dead-code findings on callables carrying a matching
+    /// attribute or decorator (`#[no_mangle]`, `glob:@app.route*`).
+    /// Repeatable; same pattern syntax as `--ignore-names`.
+    ///
+    /// Attributes are captured by the Rust and Python plugins only; on
+    /// other languages this matches nothing, and the capability table
+    /// in the report says so.
+    #[arg(long = "ignore-attributes", value_name = "PATTERN")]
+    pub ignore_attributes: Vec<String>,
+
+    /// Explain why a callable is considered live: print the shortest
+    /// path from a root, preferring high-confidence direct edges and
+    /// non-test roots. Repeatable; same pattern syntax as `--filter`.
+    /// Implies `--dead-code`.
+    #[arg(long = "why-live", value_name = "PATTERN")]
+    pub why_live: Vec<String>,
+
+    /// Write the detailed dead-code report (evidence, roots, per-language
+    /// capability table) to FILE. Defaults to `<output>.deadcode.json`
+    /// beside `-o`; omitted entirely when the graph goes to stdout.
+    #[arg(long = "dead-code-report", value_name = "FILE")]
+    pub dead_code_report: Option<PathBuf>,
+
+    /// Exit 3 when the dead-code report is non-empty. Off by default —
+    /// cgg's exit status is unchanged unless you ask for this.
+    #[arg(long = "fail-on-dead", action = ArgAction::SetTrue)]
+    pub fail_on_dead: bool,
 
     /// Force a sidecar metrics file. Useful when `-t json` already
     /// embeds the audit but an external tool wants a split file.
@@ -187,6 +266,34 @@ impl From<OutputFormatArg> for cgg_format::OutputFormat {
             OutputFormatArg::Json => cgg_format::OutputFormat::Json,
             OutputFormatArg::Dot => cgg_format::OutputFormat::Dot,
             OutputFormatArg::Graphml => cgg_format::OutputFormat::Graphml,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum DeadCodeFormatArg {
+    /// Ranked, agent-readable text report.
+    Text,
+    /// `cgg.deadcode.v1` JSON document.
+    Json,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum DeadCodeConfidenceArg {
+    /// Only findings with no mitigating signal on record.
+    High,
+    /// ...plus findings with one over-approximation caveat.
+    Medium,
+    /// ...plus findings cgg has positive reason to doubt.
+    Low,
+}
+
+impl From<DeadCodeConfidenceArg> for cgg_core::graph::Confidence {
+    fn from(v: DeadCodeConfidenceArg) -> Self {
+        match v {
+            DeadCodeConfidenceArg::High => cgg_core::graph::Confidence::High,
+            DeadCodeConfidenceArg::Medium => cgg_core::graph::Confidence::Medium,
+            DeadCodeConfidenceArg::Low => cgg_core::graph::Confidence::Low,
         }
     }
 }

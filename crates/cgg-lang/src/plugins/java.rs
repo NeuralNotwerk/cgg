@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct JavaPlugin;
@@ -11,14 +11,24 @@ pub struct JavaPlugin;
 impl LanguagePlugin for JavaPlugin {
     fn id(&self) -> &'static str { "java" }
     fn extensions(&self) -> &'static [&'static str] { &[".java"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { unreachable: true, visibility: true, ..Default::default() }
+    }
+
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "java");
         let mut w = JavaWalker { source, facts: &mut facts, scope: Vec::new() };
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::JAVA);
+        }
+        if crate::deadcode_signals() {
+            out.dyn_uses = super::dynuse::extract(tree, source, "java");
+        }
+        out
     }
 }
 
@@ -139,7 +149,9 @@ impl<'a> JavaWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis: java_vis(&super::extract_signature(self.text(node))),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -283,5 +295,29 @@ mod tests {
         let src = "class C { public static void create() {} }\n";
         let f = extract(src);
         assert!(f.definitions.iter().any(|d| d.simple_name == "create" && d.variant == DefVariant::StaticMethod));
+    }
+}
+
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Internal`.
+fn java_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Internal
     }
 }

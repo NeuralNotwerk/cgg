@@ -35,6 +35,7 @@ mod tests {
             language: "rust".into(), detected_via: "ext".into(),
             blake3: "0".repeat(64), size_bytes: 10, lines: 1,
             parse_ms: 0.1, parse_status: "ok".into(),
+            ..Default::default()
         });
         g.add_callable(CallableNode {
             id: CallableId::new(0), qualified_name: "foo".into(),
@@ -44,6 +45,7 @@ mod tests {
             signature_hint: String::new(), visibility: String::new(),
             attributes: vec![],
             synthetic: false, trait_impl_target: None,
+            ..Default::default()
         });
         let mut buf = Vec::new();
         JsonFormatter.render(&g, &mut buf).unwrap();

@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct JuliaPlugin;
@@ -12,7 +12,6 @@ impl LanguagePlugin for JuliaPlugin {
     fn id(&self) -> &'static str { "julia" }
     fn extensions(&self) -> &'static [&'static str] { &[".jl"] }
     fn shebangs(&self) -> &'static [&'static str] { &["julia"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_julia::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -124,6 +123,7 @@ impl<'a> JuliaWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 

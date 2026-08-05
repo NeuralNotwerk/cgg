@@ -1,6 +1,6 @@
 ---
 name: cgg
-description: Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 44 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
+description: find unused/dead code, is this function still called, what references this — Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 44 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
 ---
 
 # cgg — call graph for agents
@@ -275,3 +275,31 @@ than emitting low-confidence edges.
    method dispatch and over-match on common names. If you find
    yourself piping grep through `wc -l` to "estimate impact", that's
    the moment to reach for cgg.
+
+## Finding unreferenced code
+
+```bash
+cgg ./src --dead-code                    # ranked report
+cgg ./src --why-live 'MyType::method$'   # why is this considered live?
+```
+
+**BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
+what it could not find a caller for, which is not the same as proving no
+caller exists. Reflection, string-keyed dispatch, dynamic imports,
+build-time codegen, conditional compilation, framework entry points and
+FFI consumers outside the tree are all invisible to it. Every finding
+must be manually reviewed against the source before it is acted on.
+
+Relay findings as *candidates*, never as facts. On cgg's own source the
+highest-confidence band is roughly 20-45% precise. The report prints a
+per-language capability table; a "no" column means cgg was guessing for
+that language.
+
+`--why-live` is often a better answer to "what calls X?" than
+`--filter X -n 1`, because it prints the shortest proving path from an
+entry point rather than a neighbourhood.
+
+### A third anti-pattern
+
+Relaying a cgg dead-code finding as established fact. Open the file
+first — and say "cgg could not find a caller", not "this is dead".

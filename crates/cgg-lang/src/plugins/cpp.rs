@@ -14,7 +14,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct CppPlugin;
@@ -26,9 +26,10 @@ impl LanguagePlugin for CppPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".cc", ".cpp", ".cxx", ".C", ".hpp", ".hh", ".hxx"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::Custom
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { unreachable: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_cpp::LANGUAGE.into()
     }
@@ -47,7 +48,11 @@ impl LanguagePlugin for CppPlugin {
             scope: Vec::new(),
         };
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
+        }
+        out
     }
 }
 
@@ -165,6 +170,7 @@ impl<'a> CppWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -240,6 +246,7 @@ impl<'a> CppWalker<'a> {
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
                         attributes: Vec::new(),
+                        ..Default::default()
                     });
                 }
                 return;
@@ -266,6 +273,7 @@ impl<'a> CppWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: vec!["macro".to_string()],
+            ..Default::default()
         });
     }
 

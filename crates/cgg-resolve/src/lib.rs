@@ -10,6 +10,7 @@
 #![warn(unreachable_pub)]
 
 pub mod cross_file;
+pub mod deadcode;
 pub mod dispatch;
 pub mod ffi;
 pub mod intra_file;

@@ -10,7 +10,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct VhdlPlugin;
@@ -18,7 +18,6 @@ pub struct VhdlPlugin;
 impl LanguagePlugin for VhdlPlugin {
     fn id(&self) -> &'static str { "vhdl" }
     fn extensions(&self) -> &'static [&'static str] { &[".vhd", ".vhdl"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_vhdl::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -59,6 +58,7 @@ impl<'a> VhdlWalker<'a> {
                         start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(), attributes: vec!["architecture".into()],
+                        ..Default::default()
                     });
                     // Architecture binds to an entity — record that as a reference.
                     if let Some(of_name) = self.child_kind(node, "name") {
@@ -125,6 +125,7 @@ impl<'a> VhdlWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(), attributes: vec![tag.into()],
+            ..Default::default()
         });
     }
 
@@ -145,6 +146,7 @@ impl<'a> VhdlWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: vec![if is_function { "function".into() } else { "procedure".into() }],
+            ..Default::default()
         });
     }
 }

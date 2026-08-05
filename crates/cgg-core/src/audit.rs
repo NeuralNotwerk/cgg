@@ -263,6 +263,9 @@ pub struct AuditFileRecord {
     pub parse_status: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_reason: Option<SkipReason>,
+    /// Set when the file is test code, with the rule that decided it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_role: Option<crate::testfile::TestFileReason>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub callables: Vec<AuditCallableRef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

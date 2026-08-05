@@ -89,6 +89,11 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--exclude-glob PATTERN]...
               [--exclude-regex PATTERN]...
               [--stack-graphs auto|on|off]
+              [--dead-code] [--dead-code-format text|json]
+              [--dead-code-confidence high|medium|low]
+              [--roots FILE] [--write-roots]
+              [--ignore-names PATTERN]... [--ignore-attributes PATTERN]...
+              [--why-live PATTERN]... [--fail-on-dead]
               [--include-external] [--include-stdlib]
               [--dynamic-dispatch] [--reference-edges]
               [--jobs N] [--lang rust,python,...]
@@ -105,12 +110,21 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
 | `--max-paths` | 1000 | Cap per-match path count in `-n 0` mode; overflow logged in audit |
-| `--include-tests` | off | Reserved knob — honored as a no-op in v1 |
+| `--include-tests` | off | Show dead-code findings that live in test scope. Test code is always analyzed and always counts as a caller |
 | `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
 | `--exclude-partial` | (none) | Exclude nodes containing substring |
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
 | `--exclude-regex` | (none) | Exclude nodes matching regex |
-| `--stack-graphs` | auto | `auto`: 60s timeout + light fallback; `on`/`off` |
+| `--stack-graphs` | auto | No effect — accepted for compatibility (see Limitations) |
+| `--dead-code` | off | Report callables nothing appears to call. **Best effort — every finding is a hypothesis** |
+| `--dead-code-format` | text | `text` (ranked, agent-readable) or `json` (`cgg.deadcode.v1`) |
+| `--dead-code-confidence` | high | Lowest confidence band to show; withheld counts always printed |
+| `--roots` | auto | Declared roots / accepted findings (TOML). Defaults to the nearest `cgg-deadcode.toml` |
+| `--write-roots` | off | Emit a baseline accepting every current finding |
+| `--ignore-names` | — | Suppress findings by qualified-name pattern. Repeatable |
+| `--ignore-attributes` | — | Suppress findings by attribute/decorator pattern. Repeatable |
+| `--why-live` | — | Print the shortest path from a root proving a callable is live |
+| `--fail-on-dead` | off | Exit 3 when the report is non-empty |
 | `--jobs` | 0 (auto) | Rayon thread count for parallel extraction |
 | `--lang` | (all) | Comma-separated language filter |
 | `--cache` | `./.cgg-cache` | Cache directory |
@@ -139,7 +153,7 @@ source files
 │                ├── type propagation (params, locals,      │
 │                │   constructors, return types)            │
 │                ├── intra-file (scope + containment)       │
-│                ├── stack-graphs (precise name resolution  │
+│                ├── (stack-graphs: removed, see Limitations)│
 │                │   with 60s timeout + light fallback)     │
 │                ├── cross-file (imports, pub-use, #include)│
 │                └── FFI (PyO3, wasm-bindgen, napi, JNI,    │
@@ -306,7 +320,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1178 callables, 1873 edges, 436 cross-file, 129ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1368 callables, 2940 edges, 940 cross-file, 156ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash
@@ -318,92 +332,100 @@ flowchart LR
   C2["cgg_walk::walk"]
   C78["cgg::query::apply_query"]
   C79["cgg::query::apply_exclusions"]
-  C91["cgg::since::resolve_since"]
-  C105["cgg::main"]
-  C107["cgg::run"]
-  C108["cgg::langs_enabled"]
-  C109["cgg::run::closure_at_481"]
-  C110["cgg::since_seeds"]
-  C111["cgg::count_lines"]
-  C112["cgg::read_file"]
-  C113["cgg::variant_to_kind"]
-  C115["cgg::synthesize_exit_nodes"]
-  C116["cgg::trait_impl_target_from_qn"]
-  C117["cgg::dedup_edges"]
-  C119["cgg::emit_graph"]
-  C121["cgg::emit_audit"]
-  C128["cgg_lang::detect::LanguageDetector<'r>::new"]
-  C129["cgg_lang::detect::LanguageDetector<'r>::detect"]
-  C859["cgg_lang::parser::ParserPool<'r>::new"]
-  C860["cgg_lang::parser::ParserPool<'r>::parse"]
-  C861["cgg_lang::parser::ParserPool<'r>::plugin"]
-  C877["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C882["cgg_lang::notebook::extract_python_source"]
-  C923["cgg_resolve::dispatch::fanout"]
-  C936["cgg_resolve::type_hints::build_return_type_map"]
-  C937["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C953["cgg_resolve::ffi::link_ffi"]
-  C976["cgg_resolve::stack_graphs_resolver::resolve"]
-  C977["cgg_resolve::stack_graphs_resolver::resolve_light"]
-  C978["cgg_resolve::stack_graphs_resolver::is_sg_language"]
-  C979["cgg_resolve::cross_file::resolve"]
-  C991["cgg_resolve::intra_file::link_file"]
-  C1010["cgg_core::audit::SkipReason::slug"]
-  C1014["cgg_core::audit::UnresolvedReason::slug"]
-  C1049["cgg_core::external::FileAliases::from_facts"]
-  C1050["cgg_core::external::classify_external"]
-  C1053["cgg_core::external::build_known_names"]
-  C1067["cgg_core::graph::Graph::new"]
-  C1068["cgg_core::graph::Graph::add_callable"]
-  C1069["cgg_core::graph::Graph::add_file"]
-  C1070["cgg_core::graph::Graph::add_edge"]
-  C105 --> C107
-  C107 --> C108
-  C107 --> C112
-  C107 --> C111
-  C107 --> C113
-  C107 --> C116
-  C107 --> C109
-  C107 --> C115
-  C107 --> C117
-  C107 --> C110
-  C107 --> C119
-  C107 --> C121
-  C860 --> C860
-  C78 --> C1067
-  C107 --> C2
-  C107 --> C877
-  C107 --> C128
-  C107 --> C859
-  C107 --> C1067
-  C107 --> C129
-  C107 --> C882
-  C107 --> C860
-  C107 --> C861
-  C107 --> C1069
-  C107 --> C1068
-  C107 --> C936
-  C107 --> C937
-  C107 --> C1053
-  C107 --> C991
-  C107 --> C1049
-  C107 -->|2x| C1050
-  C107 --> C976
-  C109 --> C976
-  C107 --> C978
-  C107 --> C977
-  C107 --> C979
-  C107 --> C953
-  C107 --> C923
-  C107 --> C1070
-  C107 --> C91
-  C107 --> C78
-  C107 --> C79
-  C107 --> C1010
-  C107 --> C1014
-  C115 -->|2x| C1069
-  C115 --> C1068
-  C115 --> C1070
+  C98["cgg::since::resolve_since"]
+  C139["cgg::main"]
+  C141["cgg::run"]
+  C142["cgg::langs_enabled"]
+  C143["cgg::run_dead_code"]
+  C146["cgg::run_why_live"]
+  C147["cgg::since_seeds"]
+  C148["cgg::count_lines"]
+  C149["cgg::read_file"]
+  C150["cgg::variant_to_kind"]
+  C152["cgg::synthesize_exit_nodes"]
+  C153["cgg::trait_impl_target_from_qn"]
+  C154["cgg::dedup_edges"]
+  C156["cgg::emit_graph"]
+  C158["cgg::emit_audit"]
+  C166["cgg::update_check::spawn"]
+  C167["cgg::update_check::finish"]
+  C179["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C180["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C1002["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C1003["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C1004["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1009["cgg_lang::set_deadcode_signals"]
+  C1021["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1026["cgg_lang::notebook::extract_python_source"]
+  C1067["cgg_resolve::dispatch::fanout"]
+  C1080["cgg_resolve::type_hints::build_return_type_map"]
+  C1081["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C1097["cgg_resolve::ffi::link_ffi"]
+  C1238["cgg_resolve::cross_file::resolve"]
+  C1250["cgg_resolve::intra_file::link_file"]
+  C1271["cgg_core::audit::SkipReason::slug"]
+  C1275["cgg_core::audit::UnresolvedReason::slug"]
+  C1311["cgg_core::deadcode::FindingCategory::slug"]
+  C1316["cgg_core::deadcode::Evidence::slug"]
+  C1332["cgg_core::external::FileAliases::from_facts"]
+  C1333["cgg_core::external::classify_external"]
+  C1336["cgg_core::external::build_known_names"]
+  C1350["cgg_core::testfile::classify_test_file"]
+  C1359["cgg_core::graph::Graph::new"]
+  C1360["cgg_core::graph::Graph::add_callable"]
+  C1361["cgg_core::graph::Graph::add_file"]
+  C1362["cgg_core::graph::Graph::add_edge"]
+  C139 --> C141
+  C141 --> C142
+  C141 --> C149
+  C141 --> C148
+  C141 --> C150
+  C141 --> C153
+  C141 --> C152
+  C141 --> C154
+  C141 --> C147
+  C141 --> C146
+  C141 -->|2x| C158
+  C141 --> C143
+  C141 --> C156
+  C1003 --> C1003
+  C78 --> C1359
+  C141 --> C166
+  C141 --> C1009
+  C141 --> C2
+  C141 --> C1021
+  C141 --> C179
+  C141 --> C1002
+  C141 --> C1359
+  C141 --> C180
+  C141 --> C1026
+  C141 --> C1003
+  C141 --> C1004
+  C141 --> C1350
+  C141 --> C1361
+  C141 --> C1360
+  C141 --> C1080
+  C141 --> C1081
+  C141 --> C1336
+  C141 --> C1250
+  C141 --> C1332
+  C141 --> C1333
+  C141 --> C1238
+  C141 --> C1097
+  C141 --> C1067
+  C141 --> C1362
+  C141 --> C98
+  C141 -->|2x| C167
+  C141 --> C78
+  C141 --> C79
+  C141 --> C1271
+  C141 --> C1275
+  C141 --> C1311
+  C141 --> C1316
+  C143 --> C1021
+  C152 -->|2x| C1361
+  C152 --> C1360
+  C152 --> C1362
 ```
 
 Focus on subsystems with `--filter`:
@@ -447,34 +469,35 @@ flowchart LR
   C19["cgg_lang::parser::ParserPool<'r>::parse"]
   C20["cgg_lang::parser::ParserPool<'r>::plugin"]
   C21["cgg_lang::parser::set_language"]
-  C25["cgg_lang::<ResolverKind as fmt::Display>::fmt"]
-  C26["cgg_lang::LanguagePlugin::id"]
-  C27["cgg_lang::LanguagePlugin::extensions"]
-  C28["cgg_lang::LanguagePlugin::shebangs"]
-  C29["cgg_lang::LanguagePlugin::resolver_kind"]
-  C30["cgg_lang::LanguagePlugin::ts_language"]
-  C31["cgg_lang::LanguagePlugin::extract"]
-  C32["cgg_lang::PluginRegistry::new"]
-  C33["cgg_lang::PluginRegistry::register"]
-  C34["cgg_lang::PluginRegistry::all"]
-  C35["cgg_lang::PluginRegistry::by_id"]
-  C36["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1 --> C26
-  C1 --> C28
-  C1 --> C34
+  C25["cgg_lang::set_deadcode_signals"]
+  C26["cgg_lang::deadcode_signals"]
+  C27["cgg_lang::LanguagePlugin::id"]
+  C28["cgg_lang::LanguagePlugin::extensions"]
+  C29["cgg_lang::LanguagePlugin::shebangs"]
+  C30["cgg_lang::LanguagePlugin::signals"]
+  C31["cgg_lang::LanguagePlugin::ts_language"]
+  C32["cgg_lang::LanguagePlugin::extract"]
+  C33["cgg_lang::PluginRegistry::new"]
+  C34["cgg_lang::PluginRegistry::register"]
+  C35["cgg_lang::PluginRegistry::all"]
+  C36["cgg_lang::PluginRegistry::by_id"]
+  C37["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1 --> C27
+  C1 --> C29
+  C1 --> C35
   C1 --> C4
   C1 --> C5
   C19 --> C19
   C19 --> C21
-  C19 --> C30
-  C19 --> C35
-  C2 --> C26
+  C19 --> C31
+  C19 --> C36
   C2 --> C27
-  C2 --> C34
-  C20 --> C35
-  C31 --> C26
-  C35 --> C26
-  C36 --> C32
+  C2 --> C28
+  C2 --> C35
+  C20 --> C36
+  C32 --> C27
+  C36 --> C27
+  C37 --> C33
 ```
 <!-- cgg:end:lang -->
 
@@ -500,8 +523,9 @@ function each call site actually targets:
    (`Parser::new` vs `Cursor::new`, `Self::new`) are disambiguated by
    the call's *owner* qualifier rather than abandoned
 3. **Stack-graphs resolution** — precise name resolution using
-   stack-graphs with a 60-second timeout; falls back to a lightweight
-   BFS resolver if exceeded (`--stack-graphs auto|on|off`)
+   the cross-file import-chain resolver and type propagation
+   (stack-graphs was removed in the tree-sitter 0.26 upgrade;
+   `--stack-graphs` is accepted but has no effect)
 4. **Cross-file resolution** — walk import chains, `#include`
    transitive closure (depth 8), pub-use re-export chains. Method calls
    on a receiver of known type resolve through an `(owner type, method)`
@@ -556,46 +580,112 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 | ------- | -------- | --------- | ----- | ---------- | ---- |
-| ripgrep | rust | 2,769 | 5,455 | 63% | 336ms |
-| flask | python | 388 | 278 | 36% | 30ms |
-| express | javascript | 92 | 113 | 17% | 13ms |
-| zod | typescript | 1,675 | 2,525 | 67% | 238ms |
-| fzf | go | 1,048 | 5,577 | 53% | 146ms |
-| gson | java | 943 | 1,937 | 58% | 52ms |
-| okio | kotlin | 3,673 | 21,226 | 89% | 233ms |
-| jq | c | 1,073 | 21,157 | 18% | 114ms |
-| nlohmann/json | cpp | 1,122 | 2,244 | 59% | 87ms |
-| serilog | csharp | 826 | 442 | 67% | 69ms |
-| acme.sh | bash | 1,433 | 3,904 | 0% | 139ms |
-| jekyll | ruby | 902 | 1,246 | 63% | 54ms |
-| laravel | php | 13,464 | 253 | 0% | 1485ms |
-| AFNetworking | objc | 299 | 96 | 5% | 44ms |
-| ggplot2 | r | 946 | 419 | 3% | 89ms |
-| Alamofire | swift | 829 | 758 | 39% | 60ms |
-| kong | lua | 2,782 | 3,190 | 28% | 1264ms |
-| flame | dart | 1,572 | 9 | 0% | 520ms |
-| play | scala | 1,989 | 1,455 | 33% | 223ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 75ms |
-| http.zig | zig | 451 | 745 | 49% | 54ms |
-| gradle | groovy | 1,289 | 1,611 | 65% | 401ms |
-| Flux.jl | julia | 252 | 207 | 0% | 31ms |
-| mojolicious | perl | 1,126 | 687 | 0% | 101ms |
-| phoenix | elixir | 1,537 | 3,394 | 22% | 90ms |
-| otp/stdlib | erlang | 17,290 | 12,749 | 12% | 711ms |
-| stdlib | fortran | 335 | 190 | 9% | 57ms |
-| ring | clojure | 209 | 220 | 12% | 18ms |
-| pandoc | haskell | 21,002 | 19,973 | 50% | 1376ms |
-| dune | ocaml | 21,110 | 11,896 | 30% | 1414ms |
-| PowerShellGet | powershell | 62 | 23 | 0% | 44ms |
-| openzeppelin-contracts | solidity | 2,660 | 2,688 | 47% | 320ms |
-| Paket | fsharp | 1,865 | 4,663 | 32% | 306ms |
-| bazel-skylib | starlark | 93 | 44 | 0% | 11ms |
-| CMake/Modules | cmake | 944 | 856 | 10% | 3630ms |
-| home-manager | nix | 973 | 1,016 | 20% | 302ms |
-| picorv32 | verilog | 79 | 84 | 0% | 83ms |
-| UVVM | vhdl | 1,036 | 0 | — | 162ms |
-| xv6 | asm | 22 | 4 | 0% | 13ms |
-| xv6 (c+asm) | c,asm | 491 | 2,092 | 84% | 34ms |
+| ripgrep | rust | 2,771 | 6,984 | 55% | 312ms |
+| flask | python | 388 | 287 | 37% | 47ms |
+| express | javascript | 92 | 114 | 16% | 20ms |
+| zod | typescript | 1,675 | 2,525 | 66% | 220ms |
+| fzf | go | 1,056 | 6,046 | 57% | 189ms |
+| gson | java | 942 | 1,939 | 65% | 57ms |
+| okio | kotlin | 3,716 | 21,453 | 90% | 218ms |
+| jq | c | 1,077 | 21,639 | 92% | 112ms |
+| nlohmann/json | cpp | 1,182 | 2,247 | 58% | 132ms |
+| serilog | csharp | 824 | 446 | 67% | 60ms |
+| acme.sh | bash | 1,437 | 3,907 | 0% | 126ms |
+| jekyll | ruby | 902 | 1,246 | 63% | 60ms |
+| laravel | php | 13,728 | 255 | 0% | 1441ms |
+| AFNetworking | objc | 299 | 96 | 5% | 52ms |
+| ggplot2 | r | 946 | 419 | 3% | 92ms |
+| Alamofire | swift | 829 | 758 | 38% | 66ms |
+| kong | lua | 2,782 | 3,190 | 28% | 1243ms |
+| flame | dart | 1,591 | 9 | 0% | 503ms |
+| play | scala | 1,997 | 1,466 | 43% | 242ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 90ms |
+| http.zig | zig | 486 | 784 | 51% | 78ms |
+| gradle | groovy | 1,290 | 1,573 | 71% | 365ms |
+| Flux.jl | julia | 252 | 207 | 0% | 35ms |
+| mojolicious | perl | 1,127 | 689 | 0% | 97ms |
+| phoenix | elixir | 1,558 | 3,431 | 24% | 105ms |
+| otp/stdlib | erlang | 17,271 | 12,751 | 28% | 637ms |
+| stdlib | fortran | 335 | 190 | 8% | 49ms |
+| ring | clojure | 209 | 220 | 11% | 29ms |
+| pandoc | haskell | 21,115 | 20,117 | 54% | 1347ms |
+| dune | ocaml | 21,224 | 12,072 | 44% | 1393ms |
+| PowerShellGet | powershell | 62 | 23 | 0% | 59ms |
+| openzeppelin-contracts | solidity | 2,753 | 2,796 | 56% | 326ms |
+| Paket | fsharp | 1,865 | 4,663 | 49% | 305ms |
+| bazel-skylib | starlark | 93 | 44 | 0% | 12ms |
+| CMake/Modules | cmake | 946 | 866 | 9% | 3684ms |
+| home-manager | nix | 1,072 | 1,158 | 30% | 308ms |
+| picorv32 | verilog | 79 | 84 | 0% | 104ms |
+| UVVM | vhdl | 1,036 | 0 | — | 159ms |
+| xv6 | asm | 22 | 4 | 0% | 20ms |
+| xv6 (c+asm) | c,asm | 491 | 2,087 | 83% | 59ms |
+
+## Dead code
+
+`--dead-code` reports callables that nothing in the analyzed source
+appears to call.
+
+```bash
+cgg ./src --dead-code                       # ranked text report
+cgg ./src --dead-code --dead-code-format json -o dead.json
+cgg ./src --why-live 'MyType::method$'      # the opposite question
+```
+
+> **BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg
+> reports what it could not find a caller for, which is not the same as
+> proving no caller exists. Reflection, string-keyed dispatch, dynamic
+> imports, build-time codegen, conditional compilation, framework entry
+> points and FFI consumers outside the tree are all invisible to it.
+> Every finding must be manually reviewed against the source before it
+> is acted on.
+
+cgg discovers and reports. It never modifies code and takes no position
+on what should be done about a finding.
+
+### Categories
+
+| code | meaning |
+| --- | --- |
+| `D001` | `never-referenced` — zero inbound edges, and not a root |
+| `D002` | `reachable-only-from-dead-code` — contingent on its callers |
+| `D003` | `dead-cycle` — mutual recursion with no reachable entry point |
+| `D004` | `only-used-by-tests` — live, but only from test scope |
+| `D005` | `unreachable-from-roots` — no path from any known root |
+
+Confidence is `high`/`medium`/`low`, derived by **capping**: each piece
+of evidence can only lower it. A language with no visibility extraction
+does not make a finding somewhat weaker, it makes `high` unreachable.
+Every finding lists the evidence both ways, so the band can be argued
+with rather than taken on trust.
+
+### Roots and accepted findings
+
+`cgg-deadcode.toml`, discovered upward from the working directory:
+
+```toml
+# Entry points: a match is live, and so is everything it calls.
+roots = ["^crate::main$", "glob:*::handlers::*"]
+root_attributes = ["#[no_mangle]"]
+
+# Reviewed and accepted. Suppressed from the report but NOT made live,
+# so anything this references is still reported on its own merits.
+[[allow]]
+name   = "^cgg_core::graph::Graph::size$"
+reason = "public API kept for downstream consumers"
+```
+
+That split is the important part: accepting a finding hides it and
+nothing else. Generate a starting point with `--write-roots`.
+
+### Exit codes
+
+| code | meaning |
+| --- | --- |
+| 0 | success |
+| 1 | cgg error — an incomplete run's findings are not trustworthy, so this beats 3 |
+| 2 | invalid arguments |
+| 3 | findings present, **only** with `--fail-on-dead` |
 
 ## Limitations
 
@@ -603,6 +693,9 @@ Run `./scripts/benchmark.sh` to reproduce on real-world projects:
 - Type inference is partial — handles parameters, constructors, return types, and (opt-in, Rust) interface/trait dispatch to known implementors via `--dynamic-dispatch`; does not handle generics or fully dynamic typing
 - No daemon / watch mode
 - Languages without a published Rust tree-sitter grammar are not supported: notably Tcl and Hack. Adding them would require vendoring C grammar sources.
+- `--stack-graphs` has no effect. The integration was removed in the tree-sitter 0.26 upgrade because upstream `tree-sitter-stack-graphs` pins tree-sitter 0.24 (ABI 14); the flag is still accepted so existing command lines keep working.
+- **Dead-code findings are hypotheses, not facts.** `--dead-code` reports what cgg could not find a caller for, which is not the same as proving no caller exists. On cgg's own source the highest-confidence band is roughly 20-45% precise. Every report states this, and every finding carries the evidence for and against it.
+- Dead-code signal coverage is very uneven across languages. `visibility` is extracted for 7 of 44 plugins and real attributes for 2; value-reference and dispatch modelling are Rust-only. Every report prints a per-language capability table so a "no" column is visible before the findings are.
 
 ## Potential future improvements
 
@@ -610,48 +703,26 @@ Known gaps that would meaningfully improve resolution quality or audit
 fidelity. Each is scoped enough to implement on its own; none are in
 flight.
 
+- **Dead-code precision for trait-shaped code.** Trait *declaration*
+  methods have in-degree zero because calls resolve to the impl, and an
+  impl reached only through its trait is invisible when the declaration
+  itself is unreached. Together these are the largest remaining
+  false-positive class in `--dead-code` on Rust.
 - **Dynamic-dispatch fan-out across all languages.** The declaration →
   implementation fan-out (`--dynamic-dispatch`) and function-as-value
   reference edges (`--reference-edges`) are wired for Rust; the resolver
   and output machinery are language-agnostic, but the per-plugin capture
-  (recording which trait/interface each method implements, and
-  arguments passed by name) still needs porting to the other
-  interface-bearing plugins (Java, C#, C++, Go, Python, TypeScript,
-  Kotlin, Scala, Swift, …). These are opt-in and so can't regress the
-  default graph.
+  still needs porting to the other interface-bearing plugins.
 - **Generic trait-bound receiver typing (Rust).** A call `t.embed()`
-  where `t: T, T: EmbeddingClient` resolves to the trait method (and,
-  with `--dynamic-dispatch`, fans out to impls) only once `t`'s type is
-  known. Inferring the bound type from the generic parameter list would
-  catch the cases that still land in the `external` bucket.
-- **Synthetic nodes for derived/macro-generated methods (Issue 8).**
-  `#[derive(Serialize)]` and similar declare methods that aren't written
-  literally in source; emitting flagged synthetic callable nodes would
-  make derived types reachable as dispatch targets. The consumer side is
-  already wired — the driver carries a `synthetic` flag and recognises a
-  `derive:<trait>` callable attribute — but no plugin yet *emits* those
-  synthetic callables, so the feature is dormant. Attribute-wrapped
-  function bodies (`#[tokio::main]`, `#[test]`) are already attributed
-  correctly.
-- **Per-language stdlib filter audit (8 lists remaining).** The `stdlib`
-  bucket infrastructure works for every language with a
-  `crates/cgg-core/src/stdlib/*.txt` file (30). Most are now tuned:
-  Rust plus 21 others (bash, c, cpp, clojure, dart, elixir, erlang, go,
-  groovy, haskell, hcl, javascript, kotlin, lua, objc, perl, php, python,
-  ruby, typescript, zig) have been audited against real-world `external`
-  bucket noise. Still un-audited — seeded from language references only:
-  `csharp`, `fortran`, `java`, `julia`, `ocaml`, `r`, `scala`, `swift`.
-  Concrete fix: for each, run cgg on a few representative open-source
-  repos, scan the top-N `external` names, and add the obvious stdlib
-  entries to the corresponding `.txt`.
-- **Calls inside `tokio::spawn`-style closures, cross-closure type
-  propagation.** Spawned closures already extract as their own
-  callables (since the closure-disjoint-callables commit), so the
-  graph *structure* is right. What's still missing: when a captured
-  variable's type is known in the enclosing scope (e.g.
-  `let store: ChunkStore = …; tokio::spawn(async move { store.foo() })`),
-  type_hints doesn't follow the variable into the closure body, so
-  `store.foo()` reads as an unresolved method on an opaque receiver.
+  where `t: T, T: EmbeddingClient` resolves only once `t`'s type is
+  known.
+- **Visibility and attribute extraction beyond the current set.**
+  `visibility` is extracted for rust, solidity, go, python, java,
+  csharp and kotlin; real attributes only for rust and python. Each
+  further language raises the confidence ceiling for its findings.
+- **Unreachable-code detection for constant conditions.** `if (false)`
+  and friends need a small constant evaluator whose semantics differ per
+  language; only the terminator-based half ships today.
 
 ## License
 
