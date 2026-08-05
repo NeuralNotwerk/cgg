@@ -13,7 +13,7 @@
 //! lets the intra-file linker match `x.method()` against
 //! `Foo::method` / `Foo.method`.
 
-use cgg_core::{DefRecord, FileFacts, RefRecord};
+use cgg_core::{DefRecord, FileFacts};
 use std::collections::HashMap;
 
 /// Rewrite receiver hints in-place using inferred type information.
@@ -370,7 +370,7 @@ fn leak_str(s: &str) -> &'static str {
 mod tests {
     use super::*;
     use cgg_core::ids::FileId;
-    use cgg_core::{DefVariant, ImportRecord};
+    use cgg_core::{DefVariant, RefRecord};
     use std::path::PathBuf;
 
     fn mk_facts(defs: Vec<DefRecord>, refs: Vec<RefRecord>) -> FileFacts {

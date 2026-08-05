@@ -179,4 +179,28 @@ mod tests {
         assert!(plugin.extensions().contains(&".hs"));
         assert!(plugin.extensions().contains(&".lhs"));
     }
+
+    #[test]
+    fn free_functions_and_call() {
+        // No `module ... where` header, so `HaskellWalker::module` stays
+        // empty and qualified names are the bare simple names.
+        let src = "foo :: Int -> Int\nfoo x = bar x\n\nbar :: Int -> Int\nbar x = x\n";
+        let f = extract(src);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"foo"), "got: {names:?}");
+        assert!(names.contains(&"bar"), "got: {names:?}");
+        let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(refs.contains(&"bar"), "got: {refs:?}");
+    }
+
+    #[test]
+    fn import_is_recorded() {
+        let f = extract("import qualified Data.Map as M\n\nmain = pure ()\n");
+        let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.contains(&"Data.Map"), "got: {paths:?}");
+    }
 }
