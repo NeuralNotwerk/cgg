@@ -61,9 +61,9 @@ use cgg_core::deadcode::{
     LanguageCapabilityReport, LanguageClass, LivenessProof, ProofHop, RegionRole,
     SuppressedCategory, SuppressionReason, DEFAULT_MIN_ROOT_COVERAGE_PCT,
 };
-use cgg_core::graph::{CallableKind, Confidence, Graph, Via};
+use cgg_core::graph::{CallableKind, CallableNode, Confidence, Graph, Via};
 use cgg_core::ids::CallableId;
-use cgg_core::FileFacts;
+use cgg_core::{FileFacts, Vis};
 
 use adj::Adj;
 use evidence::UnresolvedIndex;
@@ -115,6 +115,28 @@ fn edge_cost(e: &cgg_core::graph::CallEdge) -> u32 {
         (Via::Dynamic, _) => 2,
         _ => 1,
     }
+}
+
+/// How a visibility evidence entry should spell itself in the report.
+///
+/// The language-native token when the language wrote one, so a reader
+/// sees `pub(crate)` or `public` rather than a normalization of it. Rust
+/// and Python spell the default by writing *nothing*, though, and a bare
+/// `"token": ""` tells a reader nothing at all — so the normalized class
+/// stands in. It can never contradict the finding: it is the same `vis`
+/// the entry was derived from.
+fn vis_token(node: &CallableNode) -> String {
+    if !node.visibility.is_empty() {
+        return node.visibility.clone();
+    }
+    match node.vis {
+        Vis::Public => "public",
+        Vis::Internal => "internal",
+        Vis::Protected => "protected",
+        Vis::Private => "private",
+        Vis::Unknown => "",
+    }
+    .to_string()
 }
 
 /// Whether a callable may ever be reported.
@@ -348,8 +370,24 @@ pub fn analyze(
         if evidence::is_implicitly_invokable(nd.kind) {
             ev.push(Evidence::ImplicitlyInvokableKind { callable_kind: nd.kind });
         }
-        if !nd.visibility.is_empty() && !nd.visibility.starts_with("pub") {
-            ev.push(Evidence::PrivateVisibility { token: nd.visibility.clone() });
+        // Read from the normalized `vis`, never from the language-native
+        // token: `pub`, `public` and `pub(crate)` fall into three
+        // different buckets that no prefix test can separate. The token
+        // is still what the report shows.
+        match nd.vis {
+            // Confined to the analyzed unit, so no out-of-tree caller
+            // can exist — the finding is corroborated.
+            Vis::Private | Vis::Internal => {
+                ev.push(Evidence::PrivateVisibility { token: vis_token(nd) })
+            }
+            // Exported, so a caller may live in code cgg never saw.
+            Vis::Public => ev.push(Evidence::PublicVisibility { token: vis_token(nd) }),
+            // `Protected` reaches out-of-tree subtypes but not arbitrary
+            // callers, and cgg models no subtype graph; `Unknown` means
+            // the plugin never determined it. Claiming either direction
+            // for these would be a guess, which is why `Vis::escapes_unit`
+            // — true for `Unknown` — is deliberately not used here.
+            Vis::Protected | Vis::Unknown => {}
         }
 
         ev.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
@@ -704,6 +742,39 @@ mod tests {
         DeadCodeOptions { confidence_threshold: "high".into(), ..Default::default() }
     }
 
+    /// Options declaring rust's real signal coverage, mirroring
+    /// `plugins::rust::signals()`.
+    ///
+    /// Without this `caps::measure` sees a toy graph carrying none of
+    /// those strings, classes rust as `Degraded`, and caps *every*
+    /// finding at `Medium` — which would make a "cannot reach high"
+    /// assertion pass for the wrong reason.
+    fn opts_rust_full() -> DeadCodeOptions {
+        let mut o = opts();
+        o.language_signals.insert(
+            "rust".into(),
+            cgg_core::deadcode::LanguageSignals {
+                visibility: true,
+                attributes: true,
+                exports: true,
+                test_defs: true,
+                value_refs: true,
+                impls: true,
+                unreachable: true,
+                dyn_uses: false,
+            },
+        );
+        o
+    }
+
+    /// An unreferenced callable with an explicit visibility.
+    fn vis_node(id: u32, qn: &str, simple: &str, token: &str, vis: Vis) -> CallableNode {
+        let mut n = node(id, qn, simple, "rust");
+        n.visibility = token.to_string();
+        n.vis = vis;
+        n
+    }
+
     #[test]
     fn an_unreferenced_function_is_reported_and_its_caller_is_not() {
         let mut g = graph_with(vec![
@@ -871,6 +942,88 @@ mod tests {
         assert_ne!(f.confidence, Confidence::High, "java lacks every signal");
         assert!(f.evidence.iter().any(|e| e.slug() == "language-lacks-visibility"));
         assert!(f.evidence.iter().any(|e| e.slug() == "language-lacks-attributes"));
+    }
+
+    #[test]
+    fn an_exported_callable_cannot_reach_high_but_a_private_one_can() {
+        // The whole point: for a library crate, "nothing in this tree
+        // references it" is the normal state of the public API, and cgg
+        // structurally cannot see the callers that would refute it.
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::exported_api", "exported_api", "pub", Vis::Public),
+            vis_node(2, "crate::private_orphan", "private_orphan", "", Vis::Private),
+        ]);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+
+        let pubf = r.findings.iter().find(|f| f.simple_name == "exported_api").unwrap();
+        assert_eq!(
+            pubf.confidence,
+            Confidence::Medium,
+            "an out-of-tree caller is possible, so this must not be top-band"
+        );
+        assert!(pubf.evidence.iter().any(|e| e.slug() == "public-visibility"));
+        assert!(matches!(
+            pubf.evidence.iter().find(|e| e.slug() == "public-visibility"),
+            Some(Evidence::PublicVisibility { token }) if token == "pub",
+        ));
+        assert!(!pubf.evidence.iter().any(|e| e.slug() == "private-visibility"));
+
+        let privf = r.findings.iter().find(|f| f.simple_name == "private_orphan").unwrap();
+        assert_eq!(
+            privf.confidence,
+            Confidence::High,
+            "nothing outside the tree can reach it, so nothing is withheld from cgg"
+        );
+        assert!(privf.evidence.iter().any(|e| e.slug() == "private-visibility"));
+        assert!(!privf.evidence.iter().any(|e| e.slug() == "public-visibility"));
+        // Rust spells private by writing nothing; the report must still
+        // say something.
+        assert!(matches!(
+            privf.evidence.iter().find(|e| e.slug() == "private-visibility"),
+            Some(Evidence::PrivateVisibility { token }) if token == "private",
+        ));
+    }
+
+    #[test]
+    fn internal_visibility_corroborates_and_keeps_the_native_token() {
+        // `pub(crate)` escapes no compilation unit, so it corroborates
+        // exactly like a private item — but the old prefix test read it
+        // as "pub" and drew the opposite conclusion.
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::helper", "helper", "pub(crate)", Vis::Internal),
+        ]);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        let f = r.findings.iter().find(|f| f.simple_name == "helper").unwrap();
+        assert_eq!(f.confidence, Confidence::High);
+        assert!(matches!(
+            f.evidence.iter().find(|e| e.slug() == "private-visibility"),
+            Some(Evidence::PrivateVisibility { token }) if token == "pub(crate)",
+        ));
+    }
+
+    #[test]
+    fn undetermined_visibility_claims_neither_direction() {
+        // `Vis::escapes_unit()` is true for `Unknown`, so deriving the
+        // caveat from it would turn "cgg did not look" into "this is
+        // exported". Neither entry may appear.
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::inherited", "inherited", "", Vis::Unknown),
+            vis_node(2, "crate::guarded", "guarded", "protected", Vis::Protected),
+        ]);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        assert_eq!(r.findings.len(), 2);
+        for f in &r.findings {
+            assert!(
+                !f.evidence
+                    .iter()
+                    .any(|e| matches!(e.slug(), "public-visibility" | "private-visibility")),
+                "{} must claim neither direction",
+                f.simple_name
+            );
+        }
     }
 
     #[test]

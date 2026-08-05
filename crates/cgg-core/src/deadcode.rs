@@ -226,6 +226,13 @@ pub enum Evidence {
     /// third-party code. Weak — it means the resolver asserted the call
     /// was *not* ours — but worth showing a reviewer.
     NameCollidesWithScreenedSite { screen: String, sites: u32 },
+    /// Visible outside its compilation unit, so a caller may exist in
+    /// code cgg never analyzed. For a library crate this is the normal
+    /// case, and it is exactly where "nothing references it" is weakest:
+    /// the analyzed tree is not the whole world, and the consumers that
+    /// make an exported symbol worth keeping are the ones cgg cannot
+    /// see. The mirror image of [`Evidence::PrivateVisibility`].
+    PublicVisibility { token: String },
 
     // ---- raising: corroboration ----
     /// Not visible outside its compilation unit, so no out-of-tree
@@ -278,6 +285,11 @@ impl Evidence {
             | Evidence::LanguageLacksValueReferences
             | Evidence::LanguageLacksDispatchModel
             | Evidence::ImplicitlyInvokableKind { .. } => Some(Confidence::Medium),
+            // Not "somewhat less likely" — unknowable. cgg cannot see
+            // past the edge of the analyzed tree at all, so an exported
+            // symbol's callers are structurally invisible to it and such
+            // a finding must not sit in the top band.
+            Evidence::PublicVisibility { .. } => Some(Confidence::Medium),
             _ => None,
         }
     }
@@ -319,6 +331,7 @@ impl Evidence {
             Evidence::LowRootCoverage { .. } => "low-root-coverage",
             Evidence::ImplicitlyInvokableKind { .. } => "implicitly-invokable-kind",
             Evidence::NameCollidesWithScreenedSite { .. } => "name-collides-with-screened-site",
+            Evidence::PublicVisibility { .. } => "public-visibility",
             Evidence::PrivateVisibility { .. } => "private-visibility",
             Evidence::NoUnresolvedSiteWithName => "no-unresolved-site-with-name",
             Evidence::NoFfiExportInFile => "no-ffi-export-in-file",
@@ -743,6 +756,7 @@ mod tests {
             Evidence::LanguageIsDescriptor,
             Evidence::ImplicitlyInvokableKind { callable_kind: CallableKind::Constructor },
             Evidence::LowRootCoverage { roots: 0, callables: 10, reachable_pct: 0 },
+            Evidence::PublicVisibility { token: "pub".into() },
         ];
         for e in samples {
             let cap = e.cap().expect("sample should cap");
@@ -785,6 +799,22 @@ mod tests {
             },
         };
         assert_eq!(local.cap(), Some(Confidence::Low));
+    }
+
+    #[test]
+    fn public_visibility_lowers_and_caps_below_high() {
+        let public = Evidence::PublicVisibility { token: "pub".into() };
+        // cgg cannot see outside the analyzed tree, so an exported
+        // symbol can never be a top-band finding.
+        assert_eq!(public.cap(), Some(Confidence::Medium));
+        assert_eq!(public.polarity(), Polarity::Lowers);
+        assert_eq!(public.slug(), "public-visibility");
+
+        // Its mirror image corroborates and imposes no ceiling.
+        let private = Evidence::PrivateVisibility { token: "private".into() };
+        assert_eq!(private.cap(), None);
+        assert_eq!(private.polarity(), Polarity::Raises);
+        assert_ne!(public.slug(), private.slug());
     }
 
     #[test]

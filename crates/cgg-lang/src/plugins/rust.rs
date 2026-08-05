@@ -493,6 +493,23 @@ impl<'a> Walker<'a> {
             }
         };
 
+        // A trait item carries no visibility of its own: its effective
+        // visibility is the trait's, and for `impl Trait for T` the
+        // trait may be declared in another file entirely. So an absent
+        // token here means "inherited", not "private" — reporting a
+        // method of a `pub trait` as private would tell a dead-code
+        // reader that no out-of-tree caller can exist, which for a
+        // library crate's own API is false. cgg does not compute the
+        // inherited value, so it says `Unknown` and claims nothing.
+        let vis = match self.scope.last() {
+            Some(ScopeSegment::Trait(_) | ScopeSegment::TraitImpl(_))
+                if visibility.is_empty() =>
+            {
+                cgg_core::Vis::Unknown
+            }
+            _ => rust_vis(&visibility),
+        };
+
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
         let signature = super::extract_signature(self.text(node));
@@ -516,7 +533,7 @@ impl<'a> Walker<'a> {
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: signature,
-            vis: rust_vis(&visibility),
+            vis,
             test_role: rust_test_role(&attributes),
             visibility,
             attributes,
@@ -1404,6 +1421,39 @@ impl R for S { fn r(&self) {} }
             names.iter().any(|n| n.contains("<S as R>::r")),
             "got: {names:?}"
         );
+    }
+
+    #[test]
+    fn trait_items_inherit_visibility_rather_than_claiming_private() {
+        let src = r#"
+pub trait R { fn decl(&self); fn dflt(&self) {} }
+struct S;
+impl R for S { fn decl(&self) {} }
+impl S { fn inherent(&self) {} pub fn exported(&self) {} }
+fn free() {}
+"#;
+        let f = extract(src);
+        let vis_of = |simple: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == simple)
+                .unwrap_or_else(|| panic!("no def named {simple}"))
+                .vis
+        };
+        // A method of a `pub trait` is callable from outside the crate,
+        // so claiming `Private` would let a dead-code report assert no
+        // out-of-tree caller can exist. cgg does not resolve the
+        // inherited value, so it claims nothing.
+        assert_eq!(vis_of("decl"), cgg_core::Vis::Unknown);
+        assert_eq!(vis_of("dflt"), cgg_core::Vis::Unknown);
+        // Same for the implementing side, where the trait may not even
+        // be declared in this file.
+        assert!(f.definitions.iter().any(|d| d.qualified_name.contains("<S as R>::decl")
+            && d.vis == cgg_core::Vis::Unknown));
+        // Items that own their visibility are unaffected.
+        assert_eq!(vis_of("inherent"), cgg_core::Vis::Private);
+        assert_eq!(vis_of("exported"), cgg_core::Vis::Public);
+        assert_eq!(vis_of("free"), cgg_core::Vis::Private);
     }
 
     #[test]
