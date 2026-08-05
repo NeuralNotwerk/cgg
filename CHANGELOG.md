@@ -55,6 +55,26 @@ code and takes no position on what should be done about a finding.
   optional signals it actually extracts, so a report can distinguish
   "this definition genuinely has no attributes" from "cgg never looked".
 
+### Removed
+
+- **The update check, and with it every network call cgg makes.**
+  `update_check.rs` made one `GET` to `api.github.com` per day to read a
+  release tag. Its dependency, `minreq`, carried the entire HTTP/TLS
+  stack — `rustls`, `rustls-webpki`, `webpki-roots` — and with it three
+  RustSec advisories (RUSTSEC-2026-0098/0099/0104).
+
+  Clearing those advisories in place meant `minreq` 2 → 3, which pulls
+  `aws-lc-rs`/`aws-lc-sys` and a build-time C toolchain — a poor trade
+  for a feature whole exploit surface was "someone lies to you about the
+  latest version number". Removing the feature clears them outright and
+  makes *offline* a property of the code rather than a default that can
+  be flipped: the workspace now contains zero network call sites.
+
+  `--no-update-check` is still accepted and does nothing, so existing
+  command lines keep working. To keep an installed binary current, use
+  `cargo install-update -a` (from the `cargo-update` crate) or re-run
+  `cargo install --git`.
+
 ### Fixed
 
 - **`#include` resolution was nondeterministic.** `collect_include_defs`

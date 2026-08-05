@@ -80,6 +80,12 @@ impl DeadCodeConfigFile {
     }
 
     /// Every pattern in the file, for stale-entry reporting.
+    ///
+    /// Exercised by the unit tests but not by the binary's own code
+    /// path, and `pub` cannot be reached from outside a binary crate —
+    /// so `dead_code` fires in the non-test build only. Kept as part of
+    /// the config API surface rather than deleted.
+    #[allow(dead_code)]
     pub fn all_patterns(&self) -> Vec<String> {
         self.roots
             .iter()

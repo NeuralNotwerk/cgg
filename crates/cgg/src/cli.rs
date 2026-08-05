@@ -244,9 +244,11 @@ pub struct Cli {
     #[arg(short = 'q', long = "quiet", action = ArgAction::SetTrue)]
     pub quiet: bool,
 
-    /// Disable the once-a-day "newer release available?" check (the only
-    /// network call cgg makes). Also disabled by `CGG_NO_UPDATE_CHECK`,
-    /// `DO_NOT_TRACK`, `CI`, `--quiet`, or non-interactive output.
+    /// No effect — accepted for compatibility. cgg makes no network
+    /// calls at all: the update check that this flag used to disable was
+    /// removed, along with the HTTP/TLS dependency it required. Use
+    /// `cargo install-update` (from the `cargo-update` crate) if you want
+    /// installed binaries refreshed on your own schedule.
     #[arg(long = "no-update-check", action = ArgAction::SetTrue)]
     pub no_update_check: bool,
 }

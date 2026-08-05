@@ -135,7 +135,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
-| `--no-update-check` | off | Disable the once-a-day "newer release?" check (the only network call cgg makes) |
+| `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
 
 ## How it works
 
@@ -169,15 +169,13 @@ mermaid flowchart (or json/dot/graphml)
 ```
 
 Every analysis phase is offline and deterministic — no network calls, no
-language servers, no build artifacts required. The single exception is an
-optional, opt-out, once-a-day "newer release available?" check that runs
-on a background thread and only ever prints to stderr in an interactive
-terminal. It never touches the graph, the output, or the exit code, and
-is disabled entirely by `--no-update-check`, `--quiet`, a non-interactive
-(piped/CI/agent) invocation, or `CGG_NO_UPDATE_CHECK` / `DO_NOT_TRACK` /
-`CI` in the environment. The result is cached in
-`$XDG_CACHE_HOME/cgg/update-check.json`, so the network is contacted at
-most once per 24h.
+language servers, no build artifacts. cgg makes **no network requests at
+all**: the once-a-day release check was removed in 0.4.0, along with the
+HTTP/TLS dependency it required, so "offline" is a property of the code
+rather than a default that can be flipped. `--no-update-check` is still
+accepted and does nothing. To keep an installed binary current, use
+`cargo install-update -a` (from the `cargo-update` crate) or re-run
+`cargo install --git https://github.com/NeuralNotwerk/cgg cgg`.
 
 ## Agent integration patterns
 
@@ -320,7 +318,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1381 callables, 2974 edges, 951 cross-file, 174ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1369 callables, 2952 edges, 946 cross-file, 172ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a
 real cross-crate function call:
 
 ```bash

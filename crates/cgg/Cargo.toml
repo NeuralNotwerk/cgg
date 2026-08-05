@@ -31,11 +31,6 @@ tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 thiserror          = { workspace = true }
 
-# The *only* network dependency, and only in the binary: a best-effort,
-# opt-out, once-a-day "newer release?" check (see src/update_check.rs).
-# rustls (no system OpenSSL) keeps the single-binary property.
-minreq             = { version = "2", default-features = false, features = ["https-rustls"] }
-
 [dev-dependencies]
 assert_cmd = { workspace = true }
 predicates = { workspace = true }
