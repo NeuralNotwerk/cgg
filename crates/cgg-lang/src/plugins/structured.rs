@@ -119,6 +119,7 @@ pub fn push_def(facts: &mut FileFacts, name: &str, qualified: &str, value: Node,
         signature_hint: sig,
         visibility: String::new(),
         attributes: Vec::new(),
+        ..Default::default()
     });
 }
 
@@ -145,6 +146,7 @@ pub fn collect_refs(node: Node, src: &[u8], facts: &mut FileFacts) {
                             receiver_hint: String::new(),
                             site_line: (vn.start_position().row as u32) + 1,
                             site_byte: vn.start_byte() as u32,
+                            ..Default::default()
                         });
                     }
                 }

@@ -133,10 +133,16 @@ def cgg_help_flags() -> set[str]:
 def readme_flag_table_entries(readme: str) -> list[str]:
     # Slurp lines under "## CLI" between the table header and the next
     # blank line / next heading.
+    # NB: no re.DOTALL. With it, `.` matches newlines and the trailing
+    # `(?:\|.*\n)+` runs past the end of the table to the end of the
+    # file, sweeping up every later line that happens to start with a
+    # pipe — which is how an unrelated table elsewhere in the README can
+    # be mistaken for undocumented flags. `[^\n]` keeps each repetition
+    # on its own line so the capture stops at the first non-table line.
     m = re.search(
-        r"## CLI\b.*?\n\| Flag \| Default \| Description \|\n\|[-| ]+\|\n((?:\|.*\n)+)",
+        r"## CLI\b[\s\S]*?\n\| Flag \| Default \| Description \|\n\|[-| ]+\|\n"
+        r"((?:\|[^\n]*\n)+)",
         readme,
-        re.DOTALL,
     )
     if not m:
         fail("README '## CLI' flag table not found")

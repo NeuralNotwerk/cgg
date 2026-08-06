@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct DartPlugin;
@@ -12,7 +12,6 @@ impl LanguagePlugin for DartPlugin {
     fn id(&self) -> &'static str { "dart" }
     fn extensions(&self) -> &'static [&'static str] { &[".dart"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_dart::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -126,6 +125,7 @@ impl<'a> DartWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(), attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -228,6 +228,7 @@ impl<'a> DartWalker<'a> {
             name, receiver_hint: receiver,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }

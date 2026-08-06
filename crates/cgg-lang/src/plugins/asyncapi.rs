@@ -18,7 +18,7 @@ use std::path::Path;
 use cgg_core::{ids::FileId, FileFacts};
 use tree_sitter::Tree;
 use crate::plugins::structured;
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct AsyncApiPlugin;
@@ -27,7 +27,6 @@ impl LanguagePlugin for AsyncApiPlugin {
     fn id(&self) -> &'static str { "asyncapi" }
     fn extensions(&self) -> &'static [&'static str] { &[".yaml", ".yml", ".json"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_yaml::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {

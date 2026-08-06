@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct RubyPlugin;
@@ -12,12 +12,20 @@ impl LanguagePlugin for RubyPlugin {
     fn id(&self) -> &'static str { "ruby" }
     fn extensions(&self) -> &'static [&'static str] { &[".rb", ".rake", ".gemspec"] }
     fn shebangs(&self) -> &'static [&'static str] { &["ruby", "irb"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { impls: true, value_refs: true, ..Default::default() }
+    }
+
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_ruby::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "ruby");
-        let mut w = RubyWalker { source, facts: &mut facts, scope: Vec::new() };
+        let mut w = RubyWalker {
+            source,
+            facts: &mut facts,
+            scope: Vec::new(),
+            bases: Vec::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -27,6 +35,11 @@ struct RubyWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// `class X < Y` superclasses **and** `include M` mixins of the
+    /// enclosing class. Sidekiq declares its contract with `include
+    /// Sidekiq::Job`, which is a call rather than a superclass, so both
+    /// forms have to land in the same slot.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> RubyWalker<'a> {
@@ -38,14 +51,28 @@ impl<'a> RubyWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "class" => {
+            "class" | "singleton_class" => {
                 let name = node.child_by_field_name("name")
                     .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let mut bases = node
+                    .child_by_field_name("superclass")
+                    .map(|n| {
+                        self.text(n)
+                            .trim_start_matches('<')
+                            .trim()
+                            .to_string()
+                    })
+                    .filter(|s| !s.is_empty())
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                bases.extend(self.included_modules(node));
+                self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
                     self.scope.pop();
                 } else { self.walk_children(node); }
+                self.bases.pop();
                 return;
             }
             "module" => {
@@ -96,7 +123,40 @@ impl<'a> RubyWalker<'a> {
             start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(), attributes: Vec::new(),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
         });
+    }
+
+    /// Modules mixed in at the top of a class body — `include
+    /// Sidekiq::Job`, `extend ActiveSupport::Concern`. Only direct
+    /// children of the body, so a conditional `include` deep inside a
+    /// method is not mistaken for a declaration.
+    fn included_modules(&self, class_node: Node) -> Vec<String> {
+        let mut out = Vec::new();
+        let Some(body) = class_node.child_by_field_name("body") else { return out };
+        let mut cursor = body.walk();
+        for stmt in body.named_children(&mut cursor) {
+            if stmt.kind() != "call" {
+                continue;
+            }
+            let m = stmt
+                .child_by_field_name("method")
+                .map(|n| self.text(n))
+                .unwrap_or("");
+            if m != "include" && m != "extend" && m != "prepend" {
+                continue;
+            }
+            let Some(args) = stmt.child_by_field_name("arguments") else { continue };
+            let mut ac = args.walk();
+            for a in args.named_children(&mut ac) {
+                let t = self.text(a).trim();
+                if !t.is_empty() && t.starts_with(char::is_uppercase) {
+                    out.push(t.to_string());
+                }
+            }
+        }
+        out
     }
 
     fn record_call(&mut self, node: Node) {
@@ -120,11 +180,23 @@ impl<'a> RubyWalker<'a> {
             }
             return;
         }
+        let context = if recv.is_empty() {
+            method.clone()
+        } else {
+            format!("{recv}.{method}")
+        };
         self.facts.references.push(RefRecord {
             name: method, receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
+        // `config/routes.rb` is ordinary Ruby: `get 'photos', to:
+        // 'photos#index'`. The target is a string, so nothing here
+        // becomes an edge — only an entry node, once a rule supplies
+        // the premise that Rails invokes it.
+        let extra = super::registrar::capture(node, self.source, &context);
+        self.facts.references.extend(extra);
     }
 }
 
@@ -170,3 +242,4 @@ mod tests {
         assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"));
     }
 }
+

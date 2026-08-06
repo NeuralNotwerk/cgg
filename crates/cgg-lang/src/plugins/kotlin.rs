@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct KotlinPlugin;
@@ -11,7 +11,10 @@ pub struct KotlinPlugin;
 impl LanguagePlugin for KotlinPlugin {
     fn id(&self) -> &'static str { "kotlin" }
     fn extensions(&self) -> &'static [&'static str] { &[".kt", ".kts"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { attributes: true, visibility: true, ..Default::default() }
+    }
+
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_kotlin_sg::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -74,7 +77,8 @@ impl<'a> KtWalker<'a> {
                         end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
-                        attributes: Vec::new(),
+                        attributes: super::attrs::collect(node, self.source),
+                        ..Default::default()
                     });
                     self.scope.push(name);
                     self.walk_children(node);
@@ -164,7 +168,9 @@ impl<'a> KtWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            vis: kotlin_vis(&super::extract_signature(self.text(node))),
+            attributes: super::attrs::collect(node, self.source),
+            ..Default::default()
         });
     }
 
@@ -281,6 +287,7 @@ impl<'a> KtWalker<'a> {
             name, receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }
@@ -336,5 +343,29 @@ mod tests {
         let f = extract(src);
         assert!(f.references.iter().any(|r| r.name == "helper"), "refs: {:?}", f.references);
         assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"), "refs: {:?}", f.references);
+    }
+}
+
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Public`.
+fn kotlin_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Public
     }
 }

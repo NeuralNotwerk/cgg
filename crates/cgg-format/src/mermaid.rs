@@ -15,8 +15,9 @@ use crate::{GraphFormatter, OutputFormat};
 /// Short label prefix distinguishing an edge's `via` kind in the
 /// mermaid label slot (mermaid has no native per-edge styling). Direct
 /// edges get no tag so the common case stays clean for agents reading
-/// the graph. Over-approximated edges (`dyn`, `ref`) and exit-node
-/// edges (`ext`, `std`) are tagged so consumers can filter them.
+/// the graph. Over-approximated edges (`dyn`, `ref`), exit-node edges
+/// (`ext`, `std`) and entry-node edges (`entry`) are tagged so consumers
+/// can filter them.
 fn via_tag(via: &Via) -> &'static str {
     match via {
         Via::Direct => "",
@@ -25,6 +26,7 @@ fn via_tag(via: &Via) -> &'static str {
         Via::External => "ext",
         Via::Stdlib => "std",
         Via::Ffi(_) => "ffi",
+        Via::FrameworkEntry(_) => "entry",
     }
 }
 
@@ -43,6 +45,41 @@ impl GraphFormatter for MermaidFormatter {
     }
 
     fn render(&self, graph: &Graph, out: &mut dyn io::Write) -> io::Result<()> {
+        let any_entry = graph
+            .callables
+            .values()
+            .any(|n| n.framework_entry.is_some());
+        if any_entry {
+            // An entry node asserts a caller that appears nowhere in the
+            // source, so the header has to survive copy-paste of the
+            // block — a diagram has no fields to inspect.
+            writeln!(
+                out,
+                "%% cgg: &lt;framework-entry&gt; nodes are SYNTHESIZED. No call to them exists"
+            )?;
+            writeln!(
+                out,
+                "%% in your source; they represent control entering from a framework."
+            )?;
+            writeln!(
+                out,
+                "%% BEST EFFORT — see the coverage table for what cgg did and did not recognise."
+            )?;
+        }
+        let any_unreferenced = graph.callables.values().any(|n| n.unreferenced.is_some());
+        if any_unreferenced {
+            // A mark in a diagram gets pasted into places its evidence
+            // does not follow, so the caveat rides along in a comment
+            // that survives copy-paste of the block.
+            writeln!(
+                out,
+                "%% cgg: nodes tagged `unreferenced` are BEST-EFFORT findings —"
+            )?;
+            writeln!(
+                out,
+                "%% cgg could not find a caller, which is not proof none exists."
+            )?;
+        }
         writeln!(out, "flowchart LR")?;
 
         // Nodes. Mermaid ids need to be word-safe; we use `C<n>` where
@@ -50,7 +87,34 @@ impl GraphFormatter for MermaidFormatter {
         // qualified name as the display label.
         for (id, node) in &graph.callables {
             let label = mermaid_escape(&node.qualified_name);
-            writeln!(out, "  C{id_n}[\"{label}\"]", id_n = id.as_u32())?;
+            // The tag is part of the label rather than only a style, so
+            // it survives renderers that drop classDef and readers who
+            // only see the text.
+            // Entry nodes get the verbose tag deliberately. The reader
+            // already has the `<framework-entry>` prefix and the
+            // `|entry|` edge label; a third independent signal is
+            // proportionate to a node minted from an inference rather
+            // than from an observed call site.
+            let tag = if node.framework_entry.is_some() {
+                " ⟨framework entry callback⟩"
+            } else if node.unreferenced.is_some() {
+                " ⟨unreferenced⟩"
+            } else {
+                ""
+            };
+            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.as_u32())?;
+        }
+        if any_unreferenced {
+            writeln!(out, "  classDef unreferenced stroke-dasharray: 4 3;")?;
+            let marked: Vec<String> = graph
+                .callables
+                .iter()
+                .filter(|(_, n)| n.unreferenced.is_some())
+                .map(|(id, _)| format!("C{}", id.as_u32()))
+                .collect();
+            for chunk in marked.chunks(32) {
+                writeln!(out, "  class {} unreferenced;", chunk.join(","))?;
+            }
         }
 
         // Edges. The internal graph keeps one edge per call site (per
@@ -129,6 +193,7 @@ mod tests {
             lines: 1,
             parse_ms: 0.1,
             parse_status: "ok".into(),
+            ..Default::default()
         });
         let a = g.add_callable(CallableNode {
             id: CallableId::new(0),
@@ -146,6 +211,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         let b = g.add_callable(CallableNode {
             id: CallableId::new(1),
@@ -163,6 +229,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         g.add_edge(CallEdge {
             src: a,
@@ -270,6 +337,7 @@ mod tests {
             attributes: Vec::new(),
             synthetic: false,
             trait_impl_target: None,
+            ..Default::default()
         });
         // Order: a->c first, then a second occurrence of a->b, then a->c again.
         g.add_edge(CallEdge {

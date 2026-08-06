@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct OcamlPlugin;
@@ -12,7 +12,6 @@ impl LanguagePlugin for OcamlPlugin {
     fn id(&self) -> &'static str { "ocaml" }
     fn extensions(&self) -> &'static [&'static str] { &[".ml", ".mli"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_ocaml::LANGUAGE_OCAML.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -124,6 +123,7 @@ impl<'a> OcamlWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -138,6 +138,7 @@ impl<'a> OcamlWalker<'a> {
                         receiver_hint: String::new(),
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
+                        ..Default::default()
                     });
                 }
             }
@@ -165,5 +166,29 @@ mod tests {
         assert_eq!(plugin.id(), "ocaml");
         assert!(plugin.extensions().contains(&".ml"));
         assert!(plugin.extensions().contains(&".mli"));
+    }
+
+    #[test]
+    fn let_bindings_and_call() {
+        // No enclosing `module M = struct ... end`, so `OcamlWalker::module`
+        // stays empty and qualified names are the bare simple names.
+        let src = "let helper x = x + 1\n\nlet main () = helper 41\n";
+        let f = extract(src);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"helper"), "got: {names:?}");
+        assert!(names.contains(&"main"), "got: {names:?}");
+        let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(refs.contains(&"helper"), "got: {refs:?}");
+    }
+
+    #[test]
+    fn open_is_recorded() {
+        let f = extract("open Printf\n\nlet go () = ()\n");
+        let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
+        assert!(paths.contains(&"Printf"), "got: {paths:?}");
     }
 }

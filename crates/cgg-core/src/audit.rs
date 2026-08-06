@@ -263,6 +263,9 @@ pub struct AuditFileRecord {
     pub parse_status: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_reason: Option<SkipReason>,
+    /// Set when the file is test code, with the rule that decided it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_role: Option<crate::testfile::TestFileReason>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub callables: Vec<AuditCallableRef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -323,6 +326,17 @@ pub enum AuditEvent {
         files_changed: u64,
         matched_seeds: Vec<String>,
         unmatched_files: Vec<PathBuf>,
+    },
+    /// Which frameworks the run recognised, which it saw but could not
+    /// enumerate, and which languages have no rules at all.
+    ///
+    /// Emitted on every run that synthesizes entry nodes, including runs
+    /// that recognised nothing. A machine consumer reading only
+    /// `recognised` would conclude an unfamiliar framework's app has no
+    /// attack surface; the gap list is what stops that, so it travels
+    /// with the numbers rather than beside them.
+    FrameworkCoverage {
+        coverage: crate::frameworks::FrameworkCoverage,
     },
 }
 

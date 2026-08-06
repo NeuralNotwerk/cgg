@@ -57,6 +57,15 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
         // a `Via::Reference` edge; if it names no known callable, drop it
         // silently — value refs must never reach the unresolved/external
         // buckets.
+        // String-reference (shape E): a literal that *names* a callable.
+        // Suppression-and-entry-node only, by explicit contract — it
+        // never becomes an edge, and it must never reach the unresolved
+        // / external buckets either, where it would be reported as a
+        // call into third-party code that does not exist.
+        if rref.receiver_hint == cgg_core::STRING_REF_HINT {
+            continue;
+        }
+
         if rref.receiver_hint == cgg_core::VALUE_REF_HINT {
             let Some(src_id) = src else { continue };
             let matches: Vec<u32> = facts
@@ -252,6 +261,7 @@ mod tests {
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -261,6 +271,7 @@ mod tests {
             receiver_hint: String::new(),
             site_line: 1,
             site_byte,
+            ..Default::default()
         }
     }
 
@@ -273,6 +284,7 @@ mod tests {
             references: refs,
             imports: Vec::new(),
             local_types: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -352,6 +364,7 @@ mod tests {
             receiver_hint: "Parser".into(),
             site_line: 1,
             site_byte: 10,
+            ..Default::default()
         }];
         let facts = facts_with(defs, refs);
         let map = mk_map(&facts);
@@ -376,6 +389,7 @@ mod tests {
             receiver_hint: "Self".into(),
             site_line: 1,
             site_byte: 10,
+            ..Default::default()
         }];
         let facts = facts_with(defs, refs);
         let map = mk_map(&facts);

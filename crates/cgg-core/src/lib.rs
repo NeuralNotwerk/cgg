@@ -17,11 +17,14 @@
 #![warn(unreachable_pub)]
 
 pub mod audit;
+pub mod deadcode;
 pub mod external;
 pub mod facts;
+pub mod frameworks;
 pub mod graph;
 pub mod ids;
 pub mod stdlib;
+pub mod testfile;
 pub mod version;
 
 pub use audit::{
@@ -29,14 +32,27 @@ pub use audit::{
     CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter, ReceiverProvenance,
     RunAuditBuilder, RunMetrics, SkipReason, UnresolvedReason,
 };
+pub use deadcode::{
+    LanguageSignals, DeadCodeConfig, DeadCodeFinding, DeadCodeReport, DeadCodeSummary, DeadRegion, Evidence,
+    FindingCategory, LanguageCapabilityReport, LanguageClass, LivenessProof, Polarity, ProofHop,
+    RegionRole, RootKind, RootRecord, SignalSupport, SiteRef, SuppressedCategory,
+    SuppressionReason, DEAD_CODE_DISCLAIMER, DEFAULT_MIN_ROOT_COVERAGE_PCT,
+};
 pub use facts::{
-    DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord, VALUE_REF_HINT,
+    DefRecord, DefVariant, DynUse, ExportRecord, FileFacts, ImportRecord, LocalType,
+    RefRecord, TestRole, UnreachableRegion, Vis, STRING_REF_HINT, VALUE_REF_HINT,
 };
 pub use external::{
     build_alias_map, build_known_names, classify_external, ClassifyResult, FileAliases,
+};
+pub use frameworks::{
+    EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
+    SeenFramework, TrustKind, UncoveredLanguage, FRAMEWORK_ENTRY_DISCLAIMER,
+    FRAMEWORK_ENTRY_SENTINEL, REACHABILITY_NOT_TAINT,
 };
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };
 pub use ids::{CallableId, FileId, ResolverId};
+pub use testfile::{classify_test_file, TestFileReason};
 pub use version::{CGG_VERSION, RESOLVER_FORMAT_VERSION};

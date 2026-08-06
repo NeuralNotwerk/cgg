@@ -13,3 +13,10 @@ Cargo.lock.tmp
 !.claude/skills/
 .kiro/*
 !.kiro/skills/
+
+# Planning / analysis docs written during a working session. These are
+# working notes, not part of the published contract — the README and
+# CHANGELOG are. Keep them on disk, out of the repo.
+/framework_integration.md
+/*_plan.md
+/*-plan.md

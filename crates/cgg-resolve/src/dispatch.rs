@@ -106,6 +106,7 @@ mod tests {
             attributes: vec![],
             synthetic: false,
             trait_impl_target: trait_impl.map(|s| s.to_string()),
+            ..Default::default()
         }
     }
 

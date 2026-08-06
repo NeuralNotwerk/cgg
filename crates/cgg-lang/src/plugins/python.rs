@@ -22,7 +22,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct PythonPlugin;
@@ -37,9 +37,10 @@ impl LanguagePlugin for PythonPlugin {
     fn shebangs(&self) -> &'static [&'static str] {
         &["python3", "python", "python2"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { attributes: true, dyn_uses: true, exports: true, impls: true, test_defs: true, unreachable: true, value_refs: true, visibility: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_python::LANGUAGE.into()
     }
@@ -56,9 +57,20 @@ impl LanguagePlugin for PythonPlugin {
             source,
             facts: &mut facts,
             scope: vec![module_name(path)],
+            bases: Vec::new(),
         };
         walker.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::PYTHON);
+        }
+        if crate::deadcode_signals() {
+            out.dyn_uses = super::dynuse::extract(tree, source, "python");
+        }
+        // `__all__` is Python's explicit export list; a name in it is
+        // public API even when nothing in the package references it.
+        out.exports = py_dunder_all(tree, source);
+        out
     }
 }
 
@@ -94,6 +106,8 @@ struct Walker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Base classes of the enclosing `class`, innermost last.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -111,7 +125,12 @@ impl<'a> Walker<'a> {
                 if !name.is_empty() {
                     self.scope.push(name);
                 }
+                // `class Encoder(nn.Module)` is the only thing that says
+                // the runtime calls `forward`; nothing else in the file
+                // does.
+                self.bases.push(super::attrs::base_types(node, self.source));
                 self.walk_children(node);
+                self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
                     self.scope.pop();
                 }
@@ -149,7 +168,18 @@ impl<'a> Walker<'a> {
             }
             "call" => {
                 if let Some(r) = self.ref_from_call(node) {
+                    // Django's `urls.py` is ordinary Python:
+                    // `path("users/", views.list_users)` puts the
+                    // handler in argument position, so the callee alone
+                    // says nothing.
+                    let context = if r.receiver_hint.is_empty() {
+                        r.name.clone()
+                    } else {
+                        format!("{}.{}", r.receiver_hint, r.name)
+                    };
                     self.facts.references.push(r);
+                    let extra = super::registrar::capture(node, self.source, &context);
+                    self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
                 return;
@@ -215,6 +245,7 @@ impl<'a> Walker<'a> {
 
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
+        let simple_for_vis = simple.clone();
 
         self.facts.definitions.push(DefRecord {
             simple_name: simple,
@@ -226,7 +257,11 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis: py_vis(&simple_for_vis),
+            test_role: py_test_role(&simple_for_vis, &decorators),
             attributes: decorators,
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
         });
     }
 
@@ -287,6 +322,7 @@ impl<'a> Walker<'a> {
         }
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
+        let vis = py_vis(&simple);
         Some(DefRecord {
             simple_name: simple,
             qualified_name: qn,
@@ -297,7 +333,9 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis,
             attributes: Vec::new(),
+            ..Default::default()
         })
     }
 
@@ -338,6 +376,7 @@ impl<'a> Walker<'a> {
             receiver_hint: receiver,
             site_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 }
@@ -558,4 +597,91 @@ class C:
             .collect();
         assert!(names.contains(&"m.outer.inner"), "got: {names:?}");
     }
+}
+
+/// Python has no visibility keyword; the underscore convention is the
+/// language's actual, universally-followed rule.
+fn py_vis(simple: &str) -> cgg_core::Vis {
+    if simple.starts_with("__") && simple.ends_with("__") {
+        cgg_core::Vis::Public // dunder: part of the protocol surface
+    } else if simple.starts_with('_') {
+        cgg_core::Vis::Private
+    } else {
+        cgg_core::Vis::Public
+    }
+}
+
+/// pytest / unittest lifecycle hook names.
+const PY_FIXTURES: &[&str] = &[
+    "setUp", "tearDown", "setUpClass", "tearDownClass", "setup_module",
+    "teardown_module", "setup_function", "teardown_function", "setup_class",
+    "teardown_class", "setup_method", "teardown_method",
+];
+
+/// Decide a Python definition's test role.
+///
+/// Decorator evidence applies everywhere — `@pytest.fixture` is
+/// unambiguous wherever it appears. Name evidence is weaker, so it is a
+/// separate, softer signal.
+fn py_test_role(simple: &str, decorators: &[String]) -> Option<cgg_core::TestRole> {
+    for d in decorators {
+        let k = d.trim().trim_start_matches('@');
+        let k = k.split('(').next().unwrap_or(k).trim();
+        if k == "pytest.fixture" || k == "fixture" {
+            return Some(cgg_core::TestRole::Fixture);
+        }
+        if k.starts_with("pytest.mark") {
+            return Some(cgg_core::TestRole::Case);
+        }
+    }
+    if PY_FIXTURES.contains(&simple) {
+        return Some(cgg_core::TestRole::Fixture);
+    }
+    if simple.starts_with("test_") {
+        return Some(cgg_core::TestRole::Case);
+    }
+    None
+}
+
+/// Names listed in a module's `__all__`.
+///
+/// Only the literal list/tuple form is read. `__all__ += [...]` and
+/// `__all__.extend(...)` are deliberately out of scope: following them
+/// means evaluating the module, and a wrong answer here would silently
+/// mark real findings as exported.
+fn py_dunder_all(tree: &tree_sitter::Tree, source: &[u8]) -> Vec<cgg_core::ExportRecord> {
+    let text = |n: tree_sitter::Node| -> String {
+        String::from_utf8_lossy(&source[n.byte_range()]).to_string()
+    };
+    let mut out = Vec::new();
+    let mut stack = vec![tree.root_node()];
+    while let Some(n) = stack.pop() {
+        let mut c = n.walk();
+        stack.extend(n.children(&mut c));
+        if n.kind() != "assignment" {
+            continue;
+        }
+        let Some(lhs) = n.child_by_field_name("left") else { continue };
+        if text(lhs).trim() != "__all__" {
+            continue;
+        }
+        let Some(rhs) = n.child_by_field_name("right") else { continue };
+        let mut rc = rhs.walk();
+        for e in rhs.children(&mut rc) {
+            if !e.kind().contains("string") {
+                continue;
+            }
+            let name = text(e).trim().trim_matches(['"', '\'']).to_string();
+            if !name.is_empty() {
+                out.push(cgg_core::ExportRecord {
+                    name,
+                    kind: "__all__".into(),
+                    target: String::new(),
+                });
+            }
+        }
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out.dedup_by(|a, b| a.name == b.name);
+    out
 }

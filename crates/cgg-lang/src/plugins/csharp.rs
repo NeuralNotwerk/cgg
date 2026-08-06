@@ -29,7 +29,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct CSharpPlugin;
@@ -41,9 +41,16 @@ impl LanguagePlugin for CSharpPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".cs", ".csx"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals {
+            visibility: true,
+            attributes: true,
+            impls: true,
+            value_refs: true,
+            ..Default::default()
+        }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_c_sharp::LANGUAGE.into()
     }
@@ -60,6 +67,7 @@ impl LanguagePlugin for CSharpPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -84,6 +92,9 @@ struct Walker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<Scope>,
+    /// Base list of the enclosing type, innermost last — `: IJob` is
+    /// what makes `Execute` an entry point, and only the type says so.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -116,6 +127,8 @@ impl<'a> Walker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                let bases = super::attrs::base_types(node, self.source);
+                self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(Scope::Type(name));
                     self.walk_children(node);
@@ -123,6 +136,7 @@ impl<'a> Walker<'a> {
                 } else {
                     self.walk_children(node);
                 }
+                self.bases.pop();
                 return;
             }
             "method_declaration" | "local_function_statement" => {
@@ -168,7 +182,17 @@ impl<'a> Walker<'a> {
             }
             "invocation_expression" => {
                 if let Some(r) = self.ref_from_invoke(node) {
+                    // Shape B: `app.MapGet("/x", Handler)` — the minimal
+                    // API's whole routing surface lives in argument
+                    // position, so the callee alone tells us nothing.
+                    let context = if r.receiver_hint.is_empty() {
+                        r.name.clone()
+                    } else {
+                        format!("{}.{}", r.receiver_hint, r.name)
+                    };
                     self.facts.references.push(r);
+                    let extra = super::registrar::capture(node, self.source, &context);
+                    self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
                 return;
@@ -216,7 +240,11 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            vis: csharp_vis(&super::extract_signature(self.text(node))),
+            // Verbatim, so `[HttpGet("/users")]` keeps its route.
+            attributes: super::attrs::collect(node, self.source),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
         });
     }
 
@@ -328,6 +356,7 @@ impl<'a> Walker<'a> {
             receiver_hint: recv,
             site_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 }
@@ -457,5 +486,29 @@ namespace A.B.C {
         // text of the name field which includes the dots already.
         assert!(names.iter().any(|n| n.ends_with(".T.M")), "got: {names:?}");
         assert!(names.iter().any(|n| n.contains("A.B.C")), "got: {names:?}");
+    }
+}
+
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Private`.
+fn csharp_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Private
     }
 }

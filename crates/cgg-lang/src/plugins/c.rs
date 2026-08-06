@@ -15,7 +15,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct CPlugin;
@@ -27,9 +27,10 @@ impl LanguagePlugin for CPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".c", ".h"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::Custom
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { unreachable: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_c::LANGUAGE.into()
     }
@@ -44,7 +45,11 @@ impl LanguagePlugin for CPlugin {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "c");
         let mut w = CWalker { source, facts: &mut facts };
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
+        }
+        out
     }
 }
 
@@ -122,6 +127,7 @@ impl<'a> CWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            ..Default::default()
         });
     }
 
@@ -144,6 +150,7 @@ impl<'a> CWalker<'a> {
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
                         attributes: Vec::new(),
+                        ..Default::default()
                     });
                 }
                 return;
@@ -205,6 +212,7 @@ impl<'a> CWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: vec!["macro".to_string()],
+            ..Default::default()
         });
     }
 
@@ -251,6 +259,7 @@ impl<'a> CWalker<'a> {
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }

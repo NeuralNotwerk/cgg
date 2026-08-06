@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct JavaPlugin;
@@ -11,14 +11,36 @@ pub struct JavaPlugin;
 impl LanguagePlugin for JavaPlugin {
     fn id(&self) -> &'static str { "java" }
     fn extensions(&self) -> &'static [&'static str] { &[".java"] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::StackGraphs }
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals {
+            unreachable: true,
+            visibility: true,
+            attributes: true,
+            impls: true,
+            value_refs: true,
+            ..Default::default()
+        }
+    }
+
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_java::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "java");
-        let mut w = JavaWalker { source, facts: &mut facts, scope: Vec::new() };
+        let mut w = JavaWalker {
+            source,
+            facts: &mut facts,
+            scope: Vec::new(),
+            bases: Vec::new(),
+        };
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        if crate::deadcode_signals() {
+            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::JAVA);
+        }
+        if crate::deadcode_signals() {
+            out.dyn_uses = super::dynuse::extract(tree, source, "java");
+        }
+        out
     }
 }
 
@@ -26,6 +48,10 @@ struct JavaWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Base types of the enclosing class, innermost last. A method
+    /// carries its owner's supertypes because the framework rule marks a
+    /// callable, and only the class declares the contract.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> JavaWalker<'a> {
@@ -53,12 +79,17 @@ impl<'a> JavaWalker<'a> {
             "class_declaration" | "interface_declaration" | "enum_declaration" | "record_declaration" => {
                 let name = node.child_by_field_name("name")
                     .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let bases = super::attrs::base_types(node, self.source);
                 if !name.is_empty() {
                     self.scope.push(name);
+                    self.bases.push(bases);
                     self.walk_children(node);
+                    self.bases.pop();
                     self.scope.pop();
                 } else {
+                    self.bases.push(bases);
                     self.walk_children(node);
+                    self.bases.pop();
                 }
                 return;
             }
@@ -96,6 +127,7 @@ impl<'a> JavaWalker<'a> {
                             receiver_hint: String::new(),
                             site_line: (node.start_position().row as u32) + 1,
                             site_byte: node.start_byte() as u32,
+                            ..Default::default()
                         });
                     }
                 }
@@ -139,7 +171,12 @@ impl<'a> JavaWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            vis: java_vis(&super::extract_signature(self.text(node))),
+            // Verbatim: `@GetMapping("/users")` keeps its route, which
+            // `attribute_key` would discard and an entry node needs.
+            attributes: super::attrs::collect(node, self.source),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
         });
     }
 
@@ -182,11 +219,21 @@ impl<'a> JavaWalker<'a> {
         let recv = node.child_by_field_name("object")
             .map(|n| self.text(n).to_string()).unwrap_or_default();
         if name.is_empty() { return; }
+        let context = if recv.is_empty() {
+            name.clone()
+        } else {
+            format!("{recv}.{name}")
+        };
         self.facts.references.push(RefRecord {
             name, receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
+        // Shape B/C: a handler passed in argument position. Inert unless
+        // a detected framework's rule names this call.
+        let extra = super::registrar::capture(node, self.source, &context);
+        self.facts.references.extend(extra);
     }
 
     fn record_local_type(&mut self, node: Node) {
@@ -283,5 +330,29 @@ mod tests {
         let src = "class C { public static void create() {} }\n";
         let f = extract(src);
         assert!(f.definitions.iter().any(|d| d.simple_name == "create" && d.variant == DefVariant::StaticMethod));
+    }
+}
+
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Internal`.
+fn java_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Internal
     }
 }

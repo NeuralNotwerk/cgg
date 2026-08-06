@@ -3,7 +3,7 @@
 use std::path::Path;
 use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
 use tree_sitter::{Node, Tree};
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct ClojurePlugin;
@@ -12,7 +12,6 @@ impl LanguagePlugin for ClojurePlugin {
     fn id(&self) -> &'static str { "clojure" }
     fn extensions(&self) -> &'static [&'static str] { &[".clj", ".cljs", ".cljc", ".edn"] }
     fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn resolver_kind(&self) -> ResolverKind { ResolverKind::Custom }
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_clojure_orchard::LANGUAGE.into() }
 
     fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
@@ -172,6 +171,7 @@ impl<'a> ClojureWalker<'a> {
                 signature_hint: super::extract_signature(self.text(node)),
                 visibility: String::new(),
                 attributes: Vec::new(),
+                ..Default::default()
             });
         }
     }
@@ -188,6 +188,7 @@ impl<'a> ClojureWalker<'a> {
                     receiver_hint: String::new(),
                     site_line: (node.start_position().row as u32) + 1,
                     site_byte: node.start_byte() as u32,
+                    ..Default::default()
                 });
             }
         }
@@ -203,6 +204,5 @@ mod tests {
         let p = ClojurePlugin;
         assert_eq!(p.id(), "clojure");
         assert_eq!(p.extensions(), &[".clj", ".cljs", ".cljc", ".edn"]);
-        assert_eq!(p.resolver_kind(), ResolverKind::Custom);
     }
 }

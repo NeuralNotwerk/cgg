@@ -25,7 +25,7 @@ use cgg_core::{
 };
 use tree_sitter::{Node, Tree, TreeCursor};
 
-use crate::{LanguagePlugin, ResolverKind};
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct RustPlugin;
@@ -37,9 +37,10 @@ impl LanguagePlugin for RustPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".rs"]
     }
-    fn resolver_kind(&self) -> ResolverKind {
-        ResolverKind::StackGraphs
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals { value_refs: true, attributes: true, exports: true, impls: true, test_defs: true, unreachable: true, visibility: true, ..Default::default() }
     }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_rust::LANGUAGE.into()
     }
@@ -82,6 +83,33 @@ impl LanguagePlugin for RustPlugin {
         // `self.store.foo()` to `ChunkStore::foo()` etc.
         let struct_fields = std::mem::take(&mut walker.struct_fields);
         emit_self_field_local_types(&mut facts, &struct_fields);
+
+        if crate::deadcode_signals() {
+
+            facts.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::RUST);
+
+        }
+        // `pub use` is Rust's export surface: a re-exported name is part
+        // of the crate's public API even though nothing inside the crate
+        // calls it by that path.
+        facts.exports = facts
+            .imports
+            .iter()
+            .filter(|i| i.kind == "pub-use")
+            .map(|i| {
+                let name = if i.alias.is_empty() {
+                    i.path.rsplit("::").next().unwrap_or(&i.path).to_string()
+                } else {
+                    i.alias.clone()
+                };
+                cgg_core::ExportRecord {
+                    name,
+                    kind: "pub-use".into(),
+                    target: i.path.clone(),
+                }
+            })
+            .filter(|e| !e.name.is_empty() && e.name != "*")
+            .collect();
         facts
     }
 }
@@ -340,11 +368,13 @@ impl<'a> Walker<'a> {
                 return;
             }
 
-            // `name!(args)` — macro invocation is a call site.
+            // `name!(args)` — macro invocation is a call site, and so is
+            // anything called *inside* its arguments.
             "macro_invocation" => {
                 if let Some(r) = self.ref_from_macro_invocation(node) {
                     self.facts.references.push(r);
                 }
+                self.refs_from_token_tree(node);
                 self.walk_children(node);
                 return;
             }
@@ -463,12 +493,37 @@ impl<'a> Walker<'a> {
             }
         };
 
+        // A trait item carries no visibility of its own: its effective
+        // visibility is the trait's, and for `impl Trait for T` the
+        // trait may be declared in another file entirely. So an absent
+        // token here means "inherited", not "private" — reporting a
+        // method of a `pub trait` as private would tell a dead-code
+        // reader that no out-of-tree caller can exist, which for a
+        // library crate's own API is false. cgg does not compute the
+        // inherited value, so it says `Unknown` and claims nothing.
+        let vis = match self.scope.last() {
+            Some(ScopeSegment::Trait(_) | ScopeSegment::TraitImpl(_))
+                if visibility.is_empty() =>
+            {
+                cgg_core::Vis::Unknown
+            }
+            _ => rust_vis(&visibility),
+        };
+
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
         let signature = super::extract_signature(self.text(node));
 
         let attributes = collect_attributes(node, self.source);
 
+        // `extern "C"` is a modifier *inside* `function_item`, so
+        // `collect_attributes` (which reads preceding siblings) can
+        // never see it. Without this, `pub extern "C" fn` without an
+        // explicit `#[no_mangle]` is invisible to the FFI classifier.
+        let mut attributes = attributes;
+        if self.text(node).contains("extern \"C\"") {
+            attributes.push("extern:C".to_string());
+        }
         self.facts.definitions.push(DefRecord {
             simple_name: simple,
             qualified_name: qn,
@@ -478,8 +533,11 @@ impl<'a> Walker<'a> {
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: signature,
+            vis,
+            test_role: rust_test_role(&attributes),
             visibility,
             attributes,
+            ..Default::default()
         });
     }
 
@@ -550,7 +608,9 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis: cgg_core::Vis::Private,
             attributes: Vec::new(),
+            ..Default::default()
         })
     }
 
@@ -648,9 +708,11 @@ impl<'a> Walker<'a> {
             end_byte,
             signature_hint: String::new(),
             visibility: String::new(),
+            vis: cgg_core::Vis::Private,
             // Tag it so downstream consumers can spot the synthetic
             // origin if they want to (audit log, custom filters).
             attributes: vec!["spawned".into()],
+            ..Default::default()
         });
 
         // Synthetic "spawn" call edge: place the RefRecord at the spawn
@@ -662,6 +724,7 @@ impl<'a> Walker<'a> {
             receiver_hint: String::new(),
             site_line: spawn_line,
             site_byte: spawn_call.start_byte() as u32,
+            ..Default::default()
         });
     }
 
@@ -687,8 +750,72 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
+            vis: cgg_core::Vis::Private,
             attributes: vec!["macro".to_string()],
+            ..Default::default()
         });
+    }
+
+    /// Extract call sites from inside a macro's argument tokens.
+    ///
+    /// tree-sitter parses macro arguments as an unstructured
+    /// `token_tree`, so a genuine call like `writeln!(out, "{}",
+    /// xml_escape(s))` contains no `call_expression` node and is
+    /// invisible to the ordinary walker. Every function used only from
+    /// inside `format!`, `writeln!`, `vec!` or `assert_eq!` therefore
+    /// looked unreferenced — measured on cgg's own source, that was the
+    /// single largest false-positive class in the dead-code report.
+    ///
+    /// In token soup a call is an identifier immediately followed by a
+    /// parenthesised group, so that is what this matches. It is a
+    /// deliberate over-approximation: an extra edge can only mark
+    /// something as used, which is the safe direction.
+    fn refs_from_token_tree(&mut self, node: Node) {
+        let mut stack = vec![node];
+        while let Some(n) = stack.pop() {
+            let mut cur = n.walk();
+            let kids: Vec<Node> = n.children(&mut cur).collect();
+            for (i, k) in kids.iter().enumerate() {
+                if k.kind() == "token_tree" {
+                    stack.push(*k);
+                }
+                if k.kind() != "identifier" && k.kind() != "scoped_identifier" {
+                    continue;
+                }
+                // `foo (` — the next token must open a group.
+                let Some(next) = kids.get(i + 1) else { continue };
+                if next.kind() != "token_tree" || !self.text(*next).starts_with('(') {
+                    continue;
+                }
+                // `foo!(...)` is a nested macro, already handled above.
+                if self.text(*k).ends_with('!') {
+                    continue;
+                }
+                let name = self
+                    .text(*k)
+                    .rsplit("::")
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                if name.is_empty() || is_rust_noise_macro(&name) {
+                    continue;
+                }
+                // Skip obvious type constructors and enum variants: an
+                // uppercase leading letter with no `::` path is far more
+                // likely `Some(x)` or `Ok(v)` than a function call.
+                if name.starts_with(char::is_uppercase) {
+                    continue;
+                }
+                self.facts.references.push(RefRecord {
+                    name,
+                    site_line: k.start_position().row as u32 + 1,
+                    site_byte: k.start_byte() as u32,
+                    receiver_hint: String::new(),
+                    ..Default::default()
+                });
+            }
+        }
     }
 
     fn ref_from_macro_invocation(&self, node: Node) -> Option<RefRecord> {
@@ -714,6 +841,7 @@ impl<'a> Walker<'a> {
             site_line: node.start_position().row as u32 + 1,
             site_byte: node.start_byte() as u32,
             receiver_hint: String::new(),
+            ..Default::default()
         })
     }
 
@@ -841,6 +969,7 @@ impl<'a> Walker<'a> {
             receiver_hint,
             site_line: start_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 
@@ -850,6 +979,17 @@ impl<'a> Walker<'a> {
     /// be resolved into a `Via::Reference` edge if it names a known
     /// callable. Pure syntax; the value is not tracked through the call.
     fn refs_from_args(&mut self, call: Node) {
+        // Axum's whole routing surface is shape B:
+        // `Router::new().route("/users", get(list_users))`. The handler
+        // sits inside `get(...)`, which carries no path of its own, so
+        // the context/route slots inherit from the enclosing `.route`
+        // call — without that the entry node is an anonymous `get`.
+        let context = call
+            .child_by_field_name("function")
+            .and_then(|n| n.utf8_text(self.source).ok())
+            .unwrap_or_default()
+            .to_string();
+        let route = super::registrar::route_of(call, self.source);
         let Some(args) = call.child_by_field_name("arguments") else { return };
         let mut cursor = args.walk();
         for arg in args.named_children(&mut cursor) {
@@ -880,11 +1020,18 @@ impl<'a> Walker<'a> {
             // The simple name is the last path segment; the resolver
             // matches it against callable definitions by name.
             let simple = ident.rsplit("::").next().unwrap_or(ident).to_string();
+            // Carry the registration context on the record itself
+            // rather than emitting a second, richer copy: the two would
+            // share a (name, site_byte) and whichever arrived first
+            // would win, which on axum was the context-less one — every
+            // real route lost its path.
             self.facts.references.push(RefRecord {
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,
                 site_byte: arg.start_byte() as u32,
+                context: context.clone(),
+                route: route.clone(),
             });
         }
     }
@@ -1299,6 +1446,39 @@ impl R for S { fn r(&self) {} }
     }
 
     #[test]
+    fn trait_items_inherit_visibility_rather_than_claiming_private() {
+        let src = r#"
+pub trait R { fn decl(&self); fn dflt(&self) {} }
+struct S;
+impl R for S { fn decl(&self) {} }
+impl S { fn inherent(&self) {} pub fn exported(&self) {} }
+fn free() {}
+"#;
+        let f = extract(src);
+        let vis_of = |simple: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == simple)
+                .unwrap_or_else(|| panic!("no def named {simple}"))
+                .vis
+        };
+        // A method of a `pub trait` is callable from outside the crate,
+        // so claiming `Private` would let a dead-code report assert no
+        // out-of-tree caller can exist. cgg does not resolve the
+        // inherited value, so it claims nothing.
+        assert_eq!(vis_of("decl"), cgg_core::Vis::Unknown);
+        assert_eq!(vis_of("dflt"), cgg_core::Vis::Unknown);
+        // Same for the implementing side, where the trait may not even
+        // be declared in this file.
+        assert!(f.definitions.iter().any(|d| d.qualified_name.contains("<S as R>::decl")
+            && d.vis == cgg_core::Vis::Unknown));
+        // Items that own their visibility are unaffected.
+        assert_eq!(vis_of("inherent"), cgg_core::Vis::Private);
+        assert_eq!(vis_of("exported"), cgg_core::Vis::Public);
+        assert_eq!(vis_of("free"), cgg_core::Vis::Private);
+    }
+
+    #[test]
     fn mod_prefix() {
         let f = extract("mod a { mod b { fn c() {} } }");
         let names: Vec<&str> = f
@@ -1499,4 +1679,34 @@ fn worker() {}
             "expected std::thread::spawn closure to be extracted; got {names:?}"
         );
     }
+}
+
+/// Project Rust's visibility syntax onto the shared vocabulary.
+///
+/// `pub` escapes the crate; `pub(crate)` / `pub(super)` / `pub(in ...)`
+/// do not; absent means private to the module.
+fn rust_vis(token: &str) -> cgg_core::Vis {
+    let t = token.trim();
+    if t.is_empty() {
+        cgg_core::Vis::Private
+    } else if t == "pub" {
+        cgg_core::Vis::Public
+    } else if t.starts_with("pub") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Private
+    }
+}
+
+/// Attributes that mark a Rust test case or benchmark.
+fn rust_test_role(attrs: &[String]) -> Option<cgg_core::TestRole> {
+    for a in attrs {
+        let k = a.trim().trim_start_matches("#[").trim_end_matches(']');
+        let k = k.split('(').next().unwrap_or(k).trim();
+        if matches!(k, "test" | "tokio::test" | "async_std::test" | "bench"
+                     | "rstest" | "proptest" | "quickcheck" | "test_case") {
+            return Some(cgg_core::TestRole::Case);
+        }
+    }
+    None
 }

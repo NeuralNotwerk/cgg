@@ -1,8 +1,23 @@
 //! GraphML formatter.
 
 use std::io;
+use cgg_core::graph::Via;
 use cgg_core::Graph;
 use crate::{GraphFormatter, OutputFormat};
+
+/// Stable `via` slug for the edge attribute. Direct calls carry none so
+/// the common case stays terse.
+fn via_slug(via: &Via) -> &'static str {
+    match via {
+        Via::Direct => "",
+        Via::Dynamic => "dynamic",
+        Via::Reference => "reference",
+        Via::External => "external",
+        Via::Stdlib => "stdlib",
+        Via::Ffi(_) => "ffi",
+        Via::FrameworkEntry(_) => "framework-entry",
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct GraphmlFormatter;
@@ -19,19 +34,64 @@ impl GraphFormatter for GraphmlFormatter {
         writeln!(out, r#"<graphml xmlns="http://graphml.graphstruct.org/xmlns">"#)?;
         writeln!(out, r#"  <key id="label" for="node" attr.name="label" attr.type="string"/>"#)?;
         writeln!(out, r#"  <key id="lang" for="node" attr.name="language" attr.type="string"/>"#)?;
+        writeln!(
+            out,
+            r#"  <key id="unreferenced" for="node" attr.name="unreferenced" attr.type="string"/>"#
+        )?;
+        writeln!(
+            out,
+            r#"  <key id="framework_entry" for="node" attr.name="framework_entry" attr.type="string"/>"#
+        )?;
+        writeln!(
+            out,
+            r#"  <key id="via" for="edge" attr.name="via" attr.type="string"/>"#
+        )?;
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
         for (id, node) in &graph.callables {
             writeln!(out, r#"    <node id="n{}">"#, id.as_u32())?;
             writeln!(out, r#"      <data key="label">{}</data>"#, xml_escape(&node.qualified_name))?;
             writeln!(out, r#"      <data key="lang">{}</data>"#, xml_escape(&node.language))?;
+            if let Some(kind) = node.framework_entry {
+                // SYNTHESIZED: no call to this node exists in source.
+                writeln!(
+                    out,
+                    r#"      <data key="framework_entry">{}</data>"#,
+                    kind.slug()
+                )?;
+            }
+            if let Some(c) = node.unreferenced {
+                // Best-effort finding: cgg found no caller, which is not
+                // proof that none exists.
+                writeln!(
+                    out,
+                    r#"      <data key="unreferenced">{}</data>"#,
+                    match c {
+                        cgg_core::graph::Confidence::High => "high",
+                        cgg_core::graph::Confidence::Medium => "medium",
+                        cgg_core::graph::Confidence::Low => "low",
+                    }
+                )?;
+            }
             writeln!(out, r#"    </node>"#)?;
         }
         for (i, edge) in graph.edges.iter().enumerate() {
-            writeln!(
-                out,
-                r#"    <edge id="e{}" source="n{}" target="n{}"/>"#,
-                i, edge.src.as_u32(), edge.dst.as_u32()
-            )?;
+            // Without the `via` tag a GraphML consumer cannot tell an
+            // inferred entry edge from a resolved call — the one
+            // distinction every other formatter surfaces.
+            let via = via_slug(&edge.via);
+            if via.is_empty() {
+                writeln!(
+                    out,
+                    r#"    <edge id="e{}" source="n{}" target="n{}"/>"#,
+                    i, edge.src.as_u32(), edge.dst.as_u32()
+                )?;
+            } else {
+                writeln!(
+                    out,
+                    r#"    <edge id="e{}" source="n{}" target="n{}"><data key="via">{}</data></edge>"#,
+                    i, edge.src.as_u32(), edge.dst.as_u32(), via
+                )?;
+            }
         }
         writeln!(out, "  </graph>")?;
         writeln!(out, "</graphml>")?;
@@ -61,6 +121,7 @@ mod tests {
             language: "rust".into(), detected_via: "ext".into(),
             blake3: "0".repeat(64), size_bytes: 10, lines: 1,
             parse_ms: 0.1, parse_status: "ok".into(),
+            ..Default::default()
         });
         g.add_callable(CallableNode {
             id: CallableId::new(0), qualified_name: "foo<T>".into(),
@@ -70,6 +131,7 @@ mod tests {
             signature_hint: String::new(), visibility: String::new(),
             attributes: vec![],
             synthetic: false, trait_impl_target: None,
+            ..Default::default()
         });
         let mut buf = Vec::new();
         GraphmlFormatter.render(&g, &mut buf).unwrap();
