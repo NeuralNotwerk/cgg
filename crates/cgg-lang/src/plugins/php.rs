@@ -1,17 +1,23 @@
 //! PHP plugin — callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct PhpPlugin;
 
 impl LanguagePlugin for PhpPlugin {
-    fn id(&self) -> &'static str { "php" }
-    fn extensions(&self) -> &'static [&'static str] { &[".php", ".phtml"] }
-    fn shebangs(&self) -> &'static [&'static str] { &["php"] }
+    fn id(&self) -> &'static str {
+        "php"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".php", ".phtml"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["php"]
+    }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {
             attributes: true,
@@ -21,9 +27,17 @@ impl LanguagePlugin for PhpPlugin {
         }
     }
 
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_php::LANGUAGE_PHP.into() }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_php::LANGUAGE_PHP.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "php");
         let mut w = PhpWalker {
             source,
@@ -45,10 +59,15 @@ struct PhpWalker<'a> {
 }
 
 impl<'a> PhpWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn qn(&self, simple: &str) -> String {
-        if self.scope.is_empty() { simple.to_string() }
-        else { format!("{}::{simple}", self.scope.join("::")) }
+        if self.scope.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}::{simple}", self.scope.join("::"))
+        }
     }
 
     fn walk(&mut self, node: Node) {
@@ -62,20 +81,26 @@ impl<'a> PhpWalker<'a> {
                 return;
             }
             "class_declaration" | "interface_declaration" | "trait_declaration" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 self.bases.push(super::attrs::base_types(node, self.source));
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
                     self.scope.pop();
-                } else { self.walk_children(node); }
+                } else {
+                    self.walk_children(node);
+                }
                 self.bases.pop();
                 return;
             }
             "function_definition" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::FreeFunction);
                 }
@@ -83,15 +108,18 @@ impl<'a> PhpWalker<'a> {
                 return;
             }
             "method_declaration" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::InherentMethod);
                 }
                 self.walk_children(node);
                 return;
             }
-            "function_call_expression" | "member_call_expression"
+            "function_call_expression"
+            | "member_call_expression"
             | "scoped_call_expression" => {
                 self.record_call(node);
                 self.walk_children(node);
@@ -104,16 +132,30 @@ impl<'a> PhpWalker<'a> {
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
         let qn = self.qn(name);
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
-            simple_name: name.to_string(), qualified_name: qn, variant,
-            start_line: sl, end_line: el,
-            start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+            simple_name: name.to_string(),
+            qualified_name: qn,
+            variant,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             // Symfony puts its whole routing surface in `#[Route(...)]`.
@@ -139,7 +181,11 @@ impl<'a> PhpWalker<'a> {
         if body.is_empty() || body.len() > 400 {
             return;
         }
-        let kind = if raw.starts_with("namespace") { "package" } else { "use" };
+        let kind = if raw.starts_with("namespace") {
+            "package"
+        } else {
+            "use"
+        };
         for part in body.split(',') {
             let part = part.trim();
             if part.is_empty() {
@@ -172,16 +218,28 @@ impl<'a> PhpWalker<'a> {
             .or_else(|| node.child_by_field_name("name"))
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if func.is_empty() { return; }
+        if func.is_empty() {
+            return;
+        }
 
         // require_once/include as import
-        if func == "require_once" || func == "include" || func == "include_once" || func == "require" {
+        if func == "require_once"
+            || func == "include"
+            || func == "include_once"
+            || func == "require"
+        {
             let args = node.child_by_field_name("arguments");
             if let Some(a) = args.and_then(|a| a.child(0)) {
-                let path = self.text(a).trim_matches('\'').trim_matches('"').to_string();
+                let path = self
+                    .text(a)
+                    .trim_matches('\'')
+                    .trim_matches('"')
+                    .to_string();
                 if !path.is_empty() {
                     self.facts.imports.push(ImportRecord {
-                        kind: func.clone(), path, alias: String::new(),
+                        kind: func.clone(),
+                        path,
+                        alias: String::new(),
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
                     });
@@ -201,7 +259,8 @@ impl<'a> PhpWalker<'a> {
             format!("{recv}::{func}")
         };
         self.facts.references.push(RefRecord {
-            name: func, receiver_hint: recv,
+            name: func,
+            receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             ..Default::default()
@@ -223,9 +282,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_php::LANGUAGE_PHP.into()).unwrap();
+        p.set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        PhpPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.php"), &tree, src.as_bytes())
+        PhpPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.php"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]

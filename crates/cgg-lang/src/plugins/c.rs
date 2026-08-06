@@ -10,9 +10,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -28,7 +26,10 @@ impl LanguagePlugin for CPlugin {
         &[".c", ".h"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { unreachable: true, ..Default::default() }
+        crate::PluginSignals {
+            unreachable: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -43,11 +44,15 @@ impl LanguagePlugin for CPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "c");
-        let mut w = CWalker { source, facts: &mut facts };
+        let mut w = CWalker {
+            source,
+            facts: &mut facts,
+        };
         w.walk(tree.root_node());
         let mut out = facts;
         if crate::deadcode_signals() {
-            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
         out
     }
@@ -110,7 +115,9 @@ impl<'a> CWalker<'a> {
     }
 
     fn record_function_def(&mut self, node: Node) {
-        let Some(decl) = node.child_by_field_name("declarator") else { return };
+        let Some(decl) = node.child_by_field_name("declarator") else {
+            return;
+        };
         let name = self.fn_name_from_declarator(decl);
         if name.is_empty() {
             return;
@@ -195,7 +202,9 @@ impl<'a> CWalker<'a> {
     }
 
     fn record_macro_def(&mut self, node: Node) {
-        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
         let name = self.text(name_node).to_string();
         if name.is_empty() {
             return;
@@ -217,7 +226,9 @@ impl<'a> CWalker<'a> {
     }
 
     fn record_include(&mut self, node: Node) {
-        let Some(path_node) = node.child_by_field_name("path") else { return };
+        let Some(path_node) = node.child_by_field_name("path") else {
+            return;
+        };
         let kind = path_node.kind();
         // Only project-local (quoted) includes become import records.
         if kind == "string_literal" || kind == "string_content" {
@@ -237,14 +248,18 @@ impl<'a> CWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let Some(func) = node.child_by_field_name("function") else { return };
+        let Some(func) = node.child_by_field_name("function") else {
+            return;
+        };
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "field_expression" => {
-                let arg = func.child_by_field_name("argument")
+                let arg = func
+                    .child_by_field_name("argument")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let field = func.child_by_field_name("field")
+                let field = func
+                    .child_by_field_name("field")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 (field, arg)
@@ -265,7 +280,10 @@ impl<'a> CWalker<'a> {
 }
 
 fn line_range(n: Node) -> (u32, u32) {
-    ((n.start_position().row as u32) + 1, (n.end_position().row as u32) + 1)
+    (
+        (n.start_position().row as u32) + 1,
+        (n.end_position().row as u32) + 1,
+    )
 }
 
 #[cfg(test)]
@@ -291,10 +309,18 @@ mod tests {
     fn function_definitions_extracted() {
         let src = "int add(int a, int b) { return a+b; }\nvoid greet() {}\n";
         let f = extract(src);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         assert!(names.contains(&"add"), "got: {names:?}");
         assert!(names.contains(&"greet"), "got: {names:?}");
-        assert!(f.definitions.iter().all(|d| d.variant == DefVariant::FreeFunction));
+        assert!(
+            f.definitions
+                .iter()
+                .all(|d| d.variant == DefVariant::FreeFunction)
+        );
     }
 
     #[test]
@@ -302,7 +328,11 @@ mod tests {
         let src = "int add(int a, int b);\nint add(int a, int b) { return a+b; }\n";
         let f = extract(src);
         // Both prototype and definition are recorded (dedup is Task 9).
-        let count = f.definitions.iter().filter(|d| d.simple_name == "add").count();
+        let count = f
+            .definitions
+            .iter()
+            .filter(|d| d.simple_name == "add")
+            .count();
         assert_eq!(count, 2);
     }
 
@@ -319,7 +349,11 @@ mod tests {
     fn call_expressions_captured() {
         let src = "void f() { add(1,2); ptr->run(); }\n";
         let f = extract(src);
-        let refs: Vec<(&str, &str)> = f.references.iter().map(|r| (r.name.as_str(), r.receiver_hint.as_str())).collect();
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
         assert!(refs.contains(&("add", "")), "got: {refs:?}");
         // ptr->run() is a field_expression
         assert!(refs.contains(&("run", "ptr")), "got: {refs:?}");
@@ -330,6 +364,9 @@ mod tests {
         let src = "#define SQUARE(x) ((x)*(x))\nint f() { return SQUARE(3); }\n";
         let f = extract(src);
         // SQUARE(3) is parsed as a call_expression by tree-sitter-c.
-        assert!(f.references.iter().any(|r| r.name == "SQUARE"), "macro call not captured");
+        assert!(
+            f.references.iter().any(|r| r.name == "SQUARE"),
+            "macro call not captured"
+        );
     }
 }

@@ -24,13 +24,34 @@ use tree_sitter::{Node, Tree};
 /// Reflective call positions, per language: the callee name whose
 /// string argument names another callable.
 const REFLECTIVE: &[(&str, &[&str])] = &[
-    ("python", &["getattr", "setattr", "hasattr", "delattr", "import_module"]),
-    ("ruby", &["send", "public_send", "method", "respond_to?", "instance_variable_get"]),
-    ("java", &["forName", "getMethod", "getDeclaredMethod", "getField"]),
-    ("csharp", &["GetMethod", "GetType", "CreateInstance", "GetProperty"]),
+    (
+        "python",
+        &["getattr", "setattr", "hasattr", "delattr", "import_module"],
+    ),
+    (
+        "ruby",
+        &[
+            "send",
+            "public_send",
+            "method",
+            "respond_to?",
+            "instance_variable_get",
+        ],
+    ),
+    (
+        "java",
+        &["forName", "getMethod", "getDeclaredMethod", "getField"],
+    ),
+    (
+        "csharp",
+        &["GetMethod", "GetType", "CreateInstance", "GetProperty"],
+    ),
     ("javascript", &["require", "importScripts"]),
     ("typescript", &["require"]),
-    ("php", &["call_user_func", "call_user_func_array", "method_exists"]),
+    (
+        "php",
+        &["call_user_func", "call_user_func_array", "method_exists"],
+    ),
     ("go", &["MethodByName", "FieldByName"]),
 ];
 
@@ -38,8 +59,11 @@ const REFLECTIVE: &[(&str, &[&str])] = &[
 fn is_identifier_shaped(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 128
-        && s.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_')
-        && s.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+        && s.chars()
+            .next()
+            .is_some_and(|c| c.is_alphabetic() || c == '_')
+        && s.chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
 }
 
 fn strip_quotes(s: &str) -> &str {
@@ -53,7 +77,8 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
     let Some((_, callees)) = REFLECTIVE.iter().find(|(l, _)| *l == language) else {
         return Vec::new();
     };
-    let text = |n: Node| -> &str { std::str::from_utf8(&source[n.byte_range()]).unwrap_or("") };
+    let text =
+        |n: Node| -> &str { std::str::from_utf8(&source[n.byte_range()]).unwrap_or("") };
 
     let mut out = Vec::new();
     let mut stack = vec![tree.root_node()];
@@ -64,12 +89,16 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
         if !n.kind().contains("call") {
             continue;
         }
-        let Some(func) = n.child_by_field_name("function") else { continue };
+        let Some(func) = n.child_by_field_name("function") else {
+            continue;
+        };
         let fname = text(func).rsplit(['.', ':']).next().unwrap_or("").trim();
         if !callees.contains(&fname) {
             continue;
         }
-        let Some(args) = n.child_by_field_name("arguments") else { continue };
+        let Some(args) = n.child_by_field_name("arguments") else {
+            continue;
+        };
         let mut ac = args.walk();
         for a in args.children(&mut ac) {
             let k = a.kind();
@@ -154,6 +183,9 @@ mod tests {
         let t = parse("python", src);
         let a = extract(&t, src.as_bytes(), "python");
         assert_eq!(a, extract(&t, src.as_bytes(), "python"));
-        assert_eq!(a.iter().map(|d| d.name.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
+        assert_eq!(
+            a.iter().map(|d| d.name.as_str()).collect::<Vec<_>>(),
+            vec!["a", "b"]
+        );
     }
 }

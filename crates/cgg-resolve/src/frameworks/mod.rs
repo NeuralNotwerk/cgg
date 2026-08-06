@@ -53,7 +53,11 @@ pub struct FrameworkOutcome {
 /// `user_rules` are appended to the built-in table and take precedence
 /// on a tie, so a user can cover a framework cgg does not know without
 /// waiting for a release.
-pub fn detect(graph: &Graph, facts: &[FileFacts], user_rules: &[FrameworkRule]) -> FrameworkOutcome {
+pub fn detect(
+    graph: &Graph,
+    facts: &[FileFacts],
+    user_rules: &[FrameworkRule],
+) -> FrameworkOutcome {
     let mut all: Vec<FrameworkRule> = user_rules.to_vec();
     all.extend(rules::builtin());
 
@@ -69,10 +73,11 @@ pub fn detect(graph: &Graph, facts: &[FileFacts], user_rules: &[FrameworkRule]) 
         match_base_types(graph, facts, rule, &mut entries);
         match_methods(graph, rule, &mut entries);
         match_registrars(graph, facts, rule, &called_in_file, &mut entries);
+        match_self_modules(graph, facts, rule, &called_in_file, &mut entries);
     }
 
     dedup(&mut entries);
-    let coverage = evidence.into_coverage(&all, &entries);
+    let coverage = evidence.into_coverage(&all, &entries, graph);
     FrameworkOutcome { entries, coverage }
 }
 
@@ -117,13 +122,18 @@ impl Detection {
 
         for f in facts {
             *files_by_language.entry(f.language.clone()).or_default() += 1;
-            let Some(candidates) = by_lang.get(f.language.as_str()) else { continue };
+            let Some(candidates) = by_lang.get(f.language.as_str()) else {
+                continue;
+            };
 
             let path = normalize_path(&f.path.to_string_lossy());
             let call_names: HashSet<&str> = f
                 .references
                 .iter()
-                .filter(|r| r.receiver_hint != VALUE_REF_HINT && r.receiver_hint != STRING_REF_HINT)
+                .filter(|r| {
+                    r.receiver_hint != VALUE_REF_HINT
+                        && r.receiver_hint != STRING_REF_HINT
+                })
                 .map(|r| r.name.as_str())
                 .collect();
 
@@ -172,7 +182,10 @@ impl Detection {
             }
         }
 
-        Self { hits, files_by_language }
+        Self {
+            hits,
+            files_by_language,
+        }
     }
 
     fn is_active(&self, id: &str, language: &str) -> bool {
@@ -184,20 +197,29 @@ impl Detection {
         self,
         all: &[FrameworkRule],
         entries: &[FrameworkEntry],
+        graph: &Graph,
     ) -> FrameworkCoverage {
         let mut cov = FrameworkCoverage::new();
 
+        // Keyed by language, not just id. A framework with a rule per
+        // language (Express has JavaScript and TypeScript ones) would
+        // otherwise report the *combined* total on both rows — Ghost
+        // printed "express 349 entries" twice for one set of 349, which
+        // overstates the surface and invites summing it to 698.
         let mut counts: BTreeMap<(&str, &str), u32> = BTreeMap::new();
         for e in entries {
-            *counts.entry((e.framework.as_str(), "")).or_default() += 1;
+            let lang = graph
+                .callables
+                .get(&e.target)
+                .map(|c| c.language.as_str())
+                .unwrap_or_default();
+            *counts.entry((e.framework.as_str(), lang)).or_default() += 1;
         }
 
         for ((id, language), files) in &self.hits {
-            let rule = all
-                .iter()
-                .find(|r| r.id == *id && r.language == *language);
+            let rule = all.iter().find(|r| r.id == *id && r.language == *language);
             let Some(rule) = rule else { continue };
-            let n = *counts.get(&(id.as_str(), "")).unwrap_or(&0);
+            let n = *counts.get(&(id.as_str(), language.as_str())).unwrap_or(&0);
 
             if rule.has_matchers() {
                 cov.recognised.push(RecognisedFramework {
@@ -259,8 +281,13 @@ impl Detection {
                 .then_with(|| a.id.cmp(&b.id))
                 .then_with(|| a.language.cmp(&b.language))
         });
-        cov.seen_no_rules.sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.language.cmp(&b.language)));
-        cov.no_markers.sort_by(|a, b| b.files.cmp(&a.files).then_with(|| a.language.cmp(&b.language)));
+        cov.seen_no_rules
+            .sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.language.cmp(&b.language)));
+        cov.no_markers.sort_by(|a, b| {
+            b.files
+                .cmp(&a.files)
+                .then_with(|| a.language.cmp(&b.language))
+        });
 
         cov.nodes_minted = entries.iter().filter(|e| e.node).count() as u32;
         cov.root_marks_only = entries.iter().filter(|e| !e.node).count() as u32;
@@ -322,9 +349,9 @@ fn path_matches(path: &str, marker: &str) -> bool {
 /// Distinctive verbs (`HandleFunc`, `RegisterWorkflow`, `add_action`)
 /// need neither, because nothing else is called that.
 const AMBIGUOUS_VERBS: &[&str] = &[
-    "get", "post", "put", "delete", "patch", "head", "options", "add", "all",
-    "use", "route", "match", "handle", "process", "on", "view", "resource",
-    "any", "list", "create", "update",
+    "get", "post", "put", "delete", "patch", "head", "options", "add", "all", "use",
+    "route", "match", "handle", "process", "on", "view", "resource", "any", "list",
+    "create", "update",
 ];
 
 /// Whether a marker list contains `needle`, comparing case-insensitively.
@@ -352,7 +379,8 @@ fn match_attributes(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<Framework
         for attr in &node.attributes {
             let key = attribute_key(attr);
             let verb = attribute_verb(attr);
-            if !contains_ci(&rule.attributes, key) && !contains_ci(&rule.attributes, verb) {
+            if !contains_ci(&rule.attributes, key) && !contains_ci(&rule.attributes, verb)
+            {
                 continue;
             }
             let route = match attribute_string_arg(attr) {
@@ -421,7 +449,9 @@ fn match_base_types(
         if node.language != rule.language || node.synthetic {
             continue;
         }
-        let Some(types) = bases.get(&(node.file, node.start_byte)) else { continue };
+        let Some(types) = bases.get(&(node.file, node.start_byte)) else {
+            continue;
+        };
         // A framework contract is usually inherited, not declared
         // directly: NetBox writes `class CircuitListView(generic.
         // ObjectListView)`, and only three levels up does anything name
@@ -479,7 +509,7 @@ fn find_in_base_chain(
                 .split(['<', '['])
                 .next()
                 .unwrap_or(&t)
-                .rsplit(|c| c == '.' || c == ':' || c == '\\')
+                .rsplit(['.', ':', '\\'])
                 .next()
                 .unwrap_or(&t);
             if let Some(parents) = by_owner.get(key) {
@@ -504,7 +534,7 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
         return true;
     }
     let last = bare
-        .rsplit(|c| c == '.' || c == ':' || c == '\\')
+        .rsplit(['.', ':', '\\'])
         .next()
         .unwrap_or(bare);
     contains_ci(wanted, last)
@@ -581,16 +611,23 @@ fn match_registrars(
             }
             let verb = r
                 .context
-                .rsplit(|c| c == '.' || c == ':' || c == '-' || c == '>')
+                .rsplit(['.', ':', '-', '>'])
                 .next()
                 .unwrap_or(&r.context);
-            if !contains_ci(&rule.registrars, verb) && !contains_ci(&rule.registrars, &r.context) {
+            if !contains_ci(&rule.registrars, verb)
+                && !contains_ci(&rule.registrars, &r.context)
+            {
                 continue;
             }
             // An ambiguous verb needs corroboration — see AMBIGUOUS_VERBS.
             let receiverless = r.context.eq_ignore_ascii_case(verb);
-            if contains_ci(&AMBIGUOUS_VERBS.iter().map(|s| s.to_string()).collect::<Vec<_>>(), verb)
-                && r.route.is_empty()
+            if contains_ci(
+                &AMBIGUOUS_VERBS
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>(),
+                verb,
+            ) && r.route.is_empty()
                 && !receiverless
             {
                 continue;
@@ -600,8 +637,8 @@ fn match_registrars(
             // a callable. `new Worker('./jobs/resize.js')` is the only
             // reference to that file anywhere, so without this the
             // entire module reads as dead.
-            if is_string {
-                if let Some(target_file) = resolve_module_path(graph, f.file, &r.name) {
+            if is_string
+                && let Some(target_file) = resolve_module_path(graph, f.file, &r.name) {
                     let mut any = false;
                     for (id, node) in &graph.callables {
                         if node.file != target_file || node.synthetic {
@@ -618,7 +655,10 @@ fn match_registrars(
                             route: format!("{}(\"{}\")", verb, r.name),
                             target: *id,
                             target_name: node.qualified_name.clone(),
-                            evidence: format!("module loaded by `{}(\"{}\")`", r.context, r.name),
+                            evidence: format!(
+                                "module loaded by `{}(\"{}\")`",
+                                r.context, r.name
+                            ),
                             file: f.file,
                             site_line: r.site_line,
                             node: rule.node,
@@ -628,7 +668,6 @@ fn match_registrars(
                         continue;
                     }
                 }
-            }
 
             let (candidates, shape) = if is_value {
                 let id = index.by_simple(&r.name, f.file);
@@ -664,7 +703,9 @@ fn match_registrars(
             // dropped rather than guessed at. §8: string routing may
             // lower confidence, it must never manufacture an edge.
             let Some(target) = candidates else { continue };
-            let Some(node) = graph.callables.get(&target) else { continue };
+            let Some(node) = graph.callables.get(&target) else {
+                continue;
+            };
 
             let route = if r.route.is_empty() {
                 String::new()
@@ -740,6 +781,87 @@ fn resolve_module_path(graph: &Graph, from: FileId, raw: &str) -> Option<FileId>
     None
 }
 
+/// **Shape F, self-identifying** — the file itself is what the framework
+/// enters, and it says so.
+///
+/// The spawn-site form (`new Worker('./jobs/x.js')`) needs a literal
+/// path. Ghost writes its workers the other way round: the job module
+/// imports `node:worker_threads` and talks to `parentPort`, and the
+/// spawner passes a variable. Nothing references the file, so every
+/// callable in it reads as dead — the exact failure this shape exists to
+/// prevent, just approached from the other end.
+///
+/// Requires *both* the framework import and a receive-side marker in the
+/// same file. The import alone would also match the spawner, which is
+/// not entered as a thread.
+fn match_self_modules(
+    graph: &Graph,
+    facts: &[FileFacts],
+    rule: &FrameworkRule,
+    called_in_file: &HashSet<CallableId>,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let markers = cgg_core::frameworks::rules::self_module_markers_for(
+        &rule.id,
+        &rule.language,
+    );
+    if markers.is_empty() {
+        return;
+    }
+
+    for f in facts {
+        if f.language != rule.language {
+            continue;
+        }
+        let imported = f.imports.iter().any(|i| {
+            rule.detect
+                .iter()
+                .any(|d| i.path == *d || i.path.starts_with(&format!("{d}/")))
+        });
+        if !imported {
+            continue;
+        }
+        let Some(marker) = f.references.iter().find_map(|r| {
+            markers
+                .iter()
+                .find(|m| r.receiver_hint == **m || r.name == **m)
+                .copied()
+        }) else {
+            continue;
+        };
+
+        // The module's own file name is its identity — there is no route
+        // string, and every worker module is a distinct entry point.
+        let stem = f
+            .path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("worker")
+            .to_string();
+
+        for (id, node) in &graph.callables {
+            if node.file != f.file || node.synthetic {
+                continue;
+            }
+            if !is_module_surface(node, facts, f.file, called_in_file) {
+                continue;
+            }
+            out.push(FrameworkEntry {
+                framework: rule.id.clone(),
+                kind: rule.kind,
+                shape: EntryShape::ModulePath,
+                route: format!("module(\"{stem}\")"),
+                target: *id,
+                target_name: node.qualified_name.clone(),
+                evidence: format!("worker module: imports {} and uses `{marker}`", rule.language),
+                file: f.file,
+                site_line: 1,
+                node: rule.node,
+            });
+        }
+    }
+}
+
 /// Whether a callable is part of a module's externally-visible surface.
 ///
 /// A worker module is *entered*, not called, so there is no single
@@ -759,11 +881,10 @@ fn is_module_surface(
     if node.kind != cgg_core::graph::CallableKind::Function {
         return false;
     }
-    if let Some(f) = facts.iter().find(|f| f.file == file) {
-        if !f.exports.is_empty() {
+    if let Some(f) = facts.iter().find(|f| f.file == file)
+        && !f.exports.is_empty() {
             return f.exports.iter().any(|e| e.name == node.simple_name);
         }
-    }
     !called_in_file.contains(&node.id)
 }
 
@@ -773,7 +894,8 @@ fn callees_within_their_file(graph: &Graph) -> HashSet<CallableId> {
         .edges
         .iter()
         .filter(|e| {
-            let (Some(s), Some(d)) = (graph.callables.get(&e.src), graph.callables.get(&e.dst))
+            let (Some(s), Some(d)) =
+                (graph.callables.get(&e.src), graph.callables.get(&e.dst))
             else {
                 return false;
             };
@@ -798,8 +920,8 @@ fn decode_string_target(s: &str, language: &str) -> Option<(Option<String>, Stri
     if s.is_empty() || s.len() > 200 {
         return None;
     }
-    if let Some((ctrl, action)) = s.split_once('#') {
-        if language == "ruby" && is_identifierish(action) {
+    if let Some((ctrl, action)) = s.split_once('#')
+        && language == "ruby" && is_identifierish(action) {
             // Rails names controllers by convention: `photos#index` is
             // `PhotosController#index`. Match on the action plus a
             // controller whose name starts with the camelized segment,
@@ -807,19 +929,16 @@ fn decode_string_target(s: &str, language: &str) -> Option<(Option<String>, Stri
             let owner = camelize(ctrl.rsplit('/').next().unwrap_or(ctrl));
             return Some((Some(format!("{owner}Controller")), action.to_string()));
         }
-    }
-    if let Some((class, method)) = s.split_once('@') {
-        if is_identifierish(method) {
+    if let Some((class, method)) = s.split_once('@')
+        && is_identifierish(method) {
             let owner = class.rsplit('\\').next().unwrap_or(class);
             return Some((Some(owner.to_string()), method.to_string()));
         }
-    }
-    if let Some((class, method)) = s.rsplit_once("::") {
-        if is_identifierish(method) {
+    if let Some((class, method)) = s.rsplit_once("::")
+        && is_identifierish(method) {
             let owner = class.rsplit('\\').next().unwrap_or(class);
             return Some((Some(owner.to_string()), method.to_string()));
         }
-    }
     if is_identifierish(s) {
         return Some((None, s.to_string()));
     }
@@ -855,7 +974,8 @@ struct NameIndex {
 impl NameIndex {
     fn build(graph: &Graph, language: &str) -> Self {
         let mut by_simple: HashMap<String, Vec<(FileId, CallableId)>> = HashMap::new();
-        let mut by_owner_method: HashMap<(String, String), Vec<CallableId>> = HashMap::new();
+        let mut by_owner_method: HashMap<(String, String), Vec<CallableId>> =
+            HashMap::new();
         for (id, n) in &graph.callables {
             // Sentinel nodes (`<external>`, `<stdlib>`,
             // `<framework-entry>`) are not handlers and must never be
@@ -877,7 +997,10 @@ impl NameIndex {
                     .push(*id);
             }
         }
-        Self { by_simple, by_owner_method }
+        Self {
+            by_simple,
+            by_owner_method,
+        }
     }
 
     /// Resolve a bare name, preferring a definition in the registering
@@ -904,11 +1027,12 @@ impl NameIndex {
         let Some(owner) = owner else {
             return self.by_simple(method, from);
         };
-        if let Some(ids) = self.by_owner_method.get(&(owner.to_string(), method.to_string())) {
-            if let [id] = ids.as_slice() {
+        if let Some(ids) = self
+            .by_owner_method
+            .get(&(owner.to_string(), method.to_string()))
+            && let [id] = ids.as_slice() {
                 return Some(*id);
             }
-        }
         // Rails' convention pluralizes and suffixes, so an exact owner
         // match often fails where a suffix match succeeds. Only accept
         // it when exactly one owner matches — a near-miss must not
@@ -929,7 +1053,10 @@ impl NameIndex {
 /// Whether two owner names are the same type modulo namespace and the
 /// `Controller` suffix Rails adds by convention.
 fn owner_is_close(declared: &str, wanted: &str) -> bool {
-    let d = declared.rsplit(|c| c == ':' || c == '.' || c == '\\').next().unwrap_or(declared);
+    let d = declared
+        .rsplit([':', '.', '\\'])
+        .next()
+        .unwrap_or(declared);
     if d.eq_ignore_ascii_case(wanted) {
         return true;
     }
@@ -964,7 +1091,9 @@ fn dedup(entries: &mut Vec<FrameworkEntry>) {
     // and Flask sees `@app.get` under both vocabularies — and two nodes
     // for one handler would double-count the attack surface.
     let mut seen: BTreeSet<(u32, String, String)> = BTreeSet::new();
-    entries.retain(|e| seen.insert((e.target.as_u32(), e.framework.clone(), e.route.clone())));
+    entries.retain(|e| {
+        seen.insert((e.target.as_u32(), e.framework.clone(), e.route.clone()))
+    });
     entries.sort_by(|a, b| {
         a.target
             .as_u32()
@@ -1011,7 +1140,10 @@ mod tests {
         assert!(import_matches("flask", "flask"));
         assert!(import_matches("flask.views", "flask"));
         assert!(import_matches("axum::routing::get", "axum"));
-        assert!(import_matches("github.com/gin-gonic/gin", "github.com/gin-gonic/gin"));
+        assert!(import_matches(
+            "github.com/gin-gonic/gin",
+            "github.com/gin-gonic/gin"
+        ));
         // The whole point of the gate: a lookalike must not activate a
         // rule that would then claim every `get` in the file.
         assert!(!import_matches("flasky", "flask"));
@@ -1090,9 +1222,11 @@ mod tests {
         let out = detect(&g, &facts, &[]);
         assert!(out.coverage.recognised.is_empty());
         assert_eq!(out.coverage.seen_no_rules.len(), 1);
-        assert!(out.coverage.seen_no_rules[0]
-            .reason
-            .contains("no entry point matched"));
+        assert!(
+            out.coverage.seen_no_rules[0]
+                .reason
+                .contains("no entry point matched")
+        );
     }
 
     #[test]
@@ -1127,7 +1261,10 @@ mod tests {
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
-        assert!(!out.entries[0].node, "lifecycle entries must not mint nodes");
+        assert!(
+            !out.entries[0].node,
+            "lifecycle entries must not mint nodes"
+        );
         assert_eq!(out.coverage.root_marks_only, 1);
         assert_eq!(out.coverage.nodes_minted, 0);
     }
@@ -1212,8 +1349,16 @@ mod tests {
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
-        assert!(rules::builtin().iter().any(|r| r.id == "rails" && r.string_targets));
-        assert!(rules::builtin().iter().any(|r| r.id == "axum" && !r.string_targets));
+        assert!(
+            rules::builtin()
+                .iter()
+                .any(|r| r.id == "rails" && r.string_targets)
+        );
+        assert!(
+            rules::builtin()
+                .iter()
+                .any(|r| r.id == "axum" && !r.string_targets)
+        );
     }
 
     #[test]
@@ -1222,9 +1367,17 @@ mod tests {
         // "detected" in every repository containing a C++ file and be
         // reported as a coverage gap in all of them.
         let g = graph_with(vec![node(0, "plain", "plain", "cpp")]);
-        let facts = vec![FileFacts::new(FileId::new(0), PathBuf::from("a.cpp"), "cpp")];
+        let facts = vec![FileFacts::new(
+            FileId::new(0),
+            PathBuf::from("a.cpp"),
+            "cpp",
+        )];
         let out = detect(&g, &facts, &[]);
-        assert!(out.coverage.seen_no_rules.iter().all(|f| f.id != "cuda"), "{:?}", out.coverage);
+        assert!(
+            out.coverage.seen_no_rules.iter().all(|f| f.id != "cuda"),
+            "{:?}",
+            out.coverage
+        );
     }
 
     #[test]
@@ -1408,7 +1561,10 @@ mod tests {
         // A bare package name is a dependency, not a worker module.
         // Resolving one would claim third-party code as an entry point.
         assert_eq!(resolve_module_path(&g, FileId::new(0), "bullmq"), None);
-        assert_eq!(resolve_module_path(&g, FileId::new(0), "./missing.js"), None);
+        assert_eq!(
+            resolve_module_path(&g, FileId::new(0), "./missing.js"),
+            None
+        );
     }
 
     #[test]
@@ -1419,11 +1575,7 @@ mod tests {
         let mut n = node(0, "saxpy", "saxpy", "cpp");
         n.attributes = vec!["__global__".into()];
         let g = graph_with(vec![n]);
-        let facts = vec![FileFacts::new(
-            FileId::new(0),
-            PathBuf::from("k.cu"),
-            "cpp",
-        )];
+        let facts = vec![FileFacts::new(FileId::new(0), PathBuf::from("k.cu"), "cpp")];
         let out = detect(&g, &facts, &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
         assert_eq!(out.entries[0].framework, "cuda");

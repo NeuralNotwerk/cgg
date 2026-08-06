@@ -9,9 +9,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -27,7 +25,11 @@ impl LanguagePlugin for CppPlugin {
         &[".cc", ".cpp", ".cxx", ".C", ".hpp", ".hh", ".hxx"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { attributes: true, unreachable: true, ..Default::default() }
+        crate::PluginSignals {
+            attributes: true,
+            unreachable: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -50,7 +52,8 @@ impl LanguagePlugin for CppPlugin {
         w.walk(tree.root_node());
         let mut out = facts;
         if crate::deadcode_signals() {
-            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
         out
     }
@@ -152,7 +155,9 @@ impl<'a> CppWalker<'a> {
     }
 
     fn record_function(&mut self, node: Node) {
-        let Some(decl) = node.child_by_field_name("declarator") else { return };
+        let Some(decl) = node.child_by_field_name("declarator") else {
+            return;
+        };
         let (simple, variant) = self.fn_info_from_declarator(decl);
         if simple.is_empty() {
             return;
@@ -187,13 +192,14 @@ impl<'a> CppWalker<'a> {
             "identifier" => {
                 let name = self.text(d).to_string();
                 // If inside a class scope, it's a constructor if name == class name.
-                let variant = if self.scope.last().map(|s| s.as_str()) == Some(name.as_str()) {
-                    DefVariant::Constructor
-                } else if self.scope.is_empty() {
-                    DefVariant::FreeFunction
-                } else {
-                    DefVariant::InherentMethod
-                };
+                let variant =
+                    if self.scope.last().map(|s| s.as_str()) == Some(name.as_str()) {
+                        DefVariant::Constructor
+                    } else if self.scope.is_empty() {
+                        DefVariant::FreeFunction
+                    } else {
+                        DefVariant::InherentMethod
+                    };
                 (name, variant)
             }
             "field_identifier" => {
@@ -258,7 +264,9 @@ impl<'a> CppWalker<'a> {
     }
 
     fn record_macro_def(&mut self, node: Node) {
-        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
         let name = self.text(name_node).to_string();
         if name.is_empty() {
             return;
@@ -281,7 +289,9 @@ impl<'a> CppWalker<'a> {
     }
 
     fn record_include(&mut self, node: Node) {
-        let Some(path_node) = node.child_by_field_name("path") else { return };
+        let Some(path_node) = node.child_by_field_name("path") else {
+            return;
+        };
         if path_node.kind() == "string_literal" || path_node.kind() == "string_content" {
             let raw = self.text(path_node);
             let path = raw.trim_matches('"').to_string();
@@ -298,14 +308,18 @@ impl<'a> CppWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let Some(func) = node.child_by_field_name("function") else { return };
+        let Some(func) = node.child_by_field_name("function") else {
+            return;
+        };
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "field_expression" => {
-                let arg = func.child_by_field_name("argument")
+                let arg = func
+                    .child_by_field_name("argument")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let field = func.child_by_field_name("field")
+                let field = func
+                    .child_by_field_name("field")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 (field, arg)
@@ -337,9 +351,11 @@ impl<'a> CppWalker<'a> {
 }
 
 fn line_range(n: Node) -> (u32, u32) {
-    ((n.start_position().row as u32) + 1, (n.end_position().row as u32) + 1)
+    (
+        (n.start_position().row as u32) + 1,
+        (n.end_position().row as u32) + 1,
+    )
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -365,9 +381,14 @@ mod tests {
         let src = "namespace math { namespace detail { void compute() {} } }\n";
         let f = extract(src);
         assert!(
-            f.definitions.iter().any(|d| d.qualified_name == "math::detail::compute"),
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name == "math::detail::compute"),
             "got: {:?}",
-            f.definitions.iter().map(|d| &d.qualified_name).collect::<Vec<_>>()
+            f.definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
         );
     }
 
@@ -384,13 +405,25 @@ public:
 }
 "#;
         let f = extract(src);
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         assert!(qns.contains(&"ns::Foo::Foo"), "got: {qns:?}");
         assert!(qns.contains(&"ns::Foo::~Foo"), "got: {qns:?}");
         assert!(qns.contains(&"ns::Foo::bar"), "got: {qns:?}");
-        let ctor = f.definitions.iter().find(|d| d.simple_name == "Foo").unwrap();
+        let ctor = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "Foo")
+            .unwrap();
         assert_eq!(ctor.variant, DefVariant::Constructor);
-        let dtor = f.definitions.iter().find(|d| d.simple_name == "~Foo").unwrap();
+        let dtor = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "~Foo")
+            .unwrap();
         assert_eq!(dtor.variant, DefVariant::Destructor);
     }
 
@@ -406,7 +439,11 @@ public:
     fn field_expression_call() {
         let src = "void f() { obj.run(); ptr->exec(); }\n";
         let f = extract(src);
-        let refs: Vec<(&str, &str)> = f.references.iter().map(|r| (r.name.as_str(), r.receiver_hint.as_str())).collect();
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
         assert!(refs.contains(&("run", "obj")), "got: {refs:?}");
         assert!(refs.contains(&("exec", "ptr")), "got: {refs:?}");
     }
@@ -436,7 +473,10 @@ fn cuda_qualifiers(text: &str) -> Vec<String> {
     let head = text.split(['{', ';']).next().unwrap_or(text);
     let mut out = Vec::new();
     for q in ["__global__", "__device__", "__host__"] {
-        if head.split(|c: char| !(c.is_alphanumeric() || c == '_')).any(|t| t == q) {
+        if head
+            .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .any(|t| t == q)
+        {
             out.push(q.to_string());
         }
     }

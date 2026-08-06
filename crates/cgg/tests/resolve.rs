@@ -87,11 +87,7 @@ fn python_module_alias_chain_resolves() {
 #[test]
 fn audit_records_medium_confidence_for_cross_file() {
     let tmp = TempDir::new().unwrap();
-    write(
-        tmp.path(),
-        "lib.py",
-        b"def work():\n    return 1\n",
-    );
+    write(tmp.path(), "lib.py", b"def work():\n    return 1\n");
     write(
         tmp.path(),
         "caller.py",
@@ -176,7 +172,10 @@ edition = "2021"
     let g = fs::read_to_string(&mmd).unwrap();
     // Both crates must have their callables extracted with the
     // crate-prefixed qualified name.
-    assert!(g.contains("upstream::helper"), "missing upstream::helper in:\n{g}");
+    assert!(
+        g.contains("upstream::helper"),
+        "missing upstream::helper in:\n{g}"
+    );
     assert!(
         g.contains("downstream::caller"),
         "missing downstream::caller in:\n{g}"
@@ -184,15 +183,14 @@ edition = "2021"
     // And a cross-crate edge downstream::caller -> upstream::helper.
     // Find the node ids and verify the arrow.
     let node_id = |qn: &str| {
-        g.lines()
-            .find_map(|l| {
-                let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
-                    Some(l.split('[').next()?.trim().to_string())
-                } else {
-                    None
-                }
-            })
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
     };
     let caller = node_id("downstream::caller").expect("node");
     let helper = node_id("upstream::helper").expect("node");
@@ -239,11 +237,7 @@ version = "0.0.0"
 edition = "2021"
 "#,
     );
-    write(
-        tmp.path(),
-        "facade/src/lib.rs",
-        b"pub use core_::work;\n",
-    );
+    write(tmp.path(), "facade/src/lib.rs", b"pub use core_::work;\n");
 
     write(
         tmp.path(),
@@ -285,7 +279,10 @@ edition = "2021"
     let run = node_id("caller::run").expect("node");
     let work = node_id("core_::work").expect("node");
     let arrow = format!("{run} --> {work}");
-    assert!(g.contains(&arrow), "re-export chain missing edge {arrow}:\n{g}");
+    assert!(
+        g.contains(&arrow),
+        "re-export chain missing edge {arrow}:\n{g}"
+    );
 }
 
 #[test]
@@ -419,11 +416,7 @@ fn csharp_cross_file_namespace_call_resolves() {
 fn c_include_header_resolves() {
     // C project: header defines `add`, two TUs include it and call it.
     let tmp = TempDir::new().unwrap();
-    write(
-        tmp.path(),
-        "helpers.h",
-        b"int add(int a, int b);\n",
-    );
+    write(tmp.path(), "helpers.h", b"int add(int a, int b);\n");
     write(
         tmp.path(),
         "helpers.c",
@@ -463,9 +456,9 @@ fn c_include_header_resolves() {
     let adds = node_id("add");
     assert!(!runs.is_empty(), "no run node");
     assert!(!adds.is_empty(), "no add node");
-    let has_edge = runs.iter().any(|r| {
-        adds.iter().any(|a| g.contains(&format!("{r} --> {a}")))
-    });
+    let has_edge = runs
+        .iter()
+        .any(|r| adds.iter().any(|a| g.contains(&format!("{r} --> {a}"))));
     assert!(has_edge, "missing C include edge:\n{g}");
 }
 
@@ -501,7 +494,10 @@ fn cpp_namespace_cross_file_resolves() {
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.contains("run"), "missing run:\n{g}");
     // The qualified call `math::Calc::add` should resolve.
-    assert!(g.contains("math::Calc::add"), "missing math::Calc::add:\n{g}");
+    assert!(
+        g.contains("math::Calc::add"),
+        "missing math::Calc::add:\n{g}"
+    );
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
@@ -561,9 +557,9 @@ fn js_esm_import_resolves() {
     let runs = node_ids("run");
     let helpers = node_ids("helper");
     assert!(!runs.is_empty() && !helpers.is_empty());
-    let has_edge = runs.iter().any(|r| {
-        helpers.iter().any(|h| g.contains(&format!("{r} --> {h}")))
-    });
+    let has_edge = runs
+        .iter()
+        .any(|r| helpers.iter().any(|h| g.contains(&format!("{r} --> {h}"))));
     assert!(has_edge, "missing JS cross-file edge run->helper:\n{g}");
 }
 
@@ -608,9 +604,9 @@ fn ts_namespace_import_resolves() {
     let runs = node_ids("run");
     let adds = node_ids("add");
     assert!(!runs.is_empty() && !adds.is_empty());
-    let has_edge = runs.iter().any(|r| {
-        adds.iter().any(|a| g.contains(&format!("{r} --> {a}")))
-    });
+    let has_edge = runs
+        .iter()
+        .any(|r| adds.iter().any(|a| g.contains(&format!("{r} --> {a}"))));
     assert!(has_edge, "missing TS namespace import edge run->add:\n{g}");
 }
 
@@ -621,35 +617,59 @@ fn java_cross_file_import_resolves() {
     write(tmp.path(), "Main.java", b"package app;\nimport lib.Helper;\npublic class Main {\n  public void run() { Helper.add(1, 2); }\n}\n");
 
     let mmd = tmp.path().join("g.mmd");
-    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.contains("add"), "missing add:\n{g}");
     assert!(g.contains("run"), "missing run:\n{g}");
     // Cross-file edge: run -> add
     let node_ids = |qn: &str| -> Vec<String> {
-        g.lines().filter_map(|l| {
-            let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
-                Some(l.split('[').next()?.trim().to_string())
-            } else { None }
-        }).collect()
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
     };
     let runs = node_ids("app.Main.run");
     let adds = node_ids("lib.Helper.add");
     assert!(!runs.is_empty(), "no run node:\n{g}");
     assert!(!adds.is_empty(), "no add node:\n{g}");
-    let has_edge = runs.iter().any(|r| adds.iter().any(|a| g.contains(&format!("{r} --> {a}"))));
+    let has_edge = runs
+        .iter()
+        .any(|r| adds.iter().any(|a| g.contains(&format!("{r} --> {a}"))));
     assert!(has_edge, "missing Java cross-file edge:\n{g}");
 }
 
 #[test]
 fn kotlin_cross_file_resolves() {
     let tmp = TempDir::new().unwrap();
-    write(tmp.path(), "Helper.kt", b"package lib\nfun helper(): Int = 42\n");
-    write(tmp.path(), "Main.kt", b"package app\nimport lib.helper\nfun run(): Int = helper()\n");
+    write(
+        tmp.path(),
+        "Helper.kt",
+        b"package lib\nfun helper(): Int = 42\n",
+    );
+    write(
+        tmp.path(),
+        "Main.kt",
+        b"package app\nimport lib.helper\nfun run(): Int = helper()\n",
+    );
 
     let mmd = tmp.path().join("g.mmd");
-    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.contains("helper"), "missing helper:\n{g}");
     assert!(g.contains("run"), "missing run:\n{g}");
@@ -658,26 +678,45 @@ fn kotlin_cross_file_resolves() {
 #[test]
 fn bash_source_resolves() {
     let tmp = TempDir::new().unwrap();
-    write(tmp.path(), "lib.sh", b"#!/bin/bash\nhelper() { echo hi; }\n");
-    write(tmp.path(), "main.sh", b"#!/bin/bash\nsource ./lib.sh\nmain() { helper; }\n");
+    write(
+        tmp.path(),
+        "lib.sh",
+        b"#!/bin/bash\nhelper() { echo hi; }\n",
+    );
+    write(
+        tmp.path(),
+        "main.sh",
+        b"#!/bin/bash\nsource ./lib.sh\nmain() { helper; }\n",
+    );
 
     let mmd = tmp.path().join("g.mmd");
-    cgg().args(["-t", "mermaid", "-o"]).arg(&mmd).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.contains("helper"), "missing helper:\n{g}");
     assert!(g.contains("main"), "missing main:\n{g}");
     let node_ids = |qn: &str| -> Vec<String> {
-        g.lines().filter_map(|l| {
-            let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
-                Some(l.split('[').next()?.trim().to_string())
-            } else { None }
-        }).collect()
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
     };
     let mains = node_ids("main");
     let helpers = node_ids("helper");
     assert!(!mains.is_empty() && !helpers.is_empty());
-    let has_edge = mains.iter().any(|m| helpers.iter().any(|h| g.contains(&format!("{m} --> {h}"))));
+    let has_edge = mains
+        .iter()
+        .any(|m| helpers.iter().any(|h| g.contains(&format!("{m} --> {h}"))));
     assert!(has_edge, "missing bash source edge:\n{g}");
 }
 
@@ -709,7 +748,17 @@ fn run() {
 
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "--filter", "crate::run$", "-n", "1", "-o"])
+        .args([
+            "-t",
+            "mermaid",
+            "--stack-graphs",
+            "off",
+            "--filter",
+            "crate::run$",
+            "-n",
+            "1",
+            "-o",
+        ])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
@@ -719,10 +768,19 @@ fn run() {
     // The cascade resolves every call on `w` to World, including the
     // ambiguous `new`.
     assert!(g.contains("crate::World::new"), "missing World::new:\n{g}");
-    assert!(g.contains("crate::World::load"), "missing World::load:\n{g}");
-    assert!(g.contains("crate::World::step"), "missing World::step:\n{g}");
+    assert!(
+        g.contains("crate::World::load"),
+        "missing World::load:\n{g}"
+    );
+    assert!(
+        g.contains("crate::World::step"),
+        "missing World::step:\n{g}"
+    );
     // The same-named `Other::new` must never appear in run's neighborhood.
-    assert!(!g.contains("crate::Other::new"), "Other::new mis-resolved:\n{g}");
+    assert!(
+        !g.contains("crate::Other::new"),
+        "Other::new mis-resolved:\n{g}"
+    );
 }
 
 #[test]
@@ -744,7 +802,7 @@ fn rust_cross_file_receiver_method_resolves() {
 
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "-o"])
+        .args(["-t", "mermaid", "--stack-graphs", "off", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
@@ -752,12 +810,28 @@ fn rust_cross_file_receiver_method_resolves() {
 
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.contains("crate::flush"), "missing flush:\n{g}");
-    assert!(g.contains("crate::Registry::commit"), "missing commit:\n{g}");
+    assert!(
+        g.contains("crate::Registry::commit"),
+        "missing commit:\n{g}"
+    );
     // The flush -> commit edge must exist.
-    let flush_id = g.lines().find(|l| l.contains("crate::flush")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
-    let commit_id = g.lines().find(|l| l.contains("crate::Registry::commit")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
-    let (Some(f), Some(c)) = (flush_id, commit_id) else { panic!("ids:\n{g}") };
-    assert!(g.contains(&format!("{f} --> {c}")), "missing flush->commit edge:\n{g}");
+    let flush_id = g
+        .lines()
+        .find(|l| l.contains("crate::flush"))
+        .and_then(|l| l.split('[').next())
+        .map(|s| s.trim().to_string());
+    let commit_id = g
+        .lines()
+        .find(|l| l.contains("crate::Registry::commit"))
+        .and_then(|l| l.split('[').next())
+        .map(|s| s.trim().to_string());
+    let (Some(f), Some(c)) = (flush_id, commit_id) else {
+        panic!("ids:\n{g}")
+    };
+    assert!(
+        g.contains(&format!("{f} --> {c}")),
+        "missing flush->commit edge:\n{g}"
+    );
 }
 
 #[test]
@@ -784,17 +858,30 @@ fn rust_aliased_type_receiver_resolves() {
 
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "--no-cache", "--stack-graphs", "off", "-o"])
+        .args(["-t", "mermaid", "--stack-graphs", "off", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
         .success();
 
     let g = fs::read_to_string(&mmd).unwrap();
-    let drive_id = g.lines().find(|l| l.contains("crate::drive")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
-    let start_id = g.lines().find(|l| l.contains("crate::Engine::start")).and_then(|l| l.split('[').next()).map(|s| s.trim().to_string());
-    let (Some(d), Some(s)) = (drive_id, start_id) else { panic!("ids:\n{g}") };
-    assert!(g.contains(&format!("{d} --> {s}")), "missing drive->Engine::start edge:\n{g}");
+    let drive_id = g
+        .lines()
+        .find(|l| l.contains("crate::drive"))
+        .and_then(|l| l.split('[').next())
+        .map(|s| s.trim().to_string());
+    let start_id = g
+        .lines()
+        .find(|l| l.contains("crate::Engine::start"))
+        .and_then(|l| l.split('[').next())
+        .map(|s| s.trim().to_string());
+    let (Some(d), Some(s)) = (drive_id, start_id) else {
+        panic!("ids:\n{g}")
+    };
+    assert!(
+        g.contains(&format!("{d} --> {s}")),
+        "missing drive->Engine::start edge:\n{g}"
+    );
 }
 
 #[test]
@@ -811,31 +898,72 @@ impl Storage for MemStorage { fn put(&mut self, k: &str) {} }
 
     // Default: no dynamic fan-out edges.
     let plain = tmp.path().join("p.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
-    assert_eq!(fs::read_to_string(&plain).unwrap().matches("-->|dyn|").count(), 0);
+    cgg()
+        .args(["--stack-graphs", "off", "-o"])
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain)
+            .unwrap()
+            .matches("-->|dyn|")
+            .count(),
+        0
+    );
 
     // With --dynamic-dispatch: Storage::put fans out to both impls.
     let dyn_out = tmp.path().join("d.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "--dynamic-dispatch", "-o"]).arg(&dyn_out).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["--stack-graphs", "off", "--dynamic-dispatch", "-o"])
+        .arg(&dyn_out)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&dyn_out).unwrap();
-    assert_eq!(g.matches("-->|dyn|").count(), 2, "expected 2 dynamic fan-out edges:\n{g}");
+    assert_eq!(
+        g.matches("-->|dyn|").count(),
+        2,
+        "expected 2 dynamic fan-out edges:\n{g}"
+    );
 }
 
 #[test]
 fn rust_reference_edges_are_opt_in() {
     let tmp = TempDir::new().unwrap();
-    let src = "fn tick(w: u32) {}\nfn boot() { register(tick); }\nfn register(f: fn(u32)) {}\n";
+    let src =
+        "fn tick(w: u32) {}\nfn boot() { register(tick); }\nfn register(f: fn(u32)) {}\n";
     write(tmp.path(), "r.rs", src.as_bytes());
 
     // Default: tick has in-degree zero (no reference edge).
     let plain = tmp.path().join("p.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
-    assert_eq!(fs::read_to_string(&plain).unwrap().matches("-->|ref|").count(), 0);
+    cgg()
+        .args(["--stack-graphs", "off", "-o"])
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain)
+            .unwrap()
+            .matches("-->|ref|")
+            .count(),
+        0
+    );
 
     // --reference-edges: boot -[ref]-> tick.
     let refs = tmp.path().join("r.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "--reference-edges", "-o"]).arg(&refs).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["--stack-graphs", "off", "--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&refs).unwrap();
-    assert_eq!(g.matches("-->|ref|").count(), 1, "expected one reference edge:\n{g}");
+    assert_eq!(
+        g.matches("-->|ref|").count(),
+        1,
+        "expected one reference edge:\n{g}"
+    );
     assert!(g.contains("crate::tick"), "{g}");
 }

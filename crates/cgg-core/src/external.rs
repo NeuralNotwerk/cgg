@@ -89,7 +89,8 @@ impl FileAliases {
                         continue;
                     }
                     if !imp.alias.is_empty() {
-                        import_aliases.insert(imp.alias.trim().to_string(), path.to_string());
+                        import_aliases
+                            .insert(imp.alias.trim().to_string(), path.to_string());
                     } else {
                         let head = path.split('.').next().unwrap_or(path);
                         import_aliases.insert(head.to_string(), path.to_string());
@@ -106,7 +107,8 @@ impl FileAliases {
                         if item.is_empty() {
                             continue;
                         }
-                        let bound = if let Some((_orig, alias)) = item.split_once(" as ") {
+                        let bound = if let Some((_orig, alias)) = item.split_once(" as ")
+                        {
                             alias.trim()
                         } else {
                             item
@@ -119,7 +121,10 @@ impl FileAliases {
                 _ => {}
             }
         }
-        Self { import_aliases, from_imports }
+        Self {
+            import_aliases,
+            from_imports,
+        }
     }
 }
 
@@ -191,7 +196,10 @@ fn classify_one(
     let (rh_owned, name_owned);
     if call.receiver_hint.is_empty() {
         let n = call.name.as_str();
-        if let Some(idx) = n.rfind(|c: char| c == '.' || c == ':').filter(|&i| i > 0 && i < n.len() - 1) {
+        if let Some(idx) = n
+            .rfind(['.', ':'])
+            .filter(|&i| i > 0 && i < n.len() - 1)
+        {
             rh_owned = n[..idx].to_string();
             name_owned = n[idx + 1..].to_string();
         } else {
@@ -204,8 +212,7 @@ fn classify_one(
     }
     let name = name_owned.as_str();
     let rh = rh_owned.as_str();
-    let is_self_receiver =
-        rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
+    let is_self_receiver = rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
 
     // Owner-aware screen (Issue 6): when the project defines BOTH a
     // method of this name AND a type matching the receiver, prefer the
@@ -215,8 +222,10 @@ fn classify_one(
     // happens to share a stdlib module's name (`io`, `os`) must not be
     // masked by rule (a) below either. The owner-based question is asked
     // *before* the name-based one, which is the whole point of Issue 6.
-    let project_owns_pair =
-        !is_self_receiver && !rh.is_empty() && known_names.contains(name) && known_names.contains(rh);
+    let project_owns_pair = !is_self_receiver
+        && !rh.is_empty()
+        && known_names.contains(name)
+        && known_names.contains(rh);
 
     // Stdlib detection runs first so a Vec::push or .clone() lands in
     // the stdlib bucket even when the project also defines a `push`
@@ -231,13 +240,11 @@ fn classify_one(
             }
             // (b) Receiver hint is a local alias for a stdlib module
             //     (`import typing as t` → check `typing`).
-            if let Some(a) = aliases {
-                if let Some(resolved) = a.import_aliases.get(rh) {
-                    if module_is_stdlib(resolved, std) {
+            if let Some(a) = aliases
+                && let Some(resolved) = a.import_aliases.get(rh)
+                    && module_is_stdlib(resolved, std) {
                         return Verdict::Stdlib;
                     }
-                }
-            }
         }
         if rh.is_empty() {
             // (c) Bare call whose name is in stdlib AND the project does
@@ -256,13 +263,11 @@ fn classify_one(
             //     name` where <module> is stdlib. Import alias is strong
             //     positive evidence the call really is stdlib, so this
             //     rule applies even when the project also defines `name`.
-            if let Some(a) = aliases {
-                if let Some(source) = a.from_imports.get(name) {
-                    if module_is_stdlib(source, std) {
+            if let Some(a) = aliases
+                && let Some(source) = a.from_imports.get(name)
+                    && module_is_stdlib(source, std) {
                         return Verdict::Stdlib;
                     }
-                }
-            }
         } else if !is_self_receiver && std.contains(name) {
             // (e) Method whose name is in the stdlib manifest, called on
             //     some receiver `rh`. We classify as stdlib only when
@@ -334,7 +339,10 @@ pub fn build_known_names(facts: &[crate::FileFacts]) -> HashSet<String> {
 /// the multi-file classification path; per-file callers can use
 /// `FileAliases::from_facts` directly.
 pub fn build_alias_map(facts: &[FileFacts]) -> HashMap<FileId, FileAliases> {
-    facts.iter().map(|f| (f.file, FileAliases::from_facts(f))).collect()
+    facts
+        .iter()
+        .map(|f| (f.file, FileAliases::from_facts(f)))
+        .collect()
 }
 
 #[cfg(test)]

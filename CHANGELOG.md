@@ -5,6 +5,384 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.4.2] - 2026-08-06
+
+One real application per framework, and every detection gap that was a
+defect closed. 0.4.1 checked the documentation against the code; this
+release checks the *framework rules* against real applications, which
+found six gaps and two counting bugs that no fixture had exercised.
+
+### Performance
+
+0.4.1 → 0.4.2: latency **flat**.
+
+Measured against **0.4.0**, not 0.4.1 — 0.4.1 was never committed
+separately, so it is not a ref that can be checked out and built. 0.4.1
+was itself flat against 0.4.0, so the 0.4.1 → 0.4.2 delta is flat too.
+Two full runs, because a single run's per-repo numbers did not reproduce:
+
+| repo | 0.4.0 | 0.4.2 run 1 | 0.4.2 run 2 |
+| --- | --- | --- | --- |
+| rust-ripgrep | 429 / 421 ms | 430 ms | 426 ms |
+| python-flask | 158 / 161 ms | 166 ms | 162 ms |
+| js-express | 107 / 100 ms | 99 ms | 101 ms |
+| go-fzf | 273 / 274 ms | 291 ms | 283 ms |
+| c-jq | 155 / 149 ms | 149 ms | 152 ms |
+| cpp-spdlog | 308 / 303 ms | 305 ms | 318 ms |
+| csharp-serilog | 137 / 136 ms | 140 ms | 139 ms |
+| swift-alamofire | 420 / 427 ms | 429 ms | 427 ms |
+| cpp-nlohmann-json | 943 / 939 ms | 908 ms | 920 ms |
+| **TOTAL** | **2,930 / 2,910 ms** | **2,917 ms (−0.4%)** | **2,928 ms (+0.6%)** |
+
+**−0.4% and +0.6% — a 1.0% spread against a 1.0–1.5% noise floor, so
+flat.** Per-repo deltas are *not* reported as real: they did not
+reproduce between runs. `cpp-spdlog` swung −1.0% → +5.0% and `go-fzf`
++6.6% → +3.3%, on code paths this release does not touch. Two baseline
+columns are shown for the same reason — the baseline binary itself
+measured 2,930 ms and 2,910 ms on identical code.
+
+Graph output on the same 9-repo set, 0.4.0 → 0.4.2, one methodology
+(whole repo, default mode; `dead` from `--dead-code`, high-confidence
+plus withheld):
+
+| repo | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- |
+| rust-ripgrep | 2,906 | 7,100 | 0 | 1,429 |
+| python-flask | 1,698→1,732 | 1,734→1,738 | 238→272 | 174 |
+| js-express | 546 | 393 | 0 | 65 |
+| go-fzf | 1,615 | 9,991 | 0 | 131 |
+| c-jq | 1,119 | 5,463 | 0 | 425 |
+| cpp-spdlog | 1,357 | 1,464 | 0 | 809 |
+| csharp-serilog | 1,689 | 1,864 | 0 | 663 |
+| swift-alamofire | 2,538 | 6,437 | 0 | 946 |
+| cpp-nlohmann-json | 5,567 | 6,738 | 0 | 2,109 |
+| **TOTAL** | **19,035→19,069** | **41,184→41,188** | **238→272** | **6,751** |
+
+Only Flask moves, and only by the entry nodes the collapse fix
+un-merged. Dead-code findings are unchanged everywhere — this release
+adds entry points, it does not change what counts as unreferenced.
+
+> **These numbers are not comparable to the 0.4.1 table below.** That one
+> was gathered per-repo through `scripts/benchmark.sh`, which scans a
+> configured *subdirectory* (`js-express` → `lib/`); this one scans whole
+> repositories, as `scripts/perf-compare.sh` does. Hence js-express 285
+> vs 546 nodes for the same code. Neither is wrong; they answer different
+> questions, and mixing them in one column would be.
+
+Reproduce with `scripts/perf-compare.sh` and
+`scripts/framework-coverage.py`.
+
+### Framework detection
+
+The corpus went from 38 to **43 of 45 frameworks enumerating entry
+points**. The two that remain are architectural limits cgg already
+declares — not misses, and not silent.
+
+> **Two counting bugs are disclosed below.** Both overstated or
+> understated what cgg found, in the one table a reader consults to size
+> an attack surface. Neither was caught by a fixture — both needed a real
+> application.
+
+#### One application per framework
+
+`scripts/benchmark.sh` gains an `APPS=( … )` corpus: 35 applications that
+*use* a framework, never the framework's own repository. A router's test
+suite proves the grammar parses; it does not prove cgg recognises the
+hand-off as an application writes it. Tracked two ways:
+
+- **`scripts/docs-check.py`** — new gate, pure text, runs in pre-commit.
+  Fails when a rule in `rules.rs` has no application, or an application
+  claims a framework with no rule.
+- **`scripts/framework-coverage.py`** (`benchmark.sh --apps`) — measures
+  against the corpus and fails when a declared framework does not fire.
+  Reports registrations and *distinct entry nodes* as separate columns,
+  because they are not the same number and only reporting the first is
+  how the collapse below stayed invisible.
+
+The corpus, measured end to end. `registrations` is how many
+hand-offs the resolver matched; `entry nodes` is how many distinct
+nodes they became. The two differ when a framework carries no route
+string to key a node on — see the collapse fix below.
+
+| application | nodes | edges | entry nodes | registrations | time |
+| --- | --- | --- | --- | --- | --- |
+| fastapi-dispatch | 4,662 | 4,264 | 249 | 356 | 775 ms |
+| django-netbox | 10,416 | 11,155 | 281 | 281 | 3,896 ms |
+| flaskbb-flask | 2,890 | 5,119 | 159 | 164 | 381 ms |
+| saleor-celery | 23,721 | 67,661 | 112 | 153 | 13,047 ms |
+| black-click | 2,607 | 2,070 | 5 | 7 | 818 ms |
+| torch-ultralytics | 3,284 | 5,356 | 1 | 160 | 739 ms |
+| ghost-express | 20,320 | 47,954 | 272 | 356 | 8,245 ms |
+| ghostfolio-nestjs | 1,908 | 3,252 | 106 | 124 | 416 ms |
+| immich-nestjs | 9,351 | 16,955 | 273 | 403 | 12,298 ms |
+| calcom-nextjs | 19,160 | 48,715 | 152 | 218 | 9,199 ms |
+| spring-mall | 14,264 | 2,896 | 112 | 252 | 1,410 ms |
+| thingsboard-concurrent | 49,316 | 151,454 | 587 | 640 | 39,080 ms |
+| akka-samples | 526 | 457 | 9 | 9 | 91 ms |
+| druid-jaxrs | 92,192 | 395,116 | 531 | 653 | 136,612 ms |
+| micronaut-graalapp | 15 | 2 | 1 | 1 | 28 ms |
+| gin-photoprism | 11,473 | 63,759 | 44 | 44 | 9,396 ms |
+| memos-echo | 6,678 | 11,155 | 6 | 6 | 1,167 ms |
+| fiber-recipes | 1,551 | 2,646 | 49 | 67 | 305 ms |
+| homebox-chi | 10,181 | 10,282 | 98 | 103 | 2,710 ms |
+| temporal-samples | 1,026 | 1,578 | 167 | 171 | 185 ms |
+| eshop-aspnet | 2,568 | 873 | 57 | 69 | 266 ms |
+| masstransit-sample | 217 | 21 | 13 | 18 | 51 ms |
+| ombi-quartz | 14,962 | 7,055 | 429 | 513 | 2,224 ms |
+| axum-cratesio | 3,451 | 12,568 | 57 | 70 | 1,223 ms |
+| lemmy-actix | 2,330 | 10,046 | 135 | 207 | 749 ms |
+| actix-examples | 776 | 599 | 189 | 242 | 126 ms |
+| vaultwarden-rocket | 2,613 | 7,160 | 302 | 310 | 639 ms |
+| rails-mastodon | 11,698 | 11,961 | 323 | 335 | 11,244 ms |
+| resque-sinatra | 789 | 755 | 49 | 49 | 156 ms |
+| grape-swagger | 668 | 536 | 142 | 183 | 134 ms |
+| monica-laravel | 13,172 | 12,989 | 314 | 342 | 5,978 ms |
+| symfony-demo | 241 | 24 | 13 | 14 | 52 ms |
+| wordpress | 26,906 | 39,036 | 604 | 1,479 | 6,745 ms |
+| codeigniter-starter | 26 | 7 | 2 | 2 | 40 ms |
+| cuda-samples | 6,403 | 5,894 | 1 | 1 | 1,076 ms |
+| **TOTAL** | **372,361** | **961,370** | **5,844** | **8,002** | **271.5 s** |
+
+Two applications dominate that total: **Druid at 137 s** (92k nodes,
+395k edges) and **thingsboard at 39 s**. They are the largest trees cgg
+has been run against and are included deliberately — a framework corpus
+that only holds small apps would not exercise the resolver at scale.
+Excluding them the other 33 finish in 95 s combined.
+
+A `~` prefix marks a framework cgg detects but cannot enumerate. It must
+still appear in the coverage table's "seen, no rules" section — the
+marker asserts the gap is *disclosed*, not that it is absent — and a `~`
+that starts enumerating is flagged as stale.
+
+#### Detection gaps closed
+
+Each was a distinct real-world idiom no fixture had exercised:
+
+| framework | what was missed | entries |
+| --- | --- | --- |
+| `actix-actor` | **`rust.rs` never populated `base_types`** — every base-type rule was dead on Rust | 0 → 30 |
+| `chi` | handlers wrapped in `chain.ToHandlerFunc(...)` | 0 → 103 |
+| `sinatra` | `get "/x" do … end` — Ruby hangs the block off the call's `block` field, never the argument list | 0 → 24 |
+| `worker-threads` | worker modules that identify *themselves* (`import worker_threads` + `parentPort`) rather than being named at a spawn site | 0 → 7 |
+| `nestjs-schedule` | nothing — the rule was correct; the corpus app scheduled via `SchedulerRegistry` and had no `@Cron` | 0 → 5 |
+| `spring-messaging` | Spring AMQP puts `@RabbitListener` on the class and `@RabbitHandler` on the *method* | 0 → 1 |
+
+The wrapper case is worth stating precisely, because the code declined to
+handle it on purpose. `collect_value_refs` skipped nested calls, reasoning
+that the walker visits every call on its own turn. It does — but a
+wrapper's own turn *bails*, because its verb is not a registrar verb, so
+nothing captured it. Descending is therefore not the double work the
+comment feared. Only the innermost callee is the handler, so the recursion
+emits a call's own name only when it found nothing deeper: that is what
+separates `ToHandlerFunc` from `ctrl.Handle`.
+
+`nextjs` and `blazor` remain detected-but-not-enumerated, each with a
+`gap:` string saying why: Next.js routes come from file-system layout,
+and `.razor` components carry `@page` in markup cgg does not parse.
+
+#### Fixed: entry nodes collapsed onto shared names
+
+**A routeless entry took only the last segment of its handler's qualified
+name.** Every Django view named `get` merged into one
+`<framework-entry>::network::django::get` node. NetBox reported **10 entry
+nodes for 150 registrations** — and the coverage table said "128 entries",
+so the disclosure was honest about the framework and wrong about what
+could be queried. Filtering the documented attack-surface query returned 8
+nodes for ~128 endpoints, and the fan-out from each was the union of
+unrelated handlers.
+
+Now the whole qualified name. NetBox reports **281**; WordPress 604,
+Mastodon 323, Ghost 272. Frameworks that carry a route string
+(`@app.route("/users")`) were never affected.
+
+#### Fixed: per-language entry counts were summed, not split
+
+`into_coverage` keyed entry counts on `(framework, "")` — an empty
+language — so a framework with a rule per language reported the
+**combined** total on every row. Ghost printed
+`express (network, 349 entries)` twice for one set of 349, inviting the
+reader to sum it to 698. Now split correctly: **301 JavaScript + 48
+TypeScript**. The coverage table also names the language whenever two rows
+would otherwise be indistinguishable.
+
+## [0.4.1] - 2026-08-06
+
+A documentation audit that turned into a correctness release. Every
+factual claim in `README.md` and the bundled skills was checked against
+a deterministic symbolic check — `cgg` itself, `cargo test`,
+`cgg --help`, `rg`, the benchmark corpus. Most claims held. The ones
+that did not split into two kinds, and both kinds are fixed here: places
+where the documentation described something better than the code did,
+and places where the code was quietly wrong.
+
+### Performance
+
+0.4.0 → 0.4.1: latency **flat** (within noise).
+
+Maintenance release. Every metric identical to 0.4.0 — latency, nodes, edges,
+entry points and findings all unchanged, as intended.
+
+| repo | latency | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- | --- |
+| rust-ripgrep | 433→429 ms | 2,906 | 7,100 | 0 | 1,429 |
+| python-flask | 161→157 ms | 1,460 | 1,734 | 238 | 174 |
+| js-express | 103→105 ms | 285 | 393 | 0 | 65 |
+| go-fzf | 287→284 ms | 1,615 | 9,991 | 0 | 131 |
+| c-jq | 143→147 ms | 1,119 | 5,463 | 0 | 425 |
+| cpp-spdlog | 310→325 ms | 1,357 | 1,464 | 0 | 809 |
+| csharp-serilog | 143 ms | 1,689 | 1,864 | 0 | 663 |
+| swift-alamofire | 422→436 ms | 2,522 | 6,437 | 0 | 946 |
+| cpp-nlohmann-json | 946→937 ms | 5,567 | 6,738 | 0 | 2,109 |
+| **TOTAL** | **2,948→2,963 ms** | **18,520** | **41,184** | **238** | **6,751** |
+
+Measured across a 9-repo, 9-language comparison set. All four releases
+built from source and measured together on one machine, interleaved per
+repo with a discard warmup and rotated ordering. Reproduce with
+`scripts/perf-compare.sh`.
+
+**Latency noise floor is ~1.0–1.5% on the total** — two identical runs
+of the same commits differ by that much, so smaller deltas are reported
+as flat. Node/edge/entry/finding counts are exact and deterministic.
+
+Zeros mean the feature did not exist in that release, not that it found
+nothing. `a→b` marks a value that changed; a single value did not.
+
+### Fixed
+
+> **Read this section even if you skip the rest.** The first entry
+> silently fabricated half of Elixir's edges. Like the `#include`
+> nondeterminism fixed in 0.4.0, it produced a plausible wrong answer
+> rather than an error — so nothing signalled that the graph was wrong.
+
+- **Elixir: a definition head was recorded as a call to itself.**
+  `def run(x) do … end` parses its head, `run(x)`, as a nested `call`
+  node, and the walker recorded it like any other call site. Each
+  phantom reference then resolved either to the function itself (a
+  self-loop) or to a same-named function in another module (a bogus
+  cross-file edge) — and marked its own function reachable, hiding it
+  from `--dead-code`. On phoenix this was **1,404 of 2,858 edges**.
+  Removing them changes no real edge: every removed edge sat exactly at
+  a `def`/`defp`/`defmacro` head offset inside its own source callable,
+  and no edge was added. Suppression is keyed on the head's start
+  offset, so default arguments, guards, body calls and genuine
+  recursion are all untouched. The benchmark row moves from 3,431 edges
+  to 1,723.
+- **`--max-paths` truncation was silent.** `-n 0` stopped enumerating
+  at the cap and said nothing, so a capped path set was
+  indistinguishable from a complete one — the caller asked for every
+  route through a callable and got a prefix. Hitting the cap now prints
+  a note on stderr and records a `paths_truncated` audit event. The
+  event fires only when the cap actually turned away work that had been
+  reached, not merely when the count landed on the limit.
+- **`--dead-code` with no `-o` produced no report.** The sidecar path is
+  derived from `-o`, so with the graph on stdout the report was dropped
+  and only a one-line summary survived — while the documented
+  invocation was `cgg ./src --dead-code`. The text report now goes to
+  stderr in that case. JSON has no stderr fallback (interleaving it with
+  the run summary would parse as nothing); it names the flag to pass
+  instead.
+- **The text report was written to a `.json` file.** The sidecar
+  extension now follows `--dead-code-format`: `<output>.deadcode.txt`
+  for `text`, `<output>.deadcode.json` for `json`.
+- **`--write-roots` silently emitted a graph.** It lives inside the
+  dead-code pass, so without `--dead-code` it fell through and printed
+  ordinary mermaid — a no-op wearing the costume of a baseline. It now
+  implies `--dead-code`, as `--why-live` already did.
+- **`--ignore-attributes` named the wrong languages.** The "matched
+  nothing" note and the `--help` text both said attribute capture was
+  "python, rust" long after seven more plugins had learned it. The note
+  now reads the list off the plugin registry, so it cannot rot again.
+- **README self-analysis graph could not be regenerated.** It sat
+  outside the `cgg:begin`/`cgg:end` markers, so the pre-commit hook
+  never touched it and it had drifted to stale node ids. It is now a
+  `raw:self` marker block patched on every commit.
+- **The README graph generator silently dropped edges.** `clean()`
+  matched edges with `" --> " in line`, which is false for cgg's own
+  collapsed form `A -->|3x| B`. Every multi-site edge vanished from the
+  README graphs with no error — the nodes stayed and only the arrow went
+  missing. Fixed, with a `--self-test` the hook now runs.
+
+### Changed
+
+- **The cache feature is removed.** cgg never had an on-disk cache: the
+  flags were declared in the initial commit as part of a planned task
+  list and no implementation ever landed. What shipped was a hollow
+  shell — `--cache DIR` and `--no-cache` parsed and were never read, an
+  unused `bincode` workspace dependency, a `RESOLVER_FORMAT_VERSION`
+  constant existing only to salt cache keys, a `.cgg-cache/` gitignore
+  entry, and a `CacheMetrics` block emitted in **every** audit file as
+  `{"hits":0,"misses":0,"bytes_read":0,"bytes_written":0}` — which reads
+  as "the cache ran and got no hits", not "there is no cache". All of it
+  is gone.
+
+  The `cgg` skill had also been advising agents to leave the cache on
+  because it "makes re-runs near-instant".
+
+  **Breaking:** `--cache` and `--no-cache` are no longer accepted, so a
+  command line passing either now exits 2. Unlike `--stack-graphs` and
+  `--no-update-check` — kept as inert flags because they once had
+  behavior a script might depend on suppressing — these never did
+  anything, so nothing can depend on their effect.
+
+  **Breaking (audit schema):** `metrics.cache` is no longer present in
+  the audit document.
+- `--include-tests` help text no longer claims to be "a reserved future
+  knob, honored as a no-op". It has been live since 0.4.0: it widens the
+  dead-code *report*, not the analysis.
+- `--roots` help text now describes the discovery order it has actually
+  used since 0.4.0 — analyzed paths first, then the working directory.
+
+### Documentation
+
+- **Three bundled skills, not two.** `skills/cgg-frameworks/SKILL.md`
+  shipped in 0.4.0 and was never listed in the README;
+  `install-skill.sh` had been installing it all along.
+- **The audit jq recipe in the `cgg` skill did not run.** The audit
+  document is a JSON array of events, so `.unresolved[]` errored with
+  `Cannot index array with string`. Replaced with working queries, plus
+  one that buckets unresolved sites by `reason.stage`.
+- **The `cgg` skill listed six languages as lacking cross-file
+  resolution that have it** (Bash, Clojure, Elixir, Erlang, Fortran,
+  Julia), contradicting the README's own language table and the
+  benchmark numbers. Three genuinely yield none: HCL, Verilog/SV and
+  Assembly. Verilog is the subtle one — it parses `` `include ``, so it
+  looks resolved, but task/function calls are never captured and so
+  nothing ever crosses a file; the README table has always marked its
+  cross-file column `—`, and the benchmark measures picorv32 at 0%.
+- **`cgg-frameworks` contradicted itself on attribute capture**, saying
+  nine languages in Step 2 and "Rust and Python only" in the limitations
+  section, and pointed at `crates/cgg-core/src/frameworks_rules.rs`,
+  which does not exist (it is `frameworks/rules.rs`). Its verification
+  recipe also assumed the old `.deadcode.json` naming.
+- Benchmark table: added the five interface/descriptor languages
+  (smithy, proto, graphql, openapi, asyncapi) that had plugins and
+  benchmark entries but no row, and corrected `xv6 (c+asm)` from 2,087
+  to 2,092 edges. All 45 rows now reproduce exactly.
+- License section enumerated seven licenses; the dependency tree
+  actually uses Zlib (`foldhash`) and Unicode-3.0 (`unicode-ident`) too.
+  It now points at `deny.toml` as the authority.
+- Verilog's language-table row explains that `` `include `` yields no
+  edges because task/function *calls* are not captured — only module
+  instantiation is.
+- **The `## CLI` usage synopsis never listed `--since`.** The flag
+  shipped with a table row and its own worked example, but the usage
+  block above them was never updated. `docs-check.py` had only ever
+  validated the flag *table*, so nothing noticed.
+- **The license section pointed at the wrong artifact.** It claimed
+  `MIT OR Apache-2.0 OR LGPL-2.1-or-later` was "the only copyleft
+  identifier anywhere in `Cargo.lock`" — but lockfiles record no license
+  fields at all, so that check could never have run. The claim itself
+  holds (`r-efi` is the sole crate offering an LGPL disjunct across all
+  176 packages); it now names the dependency tree, which is where the
+  evidence actually lives.
+- `docs-check.py` grew a sixth check so the synopsis cannot drift again:
+  every flag in `cgg --help` that still does something must appear in
+  the usage block, and a flag named there that no longer exists fails
+  the commit. Deprecated no-ops (`--stack-graphs`, `--no-update-check`)
+  are exempt — they identify themselves with "No effect" in their help
+  text, and the synopsis is the wrong place to advertise a flag that
+  does nothing.
+
 ## [0.4.0] - 2026-08-06
 
 Two features that ask opposite questions of the same graph.
@@ -21,6 +399,69 @@ from it.
 They ship together because neither is honest without the other. Both are
 **best effort by construction**, both state their evidence, and both say
 plainly what they could not see.
+
+**Also fixes a correctness bug that silently affected every C/C++ graph
+cgg has ever produced** — `#include` resolution was nondeterministic, so
+C/C++ edge counts varied run to run. See *Fixed* below.
+
+### Performance 0.4.0
+
+0.3.0 → 0.4.0: latency **flat** (within noise).
+
+**+2,159 edges (+5.5%) with no node change and no latency cost.** Five
+repos moved, for three distinct reasons:
+
+- **ripgrep +1,520** — Rust macro-argument call extraction. Calls inside
+  `format!`/`writeln!`/`vec!` produced no edge at all before, because
+  tree-sitter leaves macro bodies as unstructured token trees.
+- **flask +440, express +180, alamofire +24** — of flask's gain, 238 are
+  the entry-node edges themselves; the rest is new extraction reaching
+  call sites it previously missed.
+- **spdlog: a range replaced by a value.** The table shows 1,469 → 1,464,
+  but that −5 is not a decrease — 0.3.0 has no stable edge count on this
+  repo. Ten runs of the *same* 0.3.0 binary on the *same* input give
+  1460 ×3, 1463 ×4, 1466 ×1, 1469 ×2; the collection run simply drew
+  1,469. Ten runs of 0.4.0 give 1464 every time. `collect_include_defs`
+  resolved each `#include` by taking the first `HashMap` iteration
+  match, and Rust reseeds its hasher per process, so when several files
+  matched an include suffix — routine in C/C++, where many directories
+  carry their own `common.h` — the winner varied per run and a different
+  header meant a different set of imported definitions. 0.4.0 prefers
+  the exactly-resolved path, then the lowest `FileId`.
+
+  This is also why the 0.2.0 and 0.3.0 totals in these tables are ±6
+  edges run-to-run, and why their spdlog rows should be read as
+  "1460–1469", not as the single number shown.
+
+Entry points and dead-code reporting appear here for the first time.
+Entry nodes are ON by default, so this is new default work absorbed at
+no measurable latency cost, offset by removing the inert stack-graphs
+orchestration.
+
+| repo | latency | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- | --- |
+| rust-ripgrep | 442→433 ms | 2,906 | 5,580→7,100 | 0 | 0→1,429 |
+| python-flask | 137→161 ms | 1,460 | 1,294→1,734 | 0→238 | 0→174 |
+| js-express | 101→103 ms | 285 | 213→393 | 0 | 0→65 |
+| go-fzf | 315→287 ms | 1,615 | 9,991 | 0 | 0→131 |
+| c-jq | 177→143 ms | 1,119 | 5,463 | 0 | 0→425 |
+| cpp-spdlog | 307→310 ms | 1,357 | 1,469→1,464 | 0 | 0→809 |
+| csharp-serilog | 142→143 ms | 1,689 | 1,864 | 0 | 0→663 |
+| swift-alamofire | 450→422 ms | 2,522 | 6,413→6,437 | 0 | 0→946 |
+| cpp-nlohmann-json | 932→946 ms | 5,567 | 6,738 | 0 | 0→2,109 |
+| **TOTAL** | **3,003→2,948 ms** | **18,520** | **39,025→41,184** | **0→238** | **0→6,751** |
+
+Measured across a 9-repo, 9-language comparison set. All four releases
+built from source and measured together on one machine, interleaved per
+repo with a discard warmup and rotated ordering. Reproduce with
+`scripts/perf-compare.sh`.
+
+**Latency noise floor is ~1.0–1.5% on the total** — two identical runs
+of the same commits differ by that much, so smaller deltas are reported
+as flat. Node/edge/entry/finding counts are exact and deterministic.
+
+Zeros mean the feature did not exist in that release, not that it found
+nothing. `a→b` marks a value that changed; a single value did not.
 
 ### Dead-code reporting
 
@@ -91,40 +532,6 @@ code and takes no position on what should be done about a finding.
   command lines keep working. To keep an installed binary current, use
   `cargo install-update -a` (from the `cargo-update` crate) or re-run
   `cargo install --git`.
-
-#### Fixed
-
-- **`#include` resolution was nondeterministic.** `collect_include_defs`
-  picked its target with `HashMap::values().find(...)`; Rust seeds its
-  hasher per process, so when several files matched an include suffix —
-  routine in C/C++, where many directories hold a `common.h` — the
-  winner varied run to run. Measured on `cpp-spdlog`: the same binary on
-  the same input produced 1460/1463/1466/1469 edges across 10 runs. Now
-  prefers the exactly-resolved path, then the lowest `FileId`.
-- **Invalid `--filter` / `--exclude-*` patterns are now a hard error.**
-  A bad regex was silently mapped to match-everything, while
-  `apply_exclusions` silently dropped it — two opposite silent failures
-  for the same mistake.
-
-#### Changed
-
-- **`--stack-graphs` has no effect** and its help text now says so. The
-  integration was removed in the tree-sitter 0.26 upgrade (upstream
-  pins tree-sitter 0.24); the orchestration around the resulting stub
-  still ran on every invocation, deep-copying the graph, the facts and
-  every file's source bytes into a thread before blocking on a
-  60-second timeout. Removing it, and the retained source-byte corpus
-  it kept alive, made ordinary runs measurably faster.
-- Dead-code-only extraction is gated behind the mode, so a run without
-  `--dead-code` does not pay for it.
-
-#### Compatibility
-
-Default output is unchanged except for the two edge-count effects noted
-above (Rust macro-argument calls, C/C++ `#include` determinism), both of
-which only ever *add* or *stabilise* edges. `--stack-graphs` is still
-accepted. `--include-tests`, previously parsed and never read, now has
-real semantics.
 
 ### Framework entry points
 
@@ -224,7 +631,7 @@ Seven applications *using* each framework — not the frameworks' own
 repositories, which never import themselves and exercise no rule:
 
 | app | framework | entries found |
-|---|---|---|
+| --- | --- | --- |
 | NetBox | Django | 128 network · 22 cli |
 | Netflix Dispatch | FastAPI | 318 network · 38 cli |
 | Mastodon | Rails + Sidekiq | 199 network · 109 queue |
@@ -238,7 +645,7 @@ is the test a phase has to pass to earn its place — entry nodes up,
 dead-code findings down:
 
 | app | findings without entry nodes | with |
-|---|---|---|
+| --- | --- | --- |
 | Ultralytics | 1,400 | 1,169 (−17%) |
 | Netflix Dispatch | 2,564 | 2,133 (−17%) |
 
@@ -280,8 +687,43 @@ Three coverage gaps closed as a direct result:
   `app/workers/*.rb` names `Sidekiq::Worker` without requiring it; the
   convention directory is the only marker. Mastodon 0 → 109.
 
-#### Fixed
+### Fixed
 
+> **Read this section even if you skip the rest.** The first entry
+> changed results *silently, on every run, for multiple releases*. A bug
+> that returns a plausible wrong answer is worse than one that crashes:
+> nothing prompts you to go looking, and any number you published in the
+> meantime was wrong without saying so.
+
+**`#include` resolution was nondeterministic — this silently affected
+every C/C++ graph cgg has ever produced.** `collect_include_defs` picked
+its target with `HashMap::values().find(...)`, and Rust seeds its hasher
+per process, so when several files matched an include suffix — routine
+in C/C++, where many directories carry their own `common.h` — the winner
+varied run to run, and a different header meant a different set of
+imported definitions.
+
+Measured on `cpp-spdlog`: the same binary on the same input produced
+1460 ×3, 1463 ×4, 1466 ×1, 1469 ×2 across ten runs. It now prefers the
+exactly-resolved path, then the lowest `FileId`, and gives 1464 every
+time.
+
+Consequences worth knowing:
+
+- Any C/C++ edge count published before 0.4.0 — including this
+  project's own README benchmark table — was one draw from a range, not
+  a fixed value.
+- Determinism is a headline claim in the README. It did not hold for
+  C/C++, and no test covered it. `dead_code_output_is_byte_stable` and
+  the `edge_order_invariance` unit tests now do.
+- The bug predates 0.3.0; it is fixed here rather than in a patch
+  release because it was found while building the dead-code engine,
+  whose whole model assumes a stable graph.
+
+- **Invalid `--filter` / `--exclude-*` patterns are now a hard error.**
+  A bad regex was silently mapped to match-everything, while
+  `apply_exclusions` silently dropped it — two opposite silent failures
+  for the same mistake.
 - **Config discovery was working-directory-relative,** so
   `cgg /path/to/project` from anywhere else silently ignored that
   project's `cgg-deadcode.toml`. Discovery now searches upward from each
@@ -301,7 +743,25 @@ Three coverage gaps closed as a direct result:
   Haskell now joins with `.`, matching how modules are written and
   imported; on pandoc this resolves ~250 previously-unresolved calls.
 
-#### Compatibility
+### Changed
+
+- **`--stack-graphs` has no effect** and its help text now says so. The
+  integration was removed in the tree-sitter 0.26 upgrade (upstream
+  pins tree-sitter 0.24); the orchestration around the resulting stub
+  still ran on every invocation, deep-copying the graph, the facts and
+  every file's source bytes into a thread before blocking on a
+  60-second timeout. Removing it, and the retained source-byte corpus
+  it kept alive, made ordinary runs measurably faster.
+- Dead-code-only extraction is gated behind the mode, so a run without
+  `--dead-code` does not pay for it.
+
+### Compatibility
+
+Default output is unchanged except for the two edge-count effects noted
+above (Rust macro-argument calls, C/C++ `#include` determinism), both of
+which only ever *add* or *stabilise* edges. `--stack-graphs` is still
+accepted. `--include-tests`, previously parsed and never read, now has
+real semantics.
 
 **The default graph grows.** Entry nodes are on by default, so node and
 edge counts move for every language with framework rules. This follows
@@ -319,6 +779,43 @@ languages. These map an API model's shape graph onto the call-graph
 model, so a descriptor renders as a topology of
 service → operation → message/structure → field-type edges. Purely
 additive: no existing language's graph changes.
+
+### Performance
+
+0.2.0 → 0.3.0: latency **flat** (within noise).
+
+Five interface/descriptor languages added. Graph unchanged on this set (+3
+edges) because those languages are not present in it.
+
+| repo | latency | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- | --- |
+| rust-ripgrep | 432→442 ms | 2,906 | 5,580 | 0 | 0 |
+| python-flask | 149→137 ms | 1,460 | 1,294 | 0 | 0 |
+| js-express | 95→101 ms | 285 | 213 | 0 | 0 |
+| go-fzf | 317→315 ms | 1,615 | 9,991 | 0 | 0 |
+| c-jq | 170→177 ms | 1,119 | 5,463 | 0 | 0 |
+| cpp-spdlog | 310→307 ms | 1,357 | 1,463→1,469 | 0 | 0 |
+| csharp-serilog | 147→142 ms | 1,689 | 1,864 | 0 | 0 |
+| swift-alamofire | 452→450 ms | 2,522 | 6,413 | 0 | 0 |
+| cpp-nlohmann-json | 934→932 ms | 5,567 | 6,738 | 0 | 0 |
+| **TOTAL** | **3,006→3,003 ms** | **18,520** | **39,019→39,025** | **0** | **0** |
+
+**Caveat on this table:** cgg's `#include` resolution is nondeterministic
+in this release (fixed in 0.4.0). `cpp-spdlog`'s edge count varies
+1460–1469 across runs of this same binary, so its row — and the totals —
+are one draw from a range, not a fixed value.
+
+Measured across a 9-repo, 9-language comparison set. All four releases
+built from source and measured together on one machine, interleaved per
+repo with a discard warmup and rotated ordering. Reproduce with
+`scripts/perf-compare.sh`.
+
+**Latency noise floor is ~1.0–1.5% on the total** — two identical runs
+of the same commits differ by that much, so smaller deltas are reported
+as flat. Node/edge/entry/finding counts are exact and deterministic.
+
+Zeros mean the feature did not exist in that release, not that it found
+nothing. `a→b` marks a value that changed; a single value did not.
 
 ### Added
 
@@ -374,6 +871,41 @@ opt-in output modes. Verified against a 38-language real-world corpus:
 and 0 edges lost in any language** (checked at per-call-site,
 overload-distinguishing granularity), and faster.
 
+### Performance
+
+Baseline for the series; 0.1.0 predates this CHANGELOG and was not
+measured. Dead-code reporting and framework entry points did not exist.
+
+| repo | latency | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- | --- |
+| rust-ripgrep | 432 ms | 2,906 | 5,580 | 0 | 0 |
+| python-flask | 149 ms | 1,460 | 1,294 | 0 | 0 |
+| js-express | 95 ms | 285 | 213 | 0 | 0 |
+| go-fzf | 317 ms | 1,615 | 9,991 | 0 | 0 |
+| c-jq | 170 ms | 1,119 | 5,463 | 0 | 0 |
+| cpp-spdlog | 310 ms | 1,357 | 1,463 | 0 | 0 |
+| csharp-serilog | 147 ms | 1,689 | 1,864 | 0 | 0 |
+| swift-alamofire | 452 ms | 2,522 | 6,413 | 0 | 0 |
+| cpp-nlohmann-json | 934 ms | 5,567 | 6,738 | 0 | 0 |
+| **TOTAL** | **3006 ms** | **18,520** | **39,019** | **0** | **0** |
+
+**Caveat on this table:** cgg's `#include` resolution is nondeterministic
+in this release (fixed in 0.4.0). `cpp-spdlog`'s edge count varies
+1460–1469 across runs of this same binary, so its row — and the totals —
+are one draw from a range, not a fixed value.
+
+Measured across a 9-repo, 9-language comparison set. All four releases
+built from source and measured together on one machine, interleaved per
+repo with a discard warmup and rotated ordering. Reproduce with
+`scripts/perf-compare.sh`.
+
+**Latency noise floor is ~1.0–1.5% on the total** — two identical runs
+of the same commits differ by that much, so smaller deltas are reported
+as flat. Node/edge/entry/finding counts are exact and deterministic.
+
+Zeros mean the feature did not exist in that release, not that it found
+nothing. `a→b` marks a value that changed; a single value did not.
+
 ### Added
 
 - **Update check.** A best-effort, **opt-out**, once-a-day "newer
@@ -385,7 +917,7 @@ overload-distinguishing granularity), and faster.
   graph/output/exit-code, and is disabled by `--no-update-check`,
   `--quiet`, a non-interactive invocation, or `CGG_NO_UPDATE_CHECK` /
   `DO_NOT_TRACK` / `CI`. (Adds cgg's first network dependency, `minreq`
-  + rustls — binary stays self-contained, no system OpenSSL.)
+  - rustls — binary stays self-contained, no system OpenSSL.)
 - **`--include-external` / `--include-stdlib`** — surface calls into
   third-party / standard-library code as deduplicated leaf "exit nodes"
   (one node per `(language, receiver, name)` symbol; every call site

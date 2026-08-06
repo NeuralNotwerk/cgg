@@ -7,35 +7,62 @@
 //! is application; `f x` applies `f` to `x`). The built-in `import`
 //! is a regular function — we surface it as an import record.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct NixPlugin;
 
 impl LanguagePlugin for NixPlugin {
-    fn id(&self) -> &'static str { "nix" }
-    fn extensions(&self) -> &'static [&'static str] { &[".nix"] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_nix::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "nix"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".nix"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_nix::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "nix");
-        let mut w = NixWalker { source, facts: &mut facts };
+        let mut w = NixWalker {
+            source,
+            facts: &mut facts,
+        };
         w.walk(tree.root_node());
         facts
     }
 }
 
-struct NixWalker<'a> { source: &'a [u8], facts: &'a mut FileFacts }
+struct NixWalker<'a> {
+    source: &'a [u8],
+    facts: &'a mut FileFacts,
+}
 
 impl<'a> NixWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn child_kind<'n>(&self, node: Node<'n>, kind: &str) -> Option<Node<'n>> {
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { if c.node().kind() == kind { return Some(c.node()); } if !c.goto_next_sibling() { break; } }
+            loop {
+                if c.node().kind() == kind {
+                    return Some(c.node());
+                }
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
         None
     }
@@ -43,15 +70,18 @@ impl<'a> NixWalker<'a> {
     fn walk(&mut self, node: Node) {
         match node.kind() {
             "binding" => {
-                if let Some(rhs) = self.binding_value(node) {
-                    if rhs.kind() == "function_expression" {
+                if let Some(rhs) = self.binding_value(node)
+                    && rhs.kind() == "function_expression" {
                         self.record_function_binding(node);
                     }
-                }
                 self.walk_children(node);
                 return;
             }
-            "apply_expression" => { self.record_call(node); self.walk_children(node); return; }
+            "apply_expression" => {
+                self.record_call(node);
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -59,7 +89,14 @@ impl<'a> NixWalker<'a> {
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn binding_value<'n>(&self, node: Node<'n>) -> Option<Node<'n>> {
@@ -70,26 +107,43 @@ impl<'a> NixWalker<'a> {
         if c.goto_first_child() {
             loop {
                 let n = c.node();
-                if seen_eq && n.is_named() { return Some(n); }
-                if n.kind() == "=" { seen_eq = true; }
-                if !c.goto_next_sibling() { break; }
+                if seen_eq && n.is_named() {
+                    return Some(n);
+                }
+                if n.kind() == "=" {
+                    seen_eq = true;
+                }
+                if !c.goto_next_sibling() {
+                    break;
+                }
             }
         }
         None
     }
 
     fn record_function_binding(&mut self, node: Node) {
-        let Some(attrpath) = self.child_kind(node, "attrpath") else { return };
+        let Some(attrpath) = self.child_kind(node, "attrpath") else {
+            return;
+        };
         let name = self.text(attrpath).to_string();
-        if name.is_empty() { return; }
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        if name.is_empty() {
+            return;
+        }
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
-            simple_name: name.clone(), qualified_name: name,
+            simple_name: name.clone(),
+            qualified_name: name,
             variant: DefVariant::FreeFunction,
-            start_line: sl, end_line: el,
-            start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
-            visibility: String::new(), attributes: Vec::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
             ..Default::default()
         });
     }
@@ -100,31 +154,46 @@ impl<'a> NixWalker<'a> {
         let mut depth_guard = 0;
         while depth_guard < 64 {
             let Some(first) = cur.child(0) else { break };
-            if first.kind() == "apply_expression" { cur = first; depth_guard += 1; continue; }
+            if first.kind() == "apply_expression" {
+                cur = first;
+                depth_guard += 1;
+                continue;
+            }
             let (name, receiver) = match first.kind() {
                 "variable_expression" => {
-                    let n = self.child_kind(first, "identifier")
-                        .map(|n| self.text(n).to_string()).unwrap_or_default();
+                    let n = self
+                        .child_kind(first, "identifier")
+                        .map(|n| self.text(n).to_string())
+                        .unwrap_or_default();
                     (n, String::new())
                 }
                 "select_expression" => {
                     // a.b.c: take last identifier as name, prefix as receiver.
                     let text = self.text(first);
                     if let Some(idx) = text.rfind('.') {
-                        (text[idx+1..].to_string(), text[..idx].to_string())
-                    } else { (text.to_string(), String::new()) }
+                        (text[idx + 1..].to_string(), text[..idx].to_string())
+                    } else {
+                        (text.to_string(), String::new())
+                    }
                 }
                 _ => return,
             };
-            if name.is_empty() { return; }
+            if name.is_empty() {
+                return;
+            }
 
             // import is a built-in: surface as import record.
             if name == "import" && receiver.is_empty() {
-                let target = node.child(1).map(|n| self.text(n).trim().to_string()).unwrap_or_default();
+                let target = node
+                    .child(1)
+                    .map(|n| self.text(n).trim().to_string())
+                    .unwrap_or_default();
                 if !target.is_empty() {
                     self.facts.imports.push(ImportRecord {
                         kind: "import".into(),
-                        path: target.trim_matches(|c: char| c == '<' || c == '>' || c == '"').to_string(),
+                        path: target
+                            .trim_matches(|c: char| c == '<' || c == '>' || c == '"')
+                            .to_string(),
                         alias: String::new(),
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
@@ -134,7 +203,8 @@ impl<'a> NixWalker<'a> {
             }
 
             self.facts.references.push(RefRecord {
-                name, receiver_hint: receiver,
+                name,
+                receiver_hint: receiver,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
                 ..Default::default()
@@ -155,14 +225,23 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_nix::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
-        NixPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/x.nix"), &tree, src.as_bytes())
+        NixPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/x.nix"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]
     fn function_bindings_are_defs() {
         let src = "let greet = name: \"Hi ${name}\"; add = a: b: a + b; x = 1; in greet \"x\"\n";
         let f = extract(src);
-        let names: Vec<_> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<_> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         assert!(names.contains(&"greet"), "got: {names:?}");
         assert!(names.contains(&"add"), "got: {names:?}");
         // `x = 1` is not a function — should NOT be recorded as a callable.
@@ -173,13 +252,21 @@ mod tests {
     fn apply_is_a_call() {
         let src = "let f = x: x; in f 42\n";
         let f = extract(src);
-        assert!(f.references.iter().any(|r| r.name == "f"), "refs: {:?}", f.references);
+        assert!(
+            f.references.iter().any(|r| r.name == "f"),
+            "refs: {:?}",
+            f.references
+        );
     }
 
     #[test]
     fn import_captured() {
         let src = "let pkgs = import <nixpkgs> {}; in pkgs\n";
         let f = extract(src);
-        assert!(f.imports.iter().any(|i| i.path == "nixpkgs"), "imports: {:?}", f.imports);
+        assert!(
+            f.imports.iter().any(|i| i.path == "nixpkgs"),
+            "imports: {:?}",
+            f.imports
+        );
     }
 }

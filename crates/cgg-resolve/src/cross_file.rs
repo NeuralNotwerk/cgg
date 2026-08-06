@@ -1,3 +1,7 @@
+// Pipeline helpers thread run state explicitly rather than through a
+// context struct, which keeps each stage's inputs visible at the call
+// site. The arity is the point, not an accident.
+#![allow(clippy::too_many_arguments)]
 //! Cross-file scope-aware resolver.
 //!
 //! This is a lightweight companion to the stack-graphs resolver. It
@@ -27,9 +31,9 @@
 use std::collections::HashMap;
 
 use cgg_core::{
+    FileFacts,
     graph::{CallEdge, Confidence, Graph, Via},
     ids::{CallableId, FileId, ResolverId},
-    FileFacts,
 };
 
 use crate::names::owner_from_qn;
@@ -65,10 +69,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
     let mut by_owner_method: HashMap<(String, String, String), Vec<CallableId>> =
         HashMap::new();
     for c in graph.callables.values() {
-        by_qn.insert(
-            (c.language.clone(), c.qualified_name.clone()),
-            c.id,
-        );
+        by_qn.insert((c.language.clone(), c.qualified_name.clone()), c.id);
         by_simple
             .entry((c.language.clone(), c.simple_name.clone()))
             .or_default()
@@ -132,7 +133,13 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
     // a module prefix in `qualified_name` (Haskell, OCaml).
     let files_lower: Vec<(FileId, String, String)> = facts
         .iter()
-        .map(|f| (f.file, f.language.clone(), f.path.to_string_lossy().to_ascii_lowercase()))
+        .map(|f| {
+            (
+                f.file,
+                f.language.clone(),
+                f.path.to_string_lossy().to_ascii_lowercase(),
+            )
+        })
         .collect();
 
     for facts in facts {
@@ -184,7 +191,19 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         }
                     }
                 }
-                "import" if matches!(lang.as_str(), "python" | "go" | "javascript" | "typescript" | "swift" | "zig" | "r" | "perl") => {
+                "import"
+                    if matches!(
+                        lang.as_str(),
+                        "python"
+                            | "go"
+                            | "javascript"
+                            | "typescript"
+                            | "swift"
+                            | "zig"
+                            | "r"
+                            | "perl"
+                    ) =>
+                {
                     // Python: `import a.b.c`               (no alias)
                     //         `import a.b.c as d`          (aliased)
                     // Go:     `import "fmt"`               (no alias)
@@ -247,8 +266,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     //     `using Alias = X.Y.Z;`         -> alias Alias -> X.Y.Z
                     let full = imp.path.trim();
                     if !imp.alias.is_empty() {
-                        module_aliases
-                            .insert(imp.alias.clone(), full.to_string());
+                        module_aliases.insert(imp.alias.clone(), full.to_string());
                     } else if let Some(last) = full.rsplit('.').next() {
                         module_aliases.insert(last.to_string(), full.to_string());
                     }
@@ -304,7 +322,9 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     // All three want every definition from the named file
                     // to become reachable. We try a few path resolutions.
                     let req_path = imp.path.trim();
-                    if req_path.is_empty() { continue; }
+                    if req_path.is_empty() {
+                        continue;
+                    }
 
                     // 1) Direct file-include resolution.
                     for try_path in [
@@ -315,7 +335,13 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         req_path.replace('.', "/") + ".lua",
                         req_path.replace('.', "/") + ".clj",
                     ] {
-                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                        collect_include_defs(
+                            &try_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
                     }
 
                     // 2) Module-alias / unqualified-prefix.
@@ -323,7 +349,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         module_aliases.insert(imp.alias.clone(), req_path.to_string());
                     } else {
                         let last = req_path
-                            .rsplit(|c: char| c == '.' || c == '/' || c == ':')
+                            .rsplit(['.', '/', ':'])
                             .next()
                             .unwrap_or(req_path);
                         if !last.is_empty() {
@@ -341,7 +367,13 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     let raw = imp.path.trim().trim_start_matches("//").trim_matches('"');
                     let cleaned = raw.replace(':', "/");
                     for try_path in [cleaned.clone(), format!("{cleaned}.bzl")] {
-                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                        collect_include_defs(
+                            &try_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
                     }
                 }
                 "open" => {
@@ -385,7 +417,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     // an alias, the module is referenced by its full name
                     // (`Data.Map.lookup`); with an alias, by `M.lookup`.
                     let path = imp.path.trim();
-                    let alias = if imp.alias.is_empty() { path } else { imp.alias.as_str() };
+                    let alias = if imp.alias.is_empty() {
+                        path
+                    } else {
+                        imp.alias.as_str()
+                    };
                     if !alias.is_empty() {
                         module_aliases.insert(alias.to_string(), path.to_string());
                     }
@@ -396,20 +432,25 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     // pattern via specific kinds; here we cover the langs
                     // whose plugins emit a bare "import" kind.
                     let path = imp.path.trim();
-                    if path.is_empty() { continue; }
+                    if path.is_empty() {
+                        continue;
+                    }
                     match lang.as_str() {
                         // Scala / Java-style: `import pkg.{A,B}` or `import pkg.A`.
                         "scala" | "java" | "kotlin" | "groovy" => {
                             if let Some(idx) = path.rfind('.') {
                                 let prefix = &path[..idx];
                                 let suffix = &path[idx + 1..];
-                                let suffix = suffix.trim_matches(|c| c == '{' || c == '}');
+                                let suffix =
+                                    suffix.trim_matches(|c| c == '{' || c == '}');
                                 if suffix == "_" || suffix == "*" {
                                     unqualified_prefixes.push(prefix.to_string());
                                 } else {
                                     for name in suffix.split(',') {
                                         let name = name.trim();
-                                        if name.is_empty() { continue; }
+                                        if name.is_empty() {
+                                            continue;
+                                        }
                                         let (src, alias) = match name.split_once("=>") {
                                             Some((s, a)) => (s.trim(), a.trim()),
                                             None => (name, name),
@@ -421,15 +462,29 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                                     }
                                 }
                                 if let Some(last) = prefix.rsplit('.').next() {
-                                    module_aliases.insert(last.to_string(), prefix.to_string());
+                                    module_aliases
+                                        .insert(last.to_string(), prefix.to_string());
                                 }
                             }
                         }
                         // Dart / Solidity / Nix: file-relative paths.
                         "dart" | "solidity" | "nix" => {
-                            let cleaned = path.trim_matches(|c| c == '\'' || c == '"' || c == '<' || c == '>');
-                            for try_path in [cleaned.to_string(), format!("{cleaned}.sol"), format!("{cleaned}.dart"), format!("{cleaned}.nix")] {
-                                collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                            let cleaned = path.trim_matches(|c| {
+                                c == '\'' || c == '"' || c == '<' || c == '>'
+                            });
+                            for try_path in [
+                                cleaned.to_string(),
+                                format!("{cleaned}.sol"),
+                                format!("{cleaned}.dart"),
+                                format!("{cleaned}.nix"),
+                            ] {
+                                collect_include_defs(
+                                    &try_path,
+                                    facts,
+                                    &facts_by_id,
+                                    &mut direct_imports,
+                                    4,
+                                );
                             }
                             if !imp.alias.is_empty() {
                                 let derived = cleaned
@@ -445,7 +500,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         }
                         // Haskell / Erlang / Elixir / generic: dotted module name,
                         // unqualified import.
-                        "haskell" | "erlang" | "elixir" | "fsharp" | "ocaml" | "julia" => {
+                        "haskell" | "erlang" | "elixir" | "fsharp" | "ocaml"
+                        | "julia" => {
                             unqualified_prefixes.push(path.to_string());
                             if let Some(last) = path.rsplit('.').next() {
                                 module_aliases.insert(last.to_string(), path.to_string());
@@ -454,7 +510,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                         _ => {
                             // Fall back to module-alias on last segment.
                             let last = path
-                                .rsplit(|c: char| c == '.' || c == '/' || c == ':')
+                                .rsplit(['.', '/', ':'])
                                 .next()
                                 .unwrap_or(path);
                             if !last.is_empty() {
@@ -479,16 +535,29 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 "import-module" | "dot-source" => {
                     // PowerShell: include-like.
                     let path = imp.path.trim();
-                    for try_path in [path.to_string(), format!("{path}.psm1"), format!("{path}.ps1")] {
-                        collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                    for try_path in [
+                        path.to_string(),
+                        format!("{path}.psm1"),
+                        format!("{path}.ps1"),
+                    ] {
+                        collect_include_defs(
+                            &try_path,
+                            facts,
+                            &facts_by_id,
+                            &mut direct_imports,
+                            4,
+                        );
                     }
                     unqualified_prefixes.push(path.to_string());
                 }
                 "include" | "add_subdirectory" | "find_package" => {
                     // CMake-style file inclusion (the C/C++ "include" arm
                     // above already claims the kind for those languages).
-                    if lang == "cmake" || lang == "verilog" || lang == "vhdl"
-                        || lang == "erlang" || lang == "fortran"
+                    if lang == "cmake"
+                        || lang == "verilog"
+                        || lang == "vhdl"
+                        || lang == "erlang"
+                        || lang == "fortran"
                     {
                         let path = imp.path.trim();
                         for try_path in [
@@ -498,9 +567,15 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                             format!("{path}.hrl"),
                             format!("{path}.f90"),
                             format!("{path}.f95"),
-                            format!("CMakeLists.txt"),
+                            "CMakeLists.txt".to_string(),
                         ] {
-                            collect_include_defs(&try_path, facts, &facts_by_id, &mut direct_imports, 4);
+                            collect_include_defs(
+                                &try_path,
+                                facts,
+                                &facts_by_id,
+                                &mut direct_imports,
+                                4,
+                            );
                         }
                     }
                 }
@@ -531,12 +606,17 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 .collect();
             // Also include single-segment module aliases (Lua `require('foo')`,
             // Scala `import play.Foo` last segment, etc.)
-            for (_, target) in &module_aliases {
+            for target in module_aliases.values() {
                 path_fragments.push(target.replace('.', "/").to_ascii_lowercase());
             }
             for (fid, flang, fpath) in &files_lower {
-                if flang != &lang { continue; }
-                if !path_fragments.iter().any(|frag| !frag.is_empty() && fpath.contains(frag.as_str())) {
+                if flang != &lang {
+                    continue;
+                }
+                if !path_fragments
+                    .iter()
+                    .any(|frag| !frag.is_empty() && fpath.contains(frag.as_str()))
+                {
                     continue;
                 }
                 if let Some(target) = facts_by_id.get(fid) {
@@ -632,7 +712,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                             continue;
                         }
                         // Avoid duplicating intra-file-emitted edges.
-                        if existing_edges.contains(&(src.as_u32(), cid.as_u32(), r.site_byte)) {
+                        if existing_edges.contains(&(
+                            src.as_u32(),
+                            cid.as_u32(),
+                            r.site_byte,
+                        )) {
                             continue;
                         }
                         out.edges.push(CallEdge {
@@ -743,12 +827,14 @@ fn try_resolve_ref(
     // same-file edges already emitted by the intra-file linker are
     // deduplicated by the caller). Bounded to ≤4 candidates to stay
     // conservative if a name genuinely collides.
-    if matches!(lang, "smithy" | "proto" | "graphql" | "openapi" | "asyncapi") {
-        if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
-            if !cids.is_empty() && cids.len() <= 4 {
+    if matches!(
+        lang,
+        "smithy" | "proto" | "graphql" | "openapi" | "asyncapi"
+    ) {
+        if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone()))
+            && !cids.is_empty() && cids.len() <= 4 {
                 return Some(cids.clone());
             }
-        }
         return None;
     }
 
@@ -793,11 +879,10 @@ fn try_resolve_ref(
         // import prefixes. This carries Haskell/OCaml/Dart over the
         // gap where the plugin omits the module prefix from
         // qualified_name. Cap candidates at 8 to bound noise.
-        if let Some(cids) = scoped_simple.get(&r.name) {
-            if !cids.is_empty() && cids.len() <= 8 {
+        if let Some(cids) = scoped_simple.get(&r.name)
+            && !cids.is_empty() && cids.len() <= 8 {
                 return Some(cids.clone());
             }
-        }
         // Step 1d: global by-simple fallback. Last resort — only when
         // the file has at least one import and the simple name is
         // unique-ish (≤3 candidates). Skip stdlib-ish names.
@@ -806,14 +891,12 @@ fn try_resolve_ref(
             || !unqualified_prefixes.is_empty();
         if has_imports {
             let is_stdlib = cgg_core::stdlib::stdlib_names(lang)
-                .map_or(false, |s| s.contains(r.name.as_str()));
-            if !is_stdlib {
-                if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
-                    if !cids.is_empty() && cids.len() <= 3 {
+                .is_some_and(|s| s.contains(r.name.as_str()));
+            if !is_stdlib
+                && let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone()))
+                    && !cids.is_empty() && cids.len() <= 3 {
                         return Some(cids.clone());
                     }
-                }
-            }
         }
     } else {
         // Step 2: attribute call `mod.fn()` where `mod` is aliased.
@@ -821,7 +904,7 @@ fn try_resolve_ref(
         // or "mod.sub"). Take its first segment to match module alias.
         let first = r
             .receiver_hint
-            .split(|c| c == '.' || c == ':')
+            .split(['.', ':'])
             .next()
             .unwrap_or("");
         if let Some(module) = module_aliases.get(first) {
@@ -829,10 +912,7 @@ fn try_resolve_ref(
             // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
             // `helpers.sub.fn`.
             let rest = r.receiver_hint.strip_prefix(first).unwrap_or("");
-            let qn = format!(
-                "{module}{rest}.{}",
-                r.name
-            );
+            let qn = format!("{module}{rest}.{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
                 return Some(vec![cid]);
             }
@@ -858,7 +938,8 @@ fn try_resolve_ref(
         if !rh.is_empty() {
             // Direct paths in both joiners.
             let direct_dot = format!("{rh}.{}", r.name);
-            if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports) {
+            if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports)
+            {
                 return Some(vec![cid]);
             }
             let direct = format!("{rh}::{}", r.name);
@@ -872,8 +953,8 @@ fn try_resolve_ref(
             // until we hit a match. Shortest prefix first (just the
             // crate) is the most common hit. Limit to `::` joiner —
             // dot-joined languages don't have this resolution rule.
-            if lang == "rust" {
-                if let Some(qn) = caller_qn {
+            if lang == "rust"
+                && let Some(qn) = caller_qn {
                     let segs: Vec<&str> = qn.split("::").collect();
                     // Try crate-only first, then progressively longer
                     // prefixes. Stop before the last segment (that's
@@ -888,11 +969,10 @@ fn try_resolve_ref(
                         }
                     }
                 }
-            }
             // If the head segment is imported as something else, rewrite.
             // e.g., `use foo as f; f::bar()` -> receiver=f, name=bar -> foo::bar.
-            if let Some(first) = rh.split(|c| c == '.' || c == ':').next() {
-                if let Some(qns) = direct_imports.get(first) {
+            if let Some(first) = rh.split(['.', ':']).next()
+                && let Some(qns) = direct_imports.get(first) {
                     for base in qns {
                         let rest = rh.strip_prefix(first).unwrap_or("");
                         let rewritten_colon =
@@ -906,17 +986,13 @@ fn try_resolve_ref(
                             return Some(vec![cid]);
                         }
                         let rewritten_dot = format!("{base}{rest}.{}", r.name);
-                        if let Some(cid) = lookup_with_reexports(
-                            lang,
-                            &rewritten_dot,
-                            by_qn,
-                            reexports,
-                        ) {
+                        if let Some(cid) =
+                            lookup_with_reexports(lang, &rewritten_dot, by_qn, reexports)
+                        {
                             return Some(vec![cid]);
                         }
                     }
                 }
-            }
         }
 
         // Step 4: Type-qualified method call (Issue 2).
@@ -928,8 +1004,10 @@ fn try_resolve_ref(
         // as receiver_hint = "Registry".
         let rh = r.receiver_hint.trim();
         if !rh.is_empty()
-            && rh != "self" && rh != "Self" && rh != "cls"
-            && rh.chars().next().map_or(false, |c| c.is_uppercase())
+            && rh != "self"
+            && rh != "Self"
+            && rh != "cls"
+            && rh.chars().next().is_some_and(|c| c.is_uppercase())
         {
             // The owner key in the index is the *bare* type name. A
             // receiver can arrive as a multi-segment path (`Utils::Platforms`,
@@ -941,14 +1019,13 @@ fn try_resolve_ref(
             // owns, so try the alias target's bare type name too.
             let mut owners: Vec<&str> = vec![rh];
             let last_seg = rh
-                .rsplit(|c| c == ':' || c == '.')
+                .rsplit([':', '.'])
                 .next()
                 .filter(|s| !s.is_empty());
-            if let Some(last) = last_seg {
-                if last != rh {
+            if let Some(last) = last_seg
+                && last != rh {
                     owners.push(last);
                 }
-            }
             if let Some(paths) = direct_imports.get(rh) {
                 for p in paths {
                     let last = p.rsplit("::").next().unwrap_or(p);
@@ -958,16 +1035,17 @@ fn try_resolve_ref(
                 }
             }
             for owner in owners {
-                if let Some(cids) =
-                    by_owner_method.get(&(lang.to_string(), owner.to_string(), r.name.clone()))
-                {
-                    if !cids.is_empty() {
+                if let Some(cids) = by_owner_method.get(&(
+                    lang.to_string(),
+                    owner.to_string(),
+                    r.name.clone(),
+                ))
+                    && !cids.is_empty() {
                         // One match is exact; multiple share owner+method —
                         // return all as medium-confidence and let the
                         // caller decide.
                         return Some(cids.clone());
                     }
-                }
             }
         }
 
@@ -979,20 +1057,21 @@ fn try_resolve_ref(
         // Only applies when the method name is NOT a common stdlib method
         // (to avoid matching `vec.is_empty()` to `WalkOutcome::is_empty`).
         if !rh.is_empty()
-            && rh != "self" && rh != "Self" && rh != "cls"
-            && rh.chars().next().map_or(false, |c| c.is_lowercase())
+            && rh != "self"
+            && rh != "Self"
+            && rh != "cls"
+            && rh.chars().next().is_some_and(|c| c.is_lowercase())
         {
             // Skip if the method name is in the stdlib manifest for this language
             let is_stdlib_method = cgg_core::stdlib::stdlib_names(lang)
-                .map_or(false, |std| std.contains(r.name.as_str()));
-            if !is_stdlib_method {
-                if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
+                .is_some_and(|std| std.contains(r.name.as_str()));
+            if !is_stdlib_method
+                && let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
                     // Only use this if there's a small number of candidates
                     if cids.len() <= 5 && !cids.is_empty() {
                         return Some(cids.clone());
                     }
                 }
-            }
         }
     }
     None
@@ -1053,8 +1132,8 @@ fn enclosing_callable_id(
 mod tests {
     use super::*;
     use cgg_core::{
-        graph::{CallableKind, CallableNode, FileRecord as GraphFileRecord},
         DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
+        graph::{CallableKind, CallableNode, FileRecord as GraphFileRecord},
     };
     use std::path::PathBuf;
 
@@ -1148,17 +1227,32 @@ mod tests {
         g.add_file(mk_file(0, "helpers.py", "python"));
         g.add_file(mk_file(1, "main.py", "python"));
         g.add_callable(mk_callable(
-            0, "greet", "helpers.greet", 0, "python", (0, 40),
+            0,
+            "greet",
+            "helpers.greet",
+            0,
+            "python",
+            (0, 40),
         ));
         g.add_callable(mk_callable(
-            1, "process", "main.process", 1, "python", (30, 120),
+            1,
+            "process",
+            "main.process",
+            1,
+            "python",
+            (30, 120),
         ));
 
         let main_facts = facts_for(
             1,
             "main.py",
             "python",
-            vec![mk_def("process", "main.process", DefVariant::FreeFunction, (30, 120))],
+            vec![mk_def(
+                "process",
+                "main.process",
+                DefVariant::FreeFunction,
+                (30, 120),
+            )],
             vec![RefRecord {
                 name: "greet".into(),
                 receiver_hint: "".into(),
@@ -1178,7 +1272,12 @@ mod tests {
             0,
             "helpers.py",
             "python",
-            vec![mk_def("greet", "helpers.greet", DefVariant::FreeFunction, (0, 40))],
+            vec![mk_def(
+                "greet",
+                "helpers.greet",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
             vec![],
             vec![],
         );
@@ -1197,17 +1296,25 @@ mod tests {
         g.add_file(mk_file(0, "helpers.py", "python"));
         g.add_file(mk_file(1, "main.py", "python"));
         g.add_callable(mk_callable(
-            0, "compute", "helpers.compute", 0, "python", (0, 40),
+            0,
+            "compute",
+            "helpers.compute",
+            0,
+            "python",
+            (0, 40),
         ));
-        g.add_callable(mk_callable(
-            1, "top", "main.top", 1, "python", (30, 120),
-        ));
+        g.add_callable(mk_callable(1, "top", "main.top", 1, "python", (30, 120)));
 
         let main_facts = facts_for(
             1,
             "main.py",
             "python",
-            vec![mk_def("top", "main.top", DefVariant::FreeFunction, (30, 120))],
+            vec![mk_def(
+                "top",
+                "main.top",
+                DefVariant::FreeFunction,
+                (30, 120),
+            )],
             vec![RefRecord {
                 name: "compute".into(),
                 receiver_hint: "h".into(),
@@ -1248,11 +1355,14 @@ mod tests {
         g.add_file(mk_file(0, "lib.rs", "rust"));
         g.add_file(mk_file(1, "main.rs", "rust"));
         g.add_callable(mk_callable(
-            0, "helper", "crate::util::helper", 0, "rust", (0, 40),
+            0,
+            "helper",
+            "crate::util::helper",
+            0,
+            "rust",
+            (0, 40),
         ));
-        g.add_callable(mk_callable(
-            1, "main", "crate::main", 1, "rust", (30, 120),
-        ));
+        g.add_callable(mk_callable(1, "main", "crate::main", 1, "rust", (30, 120)));
 
         let main_facts = facts_for(
             1,

@@ -19,10 +19,10 @@
 //! normally; no deduplication or cycle-breaking is performed.
 
 use cgg_core::{
+    DefRecord, FileFacts, RefRecord,
     audit::{AuditUnresolvedCall, UnresolvedReason},
     graph::{CallEdge, Confidence, Via},
     ids::{CallableId, FileId, ResolverId},
-    DefRecord, FileFacts, RefRecord,
 };
 
 use crate::names::owner_from_qn;
@@ -49,8 +49,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
 
     for rref in &facts.references {
         let enclosing = enclosing_def_index(facts, rref);
-        let src = enclosing
-            .and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
+        let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
 
         // Value-reference (Issue 4): `register(handler)` names `handler`
         // as a value. Resolve it by name to a same-file callable and emit
@@ -127,8 +126,8 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
             // candidates. When no candidate matches, we leave the set
             // unnarrowed (resolve by name), which is the historical
             // behavior for `self` receivers.
-            if let Some(owner) =
-                enclosing.and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
+            if let Some(owner) = enclosing
+                .and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
             {
                 let strict: Vec<(u32, &DefRecord)> = candidates
                     .iter()
@@ -327,7 +326,10 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
         assert_eq!(out.unresolved.len(), 1);
-        assert_eq!(out.unresolved[0].reason, UnresolvedReason::NoCandidateInFile);
+        assert_eq!(
+            out.unresolved[0].reason,
+            UnresolvedReason::NoCandidateInFile
+        );
         assert_eq!(out.unresolved[0].name, "baz");
     }
 
@@ -380,7 +382,12 @@ mod tests {
         // Inside `Widget::build`, `Self::new()` must bind to
         // `Widget::new`, not the same-named `Gadget::new` (Issue 1).
         let defs = vec![
-            mk_def("build", "m::Widget::build", DefVariant::InherentMethod, (0, 50)),
+            mk_def(
+                "build",
+                "m::Widget::build",
+                DefVariant::InherentMethod,
+                (0, 50),
+            ),
             mk_def("new", "m::Widget::new", DefVariant::Constructor, (50, 80)),
             mk_def("new", "m::Gadget::new", DefVariant::Constructor, (80, 110)),
         ];
@@ -407,7 +414,12 @@ mod tests {
         // enclosing), not the outer function.
         let defs = vec![
             mk_def("outer", "m::outer", DefVariant::FreeFunction, (0, 200)),
-            mk_def("inner", "m::outer::inner", DefVariant::NamedClosure, (10, 50)),
+            mk_def(
+                "inner",
+                "m::outer::inner",
+                DefVariant::NamedClosure,
+                (10, 50),
+            ),
             mk_def("target", "m::target", DefVariant::FreeFunction, (200, 300)),
         ];
         let refs = vec![mk_ref("target", 20)];
@@ -435,13 +447,21 @@ mod tests {
     #[test]
     fn ref_outside_any_def_is_unresolved() {
         // Top-level statement (not inside any callable).
-        let defs = vec![mk_def("foo", "m::foo", DefVariant::FreeFunction, (100, 200))];
+        let defs = vec![mk_def(
+            "foo",
+            "m::foo",
+            DefVariant::FreeFunction,
+            (100, 200),
+        )];
         let refs = vec![mk_ref("foo", 10)];
         let facts = facts_with(defs, refs);
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
         assert_eq!(out.unresolved.len(), 1);
-        assert_eq!(out.unresolved[0].reason, UnresolvedReason::NoEnclosingCallable);
+        assert_eq!(
+            out.unresolved[0].reason,
+            UnresolvedReason::NoEnclosingCallable
+        );
     }
 }

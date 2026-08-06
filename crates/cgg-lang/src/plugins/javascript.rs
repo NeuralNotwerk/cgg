@@ -14,9 +14,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -65,7 +63,8 @@ impl LanguagePlugin for JavaScriptPlugin {
         w.walk(tree.root_node());
         let mut out = facts;
         if crate::deadcode_signals() {
-            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
         }
         if crate::deadcode_signals() {
             out.dyn_uses = super::dynuse::extract(tree, source, "javascript");
@@ -84,7 +83,12 @@ pub(crate) struct JsWalker<'a> {
 
 impl<'a> JsWalker<'a> {
     pub(crate) fn new(source: &'a [u8], facts: &'a mut FileFacts) -> Self {
-        Self { source, facts, scope: Vec::new(), bases: Vec::new() }
+        Self {
+            source,
+            facts,
+            scope: Vec::new(),
+            bases: Vec::new(),
+        }
     }
 
     fn text(&self, n: Node) -> &str {
@@ -180,7 +184,9 @@ impl<'a> JsWalker<'a> {
     }
 
     fn record_function(&mut self, node: Node) {
-        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
         let simple = self.text(name_node).to_string();
         if simple.is_empty() {
             return;
@@ -203,18 +209,19 @@ impl<'a> JsWalker<'a> {
     }
 
     fn record_method(&mut self, node: Node) {
-        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
         let simple = self.text(name_node).to_string();
         if simple.is_empty() {
             return;
         }
         // Detect variant from node structure.
-        let is_static = node.children(&mut node.walk())
+        let is_static = node
+            .children(&mut node.walk())
             .any(|c| c.kind() == "static");
-        let is_getter = node.children(&mut node.walk())
-            .any(|c| c.kind() == "get");
-        let is_setter = node.children(&mut node.walk())
-            .any(|c| c.kind() == "set");
+        let is_getter = node.children(&mut node.walk()).any(|c| c.kind() == "get");
+        let is_setter = node.children(&mut node.walk()).any(|c| c.kind() == "set");
         let variant = if simple == "constructor" {
             DefVariant::Constructor
         } else if is_getter || is_setter {
@@ -251,13 +258,19 @@ impl<'a> JsWalker<'a> {
         // `req.get = req.header = function header() {}` (chained)
         let child = node.child(0);
         let Some(child) = child else { return };
-        if child.kind() != "assignment_expression" { return; }
+        if child.kind() != "assignment_expression" {
+            return;
+        }
         self.extract_assignment_fn(child);
     }
 
     fn extract_assignment_fn(&mut self, node: Node) {
-        let Some(left) = node.child_by_field_name("left") else { return };
-        let Some(right) = node.child_by_field_name("right") else { return };
+        let Some(left) = node.child_by_field_name("left") else {
+            return;
+        };
+        let Some(right) = node.child_by_field_name("right") else {
+            return;
+        };
 
         // If RHS is another assignment, recurse (chained: a = b = function(){})
         if right.kind() == "assignment_expression" {
@@ -265,30 +278,49 @@ impl<'a> JsWalker<'a> {
         }
 
         // Check if RHS is a function
-        if !matches!(right.kind(), "arrow_function" | "function_expression" | "function" | "assignment_expression") {
+        if !matches!(
+            right.kind(),
+            "arrow_function"
+                | "function_expression"
+                | "function"
+                | "assignment_expression"
+        ) {
             return;
         }
         // For chained assignments, the function is in the inner one
         let func_node = if right.kind() == "assignment_expression" {
-            right.child_by_field_name("right")
-                .filter(|r| matches!(r.kind(), "arrow_function" | "function_expression" | "function"))
+            right.child_by_field_name("right").filter(|r| {
+                matches!(
+                    r.kind(),
+                    "arrow_function" | "function_expression" | "function"
+                )
+            })
         } else {
             Some(right)
         };
         let Some(_) = func_node else { return };
 
-        if left.kind() != "member_expression" { return; }
-        let prop = left.child_by_field_name("property")
+        if left.kind() != "member_expression" {
+            return;
+        }
+        let prop = left
+            .child_by_field_name("property")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if prop.is_empty() { return; }
+        if prop.is_empty() {
+            return;
+        }
         let qn = self.qn(&prop);
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
             simple_name: prop,
             qualified_name: qn,
             variant: DefVariant::FreeFunction,
-            start_line: sl, end_line: el,
+            start_line: sl,
+            end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
@@ -305,12 +337,19 @@ impl<'a> JsWalker<'a> {
             if child.kind() != "variable_declarator" {
                 continue;
             }
-            let Some(name_node) = child.child_by_field_name("name") else { continue };
+            let Some(name_node) = child.child_by_field_name("name") else {
+                continue;
+            };
             if name_node.kind() != "identifier" {
                 continue;
             }
-            let Some(value) = child.child_by_field_name("value") else { continue };
-            if !matches!(value.kind(), "arrow_function" | "function_expression" | "generator_function") {
+            let Some(value) = child.child_by_field_name("value") else {
+                continue;
+            };
+            if !matches!(
+                value.kind(),
+                "arrow_function" | "function_expression" | "generator_function"
+            ) {
                 continue;
             }
             let simple = self.text(name_node).to_string();
@@ -339,11 +378,19 @@ impl<'a> JsWalker<'a> {
         // `const foo = require('./mod')` or `const { bar } = require('./mod')`
         let mut c = node.walk();
         for child in node.children(&mut c) {
-            if child.kind() != "variable_declarator" { continue; }
-            let Some(value) = child.child_by_field_name("value") else { continue };
-            if value.kind() != "call_expression" { continue; }
+            if child.kind() != "variable_declarator" {
+                continue;
+            }
+            let Some(value) = child.child_by_field_name("value") else {
+                continue;
+            };
+            if value.kind() != "call_expression" {
+                continue;
+            }
             let func = value.child_by_field_name("function");
-            if func.map(|f| self.text(f)) != Some("require") { continue; }
+            if func.map(|f| self.text(f)) != Some("require") {
+                continue;
+            }
             // Extract the path from arguments
             let args = value.child_by_field_name("arguments");
             let path = args.and_then(|a| {
@@ -351,15 +398,23 @@ impl<'a> JsWalker<'a> {
                 for i in 0..count {
                     let arg = a.child(i as u32).unwrap();
                     if arg.kind() == "string" {
-                        return Some(self.text(arg).trim_matches(|c| c == '\'' || c == '"').to_string());
+                        return Some(
+                            self.text(arg)
+                                .trim_matches(|c| c == '\'' || c == '"')
+                                .to_string(),
+                        );
                     }
                 }
                 None
             });
             let Some(path) = path else { continue };
-            if path.is_empty() { continue; }
+            if path.is_empty() {
+                continue;
+            }
 
-            let Some(name_node) = child.child_by_field_name("name") else { continue };
+            let Some(name_node) = child.child_by_field_name("name") else {
+                continue;
+            };
             match name_node.kind() {
                 "identifier" => {
                     // `const foo = require('./mod')` -> namespace import
@@ -405,19 +460,20 @@ impl<'a> JsWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        let source_node = node.child_by_field_name("source")
-            .or_else(|| {
-                // Fallback: find the string child directly.
-                let count = node.child_count();
-                for i in 0..count {
-                    let child = node.child(i as u32).unwrap();
-                    if child.kind() == "string" {
-                        return Some(child);
-                    }
+        let source_node = node.child_by_field_name("source").or_else(|| {
+            // Fallback: find the string child directly.
+            let count = node.child_count();
+            for i in 0..count {
+                let child = node.child(i as u32).unwrap();
+                if child.kind() == "string" {
+                    return Some(child);
                 }
-                None
-            });
-        let Some(source_node) = source_node else { return };
+            }
+            None
+        });
+        let Some(source_node) = source_node else {
+            return;
+        };
         let raw = self.text(source_node);
         let path = raw.trim_matches(|c| c == '\'' || c == '"').to_string();
         if path.is_empty() {
@@ -425,7 +481,8 @@ impl<'a> JsWalker<'a> {
         }
 
         // Collect imported names from import_clause.
-        let clause = node.children(&mut node.walk())
+        let clause = node
+            .children(&mut node.walk())
             .find(|n| n.kind() == "import_clause");
         let Some(clause) = clause else {
             // Side-effect import: `import './polyfill'`
@@ -450,8 +507,13 @@ impl<'a> JsWalker<'a> {
                 }
                 "namespace_import" => {
                     // `import * as ns from '...'`
-                    let alias = child.child_by_field_name("name")
-                        .or_else(|| child.children(&mut child.walk()).find(|n| n.kind() == "identifier"))
+                    let alias = child
+                        .child_by_field_name("name")
+                        .or_else(|| {
+                            child
+                                .children(&mut child.walk())
+                                .find(|n| n.kind() == "identifier")
+                        })
                         .map(|n| self.text(n).to_string())
                         .unwrap_or_default();
                     if !alias.is_empty() {
@@ -470,10 +532,12 @@ impl<'a> JsWalker<'a> {
                         if spec.kind() != "import_specifier" {
                             continue;
                         }
-                        let orig = spec.child_by_field_name("name")
+                        let orig = spec
+                            .child_by_field_name("name")
                             .map(|n| self.text(n).to_string())
                             .unwrap_or_default();
-                        let local = spec.child_by_field_name("alias")
+                        let local = spec
+                            .child_by_field_name("alias")
                             .map(|n| self.text(n).to_string())
                             .unwrap_or_else(|| orig.clone());
                         if !orig.is_empty() {
@@ -513,19 +577,32 @@ impl<'a> JsWalker<'a> {
         let count = node.child_count();
         for i in 0..count as u32 {
             let Some(child) = node.child(i) else { continue };
-            if child.kind() != "function_expression" && child.kind() != "function" { continue; }
-            let name = child.child_by_field_name("name")
-                .map(|n| self.text(n).to_string()).unwrap_or_default();
-            if name.is_empty() { continue; }
+            if child.kind() != "function_expression" && child.kind() != "function" {
+                continue;
+            }
+            let name = child
+                .child_by_field_name("name")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
+            if name.is_empty() {
+                continue;
+            }
             let qn = self.qn(&name);
-            let (sl, el) = ((child.start_position().row as u32)+1, (child.end_position().row as u32)+1);
+            let (sl, el) = (
+                (child.start_position().row as u32) + 1,
+                (child.end_position().row as u32) + 1,
+            );
             self.facts.definitions.push(DefRecord {
-                simple_name: name, qualified_name: qn,
+                simple_name: name,
+                qualified_name: qn,
                 variant: DefVariant::FreeFunction,
-                start_line: sl, end_line: el,
-                start_byte: child.start_byte() as u32, end_byte: child.end_byte() as u32,
+                start_line: sl,
+                end_line: el,
+                start_byte: child.start_byte() as u32,
+                end_byte: child.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(child)),
-                visibility: String::new(), attributes: Vec::new(),
+                visibility: String::new(),
+                attributes: Vec::new(),
                 ..Default::default()
             });
         }
@@ -539,21 +616,33 @@ impl<'a> JsWalker<'a> {
         let count = args.child_count();
         for i in 0..count as u32 {
             let Some(arg) = args.child(i) else { continue };
-            if arg.kind() != "function_expression" && arg.kind() != "function" { continue; }
+            if arg.kind() != "function_expression" && arg.kind() != "function" {
+                continue;
+            }
             // Check if the function has a name
-            let name = arg.child_by_field_name("name")
+            let name = arg
+                .child_by_field_name("name")
                 .map(|n| self.text(n).to_string())
                 .unwrap_or_default();
-            if name.is_empty() { continue; }
+            if name.is_empty() {
+                continue;
+            }
             let qn = self.qn(&name);
-            let (sl, el) = ((arg.start_position().row as u32)+1, (arg.end_position().row as u32)+1);
+            let (sl, el) = (
+                (arg.start_position().row as u32) + 1,
+                (arg.end_position().row as u32) + 1,
+            );
             self.facts.definitions.push(DefRecord {
-                simple_name: name, qualified_name: qn,
+                simple_name: name,
+                qualified_name: qn,
                 variant: DefVariant::FreeFunction,
-                start_line: sl, end_line: el,
-                start_byte: arg.start_byte() as u32, end_byte: arg.end_byte() as u32,
+                start_line: sl,
+                end_line: el,
+                start_byte: arg.start_byte() as u32,
+                end_byte: arg.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(arg)),
-                visibility: String::new(), attributes: Vec::new(),
+                visibility: String::new(),
+                attributes: Vec::new(),
                 ..Default::default()
             });
         }
@@ -573,10 +662,12 @@ impl<'a> JsWalker<'a> {
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "member_expression" => {
-                let obj = func.child_by_field_name("object")
+                let obj = func
+                    .child_by_field_name("object")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let prop = func.child_by_field_name("property")
+                let prop = func
+                    .child_by_field_name("property")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 (prop, obj)
@@ -629,10 +720,13 @@ impl<'a> JsWalker<'a> {
         if !crate::is_registrar_verb(super::registrar::last_segment(&context)) {
             return;
         }
-        let Some(route) = super::registrar::is_registration_shape(node, self.source) else {
+        let Some(route) = super::registrar::is_registration_shape(node, self.source)
+        else {
             return;
         };
-        let Some(args) = node.child_by_field_name("arguments") else { return };
+        let Some(args) = node.child_by_field_name("arguments") else {
+            return;
+        };
         let mut cursor = args.walk();
         let closures: Vec<Node> = args
             .named_children(&mut cursor)
@@ -669,9 +763,11 @@ impl<'a> JsWalker<'a> {
 }
 
 fn line_range(n: Node) -> (u32, u32) {
-    ((n.start_position().row as u32) + 1, (n.end_position().row as u32) + 1)
+    (
+        (n.start_position().row as u32) + 1,
+        (n.end_position().row as u32) + 1,
+    )
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -682,7 +778,8 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_javascript::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_javascript::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
         JavaScriptPlugin.extract(
             FileId::new(0),
@@ -696,16 +793,25 @@ mod tests {
     fn function_declarations() {
         let src = "function greet(name) {}\nasync function fetchData() {}\n";
         let f = extract(src);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         assert!(names.contains(&"greet"), "got: {names:?}");
         assert!(names.contains(&"fetchData"), "got: {names:?}");
     }
 
     #[test]
     fn arrow_function_named() {
-        let src = "const add = (a, b) => a + b;\nlet mul = function(a, b) { return a*b; };\n";
+        let src =
+            "const add = (a, b) => a + b;\nlet mul = function(a, b) { return a*b; };\n";
         let f = extract(src);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         assert!(names.contains(&"add"), "got: {names:?}");
         assert!(names.contains(&"mul"), "got: {names:?}");
     }
@@ -721,7 +827,9 @@ class Service {
 }
 "#;
         let f = extract(src);
-        let by: std::collections::HashMap<_, _> = f.definitions.iter()
+        let by: std::collections::HashMap<_, _> = f
+            .definitions
+            .iter()
             .map(|d| (d.simple_name.clone(), d.variant))
             .collect();
         assert_eq!(by["constructor"], DefVariant::Constructor);
@@ -729,22 +837,36 @@ class Service {
         assert_eq!(by["create"], DefVariant::StaticMethod);
         assert_eq!(by["label"], DefVariant::Property);
         // Qualified names include class.
-        assert!(f.definitions.iter().any(|d| d.qualified_name == "Service.run"));
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name == "Service.run")
+        );
     }
 
     #[test]
     fn esm_imports_captured() {
         let src = "import { helper, scale as s } from './utils.js';\nimport * as math from './math.js';\n";
         let f = extract(src);
-        assert!(f.imports.iter().any(|i| i.kind == "from-import" && i.path == "./utils.js"));
-        assert!(f.imports.iter().any(|i| i.kind == "import" && i.path == "./math.js" && i.alias == "math"));
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "from-import" && i.path == "./utils.js")
+        );
+        assert!(
+            f.imports.iter().any(|i| i.kind == "import"
+                && i.path == "./math.js"
+                && i.alias == "math")
+        );
     }
 
     #[test]
     fn call_expressions_captured() {
         let src = "function f() { greet('x'); obj.run(); }\n";
         let f = extract(src);
-        let refs: Vec<(&str, &str)> = f.references.iter()
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
             .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
             .collect();
         assert!(refs.contains(&("greet", "")), "got: {refs:?}");

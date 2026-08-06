@@ -23,15 +23,16 @@ pub fn propagate_types(facts: &mut FileFacts) {
 
 /// Build a map of function_simple_name -> return_type from all
 /// definitions across all files. Parses return types from signature_hint.
-pub fn build_return_type_map<'a>(all_facts: &'a [FileFacts]) -> HashMap<&'a str, &'a str> {
+pub fn build_return_type_map<'a>(
+    all_facts: &'a [FileFacts],
+) -> HashMap<&'a str, &'a str> {
     let mut map: HashMap<&'a str, &'a str> = HashMap::new();
     for facts in all_facts {
         for def in &facts.definitions {
-            if let Some(ret) = extract_return_type(&def.signature_hint) {
-                if ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
+            if let Some(ret) = extract_return_type(&def.signature_hint)
+                && ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
                     map.entry(def.simple_name.as_str()).or_insert(ret);
                 }
-            }
         }
     }
     map
@@ -71,7 +72,8 @@ pub fn propagate_types_with_returns(
     let mut self_field_map: HashMap<(u32, &str), &str> = HashMap::new();
     for lt in &facts.local_types {
         if lt.var_name.starts_with("self.") {
-            self_field_map.insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
+            self_field_map
+                .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
         } else {
             local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
         }
@@ -95,12 +97,11 @@ pub fn propagate_types_with_returns(
         // below — the field's type comes from the per-method scoped
         // self_field_map populated by the Rust extractor.
         if rh.starts_with("self.") {
-            if let Some(enc) = enclosing_def(facts, rref.site_byte) {
-                if let Some(&ty) = self_field_map.get(&(enc.start_byte, rh)) {
+            if let Some(enc) = enclosing_def(facts, rref.site_byte)
+                && let Some(&ty) = self_field_map.get(&(enc.start_byte, rh)) {
                     rewrites.push((i, ty.to_string()));
                     continue;
                 }
-            }
             // No match — leave as-is so the resolver can still try a
             // direct lookup downstream.
             continue;
@@ -113,12 +114,11 @@ pub fn propagate_types_with_returns(
         let enclosing = enclosing_def(facts, rref.site_byte);
 
         // Strategy 1: parameter type annotations
-        if let Some(enc) = enclosing {
-            if let Some(&ty) = type_map.get(&(enc.start_byte, rh)) {
+        if let Some(enc) = enclosing
+            && let Some(&ty) = type_map.get(&(enc.start_byte, rh)) {
                 rewrites.push((i, ty.to_string()));
                 continue;
             }
-        }
 
         // Strategy 3: explicit local variable type declarations
         if let Some(&ty) = local_type_map.get(rh) {
@@ -144,12 +144,13 @@ pub fn propagate_types_with_returns(
                 let ret_lower = ret_type.to_lowercase();
                 // Match: variable named "service" and a function "getService" returns "Service"
                 // Match: variable named "config" and a function "loadConfig" returns "Config"
-                if rh_lower == ret_lower
-                    || rh_lower == format!("{}s", ret_lower)  // plurals
+                if rh_lower == ret_lower || rh_lower == format!("{}s", ret_lower)
+                // plurals
                 {
                     // Verify this function is actually called in this scope
                     let called = facts.references.iter().any(|r| {
-                        r.name == fn_name && r.receiver_hint.is_empty()
+                        r.name == fn_name
+                            && r.receiver_hint.is_empty()
                             && r.site_byte < rref.site_byte
                     });
                     if called {
@@ -194,12 +195,16 @@ fn extract_param_types<'a>(
     // Find the parameter list between parens
     let Some(open) = sig.find('(') else { return };
     let Some(close) = sig.rfind(')') else { return };
-    if close <= open { return; }
+    if close <= open {
+        return;
+    }
     let params_str = &sig[open + 1..close];
 
     for param in params_str.split(',') {
         let param = param.trim();
-        if param.is_empty() { continue; }
+        if param.is_empty() {
+            continue;
+        }
 
         // Try "name: Type" pattern (Rust, Python, TS, Kotlin)
         if let Some((name, ty)) = parse_colon_param(param) {
@@ -217,38 +222,61 @@ fn extract_param_types<'a>(
 fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
     // "x: Service" or "x: &Service" or "x: *Service"
     let (name, rest) = param.split_once(':')?;
-    let name = name.trim().trim_start_matches("mut ").trim()
-        .rsplit(' ').next().unwrap_or(name.trim());
-    let ty = rest.trim()
+    let name = name
+        .trim()
+        .trim_start_matches("mut ")
+        .trim()
+        .rsplit(' ')
+        .next()
+        .unwrap_or(name.trim());
+    let ty = rest
+        .trim()
         .trim_start_matches('&')
         .trim_start_matches("mut ")
         .trim_start_matches('*')
         .trim();
     // Take just the type identifier (before any <, [, etc.)
-    let ty = ty.split(|c: char| c == '<' || c == '[' || c == ',' || c == ')')
-        .next().unwrap_or(ty).trim();
-    if name.is_empty() || ty.is_empty() { return None; }
+    let ty = ty
+        .split(['<', '[', ',', ')'])
+        .next()
+        .unwrap_or(ty)
+        .trim();
+    if name.is_empty() || ty.is_empty() {
+        return None;
+    }
     // Skip primitive types
-    if is_primitive(ty) { return None; }
+    if is_primitive(ty) {
+        return None;
+    }
     Some((name, ty))
 }
 
 fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
     // "Service x" or "final Service x" or "Service<T> x"
     let parts: Vec<&str> = param.split_whitespace().collect();
-    if parts.len() < 2 { return None; }
+    if parts.len() < 2 {
+        return None;
+    }
     // Skip modifiers
     let (ty_idx, name_idx) = if matches!(parts[0], "final" | "const" | "var" | "val") {
-        if parts.len() < 3 { return None; }
+        if parts.len() < 3 {
+            return None;
+        }
         (1, 2)
     } else {
         (0, parts.len() - 1)
     };
-    let ty = parts[ty_idx].trim_end_matches(|c: char| c == '<' || c == '>');
+    let ty = parts[ty_idx].trim_end_matches(['<', '>']);
     let name = parts[name_idx];
-    if ty.is_empty() || name.is_empty() { return None; }
-    if !ty.starts_with(char::is_uppercase) { return None; }
-    if is_primitive(ty) { return None; }
+    if ty.is_empty() || name.is_empty() {
+        return None;
+    }
+    if !ty.starts_with(char::is_uppercase) {
+        return None;
+    }
+    if is_primitive(ty) {
+        return None;
+    }
     Some((name, ty))
 }
 
@@ -267,11 +295,12 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
     //
     // Simplest approach: collect all type names from definitions (class
     // names = any def whose qualified_name has the type as a segment).
-    let mut type_names: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    let mut type_names: std::collections::HashSet<&str> =
+        std::collections::HashSet::new();
     for d in &facts.definitions {
         // Each segment of the qualified name that starts with uppercase
         // is likely a type name.
-        for seg in d.qualified_name.split(|c| c == ':' || c == '.') {
+        for seg in d.qualified_name.split([':', '.']) {
             if seg.starts_with(char::is_uppercase) && !seg.is_empty() {
                 type_names.insert(seg);
             }
@@ -304,7 +333,7 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
     map
 }
 
-fn enclosing_def<'a>(facts: &'a FileFacts, byte: u32) -> Option<&'a DefRecord> {
+fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
     let mut best: Option<(&DefRecord, u32)> = None;
     for d in &facts.definitions {
         if d.start_byte <= byte && byte < d.end_byte {
@@ -323,9 +352,15 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     // Rust: `fn foo() -> Config`
     if let Some(pos) = sig.find("->") {
         let ret = sig[pos + 2..].trim();
-        let ret = ret.trim_start_matches('&').trim_start_matches("mut ").trim();
-        let ret = ret.split(|c: char| c == '<' || c == '{' || c == ',' || c == ' ')
-            .next().unwrap_or(ret).trim();
+        let ret = ret
+            .trim_start_matches('&')
+            .trim_start_matches("mut ")
+            .trim();
+        let ret = ret
+            .split(['<', '{', ',', ' '])
+            .next()
+            .unwrap_or(ret)
+            .trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
             return Some(ret);
         }
@@ -335,8 +370,11 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     // TS/Kotlin: `fun foo(): Config` or `foo(): Config`
     if let Some(pos) = sig.find("): ") {
         let ret = sig[pos + 3..].trim();
-        let ret = ret.split(|c: char| c == '<' || c == '{' || c == ' ' || c == '?')
-            .next().unwrap_or(ret).trim();
+        let ret = ret
+            .split(['<', '{', ' ', '?'])
+            .next()
+            .unwrap_or(ret)
+            .trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
             return Some(ret);
         }
@@ -345,8 +383,11 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     if let Some(paren_close) = sig.rfind(')') {
         let after = sig[paren_close + 1..].trim();
         let after = after.trim_start_matches('*');
-        let ret = after.split(|c: char| c == '{' || c == ',' || c == ' ')
-            .next().unwrap_or("").trim();
+        let ret = after
+            .split(['{', ',', ' '])
+            .next()
+            .unwrap_or("")
+            .trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
             return Some(ret);
         }
@@ -357,13 +398,42 @@ fn extract_return_type(sig: &str) -> Option<&str> {
 fn is_primitive(ty: &str) -> bool {
     matches!(
         ty,
-        "int" | "i32" | "i64" | "u32" | "u64" | "f32" | "f64"
-            | "bool" | "str" | "String" | "string" | "void"
-            | "char" | "byte" | "short" | "long" | "float" | "double"
-            | "usize" | "isize" | "u8" | "i8" | "u16" | "i16"
-            | "number" | "boolean" | "any" | "object"
-            | "Int" | "Long" | "Float" | "Double" | "Boolean"
-            | "Unit" | "Nothing" | "Void"
+        "int"
+            | "i32"
+            | "i64"
+            | "u32"
+            | "u64"
+            | "f32"
+            | "f64"
+            | "bool"
+            | "str"
+            | "String"
+            | "string"
+            | "void"
+            | "char"
+            | "byte"
+            | "short"
+            | "long"
+            | "float"
+            | "double"
+            | "usize"
+            | "isize"
+            | "u8"
+            | "i8"
+            | "u16"
+            | "i16"
+            | "number"
+            | "boolean"
+            | "any"
+            | "object"
+            | "Int"
+            | "Long"
+            | "Float"
+            | "Double"
+            | "Boolean"
+            | "Unit"
+            | "Nothing"
+            | "Void"
     )
 }
 
@@ -393,8 +463,10 @@ mod tests {
             simple_name: qn.rsplit("::").next().unwrap_or(qn).to_string(),
             qualified_name: qn.to_string(),
             variant: DefVariant::FreeFunction,
-            start_line: 1, end_line: 10,
-            start_byte: start, end_byte: end,
+            start_line: 1,
+            end_line: 10,
+            start_byte: start,
+            end_byte: end,
             signature_hint: sig.to_string(),
             visibility: String::new(),
             attributes: Vec::new(),

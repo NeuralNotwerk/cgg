@@ -15,10 +15,10 @@
 //! are skipped as references — they resolve to nothing in-schema and would
 //! only add leaf noise.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 const BUILTIN_SCALARS: &[&str] = &["String", "Int", "Float", "Boolean", "ID"];
 
@@ -36,14 +36,31 @@ const DEF_KINDS: &[(&str, &str)] = &[
 pub struct GraphqlPlugin;
 
 impl LanguagePlugin for GraphqlPlugin {
-    fn id(&self) -> &'static str { "graphql" }
-    fn extensions(&self) -> &'static [&'static str] { &[".graphql", ".gql", ".graphqls"] }
-    fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_graphql::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "graphql"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".graphql", ".gql", ".graphqls"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_graphql::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "graphql");
-        let mut w = GraphqlWalker { source, facts: &mut facts };
+        let mut w = GraphqlWalker {
+            source,
+            facts: &mut facts,
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -55,7 +72,9 @@ struct GraphqlWalker<'a> {
 }
 
 impl<'a> GraphqlWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
 
     fn walk(&mut self, node: Node) {
         if let Some((_, keyword)) = DEF_KINDS.iter().find(|(k, _)| *k == node.kind()) {
@@ -64,7 +83,12 @@ impl<'a> GraphqlWalker<'a> {
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 
@@ -75,7 +99,9 @@ impl<'a> GraphqlWalker<'a> {
         let name_node = node.children(&mut c).find(|n| n.kind() == "name");
         let Some(name_node) = name_node else { return };
         let name = self.text(name_node).trim().to_string();
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
         let (sl, el) = (
             (node.start_position().row as u32) + 1,
@@ -85,10 +111,13 @@ impl<'a> GraphqlWalker<'a> {
             simple_name: name.clone(),
             qualified_name: name.clone(),
             variant: DefVariant::FreeFunction,
-            start_line: sl, end_line: el,
-            start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
             signature_hint: format!("{keyword} {name}"),
-            visibility: String::new(), attributes: Vec::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
             ..Default::default()
         });
 
@@ -114,7 +143,12 @@ impl<'a> GraphqlWalker<'a> {
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.collect_refs(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.collect_refs(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 }
@@ -127,9 +161,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_graphql::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_graphql::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        GraphqlPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/s.graphql"), &tree, src.as_bytes())
+        GraphqlPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/s.graphql"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     const SCHEMA: &str = r#"type Query { city(filter: CityInput): City forecast: Forecast }
@@ -150,8 +190,20 @@ type Forecast { rain: Float }
     #[test]
     fn extracts_type_defs() {
         let f = extract(SCHEMA);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
-        for want in ["Query", "City", "Coord", "Node", "CityInput", "Result", "Forecast"] {
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        for want in [
+            "Query",
+            "City",
+            "Coord",
+            "Node",
+            "CityInput",
+            "Result",
+            "Forecast",
+        ] {
             assert!(names.contains(&want), "missing def {want}, got {names:?}");
         }
     }
@@ -172,7 +224,10 @@ type Forecast { rain: Float }
         let f = extract(SCHEMA);
         let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         for s in ["String", "Float", "ID"] {
-            assert!(!refs.contains(&s), "{s} scalar should be excluded, got {refs:?}");
+            assert!(
+                !refs.contains(&s),
+                "{s} scalar should be excluded, got {refs:?}"
+            );
         }
     }
 }

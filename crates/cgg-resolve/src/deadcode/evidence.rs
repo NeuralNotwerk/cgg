@@ -45,10 +45,15 @@ pub(crate) struct UnresolvedIndex<'a> {
 impl<'a> UnresolvedIndex<'a> {
     pub(crate) fn build(graph: &'a Graph, file_audits: &'a [AuditFileRecord]) -> Self {
         let lang_of = |f: &cgg_core::ids::FileId| -> &'a str {
-            graph.files.get(f).map(|r| r.language.as_str()).unwrap_or("")
+            graph
+                .files
+                .get(f)
+                .map(|r| r.language.as_str())
+                .unwrap_or("")
         };
 
-        let mut by_name: HashMap<(&str, &str), Vec<&AuditUnresolvedCall>> = HashMap::new();
+        let mut by_name: HashMap<(&str, &str), Vec<&AuditUnresolvedCall>> =
+            HashMap::new();
         for u in &graph.unresolved {
             by_name
                 .entry((lang_of(&u.file), u.name.as_str()))
@@ -65,12 +70,19 @@ impl<'a> UnresolvedIndex<'a> {
             }
         }
 
-        Self { by_name, external_by_name }
+        Self {
+            by_name,
+            external_by_name,
+        }
     }
 
     /// Evidence that this callable may in fact be called, from sites the
     /// resolver failed to place.
-    pub(crate) fn evidence_for(&self, graph: &Graph, node: &CallableNode) -> Vec<Evidence> {
+    pub(crate) fn evidence_for(
+        &self,
+        graph: &Graph,
+        node: &CallableNode,
+    ) -> Vec<Evidence> {
         let key = (node.language.as_str(), node.simple_name.as_str());
         let mut out = Vec::new();
 
@@ -88,7 +100,11 @@ impl<'a> UnresolvedIndex<'a> {
         let owner = owner_from_qn(&node.qualified_name);
         let site_ref = |u: &AuditUnresolvedCall| SiteRef {
             file: u.file,
-            path: graph.files.get(&u.file).map(|f| f.path.clone()).unwrap_or_default(),
+            path: graph
+                .files
+                .get(&u.file)
+                .map(|f| f.path.clone())
+                .unwrap_or_default(),
             line: u.site_line,
             name: u.name.clone(),
             receiver_hint: u.receiver_hint.clone(),
@@ -119,15 +135,16 @@ impl<'a> UnresolvedIndex<'a> {
                 let rh = u.receiver_hint.as_str();
                 rh.is_empty()
                     || SELF_HINTS.contains(&rh)
-                    || owner.as_deref().is_some_and(|o| o == rh)
+                    || owner.is_some_and(|o| o == rh)
             })
             .collect();
 
         if let Some(first) = plausible.first() {
-            let same_file = plausible.iter().filter(|u| u.file == node.file).count() as u32;
+            let same_file =
+                plausible.iter().filter(|u| u.file == node.file).count() as u32;
             let owner_match = plausible
                 .iter()
-                .filter(|u| owner.as_deref().is_some_and(|o| o == u.receiver_hint))
+                .filter(|u| owner.is_some_and(|o| o == u.receiver_hint))
                 .count() as u32;
             out.push(Evidence::NameMatchesUnresolvedSite {
                 name: node.simple_name.clone(),
@@ -165,11 +182,10 @@ pub(crate) fn apply_caps(base: Confidence, evidence: &[Evidence]) -> Confidence 
     };
     let mut cur = base;
     for e in evidence {
-        if let Some(cap) = e.cap() {
-            if rank(cap) < rank(cur) {
+        if let Some(cap) = e.cap()
+            && rank(cap) < rank(cur) {
                 cur = cap;
             }
-        }
     }
     cur
 }
@@ -241,7 +257,12 @@ mod tests {
         assert_eq!(apply_caps(Confidence::High, &[ev_low()]), Confidence::Low);
         // A raising evidence must not promote a capped value.
         assert_eq!(
-            apply_caps(Confidence::Low, &[Evidence::PrivateVisibility { token: "pub".into() }]),
+            apply_caps(
+                Confidence::Low,
+                &[Evidence::PrivateVisibility {
+                    token: "pub".into()
+                }]
+            ),
             Confidence::Low
         );
     }
@@ -256,7 +277,10 @@ mod tests {
 
     #[test]
     fn promotion_to_high_is_conjunctive() {
-        let good = [Evidence::NoIncomingEdges, Evidence::NoUnresolvedSiteWithName];
+        let good = [
+            Evidence::NoIncomingEdges,
+            Evidence::NoUnresolvedSiteWithName,
+        ];
         // NeverReferenced already starts High.
         assert_eq!(
             derive_confidence(FindingCategory::NeverReferenced, &good, true, true, true),
@@ -268,7 +292,11 @@ mod tests {
             derive_confidence(FindingCategory::DeadCycle, &good, true, true, true),
             Confidence::High
         );
-        for (idz, sig, cov) in [(false, true, true), (true, false, true), (true, true, false)] {
+        for (idz, sig, cov) in [
+            (false, true, true),
+            (true, false, true),
+            (true, true, false),
+        ] {
             assert_eq!(
                 derive_confidence(FindingCategory::DeadCycle, &good, idz, sig, cov),
                 Confidence::Medium,

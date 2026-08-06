@@ -1,7 +1,6 @@
 /target
 **/*.rs.bk
 Cargo.lock.tmp
-.cgg-cache/
 .DS_Store
 *.swp
 
@@ -20,3 +19,6 @@ Cargo.lock.tmp
 /framework_integration.md
 /*_plan.md
 /*-plan.md
+
+# Python bytecode from scripts/
+__pycache__/

@@ -68,7 +68,9 @@ pub fn mapping_entries<'a>(node: Node<'a>, src: &[u8]) -> Vec<(String, Node<'a>)
         if !is_pair(ch.kind()) {
             continue;
         }
-        let Some(k) = ch.child_by_field_name("key") else { continue };
+        let Some(k) = ch.child_by_field_name("key") else {
+            continue;
+        };
         if let Some(v) = ch.child_by_field_name("value") {
             out.push((scalar_text(k, src), v));
         }
@@ -91,7 +93,9 @@ pub fn get<'a>(node: Node<'a>, keys: &[&str], src: &[u8]) -> Option<Node<'a>> {
 /// The top value node of a parsed document (`stream` → `document` → node).
 pub fn document_root(root: Node) -> Option<Node> {
     let mut c = root.walk();
-    let doc = root.named_children(&mut c).find(|n| n.kind() == "document")?;
+    let doc = root
+        .named_children(&mut c)
+        .find(|n| n.kind() == "document")?;
     let mut c2 = doc.walk();
     doc.named_children(&mut c2).find(|n| n.kind() != "comment")
 }
@@ -104,7 +108,13 @@ pub fn ref_simple_name(pointer: &str) -> &str {
 
 /// Push a definition spanning `value`'s byte range, so every `$ref`
 /// nested inside it resolves to this definition via byte containment.
-pub fn push_def(facts: &mut FileFacts, name: &str, qualified: &str, value: Node, sig: String) {
+pub fn push_def(
+    facts: &mut FileFacts,
+    name: &str,
+    qualified: &str,
+    value: Node,
+    sig: String,
+) {
     if name.is_empty() {
         return;
     }
@@ -125,8 +135,16 @@ pub fn push_def(facts: &mut FileFacts, name: &str, qualified: &str, value: Node,
 
 /// Add one definition per named entry under the mapping at `section`.
 /// `kind` labels the signature hint (e.g. `"schema"`, `"message"`).
-pub fn add_section_defs(top: Node, section: &[&str], kind: &str, src: &[u8], facts: &mut FileFacts) {
-    let Some(container) = get(top, section, src) else { return };
+pub fn add_section_defs(
+    top: Node,
+    section: &[&str],
+    kind: &str,
+    src: &[u8],
+    facts: &mut FileFacts,
+) {
+    let Some(container) = get(top, section, src) else {
+        return;
+    };
     for (name, value) in mapping_entries(container, src) {
         push_def(facts, &name, &name, value, format!("{kind} {name}"));
     }
@@ -134,10 +152,10 @@ pub fn add_section_defs(top: Node, section: &[&str], kind: &str, src: &[u8], fac
 
 /// Recursively emit a reference for every `$ref` pointer under `node`.
 pub fn collect_refs(node: Node, src: &[u8], facts: &mut FileFacts) {
-    if is_pair(node.kind()) {
-        if let Some(k) = node.child_by_field_name("key") {
-            if scalar_text(k, src) == "$ref" {
-                if let Some(v) = node.child_by_field_name("value") {
+    if is_pair(node.kind())
+        && let Some(k) = node.child_by_field_name("key")
+            && scalar_text(k, src) == "$ref"
+                && let Some(v) = node.child_by_field_name("value") {
                     let name = ref_simple_name(&scalar_text(v, src)).to_string();
                     if !name.is_empty() {
                         let vn = unwrap(v);
@@ -150,9 +168,6 @@ pub fn collect_refs(node: Node, src: &[u8], facts: &mut FileFacts) {
                         });
                     }
                 }
-            }
-        }
-    }
     let mut c = node.walk();
     if c.goto_first_child() {
         loop {

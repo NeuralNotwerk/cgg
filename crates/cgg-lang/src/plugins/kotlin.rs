@@ -1,25 +1,45 @@
 //! Kotlin plugin — full callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct KotlinPlugin;
 
 impl LanguagePlugin for KotlinPlugin {
-    fn id(&self) -> &'static str { "kotlin" }
-    fn extensions(&self) -> &'static [&'static str] { &[".kt", ".kts"] }
+    fn id(&self) -> &'static str {
+        "kotlin"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".kt", ".kts"]
+    }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { attributes: true, visibility: true, ..Default::default() }
+        crate::PluginSignals {
+            attributes: true,
+            visibility: true,
+            ..Default::default()
+        }
     }
 
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_kotlin_sg::LANGUAGE.into() }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_kotlin_sg::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "kotlin");
-        let mut w = KtWalker { source, facts: &mut facts, scope: Vec::new() };
+        let mut w = KtWalker {
+            source,
+            facts: &mut facts,
+            scope: Vec::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -32,25 +52,32 @@ struct KtWalker<'a> {
 }
 
 impl<'a> KtWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
 
     fn qn(&self, simple: &str) -> String {
-        if self.scope.is_empty() { simple.to_string() }
-        else { format!("{}.{simple}", self.scope.join(".")) }
+        if self.scope.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}.{simple}", self.scope.join("."))
+        }
     }
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
             "package_header" => {
                 // package com.example
-                let name = node.children(&mut node.walk())
+                let name = node
+                    .children(&mut node.walk())
                     .find(|c| c.kind() == "identifier")
                     .map(|n| self.text(n).replace(" ", "").replace("\n", ""))
                     .unwrap_or_default();
                 if !name.is_empty() {
-                    // identifier node contains simple_identifier children joined by dots
-                    let pkg = name.replace(".", ".");
-                    self.scope.push(pkg);
+                    // The identifier node already joins its
+                    // simple_identifier children with dots, which is the
+                    // separator we want, so the text is used as-is.
+                    self.scope.push(name);
                 }
                 return;
             }
@@ -59,7 +86,8 @@ impl<'a> KtWalker<'a> {
                 return;
             }
             "class_declaration" => {
-                let name = node.children(&mut node.walk())
+                let name = node
+                    .children(&mut node.walk())
                     .find(|c| c.kind() == "type_identifier")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
@@ -67,12 +95,16 @@ impl<'a> KtWalker<'a> {
                     // Emit the class as a Constructor callable so that
                     // `Foo()` calls resolve to it.
                     let qn = self.qn(&name);
-                    let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+                    let (sl, el) = (
+                        (node.start_position().row as u32) + 1,
+                        (node.end_position().row as u32) + 1,
+                    );
                     self.facts.definitions.push(cgg_core::DefRecord {
                         simple_name: name.clone(),
                         qualified_name: qn,
                         variant: cgg_core::DefVariant::Constructor,
-                        start_line: sl, end_line: el,
+                        start_line: sl,
+                        end_line: el,
                         start_byte: node.start_byte() as u32,
                         end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
@@ -89,7 +121,8 @@ impl<'a> KtWalker<'a> {
                 return;
             }
             "object_declaration" => {
-                let name = node.children(&mut node.walk())
+                let name = node
+                    .children(&mut node.walk())
                     .find(|c| c.kind() == "type_identifier")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
@@ -133,21 +166,27 @@ impl<'a> KtWalker<'a> {
         if c.goto_first_child() {
             loop {
                 self.walk(c.node());
-                if !c.goto_next_sibling() { break; }
+                if !c.goto_next_sibling() {
+                    break;
+                }
             }
         }
     }
 
     fn record_function(&mut self, node: Node) {
         // function_declaration has simple_identifier as name
-        let name = node.children(&mut node.walk())
+        let name = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "simple_identifier")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
         // Check if it's an extension function (has receiver_type field)
-        let is_extension = node.children(&mut node.walk())
+        let is_extension = node
+            .children(&mut node.walk())
             .any(|c| c.kind() == "receiver_type");
         let variant = if is_extension {
             DefVariant::InherentMethod
@@ -158,12 +197,16 @@ impl<'a> KtWalker<'a> {
         };
 
         let qn = self.qn(&name);
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
             simple_name: name,
             qualified_name: qn,
             variant,
-            start_line: sl, end_line: el,
+            start_line: sl,
+            end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
@@ -175,16 +218,24 @@ impl<'a> KtWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        let ident = node.children(&mut node.walk())
+        let ident = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "identifier")
             .map(|n| self.text(n).replace(" ", "").replace("\n", ""))
             .unwrap_or_default();
-        if ident.is_empty() { return; }
+        if ident.is_empty() {
+            return;
+        }
 
         // Check for alias: `import ... as Alias`
-        let explicit_alias = node.children(&mut node.walk())
+        let explicit_alias = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "import_alias")
-            .and_then(|a| a.children(&mut a.walk()).find(|c| c.kind() == "type_identifier" || c.kind() == "simple_identifier"))
+            .and_then(|a| {
+                a.children(&mut a.walk()).find(|c| {
+                    c.kind() == "type_identifier" || c.kind() == "simple_identifier"
+                })
+            })
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
 
@@ -207,40 +258,54 @@ impl<'a> KtWalker<'a> {
 
     fn record_local_type(&mut self, node: Node) {
         // property_declaration -> variable_declaration -> simple_identifier + user_type -> type_identifier
-        let var_decl = node.children(&mut node.walk())
+        let var_decl = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "variable_declaration");
         let Some(var_decl) = var_decl else { return };
-        let var_name = var_decl.children(&mut var_decl.walk())
+        let var_name = var_decl
+            .children(&mut var_decl.walk())
             .find(|c| c.kind() == "simple_identifier")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if var_name.is_empty() { return; }
+        if var_name.is_empty() {
+            return;
+        }
 
         // Try explicit type annotation first
-        let type_name = var_decl.children(&mut var_decl.walk())
+        let type_name = var_decl
+            .children(&mut var_decl.walk())
             .find(|c| c.kind() == "user_type")
-            .and_then(|ut| ut.children(&mut ut.walk()).find(|c| c.kind() == "type_identifier"))
+            .and_then(|ut| {
+                ut.children(&mut ut.walk())
+                    .find(|c| c.kind() == "type_identifier")
+            })
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
         if !type_name.is_empty() && type_name.starts_with(char::is_uppercase) {
             self.facts.local_types.push(cgg_core::LocalType {
-                var_name, type_name, scope_byte: node.start_byte() as u32,
+                var_name,
+                type_name,
+                scope_byte: node.start_byte() as u32,
             });
             return;
         }
 
         // Infer from RHS constructor: val x = Foo(...) or val x = Foo.create(...)
         // The RHS is a sibling of variable_declaration in property_declaration
-        let call = node.children(&mut node.walk())
+        let call = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "call_expression");
         if let Some(call) = call {
             let callee = call.child(0);
             if let Some(callee) = callee {
                 let callee_text = self.text(callee);
                 // Direct constructor: Foo(...)
-                if callee_text.starts_with(char::is_uppercase) && !callee_text.contains('.') {
+                if callee_text.starts_with(char::is_uppercase)
+                    && !callee_text.contains('.')
+                {
                     self.facts.local_types.push(cgg_core::LocalType {
-                        var_name, type_name: callee_text.to_string(),
+                        var_name,
+                        type_name: callee_text.to_string(),
                         scope_byte: node.start_byte() as u32,
                     });
                 }
@@ -256,8 +321,11 @@ impl<'a> KtWalker<'a> {
             "simple_identifier" => (self.text(callee).to_string(), String::new()),
             "navigation_expression" => {
                 // obj.method or Obj.method
-                let parts: Vec<&str> = callee.children(&mut callee.walk())
-                    .filter(|c| c.kind() == "simple_identifier" || c.kind() == "navigation_suffix")
+                let parts: Vec<&str> = callee
+                    .children(&mut callee.walk())
+                    .filter(|c| {
+                        c.kind() == "simple_identifier" || c.kind() == "navigation_suffix"
+                    })
                     .map(|c| {
                         if c.kind() == "navigation_suffix" {
                             c.children(&mut c.walk())
@@ -272,7 +340,7 @@ impl<'a> KtWalker<'a> {
                     .collect();
                 if parts.len() >= 2 {
                     let name = parts.last().unwrap().to_string();
-                    let recv = parts[..parts.len()-1].join(".");
+                    let recv = parts[..parts.len() - 1].join(".");
                     (name, recv)
                 } else if parts.len() == 1 {
                     (parts[0].to_string(), String::new())
@@ -282,67 +350,16 @@ impl<'a> KtWalker<'a> {
             }
             _ => return,
         };
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
         self.facts.references.push(RefRecord {
-            name, receiver_hint: recv,
+            name,
+            receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             ..Default::default()
         });
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use cgg_core::ids::FileId;
-    use std::path::PathBuf;
-    use tree_sitter::Parser;
-
-    fn extract(src: &str) -> FileFacts {
-        let mut p = Parser::new();
-        p.set_language(&tree_sitter_kotlin_sg::LANGUAGE.into()).unwrap();
-        let tree = p.parse(src, None).unwrap();
-        KotlinPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.kt"), &tree, src.as_bytes())
-    }
-
-    #[test]
-    fn class_methods_with_package() {
-        let src = "package com.example\nclass Service {\n  fun run() {}\n  fun process(s: String): Int = s.length\n}\n";
-        let f = extract(src);
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
-        assert!(qns.iter().any(|q| q.ends_with("Service.run")), "got: {qns:?}");
-        assert!(qns.iter().any(|q| q.ends_with("Service.process")), "got: {qns:?}");
-    }
-
-    #[test]
-    fn top_level_function() {
-        let src = "fun topLevel() {}\n";
-        let f = extract(src);
-        assert!(f.definitions.iter().any(|d| d.simple_name == "topLevel" && d.variant == DefVariant::FreeFunction));
-    }
-
-    #[test]
-    fn extension_function() {
-        let src = "fun String.greet() { println(this) }\n";
-        let f = extract(src);
-        assert!(f.definitions.iter().any(|d| d.simple_name == "greet"));
-    }
-
-    #[test]
-    fn imports_captured() {
-        let src = "import com.example.Helper\nimport com.example.format as fmt\nfun f() {}\n";
-        let f = extract(src);
-        assert!(f.imports.iter().any(|i| i.path.contains("Helper")));
-        assert!(f.imports.iter().any(|i| i.alias == "fmt"));
-    }
-
-    #[test]
-    fn call_expressions() {
-        let src = "fun f() { helper(); obj.run() }\n";
-        let f = extract(src);
-        assert!(f.references.iter().any(|r| r.name == "helper"), "refs: {:?}", f.references);
-        assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"), "refs: {:?}", f.references);
     }
 }
 
@@ -367,5 +384,88 @@ fn kotlin_vis(modifiers: &str) -> cgg_core::Vis {
         cgg_core::Vis::Internal
     } else {
         cgg_core::Vis::Public
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cgg_core::ids::FileId;
+    use std::path::PathBuf;
+    use tree_sitter::Parser;
+
+    fn extract(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_kotlin_sg::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        KotlinPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.kt"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    #[test]
+    fn class_methods_with_package() {
+        let src = "package com.example\nclass Service {\n  fun run() {}\n  fun process(s: String): Int = s.length\n}\n";
+        let f = extract(src);
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(
+            qns.iter().any(|q| q.ends_with("Service.run")),
+            "got: {qns:?}"
+        );
+        assert!(
+            qns.iter().any(|q| q.ends_with("Service.process")),
+            "got: {qns:?}"
+        );
+    }
+
+    #[test]
+    fn top_level_function() {
+        let src = "fun topLevel() {}\n";
+        let f = extract(src);
+        assert!(f.definitions.iter().any(
+            |d| d.simple_name == "topLevel" && d.variant == DefVariant::FreeFunction
+        ));
+    }
+
+    #[test]
+    fn extension_function() {
+        let src = "fun String.greet() { println(this) }\n";
+        let f = extract(src);
+        assert!(f.definitions.iter().any(|d| d.simple_name == "greet"));
+    }
+
+    #[test]
+    fn imports_captured() {
+        let src =
+            "import com.example.Helper\nimport com.example.format as fmt\nfun f() {}\n";
+        let f = extract(src);
+        assert!(f.imports.iter().any(|i| i.path.contains("Helper")));
+        assert!(f.imports.iter().any(|i| i.alias == "fmt"));
+    }
+
+    #[test]
+    fn call_expressions() {
+        let src = "fun f() { helper(); obj.run() }\n";
+        let f = extract(src);
+        assert!(
+            f.references.iter().any(|r| r.name == "helper"),
+            "refs: {:?}",
+            f.references
+        );
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "run" && r.receiver_hint == "obj"),
+            "refs: {:?}",
+            f.references
+        );
     }
 }

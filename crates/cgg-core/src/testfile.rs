@@ -34,7 +34,15 @@ pub enum TestFileReason {
 
 /// Directory components that mean "test" in essentially every ecosystem.
 const TEST_DIRS: &[&str] = &[
-    "test", "tests", "__tests__", "spec", "specs", "testdata", "e2e", "Tests", "Test",
+    "test",
+    "tests",
+    "__tests__",
+    "spec",
+    "specs",
+    "testdata",
+    "e2e",
+    "Tests",
+    "Test",
 ];
 
 /// Classify a file. `language` is the detected plugin id.
@@ -74,12 +82,24 @@ pub fn classify_test_file(path: &Path, language: &str) -> Option<TestFileReason>
                 || name == "conftest.py"
         }
         "javascript" | "typescript" => [
-            ".test.js", ".test.jsx", ".test.ts", ".test.tsx", ".test.mjs", ".test.cjs",
-            ".spec.js", ".spec.jsx", ".spec.ts", ".spec.tsx",
+            ".test.js",
+            ".test.jsx",
+            ".test.ts",
+            ".test.tsx",
+            ".test.mjs",
+            ".test.cjs",
+            ".spec.js",
+            ".spec.jsx",
+            ".spec.ts",
+            ".spec.tsx",
         ]
         .iter()
         .any(|s| lower.ends_with(s)),
-        "java" => name.ends_with("Test.java") || name.ends_with("Tests.java") || name.ends_with("IT.java"),
+        "java" => {
+            name.ends_with("Test.java")
+                || name.ends_with("Tests.java")
+                || name.ends_with("IT.java")
+        }
         "kotlin" => name.ends_with("Test.kt") || name.ends_with("Tests.kt"),
         "csharp" => name.ends_with("Test.cs") || name.ends_with("Tests.cs"),
         "ruby" => lower.ends_with("_spec.rb") || lower.ends_with("_test.rb"),
@@ -134,15 +154,30 @@ mod tests {
         assert_eq!(c("src/latest.py", "python"), None);
         assert_eq!(c("src/contest.py", "python"), None);
         assert_eq!(c("src/protest.py", "python"), None);
-        assert_eq!(c("src/test_thing.py", "python"), Some(TestFileReason::FileName));
-        assert_eq!(c("src/thing_test.py", "python"), Some(TestFileReason::FileName));
-        assert_eq!(c("src/conftest.py", "python"), Some(TestFileReason::FileName));
+        assert_eq!(
+            c("src/test_thing.py", "python"),
+            Some(TestFileReason::FileName)
+        );
+        assert_eq!(
+            c("src/thing_test.py", "python"),
+            Some(TestFileReason::FileName)
+        );
+        assert_eq!(
+            c("src/conftest.py", "python"),
+            Some(TestFileReason::FileName)
+        );
     }
 
     #[test]
     fn rust_counts_only_crate_level_containers() {
-        assert_eq!(c("crates/x/tests/cli.rs", "rust"), Some(TestFileReason::LanguageRule));
-        assert_eq!(c("crates/x/benches/b.rs", "rust"), Some(TestFileReason::LanguageRule));
+        assert_eq!(
+            c("crates/x/tests/cli.rs", "rust"),
+            Some(TestFileReason::LanguageRule)
+        );
+        assert_eq!(
+            c("crates/x/benches/b.rs", "rust"),
+            Some(TestFileReason::LanguageRule)
+        );
         // An inline `mod tests` lives in an ordinary source file.
         assert_eq!(c("crates/x/src/lib.rs", "rust"), None);
     }
@@ -158,15 +193,27 @@ mod tests {
 
     #[test]
     fn js_spec_and_test_suffixes() {
-        assert_eq!(c("src/a.test.ts", "typescript"), Some(TestFileReason::FileName));
-        assert_eq!(c("src/a.spec.tsx", "typescript"), Some(TestFileReason::FileName));
+        assert_eq!(
+            c("src/a.test.ts", "typescript"),
+            Some(TestFileReason::FileName)
+        );
+        assert_eq!(
+            c("src/a.spec.tsx", "typescript"),
+            Some(TestFileReason::FileName)
+        );
         assert_eq!(c("src/attest.ts", "typescript"), None);
     }
 
     #[test]
     fn generic_test_directories_are_the_weakest_signal() {
-        assert_eq!(c("proj/tests/helper.rb", "ruby"), Some(TestFileReason::Directory));
-        assert_eq!(c("proj/__tests__/x.js", "javascript"), Some(TestFileReason::Directory));
+        assert_eq!(
+            c("proj/tests/helper.rb", "ruby"),
+            Some(TestFileReason::Directory)
+        );
+        assert_eq!(
+            c("proj/__tests__/x.js", "javascript"),
+            Some(TestFileReason::Directory)
+        );
         // The directory rule must not fire on the file itself.
         assert_eq!(c("test", "rust"), None);
     }

@@ -1,22 +1,40 @@
 //! Erlang plugin — callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct ErlangPlugin;
 
 impl LanguagePlugin for ErlangPlugin {
-    fn id(&self) -> &'static str { "erlang" }
-    fn extensions(&self) -> &'static [&'static str] { &[".erl", ".hrl"] }
-    fn shebangs(&self) -> &'static [&'static str] { &["escript"] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_erlang::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "erlang"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".erl", ".hrl"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["escript"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_erlang::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "erlang");
-        let mut w = ErlangWalker { source, facts: &mut facts, module: String::new() };
+        let mut w = ErlangWalker {
+            source,
+            facts: &mut facts,
+            module: String::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -29,10 +47,15 @@ struct ErlangWalker<'a> {
 }
 
 impl<'a> ErlangWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn qn(&self, simple: &str) -> String {
-        if self.module.is_empty() { simple.to_string() }
-        else { format!("{}:{simple}", self.module) }
+        if self.module.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}:{simple}", self.module)
+        }
     }
 
     fn walk(&mut self, node: Node) {
@@ -59,19 +82,25 @@ impl<'a> ErlangWalker<'a> {
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn extract_module(&mut self, node: Node) {
         // -module(name).
         // Find the atom child
         for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "atom" {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom" {
                     self.module = self.text(child).to_string();
                     break;
                 }
-            }
         }
     }
 
@@ -79,12 +108,11 @@ impl<'a> ErlangWalker<'a> {
         // -import(module, [func/arity, ...]).
         let mut module_name = String::new();
         for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "atom" && module_name.is_empty() {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom" && module_name.is_empty() {
                     module_name = self.text(child).to_string();
                     break;
                 }
-            }
         }
         if !module_name.is_empty() {
             self.facts.imports.push(ImportRecord {
@@ -100,11 +128,14 @@ impl<'a> ErlangWalker<'a> {
     fn record_function(&mut self, node: Node) {
         // function_clause: atom ( ... ) -> ... ;
         // Extract the atom (function name)
-        if let Some(name_node) = node.child(0) {
-            if name_node.kind() == "atom" {
+        if let Some(name_node) = node.child(0)
+            && name_node.kind() == "atom" {
                 let name = self.text(name_node).to_string();
                 let qn = self.qn(&name);
-                let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+                let (sl, el) = (
+                    (node.start_position().row as u32) + 1,
+                    (node.end_position().row as u32) + 1,
+                );
                 self.facts.definitions.push(DefRecord {
                     simple_name: name,
                     qualified_name: qn,
@@ -119,7 +150,6 @@ impl<'a> ErlangWalker<'a> {
                     ..Default::default()
                 });
             }
-        }
     }
 
     fn record_call(&mut self, node: Node) {
@@ -127,8 +157,10 @@ impl<'a> ErlangWalker<'a> {
         // First child is the function/module reference
         if let Some(func_node) = node.child(0) {
             let name = self.text(func_node).to_string();
-            if name.is_empty() { return; }
-            
+            if name.is_empty() {
+                return;
+            }
+
             let receiver_hint = if name.contains(':') {
                 let parts: Vec<&str> = name.split(':').collect();
                 if parts.len() == 2 {
@@ -139,7 +171,7 @@ impl<'a> ErlangWalker<'a> {
             } else {
                 String::new()
             };
-            
+
             self.facts.references.push(RefRecord {
                 name,
                 receiver_hint,
@@ -160,9 +192,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_erlang::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_erlang::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        ErlangPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.erl"), &tree, src.as_bytes())
+        ErlangPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.erl"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]

@@ -120,9 +120,8 @@ pub fn walk(cfg: &WalkConfig) -> Result<WalkOutcome> {
         .roots
         .iter()
         .map(|p| {
-            fs::canonicalize(p).with_context(|| {
-                format!("canonicalizing input path {}", p.display())
-            })
+            fs::canonicalize(p)
+                .with_context(|| format!("canonicalizing input path {}", p.display()))
         })
         .collect::<Result<_>>()?;
 
@@ -178,8 +177,8 @@ fn walk_one(
                 // ignore-crate errors don't expose a uniform path
                 // accessor; extract one if the variant carries one,
                 // otherwise fall back to the root path.
-                let path = extract_err_path(&err)
-                    .unwrap_or_else(|| display_root.to_path_buf());
+                let path =
+                    extract_err_path(&err).unwrap_or_else(|| display_root.to_path_buf());
                 out.skips.push(Skip {
                     path,
                     reason: SkipReason::ParseError(err.to_string()),
@@ -192,11 +191,7 @@ fn walk_one(
 
         // Directories that aren't root are handled implicitly by the
         // walker descending into them. We only act on files.
-        if !entry
-            .file_type()
-            .map(|ft| ft.is_file())
-            .unwrap_or(false)
-        {
+        if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
             continue;
         }
 
@@ -211,10 +206,7 @@ fn walk_one(
         }
 
         // Symlink-out-of-root check.
-        if entry
-            .file_type()
-            .map(|ft| ft.is_symlink())
-            .unwrap_or(false)
+        if entry.file_type().map(|ft| ft.is_symlink()).unwrap_or(false)
             || is_symlink_chain(path)
         {
             match fs::canonicalize(path) {
@@ -248,8 +240,7 @@ fn walk_one(
 }
 
 fn push_candidate(path: &Path, out: &mut WalkOutcome) -> Result<()> {
-    let md = fs::metadata(path)
-        .with_context(|| format!("stat {}", path.display()))?;
+    let md = fs::metadata(path).with_context(|| format!("stat {}", path.display()))?;
     out.candidates.push(FileCandidate {
         path: path.to_path_buf(),
         size_bytes: md.len(),
@@ -266,16 +257,14 @@ fn is_symlink_chain(p: &Path) -> bool {
 /// Return a skip reason if the file fails a per-file check
 /// (size, binary sniffing). Returns `None` if the file is acceptable.
 fn classify_file(path: &Path, cfg: &WalkConfig) -> Result<Option<Skip>> {
-    let md = fs::metadata(path)
-        .with_context(|| format!("stat {}", path.display()))?;
-    if let Some(max) = cfg.max_file_size {
-        if md.len() > max {
+    let md = fs::metadata(path).with_context(|| format!("stat {}", path.display()))?;
+    if let Some(max) = cfg.max_file_size
+        && md.len() > max {
             return Ok(Some(Skip {
                 path: path.to_path_buf(),
                 reason: SkipReason::TooLarge,
             }));
         }
-    }
     if is_binary(path)? {
         return Ok(Some(Skip {
             path: path.to_path_buf(),
@@ -289,8 +278,8 @@ fn classify_file(path: &Path, cfg: &WalkConfig) -> Result<Option<Skip>> {
 /// data. Fast, language-agnostic, and matches `git`'s own heuristic.
 fn is_binary(path: &Path) -> Result<bool> {
     let mut buf = [0u8; BINARY_SNIFF_BYTES];
-    let mut f = fs::File::open(path)
-        .with_context(|| format!("open {}", path.display()))?;
+    let mut f =
+        fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
     let n = f
         .read(&mut buf)
         .with_context(|| format!("read {}", path.display()))?;
@@ -300,11 +289,10 @@ fn is_binary(path: &Path) -> Result<bool> {
 /// Match any component of `path` against the built-in deny list.
 fn builtin_reason(path: &Path) -> Option<SkipReason> {
     for comp in path.components() {
-        if let Some(name) = comp.as_os_str().to_str() {
-            if BUILTIN_DENY_DIRS.iter().any(|d| *d == name) {
+        if let Some(name) = comp.as_os_str().to_str()
+            && BUILTIN_DENY_DIRS.contains(&name) {
                 return Some(SkipReason::Builtin(name.to_string()));
             }
-        }
     }
     None
 }
@@ -356,7 +344,11 @@ mod tests {
     fn builtin_deny_skips_node_modules_and_target() {
         let tmp = TempDir::new().unwrap();
         write(tmp.path(), "src/a.rs", b"fn x() {}\n");
-        write(tmp.path(), "node_modules/lodash.js", b"module.exports={};\n");
+        write(
+            tmp.path(),
+            "node_modules/lodash.js",
+            b"module.exports={};\n",
+        );
         write(tmp.path(), "target/debug/out.bin", b"binary-looking\n");
 
         let cfg = WalkConfig {
@@ -365,14 +357,16 @@ mod tests {
         };
         let out = walk(&cfg).unwrap();
         assert!(out.candidates.iter().any(|c| c.path.ends_with("a.rs")));
-        assert!(out
-            .skips
-            .iter()
-            .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "node_modules")));
-        assert!(out
-            .skips
-            .iter()
-            .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "target")));
+        assert!(
+            out.skips.iter().any(
+                |s| matches!(&s.reason, SkipReason::Builtin(d) if d == "node_modules")
+            )
+        );
+        assert!(
+            out.skips
+                .iter()
+                .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "target"))
+        );
     }
 
     #[test]
@@ -432,10 +426,11 @@ mod tests {
             ..Default::default()
         };
         let out = walk(&cfg).unwrap();
-        assert!(out
-            .skips
-            .iter()
-            .any(|s| matches!(s.reason, SkipReason::Binary)));
+        assert!(
+            out.skips
+                .iter()
+                .any(|s| matches!(s.reason, SkipReason::Binary))
+        );
     }
 
     #[test]
@@ -449,10 +444,11 @@ mod tests {
             ..Default::default()
         };
         let out = walk(&cfg).unwrap();
-        assert!(out
-            .skips
-            .iter()
-            .any(|s| matches!(s.reason, SkipReason::TooLarge)));
+        assert!(
+            out.skips
+                .iter()
+                .any(|s| matches!(s.reason, SkipReason::TooLarge))
+        );
     }
 
     #[test]

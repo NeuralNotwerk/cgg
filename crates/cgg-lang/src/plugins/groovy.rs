@@ -1,21 +1,37 @@
 //! Groovy plugin — callable extraction for Groovy and Gradle.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct GroovyPlugin;
 
 impl LanguagePlugin for GroovyPlugin {
-    fn id(&self) -> &'static str { "groovy" }
-    fn extensions(&self) -> &'static [&'static str] { &[".groovy", ".gradle"] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_groovy::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "groovy"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".groovy", ".gradle"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_groovy::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "groovy");
-        let mut w = GroovyWalker { source, facts: &mut facts, scope: Vec::new() };
+        let mut w = GroovyWalker {
+            source,
+            facts: &mut facts,
+            scope: Vec::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -28,20 +44,28 @@ struct GroovyWalker<'a> {
 }
 
 impl<'a> GroovyWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
 
     fn qn(&self, simple: &str) -> String {
-        if self.scope.is_empty() { simple.to_string() }
-        else { format!("{}.{simple}", self.scope.join(".")) }
+        if self.scope.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}.{simple}", self.scope.join("."))
+        }
     }
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
             "package_declaration" => {
-                if let Some(name) = node.child_by_field_name("name")
-                    .or_else(|| node.children(&mut node.walk()).find(|c| c.kind() == "scoped_identifier" || c.kind() == "identifier"))
-                {
-                    self.scope.push(self.text(name).replace(';', "").trim().to_string());
+                if let Some(name) = node.child_by_field_name("name").or_else(|| {
+                    node.children(&mut node.walk()).find(|c| {
+                        c.kind() == "scoped_identifier" || c.kind() == "identifier"
+                    })
+                }) {
+                    self.scope
+                        .push(self.text(name).replace(';', "").trim().to_string());
                 }
                 return;
             }
@@ -50,8 +74,10 @@ impl<'a> GroovyWalker<'a> {
                 return;
             }
             "class_declaration" | "interface_declaration" | "enum_declaration" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
@@ -67,8 +93,10 @@ impl<'a> GroovyWalker<'a> {
                 return;
             }
             "function_definition" => {
-                let name = node.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(node, &name, DefVariant::FreeFunction);
                 }
@@ -100,29 +128,44 @@ impl<'a> GroovyWalker<'a> {
         if c.goto_first_child() {
             loop {
                 self.walk(c.node());
-                if !c.goto_next_sibling() { break; }
+                if !c.goto_next_sibling() {
+                    break;
+                }
             }
         }
     }
 
     fn record_method(&mut self, node: Node) {
-        let Some(name_node) = node.child_by_field_name("name") else { return };
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
         let simple = self.text(name_node).to_string();
-        if simple.is_empty() { return; }
-        let is_static = node.children(&mut node.walk())
+        if simple.is_empty() {
+            return;
+        }
+        let is_static = node
+            .children(&mut node.walk())
             .any(|c| c.kind() == "modifiers" && self.text(c).contains("static"));
-        let variant = if is_static { DefVariant::StaticMethod } else { DefVariant::InherentMethod };
+        let variant = if is_static {
+            DefVariant::StaticMethod
+        } else {
+            DefVariant::InherentMethod
+        };
         self.record_def(node, &simple, variant);
     }
 
     fn record_def(&mut self, node: Node, simple: &str, variant: DefVariant) {
         let qn = self.qn(simple);
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
             simple_name: simple.to_string(),
             qualified_name: qn,
             variant,
-            start_line: sl, end_line: el,
+            start_line: sl,
+            end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
@@ -133,11 +176,14 @@ impl<'a> GroovyWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
-        let ident_node = node.children(&mut node.walk())
+        let ident_node = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "scoped_identifier" || c.kind() == "identifier");
         let Some(ident_node) = ident_node else { return };
         let path = self.text(ident_node).to_string();
-        if path.is_empty() { return; }
+        if path.is_empty() {
+            return;
+        }
 
         let text = self.text(node);
         let is_static = text.contains("static ");
@@ -164,13 +210,20 @@ impl<'a> GroovyWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let name = node.child_by_field_name("name")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        let recv = node.child_by_field_name("object")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        if name.is_empty() { return; }
+        let name = node
+            .child_by_field_name("name")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        let recv = node
+            .child_by_field_name("object")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if name.is_empty() {
+            return;
+        }
         self.facts.references.push(RefRecord {
-            name, receiver_hint: recv,
+            name,
+            receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             ..Default::default()
@@ -178,9 +231,13 @@ impl<'a> GroovyWalker<'a> {
     }
 
     fn record_function_call(&mut self, node: Node) {
-        let name = node.child_by_field_name("function")
-            .map(|n| self.text(n).to_string()).unwrap_or_default();
-        if name.is_empty() { return; }
+        let name = node
+            .child_by_field_name("function")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
+        if name.is_empty() {
+            return;
+        }
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: String::new(),
@@ -200,16 +257,26 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_groovy::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_groovy::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        GroovyPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/X.groovy"), &tree, src.as_bytes())
+        GroovyPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/X.groovy"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]
     fn class_methods_with_package() {
         let src = "package com.example\nclass Service {\n  void run() {}\n  int process(String s) { return 0 }\n}\n";
         let f = extract(src);
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         assert!(qns.contains(&"com.example.Service.run"), "got: {qns:?}");
         assert!(qns.contains(&"com.example.Service.process"), "got: {qns:?}");
     }
@@ -218,7 +285,84 @@ mod tests {
     fn method_invocation_captured() {
         let src = "class C { void f() { helper(); obj.run() } }\n";
         let f = extract(src);
-        assert!(f.references.iter().any(|r| r.name == "helper" && r.receiver_hint.is_empty()));
-        assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"));
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "helper" && r.receiver_hint.is_empty())
+        );
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "run" && r.receiver_hint == "obj")
+        );
+    }
+
+    fn defs(f: &FileFacts) -> Vec<String> {
+        f.definitions
+            .iter()
+            .map(|d| d.qualified_name.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_plain_import_is_recorded() {
+        let f = extract("import com.example.Service\nclass C { void f() {} }\n");
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.path.contains("com.example.Service")),
+            "imports: {:?}",
+            f.imports
+        );
+    }
+
+    #[test]
+    fn a_static_import_is_a_from_import() {
+        // The plugin distinguishes the two kinds; collapsing them would
+        // lose the distinction the cross-file resolver keys on.
+        let f = extract("import static java.lang.Math.max\nclass C { void f() {} }\n");
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "from-import" || i.path.contains("Math")),
+            "imports: {:?}",
+            f.imports
+        );
+    }
+
+    #[test]
+    fn a_closure_body_still_yields_its_calls() {
+        // Gradle build scripts are mostly closures; missing calls inside
+        // them would empty the graph for `.gradle` files.
+        let f =
+            extract("class C {\n  void f() {\n    items.each { helper(it) }\n  }\n}\n");
+        assert!(
+            f.references.iter().any(|r| r.name == "helper"),
+            "refs: {:?}",
+            f.references.iter().map(|r| &r.name).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn a_script_level_method_without_a_package_is_captured() {
+        let f = extract("def helper(x) { return x }\n");
+        assert!(
+            f.definitions.iter().any(|d| d.simple_name == "helper"),
+            "defs: {:?}",
+            defs(&f)
+        );
+    }
+
+    #[test]
+    fn an_empty_file_yields_nothing_and_does_not_panic() {
+        let f = extract("");
+        assert!(f.definitions.is_empty());
+        assert!(f.imports.is_empty());
+    }
+
+    #[test]
+    fn malformed_source_does_not_panic() {
+        let f = extract("class Broken {\n  void f( {\n");
+        let _ = defs(&f);
     }
 }

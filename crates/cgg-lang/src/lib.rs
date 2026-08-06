@@ -6,6 +6,12 @@
 
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
+// `..Default::default()` on a fully-specified struct literal is
+// intentional across the plugins: it is what keeps ~90 construction
+// sites compiling unchanged when a new optional extraction signal is
+// added to `DefRecord`. The lint is right that it has no effect
+// *today* — the point is the day a field lands.
+#![allow(clippy::needless_update)]
 
 pub mod detect;
 pub mod notebook;
@@ -60,7 +66,8 @@ pub fn deadcode_signals() -> bool {
 /// alternative is widening `LanguagePlugin::extract` across 44 plugins
 /// for a value none of them vary. Written once before the parallel
 /// phase and never again.
-static EXTRA_REGISTRAR_VERBS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+static EXTRA_REGISTRAR_VERBS: std::sync::OnceLock<Vec<String>> =
+    std::sync::OnceLock::new();
 
 /// Register verbs from user-authored framework rules. Idempotent; only
 /// the first call takes effect.
@@ -178,10 +185,7 @@ impl PluginRegistry {
     }
 
     pub fn by_id(&self, id: &str) -> Option<&dyn LanguagePlugin> {
-        self.plugins
-            .iter()
-            .find(|p| p.id() == id)
-            .map(|p| &**p)
+        self.plugins.iter().find(|p| p.id() == id).map(|p| &**p)
     }
 
     /// Registry preloaded with every v1 language plugin.
@@ -202,3 +206,4 @@ mod tests {
         assert_eq!(reg.all().len(), 44);
     }
 }
+

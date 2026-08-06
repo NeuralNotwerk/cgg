@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::time::Instant;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tree_sitter::{Language, Parser, Tree};
 
 use crate::{LanguagePlugin, PluginRegistry};
@@ -57,9 +57,7 @@ impl<'r> ParserPool<'r> {
         let start = Instant::now();
         let tree = PARSERS.with(|cell| -> Result<Tree> {
             let mut map = cell.borrow_mut();
-            let parser = map
-                .entry(plugin_id)
-                .or_insert_with(Parser::new);
+            let parser = map.entry(plugin_id).or_insert_with(Parser::new);
             set_language(parser, &lang)?;
             parser
                 .parse(source, None)

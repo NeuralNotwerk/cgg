@@ -1,52 +1,52 @@
-pub mod rust;
-pub mod python;
-pub mod javascript;
-pub mod typescript;
-pub mod go;
-pub mod java;
-pub mod kotlin;
+pub mod asm;
+pub mod asyncapi;
+pub(crate) mod attrs;
+pub mod bash;
 pub mod c;
+pub mod cfg;
+pub mod clojure;
+pub mod cmake;
 pub mod cpp;
 pub mod csharp;
-pub mod bash;
-pub mod ruby;
-pub mod swift;
-pub mod lua;
-pub mod php;
 pub mod dart;
-pub mod scala;
-pub mod hcl;
-pub mod zig;
-pub mod objc;
-pub mod r;
-pub mod groovy;
-pub mod julia;
-pub mod perl;
+pub mod dynuse;
 pub mod elixir;
 pub mod erlang;
 pub mod fortran;
-pub mod clojure;
-pub mod haskell;
-pub mod ocaml;
-pub mod powershell;
-pub mod solidity;
 pub mod fsharp;
-pub mod starlark;
-pub mod cmake;
+pub mod go;
+pub mod graphql;
+pub mod groovy;
+pub mod haskell;
+pub mod hcl;
+pub mod java;
+pub mod javascript;
+pub mod julia;
+pub mod kotlin;
+pub mod lua;
 pub mod nix;
+pub mod objc;
+pub mod ocaml;
+pub mod openapi;
+pub mod perl;
+pub mod php;
+pub mod powershell;
+pub mod proto;
+pub mod python;
+pub mod r;
+pub(crate) mod registrar;
+pub mod ruby;
+pub mod rust;
+pub mod scala;
+pub mod smithy;
+pub mod solidity;
+pub mod starlark;
+pub mod structured;
+pub mod swift;
+pub mod typescript;
 pub mod verilog;
 pub mod vhdl;
-pub mod asm;
-pub mod cfg;
-pub mod dynuse;
-pub(crate) mod attrs;
-pub(crate) mod registrar;
-pub mod smithy;
-pub mod proto;
-pub mod graphql;
-pub mod structured;
-pub mod openapi;
-pub mod asyncapi;
+pub mod zig;
 
 use crate::PluginRegistry;
 
@@ -64,14 +64,19 @@ pub fn extract_signature(full_text: &str) -> String {
         match ch {
             '(' | '[' | '<' => depth += 1,
             ')' | ']' | '>' => depth = (depth - 1).max(0),
-            '{' if depth == 0 => { sig_end = i; break; }
+            '{' if depth == 0 => {
+                sig_end = i;
+                break;
+            }
             ':' if depth == 0 => {
                 // Only treat as body delimiter if followed by newline/space+code
                 // (not a type annotation like `x: int`)
                 let rest = &full_text[i + 1..];
                 let next_non_ws = rest.trim_start();
-                if rest.starts_with('\n') || rest.starts_with("\r\n")
-                    || (next_non_ws.len() < rest.len() && !next_non_ws.is_empty()
+                if rest.starts_with('\n')
+                    || rest.starts_with("\r\n")
+                    || (next_non_ws.len() < rest.len()
+                        && !next_non_ws.is_empty()
                         && !next_non_ws.starts_with(':'))
                 {
                     // Check if we're past the closing paren (signature is complete)
@@ -90,7 +95,12 @@ pub fn extract_signature(full_text: &str) -> String {
     let raw = &full_text[..sig_end];
     // Collapse whitespace (newlines, indentation) into single spaces.
     let collapsed: String = raw.split_whitespace().collect::<Vec<_>>().join(" ");
-    collapsed.trim_end_matches('{').trim_end_matches(':').trim_end_matches('=').trim().to_string()
+    collapsed
+        .trim_end_matches('{')
+        .trim_end_matches(':')
+        .trim_end_matches('=')
+        .trim()
+        .to_string()
 }
 
 /// Register every v1 plugin into `reg`.

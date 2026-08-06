@@ -51,7 +51,7 @@ What cgg needs depends on *how* control is handed off, not on which
 framework does it. Find one flagged handler and look at its definition:
 
 | | Shape | Looks like | Fix |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **A** | marker on the definition | `@app.route(...)`, `@GetMapping`, `#[get("/")]`, `@shared_task` | `root_attributes` — **easiest** |
 | **B** | callable passed as a value | `app.get("/x", handler)`, `RegisterWorkflow(W)` | `roots` by name pattern |
 | **C** | inline closure at the call site | `app.get("/x", (req,res) => {...})` | `registrars` — same as B |
@@ -152,18 +152,24 @@ the handler genuinely *is* an entry point.
 Never assume. Count before and after:
 
 ```bash
-cgg ./src --dead-code --dead-code-format json -o /tmp/before.mmd
+cgg ./src --dead-code --dead-code-format json --dead-code-report /tmp/before.json
 # edit cgg-deadcode.toml
-cgg ./src --dead-code --dead-code-format json -o /tmp/after.mmd
+cgg ./src --dead-code --dead-code-format json --dead-code-report /tmp/after.json
 
 python3 - <<'EOF'
 import json
-b=json.load(open('/tmp/before.mmd.deadcode.json'))
-a=json.load(open('/tmp/after.mmd.deadcode.json'))
+b=json.load(open('/tmp/before.json'))
+a=json.load(open('/tmp/after.json'))
 print(f"{len(b['findings'])} -> {len(a['findings'])} findings")
 print("stale patterns:", a['summary'].get('stale_suppressions') or "none")
 EOF
 ```
+
+(`--dead-code-report` is the explicit form. `-o graph.mmd` also works and
+puts the report at `graph.mmd.deadcode.json` — the sidecar extension
+follows `--dead-code-format`, so the text format lands at
+`.deadcode.txt`. `stale_suppressions` is omitted from the JSON when
+empty, which is why the read above uses `.get`.)
 
 Three checks:
 
@@ -182,7 +188,7 @@ Three checks:
 Worked example, verified end to end. An in-house decorator plus a
 PyTorch model, all flagged before the rule:
 
-```
+```text
 before:  ['forward', 'genuinely_unused', 'list_orders']
 ```
 
@@ -204,7 +210,7 @@ methods    = ["forward"]
 node       = false      # no identity worth naming — root-mark only
 ```
 
-```
+```text
 after:   ['genuinely_unused']
 ```
 
@@ -270,7 +276,7 @@ another. Present the exact artifact first:
 ### What may be shared, and what may not
 
 | Share | Never share |
-|---|---|
+| --- | --- |
 | The public framework's name and version | Your file paths or directory layout |
 | Its public import marker | Your symbol or module names |
 | The generic attribute/base-type keys | Any snippet of your source |
@@ -286,8 +292,8 @@ Only on approval. Do not push to any remote the user has not named.
 
 1. Write a minimal fixture from the framework's **published
    documentation** — not from their repository.
-2. Add a `RuleSpec` to the built-in table in
-   `crates/cgg-core/src/frameworks_rules.rs`, alongside the existing
+2. Add a `RuleSpec` to the built-in `SPECS` table in
+   `crates/cgg-core/src/frameworks/rules.rs`, alongside the existing
    entries. The table's own tests enforce that every rule is either
    detectable or declares why it cannot enumerate entries.
 3. Add an integration test in `crates/cgg/tests/frameworks.rs` asserting
@@ -313,11 +319,16 @@ Be honest rather than writing a rule that silently does nothing:
   `base = "nn.Module"` matcher yet, so a bucket-D rule matches by method
   name (`"\\.forward$"`) and will also match unrelated methods of that
   name. Narrow it with a module prefix where possible.
-- **Attribute capture is Rust and Python only.** Elsewhere,
-  `root_attributes` matches nothing.
+- **Attribute capture does not cover every language.** `attributes` and
+  `root_attributes` work on the nine plugins listed in Step 2 and match
+  nothing on the rest. Don't guess the list from memory — a run whose
+  `--ignore-attributes` matched nothing prints the current one, and the
+  report's capability table has an `attrs` column per language.
 - **Nothing reads framework config files** — `urls.py`, `routes.rb`,
-  `routes/web.php` are not parsed, so Rails, Django and Laravel routing
-  needs explicit `roots` patterns.
+  `routes/web.php` are not parsed as config, so routing declared only
+  there is out of reach. (Rails, Django and Laravel *are* recognised
+  through their registrar calls and string handler forms — check the
+  coverage table before writing a rule for them.)
 
 ## Anti-patterns
 

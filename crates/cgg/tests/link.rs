@@ -80,7 +80,9 @@ fn fib(n: u32) -> u32 { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } }
     // (multiple sites). Either proves the cycle wasn't dropped.
     assert!(g.contains("fib"));
     let has_bare = g.contains("C0 --> C0");
-    let has_labelled = g.lines().any(|l| l.starts_with("  C0 -->|") && l.ends_with("| C0"));
+    let has_labelled = g
+        .lines()
+        .any(|l| l.starts_with("  C0 -->|") && l.ends_with("| C0"));
     assert!(has_bare || has_labelled, "want self-edge:\n{g}");
 }
 
@@ -153,7 +155,9 @@ fn b() {}
 
     let text = fs::read_to_string(&audit).unwrap();
     // Exactly one high-confidence intra-file edge.
-    assert!(text.contains("\"confidence_histogram\":{\"high\":1,\"medium\":0,\"low\":0}"));
+    assert!(
+        text.contains("\"confidence_histogram\":{\"high\":1,\"medium\":0,\"low\":0}")
+    );
     assert!(text.contains("\"edges\":1"));
     assert!(text.contains("\"callables\":2"));
 }
@@ -168,18 +172,44 @@ fn exit_nodes_surface_and_dedup_external_calls() {
 
     // Default: no exit nodes.
     let plain = tmp.path().join("plain.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "-o"]).arg(&plain).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["--stack-graphs", "off", "-o"])
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&plain).unwrap();
-    assert!(!g.contains("<external>"), "exit node leaked into default output:\n{g}");
+    assert!(
+        !g.contains("<external>"),
+        "exit node leaked into default output:\n{g}"
+    );
 
     // --include-external: one shared exit node, two edges onto it.
     let ext = tmp.path().join("ext.mmd");
-    cgg().args(["--no-cache", "--stack-graphs", "off", "--include-external", "-o"]).arg(&ext).arg(tmp.path()).assert().success();
+    cgg()
+        .args(["--stack-graphs", "off", "--include-external", "-o"])
+        .arg(&ext)
+        .arg(tmp.path())
+        .assert()
+        .success();
     let g = fs::read_to_string(&ext).unwrap();
-    assert!(g.contains("&lt;external&gt;::serde_json::from_str"), "missing exit node:\n{g}");
+    assert!(
+        g.contains("&lt;external&gt;::serde_json::from_str"),
+        "missing exit node:\n{g}"
+    );
     // Exactly one external node for from_str (dedup across the two callers).
-    let node_lines = g.lines().filter(|l| l.contains("serde_json::from_str") && l.contains('[')).count();
-    assert_eq!(node_lines, 1, "expected one deduped exit node, got {node_lines}:\n{g}");
+    let node_lines = g
+        .lines()
+        .filter(|l| l.contains("serde_json::from_str") && l.contains('['))
+        .count();
+    assert_eq!(
+        node_lines, 1,
+        "expected one deduped exit node, got {node_lines}:\n{g}"
+    );
     // Two |ext| edges land on it.
-    assert_eq!(g.matches("-->|ext|").count(), 2, "expected two ext edges:\n{g}");
+    assert_eq!(
+        g.matches("-->|ext|").count(),
+        2,
+        "expected two ext edges:\n{g}"
+    );
 }

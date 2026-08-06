@@ -74,7 +74,19 @@ conclude something is exploitable.";
 /// cgg ./src --filter '<framework-entry>::network::' -n 3
 /// cgg ./src --exclude-partial '<framework-entry>::lifecycle::'
 /// ```
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum TrustKind {
     /// HTTP route, gRPC service, websocket, GraphQL resolver. The only
@@ -135,7 +147,9 @@ impl TrustKind {
 
 /// How control is handed off — §3's six shapes. Recorded on each entry
 /// so a reader can tell a decorator match from a base-type guess.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum EntryShape {
     /// **A** — a marker on the definition: `@app.route`, `@GetMapping`,
@@ -285,12 +299,15 @@ impl FrameworkEntry {
     /// '<framework-entry>::network::'` selects the whole attack surface
     /// across every framework at once.
     pub fn node_name(&self) -> String {
+        // With a route, the route *is* the identity and is already
+        // unique. Without one, the handler's qualified name is the only
+        // identity available — and it has to be the *whole* name.
+        // Truncating to the last segment collapses every Django view's
+        // `get`, every `IJob::Execute`, onto a single node, which is
+        // worse than useless for enumerating an attack surface: the
+        // fan-out from that node is the union of unrelated endpoints.
         let tail = if self.route.is_empty() {
-            self.target_name
-                .rsplit(|c| c == ':' || c == '.' || c == '/')
-                .next()
-                .unwrap_or(&self.target_name)
-                .to_string()
+            self.target_name.clone()
         } else {
             self.route.clone()
         };
@@ -392,12 +409,24 @@ impl FrameworkCoverage {
         if self.recognised.is_empty() {
             s.push_str("  recognised     (none)\n");
         } else {
+            // One framework can have a rule per language — Express has
+            // both a JavaScript and a TypeScript one. Rendering only the
+            // id prints the same line twice with different counts, which
+            // reads as a bug and invites summing them. Name the language
+            // exactly when it is needed to tell two rows apart.
             let items: Vec<String> = self
                 .recognised
                 .iter()
                 .map(|r| {
                     let plural = if r.entries == 1 { "entry" } else { "entries" };
-                    format!("{} ({}, {} {plural})", r.id, r.kind.slug(), r.entries)
+                    let ambiguous =
+                        self.recognised.iter().filter(|o| o.id == r.id).count() > 1;
+                    let id = if ambiguous {
+                        format!("{}/{}", r.id, r.language)
+                    } else {
+                        r.id.clone()
+                    };
+                    format!("{id} ({}, {} {plural})", r.kind.slug(), r.entries)
                 })
                 .collect();
             s.push_str(&wrap_field("  recognised    ", &items.join(" · ")));
@@ -407,7 +436,11 @@ impl FrameworkCoverage {
             s.push_str("  seen, no rules (none)\n");
         } else {
             for (i, f) in self.seen_no_rules.iter().enumerate() {
-                let label = if i == 0 { "  seen, no rules" } else { "                " };
+                let label = if i == 0 {
+                    "  seen, no rules"
+                } else {
+                    "                "
+                };
                 s.push_str(&format!(
                     "{label} {} — found in {} file(s), entries NOT enumerated\n",
                     f.id, f.files
@@ -423,7 +456,11 @@ impl FrameworkCoverage {
 
         if !self.no_markers.is_empty() {
             let total: u32 = self.no_markers.iter().map(|l| l.files).sum();
-            let langs: Vec<&str> = self.no_markers.iter().map(|l| l.language.as_str()).collect();
+            let langs: Vec<&str> = self
+                .no_markers
+                .iter()
+                .map(|l| l.language.as_str())
+                .collect();
             s.push_str(&format!(
                 "  no rules      {total} file(s) in languages with no framework rules ({})\n",
                 langs.join(", ")
@@ -539,7 +576,24 @@ mod tests {
     #[test]
     fn routeless_entry_falls_back_to_the_target_name() {
         let e = entry("", TrustKind::Queue);
-        assert_eq!(e.node_name(), "<framework-entry>::queue::flask::list_users");
+        // The *qualified* name, not its last segment: two handlers named
+        // `list_users` in different modules must not share a node.
+        assert_eq!(
+            e.node_name(),
+            "<framework-entry>::queue::flask::svc.list_users"
+        );
+    }
+
+    #[test]
+    fn routeless_entries_with_the_same_method_name_stay_distinct() {
+        // The regression this guards: NetBox has 150 Django handlers
+        // whose names end in `.get`/`.post`. Truncating to the last
+        // segment collapsed all of them onto ~10 nodes.
+        let mut a = entry("", TrustKind::Network);
+        a.target_name = "dcim.views.SiteView.get".into();
+        let mut b = entry("", TrustKind::Network);
+        b.target_name = "extras.views.NotificationsView.get".into();
+        assert_ne!(a.node_name(), b.node_name());
     }
 
     #[test]

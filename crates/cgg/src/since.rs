@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 
 /// Per-file map of changed line ranges in the *new* (post-change) side
 /// of the diff. Ranges are inclusive `[start, end]`, 1-based.
@@ -62,8 +62,8 @@ pub fn resolve_since(revspec: &str, cwd: &Path) -> Result<ChangedRanges> {
         );
     }
 
-    let text = String::from_utf8(out.stdout)
-        .context("`git diff` output was not valid UTF-8")?;
+    let text =
+        String::from_utf8(out.stdout).context("`git diff` output was not valid UTF-8")?;
     Ok(parse_diff(&text, &toplevel))
 }
 
@@ -78,7 +78,7 @@ fn git_toplevel(cwd: &Path) -> Result<PathBuf> {
     if !out.status.success() {
         return Err(anyhow!(
             "{}",
-            String::from_utf8_lossy(&out.stderr).trim().to_string()
+            String::from_utf8_lossy(&out.stderr).trim()
         ));
     }
     let s = String::from_utf8(out.stdout)
@@ -191,7 +191,10 @@ diff --git a/src/a.rs b/src/a.rs
         // `+9,0` = zero new lines at this point. Should be skipped.
         let diff = "+++ b/src/a.rs\n@@ -10,5 +9,0 @@\n";
         let r = parse_diff(diff, &root());
-        assert!(r.is_empty(), "deletion-only hunk should not produce a range");
+        assert!(
+            r.is_empty(),
+            "deletion-only hunk should not produce a range"
+        );
     }
 
     #[test]

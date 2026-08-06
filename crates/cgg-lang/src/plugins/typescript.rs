@@ -6,11 +6,11 @@
 
 use std::path::Path;
 
-use cgg_core::{ids::FileId, FileFacts};
+use cgg_core::{FileFacts, ids::FileId};
 use tree_sitter::Tree;
 
-use crate::LanguagePlugin;
 use super::javascript::JsWalker;
+use crate::LanguagePlugin;
 
 #[derive(Debug)]
 pub struct TypeScriptPlugin;
@@ -71,13 +71,14 @@ impl LanguagePlugin for TypeScriptPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cgg_core::{ids::FileId, DefVariant};
+    use cgg_core::{DefVariant, ids::FileId};
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_typescript::LANGUAGE_TSX.into()).unwrap();
+        p.set_language(&tree_sitter_typescript::LANGUAGE_TSX.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
         TypeScriptPlugin.extract(
             FileId::new(0),
@@ -91,7 +92,11 @@ mod tests {
     fn typed_function_declaration() {
         let src = "function greet(name: string): void {}\nasync function fetch(): Promise<void> {}\n";
         let f = extract(src);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         assert!(names.contains(&"greet"), "got: {names:?}");
         assert!(names.contains(&"fetch"), "got: {names:?}");
     }
@@ -114,7 +119,9 @@ class Service {
 }
 "#;
         let f = extract(src);
-        let by: std::collections::HashMap<_, _> = f.definitions.iter()
+        let by: std::collections::HashMap<_, _> = f
+            .definitions
+            .iter()
             .map(|d| (d.simple_name.clone(), d.variant))
             .collect();
         assert_eq!(by["constructor"], DefVariant::Constructor);
@@ -124,7 +131,8 @@ class Service {
 
     #[test]
     fn import_from_captured() {
-        let src = "import { helper } from './utils';\nimport type { Config } from './types';\n";
+        let src =
+            "import { helper } from './utils';\nimport type { Config } from './types';\n";
         let f = extract(src);
         // type-only imports are still import_statement nodes.
         assert!(f.imports.iter().any(|i| i.path == "./utils"));
@@ -135,6 +143,10 @@ class Service {
         let src = "function f() { greet('x'); obj.run(); }\n";
         let f = extract(src);
         assert!(f.references.iter().any(|r| r.name == "greet"));
-        assert!(f.references.iter().any(|r| r.name == "run" && r.receiver_hint == "obj"));
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "run" && r.receiver_hint == "obj")
+        );
     }
 }

@@ -1,9 +1,9 @@
 //! DOT (Graphviz) formatter.
 
-use std::io;
-use cgg_core::graph::Via;
-use cgg_core::Graph;
 use crate::{GraphFormatter, OutputFormat};
+use cgg_core::Graph;
+use cgg_core::graph::Via;
+use std::io;
 
 /// Per-`via` DOT rendering: a short label tag and extra edge attributes
 /// so over-approximated (dynamic/reference), exit-node
@@ -27,11 +27,15 @@ fn via_dot(via: &Via) -> (&'static str, &'static str) {
 pub struct DotFormatter;
 
 impl DotFormatter {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 }
 
 impl GraphFormatter for DotFormatter {
-    fn format(&self) -> OutputFormat { OutputFormat::Dot }
+    fn format(&self) -> OutputFormat {
+        OutputFormat::Dot
+    }
 
     fn render(&self, graph: &Graph, out: &mut dyn io::Write) -> io::Result<()> {
         writeln!(out, "digraph cgg {{")?;
@@ -73,7 +77,10 @@ impl GraphFormatter for DotFormatter {
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
             let key = (edge.src.as_u32(), edge.dst.as_u32(), tag);
-            if counts.insert(key, counts.get(&key).copied().unwrap_or(0) + 1).is_none() {
+            if counts
+                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
+                .is_none()
+            {
                 order.push((edge.src.as_u32(), edge.dst.as_u32(), tag, style));
             }
         }
@@ -90,7 +97,11 @@ impl GraphFormatter for DotFormatter {
             } else if style.is_empty() {
                 writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"];")?;
             } else if label.is_empty() {
-                writeln!(out, "  n{src} -> n{dst} [{}];", style.trim_start_matches(", "))?;
+                writeln!(
+                    out,
+                    "  n{src} -> n{dst} [{}];",
+                    style.trim_start_matches(", ")
+                )?;
             } else {
                 writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"{style}];")?;
             }

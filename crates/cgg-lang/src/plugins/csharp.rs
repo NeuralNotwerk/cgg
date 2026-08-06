@@ -24,9 +24,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -250,37 +248,49 @@ impl<'a> Walker<'a> {
 
     fn record_local_type(&mut self, node: Node) {
         // local_declaration_statement -> variable_declaration -> type + variable_declarator
-        let var_decl = node.children(&mut node.walk())
+        let var_decl = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "variable_declaration");
         let Some(var_decl) = var_decl else { return };
 
         // Check if explicit type or implicit (var)
         let mut children = var_decl.walk();
-        let type_node = var_decl.children(&mut children)
-            .find(|c| c.kind() == "identifier" || c.kind() == "qualified_name"
-                || c.kind() == "generic_name" || c.kind() == "implicit_type");
+        let type_node = var_decl.children(&mut children).find(|c| {
+            c.kind() == "identifier"
+                || c.kind() == "qualified_name"
+                || c.kind() == "generic_name"
+                || c.kind() == "implicit_type"
+        });
         let Some(type_node) = type_node else { return };
 
-        let declarator = var_decl.children(&mut var_decl.walk())
+        let declarator = var_decl
+            .children(&mut var_decl.walk())
             .find(|c| c.kind() == "variable_declarator");
         let Some(declarator) = declarator else { return };
-        let var_name = declarator.children(&mut declarator.walk())
+        let var_name = declarator
+            .children(&mut declarator.walk())
             .find(|c| c.kind() == "identifier")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if var_name.is_empty() { return; }
+        if var_name.is_empty() {
+            return;
+        }
 
         if type_node.kind() == "implicit_type" {
             // `var x = new Foo(...)` — infer type from object_creation_expression
-            let new_expr = declarator.children(&mut declarator.walk())
+            let new_expr = declarator
+                .children(&mut declarator.walk())
                 .find(|c| c.kind() == "object_creation_expression");
             if let Some(new_expr) = new_expr {
-                let type_id = new_expr.child_by_field_name("type")
+                let type_id = new_expr
+                    .child_by_field_name("type")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !type_id.is_empty() && type_id.starts_with(char::is_uppercase) {
                     self.facts.local_types.push(cgg_core::LocalType {
-                        var_name, type_name: type_id, scope_byte: node.start_byte() as u32,
+                        var_name,
+                        type_name: type_id,
+                        scope_byte: node.start_byte() as u32,
                     });
                 }
             }
@@ -289,7 +299,9 @@ impl<'a> Walker<'a> {
             let type_name = self.text(type_node).to_string();
             if !type_name.is_empty() && type_name.starts_with(char::is_uppercase) {
                 self.facts.local_types.push(cgg_core::LocalType {
-                    var_name, type_name, scope_byte: node.start_byte() as u32,
+                    var_name,
+                    type_name,
+                    scope_byte: node.start_byte() as u32,
                 });
             }
         }
@@ -331,10 +343,7 @@ impl<'a> Walker<'a> {
             "member_access_expression" => {
                 let expr = func.child_by_field_name("expression")?;
                 let name = func.child_by_field_name("name")?;
-                (
-                    self.text(name).to_string(),
-                    self.text(expr).to_string(),
-                )
+                (self.text(name).to_string(), self.text(expr).to_string())
             }
             "generic_name" => {
                 // Foo<T>() — take the base identifier.
@@ -367,6 +376,29 @@ fn line_range(n: Node) -> (u32, u32) {
     (s, e)
 }
 
+/// Project the declaration's modifier keywords onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language, which is exactly why this normalization belongs in the
+/// plugin: here it is `Vis::Private`.
+fn csharp_vis(modifiers: &str) -> cgg_core::Vis {
+    // Only the tokens *before* the parameter list are modifiers, and
+    // they must match whole words: a parameter named `publicId` is not
+    // a `public` modifier.
+    let head = modifiers.split('(').next().unwrap_or(modifiers);
+    let toks: Vec<&str> = head.split_whitespace().collect();
+    let m = |k: &str| toks.contains(&k);
+    if m("public") {
+        cgg_core::Vis::Public
+    } else if m("protected") {
+        cgg_core::Vis::Protected
+    } else if m("private") {
+        cgg_core::Vis::Private
+    } else if m("internal") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Private
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -428,7 +460,8 @@ class Foo {
 
     #[test]
     fn using_directive_captured() {
-        let src = "using System; using Sys = System; using static System.Math;\nclass C {}\n";
+        let src =
+            "using System; using Sys = System; using static System.Math;\nclass C {}\n";
         let f = extract(src);
         let usings: Vec<(String, String, String)> = f
             .imports
@@ -459,7 +492,8 @@ class Service {
         let f = extract(src);
         let refs: Vec<&RefRecord> = f.references.iter().collect();
         assert!(
-            refs.iter().any(|r| r.name == "Helper" && r.receiver_hint.is_empty()),
+            refs.iter()
+                .any(|r| r.name == "Helper" && r.receiver_hint.is_empty()),
             "no bare Helper call: {refs:?}"
         );
         assert!(
@@ -486,29 +520,5 @@ namespace A.B.C {
         // text of the name field which includes the dots already.
         assert!(names.iter().any(|n| n.ends_with(".T.M")), "got: {names:?}");
         assert!(names.iter().any(|n| n.contains("A.B.C")), "got: {names:?}");
-    }
-}
-
-/// Project the declaration's modifier keywords onto the shared
-/// vocabulary. The *absent* case is the interesting one and differs per
-/// language, which is exactly why this normalization belongs in the
-/// plugin: here it is `Vis::Private`.
-fn csharp_vis(modifiers: &str) -> cgg_core::Vis {
-    // Only the tokens *before* the parameter list are modifiers, and
-    // they must match whole words: a parameter named `publicId` is not
-    // a `public` modifier.
-    let head = modifiers.split('(').next().unwrap_or(modifiers);
-    let toks: Vec<&str> = head.split_whitespace().collect();
-    let m = |k: &str| toks.contains(&k);
-    if m("public") {
-        cgg_core::Vis::Public
-    } else if m("protected") {
-        cgg_core::Vis::Protected
-    } else if m("private") {
-        cgg_core::Vis::Private
-    } else if m("internal") {
-        cgg_core::Vis::Internal
-    } else {
-        cgg_core::Vis::Private
     }
 }

@@ -17,9 +17,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -38,7 +36,17 @@ impl LanguagePlugin for PythonPlugin {
         &["python3", "python", "python2"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { attributes: true, dyn_uses: true, exports: true, impls: true, test_defs: true, unreachable: true, value_refs: true, visibility: true, ..Default::default() }
+        crate::PluginSignals {
+            attributes: true,
+            dyn_uses: true,
+            exports: true,
+            impls: true,
+            test_defs: true,
+            unreachable: true,
+            value_refs: true,
+            visibility: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -62,7 +70,8 @@ impl LanguagePlugin for PythonPlugin {
         walker.walk(tree.root_node());
         let mut out = facts;
         if crate::deadcode_signals() {
-            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::PYTHON);
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::PYTHON);
         }
         if crate::deadcode_signals() {
             out.dyn_uses = super::dynuse::extract(tree, source, "python");
@@ -89,13 +98,12 @@ fn module_name(path: &Path) -> String {
     let mut dir = path.parent();
     while let Some(d) = dir {
         let init_py = d.join("__init__.py");
-        if init_py.exists() {
-            if let Some(name) = d.file_name().and_then(|s| s.to_str()) {
+        if init_py.exists()
+            && let Some(name) = d.file_name().and_then(|s| s.to_str()) {
                 parts.push(name.to_string());
                 dir = d.parent();
                 continue;
             }
-        }
         break;
     }
     parts.reverse();
@@ -210,9 +218,7 @@ impl<'a> Walker<'a> {
             return;
         }
 
-        let is_async = node
-            .children(&mut node.walk())
-            .any(|c| c.kind() == "async");
+        let is_async = node.children(&mut node.walk()).any(|c| c.kind() == "async");
 
         let decorators = collect_decorators(node, self.source);
 
@@ -269,37 +275,48 @@ impl<'a> Walker<'a> {
         // `x = Foo(...)` where Foo starts with uppercase -> x has type Foo
         let assign = node.named_child(0);
         let Some(assign) = assign else { return };
-        if assign.kind() != "assignment" { return; }
+        if assign.kind() != "assignment" {
+            return;
+        }
         let left = assign.child_by_field_name("left");
         let right = assign.child_by_field_name("right");
-        let (Some(left), Some(right)) = (left, right) else { return };
-        if left.kind() != "identifier" { return; }
+        let (Some(left), Some(right)) = (left, right) else {
+            return;
+        };
+        if left.kind() != "identifier" {
+            return;
+        }
         let var_name = self.text(left).to_string();
-        if var_name.is_empty() { return; }
+        if var_name.is_empty() {
+            return;
+        }
         // RHS must be a call where the function name starts with uppercase
-        if right.kind() != "call" { return; }
+        if right.kind() != "call" {
+            return;
+        }
         let func = right.child_by_field_name("function");
         let Some(func) = func else { return };
         let func_text = self.text(func);
         // Direct constructor: Foo(...)
         if func.kind() == "identifier" && func_text.starts_with(char::is_uppercase) {
             self.facts.local_types.push(cgg_core::LocalType {
-                var_name: var_name.clone(), type_name: func_text.to_string(),
+                var_name: var_name.clone(),
+                type_name: func_text.to_string(),
                 scope_byte: node.start_byte() as u32,
             });
         }
         // Attribute constructor: module.Foo(...)
-        if func.kind() == "attribute" {
-            if let Some(attr) = func.child_by_field_name("attribute") {
+        if func.kind() == "attribute"
+            && let Some(attr) = func.child_by_field_name("attribute") {
                 let attr_text = self.text(attr);
                 if attr_text.starts_with(char::is_uppercase) {
                     self.facts.local_types.push(cgg_core::LocalType {
-                        var_name, type_name: attr_text.to_string(),
+                        var_name,
+                        type_name: attr_text.to_string(),
                         scope_byte: node.start_byte() as u32,
                     });
                 }
             }
-        }
     }
 
     fn named_lambda(&mut self, node: Node) -> Option<DefRecord> {
@@ -383,8 +400,8 @@ impl<'a> Walker<'a> {
 
 fn parse_import(text: &str) -> (String, String, String) {
     // `import a.b as c` | `import a, b` | `from x import y as z`
-    if let Some(rest) = text.strip_prefix("from ") {
-        if let Some((module, items)) = rest.split_once(" import ") {
+    if let Some(rest) = text.strip_prefix("from ")
+        && let Some((module, items)) = rest.split_once(" import ") {
             // For Task 4 we record the module + "import items" blob
             // under `path`. The resolver in Task 6 parses per-item.
             return (
@@ -393,11 +410,14 @@ fn parse_import(text: &str) -> (String, String, String) {
                 items.trim().to_string(),
             );
         }
-    }
     if let Some(rest) = text.strip_prefix("import ") {
         let r = rest.trim();
         if let Some((lhs, alias)) = r.split_once(" as ") {
-            return ("import".into(), lhs.trim().to_string(), alias.trim().to_string());
+            return (
+                "import".into(),
+                lhs.trim().to_string(),
+                alias.trim().to_string(),
+            );
         }
         return ("import".into(), r.to_string(), String::new());
     }
@@ -416,7 +436,6 @@ fn line_range(node: Node) -> (u32, u32) {
     (start, end)
 }
 
-
 fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
     // In tree-sitter-python a decorated function lives inside
     // `decorated_definition`, where previous siblings are `decorator`
@@ -424,8 +443,8 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
     // we check the parent.
     let mut out = Vec::new();
     let mut parent = node.parent();
-    if let Some(p) = parent {
-        if p.kind() == "decorated_definition" {
+    if let Some(p) = parent
+        && p.kind() == "decorated_definition" {
             let mut c = p.walk();
             for child in p.children(&mut c) {
                 if child.kind() == "decorator" {
@@ -434,7 +453,6 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
             }
             return out;
         }
-    }
     parent = node.prev_sibling();
     while let Some(s) = parent {
         if s.kind() == "decorator" {
@@ -449,7 +467,107 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
 }
 
 fn starts_uppercase(s: &str) -> bool {
-    s.chars().next().map_or(false, |c| c.is_ascii_uppercase())
+    s.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+}
+
+/// Python has no visibility keyword; the underscore convention is the
+/// language's actual, universally-followed rule.
+fn py_vis(simple: &str) -> cgg_core::Vis {
+    if simple.starts_with("__") && simple.ends_with("__") {
+        cgg_core::Vis::Public // dunder: part of the protocol surface
+    } else if simple.starts_with('_') {
+        cgg_core::Vis::Private
+    } else {
+        cgg_core::Vis::Public
+    }
+}
+
+/// pytest / unittest lifecycle hook names.
+const PY_FIXTURES: &[&str] = &[
+    "setUp",
+    "tearDown",
+    "setUpClass",
+    "tearDownClass",
+    "setup_module",
+    "teardown_module",
+    "setup_function",
+    "teardown_function",
+    "setup_class",
+    "teardown_class",
+    "setup_method",
+    "teardown_method",
+];
+
+/// Decide a Python definition's test role.
+///
+/// Decorator evidence applies everywhere — `@pytest.fixture` is
+/// unambiguous wherever it appears. Name evidence is weaker, so it is a
+/// separate, softer signal.
+fn py_test_role(simple: &str, decorators: &[String]) -> Option<cgg_core::TestRole> {
+    for d in decorators {
+        let k = d.trim().trim_start_matches('@');
+        let k = k.split('(').next().unwrap_or(k).trim();
+        if k == "pytest.fixture" || k == "fixture" {
+            return Some(cgg_core::TestRole::Fixture);
+        }
+        if k.starts_with("pytest.mark") {
+            return Some(cgg_core::TestRole::Case);
+        }
+    }
+    if PY_FIXTURES.contains(&simple) {
+        return Some(cgg_core::TestRole::Fixture);
+    }
+    if simple.starts_with("test_") {
+        return Some(cgg_core::TestRole::Case);
+    }
+    None
+}
+
+/// Names listed in a module's `__all__`.
+///
+/// Only the literal list/tuple form is read. `__all__ += [...]` and
+/// `__all__.extend(...)` are deliberately out of scope: following them
+/// means evaluating the module, and a wrong answer here would silently
+/// mark real findings as exported.
+fn py_dunder_all(tree: &tree_sitter::Tree, source: &[u8]) -> Vec<cgg_core::ExportRecord> {
+    let text = |n: tree_sitter::Node| -> String {
+        String::from_utf8_lossy(&source[n.byte_range()]).to_string()
+    };
+    let mut out = Vec::new();
+    let mut stack = vec![tree.root_node()];
+    while let Some(n) = stack.pop() {
+        let mut c = n.walk();
+        stack.extend(n.children(&mut c));
+        if n.kind() != "assignment" {
+            continue;
+        }
+        let Some(lhs) = n.child_by_field_name("left") else {
+            continue;
+        };
+        if text(lhs).trim() != "__all__" {
+            continue;
+        }
+        let Some(rhs) = n.child_by_field_name("right") else {
+            continue;
+        };
+        let mut rc = rhs.walk();
+        for e in rhs.children(&mut rc) {
+            if !e.kind().contains("string") {
+                continue;
+            }
+            let name = text(e).trim().trim_matches(['"', '\'']).to_string();
+            if !name.is_empty() {
+                out.push(cgg_core::ExportRecord {
+                    name,
+                    kind: "__all__".into(),
+                    target: String::new(),
+                });
+            }
+        }
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out.dedup_by(|a, b| a.name == b.name);
+    out
 }
 
 #[cfg(test)]
@@ -461,7 +579,9 @@ mod tests {
 
     fn extract_with(path: &str, src: &str) -> FileFacts {
         let mut parser = Parser::new();
-        parser.set_language(&tree_sitter_python::LANGUAGE.into()).unwrap();
+        parser
+            .set_language(&tree_sitter_python::LANGUAGE.into())
+            .unwrap();
         let tree = parser.parse(src, None).unwrap();
         PythonPlugin.extract(FileId::new(0), &PathBuf::from(path), &tree, src.as_bytes())
     }
@@ -562,7 +682,8 @@ class C:
         let f = extract(src);
         let refs: Vec<&RefRecord> = f.references.iter().collect();
         assert!(
-            refs.iter().any(|r| r.name == "n" && r.receiver_hint == "self"),
+            refs.iter()
+                .any(|r| r.name == "n" && r.receiver_hint == "self"),
             "got: {refs:?}"
         );
     }
@@ -597,91 +718,4 @@ class C:
             .collect();
         assert!(names.contains(&"m.outer.inner"), "got: {names:?}");
     }
-}
-
-/// Python has no visibility keyword; the underscore convention is the
-/// language's actual, universally-followed rule.
-fn py_vis(simple: &str) -> cgg_core::Vis {
-    if simple.starts_with("__") && simple.ends_with("__") {
-        cgg_core::Vis::Public // dunder: part of the protocol surface
-    } else if simple.starts_with('_') {
-        cgg_core::Vis::Private
-    } else {
-        cgg_core::Vis::Public
-    }
-}
-
-/// pytest / unittest lifecycle hook names.
-const PY_FIXTURES: &[&str] = &[
-    "setUp", "tearDown", "setUpClass", "tearDownClass", "setup_module",
-    "teardown_module", "setup_function", "teardown_function", "setup_class",
-    "teardown_class", "setup_method", "teardown_method",
-];
-
-/// Decide a Python definition's test role.
-///
-/// Decorator evidence applies everywhere — `@pytest.fixture` is
-/// unambiguous wherever it appears. Name evidence is weaker, so it is a
-/// separate, softer signal.
-fn py_test_role(simple: &str, decorators: &[String]) -> Option<cgg_core::TestRole> {
-    for d in decorators {
-        let k = d.trim().trim_start_matches('@');
-        let k = k.split('(').next().unwrap_or(k).trim();
-        if k == "pytest.fixture" || k == "fixture" {
-            return Some(cgg_core::TestRole::Fixture);
-        }
-        if k.starts_with("pytest.mark") {
-            return Some(cgg_core::TestRole::Case);
-        }
-    }
-    if PY_FIXTURES.contains(&simple) {
-        return Some(cgg_core::TestRole::Fixture);
-    }
-    if simple.starts_with("test_") {
-        return Some(cgg_core::TestRole::Case);
-    }
-    None
-}
-
-/// Names listed in a module's `__all__`.
-///
-/// Only the literal list/tuple form is read. `__all__ += [...]` and
-/// `__all__.extend(...)` are deliberately out of scope: following them
-/// means evaluating the module, and a wrong answer here would silently
-/// mark real findings as exported.
-fn py_dunder_all(tree: &tree_sitter::Tree, source: &[u8]) -> Vec<cgg_core::ExportRecord> {
-    let text = |n: tree_sitter::Node| -> String {
-        String::from_utf8_lossy(&source[n.byte_range()]).to_string()
-    };
-    let mut out = Vec::new();
-    let mut stack = vec![tree.root_node()];
-    while let Some(n) = stack.pop() {
-        let mut c = n.walk();
-        stack.extend(n.children(&mut c));
-        if n.kind() != "assignment" {
-            continue;
-        }
-        let Some(lhs) = n.child_by_field_name("left") else { continue };
-        if text(lhs).trim() != "__all__" {
-            continue;
-        }
-        let Some(rhs) = n.child_by_field_name("right") else { continue };
-        let mut rc = rhs.walk();
-        for e in rhs.children(&mut rc) {
-            if !e.kind().contains("string") {
-                continue;
-            }
-            let name = text(e).trim().trim_matches(['"', '\'']).to_string();
-            if !name.is_empty() {
-                out.push(cgg_core::ExportRecord {
-                    name,
-                    kind: "__all__".into(),
-                    target: String::new(),
-                });
-            }
-        }
-    }
-    out.sort_by(|a, b| a.name.cmp(&b.name));
-    out.dedup_by(|a, b| a.name == b.name);
-    out
 }

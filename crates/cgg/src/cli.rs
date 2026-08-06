@@ -7,8 +7,7 @@
 //!               [--filter PATTERN]... [-n N]
 //!               [--max-paths N]
 //!               [--include-tests] [--ignore-file PATH]
-//!               [--jobs N] [--cache DIR] [--no-cache]
-//!               [--lang rust,python,...]
+//!               [--jobs N] [--lang rust,python,...]
 //!               [--audit-format json|jsonl] [--metrics FILE]
 //!               [-v|-vv|-q]
 //! ```
@@ -87,9 +86,13 @@ pub struct Cli {
     #[arg(long = "max-paths", value_name = "N", default_value_t = 1000)]
     pub max_paths: u32,
 
-    /// Include `tests/`, `__tests__/`, `*_test.go`, etc. By default
-    /// test-looking files are analyzed but tagged — this flag is a
-    /// reserved future knob; honored as a no-op in v1.
+    /// Show dead-code findings that live in test scope.
+    ///
+    /// Test files are *always* walked, parsed and resolved, and a call
+    /// from a test always counts as a caller — this flag does not widen
+    /// analysis, it widens the report. Without it, findings categorised
+    /// `only-used-by-tests` and findings on test callables themselves
+    /// are withheld (and counted in the withheld total).
     #[arg(long = "include-tests", action = ArgAction::SetTrue)]
     pub include_tests: bool,
 
@@ -100,14 +103,6 @@ pub struct Cli {
     /// Number of parallel jobs. `0` means "auto" (rayon default).
     #[arg(long = "jobs", value_name = "N", default_value_t = 0)]
     pub jobs: usize,
-
-    /// Cache directory. Default: `./.cgg-cache`.
-    #[arg(long = "cache", value_name = "DIR")]
-    pub cache: Option<PathBuf>,
-
-    /// Disable reading and writing the on-disk cache.
-    #[arg(long = "no-cache", action = ArgAction::SetTrue)]
-    pub no_cache: bool,
 
     /// Restrict analysis to the given comma-separated language ids.
     /// Example: `--lang rust,python`.
@@ -208,8 +203,10 @@ pub struct Cli {
     pub ignore_names: Vec<String>,
 
     /// Declared roots and accepted findings (TOML). Default: the
-    /// nearest `cgg-deadcode.toml`, searching upward from the working
-    /// directory. Passing this disables that search.
+    /// nearest `cgg-deadcode.toml`, searching upward from each analyzed
+    /// path first and then from the working directory, so
+    /// `cgg /path/to/project` picks up that project's rules wherever it
+    /// was launched from. Passing this disables that search.
     ///
     /// `roots` entries are entry points: a match is live, and so is
     /// everything it transitively calls. `[[allow]]` entries are
@@ -220,7 +217,8 @@ pub struct Cli {
 
     /// Write a `cgg-deadcode.toml` accepting every finding of this run,
     /// for adopting the tool on an existing codebase. Goes to the
-    /// primary output; cgg never edits files in place.
+    /// primary output *instead of* the graph; cgg never edits files in
+    /// place. Implies `--dead-code`.
     #[arg(long = "write-roots", action = ArgAction::SetTrue)]
     pub write_roots: bool,
 
@@ -228,9 +226,10 @@ pub struct Cli {
     /// attribute or decorator (`#[no_mangle]`, `glob:@app.route*`).
     /// Repeatable; same pattern syntax as `--ignore-names`.
     ///
-    /// Attributes are captured by the Rust and Python plugins only; on
-    /// other languages this matches nothing, and the capability table
-    /// in the report says so.
+    /// Only some plugins capture attributes; on the rest this matches
+    /// nothing. The per-language capability table in the report names
+    /// which is which, and a run where nothing matched says so on
+    /// stderr with the current list.
     #[arg(long = "ignore-attributes", value_name = "PATTERN")]
     pub ignore_attributes: Vec<String>,
 
@@ -242,8 +241,12 @@ pub struct Cli {
     pub why_live: Vec<String>,
 
     /// Write the detailed dead-code report (evidence, roots, per-language
-    /// capability table) to FILE. Defaults to `<output>.deadcode.json`
-    /// beside `-o`; omitted entirely when the graph goes to stdout.
+    /// capability table) to FILE.
+    ///
+    /// Defaults to a sidecar beside `-o`, named for the format:
+    /// `<output>.deadcode.txt` or `<output>.deadcode.json`. With no
+    /// `-o`, the text report goes to stderr and the JSON report needs
+    /// this flag.
     #[arg(long = "dead-code-report", value_name = "FILE")]
     pub dead_code_report: Option<PathBuf>,
 
@@ -387,8 +390,6 @@ mod tests {
             "50",
             "--jobs",
             "4",
-            "--cache",
-            ".cache",
             "--lang",
             "rust,python",
             "--audit-format",

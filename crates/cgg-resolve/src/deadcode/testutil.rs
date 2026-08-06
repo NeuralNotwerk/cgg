@@ -54,7 +54,10 @@ fn file(lang: &str) -> FileRecord {
 /// A graph containing exactly `nodes`, all in one file whose language is
 /// taken from the first node.
 pub(crate) fn graph_with(nodes: Vec<CallableNode>) -> Graph {
-    let lang = nodes.first().map(|n| n.language.clone()).unwrap_or_default();
+    let lang = nodes
+        .first()
+        .map(|n| n.language.clone())
+        .unwrap_or_default();
     let mut g = Graph::new();
     g.add_file(file(&lang));
     for n in nodes {

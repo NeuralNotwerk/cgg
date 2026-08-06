@@ -47,13 +47,14 @@ explicitly opt in. It writes to `~/.cargo` and `~/.rustup`, modifies
 shell rc files, and pulls down ~300 MB. Not something to do silently.
 
 After installation:
+
 - The user needs to either restart their shell or `source
   $HOME/.cargo/env` so `cargo` is on PATH for the current session.
 - Verify: `rustc --version` should report 1.85 or newer. If older,
   run `rustup update stable`.
 
 Windows: rustup has its own installer (`rustup-init.exe`) — point
-the user to https://rustup.rs and pause.
+the user to <https://rustup.rs> and pause.
 
 ## Step 2 — Install the C toolchain if missing
 
@@ -83,6 +84,7 @@ cargo install --git https://github.com/NeuralNotwerk/cgg --locked
 ```
 
 Notes:
+
 - `--locked` uses the committed `Cargo.lock` for reproducible builds.
 - The binary lands in `~/.cargo/bin/cgg`.
 - Re-running this command upgrades to the latest commit on the
@@ -131,7 +133,7 @@ Then `source` the rc file or open a new shell.
 
 ```bash
 cgg --help        # should print usage
-cgg --version 2>/dev/null || true   # version subcommand may not exist
+cgg --version     # prints `cgg <version>`
 ```
 
 For a real smoke test, run cgg against itself if the user has the
@@ -152,14 +154,17 @@ script:
 ./scripts/install-skill.sh
 ```
 
-It installs the `cgg` and `cgg-install` skills into Claude Code,
-Kiro, Cline, Roo Code, and/or OpenCode if they're detected. Ask
-before running it.
+It discovers every skill under `skills/*/SKILL.md` — currently `cgg`
+(how to use it), `cgg-install` (this one) and `cgg-frameworks` (teaching
+cgg a framework it doesn't recognise) — and installs them into Claude
+Code, Kiro, Cline, Roo Code, and/or OpenCode if they're detected. Ask
+before running it. `--only NAME` installs just one; `--dry-run` shows
+what it would do.
 
 ## Common failures and fixes
 
 | Symptom | Cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | `error: linker 'cc' not found` | No C toolchain | Step 2 above |
 | `error: rustc 1.x.x is not supported` | Rust too old | `rustup update stable` |
 | Build hangs/fails on a `tree-sitter-*` crate | OOM on small machines (each grammar compile is RAM-heavy) | `cargo install ... -j 2` to limit parallelism |

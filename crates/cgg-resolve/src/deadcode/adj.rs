@@ -74,7 +74,15 @@ impl Adj {
         let (fwd_off, fwd_dst, fwd_edge) = build_csr(|p| p.0, |p| p.1);
         let (rev_off, rev_src, rev_edge) = build_csr(|p| p.1, |p| p.0);
 
-        Self { n, fwd_off, fwd_dst, fwd_edge, rev_off, rev_src, rev_edge }
+        Self {
+            n,
+            fwd_off,
+            fwd_dst,
+            fwd_edge,
+            rev_off,
+            rev_src,
+            rev_edge,
+        }
     }
 
     /// Successors of `v` as `(node, edge_index)`.

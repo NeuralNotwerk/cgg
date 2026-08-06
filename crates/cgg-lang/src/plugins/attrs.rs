@@ -41,7 +41,8 @@ const ATTR_KINDS: &[&str] = &[
 ];
 
 /// Container kinds that hold attributes as children.
-const ATTR_CONTAINER_KINDS: &[&str] = &["modifiers", "attribute_list", "attributes", "decorators"];
+const ATTR_CONTAINER_KINDS: &[&str] =
+    &["modifiers", "attribute_list", "attributes", "decorators"];
 
 /// Collect the attributes attached to a definition node.
 ///
@@ -138,7 +139,8 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
 }
 
 /// Field names holding a supertype list, across grammars.
-const BASE_FIELDS: &[&str] = &["superclass", "interfaces", "bases", "superclasses", "type"];
+const BASE_FIELDS: &[&str] =
+    &["superclass", "interfaces", "bases", "superclasses", "type"];
 
 /// Node kinds holding a supertype list.
 const BASE_CONTAINER_KINDS: &[&str] = &[
@@ -170,7 +172,7 @@ pub(crate) fn base_types(node: Node, source: &[u8]) -> Vec<String> {
     let consider = |n: Node, out: &mut Vec<String>| {
         let Ok(t) = n.utf8_text(source) else { return };
         for part in split_type_list(t) {
-            if is_type_name(&part) && !out.iter().any(|e| *e == part) {
+            if is_type_name(&part) && !out.contains(&part) {
                 out.push(part);
             }
         }
@@ -257,8 +259,9 @@ fn is_type_name(s: &str) -> bool {
         return false;
     }
     s.starts_with(|c: char| c.is_alphabetic() || c == '_')
-        && s.chars()
-            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '<' | '>' | ',' | '\\'))
+        && s.chars().all(|c| {
+            c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '<' | '>' | ',' | '\\')
+        })
 }
 
 #[cfg(test)]

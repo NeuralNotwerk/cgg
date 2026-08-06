@@ -1,3 +1,10 @@
+// Pipeline helpers thread run state explicitly rather than through a
+// context struct, which keeps each stage's inputs visible at the call
+// site. The arity is the point, not an accident.
+#![allow(clippy::too_many_arguments)]
+// See cgg-lang/src/lib.rs: the `..Default::default()` spreads are
+// deliberate source-compatibility for future optional fields.
+#![allow(clippy::needless_update)]
 //! `cgg` entry point.
 //!
 //! Task 5 pipeline:
@@ -17,14 +24,14 @@ mod since;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Instant;
 
 use anyhow::{Context, Result};
 use clap::Parser;
 use tracing::info;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 use rayon::prelude::*;
 
@@ -33,22 +40,24 @@ use cgg_core::audit::{
     RunMetrics, SkipReason,
 };
 use cgg_core::graph::{
-    CallEdge, CallableKind, CallableNode, Confidence, FileRecord as GraphFileRecord, Graph, Via,
+    CallEdge, CallableKind, CallableNode, Confidence, FileRecord as GraphFileRecord,
+    Graph, Via,
 };
 use cgg_core::ids::{CallableId, FileId, ResolverId};
 use cgg_core::{
-    build_known_names, classify_external, DefVariant, FileAliases, FileFacts,
+    DefVariant, FileAliases, FileFacts, build_known_names, classify_external,
 };
 use cgg_format::{
-    DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter, OutputFormat,
+    DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter,
+    OutputFormat,
 };
 use cgg_lang::{
+    PluginRegistry,
     detect::{DetectVerdict, LanguageDetector},
     parser::ParserPool,
-    PluginRegistry,
 };
-use cgg_resolve::intra_file::{link_file, DefIdMap};
-use cgg_walk::{walk, WalkConfig};
+use cgg_resolve::intra_file::{DefIdMap, link_file};
+use cgg_walk::{WalkConfig, walk};
 use cli::{AuditFormatArg, Cli};
 
 fn main() -> ExitCode {
@@ -117,7 +126,12 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // additions, which would be reported as findings themselves, are
     // switched off. The rule: enable anything that can add inbound
     // edges, disable anything that can only add nodes.
-    let dead_mode = cli.dead_code || !cli.why_live.is_empty();
+    // `--why-live` and `--write-roots` are both questions about the
+    // dead-code model, so they turn it on rather than requiring the user
+    // to remember `--dead-code` as well. `--write-roots` without it used
+    // to emit an ordinary graph — a silent no-op wearing the costume of
+    // a baseline.
+    let dead_mode = cli.dead_code || !cli.why_live.is_empty() || cli.write_roots;
     let cli = if dead_mode {
         Cli {
             reference_edges: true,
@@ -133,7 +147,6 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // Extraction signals that only `--dead-code` consumes are an extra
     // tree walk per file; an ordinary run must not pay for them.
     cgg_lang::set_deadcode_signals(dead_mode);
-
 
     // The config file is read on every run, not only in dead-code mode:
     // it carries local framework rules, and entry nodes are on by
@@ -190,13 +203,15 @@ fn run(cli: Cli) -> Result<ExitCode> {
         argv: std::env::args().collect(),
     });
 
-    let mut metrics = RunMetrics::default();
-    metrics.files_discovered =
-        (outcome.candidates.len() + outcome.skips.len()) as u64;
+    let metrics = RunMetrics {
+        files_discovered: (outcome.candidates.len() + outcome.skips.len()) as u64,
+        ..Default::default()
+    };
+    let mut metrics = metrics;
 
     let lang_filter: Vec<&str> = cli.lang.iter().map(|s| s.as_str()).collect();
     let langs_enabled = |lang: &str| -> bool {
-        lang_filter.is_empty() || lang_filter.iter().any(|s| *s == lang)
+        lang_filter.is_empty() || lang_filter.contains(&lang)
     };
 
     let parse_started = Instant::now();
@@ -226,9 +241,19 @@ fn run(cli: Cli) -> Result<ExitCode> {
         parse_status: String,
         facts: Option<FileFacts>,
     }
+    // Clippy flags this as a large-variant enum (`FileResult` ~368
+    // bytes vs `Skipped` ~56). Boxing would shrink the Vec element but
+    // adds an allocation per analyzed file; measured at 2941ms either
+    // way, i.e. inside the noise floor. Left unboxed because the
+    // unmeasured version of this change is exactly the kind that gets
+    // shipped on a plausible-sounding rationale.
+    #[allow(clippy::large_enum_variant)]
     enum FileOutcome {
         Analyzed(FileResult),
-        Skipped { path: std::path::PathBuf, reason: SkipReason },
+        Skipped {
+            path: std::path::PathBuf,
+            reason: SkipReason,
+        },
     }
 
     // Configure rayon thread pool if --jobs specified.
@@ -327,7 +352,10 @@ fn run(cli: Cli) -> Result<ExitCode> {
         match result {
             FileOutcome::Skipped { path, reason } => {
                 events.push(AuditEvent::FileDiscovered { path: path.clone() });
-                events.push(AuditEvent::FileSkipped { path, reason: reason.clone() });
+                events.push(AuditEvent::FileSkipped {
+                    path,
+                    reason: reason.clone(),
+                });
                 if matches!(reason, SkipReason::ParseError(_)) {
                     metrics.files_errored += 1;
                 } else {
@@ -335,7 +363,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 }
             }
             FileOutcome::Analyzed(fr) => {
-                events.push(AuditEvent::FileDiscovered { path: fr.path.clone() });
+                events.push(AuditEvent::FileDiscovered {
+                    path: fr.path.clone(),
+                });
                 metrics.bytes_processed += fr.size_bytes;
 
                 let file_id = FileId::new(next_file_id);
@@ -414,7 +444,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
                                 .attributes
                                 .iter()
                                 .any(|a| a == "synthetic" || a.starts_with("derive:")),
-                            trait_impl_target: trait_impl_target_from_qn(&d.qualified_name),
+                            trait_impl_target: trait_impl_target_from_qn(
+                                &d.qualified_name,
+                            ),
                             ..Default::default()
                         });
 
@@ -429,10 +461,8 @@ fn run(cli: Cli) -> Result<ExitCode> {
                         });
                     }
 
-                    let lang_bucket = metrics
-                        .by_language
-                        .entry(fr.lang.clone())
-                        .or_default();
+                    let lang_bucket =
+                        metrics.by_language.entry(fr.lang.clone()).or_default();
                     lang_bucket.callables += facts.definitions.len() as u64;
                     metrics.callables += facts.definitions.len() as u64;
 
@@ -441,11 +471,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
 
                 metrics.files_analyzed += 1;
                 metrics.phases.parse_ms += fr.parse_ms;
-                metrics
-                    .by_language
-                    .entry(fr.lang)
-                    .or_default()
-                    .files += 1;
+                metrics.by_language.entry(fr.lang).or_default().files += 1;
 
                 file_records.push(file_audit);
             }
@@ -454,10 +480,15 @@ fn run(cli: Cli) -> Result<ExitCode> {
 
     // --- Phase 3: type propagation + intra-file link -----------------------
     let link_started = Instant::now();
-    let return_types_owned: HashMap<String, String> = cgg_resolve::type_hints::build_return_type_map(&all_facts)
-        .into_iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
-    let return_types: HashMap<&str, &str> = return_types_owned.iter()
-        .map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    let return_types_owned: HashMap<String, String> =
+        cgg_resolve::type_hints::build_return_type_map(&all_facts)
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+    let return_types: HashMap<&str, &str> = return_types_owned
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
     for facts in &mut all_facts {
         cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
     }
@@ -477,16 +508,15 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 cgg_core::graph::Confidence::Medium => {
                     metrics.confidence_histogram.medium += 1
                 }
-                cgg_core::graph::Confidence::Low => {
-                    metrics.confidence_histogram.low += 1
-                }
+                cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
             }
         }
         graph.edges.extend(outcome.edges.clone());
 
         // Classify unresolved calls into unresolved / stdlib / external.
-        let known_refs: std::collections::HashSet<&str> = known_names.iter().map(|s| s.as_str()).collect();
-        let aliases = FileAliases::from_facts(&facts);
+        let known_refs: std::collections::HashSet<&str> =
+            known_names.iter().map(|s| s.as_str()).collect();
+        let aliases = FileAliases::from_facts(facts);
         let mut per_file_aliases = std::collections::HashMap::new();
         per_file_aliases.insert(facts.file, aliases);
         let classified = classify_external(
@@ -536,15 +566,11 @@ fn run(cli: Cli) -> Result<ExitCode> {
     let cf_out = cgg_resolve::cross_file::resolve(&graph, &all_facts);
     for e in &cf_out.edges {
         match e.confidence {
-            cgg_core::graph::Confidence::High => {
-                metrics.confidence_histogram.high += 1
-            }
+            cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
             cgg_core::graph::Confidence::Medium => {
                 metrics.confidence_histogram.medium += 1
             }
-            cgg_core::graph::Confidence::Low => {
-                metrics.confidence_histogram.low += 1
-            }
+            cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
         }
     }
     metrics.edges += cf_out.edges.len() as u64;
@@ -555,7 +581,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
     for e in &ffi_out.edges {
         match e.confidence {
             cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
-            cgg_core::graph::Confidence::Medium => metrics.confidence_histogram.medium += 1,
+            cgg_core::graph::Confidence::Medium => {
+                metrics.confidence_histogram.medium += 1
+            }
             cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
         }
     }
@@ -634,9 +662,13 @@ fn run(cli: Cli) -> Result<ExitCode> {
         total_removed_external += dropped_e;
     }
 
-    metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(total_removed_unresolved);
+    metrics.unresolved_calls = metrics
+        .unresolved_calls
+        .saturating_sub(total_removed_unresolved);
     metrics.stdlib_calls = metrics.stdlib_calls.saturating_sub(total_removed_stdlib);
-    metrics.external_calls = metrics.external_calls.saturating_sub(total_removed_external);
+    metrics.external_calls = metrics
+        .external_calls
+        .saturating_sub(total_removed_external);
     for (lang, n) in removed_per_lang_unresolved {
         if let Some(b) = metrics.by_language.get_mut(&lang) {
             b.unresolved = b.unresolved.saturating_sub(n);
@@ -789,8 +821,22 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // callable whose body overlaps a changed line range from the diff.
     let mut effective_filters = cli.filter.clone();
     if let Some(revspec) = cli.since.as_deref() {
-        let cwd = std::env::current_dir().context("getting current dir for --since")?;
-        let ranges = since::resolve_since(revspec, &cwd)
+        // Anchor the revspec on the tree being analyzed, not on wherever
+        // the shell happens to be. Resolving against the process cwd meant
+        // `cgg /path/to/project --since HEAD~1..HEAD` diffed whatever
+        // repository the *caller* was standing in and seeded the graph
+        // from unrelated changes — a wrong answer with no error. `--help`
+        // has always said the analysis path is what must be in a repo,
+        // and config discovery already anchors this way.
+        let anchor = match cli.paths.first() {
+            Some(p) if p.is_dir() => p.clone(),
+            Some(p) => p
+                .parent()
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| PathBuf::from(".")),
+            None => std::env::current_dir().context("getting current dir for --since")?,
+        };
+        let ranges = since::resolve_since(revspec, &anchor)
             .with_context(|| format!("resolving --since {revspec}"))?;
         let (seeds, unmatched) = since_seeds(&graph, &ranges);
         events.push(AuditEvent::SinceResolved {
@@ -830,7 +876,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
         // `--why-live` asks the opposite question, so it does replace
         // the output: its answer is a proof, not a graph.
         if !cli.why_live.is_empty() {
-            let code = run_why_live(&cli, &graph, &all_facts, &framework_roots)?;
+            let code = run_why_live(&cli, &graph, &all_facts, &config, &framework_roots)?;
             emit_audit(&cli, &events).context("writing audit")?;
             return Ok(code);
         }
@@ -847,10 +893,30 @@ fn run(cli: Cli) -> Result<ExitCode> {
         .context("running dead-code analysis")?;
     }
 
-    let graph = query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths)
-        .map_err(|e| anyhow::anyhow!(e))?;
+    let (graph, query_stats) =
+        query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths)
+            .map_err(|e| anyhow::anyhow!(e))?;
+    // A capped `-n 0` looks exactly like a complete one in the output,
+    // so the cap has to announce itself in both places a caller might
+    // look: the audit trail after the fact, and stderr right now.
+    if query_stats.paths_truncated {
+        events.push(AuditEvent::PathsTruncated {
+            max_paths: cli.max_paths,
+            paths_emitted: query_stats.paths_emitted,
+        });
+        if !cli.quiet {
+            eprintln!(
+                "cgg: -n 0 stopped at --max-paths {} ({} path(s) kept) — the graph \
+                 omits paths that exist; raise --max-paths or narrow --filter",
+                cli.max_paths, query_stats.paths_emitted,
+            );
+        }
+    }
     let graph = query::apply_exclusions(
-        &graph, &cli.exclude_partial, &cli.exclude_glob, &cli.exclude_regex,
+        &graph,
+        &cli.exclude_partial,
+        &cli.exclude_glob,
+        &cli.exclude_regex,
     )
     .map_err(|e| anyhow::anyhow!(e))?;
     emit_graph(&cli, &graph).context("emitting graph")?;
@@ -891,22 +957,28 @@ fn run(cli: Cli) -> Result<ExitCode> {
         format!(" ({inner})")
     };
 
-    eprintln!(
-        "cgg: {disc} files, {an} analyzed, {sk} skipped{breakdown}; \
-         {ca} callables, {ed} edges ({cf} cross-file), \
-         {ur} unresolved, {sl} stdlib, {ext} external ({ms:.1} ms)",
-        disc = metrics.files_discovered,
-        an = metrics.files_analyzed,
-        sk = metrics.files_skipped,
-        breakdown = skip_breakdown,
-        ca = metrics.callables,
-        ed = metrics.edges,
-        cf = cross_file,
-        ur = metrics.unresolved_calls,
-        sl = metrics.stdlib_calls,
-        ext = metrics.external_calls,
-        ms = metrics.wall_ms
-    );
+    // `--quiet` means "everything except errors", and the run summary is
+    // not an error. Every other advisory line below is already gated on
+    // this; the summary was the one that escaped, so `-q` still printed
+    // the single noisiest line cgg emits.
+    if !cli.quiet {
+        eprintln!(
+            "cgg: {disc} files, {an} analyzed, {sk} skipped{breakdown}; \
+             {ca} callables, {ed} edges ({cf} cross-file), \
+             {ur} unresolved, {sl} stdlib, {ext} external ({ms:.1} ms)",
+            disc = metrics.files_discovered,
+            an = metrics.files_analyzed,
+            sk = metrics.files_skipped,
+            breakdown = skip_breakdown,
+            ca = metrics.callables,
+            ed = metrics.edges,
+            cf = cross_file,
+            ur = metrics.unresolved_calls,
+            sl = metrics.stdlib_calls,
+            ext = metrics.external_calls,
+            ms = metrics.wall_ms
+        );
+    }
 
     // Framework coverage. Printed whenever anything was recognised — or
     // whenever a framework was seen and could not be enumerated, which
@@ -975,37 +1047,14 @@ fn run_dead_code(
     cfg_path: Option<&std::path::Path>,
     framework_roots: &[(String, CallableId)],
 ) -> Result<ExitCode> {
-    use cgg_resolve::deadcode::{analyze, DeadCodeOptions};
+    use cgg_resolve::deadcode::{DeadCodeOptions, analyze};
 
     let threshold: Confidence = cli.dead_code_confidence.into();
     let cfg_path = cfg_path.map(|p| p.to_path_buf());
 
     // Declared roots confer liveness, so they are resolved against the
     // graph before the analysis runs.
-    let user_roots: Vec<(String, cgg_core::ids::CallableId)> = {
-        let mut v = Vec::new();
-        for pat in &cfg.roots {
-            for id in query::match_callables(graph, std::slice::from_ref(pat))
-                .map_err(|e| anyhow::anyhow!(e))?
-            {
-                v.push((pat.clone(), id));
-            }
-        }
-        // Attribute-declared roots.
-        if !cfg.root_attributes.is_empty() {
-            let pats = query::compile_patterns(&cfg.root_attributes)
-                .map_err(|e| anyhow::anyhow!(e))?;
-            for c in graph.callables.values() {
-                if c.attributes
-                    .iter()
-                    .any(|a| pats.iter().any(|p| p.matches(a)))
-                {
-                    v.push(("root_attributes".to_string(), c.id));
-                }
-            }
-        }
-        v
-    };
+    let user_roots = resolve_user_roots(graph, cfg)?;
 
     // A suppression file rots silently unless someone says so.
     let matched: std::collections::HashSet<&String> =
@@ -1020,26 +1069,27 @@ fn run_dead_code(
     // What each plugin declares it can extract. This is the authority
     // for confidence capping — see caps::measure.
     let registry = PluginRegistry::with_v1_plugins();
-    let language_signals: std::collections::BTreeMap<String, cgg_core::LanguageSignals> = registry
-        .all()
-        .iter()
-        .map(|p| {
-            let s = p.signals();
-            (
-                p.id().to_string(),
-                cgg_core::LanguageSignals {
-                    visibility: s.visibility,
-                    attributes: s.attributes,
-                    exports: s.exports,
-                    test_defs: s.test_defs,
-                    value_refs: s.value_refs,
-                    dyn_uses: s.dyn_uses,
-                    unreachable: s.unreachable,
-                    impls: s.impls,
-                },
-            )
-        })
-        .collect();
+    let language_signals: std::collections::BTreeMap<String, cgg_core::LanguageSignals> =
+        registry
+            .all()
+            .iter()
+            .map(|p| {
+                let s = p.signals();
+                (
+                    p.id().to_string(),
+                    cgg_core::LanguageSignals {
+                        visibility: s.visibility,
+                        attributes: s.attributes,
+                        exports: s.exports,
+                        test_defs: s.test_defs,
+                        value_refs: s.value_refs,
+                        dyn_uses: s.dyn_uses,
+                        unreachable: s.unreachable,
+                        impls: s.impls,
+                    },
+                )
+            })
+            .collect();
 
     let opts = DeadCodeOptions {
         user_roots,
@@ -1069,12 +1119,13 @@ fn run_dead_code(
         let mut drop_pats = cli.ignore_names.clone();
         drop_pats.extend(allow_pats.iter().cloned());
         let drop = query::compile_patterns(&drop_pats).map_err(|e| anyhow::anyhow!(e))?;
-        let attr_pats =
-            query::compile_patterns(&cli.ignore_attributes).map_err(|e| anyhow::anyhow!(e))?;
+        let attr_pats = query::compile_patterns(&cli.ignore_attributes)
+            .map_err(|e| anyhow::anyhow!(e))?;
 
         let mut used_allow: std::collections::HashSet<usize> = Default::default();
         report.findings.retain(|f| {
-            let included = keep.is_empty() || keep.iter().any(|p| p.matches(&f.qualified_name));
+            let included =
+                keep.is_empty() || keep.iter().any(|p| p.matches(&f.qualified_name));
             let ignored = drop.iter().enumerate().any(|(i, p)| {
                 let hit = p.matches(&f.qualified_name);
                 if hit && i >= cli.ignore_names.len() {
@@ -1084,7 +1135,9 @@ fn run_dead_code(
             });
             let attr_ignored = !attr_pats.is_empty()
                 && graph.callables.get(&f.id).is_some_and(|c| {
-                    c.attributes.iter().any(|a| attr_pats.iter().any(|p| p.matches(a)))
+                    c.attributes
+                        .iter()
+                        .any(|a| attr_pats.iter().any(|p| p.matches(a)))
                 });
             included && !ignored && !attr_ignored
         });
@@ -1100,9 +1153,14 @@ fn run_dead_code(
     if !cli.ignore_attributes.is_empty()
         && graph.callables.values().all(|c| c.attributes.is_empty())
     {
+        // Naming the languages is the actionable half of this note, so
+        // the list is read off the plugins rather than typed here. The
+        // hardcoded version said "python, rust" long after seven more
+        // plugins had learned to capture attributes.
         eprintln!(
             "note: --ignore-attributes matched nothing — no callable in this run \
-             carries attributes (attribute capture: python, rust)"
+             carries attributes (attribute capture: {})",
+            languages_capturing_attributes().join(", ")
         );
     }
 
@@ -1115,7 +1173,6 @@ fn run_dead_code(
         sink.flush()?;
         std::process::exit(0);
     }
-
 
     // Annotate the graph: the finding rides on the node so mermaid,
     // dot, graphml and json all render it with no second output path.
@@ -1139,17 +1196,45 @@ fn run_dead_code(
     }
 
     // The detailed report — evidence, roots, capability table — goes to
-    // a sidecar, exactly as the audit does. `<output>.deadcode.json`
-    // beside the graph, or `--dead-code-report FILE`.
-    if let Some(path) = dead_code_report_path(cli) {
-        let mut sink = open_sink(&path)?;
-        match cli.dead_code_format {
-            cli::DeadCodeFormatArg::Text => {
-                deadcode::report::render_text(&report, threshold, &mut sink)?
+    // a sidecar, exactly as the audit does: `<output>.deadcode.txt` or
+    // `.deadcode.json` beside the graph, or `--dead-code-report FILE`.
+    //
+    // With no `-o` there is no sidecar to derive, and the graph owns
+    // stdout. The report used to be dropped entirely in that case, which
+    // made the documented `cgg <path> --dead-code` produce a one-line
+    // summary and nothing else. The text report is for a human or an
+    // agent to read, so it goes to stderr instead of nowhere; the JSON
+    // report is for a machine to parse, so silently interleaving it with
+    // the summary lines on stderr would be worse than saying where to
+    // put it.
+    match dead_code_report_path(cli) {
+        Some(path) => {
+            let mut sink = open_sink(&path)?;
+            match cli.dead_code_format {
+                cli::DeadCodeFormatArg::Text => {
+                    deadcode::report::render_text(&report, threshold, &mut sink)?
+                }
+                cli::DeadCodeFormatArg::Json => {
+                    deadcode::report::render_json(&report, &mut sink)?
+                }
             }
-            cli::DeadCodeFormatArg::Json => deadcode::report::render_json(&report, &mut sink)?,
+            sink.flush()?;
         }
-        sink.flush()?;
+        None => match cli.dead_code_format {
+            cli::DeadCodeFormatArg::Text if !cli.quiet => {
+                let mut err = io::stderr();
+                deadcode::report::render_text(&report, threshold, &mut err)?;
+                err.flush()?;
+            }
+            cli::DeadCodeFormatArg::Json if !cli.quiet => {
+                eprintln!(
+                    "note: --dead-code-format json needs somewhere to go — pass \
+                     `-o FILE` (report lands at FILE.deadcode.json) or \
+                     `--dead-code-report FILE`. No report was written."
+                );
+            }
+            _ => {}
+        },
     }
 
     if !cli.quiet {
@@ -1168,24 +1253,89 @@ fn run_dead_code(
     })
 }
 
+/// Plugin ids that declare they capture attributes/decorators, sorted.
+///
+/// Measured from the registry, never listed by hand: this set has grown
+/// from two plugins to nine, and every hand-maintained copy of it in the
+/// tree was wrong by the time anyone checked.
+fn languages_capturing_attributes() -> Vec<&'static str> {
+    let registry = PluginRegistry::with_v1_plugins();
+    let mut ids: Vec<&'static str> = registry
+        .all()
+        .iter()
+        .filter(|p| p.signals().attributes)
+        .map(|p| p.id())
+        .collect();
+    ids.sort_unstable();
+    ids
+}
+
 /// Where the detailed dead-code report goes.
 ///
 /// Mirrors `emit_audit`: an explicit `--dead-code-report` wins,
-/// otherwise a sidecar beside `-o`, and nothing at all when the graph is
-/// going to stdout (the graph is the thing being piped; a report
-/// interleaved into it would corrupt it).
+/// otherwise a sidecar beside `-o`, and `None` when the graph is going
+/// to stdout (the graph is the thing being piped; a report interleaved
+/// into it would corrupt it). The caller sends the `None` case to
+/// stderr rather than discarding it.
+///
+/// The extension follows `--dead-code-format`. Writing the ranked text
+/// report to a file named `.deadcode.json` — which is what this did
+/// before — breaks every consumer that trusts a suffix, starting with
+/// `jq`.
 fn dead_code_report_path(cli: &Cli) -> Option<PathBuf> {
     if let Some(p) = &cli.dead_code_report {
         return Some(p.clone());
     }
+    let ext = match cli.dead_code_format {
+        cli::DeadCodeFormatArg::Text => ".deadcode.txt",
+        cli::DeadCodeFormatArg::Json => ".deadcode.json",
+    };
     match &cli.output {
-        Some(p) if *p != PathBuf::from("-") => {
+        Some(p) if p.as_os_str() != "-" => {
             let mut s = p.clone();
-            s.as_mut_os_string().push(".deadcode.json");
+            s.as_mut_os_string().push(ext);
             Some(s)
         }
         _ => None,
     }
+}
+
+/// Resolve the roots declared in `cgg-deadcode.toml` (`roots` patterns
+/// and `root_attributes`) against the graph.
+///
+/// Shared by `--dead-code` and `--why-live` so the two can never
+/// disagree about what a root is. They did: `--why-live` used to build
+/// its options with `..Default::default()`, which left `user_roots`
+/// empty, so a callable the report had just proven live through a
+/// declared root came back "NOT REACHED — no path from any known root"
+/// when you asked why. That is the one question whose whole purpose is
+/// to agree with the report.
+fn resolve_user_roots(
+    graph: &Graph,
+    cfg: &deadcode::config::DeadCodeConfigFile,
+) -> Result<Vec<(String, cgg_core::ids::CallableId)>> {
+    let mut v = Vec::new();
+    for pat in &cfg.roots {
+        for id in query::match_callables(graph, std::slice::from_ref(pat))
+            .map_err(|e| anyhow::anyhow!(e))?
+        {
+            v.push((pat.clone(), id));
+        }
+    }
+    // Attribute-declared roots.
+    if !cfg.root_attributes.is_empty() {
+        let pats = query::compile_patterns(&cfg.root_attributes)
+            .map_err(|e| anyhow::anyhow!(e))?;
+        for c in graph.callables.values() {
+            if c.attributes
+                .iter()
+                .any(|a| pats.iter().any(|p| p.matches(a)))
+            {
+                v.push(("root_attributes".to_string(), c.id));
+            }
+        }
+    }
+    Ok(v)
 }
 
 /// `--why-live`: print the shortest path from a root proving a callable
@@ -1194,14 +1344,16 @@ fn run_why_live(
     cli: &Cli,
     graph: &Graph,
     all_facts: &[FileFacts],
+    cfg: &deadcode::config::DeadCodeConfigFile,
     framework_roots: &[(String, CallableId)],
 ) -> Result<ExitCode> {
-    use cgg_resolve::deadcode::{why_live, DeadCodeOptions};
+    use cgg_resolve::deadcode::{DeadCodeOptions, why_live};
     // The same roots `--dead-code` uses. Without them `--why-live` said
     // "NOT REACHED" for exactly the callables the report considers live,
     // which defeats the point of asking the question in the opposite
     // direction.
     let opts = DeadCodeOptions {
+        user_roots: resolve_user_roots(graph, cfg)?,
         include_tests: cli.include_tests,
         reference_edges: cli.reference_edges,
         dynamic_dispatch: cli.dynamic_dispatch,
@@ -1275,10 +1427,7 @@ fn since_seeds(
         }
     }
 
-    (
-        seeds.into_iter().collect(),
-        unmatched.into_iter().collect(),
-    )
+    (seeds.into_iter().collect(), unmatched.into_iter().collect())
 }
 
 fn count_lines(bytes: &[u8]) -> u32 {
@@ -1290,8 +1439,8 @@ fn count_lines(bytes: &[u8]) -> u32 {
 }
 
 fn read_file(path: &std::path::Path) -> Result<Vec<u8>> {
-    let mut f = File::open(path)
-        .with_context(|| format!("opening {}", path.display()))?;
+    let mut f =
+        File::open(path).with_context(|| format!("opening {}", path.display()))?;
     let mut v = Vec::new();
     f.read_to_end(&mut v)
         .with_context(|| format!("reading {}", path.display()))?;
@@ -1338,7 +1487,8 @@ fn synthesize_exit_nodes(
 ) {
     let resolver = ResolverId::new("exit-node");
     // (language, receiver, name, is_external) -> exit node id.
-    let mut node_ids: HashMap<(String, String, String, bool), CallableId> = HashMap::new();
+    let mut node_ids: HashMap<(String, String, String, bool), CallableId> =
+        HashMap::new();
     let mut external_file: Option<FileId> = None;
     let mut stdlib_file: Option<FileId> = None;
     let mut edges: Vec<CallEdge> = Vec::new();
@@ -1500,10 +1650,7 @@ fn synthesize_entry_nodes(
                 visibility: String::new(),
                 // The evidence rides on the node so a reader who has only
                 // the graph can still see which marker produced it.
-                attributes: vec![
-                    "framework-entry".to_string(),
-                    entry.evidence.clone(),
-                ],
+                attributes: vec!["framework-entry".to_string(), entry.evidence.clone()],
                 synthetic: true,
                 trait_impl_target: None,
                 framework_entry: Some(entry.kind),
@@ -1551,8 +1698,8 @@ fn trait_impl_target_from_qn(qn: &str) -> Option<String> {
 /// Deduplicate edges: keep only one edge per (src, dst, site_byte)
 /// triple, preferring the highest confidence.
 fn dedup_edges(graph: &mut Graph) {
-    use std::collections::HashMap;
     use cgg_core::graph::Confidence;
+    use std::collections::HashMap;
     let mut best: HashMap<(u32, u32, u32), usize> = HashMap::new();
     let conf_rank = |c: Confidence| match c {
         Confidence::High => 2,
@@ -1591,9 +1738,7 @@ fn emit_graph(cli: &Cli, graph: &Graph) -> Result<()> {
 }
 
 fn resolve_primary_sink(cli: &Cli) -> PathBuf {
-    cli.output
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("-"))
+    cli.output.clone().unwrap_or_else(|| PathBuf::from("-"))
 }
 
 fn emit_audit(cli: &Cli, events: &[AuditEvent]) -> Result<()> {
@@ -1605,7 +1750,7 @@ fn emit_audit(cli: &Cli, events: &[AuditEvent]) -> Result<()> {
         p.clone()
     } else {
         match &cli.output {
-            Some(p) if *p != PathBuf::from("-") => {
+            Some(p) if p.as_os_str() != "-" => {
                 let mut s = p.clone();
                 s.as_mut_os_string().push(".audit.json");
                 s
@@ -1646,5 +1791,3 @@ fn open_sink(dest: &PathBuf) -> Result<Box<dyn Write + Send>> {
         Ok(Box::new(BufWriter::new(f)))
     }
 }
-
-

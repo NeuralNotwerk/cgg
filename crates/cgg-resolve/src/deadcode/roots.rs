@@ -34,50 +34,189 @@ const LANG_ENTRY: &[(&str, &[&str])] = &[
 /// derive rather than by any call a graph can see. `<T as Display>::fmt`
 /// has no visible caller and never will.
 const IMPLICIT_RUST_TRAITS: &[&str] = &[
-    "Drop", "Display", "Debug", "Default", "From", "Into", "TryFrom", "TryInto", "Deref",
-    "DerefMut", "Iterator", "IntoIterator", "DoubleEndedIterator", "ExactSizeIterator",
-    "PartialEq", "Eq", "PartialOrd", "Ord", "Hash", "Clone", "Copy", "Serialize",
-    "Deserialize", "Error", "FromStr", "Add", "Sub", "Mul", "Div", "Rem", "Neg", "Not",
-    "AddAssign", "SubAssign", "Index", "IndexMut", "Fn", "FnMut", "FnOnce", "Future",
-    "Send", "Sync", "Write", "Read", "AsRef", "AsMut", "Borrow", "BorrowMut", "ToString",
+    "Drop",
+    "Display",
+    "Debug",
+    "Default",
+    "From",
+    "Into",
+    "TryFrom",
+    "TryInto",
+    "Deref",
+    "DerefMut",
+    "Iterator",
+    "IntoIterator",
+    "DoubleEndedIterator",
+    "ExactSizeIterator",
+    "PartialEq",
+    "Eq",
+    "PartialOrd",
+    "Ord",
+    "Hash",
+    "Clone",
+    "Copy",
+    "Serialize",
+    "Deserialize",
+    "Error",
+    "FromStr",
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "Rem",
+    "Neg",
+    "Not",
+    "AddAssign",
+    "SubAssign",
+    "Index",
+    "IndexMut",
+    "Fn",
+    "FnMut",
+    "FnOnce",
+    "Future",
+    "Send",
+    "Sync",
+    "Write",
+    "Read",
+    "AsRef",
+    "AsMut",
+    "Borrow",
+    "BorrowMut",
+    "ToString",
     // serde drives these from inside the deserializer.
-    "Visitor", "Serializer", "Deserializer", "SeqAccess", "MapAccess",
+    "Visitor",
+    "Serializer",
+    "Deserializer",
+    "SeqAccess",
+    "MapAccess",
 ];
 
 /// Lifecycle hooks a framework or runtime invokes directly.
 const LIFECYCLE: &[(&str, &[&str])] = &[
-    ("erlang", &["handle_call", "handle_cast", "handle_info", "terminate", "code_change", "handle_continue"]),
-    ("elixir", &["handle_call", "handle_cast", "handle_info", "terminate", "code_change", "handle_continue"]),
-    ("java", &["main", "run", "call", "onCreate", "onStart", "onResume", "onPause", "onDestroy"]),
-    ("kotlin", &["main", "run", "onCreate", "onStart", "onResume", "onPause", "onDestroy"]),
-    ("csharp", &["Main", "Dispose", "ToString", "Equals", "GetHashCode"]),
-    ("swift", &["viewDidLoad", "viewWillAppear", "applicationDidFinishLaunching"]),
+    (
+        "erlang",
+        &[
+            "handle_call",
+            "handle_cast",
+            "handle_info",
+            "terminate",
+            "code_change",
+            "handle_continue",
+        ],
+    ),
+    (
+        "elixir",
+        &[
+            "handle_call",
+            "handle_cast",
+            "handle_info",
+            "terminate",
+            "code_change",
+            "handle_continue",
+        ],
+    ),
+    (
+        "java",
+        &[
+            "main",
+            "run",
+            "call",
+            "onCreate",
+            "onStart",
+            "onResume",
+            "onPause",
+            "onDestroy",
+        ],
+    ),
+    (
+        "kotlin",
+        &[
+            "main",
+            "run",
+            "onCreate",
+            "onStart",
+            "onResume",
+            "onPause",
+            "onDestroy",
+        ],
+    ),
+    (
+        "csharp",
+        &["Main", "Dispose", "ToString", "Equals", "GetHashCode"],
+    ),
+    (
+        "swift",
+        &[
+            "viewDidLoad",
+            "viewWillAppear",
+            "applicationDidFinishLaunching",
+        ],
+    ),
     ("objc", &["viewDidLoad", "applicationDidFinishLaunching"]),
 ];
 
 /// Dunder / conventional names invoked by the language runtime.
-const DUNDER_LANGS: &[&str] = &["python", "ruby", "php", "lua", "javascript", "typescript"];
+const DUNDER_LANGS: &[&str] =
+    &["python", "ruby", "php", "lua", "javascript", "typescript"];
 const CONVENTIONAL_METHODS: &[&str] = &[
-    "initialize", "to_s", "toString", "equals", "hashCode", "Dispose", "describe",
+    "initialize",
+    "to_s",
+    "toString",
+    "equals",
+    "hashCode",
+    "Dispose",
+    "describe",
 ];
 
 /// Attribute markers that mean "called from outside this source tree".
 const FFI_EXPORT_ATTRS: &[&str] = &[
-    "no_mangle", "export_name", "pyfunction", "pymethods", "pyclass", "wasm_bindgen",
-    "napi", "uniffi::export", "unsafe(no_mangle)",
+    "no_mangle",
+    "export_name",
+    "pyfunction",
+    "pymethods",
+    "pyclass",
+    "wasm_bindgen",
+    "napi",
+    "uniffi::export",
+    "unsafe(no_mangle)",
 ];
 
 /// Attribute markers for framework-invoked callables.
 const FRAMEWORK_ATTRS: &[&str] = &[
-    "app.route", "route", "get", "post", "put", "delete", "patch", "pytest.fixture",
-    "fixture", "click.command", "click.group", "celery.task", "task", "tokio::main",
-    "actix_web::main", "command", "event_handler",
+    "app.route",
+    "route",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "pytest.fixture",
+    "fixture",
+    "click.command",
+    "click.group",
+    "celery.task",
+    "task",
+    "tokio::main",
+    "actix_web::main",
+    "command",
+    "event_handler",
 ];
 
 /// Attribute markers for test cases and harness hooks.
 const TEST_ATTRS: &[&str] = &[
-    "test", "tokio::test", "async_std::test", "bench", "rstest", "proptest",
-    "quickcheck", "test_case", "pytest.mark", "Test", "Fact", "Theory", "TestMethod",
+    "test",
+    "tokio::test",
+    "async_std::test",
+    "bench",
+    "rstest",
+    "proptest",
+    "quickcheck",
+    "test_case",
+    "pytest.mark",
+    "Test",
+    "Fact",
+    "Theory",
+    "TestMethod",
 ];
 
 /// The discovered root set, split by whether liveness proved through it
@@ -106,14 +245,21 @@ impl RootSet {
         if !seen.insert(id) {
             return;
         }
-        let Some(node) = graph.callables.get(&id) else { return };
-        let Some(pos) = graph.callables.get_index_of(&id) else { return };
+        let Some(node) = graph.callables.get(&id) else {
+            return;
+        };
+        let Some(pos) = graph.callables.get_index_of(&id) else {
+            return;
+        };
         if kind.is_test() {
             self.test.push(pos as u32);
         } else {
             self.production.push(pos as u32);
         }
-        let rules = self.rules_by_language.entry(node.language.clone()).or_default();
+        let rules = self
+            .rules_by_language
+            .entry(node.language.clone())
+            .or_default();
         if !rules.iter().any(|r| r == rule) {
             rules.push(rule.to_string());
         }
@@ -160,8 +306,8 @@ pub fn attribute_key(attr: &str) -> &str {
 pub fn attribute_string_arg(attr: &str) -> Option<String> {
     let open = attr.find('(')?;
     let body = &attr[open + 1..];
-    let mut chars = body.char_indices().peekable();
-    while let Some((i, c)) = chars.next() {
+    let chars = body.char_indices().peekable();
+    for (i, c) in chars {
         if c != '"' && c != '\'' {
             continue;
         }
@@ -188,13 +334,13 @@ pub fn attribute_string_arg(attr: &str) -> Option<String> {
 /// `GetMapping`, `get` -> `get`.
 pub fn attribute_verb(attr: &str) -> &str {
     let key = attribute_key(attr);
-    key.rsplit(|c| c == '.' || c == ':').next().unwrap_or(key)
+    key.rsplit(['.', ':']).next().unwrap_or(key)
 }
 
 fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
     for a in attrs {
         let key = attribute_key(a);
-        if wanted.iter().any(|w| key == *w) {
+        if wanted.contains(&key) {
             return Some(a.trim().to_string());
         }
     }
@@ -361,7 +507,14 @@ pub(crate) fn discover(
 
         // Test cases and harness hooks.
         if let Some(a) = has_attr(&node.attributes, TEST_ATTRS) {
-            set.push(graph, *id, RootKind::TestEntry, "builtin:test-attr", a, &mut seen);
+            set.push(
+                graph,
+                *id,
+                RootKind::TestEntry,
+                "builtin:test-attr",
+                a,
+                &mut seen,
+            );
             continue;
         }
         if is_test_name(lang, &node.simple_name) {
@@ -390,8 +543,8 @@ pub(crate) fn discover(
         }
 
         // Trait methods invoked by syntax, an operator, or a derive.
-        if lang == "rust" {
-            if let Some(t) = &node.trait_impl_target {
+        if lang == "rust"
+            && let Some(t) = &node.trait_impl_target {
                 // `trait_impl_target` keeps generic arguments, so
                 // `From<OutputFormatArg>` must be compared as `From`.
                 let bare = t.split('<').next().unwrap_or(t).trim();
@@ -407,7 +560,6 @@ pub(crate) fn discover(
                     continue;
                 }
             }
-        }
 
         // Runtime-invoked lifecycle and conventional names.
         let lifecycle = LIFECYCLE
@@ -495,7 +647,8 @@ pub(crate) fn discover(
         );
     }
 
-    set.records.sort_by(|a, b| a.id.as_u32().cmp(&b.id.as_u32()));
+    set.records
+        .sort_by(|a, b| a.id.as_u32().cmp(&b.id.as_u32()));
     set.production.sort_unstable();
     set.test.sort_unstable();
     for v in set.rules_by_language.values_mut() {
@@ -594,7 +747,10 @@ mod tests {
         let mut n = node(0, "crate::tests::it_works", "it_works", "rust");
         n.attributes = vec!["#[test]".into()];
         let set = discover(&graph_with(vec![n]), &[], &[], &[]);
-        assert!(set.production.is_empty(), "a test must not be a production root");
+        assert!(
+            set.production.is_empty(),
+            "a test must not be a production root"
+        );
         assert_eq!(set.test.len(), 1);
         assert_eq!(set.records[0].kind, RootKind::TestEntry);
     }
@@ -609,14 +765,21 @@ mod tests {
         // A user trait is NOT implicitly invoked.
         let mut m = node(0, "<F as Storage>::put", "put", "rust");
         m.trait_impl_target = Some("Storage".into());
-        assert!(discover(&graph_with(vec![m]), &[], &[], &[]).records.is_empty());
+        assert!(
+            discover(&graph_with(vec![m]), &[], &[], &[])
+                .records
+                .is_empty()
+        );
     }
 
     #[test]
     fn go_test_naming_requires_more_than_the_prefix() {
         assert!(is_test_name("go", "TestFoo"));
         assert!(!is_test_name("go", "Test"));
-        assert!(!is_test_name("python", "latest"), "vulture's *test* glob bug");
+        assert!(
+            !is_test_name("python", "latest"),
+            "vulture's *test* glob bug"
+        );
         assert!(!is_test_name("python", "contest"));
         assert!(is_test_name("python", "test_thing"));
     }
@@ -635,7 +798,11 @@ mod tests {
     fn synthetic_nodes_are_never_roots() {
         let mut n = node(0, "ext::main", "main", "rust");
         n.synthetic = true;
-        assert!(discover(&graph_with(vec![n]), &[], &[], &[]).records.is_empty());
+        assert!(
+            discover(&graph_with(vec![n]), &[], &[], &[])
+                .records
+                .is_empty()
+        );
     }
 
     #[test]
@@ -665,7 +832,9 @@ mod tests {
     fn serde_visitor_methods_are_runtime_invoked() {
         let mut n = node(0, "<R as Visitor<'de>>::visit_map", "visit_map", "rust");
         n.trait_impl_target = Some("Visitor<'de>".into());
-        assert_eq!(discover(&graph_with(vec![n]), &[], &[], &[]).records.len(), 1);
+        assert_eq!(
+            discover(&graph_with(vec![n]), &[], &[], &[]).records.len(),
+            1
+        );
     }
-
 }

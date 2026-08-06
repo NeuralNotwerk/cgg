@@ -21,11 +21,11 @@
 //! The vendored grammar is compiled in `build.rs`; see
 //! `vendor/smithy/PROVENANCE.md`.
 
+use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, RefRecord, ids::FileId};
 use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
 use tree_sitter::{Node, Tree};
 use tree_sitter_language::LanguageFn;
-use crate::LanguagePlugin;
 
 unsafe extern "C" {
     fn tree_sitter_smithy() -> *const ();
@@ -36,25 +36,60 @@ const SMITHY_LANGUAGE: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_sm
 /// Smithy prelude primitives — referenced everywhere, defined nowhere
 /// in-model, so they'd only ever land in the external bucket. Skip them.
 const PRELUDE: &[&str] = &[
-    "String", "Blob", "Boolean", "Byte", "Short", "Integer", "Long",
-    "Float", "Double", "BigInteger", "BigDecimal", "Timestamp", "Document",
-    "Unit", "PrimitiveBoolean", "PrimitiveByte", "PrimitiveShort",
-    "PrimitiveInteger", "PrimitiveLong", "PrimitiveFloat", "PrimitiveDouble",
+    "String",
+    "Blob",
+    "Boolean",
+    "Byte",
+    "Short",
+    "Integer",
+    "Long",
+    "Float",
+    "Double",
+    "BigInteger",
+    "BigDecimal",
+    "Timestamp",
+    "Document",
+    "Unit",
+    "PrimitiveBoolean",
+    "PrimitiveByte",
+    "PrimitiveShort",
+    "PrimitiveInteger",
+    "PrimitiveLong",
+    "PrimitiveFloat",
+    "PrimitiveDouble",
 ];
 
 #[derive(Debug)]
 pub struct SmithyPlugin;
 
 impl LanguagePlugin for SmithyPlugin {
-    fn id(&self) -> &'static str { "smithy" }
-    fn extensions(&self) -> &'static [&'static str] { &[".smithy"] }
-    fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn ts_language(&self) -> tree_sitter::Language { SMITHY_LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "smithy"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".smithy"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        SMITHY_LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "smithy");
         let namespace = find_namespace(tree.root_node(), source);
-        let mut w = SmithyWalker { source, namespace, facts: &mut facts };
+        let mut w = SmithyWalker {
+            source,
+            namespace,
+            facts: &mut facts,
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -74,7 +109,9 @@ fn find_namespace(root: Node, source: &[u8]) -> String {
         }
         let mut c = n.walk();
         for child in n.children(&mut c) {
-            if let Some(ns) = rec(child, source) { return Some(ns); }
+            if let Some(ns) = rec(child, source) {
+                return Some(ns);
+            }
         }
         None
     }
@@ -96,7 +133,9 @@ struct SmithyWalker<'a> {
 }
 
 impl<'a> SmithyWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
 
     fn walk(&mut self, node: Node) {
         if node.kind() == "shape_statement" {
@@ -105,18 +144,32 @@ impl<'a> SmithyWalker<'a> {
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 
     fn record_shape(&mut self, shape_stmt: Node) {
         // `body:` is the concrete *_statement (service/operation/...).
-        let Some(body) = shape_stmt.child_by_field_name("body") else { return };
-        let Some(name_node) = body.child_by_field_name("name") else { return };
+        let Some(body) = shape_stmt.child_by_field_name("body") else {
+            return;
+        };
+        let Some(name_node) = body.child_by_field_name("name") else {
+            return;
+        };
         let name = self.text(name_node).to_string();
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
-        let kind = body.kind().strip_suffix("_statement").unwrap_or(body.kind());
+        let kind = body
+            .kind()
+            .strip_suffix("_statement")
+            .unwrap_or(body.kind());
         let qn = if self.namespace.is_empty() {
             name.clone()
         } else {
@@ -130,11 +183,13 @@ impl<'a> SmithyWalker<'a> {
             simple_name: name,
             qualified_name: qn,
             variant: DefVariant::FreeFunction,
-            start_line: sl, end_line: el,
+            start_line: sl,
+            end_line: el,
             start_byte: shape_stmt.start_byte() as u32,
             end_byte: shape_stmt.end_byte() as u32,
             signature_hint: format!("{kind} {}", self.text(name_node)),
-            visibility: String::new(), attributes: Vec::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
             ..Default::default()
         });
 
@@ -156,7 +211,7 @@ impl<'a> SmithyWalker<'a> {
                 // Bare value-position identifiers (operation `errors: [...]`).
                 if node.parent().map(|p| p.kind()) == Some("operation_errors") {
                     let raw = self.text(node).to_string();
-                self.push_ref(&raw, node);
+                    self.push_ref(&raw, node);
                 }
                 return;
             }
@@ -164,13 +219,20 @@ impl<'a> SmithyWalker<'a> {
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.collect_refs(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.collect_refs(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 
     fn push_ref(&mut self, raw: &str, node: Node) {
         let name = simple_shape_name(raw);
-        if name.is_empty() || PRELUDE.contains(&name) { return; }
+        if name.is_empty() || PRELUDE.contains(&name) {
+            return;
+        }
         self.facts.references.push(RefRecord {
             name: name.to_string(),
             receiver_hint: String::new(),
@@ -191,7 +253,12 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&SMITHY_LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
-        SmithyPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/m.smithy"), &tree, src.as_bytes())
+        SmithyPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/m.smithy"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     const WEATHER: &str = r#"$version: "2"
@@ -249,10 +316,20 @@ string CityId
     #[test]
     fn extracts_all_shapes_namespace_qualified() {
         let f = extract(WEATHER);
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
-        assert!(qns.contains(&"example.weather#Weather"), "service def, got {qns:?}");
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(
+            qns.contains(&"example.weather#Weather"),
+            "service def, got {qns:?}"
+        );
         assert!(qns.contains(&"example.weather#GetCity"), "operation def");
-        assert!(qns.contains(&"example.weather#GetCityInput"), "structure def");
+        assert!(
+            qns.contains(&"example.weather#GetCityInput"),
+            "structure def"
+        );
         assert!(qns.contains(&"example.weather#CityId"), "simple shape def");
     }
 
@@ -260,10 +337,16 @@ string CityId
     fn service_references_operations_and_resources() {
         let f = extract(WEATHER);
         let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
-        assert!(refs.contains(&"GetCity"), "service->operation, got {refs:?}");
+        assert!(
+            refs.contains(&"GetCity"),
+            "service->operation, got {refs:?}"
+        );
         assert!(refs.contains(&"City"), "service->resource");
         assert!(refs.contains(&"GetCityInput"), "operation->input");
-        assert!(refs.contains(&"NoSuchResource"), "operation->error (bare ident)");
+        assert!(
+            refs.contains(&"NoSuchResource"),
+            "operation->error (bare ident)"
+        );
         assert!(refs.contains(&"CityCoordinates"), "structure member->shape");
     }
 

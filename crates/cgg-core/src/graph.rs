@@ -35,12 +35,12 @@ pub enum CallableKind {
 
 /// Confidence that an edge is real.
 ///
-/// * `High`   — scope-resolved by a real resolver.
+/// * `High` — scope-resolved by a real resolver.
 /// * `Medium` — name matches exactly one in-scope candidate, but scope
-///              rules didn't fully disambiguate (e.g. macros-in-path,
-///              unresolved import).
-/// * `Low`    — multiple candidates, or dynamic dispatch to a virtual
-///              family.
+///   rules didn't fully disambiguate (e.g. macros-in-path, unresolved
+///   import).
+/// * `Low` — multiple candidates, or dynamic dispatch to a virtual
+///   family.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Confidence {
@@ -245,6 +245,10 @@ impl Graph {
     }
 }
 
+// Test fixtures spell every field, so the spread is redundant here —
+// but it keeps them identical in shape to the production construction
+// sites, which is what makes a new field a one-line change.
+#[allow(clippy::needless_update)]
 #[cfg(test)]
 mod tests {
     use super::*;

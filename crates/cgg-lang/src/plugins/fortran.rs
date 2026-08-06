@@ -1,22 +1,40 @@
 //! Fortran plugin — callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct FortranPlugin;
 
 impl LanguagePlugin for FortranPlugin {
-    fn id(&self) -> &'static str { "fortran" }
-    fn extensions(&self) -> &'static [&'static str] { &[".f90", ".f95", ".f03", ".f08", ".f", ".for", ".fpp"] }
-    fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_fortran::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "fortran"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".f90", ".f95", ".f03", ".f08", ".f", ".for", ".fpp"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_fortran::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "fortran");
-        let mut w = FortranWalker { source, facts: &mut facts, module: String::new() };
+        let mut w = FortranWalker {
+            source,
+            facts: &mut facts,
+            module: String::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -29,10 +47,15 @@ struct FortranWalker<'a> {
 }
 
 impl<'a> FortranWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn qn(&self, simple: &str) -> String {
-        if self.module.is_empty() { simple.to_string() }
-        else { format!("{}::{simple}", self.module) }
+        if self.module.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}::{simple}", self.module)
+        }
     }
 
     fn walk(&mut self, node: Node) {
@@ -62,19 +85,25 @@ impl<'a> FortranWalker<'a> {
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn extract_module(&mut self, node: Node) {
         // module name ... end module
         // Find the name child
         for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "name" {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "name" {
                     self.module = self.text(child).to_string();
                     break;
                 }
-            }
         }
     }
 
@@ -82,8 +111,8 @@ impl<'a> FortranWalker<'a> {
         // use module_name
         // Find the name child
         for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if matches!(child.kind(), "name" | "module_name") {
+            if let Some(child) = node.child(i as u32)
+                && matches!(child.kind(), "name" | "module_name") {
                     let module_name = self.text(child).to_string();
                     self.facts.imports.push(ImportRecord {
                         kind: "use".to_string(),
@@ -94,7 +123,6 @@ impl<'a> FortranWalker<'a> {
                     });
                     break;
                 }
-            }
         }
     }
 
@@ -108,17 +136,25 @@ impl<'a> FortranWalker<'a> {
             "program" => "program_statement",
             _ => return,
         };
-        let header = node.children(&mut node.walk()).find(|c| c.kind() == header_kind);
+        let header = node
+            .children(&mut node.walk())
+            .find(|c| c.kind() == header_kind);
         let Some(header) = header else { return };
-        let name = header.children(&mut header.walk())
+        let name = header
+            .children(&mut header.walk())
             .find(|c| c.kind() == "name")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
         let qn = self.qn(&name);
         let variant = DefVariant::FreeFunction;
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
             simple_name: name,
             qualified_name: qn,
@@ -138,7 +174,9 @@ impl<'a> FortranWalker<'a> {
         // tree-sitter-fortran doesn't expose field names on call_expression /
         // subroutine_call. The callee is the first named `identifier` child.
         let mut c = node.walk();
-        if !c.goto_first_child() { return; }
+        if !c.goto_first_child() {
+            return;
+        }
         loop {
             let n = c.node();
             if n.kind() == "identifier" {
@@ -154,7 +192,9 @@ impl<'a> FortranWalker<'a> {
                 }
                 return;
             }
-            if !c.goto_next_sibling() { return; }
+            if !c.goto_next_sibling() {
+                return;
+            }
         }
     }
 }
@@ -168,9 +208,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_fortran::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_fortran::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        FortranPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.f90"), &tree, src.as_bytes())
+        FortranPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.f90"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]

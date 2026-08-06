@@ -193,7 +193,10 @@ mod tests {
         // A suppression file that quietly stops working is the worst
         // possible failure mode, so unknown keys must not be ignored.
         let err = DeadCodeConfigFile::parse("rootz = [\"x\"]").unwrap_err();
-        assert!(format!("{err:#}").contains("rootz") || format!("{err:#}").contains("unknown"));
+        assert!(
+            format!("{err:#}").contains("rootz")
+                || format!("{err:#}").contains("unknown")
+        );
 
         let err = DeadCodeConfigFile::parse("[[allow]]\nnaem = \"x\"").unwrap_err();
         assert!(!format!("{err:#}").is_empty());

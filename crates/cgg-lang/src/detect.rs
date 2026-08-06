@@ -6,12 +6,12 @@
 //! 1. **Shebang** — if the file starts with `#!` and the first line
 //!    contains a substring matching any plugin's registered shebang
 //!    keyword, that language is chosen. `detected_via = "shebang:<word>"`.
-//! 1b. **Structured API descriptors** — for `.yaml`/`.yml`/`.json`, sniff
+//! 2. **Structured API descriptors** — for `.yaml`/`.yml`/`.json`, sniff
 //!    the head for a root `openapi:`/`swagger:`/`asyncapi:` key and route
 //!    to the OpenAPI or AsyncAPI plugin. No match → `Unknown` (these
 //!    extensions never fall through to the extension rule, so ordinary
 //!    config/data YAML/JSON is left alone). `detected_via = "content:<id>"`.
-//! 2. **Extension** — case-insensitive match against each plugin's
+//! 3. **Extension** — case-insensitive match against each plugin's
 //!    extension list. `detected_via = "extension:<ext>"`.
 //! 3. **`.h` ambiguity** — if the extension is `.h`, look for a
 //!    sibling file with the same stem and a C++ extension
@@ -164,8 +164,11 @@ fn sniff_structured_descriptor(path: &Path) -> Option<&'static str> {
     let n = f.read(&mut buf).ok()?;
     let head = String::from_utf8_lossy(&buf[..n]);
 
-    const KEYS: &[(&str, &str)] =
-        &[("openapi", "openapi"), ("swagger", "openapi"), ("asyncapi", "asyncapi")];
+    const KEYS: &[(&str, &str)] = &[
+        ("openapi", "openapi"),
+        ("swagger", "openapi"),
+        ("asyncapi", "asyncapi"),
+    ];
 
     // Line-leading `key:` — YAML, and JSON with one key per line.
     for line in head.lines().take(64) {
@@ -222,8 +225,8 @@ fn read_shebang(path: &Path) -> Option<String> {
 /// same stem is C++.
 fn header_verdict(path: &Path) -> DetectResult {
     const CPP_EXTS: &[&str] = &[".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".C"];
-    if let (Some(stem), Some(dir)) = (path.file_stem(), path.parent()) {
-        if let Ok(entries) = fs::read_dir(dir) {
+    if let (Some(stem), Some(dir)) = (path.file_stem(), path.parent())
+        && let Ok(entries) = fs::read_dir(dir) {
             for e in entries.flatten() {
                 let p = e.path();
                 if p.file_stem() != Some(stem) {
@@ -240,7 +243,6 @@ fn header_verdict(path: &Path) -> DetectResult {
                 }
             }
         }
-    }
     DetectResult {
         verdict: DetectVerdict::Language("c"),
         detected_via: "header-heuristic:c".into(),
@@ -319,7 +321,11 @@ mod tests {
         let reg = reg();
         let det = LanguageDetector::new(&reg);
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "script", b"#!/usr/bin/env node\nconsole.log(1)\n");
+        write(
+            tmp.path(),
+            "script",
+            b"#!/usr/bin/env node\nconsole.log(1)\n",
+        );
         let r = det.detect(&tmp.path().join("script"));
         assert_eq!(r.verdict, DetectVerdict::Language("javascript"));
         assert_eq!(r.detected_via, "shebang:node");
@@ -364,10 +370,22 @@ mod tests {
         let reg = reg();
         let det = LanguageDetector::new(&reg);
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "api.yaml", b"openapi: 3.0.0\ninfo:\n  title: x\n");
+        write(
+            tmp.path(),
+            "api.yaml",
+            b"openapi: 3.0.0\ninfo:\n  title: x\n",
+        );
         write(tmp.path(), "v2.yaml", b"swagger: \"2.0\"\npaths: {}\n");
-        write(tmp.path(), "api.json", b"{\"openapi\":\"3.0.0\",\"paths\":{}}");
-        for (name, via) in [("api.yaml", "content:openapi"), ("v2.yaml", "content:openapi"), ("api.json", "content:openapi")] {
+        write(
+            tmp.path(),
+            "api.json",
+            b"{\"openapi\":\"3.0.0\",\"paths\":{}}",
+        );
+        for (name, via) in [
+            ("api.yaml", "content:openapi"),
+            ("v2.yaml", "content:openapi"),
+            ("api.json", "content:openapi"),
+        ] {
             let r = det.detect(&tmp.path().join(name));
             assert_eq!(r.verdict, DetectVerdict::Language("openapi"), "{name}");
             assert_eq!(r.detected_via, via, "{name}");
@@ -379,7 +397,11 @@ mod tests {
         let reg = reg();
         let det = LanguageDetector::new(&reg);
         let tmp = TempDir::new().unwrap();
-        write(tmp.path(), "events.yaml", b"asyncapi: 2.6.0\ninfo:\n  title: x\n");
+        write(
+            tmp.path(),
+            "events.yaml",
+            b"asyncapi: 2.6.0\ninfo:\n  title: x\n",
+        );
         let r = det.detect(&tmp.path().join("events.yaml"));
         assert_eq!(r.verdict, DetectVerdict::Language("asyncapi"));
         assert_eq!(r.detected_via, "content:asyncapi");
@@ -391,12 +413,24 @@ mod tests {
         let det = LanguageDetector::new(&reg);
         let tmp = TempDir::new().unwrap();
         write(tmp.path(), "config.yaml", b"name: app\nversion: 1.0\n");
-        write(tmp.path(), "package.json", b"{\"name\":\"pkg\",\"scripts\":{}}");
+        write(
+            tmp.path(),
+            "package.json",
+            b"{\"name\":\"pkg\",\"scripts\":{}}",
+        );
         // a description mentioning openapi must not trip the sniff
-        write(tmp.path(), "doc.yaml", b"title: about openapi\nbody: text\n");
+        write(
+            tmp.path(),
+            "doc.yaml",
+            b"title: about openapi\nbody: text\n",
+        );
         for name in ["config.yaml", "package.json", "doc.yaml"] {
             let r = det.detect(&tmp.path().join(name));
-            assert_eq!(r.verdict, DetectVerdict::Unknown, "{name} should be Unknown");
+            assert_eq!(
+                r.verdict,
+                DetectVerdict::Unknown,
+                "{name} should be Unknown"
+            );
         }
     }
 
@@ -418,7 +452,10 @@ mod tests {
         }
         body.push('έ');
         body.push_str("\",\n  \"x\": 1\n}\n");
-        assert!(!body.is_char_boundary(2048), "fixture must straddle the cut");
+        assert!(
+            !body.is_char_boundary(2048),
+            "fixture must straddle the cut"
+        );
         std::fs::write(&f, &body).unwrap();
         // Must return a verdict rather than panicking. A locale
         // catalogue is not an API descriptor, so `None` is correct.

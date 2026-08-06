@@ -26,11 +26,7 @@ pub fn owner_from_qn(qn: &str) -> Option<&str> {
         None => prefix,
     };
     let owner = normalize_owner(owner);
-    if owner.is_empty() {
-        None
-    } else {
-        Some(owner)
-    }
+    if owner.is_empty() { None } else { Some(owner) }
 }
 
 /// Split a qualified name into `(prefix, last_segment)` at the rightmost

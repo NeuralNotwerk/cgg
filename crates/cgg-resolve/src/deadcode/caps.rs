@@ -1,10 +1,15 @@
 //! Per-language capability disclosure.
 //!
-//! Extraction coverage is very uneven — `visibility` is populated by 2
-//! of 44 plugins, real `attributes` by 2, and value-reference and
-//! dispatch modelling exist for Rust alone. A report that presented a
-//! Rust finding and a Fortran finding with equal authority would be
-//! lying, so every report states per language what cgg could see.
+//! Extraction coverage is very uneven: most of the 44 plugins declare no
+//! `visibility` and no real `attributes`, and dispatch modelling only
+//! produces edges for Rust. A report that presented a Rust finding and a
+//! Fortran finding with equal authority would be lying, so every report
+//! states per language what cgg could see.
+//!
+//! Deliberately no counts in this comment. The last version said "2 of
+//! 44 plugins" and stayed wrong for seven more plugins; the numbers live
+//! in each plugin's `signals()` and are measured at runtime by
+//! [`measure`] below.
 //!
 //! The signal columns are **derived from the run**, not hardcoded. A
 //! static 44-row table would drift from reality within a couple of
@@ -19,8 +24,16 @@ use cgg_core::graph::{Graph, Via};
 /// Languages whose primary invocation path is top-level script code that
 /// cgg does not model as a callable. A property of the language, not of
 /// extraction, so this one is a list rather than a measurement.
-const SCRIPT_DRIVEN: &[&str] =
-    &["bash", "cmake", "nix", "hcl", "starlark", "powershell", "r", "perl"];
+const SCRIPT_DRIVEN: &[&str] = &[
+    "bash",
+    "cmake",
+    "nix",
+    "hcl",
+    "starlark",
+    "powershell",
+    "r",
+    "perl",
+];
 
 /// Interface / descriptor languages. Their "callables" are schemas and
 /// their "edges" are `$ref` pointers, so an unreferenced node is a wire
@@ -36,7 +49,10 @@ const BLIND_SPOTS: &[(&str, &[&str])] = &[
             "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")])",
         ],
     ),
-    ("python", &["getattr/setattr and other string-dispatched calls"]),
+    (
+        "python",
+        &["getattr/setattr and other string-dispatched calls"],
+    ),
     ("javascript", &["obj[expr] dynamic property access"]),
     ("typescript", &["obj[expr] dynamic property access"]),
 ];
@@ -117,11 +133,10 @@ pub(crate) fn measure(
     // landed on one of its callables.
     let mut refs: BTreeMap<String, bool> = BTreeMap::new();
     for e in &graph.edges {
-        if matches!(e.via, Via::Reference) {
-            if let Some(n) = graph.callables.get(&e.dst) {
+        if matches!(e.via, Via::Reference)
+            && let Some(n) = graph.callables.get(&e.dst) {
                 refs.insert(n.language.clone(), true);
             }
-        }
     }
 
     let mut out = BTreeMap::new();
@@ -159,8 +174,16 @@ pub(crate) fn measure(
                 attributes: yes(&attrs, d.attributes),
                 value_references: yes(&refs, d.value_refs),
                 dispatch: yes(&impls, d.impls),
-                exports: if d.exports { SignalSupport::Full } else { SignalSupport::None },
-                test_tagging: if d.test_defs { SignalSupport::Full } else { SignalSupport::None },
+                exports: if d.exports {
+                    SignalSupport::Full
+                } else {
+                    SignalSupport::None
+                },
+                test_tagging: if d.test_defs {
+                    SignalSupport::Full
+                } else {
+                    SignalSupport::None
+                },
                 files: files.get(&lang).copied().unwrap_or(0),
                 callables: n_callables,
                 blind_spots,
@@ -206,13 +229,19 @@ mod tests {
     #[test]
     fn descriptor_languages_are_classified_apart() {
         let g = graph_with(vec![node(0, "Shape", "Shape", "openapi")]);
-        assert_eq!(measure(&g, &BTreeMap::new())["openapi"].class, LanguageClass::Descriptor);
+        assert_eq!(
+            measure(&g, &BTreeMap::new())["openapi"].class,
+            LanguageClass::Descriptor
+        );
     }
 
     #[test]
     fn script_languages_are_classified_apart() {
         let g = graph_with(vec![node(0, "f", "f", "bash")]);
-        assert_eq!(measure(&g, &BTreeMap::new())["bash"].class, LanguageClass::ScriptDriven);
+        assert_eq!(
+            measure(&g, &BTreeMap::new())["bash"].class,
+            LanguageClass::ScriptDriven
+        );
     }
 
     #[test]
@@ -260,7 +289,10 @@ mod tests {
         );
         let d = measure(&g, &declared);
         assert_eq!(d["rust"].class, LanguageClass::Analyzable);
-        assert!(d["rust"].signals_complete(), "declaration must be the authority");
+        assert!(
+            d["rust"].signals_complete(),
+            "declaration must be the authority"
+        );
         assert_eq!(d["rust"].value_references, SignalSupport::Full);
     }
 
@@ -273,5 +305,4 @@ mod tests {
         assert_eq!(m["rust"].visibility, SignalSupport::Full);
         assert_eq!(m["rust"].attributes, SignalSupport::Full);
     }
-
 }

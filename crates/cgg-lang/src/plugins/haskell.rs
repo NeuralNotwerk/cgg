@@ -1,22 +1,40 @@
 //! Haskell plugin — callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct HaskellPlugin;
 
 impl LanguagePlugin for HaskellPlugin {
-    fn id(&self) -> &'static str { "haskell" }
-    fn extensions(&self) -> &'static [&'static str] { &[".hs", ".lhs"] }
-    fn shebangs(&self) -> &'static [&'static str] { &["runhaskell", "runghc"] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_haskell::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "haskell"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".hs", ".lhs"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["runhaskell", "runghc"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_haskell::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "haskell");
-        let mut w = HaskellWalker { source, facts: &mut facts, module: String::new() };
+        let mut w = HaskellWalker {
+            source,
+            facts: &mut facts,
+            module: String::new(),
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -29,14 +47,19 @@ struct HaskellWalker<'a> {
 }
 
 impl<'a> HaskellWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn qn(&self, simple: &str) -> String {
         // Haskell qualifies with `.` — `Data.Thing.work`, matching how
         // the module is written and imported. (The `::` this used to
         // produce was never observable: `self.module` was always empty,
         // see `extract_module`.)
-        if self.module.is_empty() { simple.to_string() }
-        else { format!("{}.{simple}", self.module) }
+        if self.module.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}.{simple}", self.module)
+        }
     }
 
     fn walk(&mut self, node: Node) {
@@ -67,7 +90,14 @@ impl<'a> HaskellWalker<'a> {
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn extract_module(&mut self, node: Node) {
@@ -107,7 +137,11 @@ impl<'a> HaskellWalker<'a> {
                     "as" => saw_as = true,
                     "module" => {
                         let text = self.text(child).to_string();
-                        if saw_as { alias = text; } else { modules.push(text); }
+                        if saw_as {
+                            alias = text;
+                        } else {
+                            modules.push(text);
+                        }
                     }
                     _ => {}
                 }
@@ -117,7 +151,12 @@ impl<'a> HaskellWalker<'a> {
 
         if !module_name.is_empty() {
             self.facts.imports.push(ImportRecord {
-                kind: if qualified { "import qualified" } else { "import" }.to_string(),
+                kind: if qualified {
+                    "import qualified"
+                } else {
+                    "import"
+                }
+                .to_string(),
                 path: module_name,
                 alias,
                 site_line: (node.start_position().row as u32) + 1,
@@ -129,20 +168,24 @@ impl<'a> HaskellWalker<'a> {
     fn extract_function(&mut self, node: Node) {
         // function: name = expr or bind: pattern = expr
         let mut name = String::new();
-        
+
         for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "variable" {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "variable" {
                     name = self.text(child).to_string();
                     break;
                 }
-            }
         }
 
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
         let qn = self.qn(&name);
-        let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
         self.facts.definitions.push(DefRecord {
             simple_name: name,
             qualified_name: qn,
@@ -160,8 +203,8 @@ impl<'a> HaskellWalker<'a> {
 
     fn record_call(&mut self, node: Node) {
         // exp_apply: function applied to arguments
-        if let Some(func_node) = node.child(0) {
-            if func_node.kind() == "variable" {
+        if let Some(func_node) = node.child(0)
+            && func_node.kind() == "variable" {
                 let name = self.text(func_node).to_string();
                 if !name.is_empty() {
                     self.facts.references.push(RefRecord {
@@ -173,7 +216,6 @@ impl<'a> HaskellWalker<'a> {
                     });
                 }
             }
-        }
     }
 }
 
@@ -186,9 +228,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_haskell::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_haskell::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        HaskellPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.hs"), &tree, src.as_bytes())
+        HaskellPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.hs"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]
@@ -199,7 +247,11 @@ mod tests {
         let f = extract(
             "module Data.Thing (work) where\n\nwork x = helper x\n\nhelper x = x\n",
         );
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         assert!(qns.contains(&"Data.Thing.work"), "got: {qns:?}");
         assert!(qns.contains(&"Data.Thing.helper"), "got: {qns:?}");
     }

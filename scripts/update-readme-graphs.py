@@ -7,10 +7,15 @@ HTML-escaped angle brackets cgg emits, and strips the `crate::` prefix
 for readability), then patches `README.md` between
 `<!-- cgg:begin:<marker> -->` and `<!-- cgg:end:<marker> -->`.
 
+Prefix a marker with `raw:` to insert cgg's output verbatim instead.
+That is the right mode for a block the README presents as "here is what
+this command prints": cleaning it would make the documented command and
+the documented output disagree.
+
 When this runs:
   - Automatically on every commit, by `.githooks/pre-commit` (after the
     release build, before the self-stats patch and docs-check). Patches
-    the `cgg-walk` and `cgg-lang` mermaid blocks.
+    the `cgg-walk`, `cgg-lang` and self-analysis mermaid blocks.
   - Manual reruns are fine but rarely needed — the hook keeps these
     blocks in sync.
 
@@ -18,6 +23,7 @@ Idempotent: if the graphs haven't changed, the README won't either.
 
 Usage:
   update-readme-graphs.py <marker> <mmd-file> [<marker> <mmd-file> ...]
+  update-readme-graphs.py raw:self self.mmd
 """
 
 from __future__ import annotations
@@ -39,11 +45,16 @@ def clean(mmd_text: str) -> str:
       reads awkwardly inline.
     """
     nodes: dict[str, str] = {}
-    edges: set[tuple[str, str]] = set()
+    # (src, dst) -> edge label ("" for a bare arrow). cgg collapses
+    # repeated call sites into `A -->|3x| B`, and a `" --> "` test misses
+    # those entirely — which silently *deleted* every multi-site edge
+    # from the README graphs rather than rendering it unlabelled.
+    edges: dict[tuple[str, str], str] = {}
     keep: set[str] = set()
+    edge_re = re.compile(r"^(\S+)\s*-->\s*(?:\|([^|]*)\|\s*)?(\S+)$")
     for line in mmd_text.splitlines():
         s = line.strip()
-        if not s or s.startswith("flowchart"):
+        if not s or s.startswith("flowchart") or s.startswith("%%"):
             continue
         if s.startswith("C") and "[" in s:
             nid, rest = s.split("[", 1)
@@ -52,11 +63,13 @@ def clean(mmd_text: str) -> str:
                 continue
             nodes[nid] = label
             keep.add(nid)
-        elif " --> " in s:
-            src, dst = (x.strip() for x in s.split("-->"))
-            edges.add((src, dst))
+            continue
+        m = edge_re.match(s)
+        if m:
+            src, lbl, dst = m.group(1), m.group(2) or "", m.group(3)
+            edges[(src, dst)] = lbl
 
-    edges = {(s, d) for (s, d) in edges if s in keep and d in keep}
+    edges = {(s, d): lbl for (s, d), lbl in edges.items() if s in keep and d in keep}
 
     def tidy(lbl: str) -> str:
         return (
@@ -66,8 +79,9 @@ def clean(mmd_text: str) -> str:
     out = ["flowchart LR"]
     for nid in sorted(keep, key=lambda x: int(x[1:])):
         out.append(f'  {nid}["{tidy(nodes[nid])}"]')
-    for s, d in sorted(edges):
-        out.append(f"  {s} --> {d}")
+    for (s, d), lbl in sorted(edges.items()):
+        arrow = f"-->|{lbl}|" if lbl else "-->"
+        out.append(f"  {s} {arrow} {d}")
     return "\n".join(out)
 
 
@@ -90,8 +104,37 @@ def patch(readme: str, marker: str, new_content: str) -> str:
     return patched
 
 
+def self_test() -> None:
+    """Guard the cleaner against silently dropping edges.
+
+    `clean()` used to match edges with `" --> " in line`, which is false
+    for cgg's collapsed multi-site form `A -->|3x| B`. Every such edge
+    vanished from the README graphs with no error and no diff to notice,
+    because the nodes stayed and only the arrow went missing.
+    """
+    src = "\n".join(
+        [
+            "flowchart LR",
+            '  C0["a::f"]',
+            '  C1["a::g"]',
+            '  C2["a::tests::t"]',
+            "  C0 --> C1",
+            "  C1 -->|3x| C0",
+            "  C2 --> C0",
+        ]
+    )
+    out = clean(src)
+    assert "C1 -->|3x| C0" in out, f"multiplicity label dropped:\n{out}"
+    assert "C0 --> C1" in out, f"bare edge dropped:\n{out}"
+    assert "C2" not in out, f"test node kept:\n{out}"
+    print("[update-readme-graphs] self-test ok")
+
+
 def main() -> None:
     argv = sys.argv[1:]
+    if argv == ["--self-test"]:
+        self_test()
+        return
     if not argv or len(argv) % 2 != 0:
         print("usage: update-readme-graphs.py <marker> <mmd> [...]", file=sys.stderr)
         sys.exit(2)
@@ -99,11 +142,14 @@ def main() -> None:
     readme_path = Path("README.md")
     readme = readme_path.read_text()
 
-    # Process each (marker, mmd file) pair.
+    # Process each (marker, mmd file) pair. `raw:` disables cleaning.
     for marker, mmd_path in zip(argv[0::2], argv[1::2]):
         mmd_text = Path(mmd_path).read_text()
-        cleaned = clean(mmd_text)
-        readme = patch(readme, marker, cleaned)
+        if marker.startswith("raw:"):
+            marker, body = marker[4:], mmd_text.rstrip("\n")
+        else:
+            body = clean(mmd_text)
+        readme = patch(readme, marker, body)
 
     readme_path.write_text(readme)
 

@@ -78,6 +78,17 @@ const STRING_KINDS: &[&str] = &[
     "quoted_attribute_value",
 ];
 
+/// Node kinds that are a call.
+const CALL_KINDS: &[&str] = &[
+    "call_expression",
+    "call",
+    "method_invocation",
+    "invocation_expression",
+    "function_call_expression",
+    "method_call",
+    "scoped_call_expression",
+];
+
 /// Node kinds that are an anonymous function written in place.
 const CLOSURE_KINDS: &[&str] = &[
     "arrow_function",
@@ -93,6 +104,19 @@ const CLOSURE_KINDS: &[&str] = &[
     "do_block",
     "lambda_literal",
 ];
+
+/// How far to follow a chain of handler wrappers before giving up.
+const MAX_WRAPPER_DEPTH: u8 = 3;
+
+/// The callee of a call node, across the grammars cgg links.
+fn callee_of<'t>(call: Node<'t>) -> Option<Node<'t>> {
+    for f in ["function", "method", "name"] {
+        if let Some(n) = call.child_by_field_name(f) {
+            return Some(n);
+        }
+    }
+    call.named_child(0)
+}
 
 fn is_kind(node: Node, set: &[&str]) -> bool {
     set.contains(&node.kind())
@@ -130,9 +154,15 @@ pub(crate) fn unquote(raw: &str) -> String {
 /// Last `.`/`::`/`->`/`/`-separated segment of a dotted path.
 pub(crate) fn last_segment(path: &str) -> &str {
     let p = path.trim();
-    let cut = p.rfind("::").map(|i| i + 2).into_iter().chain(
-        p.rfind(|c| c == '.' || c == '/' || c == '>' || c == '\\').map(|i| i + 1),
-    ).max();
+    let cut = p
+        .rfind("::")
+        .map(|i| i + 2)
+        .into_iter()
+        .chain(
+            p.rfind(['.', '/', '>', '\\'])
+                .map(|i| i + 1),
+        )
+        .max();
     match cut {
         Some(i) if i < p.len() => &p[i..],
         _ => p,
@@ -168,10 +198,35 @@ pub(crate) fn is_registration_shape(call: Node, source: &[u8]) -> Option<String>
         return None;
     }
     let route = string_within(*named.first()?, source)?;
-    if !named.iter().skip(1).any(|n| is_kind(*n, CLOSURE_KINDS)) {
+    if !named.iter().skip(1).any(|n| is_kind(*n, CLOSURE_KINDS))
+        && trailing_block(call).is_none()
+    {
         return None;
     }
     Some(route)
+}
+
+/// A trailing `do … end` / `{ … }` block, which Ruby's grammar hangs off
+/// the call's `block` field rather than putting in its argument list.
+///
+/// Sinatra writes every route this way — `get "/x" do … end` — so
+/// without this the handler is not in argument position and the whole
+/// framework enumerates nothing.
+pub(crate) fn trailing_block<'t>(call: Node<'t>) -> Option<Node<'t>> {
+    let b = call.child_by_field_name("block")?;
+    is_kind(b, CLOSURE_KINDS).then_some(b)
+}
+
+/// Every inline closure a registration call hands off: argument-position
+/// ones and the trailing block.
+pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
+    let mut out = Vec::new();
+    if let Some(args) = arguments_of(call) {
+        let mut cursor = args.walk();
+        out.extend(args.named_children(&mut cursor).filter(|n| is_closure(*n)));
+    }
+    out.extend(trailing_block(call));
+    out
 }
 
 /// First string-literal argument of `call`, if any.
@@ -198,7 +253,10 @@ fn string_within(node: Node, source: &[u8]) -> Option<String> {
         let v = unquote(raw);
         return if v.is_empty() { None } else { Some(v) };
     }
-    if matches!(node.kind(), "argument" | "array_element_initializer" | "spread_element") {
+    if matches!(
+        node.kind(),
+        "argument" | "array_element_initializer" | "spread_element"
+    ) {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
             if let Some(s) = string_within(child, source) {
@@ -228,14 +286,13 @@ fn class_method_pair(node: Node, source: &[u8]) -> Option<(String, String)> {
         if depth > 4 {
             return;
         }
-        if n.kind() == "class_constant_access_expression" || n.kind() == "scoped_property_access_expression" {
-            if let Ok(t) = n.utf8_text(source) {
-                if let Some(base) = t.trim().strip_suffix("::class") {
+        if (n.kind() == "class_constant_access_expression"
+            || n.kind() == "scoped_property_access_expression")
+            && let Ok(t) = n.utf8_text(source)
+                && let Some(base) = t.trim().strip_suffix("::class") {
                     *class_name = Some(last_segment(base.trim()).to_string());
                     return;
                 }
-            }
-        }
         if let Some(s) = string_within(n, source) {
             if method.is_none() {
                 *method = Some(s);
@@ -270,7 +327,9 @@ fn route_for(call: Node, source: &[u8]) -> String {
     // Two levels is enough for every builder chain in the inventory and
     // keeps an unrelated outer string from being claimed as a route.
     for _ in 0..2 {
-        let Some(parent) = enclosing_call(cur) else { break };
+        let Some(parent) = enclosing_call(cur) else {
+            break;
+        };
         if let Some(s) = string_arg_of(parent, source) {
             return s;
         }
@@ -322,7 +381,9 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
     if !crate::is_registrar_verb(last_segment(context)) {
         return out;
     }
-    let Some(args) = arguments_of(call) else { return out };
+    let Some(args) = arguments_of(call) else {
+        return out;
+    };
     let route = route_for(call, source);
     let mut seen_first_string = false;
     let arg_count = {
@@ -359,7 +420,7 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
             continue;
         }
 
-        collect_value_refs(arg, source, context, &route, line, &mut out);
+        collect_value_refs(arg, source, context, &route, line, &mut out, 0);
     }
     out
 }
@@ -376,6 +437,7 @@ fn collect_value_refs(
     route: &str,
     line: u32,
     out: &mut Vec<RefRecord>,
+    depth: u8,
 ) {
     let kind = arg.kind();
 
@@ -423,8 +485,49 @@ fn collect_value_refs(
                     route: route.to_string(),
                 });
             } else {
-                collect_value_refs(child, source, context, route, line, out);
+                collect_value_refs(child, source, context, route, line, out, depth);
             }
+        }
+        return;
+    }
+
+    // A handler wrapped in a helper: `r.Get("/x",
+    // chain.ToHandlerFunc(ctrl.Handle()))`. The wrapper is a call, and
+    // the walker's own visit to it contributes nothing — `capture` bails
+    // on a verb no framework registers — so descending here is not the
+    // double work the comment above warns about. Registrar verbs are
+    // still left alone; those are captured on their own turn.
+    //
+    // Only the innermost callee is the handler. Recursing first and
+    // emitting this call's own name only when the recursion found
+    // nothing is what distinguishes `ToHandlerFunc` (a wrapper, to be
+    // skipped) from `ctrl.Handle` (the target).
+    if is_kind(arg, CALL_KINDS) {
+        if depth >= MAX_WRAPPER_DEPTH {
+            return;
+        }
+        let callee = callee_of(arg)
+            .map(|n| n.utf8_text(source).unwrap_or("").trim().to_string())
+            .unwrap_or_default();
+        if callee.is_empty() || crate::is_registrar_verb(last_segment(&callee)) {
+            return;
+        }
+        let before = out.len();
+        if let Some(inner) = arguments_of(arg) {
+            let mut cursor = inner.walk();
+            for child in inner.named_children(&mut cursor) {
+                collect_value_refs(child, source, context, route, line, out, depth + 1);
+            }
+        }
+        if out.len() == before {
+            out.push(RefRecord {
+                name: last_segment(&callee).to_string(),
+                receiver_hint: VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: arg.start_byte() as u32,
+                context: context.to_string(),
+                route: route.to_string(),
+            });
         }
         return;
     }
@@ -432,15 +535,18 @@ fn collect_value_refs(
     if !is_kind(arg, IDENT_KINDS) {
         return;
     }
-    let Ok(text) = arg.utf8_text(source) else { return };
+    let Ok(text) = arg.utf8_text(source) else {
+        return;
+    };
     let text = text.trim();
     if text.is_empty() || text.len() > 200 {
         return;
     }
     // A reference has to look like one. Anything with an operator or a
     // space in it is an expression, not a name.
-    if text.contains(|c: char| c.is_whitespace() || matches!(c, '(' | ')' | '{' | '}' | '+' | '=' | '|'))
-    {
+    if text.contains(|c: char| {
+        c.is_whitespace() || matches!(c, '(' | ')' | '{' | '}' | '+' | '=' | '|')
+    }) {
         return;
     }
     let simple = last_segment(text).trim_start_matches(&[':', '&', '$'][..]);

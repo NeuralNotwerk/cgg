@@ -66,8 +66,18 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "get", "post", "put", "delete", "patch", "head", "options", "route",
-            "api_route", "websocket", "middleware", "exception_handler",
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "head",
+            "options",
+            "route",
+            "api_route",
+            "websocket",
+            "middleware",
+            "exception_handler",
         ],
         registrars: &["add_api_route", "add_route", "add_websocket_route"],
         base_types: NONE,
@@ -84,8 +94,17 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "route", "get", "post", "put", "delete", "patch", "errorhandler",
-            "before_request", "after_request", "teardown_request", "websocket",
+            "route",
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "errorhandler",
+            "before_request",
+            "after_request",
+            "teardown_request",
+            "websocket",
         ],
         registrars: &["add_url_rule"],
         base_types: &["MethodView", "Resource"],
@@ -104,16 +123,41 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["django"],
         detect_paths: &["urls.py"],
         detect_calls: NONE,
-        attributes: &["require_http_methods", "api_view", "login_required", "csrf_exempt"],
+        attributes: &[
+            "require_http_methods",
+            "api_view",
+            "login_required",
+            "csrf_exempt",
+        ],
         registrars: &["path", "re_path", "url", "register"],
         base_types: &[
-            "View", "TemplateView", "ListView", "DetailView", "CreateView",
-            "UpdateView", "DeleteView", "APIView", "ViewSet", "ModelViewSet",
-            "GenericAPIView", "ReadOnlyModelViewSet",
+            "View",
+            "TemplateView",
+            "ListView",
+            "DetailView",
+            "CreateView",
+            "UpdateView",
+            "DeleteView",
+            "APIView",
+            "ViewSet",
+            "ModelViewSet",
+            "GenericAPIView",
+            "ReadOnlyModelViewSet",
         ],
         methods: &[
-            "get", "post", "put", "patch", "delete", "head", "options",
-            "list", "create", "retrieve", "update", "partial_update", "destroy",
+            "get",
+            "post",
+            "put",
+            "patch",
+            "delete",
+            "head",
+            "options",
+            "list",
+            "create",
+            "retrieve",
+            "update",
+            "partial_update",
+            "destroy",
         ],
         string_targets: false,
         node: true,
@@ -173,10 +217,22 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: &["nn.Module", "Module", "LightningModule", "Dataset", "IterableDataset"],
+        base_types: &[
+            "nn.Module",
+            "Module",
+            "LightningModule",
+            "Dataset",
+            "IterableDataset",
+        ],
         methods: &[
-            "forward", "training_step", "validation_step", "test_step",
-            "predict_step", "configure_optimizers", "__getitem__", "__len__",
+            "forward",
+            "training_step",
+            "validation_step",
+            "test_step",
+            "predict_step",
+            "configure_optimizers",
+            "__getitem__",
+            "__len__",
         ],
         // §8: one `torch:Module.__call__` node fanning out to every
         // model in the repo is visually useless. Root-mark instead.
@@ -196,8 +252,8 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: &[
-            "get", "post", "put", "delete", "patch", "head", "options", "all",
-            "use", "route",
+            "get", "post", "put", "delete", "patch", "head", "options", "all", "use",
+            "route",
         ],
         base_types: NONE,
         methods: NONE,
@@ -214,8 +270,8 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: &[
-            "get", "post", "put", "delete", "patch", "head", "options", "all",
-            "use", "route",
+            "get", "post", "put", "delete", "patch", "head", "options", "all", "use",
+            "route",
         ],
         base_types: NONE,
         methods: NONE,
@@ -231,8 +287,18 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "Get", "Post", "Put", "Delete", "Patch", "Head", "Options", "All",
-            "MessagePattern", "EventPattern", "Sse", "SubscribeMessage",
+            "Get",
+            "Post",
+            "Put",
+            "Delete",
+            "Patch",
+            "Head",
+            "Options",
+            "All",
+            "MessagePattern",
+            "EventPattern",
+            "Sse",
+            "SubscribeMessage",
         ],
         registrars: NONE,
         base_types: NONE,
@@ -360,9 +426,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-            "DeleteMapping", "PatchMapping", "MessageMapping",
-            "ExceptionHandler", "InitBinder", "ModelAttribute",
+            "RequestMapping",
+            "GetMapping",
+            "PostMapping",
+            "PutMapping",
+            "DeleteMapping",
+            "PatchMapping",
+            "MessageMapping",
+            "ExceptionHandler",
+            "InitBinder",
+            "ModelAttribute",
         ],
         registrars: NONE,
         base_types: NONE,
@@ -390,10 +463,26 @@ pub const SPECS: &[RuleSpec] = &[
         id: "spring-messaging",
         language: "java",
         kind: TrustKind::Queue,
-        detect: &["org.springframework.kafka", "org.springframework.amqp", "org.springframework.jms"],
+        detect: &[
+            "org.springframework.kafka",
+            "org.springframework.amqp",
+            "org.springframework.jms",
+        ],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: &["KafkaListener", "RabbitListener", "JmsListener", "StreamListener"],
+        attributes: &[
+            "KafkaListener",
+            "RabbitListener",
+            "JmsListener",
+            "StreamListener",
+            // Spring AMQP's two-level idiom: `@RabbitListener(queues=…)`
+            // on the class names the queue, and the *method* that
+            // actually receives carries only `@RabbitHandler`. Matching
+            // the listener alone marks the class and misses every
+            // handler on it. `@KafkaHandler` is the same shape.
+            "RabbitHandler",
+            "KafkaHandler",
+        ],
         registrars: NONE,
         base_types: NONE,
         methods: NONE,
@@ -410,7 +499,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["jakarta.ws.rs", "javax.ws.rs"],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: &["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Path"],
+        attributes: &[
+            "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Path",
+        ],
         registrars: NONE,
         base_types: NONE,
         methods: NONE,
@@ -425,7 +516,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["io.micronaut.http.annotation", "io.micronaut.http"],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: &["Get", "Post", "Put", "Delete", "Patch", "Head", "Options", "Controller"],
+        attributes: &[
+            "Get",
+            "Post",
+            "Put",
+            "Delete",
+            "Patch",
+            "Head",
+            "Options",
+            "Controller",
+        ],
         registrars: NONE,
         base_types: NONE,
         methods: NONE,
@@ -442,7 +542,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: &["AbstractBehavior", "AbstractActor", "UntypedAbstractActor", "AbstractLoggingActor"],
+        base_types: &[
+            "AbstractBehavior",
+            "AbstractActor",
+            "UntypedAbstractActor",
+            "AbstractLoggingActor",
+        ],
         // §3: lifecycle entries that are genuinely distinct — one per
         // actor — do earn a node, unlike `Module.forward`.
         methods: &["createReceive", "onReceive", "preStart", "postStop"],
@@ -475,8 +580,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-            "DeleteMapping", "PatchMapping",
+            "RequestMapping",
+            "GetMapping",
+            "PostMapping",
+            "PutMapping",
+            "DeleteMapping",
+            "PatchMapping",
         ],
         registrars: NONE,
         base_types: NONE,
@@ -496,7 +605,10 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Any", "Handle", "Use"],
+        registrars: &[
+            "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Any", "Handle",
+            "Use",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -511,7 +623,10 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Any", "Add", "Use"],
+        registrars: &[
+            "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Any", "Add",
+            "Use",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -526,7 +641,10 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["Get", "Post", "Put", "Delete", "Patch", "Head", "Options", "All", "Add", "Use"],
+        registrars: &[
+            "Get", "Post", "Put", "Delete", "Patch", "Head", "Options", "All", "Add",
+            "Use",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -541,7 +659,19 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["Get", "Post", "Put", "Delete", "Patch", "Head", "Options", "Handle", "HandleFunc", "Method", "Use"],
+        registrars: &[
+            "Get",
+            "Post",
+            "Put",
+            "Delete",
+            "Patch",
+            "Head",
+            "Options",
+            "Handle",
+            "HandleFunc",
+            "Method",
+            "Use",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -577,7 +707,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["RegisterWorkflow", "RegisterActivity", "ExecuteWorkflow", "ExecuteActivity"],
+        registrars: &[
+            "RegisterWorkflow",
+            "RegisterActivity",
+            "ExecuteWorkflow",
+            "ExecuteActivity",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -600,11 +735,26 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: &[
-            "get", "post", "put", "patch", "delete", "root", "match",
-            "resources", "resource", "namespace", "scope",
+            "get",
+            "post",
+            "put",
+            "patch",
+            "delete",
+            "root",
+            "match",
+            "resources",
+            "resource",
+            "namespace",
+            "scope",
         ],
-        base_types: &["ApplicationController", "ActionController::Base", "ActionController::API"],
-        methods: &["index", "show", "new", "edit", "create", "update", "destroy"],
+        base_types: &[
+            "ApplicationController",
+            "ActionController::Base",
+            "ActionController::API",
+        ],
+        methods: &[
+            "index", "show", "new", "edit", "create", "update", "destroy",
+        ],
         string_targets: true,
         node: true,
         gap: "",
@@ -652,7 +802,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: &["Sidekiq::Job", "Sidekiq::Worker", "ApplicationJob", "ActiveJob::Base"],
+        base_types: &[
+            "Sidekiq::Job",
+            "Sidekiq::Worker",
+            "ApplicationJob",
+            "ActiveJob::Base",
+        ],
         methods: &["perform"],
         string_targets: false,
         node: true,
@@ -665,16 +820,31 @@ pub const SPECS: &[RuleSpec] = &[
         id: "laravel",
         language: "php",
         kind: TrustKind::Network,
-        detect: &["Illuminate\\Support\\Facades\\Route", "Illuminate\\Routing", "Illuminate"],
+        detect: &[
+            "Illuminate\\Support\\Facades\\Route",
+            "Illuminate\\Routing",
+            "Illuminate",
+        ],
         detect_paths: &["routes/web.php", "routes/api.php", "routes/console.php"],
         detect_calls: NONE,
         attributes: NONE,
         registrars: &[
-            "get", "post", "put", "patch", "delete", "any", "match",
-            "resource", "apiResource", "redirect", "view",
+            "get",
+            "post",
+            "put",
+            "patch",
+            "delete",
+            "any",
+            "match",
+            "resource",
+            "apiResource",
+            "redirect",
+            "view",
         ],
         base_types: &["Controller", "Command", "Job"],
-        methods: &["index", "show", "store", "update", "destroy", "create", "edit", "handle"],
+        methods: &[
+            "index", "show", "store", "update", "destroy", "create", "edit", "handle",
+        ],
         string_targets: true,
         node: true,
         gap: "",
@@ -691,7 +861,16 @@ pub const SPECS: &[RuleSpec] = &[
         ],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: &["Route", "Get", "Post", "Put", "Delete", "Patch", "AsCommand", "AsMessageHandler"],
+        attributes: &[
+            "Route",
+            "Get",
+            "Post",
+            "Put",
+            "Delete",
+            "Patch",
+            "AsCommand",
+            "AsMessageHandler",
+        ],
         registrars: NONE,
         base_types: &["AbstractController", "Command"],
         methods: &["execute", "__invoke"],
@@ -708,9 +887,20 @@ pub const SPECS: &[RuleSpec] = &[
         // PHP has no import records for WordPress at all — it is a
         // global-function ecosystem. The calls themselves are the only
         // available marker.
-        detect_calls: &["add_action", "add_filter", "register_rest_route", "add_shortcode"],
+        detect_calls: &[
+            "add_action",
+            "add_filter",
+            "register_rest_route",
+            "add_shortcode",
+        ],
         attributes: NONE,
-        registrars: &["add_action", "add_filter", "register_rest_route", "add_shortcode", "register_activation_hook"],
+        registrars: &[
+            "add_action",
+            "add_filter",
+            "register_rest_route",
+            "add_shortcode",
+            "register_activation_hook",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: true,
@@ -743,8 +933,14 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "HttpGet", "HttpPost", "HttpPut", "HttpDelete", "HttpPatch",
-            "HttpHead", "HttpOptions", "Route",
+            "HttpGet",
+            "HttpPost",
+            "HttpPut",
+            "HttpDelete",
+            "HttpPatch",
+            "HttpHead",
+            "HttpOptions",
+            "Route",
         ],
         registrars: NONE,
         base_types: &["Controller", "ControllerBase", "PageModel"],
@@ -761,7 +957,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: &["MapGet", "MapPost", "MapPut", "MapDelete", "MapPatch", "MapMethods", "MapGroup", "MapHub"],
+        registrars: &[
+            "MapGet",
+            "MapPost",
+            "MapPut",
+            "MapDelete",
+            "MapPatch",
+            "MapMethods",
+            "MapGroup",
+            "MapHub",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -845,7 +1050,10 @@ pub const SPECS: &[RuleSpec] = &[
         // handlers carries its method and path in this attribute — on
         // crates.io, 48 macro invocations' worth.
         attributes: &["debug_handler", "utoipa::path"],
-        registrars: &["route", "get", "post", "put", "delete", "patch", "head", "options", "any", "nest"],
+        registrars: &[
+            "route", "get", "post", "put", "delete", "patch", "head", "options", "any",
+            "nest",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
@@ -860,8 +1068,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "get", "post", "put", "delete", "patch", "head", "options", "route",
-            "main", "utoipa::path",
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "head",
+            "options",
+            "route",
+            "main",
+            "utoipa::path",
         ],
         registrars: &["route", "service", "to", "default_service"],
         base_types: NONE,
@@ -878,8 +1094,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: &[
-            "get", "post", "put", "delete", "patch", "head", "options", "route",
-            "catch", "utoipa::path",
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "head",
+            "options",
+            "route",
+            "catch",
+            "utoipa::path",
         ],
         registrars: NONE,
         base_types: NONE,
@@ -962,6 +1186,33 @@ pub fn builtin() -> Vec<FrameworkRule> {
         .collect()
 }
 
+/// Identifiers that mark a *file* as the thing the framework enters,
+/// rather than marking a callable inside it.
+///
+/// Shape F normally reads the spawn site: `new Worker('./jobs/x.js')`
+/// names the module, and the entry is minted on the far end. That only
+/// works when the path is a literal. Real code writes
+/// `new Worker(workerFile)` with a variable, and the worker file is
+/// then referenced from nowhere — the whole module reads as dead.
+///
+/// A worker module identifies itself, though: it imports
+/// `worker_threads` and talks to `parentPort`. That pair is the receive
+/// side of the channel and appears in no spawner, so it is a precise
+/// marker for "this file is entered as a thread".
+///
+/// Kept out of [`FrameworkRule`] for the same reason as
+/// [`detect_calls_for`]: it selects a *file*, not a callable, so no
+/// matcher field fits it and a user-authored rule has no business
+/// declaring one.
+pub fn self_module_markers_for(id: &str, language: &str) -> &'static [&'static str] {
+    match (id, language) {
+        ("worker-threads", "javascript") | ("worker-threads", "typescript") => {
+            &["parentPort", "workerData"]
+        }
+        _ => NONE,
+    }
+}
+
 /// Call names that alone prove a framework is present, for ecosystems
 /// with no import records. Returned separately from [`FrameworkRule`]
 /// because it is a detection input, not a matcher, and a user-authored
@@ -1007,7 +1258,10 @@ pub fn languages_with_rules() -> Vec<&'static str> {
 pub fn registrar_verbs() -> &'static [&'static str] {
     static VERBS: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
     VERBS.get_or_init(|| {
-        let mut v: Vec<&'static str> = SPECS.iter().flat_map(|s| s.registrars.iter().copied()).collect();
+        let mut v: Vec<&'static str> = SPECS
+            .iter()
+            .flat_map(|s| s.registrars.iter().copied())
+            .collect();
         v.sort_unstable_by_key(|a| a.to_ascii_lowercase());
         v.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
         v
@@ -1103,14 +1357,44 @@ mod tests {
         // table, the coverage claim in the README stops being true.
         let ids: HashSet<&str> = SPECS.iter().map(|s| s.id).collect();
         for want in [
-            "fastapi", "flask", "django", "celery", "torch", "express", "nestjs",
-            "spring", "jakarta-rs", "micronaut", "akka", "gin", "echo", "fiber",
-            "chi", "net-http", "temporal", "rails", "sinatra", "grape", "sidekiq",
-            "laravel", "symfony", "wordpress", "codeigniter", "aspnet-mvc",
-            "aspnet-minimal", "quartz", "masstransit", "axum", "actix-web",
-            "rocket", "cuda",
+            "fastapi",
+            "flask",
+            "django",
+            "celery",
+            "torch",
+            "express",
+            "nestjs",
+            "spring",
+            "jakarta-rs",
+            "micronaut",
+            "akka",
+            "gin",
+            "echo",
+            "fiber",
+            "chi",
+            "net-http",
+            "temporal",
+            "rails",
+            "sinatra",
+            "grape",
+            "sidekiq",
+            "laravel",
+            "symfony",
+            "wordpress",
+            "codeigniter",
+            "aspnet-mvc",
+            "aspnet-minimal",
+            "quartz",
+            "masstransit",
+            "axum",
+            "actix-web",
+            "rocket",
+            "cuda",
         ] {
-            assert!(ids.contains(want), "inventory framework `{want}` is missing");
+            assert!(
+                ids.contains(want),
+                "inventory framework `{want}` is missing"
+            );
         }
     }
 
@@ -1119,7 +1403,11 @@ mod tests {
         // §8: an entry node per bucket-D method is visually useless.
         for s in SPECS {
             if s.kind == TrustKind::Lifecycle && !s.base_types.is_empty() {
-                assert!(!s.node, "{}/{} would fan out a lifecycle node", s.language, s.id);
+                assert!(
+                    !s.node,
+                    "{}/{} would fan out a lifecycle node",
+                    s.language, s.id
+                );
             }
         }
     }

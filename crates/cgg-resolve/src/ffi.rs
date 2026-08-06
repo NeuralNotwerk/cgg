@@ -14,9 +14,9 @@
 
 use std::collections::HashMap;
 
+use cgg_core::FileFacts;
 use cgg_core::graph::{CallEdge, Confidence, Graph, Via};
 use cgg_core::ids::{CallableId, ResolverId};
-use cgg_core::FileFacts;
 
 #[derive(Debug, Default)]
 pub struct FfiOutput {
@@ -39,7 +39,10 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
     // labels in turn.
     let mut by_name: HashMap<&str, Vec<(CallableId, &str)>> = HashMap::new();
     for c in graph.callables.values() {
-        by_name.entry(c.simple_name.as_str()).or_default().push((c.id, c.language.as_str()));
+        by_name
+            .entry(c.simple_name.as_str())
+            .or_default()
+            .push((c.id, c.language.as_str()));
     }
     let asm_simple: std::collections::HashSet<&str> = graph
         .callables
@@ -70,15 +73,27 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
             // label and link the ref to matching C/C++ callables.
             for r in &f.references {
                 let candidates = c_family_lookup(&r.name);
-                if candidates.is_empty() { continue; }
-                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else { continue };
+                if candidates.is_empty() {
+                    continue;
+                }
+                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else {
+                    continue;
+                };
                 for dst in candidates {
-                    if dst == src_id { continue; }
-                    let dup = graph.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte)
-                        || out.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte);
-                    if dup { continue; }
+                    if dst == src_id {
+                        continue;
+                    }
+                    let dup = graph.edges.iter().any(|e| {
+                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
+                    }) || out.edges.iter().any(|e| {
+                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
+                    });
+                    if dup {
+                        continue;
+                    }
                     out.edges.push(CallEdge {
-                        src: src_id, dst,
+                        src: src_id,
+                        dst,
                         site_line: r.site_line,
                         site_byte: r.site_byte,
                         confidence: Confidence::Medium,
@@ -93,21 +108,34 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
             for r in &f.references {
                 let stripped = r.name.trim_start_matches('_');
                 let names = [r.name.as_str(), stripped];
-                let asm_targets: Vec<CallableId> = names.iter()
+                let asm_targets: Vec<CallableId> = names
+                    .iter()
                     .filter(|n| asm_simple.contains(*n))
                     .flat_map(|n| by_name.get(*n).into_iter().flatten())
                     .filter(|(_, lang)| *lang == "asm")
                     .map(|(cid, _)| *cid)
                     .collect();
-                if asm_targets.is_empty() { continue; }
-                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else { continue };
+                if asm_targets.is_empty() {
+                    continue;
+                }
+                let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else {
+                    continue;
+                };
                 for dst in asm_targets {
-                    if dst == src_id { continue; }
-                    let dup = graph.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte)
-                        || out.edges.iter().any(|e| e.src == src_id && e.dst == dst && e.site_byte == r.site_byte);
-                    if dup { continue; }
+                    if dst == src_id {
+                        continue;
+                    }
+                    let dup = graph.edges.iter().any(|e| {
+                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
+                    }) || out.edges.iter().any(|e| {
+                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
+                    });
+                    if dup {
+                        continue;
+                    }
                     out.edges.push(CallEdge {
-                        src: src_id, dst,
+                        src: src_id,
+                        dst,
                         site_line: r.site_line,
                         site_byte: r.site_byte,
                         confidence: Confidence::Medium,
@@ -142,7 +170,10 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                 continue;
             }
             // Check if there's already an edge from other_id to c.id.
-            let exists = graph.edges.iter().any(|e| e.src == other_id && e.dst == c.id)
+            let exists = graph
+                .edges
+                .iter()
+                .any(|e| e.src == other_id && e.dst == c.id)
                 || out.edges.iter().any(|e| e.src == other_id && e.dst == c.id);
             if exists {
                 continue;
@@ -169,8 +200,12 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
 fn enclosing_callable(graph: &Graph, f: &FileFacts, byte: u32) -> Option<CallableId> {
     let mut best: Option<(&cgg_core::graph::CallableNode, u32)> = None;
     for c in graph.callables.values() {
-        if c.file != f.file { continue; }
-        if c.start_byte > byte || c.end_byte < byte { continue; }
+        if c.file != f.file {
+            continue;
+        }
+        if c.start_byte > byte || c.end_byte < byte {
+            continue;
+        }
         let span = c.end_byte.saturating_sub(c.start_byte);
         match best {
             Some((_, sp)) if sp <= span => {}
@@ -285,8 +320,10 @@ mod tests {
             kind: CallableKind::Function,
             language: "rust".into(),
             file: FileId::new(0),
-            start_line: 1, end_line: 3,
-            start_byte: 0, end_byte: 50,
+            start_line: 1,
+            end_line: 3,
+            start_byte: 0,
+            end_byte: 50,
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec!["#[pyfunction]".into()],
@@ -302,8 +339,10 @@ mod tests {
             kind: CallableKind::Function,
             language: "python".into(),
             file: FileId::new(1),
-            start_line: 1, end_line: 2,
-            start_byte: 0, end_byte: 30,
+            start_line: 1,
+            end_line: 2,
+            start_byte: 0,
+            end_byte: 30,
             signature_hint: String::new(),
             visibility: String::new(),
             attributes: vec![],
@@ -312,6 +351,137 @@ mod tests {
             ..Default::default()
         });
         g
+    }
+
+    /// Every FFI form the README and the `cgg` skill promise to detect,
+    /// as `(attribute-as-written, family, direction)`.
+    ///
+    /// This table is the documented contract — "detect `#[pyfunction]`,
+    /// `#[wasm_bindgen]`, `#[napi]`, `@JNI`, `[DllImport]`, `extern "C"`
+    /// and link across language boundaries". Only the PyO3 row was
+    /// exercised, so a regression in any other family was invisible.
+    const DOCUMENTED_FORMS: &[(&str, &str, FfiDirection)] = &[
+        ("#[pyfunction]", "pyo3", FfiDirection::Export),
+        ("#[pymethods]", "pyo3", FfiDirection::Export),
+        ("#[pyclass]", "pyo3", FfiDirection::Export),
+        ("#[wasm_bindgen]", "wasm-bindgen", FfiDirection::Export),
+        ("#[napi]", "napi", FfiDirection::Export),
+        ("#[module_exports]", "napi", FfiDirection::Export),
+        ("#[no_mangle]", "c-abi", FfiDirection::Export),
+        ("#[export_name = \"x\"]", "c-abi", FfiDirection::Export),
+        ("#[uniffi::export]", "uniffi", FfiDirection::Export),
+        ("@JNIEXPORT", "jni", FfiDirection::Export),
+        ("[UnmanagedCallersOnly]", "c-abi", FfiDirection::Export),
+        // Recorded as the bare key; `__declspec(...)` is unwrapped by
+        // the plugin, not here.
+        ("dllexport", "c-abi", FfiDirection::Export),
+        // Imports: a call leaving the tree.
+        (
+            "[DllImport(\"user32.dll\")]",
+            "pinvoke",
+            FfiDirection::Import,
+        ),
+        ("native", "jni", FfiDirection::Import),
+        ("#[link(name = \"c\")]", "c-abi", FfiDirection::Import),
+    ];
+
+    #[test]
+    fn every_documented_ffi_form_classifies() {
+        for (attr, family, dir) in DOCUMENTED_FORMS {
+            let got = classify_ffi(&[attr.to_string()]);
+            let (gf, gd) = got.unwrap_or_else(|| {
+                panic!("`{attr}` is documented as detected but classified as nothing")
+            });
+            assert_eq!(gf, *family, "`{attr}` classified into the wrong family");
+            assert_eq!(
+                std::mem::discriminant(&gd),
+                std::mem::discriminant(dir),
+                "`{attr}` classified with the wrong direction"
+            );
+        }
+    }
+
+    #[test]
+    fn classification_ignores_attribute_case() {
+        // Annotations arrive spelled the way each language spells them;
+        // `[DllImport]` and `[dllimport]` are the same thing.
+        assert!(classify_ffi(&["[DLLIMPORT]".into()]).is_some());
+        assert!(classify_ffi(&["#[No_Mangle]".into()]).is_some());
+    }
+
+    #[test]
+    fn an_unrelated_attribute_classifies_as_nothing() {
+        for attr in [
+            "#[derive(Debug)]",
+            "@Override",
+            "[Serializable]",
+            "#[inline]",
+        ] {
+            assert!(
+                classify_ffi(&[attr.to_string()]).is_none(),
+                "`{attr}` must not be mistaken for an FFI marker"
+            );
+        }
+        assert!(classify_ffi(&[]).is_none());
+    }
+
+    #[test]
+    fn only_exports_advertise_a_family_for_peer_edges() {
+        // An import is a call *out* of the tree with no in-tree callee,
+        // so it must never seed a speculative cross-language edge.
+        for (attr, _, dir) in DOCUMENTED_FORMS {
+            let mut c = CallableNode {
+                id: CallableId::new(0),
+                qualified_name: "x".into(),
+                simple_name: "x".into(),
+                kind: CallableKind::Function,
+                language: "rust".into(),
+                file: FileId::new(0),
+                start_line: 1,
+                end_line: 1,
+                start_byte: 0,
+                end_byte: 1,
+                signature_hint: String::new(),
+                visibility: String::new(),
+                attributes: vec![],
+                synthetic: false,
+                trait_impl_target: None,
+                ..Default::default()
+            };
+            c.attributes = vec![attr.to_string()];
+            let family = detect_ffi_family(&c);
+            match dir {
+                FfiDirection::Export => {
+                    assert!(
+                        !family.is_empty(),
+                        "`{attr}` is an export and must name a family"
+                    )
+                }
+                FfiDirection::Import => {
+                    assert!(
+                        family.is_empty(),
+                        "`{attr}` is an import and must not seed a peer edge"
+                    )
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn wasm_bindgen_links_rust_to_javascript() {
+        // The same shape as the PyO3 case, in a second family, so the
+        // linker is exercised beyond one hard-coded key.
+        let mut g = mk_graph();
+        g.callables.get_mut(&CallableId::new(0)).unwrap().attributes =
+            vec!["#[wasm_bindgen]".into()];
+        let f = g.files.get_mut(&FileId::new(1)).unwrap();
+        f.path = PathBuf::from("app.js");
+        f.language = "javascript".into();
+        g.callables.get_mut(&CallableId::new(1)).unwrap().language = "javascript".into();
+
+        let out = link_ffi(&g, &[]);
+        assert_eq!(out.edges.len(), 1, "one cross-language edge expected");
+        assert!(matches!(out.edges[0].via, Via::Ffi(ref fam) if fam == "wasm-bindgen"));
     }
 
     #[test]
@@ -336,12 +506,21 @@ mod tests {
     #[test]
     fn exports_and_imports_are_opposite_directions() {
         use FfiDirection::{Export, Import};
-        assert_eq!(classify_ffi(&["#[no_mangle]".into()]), Some(("c-abi", Export)));
-        assert_eq!(classify_ffi(&["#[pyfunction]".into()]), Some(("pyo3", Export)));
+        assert_eq!(
+            classify_ffi(&["#[no_mangle]".into()]),
+            Some(("c-abi", Export))
+        );
+        assert_eq!(
+            classify_ffi(&["#[pyfunction]".into()]),
+            Some(("pyo3", Export))
+        );
         assert_eq!(classify_ffi(&["extern:C".into()]), Some(("c-abi", Export)));
         // An import is a call *out* of the tree and says nothing about
         // whether anything here is used.
-        assert_eq!(classify_ffi(&["[DllImport]".into()]), Some(("pinvoke", Import)));
+        assert_eq!(
+            classify_ffi(&["[DllImport]".into()]),
+            Some(("pinvoke", Import))
+        );
         assert_eq!(classify_ffi(&["native".into()]), Some(("jni", Import)));
     }
 
@@ -368,5 +547,4 @@ mod tests {
         n.attributes = vec!["#[no_mangle]".into()];
         assert_eq!(detect_ffi_family(&n), "c-abi");
     }
-
 }

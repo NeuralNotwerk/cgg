@@ -118,7 +118,15 @@ pub fn render_text(
     writeln!(
         out,
         "  {:<12} {:>5} {:>9} {:<13} {:>4} {:>5} {:>5} {:>5} {:>6}",
-        "language", "files", "callables", "class", "vis", "attrs", "refs", "disp", "reach"
+        "language",
+        "files",
+        "callables",
+        "class",
+        "vis",
+        "attrs",
+        "refs",
+        "disp",
+        "reach"
     )?;
     for c in &r.capabilities {
         writeln!(
@@ -173,7 +181,12 @@ pub fn render_text(
             continue;
         }
         writeln!(out)?;
-        writeln!(out, "── {} {}", band_name(b), "─".repeat(70 - band_name(b).len()))?;
+        writeln!(
+            out,
+            "── {} {}",
+            band_name(b),
+            "─".repeat(70 - band_name(b).len())
+        )?;
         for f in in_band {
             writeln!(
                 out,
@@ -244,7 +257,10 @@ pub fn render_text(
             f.qualified_name
         )?;
     }
-    writeln!(out, "  as json     cgg <path> --dead-code --dead-code-format json")?;
+    writeln!(
+        out,
+        "  as json     cgg <path> --dead-code --dead-code-format json"
+    )?;
     writeln!(out)?;
     writeln!(
         out,
@@ -254,7 +270,10 @@ pub fn render_text(
         out,
         "  cgg could not find a caller for — not proof that none exists."
     )?;
-    writeln!(out, "  Verify each one against the source before acting on it.")?;
+    writeln!(
+        out,
+        "  Verify each one against the source before acting on it."
+    )?;
     Ok(())
 }
 
@@ -274,7 +293,11 @@ pub fn render_why_live(proofs: &[LivenessProof], out: &mut dyn Write) -> io::Res
                     .as_ref()
                     .map(|r| format!("{} [{:?}]", r.qualified_name, r.kind))
                     .unwrap_or_else(|| "<unknown root>".into());
-                writeln!(out, "  {label} — proof: {} hop(s) from {root}", p.hops.len())?;
+                writeln!(
+                    out,
+                    "  {label} — proof: {} hop(s) from {root}",
+                    p.hops.len()
+                )?;
                 for h in &p.hops {
                     writeln!(
                         out,
@@ -304,7 +327,10 @@ pub fn render_why_live(proofs: &[LivenessProof], out: &mut dyn Write) -> io::Res
         out,
         "BEST EFFORT: the absence of a proven path is not proof that no caller"
     )?;
-    writeln!(out, "exists. See `cgg <path> --dead-code` for cgg's blind spots.")?;
+    writeln!(
+        out,
+        "exists. See `cgg <path> --dead-code` for cgg's blind spots."
+    )?;
     Ok(())
 }
 

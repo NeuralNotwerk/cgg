@@ -114,8 +114,16 @@ mod tests {
     fn fans_out_declaration_to_each_impl() {
         let mut g = Graph::new();
         g.add_callable(node(0, "crate::Storage::put", None));
-        g.add_callable(node(1, "crate::<DiskStorage as Storage>::put", Some("Storage")));
-        g.add_callable(node(2, "crate::<MemStorage as Storage>::put", Some("Storage")));
+        g.add_callable(node(
+            1,
+            "crate::<DiskStorage as Storage>::put",
+            Some("Storage"),
+        ));
+        g.add_callable(node(
+            2,
+            "crate::<MemStorage as Storage>::put",
+            Some("Storage"),
+        ));
         let edges = fanout(&g);
         assert_eq!(edges.len(), 2);
         assert!(edges.iter().all(|e| e.src == CallableId::new(0)));
@@ -129,7 +137,11 @@ mod tests {
         // Implementations exist but the trait declaration is not in the
         // analyzed set — emit nothing rather than guess.
         let mut g = Graph::new();
-        g.add_callable(node(1, "crate::<DiskStorage as Storage>::put", Some("Storage")));
+        g.add_callable(node(
+            1,
+            "crate::<DiskStorage as Storage>::put",
+            Some("Storage"),
+        ));
         assert!(fanout(&g).is_empty());
     }
 }

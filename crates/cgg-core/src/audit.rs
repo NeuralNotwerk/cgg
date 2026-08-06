@@ -338,6 +338,18 @@ pub enum AuditEvent {
     FrameworkCoverage {
         coverage: crate::frameworks::FrameworkCoverage,
     },
+    /// `-n 0` path enumeration stopped at `--max-paths`.
+    ///
+    /// Emitted only when the cap actually turned away work that had been
+    /// reached, never merely because the count landed on the limit. A
+    /// capped path set is indistinguishable from a complete one by
+    /// inspection — the caller asked for every route through a callable
+    /// and got a prefix of them — so the truncation has to be stated
+    /// somewhere the caller can find it after the fact.
+    PathsTruncated {
+        max_paths: u32,
+        paths_emitted: u32,
+    },
 }
 
 /// Run-level metrics rolled up once, after the last file is done.
@@ -361,7 +373,6 @@ pub struct RunMetrics {
     pub external_calls: u64,
     pub ffi_detected: u64,
     pub ffi_resolved: u64,
-    pub cache: CacheMetrics,
     pub peak_rss_bytes: u64,
     pub by_language: indexmap::IndexMap<String, LanguageMetrics>,
     pub cycles: Vec<Vec<CallableId>>,
@@ -378,14 +389,6 @@ pub struct PhaseTimings {
     pub link_ms: f64,
     pub query_ms: f64,
     pub format_ms: f64,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct CacheMetrics {
-    pub hits: u64,
-    pub misses: u64,
-    pub bytes_read: u64,
-    pub bytes_written: u64,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -472,7 +475,7 @@ impl<W: io::Write + Send> std::fmt::Debug for JsonlAuditWriter<W> {
 impl<W: io::Write + Send> AuditWriter for JsonlAuditWriter<W> {
     fn emit(&mut self, event: &AuditEvent) -> io::Result<()> {
         serde_json::to_writer(&mut self.out, event)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
         self.out.write_all(b"\n")?;
         Ok(())
     }
@@ -501,7 +504,7 @@ impl<W: io::Write + Send> JsonAuditWriter<W> {
     /// Drain the buffer into the writer as a single pretty array.
     pub fn finalize(mut self) -> io::Result<()> {
         serde_json::to_writer_pretty(&mut self.out, &self.buffer)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
         self.out.write_all(b"\n")?;
         self.out.flush()
     }
@@ -538,10 +541,7 @@ mod tests {
     #[test]
     fn skip_reason_slug_stable() {
         assert_eq!(SkipReason::UnknownExtension.slug(), "unknown-extension");
-        assert_eq!(
-            SkipReason::Builtin("node_modules".into()).slug(),
-            "builtin"
-        );
+        assert_eq!(SkipReason::Builtin("node_modules".into()).slug(), "builtin");
         assert_eq!(SkipReason::Binary.slug(), "binary");
     }
 

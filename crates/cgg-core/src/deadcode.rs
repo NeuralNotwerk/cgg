@@ -70,7 +70,9 @@ pub const DEFAULT_MIN_ROOT_COVERAGE_PCT: u8 = 25;
 /// contingent: it is only unreferenced because its callers are.
 /// `DeadCycle` has no entry point at all — every member is referenced,
 /// but only from inside the ring.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(
+    Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum FindingCategory {
     /// Zero inbound edges of any kind, and not a root. A pure graph
@@ -174,7 +176,11 @@ pub enum Evidence {
     /// Member of a strongly-connected component.
     InCycle { scc_size: u32 },
     /// Member of a connected group of unreferenced callables.
-    InRegion { region: u32, members: u32, files: u32 },
+    InRegion {
+        region: u32,
+        members: u32,
+        files: u32,
+    },
 
     // ---- lowering: reasons cgg may be wrong ----
     /// An unresolved call site somewhere uses this simple name. The
@@ -218,7 +224,11 @@ pub enum Evidence {
     LanguageIsScriptDriven,
     /// Too little of this language was reachable from a root for
     /// whole-program reasoning to mean anything.
-    LowRootCoverage { roots: u32, callables: u32, reachable_pct: u8 },
+    LowRootCoverage {
+        roots: u32,
+        callables: u32,
+        reachable_pct: u8,
+    },
     /// Constructors, destructors and properties are routinely invoked by
     /// syntax rather than by a visible call.
     ImplicitlyInvokableKind { callable_kind: CallableKind },
@@ -330,7 +340,9 @@ impl Evidence {
             Evidence::LanguageIsScriptDriven => "language-is-script-driven",
             Evidence::LowRootCoverage { .. } => "low-root-coverage",
             Evidence::ImplicitlyInvokableKind { .. } => "implicitly-invokable-kind",
-            Evidence::NameCollidesWithScreenedSite { .. } => "name-collides-with-screened-site",
+            Evidence::NameCollidesWithScreenedSite { .. } => {
+                "name-collides-with-screened-site"
+            }
             Evidence::PublicVisibility { .. } => "public-visibility",
             Evidence::PrivateVisibility { .. } => "private-visibility",
             Evidence::NoUnresolvedSiteWithName => "no-unresolved-site-with-name",
@@ -754,9 +766,17 @@ mod tests {
         let samples = [
             Evidence::LanguageLacksVisibility,
             Evidence::LanguageIsDescriptor,
-            Evidence::ImplicitlyInvokableKind { callable_kind: CallableKind::Constructor },
-            Evidence::LowRootCoverage { roots: 0, callables: 10, reachable_pct: 0 },
-            Evidence::PublicVisibility { token: "pub".into() },
+            Evidence::ImplicitlyInvokableKind {
+                callable_kind: CallableKind::Constructor,
+            },
+            Evidence::LowRootCoverage {
+                roots: 0,
+                callables: 10,
+                reachable_pct: 0,
+            },
+            Evidence::PublicVisibility {
+                token: "pub".into(),
+            },
         ];
         for e in samples {
             let cap = e.cap().expect("sample should cap");
@@ -803,7 +823,9 @@ mod tests {
 
     #[test]
     fn public_visibility_lowers_and_caps_below_high() {
-        let public = Evidence::PublicVisibility { token: "pub".into() };
+        let public = Evidence::PublicVisibility {
+            token: "pub".into(),
+        };
         // cgg cannot see outside the analyzed tree, so an exported
         // symbol can never be a top-band finding.
         assert_eq!(public.cap(), Some(Confidence::Medium));
@@ -811,7 +833,9 @@ mod tests {
         assert_eq!(public.slug(), "public-visibility");
 
         // Its mirror image corroborates and imposes no ceiling.
-        let private = Evidence::PrivateVisibility { token: "private".into() };
+        let private = Evidence::PrivateVisibility {
+            token: "private".into(),
+        };
         assert_eq!(private.cap(), None);
         assert_eq!(private.polarity(), Polarity::Raises);
         assert_ne!(public.slug(), private.slug());
@@ -819,11 +843,11 @@ mod tests {
 
     #[test]
     fn evidence_sorts_caveats_before_corroboration() {
-        let mut ev = vec![
-            Evidence::PrivateVisibility { token: "pub".into() },
+        let mut ev = [Evidence::PrivateVisibility {
+                token: "pub".into(),
+            },
             Evidence::NoIncomingEdges,
-            Evidence::LanguageLacksVisibility,
-        ];
+            Evidence::LanguageLacksVisibility];
         ev.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
         assert_eq!(ev[0].slug(), "language-lacks-visibility");
         assert_eq!(ev[1].slug(), "no-incoming-edges");
@@ -888,7 +912,11 @@ mod tests {
             out_degree: 0,
         };
         assert_eq!(f.stable_id(), "D001:a::b::c");
-        let moved = DeadCodeFinding { start_line: 999, end_line: 1009, ..f.clone() };
+        let moved = DeadCodeFinding {
+            start_line: 999,
+            end_line: 1009,
+            ..f.clone()
+        };
         assert_eq!(f.stable_id(), moved.stable_id());
     }
 }

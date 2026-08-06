@@ -2,10 +2,9 @@
 //!
 //! Each language plugin walks its tree-sitter AST once and emits a
 //! [`FileFacts`] value describing the callables defined in the file
-//! and the call sites referencing other callables. Later stages
-//! (Task 5's intra-file linker, Task 6+'s scope-aware resolvers, the
-//! FFI linker in Task 8, and the cache in Task 11) all consume this
-//! same shape.
+//! and the call sites referencing other callables. Every later stage —
+//! the intra-file linker, the scope-aware cross-file resolvers, the FFI
+//! linker — consumes this same shape.
 //!
 //! The shape follows codescope's "definition vs reference" split but
 //! is strongly typed, carries fully-qualified names from day one, and
@@ -76,14 +75,11 @@ impl DefVariant {
             | DefVariant::ClassMethod => CallableKind::Method,
             DefVariant::Constructor => CallableKind::Constructor,
             DefVariant::Destructor => CallableKind::Destructor,
-            DefVariant::NamedClosure | DefVariant::NamedLambda => {
-                CallableKind::Closure
-            }
+            DefVariant::NamedClosure | DefVariant::NamedLambda => CallableKind::Closure,
             DefVariant::Property => CallableKind::Property,
         }
     }
 }
-
 
 /// Normalized cross-language visibility.
 ///
@@ -346,7 +342,9 @@ impl FileFacts {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.definitions.is_empty() && self.references.is_empty() && self.imports.is_empty()
+        self.definitions.is_empty()
+            && self.references.is_empty()
+            && self.imports.is_empty()
     }
 }
 

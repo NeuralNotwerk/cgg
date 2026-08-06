@@ -34,7 +34,7 @@ fn write(dir: &Path, rel: &str, body: &str) {
 fn run(dir: &Path, extra: &[&str]) -> (String, String) {
     let out = dir.join("g.mmd");
     let mut cmd = cgg();
-    cmd.args(["--no-cache", "-o"]).arg(&out).args(extra).arg(dir);
+    cmd.args(["-o"]).arg(&out).args(extra).arg(dir);
     let assert = cmd.assert().success();
     let stderr = String::from_utf8_lossy(&assert.get_output().stderr).to_string();
     (fs::read_to_string(&out).unwrap(), stderr)
@@ -307,7 +307,10 @@ fn shape_f_worker_module_path_rescues_a_whole_file() {
          function normalize(buf) { return buf; }\n",
     );
     let (g, _) = run(tmp.path(), &[]);
-    assert!(g.contains("queue::worker-threads::Worker('./jobs/resize.js')"), "{g}");
+    assert!(
+        g.contains("queue::worker-threads::Worker('./jobs/resize.js')"),
+        "{g}"
+    );
     // The module surface, not every callable in it: `normalize` is a
     // private helper, and pointing an entry at it would misdescribe the
     // module.
@@ -427,7 +430,10 @@ fn no_entry_nodes_restores_the_previous_default_graph() {
     assert!(with.contains("framework-entry"));
     let (without, err) = run(tmp.path(), &["--no-entry-nodes"]);
     assert!(!without.contains("framework-entry"), "{without}");
-    assert!(!without.contains("%% cgg: &lt;framework-entry&gt;"), "{without}");
+    assert!(
+        !without.contains("%% cgg: &lt;framework-entry&gt;"),
+        "{without}"
+    );
     assert!(!err.contains("framework coverage"), "{err}");
 }
 
@@ -454,13 +460,7 @@ fn entry_nodes_remove_the_bucket_d_dead_code_cascade() {
 
     let out = tmp.path().join("d.mmd");
     let assert = cgg()
-        .args([
-            "--no-cache",
-            "--dead-code",
-            "--dead-code-confidence",
-            "medium",
-            "-o",
-        ])
+        .args(["--dead-code", "--dead-code-confidence", "medium", "-o"])
         .arg(&out)
         .arg(tmp.path())
         .assert()
@@ -477,7 +477,6 @@ fn entry_nodes_remove_the_bucket_d_dead_code_cascade() {
     let out2 = tmp.path().join("d2.mmd");
     let assert2 = cgg()
         .args([
-            "--no-cache",
             "--no-entry-nodes",
             "--dead-code",
             "--dead-code-confidence",
@@ -530,20 +529,19 @@ fn the_attack_surface_query_from_the_docs_actually_works() {
     );
     let out = tmp.path().join("q.mmd");
     cgg()
-        .args([
-            "--no-cache",
-            "--filter",
-            "<framework-entry>::network::",
-            "-n",
-            "3",
-            "-o",
-        ])
+        .args(["--filter", "<framework-entry>::network::", "-n", "3", "-o"])
         .arg(&out)
         .arg(tmp.path())
         .assert()
         .success();
     let g = fs::read_to_string(&out).unwrap();
-    assert!(g.contains("list_users"), "the handler must be selected:\n{g}");
+    assert!(
+        g.contains("list_users"),
+        "the handler must be selected:\n{g}"
+    );
     assert!(g.contains("_render"), "and its blast radius:\n{g}");
-    assert!(!g.contains("Encoder"), "lifecycle entries are not attack surface:\n{g}");
+    assert!(
+        !g.contains("Encoder"),
+        "lifecycle entries are not attack surface:\n{g}"
+    );
 }

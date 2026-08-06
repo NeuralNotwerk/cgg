@@ -1,3 +1,7 @@
+// Pipeline helpers thread run state explicitly rather than through a
+// context struct, which keeps each stage's inputs visible at the call
+// site. The arity is the point, not an accident.
+#![allow(clippy::too_many_arguments)]
 //! Query engine — filter, N-hop neighborhood, and full-path enumeration.
 //!
 //! * `--filter PATTERN` selects seed nodes by regex or glob match on
@@ -13,7 +17,25 @@ use cgg_core::graph::Graph;
 use cgg_core::ids::CallableId;
 use regex::Regex;
 
-/// Apply filter + hop logic, returning a pruned graph.
+/// What `-n 0` path enumeration did, beyond the graph it returned.
+///
+/// Truncation is the only interesting field and it exists because a
+/// silently capped path set reads as a complete one: the caller asked
+/// "every way this gets called" and got "the first 1000 ways", with no
+/// way to tell the difference. `paths_emitted == max_paths` is not a
+/// reliable substitute — a run can land exactly on the cap without
+/// having dropped anything.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct QueryStats {
+    /// `-n 0` stopped early because `--max-paths` was reached, so the
+    /// returned graph omits paths that exist.
+    pub paths_truncated: bool,
+    /// Entry-to-exit paths through a seed that were kept.
+    pub paths_emitted: u32,
+}
+
+/// Apply filter + hop logic, returning a pruned graph and what the
+/// query had to leave out.
 ///
 /// Errors if any `--filter` pattern fails to compile.
 pub fn apply_query(
@@ -21,14 +43,14 @@ pub fn apply_query(
     filters: &[String],
     hops: i32,
     max_paths: u32,
-) -> Result<Graph, String> {
+) -> Result<(Graph, QueryStats), String> {
     if filters.is_empty() {
-        return Ok(graph.clone());
+        return Ok((graph.clone(), QueryStats::default()));
     }
 
     let seeds = find_seeds(graph, filters)?;
     if seeds.is_empty() {
-        return Ok(Graph::new());
+        return Ok((Graph::new(), QueryStats::default()));
     }
 
     if hops == 0 {
@@ -40,7 +62,7 @@ pub fn apply_query(
     // with all their direct edges" — but per spec -1 means full graph
     // which is handled above by the empty-filter check).
     let depth = if hops < 0 { 1 } else { hops as u32 };
-    Ok(neighborhood(graph, &seeds, depth))
+    Ok((neighborhood(graph, &seeds, depth), QueryStats::default()))
 }
 
 /// Remove nodes matching any exclusion pattern from the graph.
@@ -65,11 +87,14 @@ pub fn apply_exclusions(
     let regex_pats: Vec<Regex> = regexes
         .iter()
         .map(|r| {
-            Regex::new(r).map_err(|e| format!("--exclude-regex: invalid regex pattern '{r}': {e}"))
+            Regex::new(r)
+                .map_err(|e| format!("--exclude-regex: invalid regex pattern '{r}': {e}"))
         })
         .collect::<Result<_, _>>()?;
 
-    let keep: HashSet<CallableId> = graph.callables.values()
+    let keep: HashSet<CallableId> = graph
+        .callables
+        .values()
         .filter(|c| {
             let qn = &c.qualified_name;
             // Exclude if any pattern matches
@@ -133,8 +158,10 @@ fn neighborhood(graph: &Graph, seeds: &HashSet<CallableId>, depth: u32) -> Graph
         seeds.iter().map(|&id| (id, 0)).collect();
 
     // Build adjacency (both directions).
-    let mut fwd: std::collections::HashMap<CallableId, Vec<CallableId>> = Default::default();
-    let mut rev: std::collections::HashMap<CallableId, Vec<CallableId>> = Default::default();
+    let mut fwd: std::collections::HashMap<CallableId, Vec<CallableId>> =
+        Default::default();
+    let mut rev: std::collections::HashMap<CallableId, Vec<CallableId>> =
+        Default::default();
     for e in &graph.edges {
         fwd.entry(e.src).or_default().push(e.dst);
         rev.entry(e.dst).or_default().push(e.src);
@@ -159,10 +186,15 @@ fn neighborhood(graph: &Graph, seeds: &HashSet<CallableId>, depth: u32) -> Graph
     prune(graph, &visited)
 }
 
-fn paths_through(graph: &Graph, seeds: &HashSet<CallableId>, max_paths: u32) -> Graph {
+fn paths_through(
+    graph: &Graph,
+    seeds: &HashSet<CallableId>,
+    max_paths: u32,
+) -> (Graph, QueryStats) {
     // Find all nodes on any path from an entry (in-degree 0) to an
     // exit (out-degree 0) that passes through at least one seed.
-    let mut fwd: std::collections::HashMap<CallableId, Vec<CallableId>> = Default::default();
+    let mut fwd: std::collections::HashMap<CallableId, Vec<CallableId>> =
+        Default::default();
     let mut in_degree: std::collections::HashMap<CallableId, u32> = Default::default();
     let mut out_degree: std::collections::HashMap<CallableId, u32> = Default::default();
     for c in graph.callables.keys() {
@@ -184,9 +216,15 @@ fn paths_through(graph: &Graph, seeds: &HashSet<CallableId>, max_paths: u32) -> 
     // DFS from each entry, collecting nodes on paths that hit a seed.
     let mut on_path: HashSet<CallableId> = HashSet::new();
     let mut path_count: u32 = 0;
+    // Set the moment the cap turns away work that had already been
+    // reached. Exact in the direction that matters: it never stays false
+    // when something was declined.
+    let mut truncated = false;
 
     for &entry in &entries {
         if path_count >= max_paths {
+            // Entries remain and the cap stopped us from walking them.
+            truncated = true;
             break;
         }
         let mut stack: Vec<CallableId> = Vec::new();
@@ -201,10 +239,17 @@ fn paths_through(graph: &Graph, seeds: &HashSet<CallableId>, max_paths: u32) -> 
             &mut on_path,
             &mut path_count,
             max_paths,
+            &mut truncated,
         );
     }
 
-    prune(graph, &on_path)
+    (
+        prune(graph, &on_path),
+        QueryStats {
+            paths_truncated: truncated,
+            paths_emitted: path_count,
+        },
+    )
 }
 
 fn dfs_paths(
@@ -217,8 +262,11 @@ fn dfs_paths(
     on_path: &mut HashSet<CallableId>,
     count: &mut u32,
     max: u32,
+    truncated: &mut bool,
 ) {
     if *count >= max {
+        // This node was reached and the cap refused to explore it.
+        *truncated = true;
         return;
     }
     if visited.contains(&node) {
@@ -236,7 +284,10 @@ fn dfs_paths(
         }
     } else if let Some(nexts) = fwd.get(&node) {
         for &next in nexts {
-            dfs_paths(next, fwd, out_degree, seeds, stack, visited, on_path, count, max);
+            dfs_paths(
+                next, fwd, out_degree, seeds, stack, visited, on_path, count, max,
+                truncated,
+            );
         }
     }
 
@@ -247,7 +298,9 @@ fn dfs_paths(
 fn prune(graph: &Graph, keep: &HashSet<CallableId>) -> Graph {
     let mut out = Graph::new();
     // Copy files that have at least one kept callable.
-    let kept_files: HashSet<_> = graph.callables.values()
+    let kept_files: HashSet<_> = graph
+        .callables
+        .values()
         .filter(|c| keep.contains(&c.id))
         .map(|c| c.file)
         .collect();
@@ -307,17 +360,24 @@ impl Pattern {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cgg_core::graph::{CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Via};
+    use cgg_core::graph::{
+        CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Via,
+    };
     use cgg_core::ids::{FileId, ResolverId};
     use std::path::PathBuf;
 
     fn mk_graph() -> Graph {
         let mut g = Graph::new();
         g.add_file(FileRecord {
-            id: FileId::new(0), path: PathBuf::from("a.rs"),
-            language: "rust".into(), detected_via: "ext".into(),
-            blake3: "0".repeat(64), size_bytes: 10, lines: 5,
-            parse_ms: 0.1, parse_status: "ok".into(),
+            id: FileId::new(0),
+            path: PathBuf::from("a.rs"),
+            language: "rust".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 5,
+            parse_ms: 0.1,
+            parse_status: "ok".into(),
             ..Default::default()
         });
         for i in 0..4u32 {
@@ -328,20 +388,27 @@ mod tests {
                 kind: CallableKind::Function,
                 language: "rust".into(),
                 file: FileId::new(0),
-                start_line: i + 1, end_line: i + 1,
-                start_byte: i * 10, end_byte: (i + 1) * 10,
-                signature_hint: String::new(), visibility: String::new(),
+                start_line: i + 1,
+                end_line: i + 1,
+                start_byte: i * 10,
+                end_byte: (i + 1) * 10,
+                signature_hint: String::new(),
+                visibility: String::new(),
                 attributes: vec![],
-                synthetic: false, trait_impl_target: None,
+                synthetic: false,
+                trait_impl_target: None,
                 ..Default::default()
             });
         }
         // Chain: fn_0 -> fn_1 -> fn_2 -> fn_3
         for i in 0..3u32 {
             g.add_edge(CallEdge {
-                src: CallableId::new(i), dst: CallableId::new(i + 1),
-                site_line: i + 1, site_byte: i * 10 + 5,
-                confidence: Confidence::High, via: Via::Direct,
+                src: CallableId::new(i),
+                dst: CallableId::new(i + 1),
+                site_line: i + 1,
+                site_byte: i * 10 + 5,
+                confidence: Confidence::High,
+                via: Via::Direct,
                 resolver: ResolverId::new("test"),
             });
         }
@@ -351,7 +418,7 @@ mod tests {
     #[test]
     fn filter_selects_seed() {
         let g = mk_graph();
-        let out = apply_query(&g, &["fn_1".into()], 1, 100).unwrap();
+        let (out, _) = apply_query(&g, &["fn_1".into()], 1, 100).unwrap();
         // 1-hop from fn_1: fn_0, fn_1, fn_2
         assert_eq!(out.callables.len(), 3);
     }
@@ -361,16 +428,72 @@ mod tests {
         let g = mk_graph();
         // fn_0 is entry, fn_3 is exit. Path fn_0->fn_1->fn_2->fn_3
         // passes through fn_2.
-        let out = apply_query(&g, &["fn_2".into()], 0, 100).unwrap();
+        let (out, _) = apply_query(&g, &["fn_2".into()], 0, 100).unwrap();
         assert_eq!(out.callables.len(), 4); // entire chain
     }
 
     #[test]
     fn glob_pattern() {
         let g = mk_graph();
-        let out = apply_query(&g, &["glob:fn_[01]".into()], 1, 100).unwrap();
+        let (out, _) = apply_query(&g, &["glob:fn_[01]".into()], 1, 100).unwrap();
         // Seeds: fn_0, fn_1. 1-hop adds fn_2.
         assert_eq!(out.callables.len(), 3);
+    }
+
+    #[test]
+    fn an_uncapped_run_does_not_claim_truncation() {
+        let g = mk_graph();
+        let (_, stats) = apply_query(&g, &["fn_2".into()], 0, 100).unwrap();
+        assert!(
+            !stats.paths_truncated,
+            "one path, cap of 100 — nothing was dropped"
+        );
+        assert_eq!(stats.paths_emitted, 1);
+    }
+
+    #[test]
+    fn max_paths_truncation_is_reported() {
+        // Regression: `--max-paths` used to stop enumeration silently, so
+        // a capped `-n 0` graph was indistinguishable from a complete
+        // one. Two entries, two seed-hitting paths, a cap of one.
+        let mut g = mk_graph();
+        // Second chain: fn_4 -> fn_5, with fn_5 as another seed.
+        for i in 4..6u32 {
+            g.add_callable(CallableNode {
+                id: CallableId::new(i),
+                qualified_name: format!("fn_{i}"),
+                simple_name: format!("fn_{i}"),
+                kind: CallableKind::Function,
+                language: "rust".into(),
+                file: FileId::new(0),
+                start_line: i + 1,
+                end_line: i + 1,
+                start_byte: i * 10,
+                end_byte: (i + 1) * 10,
+                signature_hint: String::new(),
+                visibility: String::new(),
+                attributes: vec![],
+                synthetic: false,
+                trait_impl_target: None,
+                ..Default::default()
+            });
+        }
+        g.add_edge(CallEdge {
+            src: CallableId::new(4),
+            dst: CallableId::new(5),
+            site_line: 5,
+            site_byte: 45,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("test"),
+        });
+
+        let (_, stats) = apply_query(&g, &["glob:fn_*".into()], 0, 1).unwrap();
+        assert!(
+            stats.paths_truncated,
+            "cap of 1 with 2 paths must report truncation"
+        );
+        assert_eq!(stats.paths_emitted, 1);
     }
 
     #[test]
@@ -410,5 +533,4 @@ mod tests {
         let err = apply_exclusions(&g, &[], &[], &["[".into()]).unwrap_err();
         assert!(err.starts_with("--exclude-regex:"), "{err}");
     }
-
 }

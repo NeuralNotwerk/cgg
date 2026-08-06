@@ -20,9 +20,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree, TreeCursor};
 
 use crate::LanguagePlugin;
@@ -38,7 +36,16 @@ impl LanguagePlugin for RustPlugin {
         &[".rs"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { value_refs: true, attributes: true, exports: true, impls: true, test_defs: true, unreachable: true, visibility: true, ..Default::default() }
+        crate::PluginSignals {
+            value_refs: true,
+            attributes: true,
+            exports: true,
+            impls: true,
+            test_defs: true,
+            unreachable: true,
+            visibility: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -75,6 +82,7 @@ impl LanguagePlugin for RustPlugin {
             facts: &mut facts,
             scope,
             struct_fields: std::collections::HashMap::new(),
+            bases: Vec::new(),
         };
         walker.walk(tree.root_node());
         // Post-pass: emit synthetic LocalTypes of the form
@@ -85,9 +93,8 @@ impl LanguagePlugin for RustPlugin {
         emit_self_field_local_types(&mut facts, &struct_fields);
 
         if crate::deadcode_signals() {
-
-            facts.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::RUST);
-
+            facts.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::RUST);
         }
         // `pub use` is Rust's export surface: a re-exported name is part
         // of the crate's public API even though nothing inside the crate
@@ -170,11 +177,7 @@ fn rust_module_path(path: &Path) -> (String, Vec<String>) {
     }
 
     // Drop the file extension on the last segment.
-    let mut mods: Vec<String> = segs
-        .iter()
-        .take(segs.len() - 1)
-        .cloned()
-        .collect();
+    let mut mods: Vec<String> = segs.iter().take(segs.len() - 1).cloned().collect();
     let last = segs.last().unwrap();
     if last == "mod.rs" {
         // `foo/mod.rs` -> [foo] (mods already contains ["foo"])
@@ -193,11 +196,10 @@ fn crate_dir_for(path: &Path) -> Option<(String, std::path::PathBuf)> {
     while let Some(d) = dir {
         let cargo = d.join("Cargo.toml");
         if cargo.exists() {
-            if let Ok(text) = std::fs::read_to_string(&cargo) {
-                if let Some(name) = extract_package_name(&text) {
+            if let Ok(text) = std::fs::read_to_string(&cargo)
+                && let Some(name) = extract_package_name(&text) {
                     return Some((name, d.to_path_buf()));
                 }
-            }
             return None;
         }
         dir = d.parent();
@@ -225,9 +227,8 @@ fn extract_package_name(text: &str) -> Option<String> {
             let rest = rest.trim_start_matches([' ', '\t']);
             if let Some(rest) = rest.strip_prefix('=') {
                 let value = rest.trim();
-                if let Some(stripped) = value
-                    .strip_prefix('"')
-                    .and_then(|s| s.strip_suffix('"'))
+                if let Some(stripped) =
+                    value.strip_prefix('"').and_then(|s| s.strip_suffix('"'))
                 {
                     return Some(stripped.to_string());
                 }
@@ -270,6 +271,14 @@ struct Walker<'a> {
     /// the `struct_item` visit case; consumed in the post-pass that
     /// emits `self.<field>` LocalTypes for methods.
     struct_fields: std::collections::HashMap<String, Vec<(String, String)>>,
+    /// Trait being implemented by each enclosing `impl Trait for Type`,
+    /// innermost last. Recorded on every method inside so framework
+    /// base-type rules (`actix` `Handler`/`StreamHandler`, tower
+    /// `Service`) can match — the trait name is already parsed for the
+    /// scope segment; this is the same string kept where a rule can see
+    /// it. An inherent `impl Type` pushes an empty entry so the depth
+    /// always mirrors the scope stack.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -291,7 +300,11 @@ impl<'a> Walker<'a> {
                     self.scope.push(ScopeSegment::Mod(name));
                 }
                 self.walk_children(node);
-                if !self.scope.last().map_or(true, |s| matches!(s, ScopeSegment::Crate(_))) {
+                if !self
+                    .scope
+                    .last()
+                    .is_none_or(|s| matches!(s, ScopeSegment::Crate(_)))
+                {
                     self.scope.pop();
                 }
                 return;
@@ -307,13 +320,17 @@ impl<'a> Walker<'a> {
                     .child_by_field_name("trait")
                     .map(|n| self.text(n).to_string());
                 let segment = match &trait_name {
-                    Some(t) => {
-                        ScopeSegment::TraitImpl(format!("<{type_name} as {t}>"))
-                    }
+                    Some(t) => ScopeSegment::TraitImpl(format!("<{type_name} as {t}>")),
                     None => ScopeSegment::InherentImpl(type_name.clone()),
                 };
                 self.scope.push(segment);
+                // Stored as written, generics included — the matcher
+                // strips `<…>` itself, and the full form is what a
+                // reader of the audit log needs to see.
+                self.bases
+                    .push(trait_name.clone().into_iter().collect());
                 self.walk_children(node);
+                self.bases.pop();
                 self.scope.pop();
                 return;
             }
@@ -537,6 +554,7 @@ impl<'a> Walker<'a> {
             test_role: rust_test_role(&attributes),
             visibility,
             attributes,
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -552,18 +570,26 @@ impl<'a> Walker<'a> {
         // file, mis-resolves their method calls.
         let pat = node.child_by_field_name("pattern");
         let val = node.child_by_field_name("value");
-        let (Some(pat), Some(val)) = (pat, val) else { return };
+        let (Some(pat), Some(val)) = (pat, val) else {
+            return;
+        };
         let var_name = if pat.kind() == "identifier" {
             self.text(pat).to_string()
-        } else { return; };
-        if var_name.is_empty() { return; }
+        } else {
+            return;
+        };
+        if var_name.is_empty() {
+            return;
+        }
         // Check if value is a call_expression with a path that starts with a type
         let call = if val.kind() == "call_expression" {
             Some(val)
         } else if val.kind() == "try_expression" || val.kind() == "await_expression" {
             // `Foo::new()?` or `Foo::new().await`
             val.child(0).filter(|c| c.kind() == "call_expression")
-        } else { None };
+        } else {
+            None
+        };
         let Some(call) = call else { return };
         let func = call.child_by_field_name("function");
         let Some(func) = func else { return };
@@ -731,7 +757,8 @@ impl<'a> Walker<'a> {
     fn record_macro(&mut self, node: Node) {
         // macro_definition has a child `identifier` (the macro name)
         // after the `macro_rules!` keyword.
-        let name = node.children(&mut node.walk())
+        let name = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "identifier")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
@@ -783,7 +810,9 @@ impl<'a> Walker<'a> {
                     continue;
                 }
                 // `foo (` — the next token must open a group.
-                let Some(next) = kids.get(i + 1) else { continue };
+                let Some(next) = kids.get(i + 1) else {
+                    continue;
+                };
                 if next.kind() != "token_tree" || !self.text(*next).starts_with('(') {
                     continue;
                 }
@@ -820,7 +849,8 @@ impl<'a> Walker<'a> {
 
     fn ref_from_macro_invocation(&self, node: Node) -> Option<RefRecord> {
         // macro_invocation: first child is the macro name (identifier or scoped_identifier)
-        let macro_node = node.children(&mut node.walk())
+        let macro_node = node
+            .children(&mut node.walk())
             .find(|c| c.kind() == "identifier" || c.kind() == "scoped_identifier")?;
         let name = self.text(macro_node).to_string();
         // Strip trailing ! if present (shouldn't be in the identifier, but defensive)
@@ -990,7 +1020,9 @@ impl<'a> Walker<'a> {
             .unwrap_or_default()
             .to_string();
         let route = super::registrar::route_of(call, self.source);
-        let Some(args) = call.child_by_field_name("arguments") else { return };
+        let Some(args) = call.child_by_field_name("arguments") else {
+            return;
+        };
         let mut cursor = args.walk();
         for arg in args.named_children(&mut cursor) {
             // Only a bare `identifier` / `scoped_identifier` standing
@@ -999,19 +1031,14 @@ impl<'a> Walker<'a> {
             let ident = match arg.kind() {
                 "identifier" | "scoped_identifier" => self.text(arg),
                 // `&handler` — a reference to the function item.
-                "reference_expression" => {
-                    match arg.named_child(0) {
-                        Some(inner)
-                            if matches!(
-                                inner.kind(),
-                                "identifier" | "scoped_identifier"
-                            ) =>
-                        {
-                            self.text(inner)
-                        }
-                        _ => continue,
+                "reference_expression" => match arg.named_child(0) {
+                    Some(inner)
+                        if matches!(inner.kind(), "identifier" | "scoped_identifier") =>
+                    {
+                        self.text(inner)
                     }
-                }
+                    _ => continue,
+                },
                 _ => continue,
             };
             if ident.is_empty() || matches!(ident, "Ok" | "Err" | "Some" | "None") {
@@ -1113,14 +1140,15 @@ fn simplify_rust_type(raw: &str) -> String {
         }
     }
     // Unwrap one level of a common single-arg wrapper.
-    for wrapper in ["Arc", "Rc", "Box", "Option", "Vec", "RefCell", "Mutex", "RwLock"] {
+    for wrapper in [
+        "Arc", "Rc", "Box", "Option", "Vec", "RefCell", "Mutex", "RwLock",
+    ] {
         let prefix = format!("{wrapper}<");
-        if let Some(inner) = s.strip_prefix(&prefix) {
-            if let Some(end) = matching_angle(inner) {
+        if let Some(inner) = s.strip_prefix(&prefix)
+            && let Some(end) = matching_angle(inner) {
                 s = inner[..end].trim().to_string();
                 break;
             }
-        }
     }
     // Strip `dyn ` so `Arc<dyn Trait>` becomes `Trait`.
     if let Some(rest) = s.strip_prefix("dyn ") {
@@ -1217,7 +1245,6 @@ fn line_range(node: Node) -> (u32, u32) {
     (start, end)
 }
 
-
 fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
     // Attributes appear as preceding siblings of `function_item` in
     // `declaration_list`; they look like `#[attr]` or `#![attr]`.
@@ -1225,7 +1252,10 @@ fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
     let mut sib = node.prev_sibling();
     while let Some(s) = sib {
         match s.kind() {
-            "attribute_item" | "inner_attribute_item" | "line_comment" | "block_comment" => {
+            "attribute_item"
+            | "inner_attribute_item"
+            | "line_comment"
+            | "block_comment" => {
                 if s.kind().contains("attribute") {
                     out.push(s.utf8_text(source).unwrap_or("").trim().to_string());
                 }
@@ -1245,9 +1275,8 @@ fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
 ///   * `a::b::c as d`               -> [("a::b::c", "d")]
 ///   * `a::b::{X, Y as Z}`          -> [("a::b::X", ""), ("a::b::Y", "Z")]
 ///   * `a::b::{X, self}`            -> [("a::b::X", ""), ("a::b", "")]
-///   * `a::b::*`                    -> [("a::b::*", "")] (marker; the
-///                                     cross-file resolver treats `*`
-///                                     as a wildcard).
+///   * `a::b::*` -> [("a::b::*", "")] — a marker; the cross-file
+///     resolver treats `*` as a wildcard.
 ///
 /// Nested groups (`a::{b::{X, Y}, Z}`) are flattened recursively.
 fn expand_use_payload(payload: &str) -> Vec<(String, String)> {
@@ -1362,17 +1391,58 @@ fn split_top_level(input: &str) -> Vec<String> {
     parts
 }
 
+/// Project Rust's visibility syntax onto the shared vocabulary.
+///
+/// `pub` escapes the crate; `pub(crate)` / `pub(super)` / `pub(in ...)`
+/// do not; absent means private to the module.
+fn rust_vis(token: &str) -> cgg_core::Vis {
+    let t = token.trim();
+    if t.is_empty() {
+        cgg_core::Vis::Private
+    } else if t == "pub" {
+        cgg_core::Vis::Public
+    } else if t.starts_with("pub") {
+        cgg_core::Vis::Internal
+    } else {
+        cgg_core::Vis::Private
+    }
+}
+
+/// Attributes that mark a Rust test case or benchmark.
+fn rust_test_role(attrs: &[String]) -> Option<cgg_core::TestRole> {
+    for a in attrs {
+        let k = a.trim().trim_start_matches("#[").trim_end_matches(']');
+        let k = k.split('(').next().unwrap_or(k).trim();
+        if matches!(
+            k,
+            "test"
+                | "tokio::test"
+                | "async_std::test"
+                | "bench"
+                | "rstest"
+                | "proptest"
+                | "quickcheck"
+                | "test_case"
+        ) {
+            return Some(cgg_core::TestRole::Case);
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cgg_core::ids::FileId;
     use cgg_core::ImportRecord;
+    use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
     fn extract(src: &str) -> FileFacts {
         let mut parser = Parser::new();
-        parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
         let tree = parser.parse(src, None).unwrap();
         // Use an absolute path that lives outside any cargo workspace
         // so `crate_name_for` falls back to the literal `"crate"`
@@ -1470,8 +1540,12 @@ fn free() {}
         assert_eq!(vis_of("dflt"), cgg_core::Vis::Unknown);
         // Same for the implementing side, where the trait may not even
         // be declared in this file.
-        assert!(f.definitions.iter().any(|d| d.qualified_name.contains("<S as R>::decl")
-            && d.vis == cgg_core::Vis::Unknown));
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name.contains("<S as R>::decl")
+                    && d.vis == cgg_core::Vis::Unknown)
+        );
         // Items that own their visibility are unaffected.
         assert_eq!(vis_of("inherent"), cgg_core::Vis::Private);
         assert_eq!(vis_of("exported"), cgg_core::Vis::Public);
@@ -1500,8 +1574,7 @@ fn free() {}
             .collect();
         assert!(names.contains(&"crate::wrap"));
         assert!(names.iter().any(|n| n.ends_with("inc")), "got: {names:?}");
-        let ref_names: Vec<&str> =
-            f.references.iter().map(|r| r.name.as_str()).collect();
+        let ref_names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(ref_names.contains(&"inc"));
     }
 
@@ -1550,8 +1623,14 @@ fn helper() {}
             .iter()
             .map(|i| (i.path.clone(), i.alias.clone()))
             .collect();
-        assert!(pairs.contains(&("a::b::X".into(), "".into())), "got: {pairs:?}");
-        assert!(pairs.contains(&("a::b::Y".into(), "Z".into())), "got: {pairs:?}");
+        assert!(
+            pairs.contains(&("a::b::X".into(), "".into())),
+            "got: {pairs:?}"
+        );
+        assert!(
+            pairs.contains(&("a::b::Y".into(), "Z".into())),
+            "got: {pairs:?}"
+        );
     }
 
     #[test]
@@ -1609,12 +1688,17 @@ async fn outer() {
 async fn inner_called() {}
 ";
         let f = extract(src);
-        let names: Vec<&str> =
-            f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         // The async block becomes its own callable; line 2 is the
         // `tokio::spawn(async move {` line.
         assert!(
-            names.iter().any(|n| n.starts_with("crate::outer::async_at_")),
+            names
+                .iter()
+                .any(|n| n.starts_with("crate::outer::async_at_")),
             "expected an async_at_* callable under outer; got {names:?}"
         );
         // The synthetic spawn-edge RefRecord must point at the
@@ -1626,8 +1710,7 @@ async fn inner_called() {}
             .unwrap()
             .simple_name
             .clone();
-        let ref_names: Vec<&str> =
-            f.references.iter().map(|r| r.name.as_str()).collect();
+        let ref_names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(
             ref_names.contains(&async_simple.as_str()),
             "expected a synthetic RefRecord referencing {async_simple}; got {ref_names:?}"
@@ -1672,41 +1755,16 @@ fn outer() {
 fn worker() {}
 ";
         let f = extract(src);
-        let names: Vec<&str> =
-            f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         assert!(
-            names.iter().any(|n| n.starts_with("crate::outer::closure_at_")),
+            names
+                .iter()
+                .any(|n| n.starts_with("crate::outer::closure_at_")),
             "expected std::thread::spawn closure to be extracted; got {names:?}"
         );
     }
-}
-
-/// Project Rust's visibility syntax onto the shared vocabulary.
-///
-/// `pub` escapes the crate; `pub(crate)` / `pub(super)` / `pub(in ...)`
-/// do not; absent means private to the module.
-fn rust_vis(token: &str) -> cgg_core::Vis {
-    let t = token.trim();
-    if t.is_empty() {
-        cgg_core::Vis::Private
-    } else if t == "pub" {
-        cgg_core::Vis::Public
-    } else if t.starts_with("pub") {
-        cgg_core::Vis::Internal
-    } else {
-        cgg_core::Vis::Private
-    }
-}
-
-/// Attributes that mark a Rust test case or benchmark.
-fn rust_test_role(attrs: &[String]) -> Option<cgg_core::TestRole> {
-    for a in attrs {
-        let k = a.trim().trim_start_matches("#[").trim_end_matches(']');
-        let k = k.split('(').next().unwrap_or(k).trim();
-        if matches!(k, "test" | "tokio::test" | "async_std::test" | "bench"
-                     | "rstest" | "proptest" | "quickcheck" | "test_case") {
-            return Some(cgg_core::TestRole::Case);
-        }
-    }
-    None
 }

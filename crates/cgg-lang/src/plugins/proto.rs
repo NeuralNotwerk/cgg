@@ -16,24 +16,42 @@
 //! are emitted only for non-scalar types — so no primitive filtering is
 //! needed.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct ProtoPlugin;
 
 impl LanguagePlugin for ProtoPlugin {
-    fn id(&self) -> &'static str { "proto" }
-    fn extensions(&self) -> &'static [&'static str] { &[".proto"] }
-    fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_proto::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "proto"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".proto"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_proto::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "proto");
         let package = find_package(tree.root_node(), source);
-        let mut w = ProtoWalker { source, package, facts: &mut facts };
+        let mut w = ProtoWalker {
+            source,
+            package,
+            facts: &mut facts,
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -61,18 +79,34 @@ struct ProtoWalker<'a> {
 }
 
 impl<'a> ProtoWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "message" => { self.record(node, "message_name", "message"); return; }
-            "enum" => { self.record(node, "enum_name", "enum"); return; }
-            "service" => { self.record(node, "service_name", "service"); return; }
+            "message" => {
+                self.record(node, "message_name", "message");
+                return;
+            }
+            "enum" => {
+                self.record(node, "enum_name", "enum");
+                return;
+            }
+            "service" => {
+                self.record(node, "service_name", "service");
+                return;
+            }
             _ => {}
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 
@@ -82,9 +116,15 @@ impl<'a> ProtoWalker<'a> {
         let name_node = node.children(&mut c).find(|n| n.kind() == name_kind);
         let Some(name_node) = name_node else { return };
         let name = self.text(name_node).trim().to_string();
-        if name.is_empty() { return; }
+        if name.is_empty() {
+            return;
+        }
 
-        let qn = if self.package.is_empty() { name.clone() } else { format!("{}.{}", self.package, name) };
+        let qn = if self.package.is_empty() {
+            name.clone()
+        } else {
+            format!("{}.{}", self.package, name)
+        };
         let (sl, el) = (
             (node.start_position().row as u32) + 1,
             (node.end_position().row as u32) + 1,
@@ -93,10 +133,13 @@ impl<'a> ProtoWalker<'a> {
             simple_name: name.clone(),
             qualified_name: qn,
             variant: DefVariant::FreeFunction,
-            start_line: sl, end_line: el,
-            start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
             signature_hint: format!("{keyword} {name}"),
-            visibility: String::new(), attributes: Vec::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
             ..Default::default()
         });
 
@@ -123,7 +166,12 @@ impl<'a> ProtoWalker<'a> {
         }
         let mut c = node.walk();
         if c.goto_first_child() {
-            loop { self.collect_refs(c.node()); if !c.goto_next_sibling() { break; } }
+            loop {
+                self.collect_refs(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
         }
     }
 }
@@ -138,7 +186,12 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_proto::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
-        ProtoPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/a.proto"), &tree, src.as_bytes())
+        ProtoPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/a.proto"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     const SVC: &str = r#"syntax = "proto3";
@@ -162,7 +215,11 @@ service Svc {
     #[test]
     fn extracts_package_qualified_defs() {
         let f = extract(SVC);
-        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
         assert!(qns.contains(&"foo.bar.GetReq"));
         assert!(qns.contains(&"foo.bar.Svc"));
         assert!(qns.contains(&"foo.bar.Color"), "enum def, got {qns:?}");

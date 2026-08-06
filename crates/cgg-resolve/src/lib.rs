@@ -8,6 +8,9 @@
 
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
+// See cgg-lang/src/lib.rs: the `..Default::default()` spreads are
+// deliberate source-compatibility for future optional fields.
+#![allow(clippy::needless_update)]
 
 pub mod cross_file;
 pub mod deadcode;
@@ -16,8 +19,8 @@ pub mod ffi;
 pub mod frameworks;
 pub mod intra_file;
 pub mod names;
-pub mod type_hints;
 pub mod stack_graphs_resolver;
+pub mod type_hints;
 
 use cgg_core::{CallableId, FileId};
 use serde::{Deserialize, Serialize};
@@ -119,14 +122,13 @@ mod tests {
     fn noop_is_noop() {
         let r = NoopResolver::new();
         assert_eq!(r.id(), "noop");
-        assert!(r
-            .document_symbols(FileId::new(0))
-            .is_empty());
-        assert!(r
-            .enclosing_callable(Location {
+        assert!(r.document_symbols(FileId::new(0)).is_empty());
+        assert!(
+            r.enclosing_callable(Location {
                 file: FileId::new(0),
                 byte: 0,
             })
-            .is_none());
+            .is_none()
+        );
     }
 }

@@ -72,6 +72,70 @@ REPOS=(
     "asyncapi-spec|https://github.com/asyncapi/spec.git|asyncapi|examples||"
 )
 
+# Framework application corpus: name|url|frameworks
+#
+# One real application per framework rule in
+# crates/cgg-core/src/frameworks/rules.rs. These are applications that
+# *use* a framework, never the framework's own repository — a router's
+# own test suite proves the grammar parses, not that cgg recognises the
+# hand-off shape as an application writes it.
+#
+# scripts/framework-coverage.py reads this array and fails if a declared
+# framework does not fire, or if a rule in rules.rs has no entry here.
+#
+# A `~` prefix means "cgg detects this framework on this app but
+# enumerates no entry points from it" — the framework must still land in
+# the coverage table's `seen, no rules` section, which is what keeps a
+# gap visible instead of silently reporting zero. Two reasons a rule sits
+# here, both real and both worth tracking:
+#
+#   ~nextjs, ~blazor       the rule ships a `gap:` string: routes live in
+#                          file-system layout / `.razor` markup, neither
+#                          of which cgg parses.
+#   ~chi, ~sinatra, …      the rule has matchers, but the application
+#                          writes the idiom in a form they miss (handlers
+#                          wrapped in `chain.ToHandlerFunc(...)`, Sinatra
+#                          `get "/x" do … end` blocks, `new Worker(v)`
+#                          with a variable path). These are the ones to
+#                          fix; the marker is a to-do, not an excuse.
+APPS=(
+    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|fastapi"
+    "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin"
+    "app-flaskbb-flask|https://github.com/flaskbb/flaskbb.git|flask"
+    "app-saleor-celery|https://github.com/saleor/saleor.git|celery"
+    "app-black-click|https://github.com/psf/black.git|click"
+    "app-torch-ultralytics|https://github.com/ultralytics/ultralytics.git|torch"
+    "app-ghost-express|https://github.com/TryGhost/Ghost.git|express,worker-threads"
+    "app-ghostfolio-nestjs|https://github.com/ghostfolio/ghostfolio.git|nestjs-schedule"
+    "app-immich-nestjs|https://github.com/immich-app/immich.git|nestjs,bullmq,~worker-threads"
+    "app-calcom-nextjs|https://github.com/calcom/cal.com.git|~nextjs"
+    "app-spring-mall|https://github.com/macrozheng/mall.git|spring,spring-jobs,spring-messaging"
+    "app-thingsboard-concurrent|https://github.com/thingsboard/thingsboard.git|java-concurrent"
+    "app-akka-samples|https://github.com/akka/akka-samples.git|akka"
+    "app-druid-jaxrs|https://github.com/apache/druid.git|jakarta-rs"
+    "app-micronaut-graalapp|https://github.com/micronaut-guides/micronaut-creating-first-graal-app.git|micronaut"
+    "app-gin-photoprism|https://github.com/photoprism/photoprism.git|gin,chi,net-http"
+    "app-memos-echo|https://github.com/usememos/memos.git|echo"
+    "app-fiber-recipes|https://github.com/gofiber/recipes.git|fiber"
+    "app-homebox-chi|https://github.com/sysadminsmedia/homebox.git|chi"
+    "app-temporal-samples|https://github.com/temporalio/samples-go.git|temporal"
+    "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,dotnet-hosting,~blazor"
+    "app-masstransit-sample|https://github.com/MassTransit/Sample-Twitch.git|masstransit"
+    "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|quartz"
+    "app-axum-cratesio|https://github.com/rust-lang/crates.io.git|axum"
+    "app-lemmy-actix|https://github.com/LemmyNet/lemmy.git|actix-web"
+    "app-actix-examples|https://github.com/actix/examples.git|actix-actor"
+    "app-vaultwarden-rocket|https://github.com/dani-garcia/vaultwarden.git|rocket"
+    "app-rails-mastodon|https://github.com/mastodon/mastodon.git|rails,sidekiq"
+    "app-resque-sinatra|https://github.com/resque/resque.git|sinatra"
+    "app-grape-swagger|https://github.com/ruby-grape/grape-swagger.git|grape"
+    "app-monica-laravel|https://github.com/monicahq/monica.git|laravel"
+    "app-symfony-demo|https://github.com/symfony/demo.git|symfony"
+    "app-wordpress|https://github.com/WordPress/WordPress.git|wordpress"
+    "app-codeigniter-starter|https://github.com/codeigniter4/appstarter.git|codeigniter"
+    "app-cuda-samples|https://github.com/NVIDIA/cuda-samples.git|cuda"
+)
+
 # Clone or update repos
 clone_repos() {
     echo "Cloning/updating repos in $REPOS_DIR..."
@@ -170,6 +234,11 @@ run_benchmark() {
 case "${1:-}" in
     --update) clone_repos --update; run_benchmark "${2:-}" ;;
     --lang)   run_benchmark "${2:-}" ;;
-    --help)   echo "Usage: $0 [--update] [--lang LANG]"; exit 0 ;;
+    --apps)   exec "$(dirname "$0")/framework-coverage.py" --clone ;;
+    --help)
+        echo "Usage: $0 [--update] [--lang LANG] [--apps]"
+        echo "  --apps   framework coverage over the APPS corpus"
+        echo "           (delegates to scripts/framework-coverage.py)"
+        exit 0 ;;
     *)        clone_repos; run_benchmark ;;
 esac

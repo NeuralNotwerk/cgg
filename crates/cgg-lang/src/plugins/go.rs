@@ -22,9 +22,7 @@
 
 use std::path::Path;
 
-use cgg_core::{
-    ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
-};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -40,7 +38,13 @@ impl LanguagePlugin for GoPlugin {
         &[".go"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { test_defs: true, unreachable: true, value_refs: true, visibility: true, ..Default::default() }
+        crate::PluginSignals {
+            test_defs: true,
+            unreachable: true,
+            value_refs: true,
+            visibility: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -83,7 +87,8 @@ impl LanguagePlugin for GoPlugin {
         w.walk(root);
         let mut out = facts;
         if crate::deadcode_signals() {
-            out.unreachable = super::cfg::unreachable_after_terminator(tree, &super::cfg::GO);
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::GO);
         }
         if crate::deadcode_signals() {
             out.dyn_uses = super::dynuse::extract(tree, source, "go");
@@ -322,29 +327,49 @@ impl<'a> Walker<'a> {
         // type_declaration -> type_spec -> type_identifier + interface_type -> method_spec_list
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if child.kind() != "type_spec" { continue; }
-            let type_name = child.child_by_field_name("name")
-                .map(|n| self.text(n).to_string()).unwrap_or_default();
+            if child.kind() != "type_spec" {
+                continue;
+            }
+            let type_name = child
+                .child_by_field_name("name")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
             let type_node = child.child_by_field_name("type");
             let Some(type_node) = type_node else { continue };
-            if type_node.kind() != "interface_type" { continue; }
+            if type_node.kind() != "interface_type" {
+                continue;
+            }
             // Walk method specs inside the interface
             let mut ic = type_node.walk();
             for spec in type_node.children(&mut ic) {
-                if spec.kind() != "method_elem" && spec.kind() != "method_spec" { continue; }
-                let method_name = spec.child_by_field_name("name")
-                    .map(|n| self.text(n).to_string()).unwrap_or_default();
-                if method_name.is_empty() { continue; }
+                if spec.kind() != "method_elem" && spec.kind() != "method_spec" {
+                    continue;
+                }
+                let method_name = spec
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if method_name.is_empty() {
+                    continue;
+                }
                 let qn = format!("{}.{method_name}", self.package_prefix(&type_name));
-                let (sl, el) = ((spec.start_position().row as u32)+1, (spec.end_position().row as u32)+1);
+                let (sl, el) = (
+                    (spec.start_position().row as u32) + 1,
+                    (spec.end_position().row as u32) + 1,
+                );
                 let vis = go_vis(&method_name);
                 self.facts.definitions.push(cgg_core::DefRecord {
-                    simple_name: method_name, qualified_name: qn,
+                    simple_name: method_name,
+                    qualified_name: qn,
                     variant: cgg_core::DefVariant::InherentMethod,
-                    start_line: sl, end_line: el,
-                    start_byte: spec.start_byte() as u32, end_byte: spec.end_byte() as u32,
+                    start_line: sl,
+                    end_line: el,
+                    start_byte: spec.start_byte() as u32,
+                    end_byte: spec.end_byte() as u32,
                     signature_hint: self.text(spec).trim().to_string(),
-                    visibility: String::new(), vis, attributes: Vec::new(),
+                    visibility: String::new(),
+                    vis,
+                    attributes: Vec::new(),
                     ..Default::default()
                 });
             }
@@ -359,16 +384,28 @@ impl<'a> Walker<'a> {
         // var_declaration -> var_spec -> name + type
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if child.kind() != "var_spec" { continue; }
-            let var_name = child.child_by_field_name("name")
-                .map(|n| self.text(n).to_string()).unwrap_or_default();
-            let type_name = child.child_by_field_name("type")
-                .map(|n| self.text(n).to_string()).unwrap_or_default();
-            if var_name.is_empty() || type_name.is_empty() { return; }
+            if child.kind() != "var_spec" {
+                continue;
+            }
+            let var_name = child
+                .child_by_field_name("name")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
+            let type_name = child
+                .child_by_field_name("type")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
+            if var_name.is_empty() || type_name.is_empty() {
+                return;
+            }
             let type_name = type_name.trim_start_matches('*').to_string();
-            if !type_name.starts_with(char::is_uppercase) { return; }
+            if !type_name.starts_with(char::is_uppercase) {
+                return;
+            }
             self.facts.local_types.push(cgg_core::LocalType {
-                var_name, type_name, scope_byte: node.start_byte() as u32,
+                var_name,
+                type_name,
+                scope_byte: node.start_byte() as u32,
             });
         }
     }
@@ -377,9 +414,13 @@ impl<'a> Walker<'a> {
         // short_var_declaration: `helper := NewHelper()` or `add := func() {}`
         let left = node.child_by_field_name("left");
         let right = node.child_by_field_name("right");
-        let (Some(left), Some(right)) = (left, right) else { return };
+        let (Some(left), Some(right)) = (left, right) else {
+            return;
+        };
         let var_name = self.text(left).to_string();
-        if var_name.is_empty() { return; }
+        if var_name.is_empty() {
+            return;
+        }
 
         // Check if RHS is a func_literal — emit as a callable
         let rhs = if right.kind() == "expression_list" {
@@ -387,31 +428,39 @@ impl<'a> Walker<'a> {
         } else {
             Some(right)
         };
-        if let Some(rhs) = rhs {
-            if rhs.kind() == "func_literal" {
+        if let Some(rhs) = rhs
+            && rhs.kind() == "func_literal" {
                 let qn = format!("{}.{var_name}", self.pkg);
-                let (sl, el) = ((node.start_position().row as u32)+1, (node.end_position().row as u32)+1);
+                let (sl, el) = (
+                    (node.start_position().row as u32) + 1,
+                    (node.end_position().row as u32) + 1,
+                );
                 let vis = go_vis(&var_name);
                 self.facts.definitions.push(cgg_core::DefRecord {
                     simple_name: var_name.clone(),
                     qualified_name: qn,
                     variant: cgg_core::DefVariant::FreeFunction,
-                    start_line: sl, end_line: el,
-                    start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+                    start_line: sl,
+                    end_line: el,
+                    start_byte: node.start_byte() as u32,
+                    end_byte: node.end_byte() as u32,
                     signature_hint: super::extract_signature(self.text(node)),
-                    visibility: String::new(), vis, attributes: Vec::new(),
+                    visibility: String::new(),
+                    vis,
+                    attributes: Vec::new(),
                     ..Default::default()
                 });
                 return;
             }
-        }
 
         // Heuristic: if RHS is a call to NewFoo(), type is Foo.
         let call = if right.kind() == "expression_list" {
             right.child(0).filter(|c| c.kind() == "call_expression")
         } else if right.kind() == "call_expression" {
             Some(right)
-        } else { None };
+        } else {
+            None
+        };
         let Some(call) = call else { return };
         let func = call.child_by_field_name("function");
         let Some(func) = func else { return };
@@ -420,11 +469,21 @@ impl<'a> Walker<'a> {
             func_name[3..].to_string()
         } else if func_name.starts_with("new") && func_name.len() > 3 {
             let rest = &func_name[3..];
-            if rest.starts_with(char::is_uppercase) { rest.to_string() } else { return; }
-        } else { return; };
-        if !type_name.starts_with(char::is_uppercase) { return; }
+            if rest.starts_with(char::is_uppercase) {
+                rest.to_string()
+            } else {
+                return;
+            }
+        } else {
+            return;
+        };
+        if !type_name.starts_with(char::is_uppercase) {
+            return;
+        }
         self.facts.local_types.push(cgg_core::LocalType {
-            var_name, type_name, scope_byte: node.start_byte() as u32,
+            var_name,
+            type_name,
+            scope_byte: node.start_byte() as u32,
         });
     }
 
@@ -459,6 +518,30 @@ fn line_range(n: Node) -> (u32, u32) {
     (s, e)
 }
 
+/// Go's visibility rule *is* the identifier's first letter — this is
+/// exact, not a heuristic.
+fn go_vis(simple: &str) -> cgg_core::Vis {
+    match simple.chars().next() {
+        Some(c) if c.is_uppercase() => cgg_core::Vis::Public,
+        _ => cgg_core::Vis::Internal,
+    }
+}
+
+/// `TestXxx`/`BenchmarkXxx`/`FuzzXxx`/`ExampleXxx` — the harness
+/// conventions. Requires more than the bare prefix so `Test` itself and
+/// `Testing` do not qualify.
+fn go_test_role(simple: &str) -> Option<cgg_core::TestRole> {
+    if simple == "TestMain" {
+        return Some(cgg_core::TestRole::Fixture);
+    }
+    for pfx in ["Test", "Benchmark", "Fuzz", "Example"] {
+        if let Some(rest) = simple.strip_prefix(pfx)
+            && rest.chars().next().is_some_and(|c| c.is_uppercase()) {
+                return Some(cgg_core::TestRole::Case);
+            }
+    }
+    None
+}
 
 #[cfg(test)]
 mod tests {
@@ -482,10 +565,11 @@ mod tests {
     #[test]
     fn free_function() {
         let f = extract("package pkg\n\nfunc Plain() {}\n");
-        assert!(f
-            .definitions
-            .iter()
-            .any(|d| d.qualified_name == "pkg.Plain"));
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name == "pkg.Plain")
+        );
     }
 
     #[test]
@@ -544,11 +628,7 @@ func Helper() {}
         let ref_names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(ref_names.contains(&"Helper"));
         assert!(ref_names.contains(&"Println"));
-        let fmt_ref = f
-            .references
-            .iter()
-            .find(|r| r.name == "Println")
-            .unwrap();
+        let fmt_ref = f.references.iter().find(|r| r.name == "Println").unwrap();
         assert_eq!(fmt_ref.receiver_hint, "fmt");
     }
 
@@ -558,30 +638,4 @@ func Helper() {}
         let pkg = f.imports.iter().find(|i| i.kind == "package-root").unwrap();
         assert_eq!(pkg.path, "alpha");
     }
-}
-
-/// Go's visibility rule *is* the identifier's first letter — this is
-/// exact, not a heuristic.
-fn go_vis(simple: &str) -> cgg_core::Vis {
-    match simple.chars().next() {
-        Some(c) if c.is_uppercase() => cgg_core::Vis::Public,
-        _ => cgg_core::Vis::Internal,
-    }
-}
-
-/// `TestXxx`/`BenchmarkXxx`/`FuzzXxx`/`ExampleXxx` — the harness
-/// conventions. Requires more than the bare prefix so `Test` itself and
-/// `Testing` do not qualify.
-fn go_test_role(simple: &str) -> Option<cgg_core::TestRole> {
-    if simple == "TestMain" {
-        return Some(cgg_core::TestRole::Fixture);
-    }
-    for pfx in ["Test", "Benchmark", "Fuzz", "Example"] {
-        if let Some(rest) = simple.strip_prefix(pfx) {
-            if rest.chars().next().is_some_and(|c| c.is_uppercase()) {
-                return Some(cgg_core::TestRole::Case);
-            }
-        }
-    }
-    None
 }

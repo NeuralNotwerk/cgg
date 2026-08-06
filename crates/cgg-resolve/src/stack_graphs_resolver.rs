@@ -6,10 +6,10 @@
 //! handles the same resolution with better performance.
 
 use cgg_core::{
+    FileFacts,
     audit::AuditUnresolvedCall,
     graph::{CallEdge, Graph},
     ids::FileId,
-    FileFacts,
 };
 
 #[derive(Debug, Default)]

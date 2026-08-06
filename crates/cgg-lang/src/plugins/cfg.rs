@@ -56,46 +56,97 @@ const NEVER_SCAN: &[&str] = &[
 
 pub const RUST: TerminatorSpec = TerminatorSpec {
     block_kinds: &["block"],
-    terminator_kinds: &["return_expression", "break_expression", "continue_expression"],
-    ignore_kinds: &["line_comment", "block_comment", "empty_statement", "attribute_item"],
-    hoisted_kinds: &["function_item", "struct_item", "enum_item", "impl_item", "use_declaration"],
+    terminator_kinds: &[
+        "return_expression",
+        "break_expression",
+        "continue_expression",
+    ],
+    ignore_kinds: &[
+        "line_comment",
+        "block_comment",
+        "empty_statement",
+        "attribute_item",
+    ],
+    hoisted_kinds: &[
+        "function_item",
+        "struct_item",
+        "enum_item",
+        "impl_item",
+        "use_declaration",
+    ],
 };
 
 pub const PYTHON: TerminatorSpec = TerminatorSpec {
     block_kinds: &["block"],
     // `pass` is not a terminator.
-    terminator_kinds: &["return_statement", "raise_statement", "break_statement", "continue_statement"],
+    terminator_kinds: &[
+        "return_statement",
+        "raise_statement",
+        "break_statement",
+        "continue_statement",
+    ],
     ignore_kinds: &["comment"],
     hoisted_kinds: &[],
 };
 
 pub const GO: TerminatorSpec = TerminatorSpec {
     block_kinds: &["block"],
-    terminator_kinds: &["return_statement", "break_statement", "continue_statement", "goto_statement"],
+    terminator_kinds: &[
+        "return_statement",
+        "break_statement",
+        "continue_statement",
+        "goto_statement",
+    ],
     ignore_kinds: &["comment", "labeled_statement"],
     hoisted_kinds: &["function_declaration", "type_declaration"],
 };
 
 pub const JAVA: TerminatorSpec = TerminatorSpec {
     block_kinds: &["block"],
-    terminator_kinds: &["return_statement", "throw_statement", "break_statement", "continue_statement", "yield_statement"],
-    ignore_kinds: &["line_comment", "block_comment", "comment", "labeled_statement"],
+    terminator_kinds: &[
+        "return_statement",
+        "throw_statement",
+        "break_statement",
+        "continue_statement",
+        "yield_statement",
+    ],
+    ignore_kinds: &[
+        "line_comment",
+        "block_comment",
+        "comment",
+        "labeled_statement",
+    ],
     hoisted_kinds: &["local_variable_declaration"],
 };
 
 pub const C_LIKE: TerminatorSpec = TerminatorSpec {
     block_kinds: &["compound_statement"],
-    terminator_kinds: &["return_statement", "break_statement", "continue_statement", "goto_statement", "throw_statement"],
+    terminator_kinds: &[
+        "return_statement",
+        "break_statement",
+        "continue_statement",
+        "goto_statement",
+        "throw_statement",
+    ],
     ignore_kinds: &["comment", "labeled_statement", "case_statement"],
     hoisted_kinds: &["declaration", "function_definition"],
 };
 
 pub const JS: TerminatorSpec = TerminatorSpec {
     block_kinds: &["statement_block"],
-    terminator_kinds: &["return_statement", "throw_statement", "break_statement", "continue_statement"],
+    terminator_kinds: &[
+        "return_statement",
+        "throw_statement",
+        "break_statement",
+        "continue_statement",
+    ],
     ignore_kinds: &["comment", "empty_statement"],
     // Hoisting is real in JS: these remain reachable after a `return`.
-    hoisted_kinds: &["function_declaration", "class_declaration", "variable_declaration"],
+    hoisted_kinds: &[
+        "function_declaration",
+        "class_declaration",
+        "variable_declaration",
+    ],
 };
 
 fn cause_of(kind: &str) -> &'static str {
@@ -127,7 +178,10 @@ fn has_preproc(node: Node) -> bool {
 }
 
 /// Find statements that control flow cannot reach.
-pub fn unreachable_after_terminator(tree: &Tree, spec: &TerminatorSpec) -> Vec<UnreachableRegion> {
+pub fn unreachable_after_terminator(
+    tree: &Tree,
+    spec: &TerminatorSpec,
+) -> Vec<UnreachableRegion> {
     let mut out = Vec::new();
     let mut stack = vec![tree.root_node()];
 

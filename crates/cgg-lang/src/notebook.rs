@@ -25,27 +25,36 @@ pub fn extract_python_source(bytes: &[u8]) -> Option<Vec<u8>> {
 
     let mut out = String::new();
     for cell in cells {
-        let Some(kind) = cell.get("cell_type").and_then(Value::as_str) else { continue };
-        if kind != "code" { continue }
-        let Some(source) = cell.get("source") else { continue };
+        let Some(kind) = cell.get("cell_type").and_then(Value::as_str) else {
+            continue;
+        };
+        if kind != "code" {
+            continue;
+        }
+        let Some(source) = cell.get("source") else {
+            continue;
+        };
 
         let cell_text = match source {
             Value::String(s) => s.clone(),
-            Value::Array(lines) => lines
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<String>(),
+            Value::Array(lines) => {
+                lines.iter().filter_map(|v| v.as_str()).collect::<String>()
+            }
             _ => continue,
         };
 
         let trimmed = strip_magics(&cell_text);
-        if trimmed.trim().is_empty() { continue }
+        if trimmed.trim().is_empty() {
+            continue;
+        }
 
         if !out.is_empty() && !out.ends_with('\n') {
             out.push('\n');
         }
         out.push_str(&trimmed);
-        if !out.ends_with('\n') { out.push('\n'); }
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
         // Blank line between cells so cell-local top-level statements
         // don't accidentally chain (e.g. dangling `if` continuations).
         out.push('\n');
@@ -62,7 +71,10 @@ fn strip_magics(cell: &str) -> String {
     cell.lines()
         .map(|line| {
             let stripped = line.trim_start();
-            if stripped.starts_with('%') || stripped.starts_with('!') || stripped.starts_with('?') {
+            if stripped.starts_with('%')
+                || stripped.starts_with('!')
+                || stripped.starts_with('?')
+            {
                 "" // drop the magic
             } else {
                 line

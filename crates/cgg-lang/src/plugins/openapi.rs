@@ -16,28 +16,46 @@
 //! component or operation it sits inside — yielding operation → schema and
 //! schema → schema edges (the API's request/response/model topology).
 
-use std::path::Path;
-use cgg_core::{ids::FileId, FileFacts};
-use tree_sitter::Tree;
-use crate::plugins::structured;
 use crate::LanguagePlugin;
+use crate::plugins::structured;
+use cgg_core::{FileFacts, ids::FileId};
+use std::path::Path;
+use tree_sitter::Tree;
 
 /// HTTP methods recognised as operations under a path item.
-const METHODS: &[&str] = &["get", "put", "post", "delete", "options", "head", "patch", "trace"];
+const METHODS: &[&str] = &[
+    "get", "put", "post", "delete", "options", "head", "patch", "trace",
+];
 
 #[derive(Debug)]
 pub struct OpenApiPlugin;
 
 impl LanguagePlugin for OpenApiPlugin {
-    fn id(&self) -> &'static str { "openapi" }
-    fn extensions(&self) -> &'static [&'static str] { &[".yaml", ".yml", ".json"] }
-    fn shebangs(&self) -> &'static [&'static str] { &[] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_yaml::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "openapi"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".yaml", ".yml", ".json"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_yaml::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "openapi");
         let root = tree.root_node();
-        let Some(top) = structured::document_root(root) else { return facts };
+        let Some(top) = structured::document_root(root) else {
+            return facts;
+        };
 
         for (section, kind) in [
             (&["components", "schemas"][..], "schema"),
@@ -60,8 +78,16 @@ impl LanguagePlugin for OpenApiPlugin {
                     let op_id = structured::get(op, &["operationId"], source)
                         .map(|n| structured::scalar_text(n, source))
                         .filter(|s| !s.is_empty())
-                        .unwrap_or_else(|| format!("{} {path_str}", method.to_uppercase()));
-                    structured::push_def(&mut facts, &op_id, &op_id, op, format!("operation {op_id}"));
+                        .unwrap_or_else(|| {
+                            format!("{} {path_str}", method.to_uppercase())
+                        });
+                    structured::push_def(
+                        &mut facts,
+                        &op_id,
+                        &op_id,
+                        op,
+                        format!("operation {op_id}"),
+                    );
                 }
             }
         }
@@ -81,7 +107,12 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_yaml::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
-        OpenApiPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/api.yaml"), &tree, src.as_bytes())
+        OpenApiPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/api.yaml"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     const PETSTORE: &str = r#"openapi: 3.0.0
@@ -130,12 +161,19 @@ components:
     #[test]
     fn extracts_schema_and_operation_defs() {
         let f = extract(PETSTORE);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
         for want in ["Pet", "Category", "Pets", "listPets"] {
             assert!(names.contains(&want), "missing def {want}, got {names:?}");
         }
         // post has no operationId -> synthesized "POST /pets"
-        assert!(names.iter().any(|n| n.contains("POST")), "synthesized op name, got {names:?}");
+        assert!(
+            names.iter().any(|n| n.contains("POST")),
+            "synthesized op name, got {names:?}"
+        );
     }
 
     #[test]
@@ -152,12 +190,18 @@ components:
         // The intra-file linker needs each $ref site_byte inside exactly
         // one def's byte range. Verify the Category $ref sits within Pet.
         let f = extract(PETSTORE);
-        let pet = f.definitions.iter().find(|d| d.simple_name == "Pet").unwrap();
+        let pet = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "Pet")
+            .unwrap();
         let cat_ref = f.references.iter().find(|r| r.name == "Category").unwrap();
         assert!(
             cat_ref.site_byte >= pet.start_byte && cat_ref.site_byte < pet.end_byte,
             "Category $ref byte {} not within Pet [{}, {})",
-            cat_ref.site_byte, pet.start_byte, pet.end_byte
+            cat_ref.site_byte,
+            pet.start_byte,
+            pet.end_byte
         );
     }
 
@@ -165,8 +209,15 @@ components:
     fn parses_json_documents_too() {
         let json = r##"{"openapi":"3.0.0","components":{"schemas":{"A":{"properties":{"b":{"$ref":"#/components/schemas/B"}}},"B":{"type":"object"}}}}"##;
         let f = extract(json);
-        let names: Vec<&str> = f.definitions.iter().map(|d| d.simple_name.as_str()).collect();
-        assert!(names.contains(&"A") && names.contains(&"B"), "json defs, got {names:?}");
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert!(
+            names.contains(&"A") && names.contains(&"B"),
+            "json defs, got {names:?}"
+        );
         assert!(f.references.iter().any(|r| r.name == "B"), "json $ref");
     }
 }

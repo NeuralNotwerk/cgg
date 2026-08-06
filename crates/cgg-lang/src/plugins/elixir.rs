@@ -1,22 +1,41 @@
 //! Elixir plugin — callable extraction.
 
-use std::path::Path;
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
-use tree_sitter::{Node, Tree};
 use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
 
 #[derive(Debug)]
 pub struct ElixirPlugin;
 
 impl LanguagePlugin for ElixirPlugin {
-    fn id(&self) -> &'static str { "elixir" }
-    fn extensions(&self) -> &'static [&'static str] { &[".ex", ".exs"] }
-    fn shebangs(&self) -> &'static [&'static str] { &["elixir"] }
-    fn ts_language(&self) -> tree_sitter::Language { tree_sitter_elixir::LANGUAGE.into() }
+    fn id(&self) -> &'static str {
+        "elixir"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".ex", ".exs"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["elixir"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_elixir::LANGUAGE.into()
+    }
 
-    fn extract(&self, file: FileId, path: &Path, tree: &Tree, source: &[u8]) -> FileFacts {
+    fn extract(
+        &self,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "elixir");
-        let mut w = ElixirWalker { source, facts: &mut facts, scope: Vec::new() };
+        let mut w = ElixirWalker {
+            source,
+            facts: &mut facts,
+            scope: Vec::new(),
+            suppress_call_at: None,
+        };
         w.walk(tree.root_node());
         facts
     }
@@ -26,63 +45,97 @@ struct ElixirWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Start offset of the head of the `def` currently being walked, if
+    /// any. A `call` node beginning exactly there is the definition's
+    /// own head re-read as a call, not a call site.
+    suppress_call_at: Option<usize>,
 }
 
 impl<'a> ElixirWalker<'a> {
-    fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
     fn qn(&self, simple: &str) -> String {
-        if self.scope.is_empty() { simple.to_string() }
-        else { format!("{}::{simple}", self.scope.join("::")) }
+        if self.scope.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}::{simple}", self.scope.join("::"))
+        }
     }
 
     fn walk(&mut self, node: Node) {
-        match node.kind() {
-            "call" => {
-                // Get the first child which should be the function name
-                let func_name = node.child(0).map(|c| self.text(c).to_string()).unwrap_or_default();
-                
-                match func_name.as_str() {
-                    "defmodule" => {
-                        if let Some(module_name) = self.extract_defmodule_name(node) {
-                            self.scope.push(module_name);
-                            self.walk_children(node);
-                            self.scope.pop();
-                        } else {
-                            self.walk_children(node);
-                        }
-                        return;
-                    }
-                    "def" | "defp" | "defmacro" => {
-                        self.record_function(node);
+        if node.kind() == "call" {
+            // Get the first child which should be the function name
+            let func_name = node
+                .child(0)
+                .map(|c| self.text(c).to_string())
+                .unwrap_or_default();
+
+            match func_name.as_str() {
+                "defmodule" => {
+                    if let Some(module_name) = self.extract_defmodule_name(node) {
+                        self.scope.push(module_name);
                         self.walk_children(node);
-                        return;
-                    }
-                    "alias" | "import" | "use" | "require" => {
-                        self.record_import(node, &func_name);
+                        self.scope.pop();
+                    } else {
                         self.walk_children(node);
-                        return;
                     }
-                    _ => {
-                        self.record_call(node);
-                        self.walk_children(node);
-                        return;
-                    }
+                    return;
+                }
+                "def" | "defp" | "defmacro" => {
+                    self.record_function(node);
+                    // `def run(x) do … end` parses its head, `run(x)`,
+                    // as a nested `call` node. Walking it like any
+                    // other call made every parenthesised definition
+                    // emit a call to itself: 730 of phoenix's 2982
+                    // Elixir edges — 24% — were these phantom
+                    // self-loops, and each one also made its function
+                    // look reachable to `--dead-code`.
+                    //
+                    // The head is suppressed by start offset rather
+                    // than by skipping the subtree, because the head
+                    // can be `run(x \\ default()) when guard(x)`,
+                    // whose default arguments and guards are real
+                    // call sites that start later than the head does.
+                    let prev = self.suppress_call_at;
+                    self.suppress_call_at = node.child(1).map(|h| h.start_byte());
+                    self.walk_children(node);
+                    self.suppress_call_at = prev;
+                    return;
+                }
+                "alias" | "import" | "use" | "require" => {
+                    self.record_import(node, &func_name);
+                    self.walk_children(node);
+                    return;
+                }
+                _ => {
+                    self.record_call(node);
+                    self.walk_children(node);
+                    return;
                 }
             }
-            _ => {}
         }
         self.walk_children(node);
     }
 
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
-        if c.goto_first_child() { loop { self.walk(c.node()); if !c.goto_next_sibling() { break; } } }
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
     }
 
     fn extract_defmodule_name(&self, node: Node) -> Option<String> {
         // defmodule name do ... end
         // The name is typically the second child (after "defmodule")
-        node.child(1).map(|n| self.text(n).to_string()).filter(|s| !s.is_empty())
+        node.child(1)
+            .map(|n| self.text(n).to_string())
+            .filter(|s| !s.is_empty())
     }
 
     fn record_function(&mut self, node: Node) {
@@ -92,16 +145,26 @@ impl<'a> ElixirWalker<'a> {
             let head_text = self.text(name_node);
             // Extract function name from head (e.g., "foo" or "foo(a, b)")
             let name = head_text.split('(').next().unwrap_or("").trim().to_string();
-            if name.is_empty() { return; }
-            
+            if name.is_empty() {
+                return;
+            }
+
             let qn = self.qn(&name);
-            let (sl, el) = ((node.start_position().row as u32) + 1, (node.end_position().row as u32) + 1);
+            let (sl, el) = (
+                (node.start_position().row as u32) + 1,
+                (node.end_position().row as u32) + 1,
+            );
             self.facts.definitions.push(DefRecord {
-                simple_name: name, qualified_name: qn, variant: DefVariant::FreeFunction,
-                start_line: sl, end_line: el,
-                start_byte: node.start_byte() as u32, end_byte: node.end_byte() as u32,
+                simple_name: name,
+                qualified_name: qn,
+                variant: DefVariant::FreeFunction,
+                start_line: sl,
+                end_line: el,
+                start_byte: node.start_byte() as u32,
+                end_byte: node.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(node)),
-                visibility: String::new(), attributes: Vec::new(),
+                visibility: String::new(),
+                attributes: Vec::new(),
                 ..Default::default()
             });
         }
@@ -111,7 +174,10 @@ impl<'a> ElixirWalker<'a> {
         // alias/import/use/require Module
         // The module is typically the second child
         if let Some(module_node) = node.child(1) {
-            let path = self.text(module_node).trim_matches(|c| c == '\'' || c == '"').to_string();
+            let path = self
+                .text(module_node)
+                .trim_matches(|c| c == '\'' || c == '"')
+                .to_string();
             if !path.is_empty() {
                 self.facts.imports.push(ImportRecord {
                     kind: import_type.to_string(),
@@ -125,10 +191,15 @@ impl<'a> ElixirWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
+        if self.suppress_call_at == Some(node.start_byte()) {
+            return;
+        }
         if let Some(func_node) = node.child(0) {
             let name = self.text(func_node).to_string();
-            if name.is_empty() || name.starts_with("def") { return; }
-            
+            if name.is_empty() || name.starts_with("def") {
+                return;
+            }
+
             let receiver_hint = if name.contains('.') {
                 let parts: Vec<&str> = name.split('.').collect();
                 if parts.len() == 2 {
@@ -139,7 +210,7 @@ impl<'a> ElixirWalker<'a> {
             } else {
                 String::new()
             };
-            
+
             self.facts.references.push(RefRecord {
                 name,
                 receiver_hint,
@@ -160,9 +231,15 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_elixir::LANGUAGE.into()).unwrap();
+        p.set_language(&tree_sitter_elixir::LANGUAGE.into())
+            .unwrap();
         let tree = p.parse(src, None).unwrap();
-        ElixirPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.ex"), &tree, src.as_bytes())
+        ElixirPlugin.extract(
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.ex"),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     #[test]
@@ -170,5 +247,49 @@ mod tests {
         let src = "defmodule MyModule do\n  def greet(name) do\n    IO.puts(\"Hello, #{name}\")\n  end\nend\n";
         let f = extract(src);
         assert!(!f.definitions.is_empty(), "Expected definitions, got none");
+    }
+
+    #[test]
+    fn a_definition_head_is_not_a_call_to_itself() {
+        // Regression: `def run(x) do … end` parses its head as a nested
+        // `call`, and recording it produced a reference named `run` at
+        // the definition site. Those resolved either to the function
+        // itself (a self-loop) or to a same-named function in another
+        // module (a bogus cross-file edge). 1404 of phoenix's edges —
+        // just under half — were this artifact, and every one of them
+        // also made its own function look reachable to `--dead-code`.
+        let src = "defmodule M do\n  def run(x) do\n    :ok\n  end\nend\n";
+        let f = extract(src);
+        assert_eq!(f.definitions.len(), 1);
+        assert!(
+            !f.references.iter().any(|r| r.name == "run"),
+            "definition head recorded as a call: {:?}",
+            f.references.iter().map(|r| &r.name).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn calls_in_the_body_survive_head_suppression() {
+        // The suppression is keyed on the head's start offset, so
+        // anything starting later — the body, and guards — is untouched.
+        let src = "defmodule M do\n  def run(x) when is_integer(x) do\n    helper(x)\n  end\n\n  def helper(y) do\n    y\n  end\nend\n";
+        let f = extract(src);
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(names.contains(&"helper"), "body call lost: {names:?}");
+        assert!(names.contains(&"is_integer"), "guard call lost: {names:?}");
+        assert!(!names.contains(&"run"), "head still recorded: {names:?}");
+    }
+
+    #[test]
+    fn genuine_recursion_is_still_a_call() {
+        // The head is suppressed by offset, not by name, so a real
+        // recursive call in the body is kept.
+        let src = "defmodule M do\n  def loop(n) do\n    loop(n - 1)\n  end\nend\n";
+        let f = extract(src);
+        assert_eq!(
+            f.references.iter().filter(|r| r.name == "loop").count(),
+            1,
+            "expected exactly the body's recursive call"
+        );
     }
 }

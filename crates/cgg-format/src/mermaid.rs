@@ -7,8 +7,8 @@
 
 use std::io;
 
-use cgg_core::graph::Via;
 use cgg_core::Graph;
+use cgg_core::graph::Via;
 
 use crate::{GraphFormatter, OutputFormat};
 
@@ -132,7 +132,10 @@ impl GraphFormatter for MermaidFormatter {
             std::collections::HashMap::new();
         for edge in &graph.edges {
             let key = (edge.src.as_u32(), edge.dst.as_u32(), via_tag(&edge.via));
-            if counts.insert(key, counts.get(&key).copied().unwrap_or(0) + 1).is_none() {
+            if counts
+                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
+                .is_none()
+            {
                 order.push(key);
             }
         }
@@ -267,8 +270,10 @@ mod tests {
     #[test]
     fn angle_brackets_escaped() {
         let mut g = mk_graph();
-        g.callables.get_mut(&CallableId::new(0)).unwrap().qualified_name =
-            "crate::<A as B>::m".into();
+        g.callables
+            .get_mut(&CallableId::new(0))
+            .unwrap()
+            .qualified_name = "crate::<A as B>::m".into();
         let mut buf = Vec::new();
         MermaidFormatter.render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
@@ -299,7 +304,10 @@ mod tests {
         // The original edge from mk_graph + 3 new ones = 4 total.
         assert!(s.contains("C0 -->|4x| C1"), "got:\n{s}");
         // Exactly one rendered arrow line for this pair.
-        let arrows = s.lines().filter(|l| l.contains("--> ") || l.contains("-->|")).count();
+        let arrows = s
+            .lines()
+            .filter(|l| l.contains("--> ") || l.contains("-->|"))
+            .count();
         assert_eq!(arrows, 1, "got:\n{s}");
         // The bare-arrow form must not appear when a label is required.
         assert!(!s.contains("C0 --> C1"), "got:\n{s}");
@@ -341,18 +349,30 @@ mod tests {
         });
         // Order: a->c first, then a second occurrence of a->b, then a->c again.
         g.add_edge(CallEdge {
-            src: CallableId::new(0), dst: c, site_line: 2, site_byte: 100,
-            confidence: Confidence::High, via: Via::Direct,
+            src: CallableId::new(0),
+            dst: c,
+            site_line: 2,
+            site_byte: 100,
+            confidence: Confidence::High,
+            via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
         });
         g.add_edge(CallEdge {
-            src: CallableId::new(0), dst: CallableId::new(1), site_line: 3, site_byte: 200,
-            confidence: Confidence::High, via: Via::Direct,
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 3,
+            site_byte: 200,
+            confidence: Confidence::High,
+            via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
         });
         g.add_edge(CallEdge {
-            src: CallableId::new(0), dst: c, site_line: 4, site_byte: 300,
-            confidence: Confidence::High, via: Via::Direct,
+            src: CallableId::new(0),
+            dst: c,
+            site_line: 4,
+            site_byte: 300,
+            confidence: Confidence::High,
+            via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
         });
         let mut buf = Vec::new();

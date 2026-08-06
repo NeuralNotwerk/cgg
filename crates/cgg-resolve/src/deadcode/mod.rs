@@ -57,9 +57,9 @@ use std::collections::BTreeMap;
 
 use cgg_core::audit::AuditFileRecord;
 use cgg_core::deadcode::{
-    DeadCodeFinding, DeadCodeReport, DeadCodeSummary, DeadRegion, Evidence, FindingCategory,
-    LanguageCapabilityReport, LanguageClass, LivenessProof, ProofHop, RegionRole,
-    SuppressedCategory, SuppressionReason, DEFAULT_MIN_ROOT_COVERAGE_PCT,
+    DEFAULT_MIN_ROOT_COVERAGE_PCT, DeadCodeFinding, DeadCodeReport, DeadCodeSummary,
+    DeadRegion, Evidence, FindingCategory, LanguageCapabilityReport, LanguageClass,
+    LivenessProof, ProofHop, RegionRole, SuppressedCategory, SuppressionReason,
 };
 use cgg_core::graph::{CallableKind, CallableNode, Confidence, Graph, Via};
 use cgg_core::ids::CallableId;
@@ -252,7 +252,13 @@ pub fn analyze(
     // Dead subgraph: refine "unreachable" into cycles vs. downstream.
     let in_dead: Vec<bool> = category
         .iter()
-        .map(|c| matches!(c, Some(FindingCategory::NeverReferenced) | Some(FindingCategory::UnreachableFromRoots)))
+        .map(|c| {
+            matches!(
+                c,
+                Some(FindingCategory::NeverReferenced)
+                    | Some(FindingCategory::UnreachableFromRoots)
+            )
+        })
         .collect();
     let (scc_of, sccs) = scc::tarjan_scc(&adjacency, &in_dead);
     let region_of = scc::weak_components(&adjacency, &in_dead);
@@ -280,14 +286,18 @@ pub fn analyze(
         BTreeMap::new();
 
     for i in 0..n as u32 {
-        let Some(cat) = category[i as usize] else { continue };
+        let Some(cat) = category[i as usize] else {
+            continue;
+        };
         let Some(nd) = node_at(i) else { continue };
         let lang = nd.language.clone();
         let m = measured.get(&lang);
 
         // Withhold rather than mislead.
         let suppression = match m.map(|m| m.class) {
-            Some(LanguageClass::Descriptor) => Some(SuppressionReason::DescriptorLanguage),
+            Some(LanguageClass::Descriptor) => {
+                Some(SuppressionReason::DescriptorLanguage)
+            }
             Some(LanguageClass::ScriptDriven) if cat.depends_on_roots() => {
                 Some(SuppressionReason::ScriptDriven)
             }
@@ -332,7 +342,9 @@ pub fn analyze(
         }
         let cid = scc_of[i as usize];
         if cid != u32::MAX && sccs[cid as usize].len() > 1 {
-            ev.push(Evidence::InCycle { scc_size: sccs[cid as usize].len() as u32 });
+            ev.push(Evidence::InCycle {
+                scc_size: sccs[cid as usize].len() as u32,
+            });
         }
         ev.extend(unresolved.evidence_for(graph, nd));
         if dyn_named.contains(&(nd.language.as_str(), nd.simple_name.as_str())) {
@@ -375,7 +387,9 @@ pub fn analyze(
             });
         }
         if evidence::is_implicitly_invokable(nd.kind) {
-            ev.push(Evidence::ImplicitlyInvokableKind { callable_kind: nd.kind });
+            ev.push(Evidence::ImplicitlyInvokableKind {
+                callable_kind: nd.kind,
+            });
         }
         // Read from the normalized `vis`, never from the language-native
         // token: `pub`, `public` and `pub(crate)` fall into three
@@ -384,11 +398,13 @@ pub fn analyze(
         match nd.vis {
             // Confined to the analyzed unit, so no out-of-tree caller
             // can exist — the finding is corroborated.
-            Vis::Private | Vis::Internal => {
-                ev.push(Evidence::PrivateVisibility { token: vis_token(nd) })
-            }
+            Vis::Private | Vis::Internal => ev.push(Evidence::PrivateVisibility {
+                token: vis_token(nd),
+            }),
             // Exported, so a caller may live in code cgg never saw.
-            Vis::Public => ev.push(Evidence::PublicVisibility { token: vis_token(nd) }),
+            Vis::Public => ev.push(Evidence::PublicVisibility {
+                token: vis_token(nd),
+            }),
             // `Protected` reaches out-of-tree subtypes but not arbitrary
             // callers, and cgg models no subtype graph; `Unknown` means
             // the plugin never determined it. Claiming either direction
@@ -426,7 +442,11 @@ pub fn analyze(
             kind: nd.kind,
             def_variant: String::new(),
             file: nd.file,
-            path: graph.files.get(&nd.file).map(|f| f.path.clone()).unwrap_or_default(),
+            path: graph
+                .files
+                .get(&nd.file)
+                .map(|f| f.path.clone())
+                .unwrap_or_default(),
             start_line: nd.start_line,
             end_line: nd.end_line,
             size_lines,
@@ -456,10 +476,14 @@ pub fn analyze(
     let regions: Vec<DeadRegion> = regions_map
         .into_iter()
         .map(|(id, members)| {
-            let mut files: Vec<_> = members.iter().filter_map(|&i| node_at(i).map(|x| x.file)).collect();
+            let mut files: Vec<_> = members
+                .iter()
+                .filter_map(|&i| node_at(i).map(|x| x.file))
+                .collect();
             files.sort_unstable_by_key(|f| f.as_u32());
             files.dedup();
-            let mut languages: Vec<String> = members.iter().map(|&i| lang_at(i)).collect();
+            let mut languages: Vec<String> =
+                members.iter().map(|&i| lang_at(i)).collect();
             languages.sort();
             languages.dedup();
             let anchors = members
@@ -488,7 +512,12 @@ pub fn analyze(
             let confidence = members
                 .iter()
                 .filter_map(|&i| node_at(i))
-                .filter_map(|nd| findings.iter().find(|f| f.id == nd.id).map(|f| f.confidence))
+                .filter_map(|nd| {
+                    findings
+                        .iter()
+                        .find(|f| f.id == nd.id)
+                        .map(|f| f.confidence)
+                })
                 .min_by_key(|c| match c {
                     Confidence::Low => 0,
                     Confidence::Medium => 1,
@@ -497,7 +526,10 @@ pub fn analyze(
                 .unwrap_or(Confidence::Low);
             DeadRegion {
                 id,
-                members: members.iter().filter_map(|&i| node_at(i).map(|x| x.id)).collect(),
+                members: members
+                    .iter()
+                    .filter_map(|&i| node_at(i).map(|x| x.id))
+                    .collect(),
                 anchors,
                 cycles,
                 files,
@@ -540,7 +572,11 @@ pub fn analyze(
             } else {
                 Confidence::Medium
             },
-            root_rules_active: root_set.rules_by_language.get(lang).cloned().unwrap_or_default(),
+            root_rules_active: root_set
+                .rules_by_language
+                .get(lang)
+                .cloned()
+                .unwrap_or_default(),
             files: m.files,
             callables: m.callables,
             roots: lang_roots.get(lang).copied().unwrap_or(0),
@@ -570,7 +606,8 @@ pub fn analyze(
         capabilities,
         summary: DeadCodeSummary {
             review_required: true,
-            callables: graph.callables.values().filter(|n| is_candidate(n)).count() as u32,
+            callables: graph.callables.values().filter(|n| is_candidate(n)).count()
+                as u32,
             edges: graph.edges.len() as u32,
             unresolved_call_sites: graph.unresolved.len() as u32,
             roots: root_set.records.len() as u32,
@@ -579,11 +616,13 @@ pub fn analyze(
             regions: regions.len() as u32,
             withheld: withheld
                 .into_iter()
-                .map(|((language, category), (reason, would_have_reported))| SuppressedCategory {
-                    language,
-                    category,
-                    reason,
-                    would_have_reported,
+                .map(|((language, category), (reason, would_have_reported))| {
+                    SuppressedCategory {
+                        language,
+                        category,
+                        reason,
+                        would_have_reported,
+                    }
                 })
                 .collect(),
             stale_suppressions: opts.stale_patterns.clone(),
@@ -623,11 +662,7 @@ fn search(adj: &Adj, graph: &Graph, seeds: &[u32]) -> (Vec<u32>, Vec<u32>, Vec<b
         }
         settled[v as usize] = true;
         for (w, ei) in adj.succ(v) {
-            let c = graph
-                .edges
-                .get(ei as usize)
-                .map(edge_cost)
-                .unwrap_or(1);
+            let c = graph.edges.get(ei as usize).map(edge_cost).unwrap_or(1);
             let nd = d.saturating_add(c);
             if nd < dist[w as usize] {
                 dist[w as usize] = nd;
@@ -667,7 +702,9 @@ pub fn why_live(
 
     let mut out = Vec::new();
     for &target in targets {
-        let Some(ti) = graph.callables.get_index_of(&target) else { continue };
+        let Some(ti) = graph.callables.get_index_of(&target) else {
+            continue;
+        };
         let ti = ti as u32;
         let node = &graph.callables[&target];
 
@@ -694,7 +731,9 @@ pub fn why_live(
                 root_record = root_set.records.iter().find(|r| r.id == rnode.id).cloned();
             }
             for (to_idx, ei) in chain {
-                let Some(e) = graph.edges.get(ei as usize) else { continue };
+                let Some(e) = graph.edges.get(ei as usize) else {
+                    continue;
+                };
                 let Some((_, to)) = graph.callables.get_index(to_idx as usize) else {
                     continue;
                 };
@@ -702,7 +741,11 @@ pub fn why_live(
                     from: e.src,
                     to: e.dst,
                     to_qualified_name: to.qualified_name.clone(),
-                    path: graph.files.get(&to.file).map(|f| f.path.clone()).unwrap_or_default(),
+                    path: graph
+                        .files
+                        .get(&to.file)
+                        .map(|f| f.path.clone())
+                        .unwrap_or_default(),
                     line: to.start_line,
                     site_line: e.site_line,
                     via: match &e.via {
@@ -720,14 +763,11 @@ pub fn why_live(
             }
         }
 
-        let weakest_link = hops
-            .iter()
-            .map(|h| h.confidence)
-            .min_by_key(|c| match c {
-                Confidence::Low => 0u8,
-                Confidence::Medium => 1,
-                Confidence::High => 2,
-            });
+        let weakest_link = hops.iter().map(|h| h.confidence).min_by_key(|c| match c {
+            Confidence::Low => 0u8,
+            Confidence::Medium => 1,
+            Confidence::High => 2,
+        });
 
         out.push(LivenessProof {
             target,
@@ -747,7 +787,10 @@ mod tests {
     use testutil::{graph_with, link, node};
 
     fn opts() -> DeadCodeOptions {
-        DeadCodeOptions { confidence_threshold: "high".into(), ..Default::default() }
+        DeadCodeOptions {
+            confidence_threshold: "high".into(),
+            ..Default::default()
+        }
     }
 
     /// Options declaring rust's real signal coverage, mirroring
@@ -792,7 +835,11 @@ mod tests {
         ]);
         link(&mut g, 0, 1);
         let r = analyze(&g, &[], &[], &opts());
-        let names: Vec<_> = r.findings.iter().map(|f| f.qualified_name.as_str()).collect();
+        let names: Vec<_> = r
+            .findings
+            .iter()
+            .map(|f| f.qualified_name.as_str())
+            .collect();
         assert_eq!(names, vec!["crate::orphan"]);
         assert_eq!(r.findings[0].category, FindingCategory::NeverReferenced);
     }
@@ -816,7 +863,11 @@ mod tests {
         link(&mut g, 2, 1);
         let r = analyze(&g, &[], &[], &opts());
         assert_eq!(r.findings.len(), 2, "both cycle members reported");
-        assert!(r.findings.iter().all(|f| f.category == FindingCategory::DeadCycle));
+        assert!(
+            r.findings
+                .iter()
+                .all(|f| f.category == FindingCategory::DeadCycle)
+        );
         assert!(r.findings.iter().all(|f| f.role == RegionRole::CycleMember));
         // One group, no entry point: every member is referenced, but
         // only from inside the ring.
@@ -836,7 +887,11 @@ mod tests {
         let r = analyze(&g, &[], &[], &opts());
         assert_eq!(r.regions.len(), 1);
         assert_eq!(r.regions[0].members.len(), 2);
-        assert_eq!(r.regions[0].anchors.len(), 1, "`a` is the group's entry point");
+        assert_eq!(
+            r.regions[0].anchors.len(),
+            1,
+            "`a` is the group's entry point"
+        );
         let b = r.findings.iter().find(|f| f.simple_name == "b").unwrap();
         assert_eq!(b.category, FindingCategory::ReachableOnlyFromDeadCode);
     }
@@ -858,10 +913,12 @@ mod tests {
 
         // Remove every reported callable from the graph and re-run: a
         // second pass must have nothing further to say.
-        let dead: std::collections::HashSet<_> = first.findings.iter().map(|f| f.id).collect();
+        let dead: std::collections::HashSet<_> =
+            first.findings.iter().map(|f| f.id).collect();
         let mut g2 = g.clone();
         g2.callables.retain(|id, _| !dead.contains(id));
-        g2.edges.retain(|e| !dead.contains(&e.src) && !dead.contains(&e.dst));
+        g2.edges
+            .retain(|e| !dead.contains(&e.src) && !dead.contains(&e.dst));
         assert!(
             analyze(&g2, &[], &[], &opts()).findings.is_empty(),
             "the reported set must be closed"
@@ -923,7 +980,10 @@ mod tests {
         let a = build(&[(0, 1), (2, 3)]);
         let b = build(&[(2, 3), (0, 1)]);
         let names = |r: &DeadCodeReport| -> Vec<String> {
-            r.findings.iter().map(|f| f.qualified_name.clone()).collect()
+            r.findings
+                .iter()
+                .map(|f| f.qualified_name.clone())
+                .collect()
         };
         assert_eq!(names(&a), names(&b));
         assert_eq!(format!("{:?}", a.findings), format!("{:?}", b.findings));
@@ -946,10 +1006,22 @@ mod tests {
         ]);
         link(&mut g, 0, 0);
         let r = analyze(&g, &[], &[], &opts());
-        let f = r.findings.iter().find(|f| f.simple_name == "unused").unwrap();
+        let f = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "unused")
+            .unwrap();
         assert_ne!(f.confidence, Confidence::High, "java lacks every signal");
-        assert!(f.evidence.iter().any(|e| e.slug() == "language-lacks-visibility"));
-        assert!(f.evidence.iter().any(|e| e.slug() == "language-lacks-attributes"));
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e.slug() == "language-lacks-visibility")
+        );
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e.slug() == "language-lacks-attributes")
+        );
     }
 
     #[test]
@@ -960,31 +1032,64 @@ mod tests {
         let g = graph_with(vec![
             node(0, "crate::main", "main", "rust"),
             vis_node(1, "crate::exported_api", "exported_api", "pub", Vis::Public),
-            vis_node(2, "crate::private_orphan", "private_orphan", "", Vis::Private),
+            vis_node(
+                2,
+                "crate::private_orphan",
+                "private_orphan",
+                "",
+                Vis::Private,
+            ),
         ]);
         let r = analyze(&g, &[], &[], &opts_rust_full());
 
-        let pubf = r.findings.iter().find(|f| f.simple_name == "exported_api").unwrap();
+        let pubf = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "exported_api")
+            .unwrap();
         assert_eq!(
             pubf.confidence,
             Confidence::Medium,
             "an out-of-tree caller is possible, so this must not be top-band"
         );
-        assert!(pubf.evidence.iter().any(|e| e.slug() == "public-visibility"));
+        assert!(
+            pubf.evidence
+                .iter()
+                .any(|e| e.slug() == "public-visibility")
+        );
         assert!(matches!(
             pubf.evidence.iter().find(|e| e.slug() == "public-visibility"),
             Some(Evidence::PublicVisibility { token }) if token == "pub",
         ));
-        assert!(!pubf.evidence.iter().any(|e| e.slug() == "private-visibility"));
+        assert!(
+            !pubf
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "private-visibility")
+        );
 
-        let privf = r.findings.iter().find(|f| f.simple_name == "private_orphan").unwrap();
+        let privf = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "private_orphan")
+            .unwrap();
         assert_eq!(
             privf.confidence,
             Confidence::High,
             "nothing outside the tree can reach it, so nothing is withheld from cgg"
         );
-        assert!(privf.evidence.iter().any(|e| e.slug() == "private-visibility"));
-        assert!(!privf.evidence.iter().any(|e| e.slug() == "public-visibility"));
+        assert!(
+            privf
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "private-visibility")
+        );
+        assert!(
+            !privf
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "public-visibility")
+        );
         // Rust spells private by writing nothing; the report must still
         // say something.
         assert!(matches!(
@@ -1003,7 +1108,11 @@ mod tests {
             vis_node(1, "crate::helper", "helper", "pub(crate)", Vis::Internal),
         ]);
         let r = analyze(&g, &[], &[], &opts_rust_full());
-        let f = r.findings.iter().find(|f| f.simple_name == "helper").unwrap();
+        let f = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "helper")
+            .unwrap();
         assert_eq!(f.confidence, Confidence::High);
         assert!(matches!(
             f.evidence.iter().find(|e| e.slug() == "private-visibility"),
@@ -1025,9 +1134,10 @@ mod tests {
         assert_eq!(r.findings.len(), 2);
         for f in &r.findings {
             assert!(
-                !f.evidence
-                    .iter()
-                    .any(|e| matches!(e.slug(), "public-visibility" | "private-visibility")),
+                !f.evidence.iter().any(|e| matches!(
+                    e.slug(),
+                    "public-visibility" | "private-visibility"
+                )),
                 "{} must claim neither direction",
                 f.simple_name
             );
@@ -1038,7 +1148,10 @@ mod tests {
     fn descriptor_language_findings_are_withheld_with_a_count() {
         let g = graph_with(vec![node(0, "Shape", "Shape", "openapi")]);
         let r = analyze(&g, &[], &[], &opts());
-        assert!(r.findings.is_empty(), "an unreferenced schema is a wire contract");
+        assert!(
+            r.findings.is_empty(),
+            "an unreferenced schema is a wire contract"
+        );
         assert_eq!(r.summary.withheld.len(), 1);
         assert_eq!(r.summary.withheld[0].would_have_reported, 1);
         assert_eq!(
@@ -1051,7 +1164,11 @@ mod tests {
     fn capability_table_discloses_missing_signals() {
         let g = graph_with(vec![node(0, "pkg.f", "f", "java")]);
         let r = analyze(&g, &[], &[], &opts());
-        let java = r.capabilities.iter().find(|c| c.language == "java").unwrap();
+        let java = r
+            .capabilities
+            .iter()
+            .find(|c| c.language == "java")
+            .unwrap();
         assert_eq!(java.class, LanguageClass::Degraded);
         assert_eq!(java.max_confidence, Confidence::Medium);
     }
@@ -1157,5 +1274,4 @@ mod tests {
         };
         assert_eq!(format!("{:?}", build(false)), format!("{:?}", build(true)));
     }
-
 }

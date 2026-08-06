@@ -49,7 +49,7 @@ Don't try to half-emulate cgg by hand.
 
 ## The mental model: two knobs
 
-```
+```bash
 cgg <paths>   --filter <pattern>   -n <hops>   -t <format>   -o <file>
               ^^^^^^^^^^^^^^^^^^   ^^^^^^^^
               what to zoom in on   how far around it
@@ -96,8 +96,11 @@ cgg . --filter 'parse_config' -n 0 --max-paths 100 -o /tmp/cgg.mmd
 
 `-n 0` enumerates full entry-to-exit paths — the precise answer to
 "what would break if I change this signature?". The `--max-paths` cap
-prevents combinatorial blowup; truncation gets recorded in the audit
-sidecar so you know if you missed anything.
+prevents combinatorial blowup. If the cap is reached, cgg says so on
+stderr (`stopped at --max-paths N`) and records a `paths_truncated`
+event in the audit sidecar — **read that line before reporting the
+result as complete**, because a capped path set looks exactly like a
+full one.
 
 ### Module / namespace overview
 
@@ -217,9 +220,16 @@ Kinds: `network` (attack surface), `queue`, `schedule`, `cli`, `ffi`,
 ## Finding unreferenced code
 
 ```bash
-cgg ./src --dead-code                    # ranked report
+cgg ./src --dead-code                    # ranked report on stderr
+cgg ./src --dead-code -o g.mmd           # ...also g.mmd.deadcode.txt
 cgg ./src --why-live 'MyType::method$'   # why is this considered live?
 ```
+
+The graph owns stdout, so the report lands next to it: a
+`.deadcode.txt` / `.deadcode.json` sidecar when you pass `-o`, and
+stderr for the text report when you don't. `--dead-code-format json`
+needs a destination (`-o` or `--dead-code-report FILE`) — it will tell
+you so rather than writing unparseable JSON into the run summary.
 
 **BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
 what it could not find a caller for, which is not the same as proving no
@@ -258,7 +268,7 @@ entry point rather than a neighbourhood.
 ## Choosing hop depth
 
 | Goal | `-n` |
-|------|------|
+| --- | --- |
 | Immediate callers + callees of a function | `1` |
 | Two-hop context for a refactor | `2` |
 | All entry-to-exit paths through a function | `0` |
@@ -274,7 +284,7 @@ graph than reducing scope.
 
 A mermaid flowchart from cgg looks like:
 
-```
+```text
 flowchart LR
   C87["cgg::run"]
   C90["cgg::read_file"]
@@ -294,18 +304,35 @@ is used when the count is 1. JSON and GraphML still emit one edge per
 call site (with `site_line`/`site_byte`) so programmatic consumers
 don't lose call-frequency information.
 
-If an edge you expected is missing, check the audit:
+If an edge you expected is missing, check the audit sidecar. It is a
+**JSON array of events**, not an object, so select the event first:
 
 ```bash
-cat /tmp/cgg.mmd.audit.json | jq '.unresolved[] | select(.caller | contains("foo"))'
+jq '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?
+    | select(.name | contains("foo"))' /tmp/cgg.mmd.audit.json
+```
+
+Each entry carries `name`, `site_line`, a structured `reason.stage`
+(`no-candidate-in-file`, `ambiguous-in-file`, `no-candidate-cross-file`,
+…) and the candidate counts behind it. Slice by stage to see whether the
+resolver never found a candidate or found too many:
+
+```bash
+jq -r '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?
+       | .reason.stage' /tmp/cgg.mmd.audit.json | sort | uniq -c
 ```
 
 Common reasons calls don't resolve:
+
 - Dynamic dispatch through generics or trait objects
 - Reflection / eval / dynamic require
-- Languages without cross-file resolution in cgg (Bash, HCL, Fortran,
-  Julia, Erlang, Clojure, Phoenix/Elixir — see the project README's
-  language table for the current matrix)
+- Languages that yield no cross-file edges at all — HCL, Verilog/SV and
+  Assembly. (Verilog parses `` `include ``, but task/function calls are
+  never captured, so nothing crosses a file either way.) Most other
+  languages *do* have it (Bash `source`, Clojure `:require`, Elixir
+  `alias`, Erlang `-include`, Fortran `use`, Julia `using`, …); see the
+  project README's language table for the per-language matrix and the
+  benchmark table for how much of it lands in practice.
 
 This is a feature: cgg is honest about what it doesn't know rather
 than emitting low-confidence edges.
@@ -313,7 +340,7 @@ than emitting low-confidence edges.
 ## Output formats
 
 | Format | When to use |
-|--------|-------------|
+| -------- | ------------- |
 | `mermaid` (default) | Agent context, markdown docs, PRs, anything human + AI need to read |
 | `json` | CI gates, jq pipelines, custom tooling, drift detection |
 | `dot` | Graphviz rendering for very large graphs |
@@ -323,8 +350,11 @@ than emitting low-confidence edges.
 
 - Most projects finish in under a second. Don't pre-optimize; just
   run it.
-- The on-disk cache (`./.cgg-cache`) makes re-runs near-instant.
-  Leave it on unless you're debugging cgg itself (`--no-cache`).
+- There is **no cache**, and no flag to control one. Every run
+  re-parses from source, which is why a run is reproducible from the
+  tree alone — and why a re-run costs the same as the first. If you
+  need the same graph twice in a session, write it to a file with `-o`
+  and read the file back rather than re-running.
 - C/C++ macros are listed as callables but not expanded — no
   preprocessor simulation.
 - Type inference is partial: it handles parameters, locals,

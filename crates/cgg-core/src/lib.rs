@@ -28,31 +28,32 @@ pub mod testfile;
 pub mod version;
 
 pub use audit::{
-    AuditEvent, AuditFileRecord, AuditFfiRecord, AuditUnresolvedCall, AuditWriter,
-    CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter, ReceiverProvenance,
-    RunAuditBuilder, RunMetrics, SkipReason, UnresolvedReason,
+    AuditEvent, AuditFfiRecord, AuditFileRecord, AuditUnresolvedCall, AuditWriter,
+    CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter,
+    ReceiverProvenance, RunAuditBuilder, RunMetrics, SkipReason, UnresolvedReason,
 };
 pub use deadcode::{
-    LanguageSignals, DeadCodeConfig, DeadCodeFinding, DeadCodeReport, DeadCodeSummary, DeadRegion, Evidence,
-    FindingCategory, LanguageCapabilityReport, LanguageClass, LivenessProof, Polarity, ProofHop,
-    RegionRole, RootKind, RootRecord, SignalSupport, SiteRef, SuppressedCategory,
-    SuppressionReason, DEAD_CODE_DISCLAIMER, DEFAULT_MIN_ROOT_COVERAGE_PCT,
+    DEAD_CODE_DISCLAIMER, DEFAULT_MIN_ROOT_COVERAGE_PCT, DeadCodeConfig, DeadCodeFinding,
+    DeadCodeReport, DeadCodeSummary, DeadRegion, Evidence, FindingCategory,
+    LanguageCapabilityReport, LanguageClass, LanguageSignals, LivenessProof, Polarity,
+    ProofHop, RegionRole, RootKind, RootRecord, SignalSupport, SiteRef,
+    SuppressedCategory, SuppressionReason,
+};
+pub use external::{
+    ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
     DefRecord, DefVariant, DynUse, ExportRecord, FileFacts, ImportRecord, LocalType,
-    RefRecord, TestRole, UnreachableRegion, Vis, STRING_REF_HINT, VALUE_REF_HINT,
-};
-pub use external::{
-    build_alias_map, build_known_names, classify_external, ClassifyResult, FileAliases,
+    RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT, Vis,
 };
 pub use frameworks::{
-    EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
-    SeenFramework, TrustKind, UncoveredLanguage, FRAMEWORK_ENTRY_DISCLAIMER,
-    FRAMEWORK_ENTRY_SENTINEL, REACHABILITY_NOT_TAINT,
+    EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+    FrameworkEntry, FrameworkRule, REACHABILITY_NOT_TAINT, RecognisedFramework,
+    SeenFramework, TrustKind, UncoveredLanguage,
 };
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };
 pub use ids::{CallableId, FileId, ResolverId};
-pub use testfile::{classify_test_file, TestFileReason};
-pub use version::{CGG_VERSION, RESOLVER_FORMAT_VERSION};
+pub use testfile::{TestFileReason, classify_test_file};
+pub use version::CGG_VERSION;
