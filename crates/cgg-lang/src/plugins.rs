@@ -39,6 +39,8 @@ pub mod vhdl;
 pub mod asm;
 pub mod cfg;
 pub mod dynuse;
+pub(crate) mod attrs;
+pub(crate) mod registrar;
 pub mod smithy;
 pub mod proto;
 pub mod graphql;

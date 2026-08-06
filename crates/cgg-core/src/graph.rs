@@ -74,6 +74,16 @@ pub enum Via {
     /// names the family (`"c-abi"`, `"pyo3"`, `"jni"`, `"napi"`,
     /// `"wasm-bindgen"`, `"cbindgen"`, `"uniffi"`).
     Ffi(String),
+    /// An edge from a synthesized `<framework-entry>` node into the
+    /// handler a framework invokes. The payload names the framework
+    /// (`"flask"`, `"spring"`, `"gin"`).
+    ///
+    /// The mirror image of `External`/`Stdlib`: those are sinks for a
+    /// call cgg *saw* and could not resolve, this is a source for a
+    /// caller that appears nowhere in the source at all. It is therefore
+    /// an inference rather than an observation — see
+    /// [`crate::frameworks::FRAMEWORK_ENTRY_DISCLAIMER`].
+    FrameworkEntry(String),
 }
 
 /// A callable node in the graph.
@@ -144,6 +154,16 @@ pub struct CallableNode {
     /// not run, so the default graph is byte-identical.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unreferenced: Option<Confidence>,
+
+    /// Set on a synthesized `<framework-entry>` node, naming the trust
+    /// boundary control crosses there.
+    ///
+    /// A field rather than a name prefix the formatters sniff for: the
+    /// qualified name carries the kind too, but a formatter deciding how
+    /// to label a node should be reading a typed value, not parsing a
+    /// string it also emits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub framework_entry: Option<crate::frameworks::TrustKind>,
 }
 
 /// A directed call edge.

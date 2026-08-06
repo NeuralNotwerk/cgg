@@ -182,7 +182,16 @@ fn sniff_structured_descriptor(path: &Path) -> Option<&'static str> {
 
     // Minified JSON: a quoted root key within the opening object.
     if head.trim_start().starts_with('{') {
-        let window = &head[..head.len().min(2048)];
+        // Byte-slicing a `str` panics unless the index lands on a char
+        // boundary, and 2048 lands mid-codepoint in any file whose first
+        // 2 KiB contain non-ASCII text — a translation catalogue, say.
+        // Walking back to the nearest boundary costs at most three bytes
+        // of window and cannot fail.
+        let mut end = head.len().min(2048);
+        while end > 0 && !head.is_char_boundary(end) {
+            end -= 1;
+        }
+        let window = &head[..end];
         for (key, id) in KEYS {
             if window.contains(&format!("\"{key}\"")) {
                 return Some(id);
@@ -389,5 +398,31 @@ mod tests {
             let r = det.detect(&tmp.path().join(name));
             assert_eq!(r.verdict, DetectVerdict::Unknown, "{name} should be Unknown");
         }
+    }
+
+    #[test]
+    fn a_non_ascii_json_head_does_not_panic() {
+        // Slicing a `str` at byte 2048 panics unless that index lands on
+        // a char boundary, and it will not in any file whose first 2 KiB
+        // hold non-Latin text — a translation catalogue, say. This
+        // aborted the entire run on Mastodon, whose `config/locales`
+        // are exactly that.
+        let dir = std::env::temp_dir().join("__cgg_detect_utf8__");
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("el.json");
+        // Pad with ASCII to exactly 2047 bytes, then start a two-byte
+        // codepoint — so byte 2048 falls inside it.
+        let mut body = String::from("{\n  \"about.blocks\": \"");
+        while body.len() < 2047 {
+            body.push('a');
+        }
+        body.push('έ');
+        body.push_str("\",\n  \"x\": 1\n}\n");
+        assert!(!body.is_char_boundary(2048), "fixture must straddle the cut");
+        std::fs::write(&f, &body).unwrap();
+        // Must return a verdict rather than panicking. A locale
+        // catalogue is not an API descriptor, so `None` is correct.
+        assert_eq!(sniff_structured_descriptor(&f), None);
+        std::fs::remove_file(&f).ok();
     }
 }

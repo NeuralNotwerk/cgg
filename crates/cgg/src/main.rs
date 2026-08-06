@@ -134,6 +134,38 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // tree walk per file; an ordinary run must not pay for them.
     cgg_lang::set_deadcode_signals(dead_mode);
 
+
+    // The config file is read on every run, not only in dead-code mode:
+    // it carries local framework rules, and entry nodes are on by
+    // default. Discovery starts from the analyzed paths so that
+    // `cgg /path/to/project` from elsewhere still finds that project's
+    // rules — searching only the working directory made a present config
+    // silently do nothing.
+    let config_path = match &cli.roots {
+        Some(p) => Some(p.clone()),
+        None => deadcode::config::DeadCodeConfigFile::discover_for(
+            &cli.paths,
+            std::env::current_dir().ok().as_deref(),
+        ),
+    };
+    let config = match &config_path {
+        Some(p) => deadcode::config::DeadCodeConfigFile::load(p)?,
+        None => deadcode::config::DeadCodeConfigFile::default(),
+    };
+
+    // Argument capture during extraction is gated on the built-in
+    // registrar verbs; a user rule naming a verb cgg does not ship would
+    // otherwise be silently inert. Set before the parallel phase starts.
+    if !config.frameworks.is_empty() {
+        cgg_lang::set_extra_registrar_verbs(
+            config
+                .frameworks
+                .iter()
+                .flat_map(|r| r.registrars.iter().cloned())
+                .collect(),
+        );
+    }
+
     let started = Instant::now();
 
     // --- Phase 1: walk -----------------------------------------------------
@@ -482,12 +514,6 @@ fn run(cli: Cli) -> Result<ExitCode> {
         }
         graph.unresolved.extend(classified.unresolved);
     }
-    // Reference edges (function-as-value, Issue 4) are captured during
-    // extraction but only surfaced under `--reference-edges`. Drop them
-    // here when off, before reconciliation/metrics see them.
-    if !cli.reference_edges {
-        graph.edges.retain(|e| !matches!(e.via, Via::Reference));
-    }
     let link_ms = link_started.elapsed().as_secs_f64() * 1000.0;
 
     // --- Phase 3b: stack-graphs resolution (removed) -----------------------
@@ -535,6 +561,16 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
     metrics.edges += ffi_out.edges.len() as u64;
     graph.edges.extend(ffi_out.edges);
+
+    // Reference edges (function-as-value, Issue 4) are captured during
+    // extraction but only surfaced under `--reference-edges`. Dropped
+    // after *every* resolver has run and before reconciliation/metrics
+    // see them — `cross_file` also emits them now (it is what binds
+    // `app.get('/x', handler)` to a handler in another module), so
+    // filtering earlier let those escape the flag that gates them.
+    if !cli.reference_edges {
+        graph.edges.retain(|e| !matches!(e.via, Via::Reference));
+    }
 
     // --- Phase 3e: audit reconciliation -----------------------------------
     // intra_file is the first resolver and gets first crack at every
@@ -635,6 +671,46 @@ fn run(cli: Cli) -> Result<ExitCode> {
         );
     }
 
+    // --- Phase 3f: framework entry nodes -----------------------------------
+    //
+    // The mirror of the exit nodes above, and deliberately asymmetric
+    // with them: exit nodes are opt-in, entry nodes are on by default.
+    // An exit node tells you nothing you did not already know — you saw
+    // the call. An entry node tells you something the source cannot: a
+    // handler with in-degree zero is not merely incomplete, it is a
+    // false claim that nothing calls it.
+    //
+    // Runs even in dead-code mode, where node-only additions are
+    // switched off, because an entry node is not node-only: it adds an
+    // inbound edge to a real callable, which can only ever mark
+    // something live.
+    let framework_out = if cli.no_entry_nodes {
+        cgg_resolve::frameworks::FrameworkOutcome::default()
+    } else {
+        cgg_resolve::frameworks::detect(&graph, &all_facts, &config.frameworks)
+    };
+    // Only the entries that mint no node. A node-bearing entry already
+    // says "the framework calls this" *in the graph*, and proving
+    // liveness through it is strictly more informative — `--why-live`
+    // prints the route rather than asserting the handler is its own
+    // root. Bucket D (§8) has no node to prove anything through, so
+    // marking the target directly is the only way to express it.
+    let framework_roots: Vec<(String, CallableId)> = framework_out
+        .entries
+        .iter()
+        .filter(|e| !e.node)
+        .map(|e| (format!("{}:{}", e.framework, e.shape.slug()), e.target))
+        .collect();
+    if !framework_out.entries.is_empty() {
+        synthesize_entry_nodes(
+            &mut graph,
+            &framework_out.entries,
+            &mut next_file_id,
+            &mut next_callable_id,
+        );
+    }
+    let framework_coverage = framework_out.coverage;
+
     // Interface/trait dynamic-dispatch fan-out (Issue 3). Over-approximated
     // declaration → implementation edges, tagged `Via::Dynamic`; opt-in.
     if cli.dynamic_dispatch {
@@ -692,6 +768,15 @@ fn run(cli: Cli) -> Result<ExitCode> {
     metrics.phases.extract_ms = (parse_wall - metrics.phases.parse_ms).max(0.0);
     metrics.phases.link_ms = link_ms;
     metrics.wall_ms = started.elapsed().as_secs_f64() * 1000.0;
+    // The coverage disclosure goes into the audit log unconditionally,
+    // so a machine consumer sees the gap list even when nobody read
+    // stderr. The engine copies the disclaimer in; no writer here can
+    // drop it.
+    if !cli.no_entry_nodes {
+        events.push(AuditEvent::FrameworkCoverage {
+            coverage: framework_coverage.clone(),
+        });
+    }
     events.push(AuditEvent::RunFinished {
         metrics: metrics.clone(),
     });
@@ -745,7 +830,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
         // `--why-live` asks the opposite question, so it does replace
         // the output: its answer is a proof, not a graph.
         if !cli.why_live.is_empty() {
-            let code = run_why_live(&cli, &graph, &all_facts)?;
+            let code = run_why_live(&cli, &graph, &all_facts, &framework_roots)?;
             emit_audit(&cli, &events).context("writing audit")?;
             return Ok(code);
         }
@@ -755,6 +840,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
             &dead_file_records,
             &all_facts,
             &effective_filters,
+            &config,
+            config_path.as_deref(),
+            &framework_roots,
         )
         .context("running dead-code analysis")?;
     }
@@ -820,6 +908,28 @@ fn run(cli: Cli) -> Result<ExitCode> {
         ms = metrics.wall_ms
     );
 
+    // Framework coverage. Printed whenever anything was recognised — or
+    // whenever a framework was seen and could not be enumerated, which
+    // is the case that most needs saying. A user who never sees the gap
+    // list has no way to learn which frameworks cgg missed, and a
+    // partial list that reads as complete is worse than no list.
+    if !cli.quiet && !cli.no_entry_nodes {
+        let worth_printing = cli.framework_coverage
+            || !framework_coverage.recognised.is_empty()
+            || !framework_coverage.seen_no_rules.is_empty();
+        if worth_printing {
+            eprintln!();
+            eprint!("{}", framework_coverage.render_text());
+        }
+        if framework_coverage.nodes_minted > 0 || framework_coverage.root_marks_only > 0 {
+            eprintln!(
+                "cgg: framework entries: {} node(s) minted, {} root-marked only \
+                 — INFERRED, not observed",
+                framework_coverage.nodes_minted, framework_coverage.root_marks_only
+            );
+        }
+    }
+
     // Actionable hint when --lang excluded files whose language IS
     // supported by a plugin. Listing each excluded language with its
     // count and the suggested `--lang` value tells the user exactly
@@ -861,25 +971,14 @@ fn run_dead_code(
     file_records: &[AuditFileRecord],
     all_facts: &[FileFacts],
     filters: &[String],
+    cfg: &deadcode::config::DeadCodeConfigFile,
+    cfg_path: Option<&std::path::Path>,
+    framework_roots: &[(String, CallableId)],
 ) -> Result<ExitCode> {
     use cgg_resolve::deadcode::{analyze, DeadCodeOptions};
 
-    use deadcode::config::DeadCodeConfigFile;
-
     let threshold: Confidence = cli.dead_code_confidence.into();
-
-    // Load declared roots / accepted findings. An explicit --roots
-    // disables the upward search, so a scripted run can be pinned.
-    let cfg_path = match &cli.roots {
-        Some(p) => Some(p.clone()),
-        None => std::env::current_dir()
-            .ok()
-            .and_then(|d| DeadCodeConfigFile::discover(&d)),
-    };
-    let cfg = match &cfg_path {
-        Some(p) => DeadCodeConfigFile::load(p)?,
-        None => DeadCodeConfigFile::default(),
-    };
+    let cfg_path = cfg_path.map(|p| p.to_path_buf());
 
     // Declared roots confer liveness, so they are resolved against the
     // graph before the analysis runs.
@@ -950,6 +1049,11 @@ fn run_dead_code(
         dynamic_dispatch: cli.dynamic_dispatch,
         confidence_threshold: format!("{threshold:?}").to_lowercase(),
         roots_file: cfg_path.clone(),
+        // Bucket-D entries mint no node (§8), so nothing in the graph
+        // says the framework invokes them. Passing them here is what
+        // stops `Encoder.forward` and every private helper it calls from
+        // being reported — the cascade the design measured.
+        framework_roots: framework_roots.to_vec(),
         ..Default::default()
     };
 
@@ -1086,12 +1190,22 @@ fn dead_code_report_path(cli: &Cli) -> Option<PathBuf> {
 
 /// `--why-live`: print the shortest path from a root proving a callable
 /// is live. A query, not a graph, so it does replace the output.
-fn run_why_live(cli: &Cli, graph: &Graph, all_facts: &[FileFacts]) -> Result<ExitCode> {
+fn run_why_live(
+    cli: &Cli,
+    graph: &Graph,
+    all_facts: &[FileFacts],
+    framework_roots: &[(String, CallableId)],
+) -> Result<ExitCode> {
     use cgg_resolve::deadcode::{why_live, DeadCodeOptions};
+    // The same roots `--dead-code` uses. Without them `--why-live` said
+    // "NOT REACHED" for exactly the callables the report considers live,
+    // which defeats the point of asking the question in the opposite
+    // direction.
     let opts = DeadCodeOptions {
         include_tests: cli.include_tests,
         reference_edges: cli.reference_edges,
         dynamic_dispatch: cli.dynamic_dispatch,
+        framework_roots: framework_roots.to_vec(),
         ..Default::default()
     };
     let targets =
@@ -1316,6 +1430,97 @@ fn synthesize_exit_nodes(
                 });
             }
         }
+    }
+    for e in edges {
+        graph.add_edge(e);
+    }
+}
+
+/// Synthesize `<framework-entry>` nodes — the mirror of
+/// [`synthesize_exit_nodes`].
+///
+/// One node per distinct entry identity, with a `Via::FrameworkEntry`
+/// edge onto the handler. Entries flagged `node: false` by their rule
+/// contribute no node at all: per §8 of the design, a single
+/// `torch:Module.forward` node fanning out to every model in the
+/// repository is visually useless, so those only mark a root.
+///
+/// Edges carry `Confidence::Low`, as exit-node edges do — and for a
+/// stronger reason. An exit node is minted from a call site cgg *saw*;
+/// an entry node asserts a caller that appears nowhere in the tree.
+fn synthesize_entry_nodes(
+    graph: &mut Graph,
+    entries: &[cgg_core::frameworks::FrameworkEntry],
+    next_file_id: &mut u32,
+    next_callable_id: &mut u32,
+) {
+    use cgg_core::frameworks::FRAMEWORK_ENTRY_SENTINEL;
+
+    let resolver = ResolverId::new("framework-entry");
+    let mut node_ids: HashMap<String, CallableId> = HashMap::new();
+    let mut sentinel: Option<FileId> = None;
+    let mut edges: Vec<CallEdge> = Vec::new();
+
+    for entry in entries {
+        if !entry.node {
+            continue;
+        }
+        let qn = entry.node_name();
+        let node_id = if let Some(&id) = node_ids.get(&qn) {
+            id
+        } else {
+            let file_id = *sentinel.get_or_insert_with(|| {
+                let fid = FileId::new(*next_file_id);
+                *next_file_id += 1;
+                graph.add_file(sentinel_file(
+                    fid,
+                    FRAMEWORK_ENTRY_SENTINEL,
+                    "framework-entry",
+                ))
+            });
+            let id = CallableId::new(*next_callable_id);
+            *next_callable_id += 1;
+            let simple = qn.rsplit("::").next().unwrap_or(&qn).to_string();
+            graph.add_callable(CallableNode {
+                id,
+                qualified_name: qn.clone(),
+                simple_name: simple,
+                kind: CallableKind::Function,
+                language: graph
+                    .callables
+                    .get(&entry.target)
+                    .map(|c| c.language.clone())
+                    .unwrap_or_default(),
+                file: file_id,
+                start_line: 0,
+                end_line: 0,
+                start_byte: 0,
+                end_byte: 0,
+                signature_hint: String::new(),
+                visibility: String::new(),
+                // The evidence rides on the node so a reader who has only
+                // the graph can still see which marker produced it.
+                attributes: vec![
+                    "framework-entry".to_string(),
+                    entry.evidence.clone(),
+                ],
+                synthetic: true,
+                trait_impl_target: None,
+                framework_entry: Some(entry.kind),
+                ..Default::default()
+            });
+            node_ids.insert(qn, id);
+            id
+        };
+        edges.push(CallEdge {
+            src: node_id,
+            dst: entry.target,
+            site_line: entry.site_line,
+            site_byte: 0,
+            confidence: Confidence::Low,
+            via: Via::FrameworkEntry(entry.framework.clone()),
+            resolver: resolver.clone(),
+        });
     }
     for e in edges {
         graph.add_edge(e);

@@ -106,6 +106,7 @@ impl<'a> GraphqlWalker<'a> {
                         receiver_hint: String::new(),
                         site_line: (name_node.start_position().row as u32) + 1,
                         site_byte: name_node.start_byte() as u32,
+                        ..Default::default()
                     });
                 }
             }

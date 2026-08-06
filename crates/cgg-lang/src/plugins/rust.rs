@@ -724,6 +724,7 @@ impl<'a> Walker<'a> {
             receiver_hint: String::new(),
             site_line: spawn_line,
             site_byte: spawn_call.start_byte() as u32,
+            ..Default::default()
         });
     }
 
@@ -811,6 +812,7 @@ impl<'a> Walker<'a> {
                     site_line: k.start_position().row as u32 + 1,
                     site_byte: k.start_byte() as u32,
                     receiver_hint: String::new(),
+                    ..Default::default()
                 });
             }
         }
@@ -839,6 +841,7 @@ impl<'a> Walker<'a> {
             site_line: node.start_position().row as u32 + 1,
             site_byte: node.start_byte() as u32,
             receiver_hint: String::new(),
+            ..Default::default()
         })
     }
 
@@ -966,6 +969,7 @@ impl<'a> Walker<'a> {
             receiver_hint,
             site_line: start_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 
@@ -975,6 +979,17 @@ impl<'a> Walker<'a> {
     /// be resolved into a `Via::Reference` edge if it names a known
     /// callable. Pure syntax; the value is not tracked through the call.
     fn refs_from_args(&mut self, call: Node) {
+        // Axum's whole routing surface is shape B:
+        // `Router::new().route("/users", get(list_users))`. The handler
+        // sits inside `get(...)`, which carries no path of its own, so
+        // the context/route slots inherit from the enclosing `.route`
+        // call — without that the entry node is an anonymous `get`.
+        let context = call
+            .child_by_field_name("function")
+            .and_then(|n| n.utf8_text(self.source).ok())
+            .unwrap_or_default()
+            .to_string();
+        let route = super::registrar::route_of(call, self.source);
         let Some(args) = call.child_by_field_name("arguments") else { return };
         let mut cursor = args.walk();
         for arg in args.named_children(&mut cursor) {
@@ -1005,11 +1020,18 @@ impl<'a> Walker<'a> {
             // The simple name is the last path segment; the resolver
             // matches it against callable definitions by name.
             let simple = ident.rsplit("::").next().unwrap_or(ident).to_string();
+            // Carry the registration context on the record itself
+            // rather than emitting a second, richer copy: the two would
+            // share a (name, site_byte) and whichever arrived first
+            // would win, which on axum was the context-less one — every
+            // real route lost its path.
             self.facts.references.push(RefRecord {
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,
                 site_byte: arg.start_byte() as u32,
+                context: context.clone(),
+                route: route.clone(),
             });
         }
     }

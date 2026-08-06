@@ -147,6 +147,27 @@ pub struct Cli {
     #[arg(long = "dynamic-dispatch", action = ArgAction::SetTrue)]
     pub dynamic_dispatch: bool,
 
+    /// Suppress synthesized `<framework-entry>` nodes.
+    ///
+    /// Entry nodes are ON by default, unlike `--include-external` and
+    /// `--include-stdlib`. The asymmetry is deliberate: a route handler
+    /// with in-degree zero is not merely an incomplete graph, it is a
+    /// false claim that nothing calls it. An exit node, by contrast,
+    /// tells you nothing you did not already know from reading the call.
+    ///
+    /// BEST EFFORT: entry nodes are INFERRED from framework markers, not
+    /// observed. Coverage is partial, and every run prints a table
+    /// naming which frameworks were recognised and which were seen but
+    /// not understood.
+    #[arg(long = "no-entry-nodes", action = ArgAction::SetTrue)]
+    pub no_entry_nodes: bool,
+
+    /// Print the framework-coverage table even when nothing was
+    /// recognised. By default the table is printed only when at least
+    /// one framework was detected; the gap list is never suppressed.
+    #[arg(long = "framework-coverage", action = ArgAction::SetTrue)]
+    pub framework_coverage: bool,
+
     /// Emit reference edges for functions passed by name as values
     /// (`register(handler)`), distinct from call edges and tagged
     /// `reference`. Off by default.

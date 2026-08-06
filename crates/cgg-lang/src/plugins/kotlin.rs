@@ -12,7 +12,7 @@ impl LanguagePlugin for KotlinPlugin {
     fn id(&self) -> &'static str { "kotlin" }
     fn extensions(&self) -> &'static [&'static str] { &[".kt", ".kts"] }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { visibility: true, ..Default::default() }
+        crate::PluginSignals { attributes: true, visibility: true, ..Default::default() }
     }
 
     fn ts_language(&self) -> tree_sitter::Language { tree_sitter_kotlin_sg::LANGUAGE.into() }
@@ -77,7 +77,7 @@ impl<'a> KtWalker<'a> {
                         end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
-                        attributes: Vec::new(),
+                        attributes: super::attrs::collect(node, self.source),
                         ..Default::default()
                     });
                     self.scope.push(name);
@@ -169,7 +169,7 @@ impl<'a> KtWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             vis: kotlin_vis(&super::extract_signature(self.text(node))),
-            attributes: Vec::new(),
+            attributes: super::attrs::collect(node, self.source),
             ..Default::default()
         });
     }
@@ -287,6 +287,7 @@ impl<'a> KtWalker<'a> {
             name, receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }

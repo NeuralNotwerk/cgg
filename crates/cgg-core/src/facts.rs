@@ -28,6 +28,20 @@ use crate::ids::FileId;
 /// external buckets.
 pub const VALUE_REF_HINT: &str = "\u{1}value-ref";
 
+/// Sentinel `RefRecord::receiver_hint` value marking a *string literal*
+/// argument of a registration call — `Route::get('/x', 'C@method')`,
+/// `get 'photos', to: 'photos#index'`. `name` holds the literal
+/// verbatim; decoding it into a symbol is framework-specific and
+/// therefore belongs to the framework rule engine, not to a plugin.
+///
+/// Like [`VALUE_REF_HINT`] this never reaches the unresolved / external
+/// buckets, and per §8 of the design it never manufactures an edge on
+/// its own: a string that happens to look like a method name is not
+/// evidence of a call. It only feeds entry-node synthesis, where the
+/// framework rule supplies the missing premise that the framework does
+/// invoke whatever that string names.
+pub const STRING_REF_HINT: &str = "\u{1}string-ref";
+
 /// Variant tag on a definition, refining the callable kind with
 /// language-specific hints. The pipeline collapses this onto the
 /// [`CallableKind`] enum when building the final graph node.
@@ -211,10 +225,25 @@ pub struct DefRecord {
     /// Test role, when this definition is part of a test suite.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub test_role: Option<TestRole>,
+
+    /// Base classes / interfaces of the type owning this definition —
+    /// `class Encoder(nn.Module)`, `implements Runnable`, `: IJob`.
+    ///
+    /// Recorded on the *method*, not the type, because cgg's model has
+    /// no node for a type: the only thing a framework rule can mark is a
+    /// callable, so the contract has to travel with one. Names are
+    /// stored as written, including any qualifier (`nn.Module`), since
+    /// the matcher compares both the full path and the last segment.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub base_types: Vec<String>,
 }
 
 /// A single call-site reference extracted from a file.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+///
+/// `Default` is derived so plugins can construct a record with
+/// `..Default::default()` and stay source-compatible as optional
+/// fields are added — the same contract [`DefRecord`] already has.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RefRecord {
     /// Identifier at the call site as written (`foo`, `do_thing`,
     /// `obj.method`'s `method`).
@@ -228,6 +257,24 @@ pub struct RefRecord {
 
     pub site_line: u32,
     pub site_byte: u32,
+
+    /// The registrar call this reference sits inside, when it is an
+    /// argument to one: `app.get`, `Route::get`, `router.HandleFunc`.
+    /// Empty for an ordinary call site.
+    ///
+    /// This is the landing zone for framework route metadata. Nothing
+    /// else could hold it: `attribute_key` discards arguments by design
+    /// (`@app.route('/x')` normalizes to `app.route`), and `DynUse` is
+    /// suppression-only by explicit contract. Without it an entry node
+    /// could say *that* a route exists but never *which* — and a list of
+    /// anonymous routes is not an attack surface map.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub context: String,
+
+    /// First string literal argument of `context`'s call — the route
+    /// path, queue name, or command string. Empty when there was none.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub route: String,
 }
 
 /// The two-phase AST pass output for a single file.

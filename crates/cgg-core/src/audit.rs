@@ -327,6 +327,17 @@ pub enum AuditEvent {
         matched_seeds: Vec<String>,
         unmatched_files: Vec<PathBuf>,
     },
+    /// Which frameworks the run recognised, which it saw but could not
+    /// enumerate, and which languages have no rules at all.
+    ///
+    /// Emitted on every run that synthesizes entry nodes, including runs
+    /// that recognised nothing. A machine consumer reading only
+    /// `recognised` would conclude an unfamiliar framework's app has no
+    /// attack surface; the gap list is what stops that, so it travels
+    /// with the numbers rather than beside them.
+    FrameworkCoverage {
+        coverage: crate::frameworks::FrameworkCoverage,
+    },
 }
 
 /// Run-level metrics rolled up once, after the last file is done.

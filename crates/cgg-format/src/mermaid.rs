@@ -15,8 +15,9 @@ use crate::{GraphFormatter, OutputFormat};
 /// Short label prefix distinguishing an edge's `via` kind in the
 /// mermaid label slot (mermaid has no native per-edge styling). Direct
 /// edges get no tag so the common case stays clean for agents reading
-/// the graph. Over-approximated edges (`dyn`, `ref`) and exit-node
-/// edges (`ext`, `std`) are tagged so consumers can filter them.
+/// the graph. Over-approximated edges (`dyn`, `ref`), exit-node edges
+/// (`ext`, `std`) and entry-node edges (`entry`) are tagged so consumers
+/// can filter them.
 fn via_tag(via: &Via) -> &'static str {
     match via {
         Via::Direct => "",
@@ -25,6 +26,7 @@ fn via_tag(via: &Via) -> &'static str {
         Via::External => "ext",
         Via::Stdlib => "std",
         Via::Ffi(_) => "ffi",
+        Via::FrameworkEntry(_) => "entry",
     }
 }
 
@@ -43,6 +45,27 @@ impl GraphFormatter for MermaidFormatter {
     }
 
     fn render(&self, graph: &Graph, out: &mut dyn io::Write) -> io::Result<()> {
+        let any_entry = graph
+            .callables
+            .values()
+            .any(|n| n.framework_entry.is_some());
+        if any_entry {
+            // An entry node asserts a caller that appears nowhere in the
+            // source, so the header has to survive copy-paste of the
+            // block — a diagram has no fields to inspect.
+            writeln!(
+                out,
+                "%% cgg: &lt;framework-entry&gt; nodes are SYNTHESIZED. No call to them exists"
+            )?;
+            writeln!(
+                out,
+                "%% in your source; they represent control entering from a framework."
+            )?;
+            writeln!(
+                out,
+                "%% BEST EFFORT — see the coverage table for what cgg did and did not recognise."
+            )?;
+        }
         let any_unreferenced = graph.callables.values().any(|n| n.unreferenced.is_some());
         if any_unreferenced {
             // A mark in a diagram gets pasted into places its evidence
@@ -67,7 +90,14 @@ impl GraphFormatter for MermaidFormatter {
             // The tag is part of the label rather than only a style, so
             // it survives renderers that drop classDef and readers who
             // only see the text.
-            let tag = if node.unreferenced.is_some() {
+            // Entry nodes get the verbose tag deliberately. The reader
+            // already has the `<framework-entry>` prefix and the
+            // `|entry|` edge label; a third independent signal is
+            // proportionate to a node minted from an inference rather
+            // than from an observed call site.
+            let tag = if node.framework_entry.is_some() {
+                " ⟨framework entry callback⟩"
+            } else if node.unreferenced.is_some() {
                 " ⟨unreferenced⟩"
             } else {
                 ""

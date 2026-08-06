@@ -42,6 +42,17 @@ pub struct CrossFileOutput {
 
 /// Resolve call-site references across files using import tables.
 pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
+    // Edges already emitted by `intra_file`, keyed for O(1) lookup.
+    //
+    // The de-duplication test below used to scan every edge in the graph
+    // per resolved reference. That is O(references x edges), which stayed
+    // invisible while PHP resolved almost nothing and became ~4s of a
+    // Laravel run the moment it started resolving properly.
+    let existing_edges: std::collections::HashSet<(u32, u32, u32)> = graph
+        .edges
+        .iter()
+        .map(|e| (e.src.as_u32(), e.dst.as_u32(), e.site_byte))
+        .collect();
     let mut out = CrossFileOutput::default();
     let resolver_id = ResolverId::new("cross-file:imports");
 
@@ -545,12 +556,57 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
         }
 
         for r in &facts.references {
+            // A string literal that names a callable is never a call.
+            // §8 is explicit: string routing may lower confidence, it
+            // must not manufacture an edge.
+            if r.receiver_hint == cgg_core::STRING_REF_HINT {
+                continue;
+            }
+
             // Compute enclosing callable up front so we can pass its
             // qualified name into the resolver — needed for the
             // intra-crate qualified-path retry (e.g., `crawl::foo()`
             // inside `nkb_research::ResearchRunner::run` should find
             // `nkb_research::crawl::foo`).
             let enclosing = enclosing_callable_id(graph, facts, r.site_byte);
+
+            // Value references (`register(handler)`) resolve by name,
+            // not through the import tables, and produce a
+            // `Via::Reference` edge gated behind `--reference-edges`.
+            //
+            // Two gaps closed here at once: `intra_file` could only bind
+            // a value ref to a callable in the *same file*, so
+            // `app.get('/x', handler)` with the handler in another
+            // module resolved to nothing; and letting the record fall
+            // through to the generic path below tagged it `Via::Direct`,
+            // which claims a call site that does not exist and escapes
+            // the flag that is supposed to gate it.
+            if r.receiver_hint == cgg_core::VALUE_REF_HINT {
+                let Some(src) = enclosing else { continue };
+                let Some(cands) = by_simple.get(&(lang.clone(), r.name.clone())) else {
+                    continue;
+                };
+                // Ambiguity is dropped rather than guessed: a reference
+                // edge to the wrong `handler` is worse than none.
+                let [cid] = cands.as_slice() else { continue };
+                if *cid == src {
+                    continue;
+                }
+                let dup =
+                    existing_edges.contains(&(src.as_u32(), cid.as_u32(), r.site_byte));
+                if !dup {
+                    out.edges.push(CallEdge {
+                        src,
+                        dst: *cid,
+                        site_line: r.site_line,
+                        site_byte: r.site_byte,
+                        confidence: Confidence::Medium,
+                        via: Via::Reference,
+                        resolver: resolver_id.clone(),
+                    });
+                }
+                continue;
+            }
             let caller_qn = enclosing
                 .and_then(|id| graph.callables.get(&id))
                 .map(|c| c.qualified_name.as_str());
@@ -576,11 +632,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                             continue;
                         }
                         // Avoid duplicating intra-file-emitted edges.
-                        let dup = graph
-                            .edges
-                            .iter()
-                            .any(|e| e.src == src && e.dst == cid && e.site_byte == r.site_byte);
-                        if dup {
+                        if existing_edges.contains(&(src.as_u32(), cid.as_u32(), r.site_byte)) {
                             continue;
                         }
                         out.edges.push(CallEdge {
@@ -1112,6 +1164,7 @@ mod tests {
                 receiver_hint: "".into(),
                 site_line: 5,
                 site_byte: 60,
+                ..Default::default()
             }],
             vec![ImportRecord {
                 kind: "from-import".into(),
@@ -1160,6 +1213,7 @@ mod tests {
                 receiver_hint: "h".into(),
                 site_line: 5,
                 site_byte: 60,
+                ..Default::default()
             }],
             vec![ImportRecord {
                 kind: "import".into(),
@@ -1215,6 +1269,7 @@ mod tests {
                 receiver_hint: "".into(),
                 site_line: 5,
                 site_byte: 60,
+                ..Default::default()
             }],
             vec![ImportRecord {
                 kind: "use".into(),

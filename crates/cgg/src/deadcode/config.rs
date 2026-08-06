@@ -53,6 +53,15 @@ pub struct DeadCodeConfigFile {
     /// Accepted findings. Suppressed from the report, **not** made live.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub allow: Vec<AllowEntry>,
+    /// Local framework rules, appended to the built-in table.
+    ///
+    /// The coverage table names every framework cgg detected but has no
+    /// rules for; this is what makes that list actionable rather than
+    /// merely informative. A user hitting "django — imports found,
+    /// entries NOT enumerated" can add the rule here and get coverage
+    /// today instead of waiting for a release.
+    #[serde(default, rename = "framework", skip_serializing_if = "Vec::is_empty")]
+    pub frameworks: Vec<cgg_core::frameworks::FrameworkRule>,
 }
 
 impl DeadCodeConfigFile {
@@ -77,6 +86,26 @@ impl DeadCodeConfigFile {
             dir = d.parent();
         }
         None
+    }
+
+    /// Discover the config for a run, searching upward from each
+    /// **analyzed path** before falling back to the working directory.
+    ///
+    /// Searching only the working directory means `cgg /path/to/project`
+    /// run from anywhere else silently ignores that project's config —
+    /// the same silent-no-op family as a regex that matches nothing. A
+    /// project's rules belong to the project, not to wherever the shell
+    /// happened to be.
+    pub fn discover_for(paths: &[PathBuf], cwd: Option<&Path>) -> Option<PathBuf> {
+        for p in paths {
+            let start = if p.is_dir() { p.as_path() } else { p.parent()? };
+            let abs = start.canonicalize();
+            let start = abs.as_deref().unwrap_or(start);
+            if let Some(found) = Self::discover(start) {
+                return Some(found);
+            }
+        }
+        cwd.and_then(Self::discover)
     }
 
     /// Every pattern in the file, for stale-entry reporting.

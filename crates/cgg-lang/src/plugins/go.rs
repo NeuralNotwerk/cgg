@@ -40,7 +40,7 @@ impl LanguagePlugin for GoPlugin {
         &[".go"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { test_defs: true, unreachable: true, visibility: true, ..Default::default() }
+        crate::PluginSignals { test_defs: true, unreachable: true, value_refs: true, visibility: true, ..Default::default() }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -142,7 +142,17 @@ impl<'a> Walker<'a> {
             }
             "call_expression" => {
                 if let Some(r) = self.ref_from_call(node) {
+                    // One `receiver.VERB(string, handler)` matcher covers
+                    // Gin, Echo, Fiber, Chi and net/http at once — the
+                    // handler is always in argument position.
+                    let context = if r.receiver_hint.is_empty() {
+                        r.name.clone()
+                    } else {
+                        format!("{}.{}", r.receiver_hint, r.name)
+                    };
                     self.facts.references.push(r);
+                    let extra = super::registrar::capture(node, self.source, &context);
+                    self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
                 return;
@@ -438,6 +448,7 @@ impl<'a> Walker<'a> {
             receiver_hint: recv,
             site_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 }

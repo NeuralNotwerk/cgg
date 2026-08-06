@@ -5,9 +5,26 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [0.4.0] - 2026-08-05
+## [0.4.0] - 2026-08-06
 
-Dead-code reporting. cgg already computed the thing a dead-code finder
+Two features that ask opposite questions of the same graph.
+
+**Dead-code reporting** asks what nothing calls. **Framework entry
+points** answer why so much of the apparent answer was wrong: cgg
+resolves calls it can see in source, and frameworks invoke user code by
+means that are not calls. A route handler rendered as a node with
+in-degree zero — which is not merely an incomplete graph but a false
+claim that nothing calls it, and which then cascaded into a dead-code
+finding for the handler *and* for every private helper reachable only
+from it.
+
+They ship together because neither is honest without the other. Both are
+**best effort by construction**, both state their evidence, and both say
+plainly what they could not see.
+
+### Dead-code reporting
+
+cgg already computed the thing a dead-code finder
 needs — a resolved call graph — but had no way to ask "what does nothing
 call?". `--dead-code` answers that, annotating the normal graph output
 rather than replacing it.
@@ -19,7 +36,7 @@ both for and against it, and `--why-live` inverts the question so the
 reasoning can be checked in the opposite direction. cgg never modifies
 code and takes no position on what should be done about a finding.
 
-### Added
+#### Added
 
 - **`--dead-code`.** Marks callables nothing appears to reference as
   `unreferenced` in whatever `-t` selects — mermaid label + `classDef`,
@@ -55,7 +72,7 @@ code and takes no position on what should be done about a finding.
   optional signals it actually extracts, so a report can distinguish
   "this definition genuinely has no attributes" from "cgg never looked".
 
-### Removed
+#### Removed
 
 - **The update check, and with it every network call cgg makes.**
   `update_check.rs` made one `GET` to `api.github.com` per day to read a
@@ -75,7 +92,7 @@ code and takes no position on what should be done about a finding.
   `cargo install-update -a` (from the `cargo-update` crate) or re-run
   `cargo install --git`.
 
-### Fixed
+#### Fixed
 
 - **`#include` resolution was nondeterministic.** `collect_include_defs`
   picked its target with `HashMap::values().find(...)`; Rust seeds its
@@ -89,7 +106,7 @@ code and takes no position on what should be done about a finding.
   `apply_exclusions` silently dropped it — two opposite silent failures
   for the same mistake.
 
-### Changed
+#### Changed
 
 - **`--stack-graphs` has no effect** and its help text now says so. The
   integration was removed in the tree-sitter 0.26 upgrade (upstream
@@ -101,13 +118,199 @@ code and takes no position on what should be done about a finding.
 - Dead-code-only extraction is gated behind the mode, so a run without
   `--dead-code` does not pay for it.
 
-### Compatibility
+#### Compatibility
 
 Default output is unchanged except for the two edge-count effects noted
 above (Rust macro-argument calls, C/C++ `#include` determinism), both of
 which only ever *add* or *stabilise* edges. `--stack-graphs` is still
 accepted. `--include-tests`, previously parsed and never read, now has
 real semantics.
+
+### Framework entry points
+
+cgg resolves calls it can see in source; frameworks invoke user code by
+means that are not calls. That did not merely leave the graph
+incomplete — it made it **wrong**: a route handler rendered as a node
+with in-degree zero, which is a claim ("nothing calls this") and a false
+one.
+
+`<framework-entry>` nodes fix that, mirroring the exit nodes
+`--include-external` already minted for control leaving the tree. They
+are **on by default**, deliberately unlike the exit-node flags: an exit
+node tells you nothing you did not already know from reading the call,
+while an entry node tells you something the source cannot state at all.
+
+Entry nodes are an **inference, not an observation** — nothing in your
+source says the call happens — so coverage is disclosed rather than
+implied. Every run prints which frameworks were recognised, which were
+seen and not understood, and which languages have no rules at all.
+
+#### Added
+
+- **`<framework-entry>` nodes.** One per entry point with real identity
+  — a route, a queue, a command — carrying a trust-boundary kind in the
+  qualified name (`<framework-entry>::network::flask::route("/users")`).
+  Edges are `Via::FrameworkEntry(framework)` at `Confidence::Low`,
+  tagged `entry` in mermaid, bold purple in dot, and `framework-entry`
+  in a new graphml edge attribute.
+- **Trust-boundary kinds** — `network`, `queue`, `schedule`, `cli`,
+  `ffi`, `lifecycle`, `test` — filterable because they are part of the
+  name: `cgg ./src --filter '<framework-entry>::network::' -n 3`
+  enumerates attack surface and its blast radius in one query. Only
+  `network` is asserted to carry untrusted input; `queue` depends on who
+  can enqueue, which cgg cannot see.
+- **Framework rules for 40+ frameworks** across python, javascript,
+  typescript, java, kotlin, go, ruby, php, csharp, rust and cpp,
+  covering all six hand-off shapes: attribute markers (Flask, FastAPI,
+  Spring, Jakarta/Quarkus, Micronaut, NestJS, ASP.NET MVC, Symfony,
+  Rocket, Actix, Celery, Click), value refs (Express, Gin, Echo, Fiber,
+  Chi, net/http, Axum, Django `urls.py`, Temporal), inline closures,
+  base types (PyTorch, Quartz, MassTransit, Sidekiq, Akka,
+  `BackgroundService`, `Runnable`), string targets (Rails
+  `'photos#index'`, Laravel's `@` string *and* `[C::class,'m']` array,
+  WordPress hooks) and module paths (`worker_threads`, piscina).
+- **A coverage table on every run.** Three sections, stated separately:
+  what was recognised (with entry counts), what was *seen and not
+  enumerated* (with the reason), and which languages have no rules.
+  A framework that is recognised but matched nothing is reported as a
+  gap too, because "flask (network, 0 entries)" reads as "this app has
+  no routes". Also emitted as an `AuditEvent::FrameworkCoverage`, with
+  `FRAMEWORK_ENTRY_DISCLAIMER` copied in by the engine so no formatter
+  can drop it.
+- **`[[framework]]` blocks in `cgg-deadcode.toml`,** so the gap list is
+  actionable: a framework cgg does not ship rules for can be covered
+  locally without waiting for a release.
+- **`--no-entry-nodes`** to opt out, and **`--framework-coverage`** to
+  print the table even when nothing was recognised.
+- **CUDA kernels are entry points.** `tree-sitter-cpp` parses
+  `saxpy<<<a,b>>>(x)` as nested comparison operators, so the launch
+  produces no edge and the kernel plus every `__device__` helper read as
+  dead. Treating `__global__` as a root qualifier fixes the cascade
+  without fighting the grammar.
+
+#### Extraction
+
+- **Attribute capture** for java, csharp, typescript, javascript, php,
+  kotlin and cpp (previously rust and python only). Stored **verbatim**,
+  because `python.rs` refines a `DefVariant` from raw decorator text and
+  `--ignore-attributes` matches what the user actually wrote. This also
+  raises those languages' dead-code confidence ceiling.
+- **Value-reference capture** for python, javascript, typescript, go,
+  java, csharp, php and ruby (previously rust only), with two long-
+  standing gaps closed: `intra_file` could only bind a value ref within
+  one file, and a value ref resolved across files was tagged
+  `Via::Direct` — claiming a call site that does not exist and escaping
+  the `--reference-edges` flag meant to gate it.
+- **Base-type capture** (`DefRecord::base_types`) for python, java,
+  csharp, javascript, typescript, php and ruby, including Ruby's
+  `include Sidekiq::Job` mixins. This is the principled replacement for
+  the hardcoded `LIFECYCLE` name list.
+- **PHP import capture** (`use`/`namespace`) and **PHP static calls**
+  (`C::m()`), neither of which was extracted before. PHP's graph on the
+  Laravel corpus goes from **329 edges to 16,355** (0 → 15,408
+  cross-file); the run costs ~70% more wall time as a result, which is
+  the price of a language whose call graph was previously ~1% resolved.
+- **TypeScript signal manifest.** `TypeScriptPlugin` reused `JsWalker`
+  but declared no signals and skipped the unreachable/reflection passes,
+  so the dead-code capability table said cgg had never looked. Both
+  fixed.
+- `RefRecord` gains `context` and `route`; `DefRecord` gains
+  `base_types`; `CallableNode` gains `framework_entry`. All additive and
+  serde-defaulted.
+
+#### Verified against real applications
+
+Seven applications *using* each framework — not the frameworks' own
+repositories, which never import themselves and exercise no rule:
+
+| app | framework | entries found |
+|---|---|---|
+| NetBox | Django | 128 network · 22 cli |
+| Netflix Dispatch | FastAPI | 318 network · 38 cli |
+| Mastodon | Rails + Sidekiq | 199 network · 109 queue |
+| macrozheng/mall | Spring Boot | 250 network · 1 schedule |
+| PhotoPrism | Gin + Chi | 44 network |
+| crates.io | Axum | 70 network |
+| Ultralytics | PyTorch | 159 lifecycle (root-marked, no nodes) |
+
+Both payoffs move in the right direction on those applications, which
+is the test a phase has to pass to earn its place — entry nodes up,
+dead-code findings down:
+
+| app | findings without entry nodes | with |
+|---|---|---|
+| Ultralytics | 1,400 | 1,169 (−17%) |
+| Netflix Dispatch | 2,564 | 2,133 (−17%) |
+
+That exercise found five defects that fixtures had not:
+
+- **A UTF-8 panic aborted the entire run.** `detect.rs` sliced a file's
+  head at byte 2048 without checking the char boundary, so any file
+  whose first 2 KiB contain non-Latin text crashed the process. Mastodon
+  ships ~90 such translation catalogues. `type_hints.rs` had the same
+  bug on `ty[..1]` for a non-ASCII identifier.
+- **Rust value refs lost their route.** The registration context was
+  emitted as a *second* record sharing the first's `(name, site_byte)`,
+  and the context-less one won — so every axum route resolved anonymous.
+- **Ambiguous verbs matched ordinary code.** `crate_ids.get(id)` and
+  `session.get("user_id")` became "routes" in an axum project. A match on
+  a verb like `get`/`add`/`use` now needs corroboration: an identity, or
+  a receiver-less call (axum's `get(handler)` is a free function; a map
+  lookup is not).
+- **String routing applied everywhere.** Decoding a string into a
+  handler name is now opt-in per rule (`string_targets`), set only for
+  the four frameworks that route that way.
+- **A marker-only rule detected everywhere.** CUDA has no import to gate
+  on, so it counted as "detected" in every repository containing a C++
+  file and was reported as a coverage gap in all of them.
+
+Three coverage gaps closed as a direct result:
+
+- **Inherited framework contracts.** A real application never inherits
+  the framework base directly — NetBox writes `class
+  CircuitListView(generic.ObjectListView)` and only three levels up does
+  anything name Django's `View`. Base-type matching now walks the
+  inheritance chain (depth-capped, cycle-guarded): Django 65 → 128
+  entries, PyTorch 143 → 159, Sidekiq 96 → 109.
+- **`utoipa::path`.** The `utoipa-axum` pattern registers handlers
+  through `.routes(routes!(a, b, c))`, a proc-macro whose token tree
+  cgg cannot read — but every one of those handlers carries its method
+  and path in a `#[utoipa::path]` attribute. crates.io went 7 → 70.
+- **Sidekiq workers carry no import.** Rails autoloads, so
+  `app/workers/*.rb` names `Sidekiq::Worker` without requiring it; the
+  convention directory is the only marker. Mastodon 0 → 109.
+
+#### Fixed
+
+- **Config discovery was working-directory-relative,** so
+  `cgg /path/to/project` from anywhere else silently ignored that
+  project's `cgg-deadcode.toml`. Discovery now searches upward from each
+  analyzed path first.
+- **`cross_file` de-duplicated edges with an O(edges) scan per resolved
+  reference.** Invisible while PHP resolved almost nothing; ~4s of a
+  Laravel run once it started resolving properly. Now indexed.
+- GraphML dropped the edge `via` tag entirely, so a consumer could not
+  tell an inferred edge from a resolved call.
+- **Haskell definitions were never qualified by their module.**
+  `extract_module` looked for a `module_name` node that
+  `tree-sitter-haskell` 0.23 does not have (the kind is `module`, and
+  the keyword is an anonymous token of the same name), so every Haskell
+  callable came out as a bare `work` rather than `Data.Thing.work` and
+  same-named functions in different modules were indistinguishable.
+  Silent, because an unqualified name is still a perfectly good name.
+  Haskell now joins with `.`, matching how modules are written and
+  imported; on pandoc this resolves ~250 previously-unresolved calls.
+
+#### Compatibility
+
+**The default graph grows.** Entry nodes are on by default, so node and
+edge counts move for every language with framework rules. This follows
+the project's standing rule that the default graph only ever grows in
+default mode; `--no-entry-nodes` restores the previous shape exactly.
+
+Adding `Via::FrameworkEntry` is a compile error in exactly the two
+`match` arms that classify edges for output, so no formatter can
+silently ignore it.
 
 ## [0.3.0] - 2026-06-30
 

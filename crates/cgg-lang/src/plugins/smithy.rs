@@ -176,6 +176,7 @@ impl<'a> SmithyWalker<'a> {
             receiver_hint: String::new(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }

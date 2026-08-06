@@ -288,7 +288,15 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
     // (lowercased), we can infer: `service.run()` -> type `Service`.
     let mut map = HashMap::new();
     for ty in &type_names {
-        let lower = ty[..1].to_lowercase() + &ty[1..];
+        // `ty[..1]` panics whenever the first character is multi-byte,
+        // and identifiers may legally be non-ASCII in Python, Java, C#
+        // and Rust. Split on the first *character* instead of the first
+        // byte.
+        let mut chars = ty.chars();
+        let lower = match chars.next() {
+            Some(c) => c.to_lowercase().collect::<String>() + chars.as_str(),
+            None => continue,
+        };
         map.insert(lower, ty.to_string());
         // Also try full lowercase
         map.insert(ty.to_lowercase(), ty.to_string());
@@ -405,6 +413,7 @@ mod tests {
             receiver_hint: "svc".into(),
             site_line: 5,
             site_byte: 150,
+            ..Default::default()
         }];
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
@@ -422,6 +431,7 @@ mod tests {
             receiver_hint: "h".into(),
             site_line: 3,
             site_byte: 100,
+            ..Default::default()
         }];
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
@@ -439,6 +449,7 @@ mod tests {
             receiver_hint: "service".into(),
             site_line: 3,
             site_byte: 100,
+            ..Default::default()
         }];
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
@@ -453,6 +464,7 @@ mod tests {
             receiver_hint: "Foo".into(),
             site_line: 1,
             site_byte: 10,
+            ..Default::default()
         }];
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
@@ -468,6 +480,7 @@ mod tests {
             receiver_hint: "self".into(),
             site_line: 1,
             site_byte: 10,
+            ..Default::default()
         }];
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);

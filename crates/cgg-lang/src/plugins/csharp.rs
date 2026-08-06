@@ -42,7 +42,13 @@ impl LanguagePlugin for CSharpPlugin {
         &[".cs", ".csx"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { visibility: true, ..Default::default() }
+        crate::PluginSignals {
+            visibility: true,
+            attributes: true,
+            impls: true,
+            value_refs: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -61,6 +67,7 @@ impl LanguagePlugin for CSharpPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -85,6 +92,9 @@ struct Walker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<Scope>,
+    /// Base list of the enclosing type, innermost last — `: IJob` is
+    /// what makes `Execute` an entry point, and only the type says so.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -117,6 +127,8 @@ impl<'a> Walker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                let bases = super::attrs::base_types(node, self.source);
+                self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(Scope::Type(name));
                     self.walk_children(node);
@@ -124,6 +136,7 @@ impl<'a> Walker<'a> {
                 } else {
                     self.walk_children(node);
                 }
+                self.bases.pop();
                 return;
             }
             "method_declaration" | "local_function_statement" => {
@@ -169,7 +182,17 @@ impl<'a> Walker<'a> {
             }
             "invocation_expression" => {
                 if let Some(r) = self.ref_from_invoke(node) {
+                    // Shape B: `app.MapGet("/x", Handler)` — the minimal
+                    // API's whole routing surface lives in argument
+                    // position, so the callee alone tells us nothing.
+                    let context = if r.receiver_hint.is_empty() {
+                        r.name.clone()
+                    } else {
+                        format!("{}.{}", r.receiver_hint, r.name)
+                    };
                     self.facts.references.push(r);
+                    let extra = super::registrar::capture(node, self.source, &context);
+                    self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
                 return;
@@ -218,7 +241,9 @@ impl<'a> Walker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             vis: csharp_vis(&super::extract_signature(self.text(node))),
-            attributes: Vec::new(),
+            // Verbatim, so `[HttpGet("/users")]` keeps its route.
+            attributes: super::attrs::collect(node, self.source),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -331,6 +356,7 @@ impl<'a> Walker<'a> {
             receiver_hint: recv,
             site_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 }

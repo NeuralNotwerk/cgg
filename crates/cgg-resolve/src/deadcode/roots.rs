@@ -131,7 +131,12 @@ impl RootSet {
 /// Strip the punctuation around an attribute so `#[tokio::test]`,
 /// `@pytest.fixture(scope="module")` and `[Fact]` all compare as their
 /// bare key. Mirrors vulture's `@foo.bar(x, y)` -> `@foo.bar` rule.
-pub(crate) fn attribute_key(attr: &str) -> &str {
+///
+/// **Discards arguments by design.** A rule asking "is this a route?"
+/// must not care which route. Anything that needs the route string
+/// wants [`attribute_string_arg`] instead — the two are deliberately
+/// separate accessors so neither can be mistaken for the other.
+pub fn attribute_key(attr: &str) -> &str {
     let a = attr.trim();
     let a = a.strip_prefix("#[").unwrap_or(a);
     let a = a.strip_prefix('[').unwrap_or(a);
@@ -140,6 +145,50 @@ pub(crate) fn attribute_key(attr: &str) -> &str {
     let a = a.split('(').next().unwrap_or(a);
     let a = a.split('=').next().unwrap_or(a);
     a.trim()
+}
+
+/// First string-literal argument of an attribute, unquoted.
+///
+/// `@app.route("/users", methods=["POST"])` -> `Some("/users")`.
+/// `#[get("/")]` -> `Some("/")`. `@celery.task` -> `None`.
+///
+/// This is the accessor [`attribute_key`] deliberately is not: an entry
+/// node's identity is the route, and `attribute_key` throws the route
+/// away. Handles `"`, `'` and Python's raw/f prefixes; stops at the
+/// first literal because every framework in the inventory puts the path
+/// first.
+pub fn attribute_string_arg(attr: &str) -> Option<String> {
+    let open = attr.find('(')?;
+    let body = &attr[open + 1..];
+    let mut chars = body.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        if c != '"' && c != '\'' {
+            continue;
+        }
+        // Walk to the matching close quote, honouring backslash escapes.
+        let mut j = i + c.len_utf8();
+        let bytes = body.as_bytes();
+        while j < bytes.len() {
+            if bytes[j] == b'\\' {
+                j += 2;
+                continue;
+            }
+            if bytes[j] == c as u8 {
+                return Some(body[i + 1..j].to_string());
+            }
+            j += 1;
+        }
+        return None;
+    }
+    None
+}
+
+/// Last `.`/`::`-separated segment of an attribute key: the verb.
+/// `app.route` -> `route`, `org.springframework.GetMapping` ->
+/// `GetMapping`, `get` -> `get`.
+pub fn attribute_verb(attr: &str) -> &str {
+    let key = attribute_key(attr);
+    key.rsplit(|c| c == '.' || c == ':').next().unwrap_or(key)
 }
 
 fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
@@ -161,9 +210,51 @@ pub(crate) fn discover(
     graph: &Graph,
     facts: &[FileFacts],
     user_matches: &[(String, CallableId)],
+    framework_matches: &[(String, CallableId)],
 ) -> RootSet {
     let mut set = RootSet::default();
     let mut seen: HashSet<CallableId> = HashSet::new();
+
+    // --- Rule: synthesized framework entry nodes -------------------------
+    //
+    // An entry node is where control enters the tree, so it is a root by
+    // construction — and unlike the fiction it replaces, this one is
+    // literally true. The node genuinely has in-degree zero and the
+    // handler it points at genuinely has a caller.
+    //
+    // This is the one place a synthetic node may be a root. Every other
+    // synthetic node is a *sink* (`<external>`, `<stdlib>`); marking one
+    // of those live would say nothing.
+    for (id, node) in &graph.callables {
+        if node.framework_entry.is_some() {
+            set.push(
+                graph,
+                *id,
+                RootKind::FrameworkCallback,
+                "framework:entry-node",
+                format!("synthesized entry node `{}`", node.qualified_name),
+                &mut seen,
+            );
+        }
+    }
+
+    // --- Rule: framework-invoked callables with no node ------------------
+    //
+    // Bucket D per §8: `Encoder.forward` has a framework caller but mints
+    // no entry node, because one `Module.forward` node fanning out to
+    // every model is visually useless. Without this rule the handler and
+    // every private helper it calls are reported — the cascade that
+    // doubles the cost of each missed entry point.
+    for (label, id) in framework_matches {
+        set.push(
+            graph,
+            *id,
+            RootKind::FrameworkCallback,
+            "framework:rule",
+            format!("invoked by framework rule `{label}`"),
+            &mut seen,
+        );
+    }
 
     // --- Rule: top-level invocation (all 44 languages) -------------------
     //
@@ -484,7 +575,7 @@ mod tests {
     #[test]
     fn main_is_a_production_root() {
         let g = graph_with(vec![node(0, "crate::main", "main", "rust")]);
-        let set = discover(&g, &[], &[]);
+        let set = discover(&g, &[], &[], &[]);
         assert_eq!(set.production.len(), 1);
         assert!(set.test.is_empty());
         assert_eq!(set.records[0].kind, RootKind::ProgramEntry);
@@ -494,7 +585,7 @@ mod tests {
     fn ffi_exports_are_roots_because_callers_are_out_of_tree() {
         let mut n = node(0, "crate::ffi_entry", "ffi_entry", "rust");
         n.attributes = vec!["#[no_mangle]".into()];
-        let set = discover(&graph_with(vec![n]), &[], &[]);
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert_eq!(set.records[0].kind, RootKind::FfiExport);
     }
 
@@ -502,7 +593,7 @@ mod tests {
     fn tests_are_a_separate_root_class_not_production() {
         let mut n = node(0, "crate::tests::it_works", "it_works", "rust");
         n.attributes = vec!["#[test]".into()];
-        let set = discover(&graph_with(vec![n]), &[], &[]);
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert!(set.production.is_empty(), "a test must not be a production root");
         assert_eq!(set.test.len(), 1);
         assert_eq!(set.records[0].kind, RootKind::TestEntry);
@@ -512,13 +603,13 @@ mod tests {
     fn implicit_rust_traits_are_roots() {
         let mut n = node(0, "<F as Display>::fmt", "fmt", "rust");
         n.trait_impl_target = Some("Display".into());
-        let set = discover(&graph_with(vec![n]), &[], &[]);
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
 
         // A user trait is NOT implicitly invoked.
         let mut m = node(0, "<F as Storage>::put", "put", "rust");
         m.trait_impl_target = Some("Storage".into());
-        assert!(discover(&graph_with(vec![m]), &[], &[]).records.is_empty());
+        assert!(discover(&graph_with(vec![m]), &[], &[], &[]).records.is_empty());
     }
 
     #[test]
@@ -533,7 +624,7 @@ mod tests {
     #[test]
     fn dunder_methods_are_runtime_invoked() {
         let n = node(0, "m.C.__init__", "__init__", "python");
-        let set = discover(&graph_with(vec![n]), &[], &[]);
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
         assert!(!is_dunder("__x"));
         assert!(!is_dunder("____"));
@@ -544,7 +635,7 @@ mod tests {
     fn synthetic_nodes_are_never_roots() {
         let mut n = node(0, "ext::main", "main", "rust");
         n.synthetic = true;
-        assert!(discover(&graph_with(vec![n]), &[], &[]).records.is_empty());
+        assert!(discover(&graph_with(vec![n]), &[], &[], &[]).records.is_empty());
     }
 
     #[test]
@@ -554,7 +645,7 @@ mod tests {
             node(1, "crate::helper", "helper", "rust"),
         ]);
         // Declare main again as a user root; it must not appear twice.
-        let set = discover(&g, &[], &[("^main$".into(), CallableId::new(0))]);
+        let set = discover(&g, &[], &[("^main$".into(), CallableId::new(0))], &[]);
         assert_eq!(set.records.len(), 1);
         assert_eq!(set.records[0].rule, "builtin:main");
     }
@@ -565,7 +656,7 @@ mod tests {
         // silently missed every parameterised std trait impl.
         let mut n = node(0, "<T as From<OutputFormatArg>>::from", "from", "rust");
         n.trait_impl_target = Some("From<OutputFormatArg>".into());
-        let set = discover(&graph_with(vec![n]), &[], &[]);
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert_eq!(set.records.len(), 1, "From<...> should match From");
         assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
     }
@@ -574,7 +665,7 @@ mod tests {
     fn serde_visitor_methods_are_runtime_invoked() {
         let mut n = node(0, "<R as Visitor<'de>>::visit_map", "visit_map", "rust");
         n.trait_impl_target = Some("Visitor<'de>".into());
-        assert_eq!(discover(&graph_with(vec![n]), &[], &[]).records.len(), 1);
+        assert_eq!(discover(&graph_with(vec![n]), &[], &[], &[]).records.len(), 1);
     }
 
 }

@@ -47,7 +47,7 @@
 pub(crate) mod adj;
 pub(crate) mod caps;
 pub(crate) mod evidence;
-pub(crate) mod roots;
+pub mod roots;
 pub(crate) mod scc;
 
 #[cfg(test)]
@@ -84,6 +84,13 @@ pub struct DeadCodeOptions {
     /// What each language's plugin declares it can extract. Empty means
     /// "unknown", which degrades to observation-only.
     pub language_signals: BTreeMap<String, cgg_core::deadcode::LanguageSignals>,
+    /// Callables a framework invokes, as `(rule label, target)` pairs.
+    ///
+    /// Entries that mint a node need nothing here — the node is a root
+    /// and the edge does the work. This carries the bucket-D entries
+    /// that deliberately mint none, where the only way to express "the
+    /// runtime calls this" is to mark it directly.
+    pub framework_roots: Vec<(String, CallableId)>,
 }
 
 /// Edges that count as "something uses this".
@@ -158,7 +165,7 @@ pub fn analyze(
     let n = adjacency.n as usize;
     let measured = caps::measure(graph, &opts.language_signals);
     let unresolved = UnresolvedIndex::build(graph, file_audits);
-    let root_set = roots::discover(graph, facts, &opts.user_roots);
+    let root_set = roots::discover(graph, facts, &opts.user_roots, &opts.framework_roots);
 
     // Identifier-shaped literals in reflective positions. Never an edge
     // — only a reason to doubt a finding.
@@ -647,7 +654,7 @@ pub fn why_live(
     targets: &[CallableId],
 ) -> Vec<LivenessProof> {
     let adjacency = Adj::build(graph, &counts_for_liveness);
-    let root_set = roots::discover(graph, facts, &opts.user_roots);
+    let root_set = roots::discover(graph, facts, &opts.user_roots, &opts.framework_roots);
 
     let mut all_roots = root_set.production.clone();
     all_roots.extend_from_slice(&root_set.test);
@@ -705,6 +712,7 @@ pub fn why_live(
                         Via::External => "external".into(),
                         Via::Stdlib => "stdlib".into(),
                         Via::Ffi(f) => format!("ffi:{f}"),
+                        Via::FrameworkEntry(f) => format!("framework-entry:{f}"),
                     },
                     confidence: e.confidence,
                     resolver: e.resolver.as_str().to_string(),

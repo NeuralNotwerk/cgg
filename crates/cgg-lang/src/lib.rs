@@ -43,6 +43,48 @@ pub fn deadcode_signals() -> bool {
     DEADCODE_SIGNALS.load(Ordering::Relaxed)
 }
 
+/// Registrar verbs contributed by user-authored framework rules.
+///
+/// Argument capture is gated on the built-in verb list so that an
+/// ordinary `foo(x)` costs nothing — measured on TypeORM, capturing
+/// unconditionally doubled the run and minted four thousand nodes for
+/// `describe('...', () => {})` blocks that are shaped exactly like a
+/// route registration and are not one.
+///
+/// A user rule naming a verb cgg does not ship would be silently inert
+/// under that gate, which is the failure mode this whole feature exists
+/// to avoid. The driver widens the gate from the config file before
+/// extraction starts.
+///
+/// A process-global for the same reason as [`DEADCODE_SIGNALS`]: the
+/// alternative is widening `LanguagePlugin::extract` across 44 plugins
+/// for a value none of them vary. Written once before the parallel
+/// phase and never again.
+static EXTRA_REGISTRAR_VERBS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+
+/// Register verbs from user-authored framework rules. Idempotent; only
+/// the first call takes effect.
+pub fn set_extra_registrar_verbs(verbs: Vec<String>) {
+    let _ = EXTRA_REGISTRAR_VERBS.set(verbs);
+}
+
+/// Whether a call's verb could ever be matched by a framework rule.
+#[inline]
+pub fn is_registrar_verb(verb: &str) -> bool {
+    if verb.is_empty() {
+        return false;
+    }
+    if cgg_core::frameworks::rules::registrar_verbs()
+        .iter()
+        .any(|v| v.eq_ignore_ascii_case(verb))
+    {
+        return true;
+    }
+    EXTRA_REGISTRAR_VERBS
+        .get()
+        .is_some_and(|v| v.iter().any(|x| x.eq_ignore_ascii_case(verb)))
+}
+
 pub use cgg_core as core;
 pub use detect::{DetectResult, DetectVerdict, LanguageDetector};
 pub use parser::{ParseOutcome, ParserPool};

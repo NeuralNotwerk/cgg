@@ -142,6 +142,7 @@ impl<'a> FsharpWalker<'a> {
                                 name, receiver_hint: receiver,
                                 site_line: (node.start_position().row as u32) + 1,
                                 site_byte: node.start_byte() as u32,
+                                ..Default::default()
                             });
                         }
                     }
@@ -150,6 +151,7 @@ impl<'a> FsharpWalker<'a> {
                             name: self.text(inner).to_string(), receiver_hint: String::new(),
                             site_line: (node.start_position().row as u32) + 1,
                             site_byte: node.start_byte() as u32,
+                            ..Default::default()
                         });
                     }
                     _ => {}

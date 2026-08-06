@@ -31,13 +31,21 @@ struct HaskellWalker<'a> {
 impl<'a> HaskellWalker<'a> {
     fn text(&self, n: Node) -> &str { n.utf8_text(self.source).unwrap_or("") }
     fn qn(&self, simple: &str) -> String {
+        // Haskell qualifies with `.` — `Data.Thing.work`, matching how
+        // the module is written and imported. (The `::` this used to
+        // produce was never observable: `self.module` was always empty,
+        // see `extract_module`.)
         if self.module.is_empty() { simple.to_string() }
-        else { format!("{}::{simple}", self.module) }
+        else { format!("{}.{simple}", self.module) }
     }
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "module" => {
+            // The module declaration is a `header` node wrapping a
+            // `module` node; dispatching on `module` reached the inner
+            // one, whose children are `module_id` parts rather than
+            // another `module`.
+            "header" => {
                 self.extract_module(node);
                 self.walk_children(node);
             }
@@ -64,12 +72,22 @@ impl<'a> HaskellWalker<'a> {
 
     fn extract_module(&mut self, node: Node) {
         // module Name where
-        for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32) {
-                if child.kind() == "module_name" {
-                    self.module = self.text(child).to_string();
-                    break;
-                }
+        //
+        // The node kind is `module`, not `module_name` — the same kind
+        // `extract_import` below already reads. Looking for
+        // `module_name` matched nothing in tree-sitter-haskell 0.23, so
+        // `self.module` stayed empty and every Haskell callable came out
+        // unqualified: `work` instead of `Data.Thing.work`. Silent,
+        // because an unqualified name is still a perfectly good name —
+        // it just cannot be told apart from the `work` in every other
+        // module.
+        // Named children only: the `module` *keyword* is an anonymous
+        // token of the same kind, and it comes first.
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            if child.kind() == "module" {
+                self.module = self.text(child).to_string();
+                break;
             }
         }
     }
@@ -151,6 +169,7 @@ impl<'a> HaskellWalker<'a> {
                         receiver_hint: String::new(),
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
+                        ..Default::default()
                     });
                 }
             }
@@ -170,6 +189,19 @@ mod tests {
         p.set_language(&tree_sitter_haskell::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         HaskellPlugin.extract(FileId::new(0), &PathBuf::from("/tmp/__cgg_test__/x.hs"), &tree, src.as_bytes())
+    }
+
+    #[test]
+    fn definitions_are_qualified_by_their_module() {
+        // `extract_module` looked for a `module_name` node that
+        // tree-sitter-haskell 0.23 does not have, so every Haskell name
+        // came out unqualified and two modules' `work` collided.
+        let f = extract(
+            "module Data.Thing (work) where\n\nwork x = helper x\n\nhelper x = x\n",
+        );
+        let qns: Vec<&str> = f.definitions.iter().map(|d| d.qualified_name.as_str()).collect();
+        assert!(qns.contains(&"Data.Thing.work"), "got: {qns:?}");
+        assert!(qns.contains(&"Data.Thing.helper"), "got: {qns:?}");
     }
 
     #[test]

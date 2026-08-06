@@ -1,6 +1,6 @@
 ---
 name: cgg
-description: find unused/dead code, is this function still called, what references this — Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 44 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
+description: Use the `cgg` call-graph CLI to map function-level call relationships across a codebase and pull the result (as mermaid) into the working context. Trigger when the user asks "what calls X?", "what does X depend on?", "what would break if I change this?", needs to understand an unfamiliar module before editing it, scopes a refactor or rename, traces a bug across files, generates architecture diagrams, asks "is this still used?" / "what references this?" / "is anything here unused?", or works on a polyglot codebase with FFI boundaries (PyO3, wasm-bindgen, napi, JNI, P/Invoke, C ABI). Also trigger proactively before editing any non-trivial function in a large codebase to confirm caller/callee impact — running cgg first is faster and more reliable than grepping for usages. Supports 44 languages (plus Jupyter `.ipynb`) including Rust, Python, TS/JS, Go, Java, Kotlin, C/C++, C#, Swift, Ruby, PHP, Bash, PowerShell, Solidity, F#, Verilog/SV, VHDL, Assembly, CMake, Starlark/Bazel, Nix, and the Smithy/Protobuf/GraphQL/OpenAPI/AsyncAPI interface-definition languages (API model topology rendered as service→operation→message/type and operation→schema→schema edges; OpenAPI/AsyncAPI YAML or JSON content-detected). Outputs mermaid (default, agent-readable), plus json/dot/graphml.
 ---
 
 # cgg — call graph for agents
@@ -173,6 +173,75 @@ cgg . --filter 'Service::handle' -n 1 --include-external -o /tmp/cgg.mmd
 
 Leave them off when you want the clean, high-confidence call graph.
 
+## Framework entry points (on by default)
+
+Frameworks invoke user code by means that are not calls, so a route
+handler would otherwise have in-degree zero — which is a claim
+("nothing calls this") and a false one. cgg synthesizes a
+`<framework-entry>` node for each recognised entry point:
+
+```text
+C0["<framework-entry>::network::flask::route('/users') ⟨framework entry callback⟩"]
+C0 -->|entry| C1["svc.list_users"]
+```
+
+These are **INFERRED, not observed** — nothing in the source says the
+call happens. Say so when relaying them. `--no-entry-nodes` opts out.
+
+The kind is part of the name, which makes the security query expressible:
+
+```bash
+# Everything reachable from untrusted input, 3 hops out
+cgg ./src --filter '<framework-entry>::network::' -n 3
+
+# Drop framework noise from an ordinary graph
+cgg ./src --exclude-partial '<framework-entry>::lifecycle::'
+```
+
+Kinds: `network` (attack surface), `queue`, `schedule`, `cli`, `ffi`,
+`lifecycle`, `test`.
+
+**Two things to relay honestly, every time:**
+
+1. **Reachability is not data flow.** "Reachable from a `network` entry"
+   means control can get there. It does *not* mean attacker-controlled
+   data does — there is no taint tracking. Use it to bound where to
+   look, never to conclude something is exploitable.
+2. **Coverage is partial.** Every run prints a coverage table on stderr
+   naming which frameworks were recognised and which were *seen and not
+   enumerated*. Read it before reporting a count. "3 network entries" on
+   an app whose framework is in the gap list is not "3 routes" — it is
+   "3 that cgg could see". To cover a missing framework, use the
+   `cgg-frameworks` skill.
+
+## Finding unreferenced code
+
+```bash
+cgg ./src --dead-code                    # ranked report
+cgg ./src --why-live 'MyType::method$'   # why is this considered live?
+```
+
+**BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
+what it could not find a caller for, which is not the same as proving no
+caller exists. Reflection, string-keyed dispatch, dynamic imports,
+build-time codegen, conditional compilation and FFI consumers outside
+the tree are all invisible to it. Every finding must be manually
+reviewed against the source before it is acted on.
+
+Recognised framework entry points are now marked live automatically, so
+route handlers, jobs and lifecycle methods no longer produce findings —
+*for the frameworks in the run's `recognised` list*. For anything under
+`seen, no rules`, the old caveat still applies in full.
+
+Relay findings as *candidates*, never as facts. On cgg's own source the
+highest-confidence band is roughly 20-45% precise. The report prints a
+per-language capability table; a "no" column means cgg was guessing for
+that language.
+
+`--why-live` is often a better answer to "what calls X?" than
+`--filter X -n 1`, because it prints the shortest proving path from an
+entry point rather than a neighbourhood.
+
 ## Filter tips that save tokens
 
 - **Anchor specifically.** `--filter 'foo$'` matches only callables
@@ -264,7 +333,7 @@ than emitting low-confidence edges.
 - For huge graphs, prefer `-t dot` + Graphviz over a single
   thousand-node mermaid diagram. Better still: narrow the filter.
 
-## Two anti-patterns to avoid
+## Three anti-patterns to avoid
 
 1. **Running cgg without `--filter` on a large project and pasting
    the whole graph into context.** This wastes tokens and obscures
@@ -275,31 +344,7 @@ than emitting low-confidence edges.
    method dispatch and over-match on common names. If you find
    yourself piping grep through `wc -l` to "estimate impact", that's
    the moment to reach for cgg.
-
-## Finding unreferenced code
-
-```bash
-cgg ./src --dead-code                    # ranked report
-cgg ./src --why-live 'MyType::method$'   # why is this considered live?
-```
-
-**BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
-what it could not find a caller for, which is not the same as proving no
-caller exists. Reflection, string-keyed dispatch, dynamic imports,
-build-time codegen, conditional compilation, framework entry points and
-FFI consumers outside the tree are all invisible to it. Every finding
-must be manually reviewed against the source before it is acted on.
-
-Relay findings as *candidates*, never as facts. On cgg's own source the
-highest-confidence band is roughly 20-45% precise. The report prints a
-per-language capability table; a "no" column means cgg was guessing for
-that language.
-
-`--why-live` is often a better answer to "what calls X?" than
-`--filter X -n 1`, because it prints the shortest proving path from an
-entry point rather than a neighbourhood.
-
-### A third anti-pattern
-
-Relaying a cgg dead-code finding as established fact. Open the file
-first — and say "cgg could not find a caller", not "this is dead".
+3. **Relaying a `--dead-code` finding as established fact.** cgg reports
+   what it could not find a caller for, which is not the same as proving
+   none exists. Open the file first, and say "cgg could not find a
+   caller", not "this is dead".

@@ -137,6 +137,7 @@ impl<'a> NixWalker<'a> {
                 name, receiver_hint: receiver,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
+                ..Default::default()
             });
             return;
         }

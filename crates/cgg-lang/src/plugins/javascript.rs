@@ -35,7 +35,13 @@ impl LanguagePlugin for JavaScriptPlugin {
         &["node"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { unreachable: true, ..Default::default() }
+        crate::PluginSignals {
+            unreachable: true,
+            attributes: true,
+            impls: true,
+            value_refs: true,
+            ..Default::default()
+        }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -54,6 +60,7 @@ impl LanguagePlugin for JavaScriptPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -71,11 +78,13 @@ pub(crate) struct JsWalker<'a> {
     source: &'a [u8],
     pub facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// `extends`/`implements` of the enclosing class, innermost last.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> JsWalker<'a> {
     pub(crate) fn new(source: &'a [u8], facts: &'a mut FileFacts) -> Self {
-        Self { source, facts, scope: Vec::new() }
+        Self { source, facts, scope: Vec::new(), bases: Vec::new() }
     }
 
     fn text(&self, n: Node) -> &str {
@@ -97,11 +106,12 @@ impl<'a> JsWalker<'a> {
                 self.walk_children(node);
                 return;
             }
-            "class_declaration" => {
+            "class_declaration" | "class" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                self.bases.push(super::attrs::base_types(node, self.source));
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
@@ -109,6 +119,7 @@ impl<'a> JsWalker<'a> {
                 } else {
                     self.walk_children(node);
                 }
+                self.bases.pop();
                 return;
             }
             "method_definition" => {
@@ -138,9 +149,10 @@ impl<'a> JsWalker<'a> {
                 self.record_import(node);
                 return;
             }
-            "call_expression" => {
+            "call_expression" | "new_expression" => {
                 self.record_call(node);
                 self.extract_named_fn_args(node);
+                self.extract_inline_handler(node);
                 self.walk_children(node);
                 return;
             }
@@ -185,7 +197,7 @@ impl<'a> JsWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            attributes: super::attrs::collect_with_preceding(node, self.source),
             ..Default::default()
         });
     }
@@ -224,7 +236,10 @@ impl<'a> JsWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            // TypeScript decorators (`@Get('/users')`) are shape A and
+            // carry the whole NestJS routing surface.
+            attributes: super::attrs::collect_with_preceding(node, self.source),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -545,7 +560,16 @@ impl<'a> JsWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let Some(func) = node.child_by_field_name("function") else { return };
+        // `f()` names the callee under `function`; `new C()` names it
+        // under `constructor`. `new Worker('./w.js')` is the only
+        // reference to a worker module anywhere, so missing the second
+        // form leaves that whole file with no caller.
+        let Some(func) = node
+            .child_by_field_name("function")
+            .or_else(|| node.child_by_field_name("constructor"))
+        else {
+            return;
+        };
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "member_expression" => {
@@ -562,12 +586,85 @@ impl<'a> JsWalker<'a> {
         if name.is_empty() {
             return;
         }
+        let context = if recv.is_empty() {
+            name.clone()
+        } else {
+            format!("{recv}.{name}")
+        };
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
+        // Shape B/E: `app.get('/x', listUsers)` and
+        // `new Worker('./w.js')`. Both put the handler in argument
+        // position, where the callee alone says nothing.
+        let extra = super::registrar::capture(node, self.source, &context);
+        self.facts.references.extend(extra);
+    }
+
+    /// Shape C — an anonymous handler written in place.
+    ///
+    /// The body is already reachable, so this adds no edge the graph was
+    /// missing. It exists so the *route* has something to point at:
+    /// `POST /admin/users` is the fact a reader wants, and roughly two
+    /// thirds of Express handlers are written anonymously.
+    ///
+    /// Gated on the registration shape so ordinary callbacks — `.map(x
+    /// => …)`, promise chains, `setTimeout` — mint nothing.
+    fn extract_inline_handler(&mut self, node: Node) {
+        let Some(func) = node
+            .child_by_field_name("function")
+            .or_else(|| node.child_by_field_name("constructor"))
+        else {
+            return;
+        };
+        let context = self.text(func).to_string();
+        // `describe('...', () => {})` has exactly the shape of a route
+        // registration. Gating on the verb is what keeps a test suite
+        // from minting a synthesized handler per block — four thousand
+        // of them on TypeORM, none of which any rule could use.
+        if !crate::is_registrar_verb(super::registrar::last_segment(&context)) {
+            return;
+        }
+        let Some(route) = super::registrar::is_registration_shape(node, self.source) else {
+            return;
+        };
+        let Some(args) = node.child_by_field_name("arguments") else { return };
+        let mut cursor = args.walk();
+        let closures: Vec<Node> = args
+            .named_children(&mut cursor)
+            .filter(|n| super::registrar::is_closure(*n))
+            .collect();
+        for closure in closures {
+            let line = (closure.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            let qn = self.qn(&simple);
+            let (sl, el) = line_range(closure);
+            self.facts.definitions.push(DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: qn,
+                variant: DefVariant::NamedClosure,
+                start_line: sl,
+                end_line: el,
+                start_byte: closure.start_byte() as u32,
+                end_byte: closure.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(closure)),
+                visibility: String::new(),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: closure.start_byte() as u32,
+                context: context.clone(),
+                route: route.clone(),
+            });
+        }
     }
 }
 

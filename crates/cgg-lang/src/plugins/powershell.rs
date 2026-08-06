@@ -193,6 +193,7 @@ impl<'a> PowerShellWalker<'a> {
             name, receiver_hint: String::new(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 
@@ -278,6 +279,7 @@ impl<'a> PowerShellWalker<'a> {
             name: member, receiver_hint: receiver,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }

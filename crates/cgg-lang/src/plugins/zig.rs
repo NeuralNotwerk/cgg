@@ -56,6 +56,7 @@ impl<'a> ZigWalker<'a> {
                         name, receiver_hint: recv,
                         site_line: (node.start_position().row as u32)+1,
                         site_byte: node.start_byte() as u32,
+                        ..Default::default()
                     });
                 }
                 self.walk_children(node); return;

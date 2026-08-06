@@ -38,7 +38,7 @@ impl LanguagePlugin for PythonPlugin {
         &["python3", "python", "python2"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { attributes: true, dyn_uses: true, exports: true, test_defs: true, unreachable: true, visibility: true, ..Default::default() }
+        crate::PluginSignals { attributes: true, dyn_uses: true, exports: true, impls: true, test_defs: true, unreachable: true, value_refs: true, visibility: true, ..Default::default() }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -57,6 +57,7 @@ impl LanguagePlugin for PythonPlugin {
             source,
             facts: &mut facts,
             scope: vec![module_name(path)],
+            bases: Vec::new(),
         };
         walker.walk(tree.root_node());
         let mut out = facts;
@@ -105,6 +106,8 @@ struct Walker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Base classes of the enclosing `class`, innermost last.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -122,7 +125,12 @@ impl<'a> Walker<'a> {
                 if !name.is_empty() {
                     self.scope.push(name);
                 }
+                // `class Encoder(nn.Module)` is the only thing that says
+                // the runtime calls `forward`; nothing else in the file
+                // does.
+                self.bases.push(super::attrs::base_types(node, self.source));
                 self.walk_children(node);
+                self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
                     self.scope.pop();
                 }
@@ -160,7 +168,18 @@ impl<'a> Walker<'a> {
             }
             "call" => {
                 if let Some(r) = self.ref_from_call(node) {
+                    // Django's `urls.py` is ordinary Python:
+                    // `path("users/", views.list_users)` puts the
+                    // handler in argument position, so the callee alone
+                    // says nothing.
+                    let context = if r.receiver_hint.is_empty() {
+                        r.name.clone()
+                    } else {
+                        format!("{}.{}", r.receiver_hint, r.name)
+                    };
                     self.facts.references.push(r);
+                    let extra = super::registrar::capture(node, self.source, &context);
+                    self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
                 return;
@@ -241,6 +260,7 @@ impl<'a> Walker<'a> {
             vis: py_vis(&simple_for_vis),
             test_role: py_test_role(&simple_for_vis, &decorators),
             attributes: decorators,
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -356,6 +376,7 @@ impl<'a> Walker<'a> {
             receiver_hint: receiver,
             site_line,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         })
     }
 }

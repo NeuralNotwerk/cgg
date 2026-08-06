@@ -27,7 +27,7 @@ impl LanguagePlugin for CppPlugin {
         &[".cc", ".cpp", ".cxx", ".C", ".hpp", ".hh", ".hxx"]
     }
     fn signals(&self) -> crate::PluginSignals {
-        crate::PluginSignals { unreachable: true, ..Default::default() }
+        crate::PluginSignals { attributes: true, unreachable: true, ..Default::default() }
     }
 
     fn ts_language(&self) -> tree_sitter::Language {
@@ -169,7 +169,7 @@ impl<'a> CppWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            attributes: cuda_qualifiers(self.text(node)),
             ..Default::default()
         });
     }
@@ -245,7 +245,10 @@ impl<'a> CppWalker<'a> {
                         end_byte: node.end_byte() as u32,
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
-                        attributes: Vec::new(),
+                        // A declaration-only kernel (`__global__ void
+                        // saxpy(...);` in a header) is an entry point
+                        // just as much as its definition.
+                        attributes: cuda_qualifiers(self.text(node)),
                         ..Default::default()
                     });
                 }
@@ -328,6 +331,7 @@ impl<'a> CppWalker<'a> {
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            ..Default::default()
         });
     }
 }
@@ -414,5 +418,46 @@ public:
         assert_eq!(f.imports.len(), 1);
         assert_eq!(f.imports[0].kind, "include");
         assert_eq!(f.imports[0].path, "base.h");
+    }
+}
+
+/// CUDA execution-space qualifiers, as attributes.
+///
+/// §8 of the design: `tree-sitter-cpp` parses `saxpy<<<a,b>>>(args)` as
+/// nested comparison operators, so a kernel launch produces no edge at
+/// all and the kernel plus every `__device__` helper it calls reads as
+/// dead. Fighting the grammar to recover the launch is not worth it —
+/// treating `__global__` as a root qualifier fixes the cascade with a
+/// substring test, and a kernel genuinely *is* an entry point: the host
+/// enters it from outside anything the call graph can see.
+fn cuda_qualifiers(text: &str) -> Vec<String> {
+    // Only the declaration head, so a `__global__` mentioned in the body
+    // (a comment, a string) cannot promote an ordinary function.
+    let head = text.split(['{', ';']).next().unwrap_or(text);
+    let mut out = Vec::new();
+    for q in ["__global__", "__device__", "__host__"] {
+        if head.split(|c: char| !(c.is_alphanumeric() || c == '_')).any(|t| t == q) {
+            out.push(q.to_string());
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod cuda_tests {
+    use super::cuda_qualifiers;
+
+    #[test]
+    fn kernel_qualifier_is_captured_from_the_declaration_head() {
+        assert_eq!(
+            cuda_qualifiers("__global__ void saxpy(int n, float a) { }"),
+            vec!["__global__".to_string()]
+        );
+        assert!(cuda_qualifiers("void plain(int n) { }").is_empty());
+        // A mention inside the body must not promote an ordinary
+        // function to an entry point.
+        assert!(cuda_qualifiers("void plain() { /* __global__ */ }").is_empty());
+        // Substring lookalikes are not qualifiers.
+        assert!(cuda_qualifiers("void my__global__helper() {}").is_empty());
     }
 }

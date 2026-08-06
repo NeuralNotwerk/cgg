@@ -20,6 +20,7 @@ pub mod audit;
 pub mod deadcode;
 pub mod external;
 pub mod facts;
+pub mod frameworks;
 pub mod graph;
 pub mod ids;
 pub mod stdlib;
@@ -39,10 +40,15 @@ pub use deadcode::{
 };
 pub use facts::{
     DefRecord, DefVariant, DynUse, ExportRecord, FileFacts, ImportRecord, LocalType,
-    RefRecord, TestRole, UnreachableRegion, Vis, VALUE_REF_HINT,
+    RefRecord, TestRole, UnreachableRegion, Vis, STRING_REF_HINT, VALUE_REF_HINT,
 };
 pub use external::{
     build_alias_map, build_known_names, classify_external, ClassifyResult, FileAliases,
+};
+pub use frameworks::{
+    EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
+    SeenFramework, TrustKind, UncoveredLanguage, FRAMEWORK_ENTRY_DISCLAIMER,
+    FRAMEWORK_ENTRY_SENTINEL, REACHABILITY_NOT_TAINT,
 };
 pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,

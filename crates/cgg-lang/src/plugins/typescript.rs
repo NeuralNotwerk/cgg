@@ -25,6 +25,22 @@ impl LanguagePlugin for TypeScriptPlugin {
     fn shebangs(&self) -> &'static [&'static str] {
         &["ts-node", "tsx", "deno", "bun"]
     }
+    /// The TypeScript plugin reuses `JsWalker` wholesale, so it produces
+    /// exactly the signals the JavaScript plugin does. Declaring the
+    /// default here would tell the dead-code capability table that cgg
+    /// never looked for TypeScript decorators — the difference between a
+    /// finding and a guess, and wrong in the direction that hides a gap.
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals {
+            unreachable: true,
+            dyn_uses: true,
+            attributes: true,
+            impls: true,
+            value_refs: true,
+            ..Default::default()
+        }
+    }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_typescript::LANGUAGE_TSX.into()
     }
@@ -39,7 +55,16 @@ impl LanguagePlugin for TypeScriptPlugin {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "typescript");
         let mut w = JsWalker::new(source, &mut facts);
         w.walk(tree.root_node());
-        facts
+        let mut out = facts;
+        // Same passes the JavaScript plugin runs. They were missing
+        // here, which meant TypeScript silently produced none of the
+        // dead-code signals its `signals()` manifest now declares.
+        if crate::deadcode_signals() {
+            out.unreachable =
+                super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
+            out.dyn_uses = super::dynuse::extract(tree, source, "typescript");
+        }
+        out
     }
 }
 
