@@ -125,27 +125,24 @@ impl<'a> JuliaWalker<'a> {
             "assignment" => {
                 if let Some(lhs) = node.named_child(0)
                     && lhs.kind() == "call_expression"
-                        && let Some(name_node) = lhs.named_child(0)
-                            && name_node.kind() == "identifier" {
-                                let name = self.text(name_node).to_string();
-                                if !name.is_empty() {
-                                    self.record_def(
-                                        node,
-                                        &name,
-                                        DefVariant::FreeFunction,
-                                    );
-                                    // Walk only the right-hand side: the
-                                    // left is the signature, and calls
-                                    // recorded from it would be phantom
-                                    // references to the function itself.
-                                    for i in 1..node.named_child_count() {
-                                        if let Some(rhs) = node.named_child(i as u32) {
-                                            self.walk(rhs);
-                                        }
-                                    }
-                                    return;
-                                }
+                    && let Some(name_node) = lhs.named_child(0)
+                    && name_node.kind() == "identifier"
+                {
+                    let name = self.text(name_node).to_string();
+                    if !name.is_empty() {
+                        self.record_def(node, &name, DefVariant::FreeFunction);
+                        // Walk only the right-hand side: the
+                        // left is the signature, and calls
+                        // recorded from it would be phantom
+                        // references to the function itself.
+                        for i in 1..node.named_child_count() {
+                            if let Some(rhs) = node.named_child(i as u32) {
+                                self.walk(rhs);
                             }
+                        }
+                        return;
+                    }
+                }
                 self.walk_children(node);
                 return;
             }

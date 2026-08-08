@@ -207,11 +207,18 @@ fn paths_through(
         *out_degree.entry(e.src).or_insert(0) += 1;
     }
 
-    let entries: Vec<CallableId> = in_degree
+    let mut entries: Vec<CallableId> = in_degree
         .iter()
         .filter(|(_, d)| **d == 0)
         .map(|(&id, _)| id)
         .collect();
+    // Sorted. `in_degree` is a HashMap and `RandomState` reseeds per
+    // process, so the entry order — and therefore WHICH entries get
+    // walked before `--max-paths` stops the walk — differed on every
+    // run. Without the cap the result was the same set either way, which
+    // is why this stayed invisible: the defect only appears once
+    // truncation actually turns work away.
+    entries.sort_unstable_by_key(|id| id.as_u32());
 
     // DFS from each entry, collecting nodes on paths that hit a seed.
     let mut on_path: HashSet<CallableId> = HashSet::new();

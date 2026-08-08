@@ -45,10 +45,18 @@ $CGG "$ROOT/crates" -t mermaid --filter 'cgg::run$' -n 1 -o /tmp/cgg_self_graph.
 python3 "${ROOT}/scripts/update-readme-stats.py" < /tmp/cgg_self_stats.txt
 
 echo "Generating benchmark data..."
-> /tmp/cgg_bench_table.md
+: > /tmp/cgg_bench_table.md
 printf "| Project | Language | Callables | Edges | Cross-file | Time |\n" >> /tmp/cgg_bench_table.md
 printf "| ------- | -------- | --------- | ----- | ---------- | ---- |\n" >> /tmp/cgg_bench_table.md
 
+# display|clone dir|--lang|subdir
+#
+# INVARIANT: one entry per language plugin. This list must cover exactly
+# the same (clone dir, lang, subdir) triples as `REPOS=( … )` in
+# scripts/benchmark.sh — scripts/docs-check.py enforces it. It shipped
+# five languages short (smithy, proto, graphql, openapi, asyncapi), so
+# the README benchmark table silently claimed 44-language support while
+# measuring 39 of them.
 declare -a ENTRIES=(
     "ripgrep|rust-ripgrep|rust|crates"
     "flask|python-flask|python|src"
@@ -90,6 +98,11 @@ declare -a ENTRIES=(
     "UVVM|vhdl-uvvm|vhdl|uvvm_util/src"
     "xv6|asm-xv6|asm|"
     "xv6 (c+asm)|asm-xv6|c,asm|"
+    "smithy/protocol-tests|smithy-protocol-tests|smithy|smithy-aws-protocol-tests/model"
+    "grpc-proto|proto-grpc|proto|"
+    "graphql-schema|graphql-github|graphql|"
+    "OpenAPI-Specification|openapi-spec|openapi|examples"
+    "asyncapi/spec|asyncapi-spec|asyncapi|examples"
 )
 
 for entry in "${ENTRIES[@]}"; do

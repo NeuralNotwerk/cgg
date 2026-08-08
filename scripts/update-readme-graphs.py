@@ -54,7 +54,7 @@ def clean(mmd_text: str) -> str:
     edge_re = re.compile(r"^(\S+)\s*-->\s*(?:\|([^|]*)\|\s*)?(\S+)$")
     for line in mmd_text.splitlines():
         s = line.strip()
-        if not s or s.startswith("flowchart") or s.startswith("%%"):
+        if not s or s.startswith(("flowchart", "%%")):
             continue
         if s.startswith("C") and "[" in s:
             nid, rest = s.split("[", 1)
@@ -112,17 +112,13 @@ def self_test() -> None:
     vanished from the README graphs with no error and no diff to notice,
     because the nodes stayed and only the arrow went missing.
     """
-    src = "\n".join(
-        [
-            "flowchart LR",
-            '  C0["a::f"]',
-            '  C1["a::g"]',
-            '  C2["a::tests::t"]',
-            "  C0 --> C1",
-            "  C1 -->|3x| C0",
-            "  C2 --> C0",
-        ]
-    )
+    src = """flowchart LR
+  C0["a::f"]
+  C1["a::g"]
+  C2["a::tests::t"]
+  C0 --> C1
+  C1 -->|3x| C0
+  C2 --> C0"""
     out = clean(src)
     assert "C1 -->|3x| C0" in out, f"multiplicity label dropped:\n{out}"
     assert "C0 --> C1" in out, f"bare edge dropped:\n{out}"

@@ -35,6 +35,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::ids::{CallableId, FileId};
 
+/// How many "seen, no rules" lines to print before collapsing to a
+/// count. Above this the list stops being read, which hides a gap just
+/// as effectively as never printing it.
+const SEEN_DETAIL_LIMIT: usize = 6;
+
 /// Sentinel file path that entry nodes belong to, mirroring
 /// `<external>` and `<stdlib>`.
 pub const FRAMEWORK_ENTRY_SENTINEL: &str = "<framework-entry>";
@@ -107,6 +112,16 @@ pub enum TrustKind {
     Lifecycle,
     /// Test harness entry.
     Test,
+    /// A callable the *language* exposes to anyone, with no framework
+    /// involved: a Solidity `public`/`external` contract function.
+    ///
+    /// Distinct from `Network` on purpose. Nothing is listening on a
+    /// socket; the boundary is that any address on the chain can call
+    /// it. Labelling it `Network` would put it in the same bucket as an
+    /// HTTP route for a reader filtering attack surface, and labelling
+    /// it `Lifecycle` would assert no boundary at all. Both are wrong in
+    /// a way that matters to the person doing the filtering.
+    Public,
 }
 
 impl TrustKind {
@@ -121,6 +136,7 @@ impl TrustKind {
             TrustKind::Ffi => "ffi",
             TrustKind::Lifecycle => "lifecycle",
             TrustKind::Test => "test",
+            TrustKind::Public => "public",
         }
     }
 
@@ -133,6 +149,7 @@ impl TrustKind {
             "ffi" => TrustKind::Ffi,
             "lifecycle" => TrustKind::Lifecycle,
             "test" => TrustKind::Test,
+            "public" => TrustKind::Public,
             _ => return None,
         })
     }
@@ -266,6 +283,18 @@ impl FrameworkRule {
         !self.attributes.is_empty()
             || !self.registrars.is_empty()
             || !self.base_types.is_empty()
+            // `methods` alone is the structural-typing escape hatch —
+            // Go interfaces and Elixir OTP behaviours are satisfied
+            // implicitly, so a method name is the only signal there is.
+            // Omitting it here filed every such rule under "seen, no
+            // rules" no matter how many entries it actually minted:
+            // a rule reporting a gap it does not have.
+            || !self.methods.is_empty()
+            // Matchers that live outside the struct still count. Without
+            // this a rule that enumerates fine would file itself under
+            // "seen, no rules" — claiming a gap that does not exist.
+            || !rules::visibility_entries_for(&self.id, &self.language).is_empty()
+            || !rules::self_module_markers_for(&self.id, &self.language).is_empty()
     }
 }
 
@@ -402,7 +431,22 @@ impl FrameworkCoverage {
     /// stderr summary, audit log, dead-code report — prints the same
     /// three sections in the same order, and none of them can quietly
     /// drop the "seen, no rules" list that makes the rest honest.
+    /// Full table. Kept as the default rendering so every existing
+    /// caller and test sees the complete disclosure.
     pub fn render_text(&self) -> String {
+        self.render(true)
+    }
+
+    /// Render, collapsing the "seen, no rules" list when it is long and
+    /// the reader did not explicitly ask for it.
+    ///
+    /// The detect-only rule table is deliberately broad, which creates a
+    /// second way to hide a gap: sixty lines of "seen, no rules" is
+    /// skimmed and ignored just as reliably as no line at all. The
+    /// *count* is always stated and the *recognised* section is never
+    /// collapsed — what is elided is only the enumeration, and the line
+    /// says how to get it back.
+    pub fn render(&self, detail: bool) -> String {
         let mut s = String::new();
         s.push_str("framework coverage\n");
 
@@ -435,6 +479,23 @@ impl FrameworkCoverage {
         if self.seen_no_rules.is_empty() {
             s.push_str("  seen, no rules (none)\n");
         } else {
+            let elide = !detail && self.seen_no_rules.len() > SEEN_DETAIL_LIMIT;
+            if elide {
+                let mut ids: Vec<&str> =
+                    self.seen_no_rules.iter().map(|f| f.id.as_str()).collect();
+                ids.sort_unstable();
+                ids.dedup();
+                let shown = ids.len().min(6);
+                s.push_str(&format!(
+                    "  seen, no rules {} framework(s) detected, entries NOT \
+enumerated:\n                 {}{}\n                 \
+(pass --framework-coverage for the full list and the reason for each)\n",
+                    self.seen_no_rules.len(),
+                    ids[..shown].join(", "),
+                    if ids.len() > shown { ", …" } else { "" },
+                ));
+                return self.finish(s);
+            }
             for (i, f) in self.seen_no_rules.iter().enumerate() {
                 let label = if i == 0 {
                     "  seen, no rules"
@@ -449,11 +510,21 @@ impl FrameworkCoverage {
                 // the reader whether to look at `routes.rb` by hand or
                 // to write a local rule. A bare name would not.
                 if !f.reason.is_empty() {
-                    s.push_str(&format!("                   ({})\n", f.reason));
+                    // Gap strings are prose telling a reader what to
+                    // inspect by hand, so they run long. Unwrapped they
+                    // are a single 700-column line that no terminal
+                    // renders usefully — which would defeat the point of
+                    // writing an actionable reason at all.
+                    s.push_str(&wrap_words("                   ", &f.reason));
                 }
             }
         }
+        self.finish(s)
+    }
 
+    /// The trailing sections every rendering shares: languages with no
+    /// rules at all, and the partial-coverage caveat.
+    fn finish(&self, mut s: String) -> String {
         if !self.no_markers.is_empty() {
             let total: u32 = self.no_markers.iter().map(|l| l.files).sum();
             let langs: Vec<&str> = self
@@ -483,6 +554,32 @@ impl FrameworkCoverage {
 }
 
 /// Wrap a long single-line field under a fixed label column.
+/// Wrap prose to the terminal width at word boundaries, with a hanging
+/// indent. `wrap_field` splits on the ` · ` item separator, which prose
+/// does not contain.
+fn wrap_words(indent: &str, body: &str) -> String {
+    const WIDTH: usize = 78;
+    let mut out = String::new();
+    let mut col = 0usize;
+    for word in body.split_whitespace() {
+        if col == 0 {
+            out.push_str(indent);
+            col = indent.len();
+        } else if col + 1 + word.len() > WIDTH {
+            out.push('\n');
+            out.push_str(indent);
+            col = indent.len();
+        } else {
+            out.push(' ');
+            col += 1;
+        }
+        out.push_str(word);
+        col += word.len();
+    }
+    out.push('\n');
+    out
+}
+
 fn wrap_field(label: &str, body: &str) -> String {
     const WIDTH: usize = 76;
     let indent = " ".repeat(label.len() + 1);

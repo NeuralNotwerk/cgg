@@ -135,21 +135,21 @@ impl<'a> StarlarkWalker<'a> {
                 && let Some(first_str) = args
                     .children(&mut args.walk())
                     .find(|c| c.kind() == "string")
-                {
-                    let raw = self.text(first_str);
-                    let path = raw
-                        .trim_matches(|c: char| c == '"' || c == '\'')
-                        .to_string();
-                    if !path.is_empty() {
-                        self.facts.imports.push(ImportRecord {
-                            kind: "load".into(),
-                            path,
-                            alias: String::new(),
-                            site_line: (node.start_position().row as u32) + 1,
-                            site_byte: node.start_byte() as u32,
-                        });
-                    }
+            {
+                let raw = self.text(first_str);
+                let path = raw
+                    .trim_matches(|c: char| c == '"' || c == '\'')
+                    .to_string();
+                if !path.is_empty() {
+                    self.facts.imports.push(ImportRecord {
+                        kind: "load".into(),
+                        path,
+                        alias: String::new(),
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
                 }
+            }
             return;
         }
 

@@ -71,9 +71,10 @@ impl<'a> NixWalker<'a> {
         match node.kind() {
             "binding" => {
                 if let Some(rhs) = self.binding_value(node)
-                    && rhs.kind() == "function_expression" {
-                        self.record_function_binding(node);
-                    }
+                    && rhs.kind() == "function_expression"
+                {
+                    self.record_function_binding(node);
+                }
                 self.walk_children(node);
                 return;
             }

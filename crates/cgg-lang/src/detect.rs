@@ -226,23 +226,24 @@ fn read_shebang(path: &Path) -> Option<String> {
 fn header_verdict(path: &Path) -> DetectResult {
     const CPP_EXTS: &[&str] = &[".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".C"];
     if let (Some(stem), Some(dir)) = (path.file_stem(), path.parent())
-        && let Ok(entries) = fs::read_dir(dir) {
-            for e in entries.flatten() {
-                let p = e.path();
-                if p.file_stem() != Some(stem) {
-                    continue;
-                }
-                if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                    let dotext = format!(".{ext}");
-                    if CPP_EXTS.iter().any(|c| *c == dotext) {
-                        return DetectResult {
-                            verdict: DetectVerdict::Language("cpp"),
-                            detected_via: "header-heuristic:cpp".into(),
-                        };
-                    }
+        && let Ok(entries) = fs::read_dir(dir)
+    {
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.file_stem() != Some(stem) {
+                continue;
+            }
+            if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                let dotext = format!(".{ext}");
+                if CPP_EXTS.iter().any(|c| *c == dotext) {
+                    return DetectResult {
+                        verdict: DetectVerdict::Language("cpp"),
+                        detected_via: "header-heuristic:cpp".into(),
+                    };
                 }
             }
         }
+    }
     DetectResult {
         verdict: DetectVerdict::Language("c"),
         detected_via: "header-heuristic:c".into(),

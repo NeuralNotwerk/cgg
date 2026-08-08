@@ -169,6 +169,17 @@ impl<'a> SolidityWalker<'a> {
             .child_kind(node, "visibility")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
+        // Normalize onto the shared enum as well as keeping the native
+        // string. Without this every Solidity callable reads as
+        // `Vis::Unknown`, which caps dead-code confidence for the whole
+        // language — the analysis cannot claim "no out-of-tree caller
+        // can exist" for a function it does not know is private.
+        let vis = match visibility.as_str() {
+            "public" | "external" => cgg_core::facts::Vis::Public,
+            "internal" => cgg_core::facts::Vis::Internal,
+            "private" => cgg_core::facts::Vis::Private,
+            _ => cgg_core::facts::Vis::Unknown,
+        };
         self.facts.definitions.push(DefRecord {
             simple_name: name,
             qualified_name: qn,
@@ -179,6 +190,7 @@ impl<'a> SolidityWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility,
+            vis,
             attributes: Vec::new(),
             ..Default::default()
         });

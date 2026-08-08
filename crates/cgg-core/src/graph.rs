@@ -74,6 +74,16 @@ pub enum Via {
     /// names the family (`"c-abi"`, `"pyo3"`, `"jni"`, `"napi"`,
     /// `"wasm-bindgen"`, `"cbindgen"`, `"uniffi"`).
     Ffi(String),
+    /// An edge from an interface *descriptor* to the code implementing
+    /// it: a `.proto` rpc to the Go/Java method that serves it, a
+    /// GraphQL field to its resolver. The payload names the family
+    /// (`"grpc"`, `"graphql"`).
+    ///
+    /// The mirror of [`Via::Ffi`] one level up: FFI links two
+    /// implementations across a language boundary, this links a
+    /// *declaration* to an implementation across one. Both describe a
+    /// call that is real and that no single language's parser can see.
+    Descriptor(String),
     /// An edge from a synthesized `<framework-entry>` node into the
     /// handler a framework invokes. The payload names the framework
     /// (`"flask"`, `"spring"`, `"gin"`).

@@ -136,8 +136,12 @@ impl<'a> LuaWalker<'a> {
 
         // require() as import
         if func == "require" {
+            // `named_child`, not `child`: the `arguments` node's first
+            // child is the `(` token, so `child(0)` recorded every Lua
+            // require as an import of the literal string "(" — which
+            // matched no rule and made every Lua framework undetectable.
             let args = node.child_by_field_name("arguments");
-            if let Some(a) = args.and_then(|a| a.child(0)) {
+            if let Some(a) = args.and_then(|a| a.named_child(0)) {
                 let path = self
                     .text(a)
                     .trim_matches('\'')

@@ -372,8 +372,13 @@ fn coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap() {
 
 #[test]
 fn coverage_discloses_languages_with_no_rules_at_all() {
+    // Uses a language that genuinely has NO rule in the table. Fortran
+    // used to serve here and no longer can; if this ever fails because
+    // the named language gained a rule, that is the fix — pick another
+    // from the "no rules" line of `--framework-coverage`, do not weaken
+    // the assertion.
     let tmp = TempDir::new().unwrap();
-    write(tmp.path(), "m.f90", "subroutine work()\nend subroutine\n");
+    write(tmp.path(), "m.v", "module top(input clk);\nendmodule\n");
     write(
         tmp.path(),
         "svc.py",
@@ -382,7 +387,7 @@ fn coverage_discloses_languages_with_no_rules_at_all() {
     );
     let (_, err) = run(tmp.path(), &[]);
     assert!(err.contains("no framework rules"), "{err}");
-    assert!(err.contains("fortran"), "{err}");
+    assert!(err.contains("verilog"), "{err}");
 }
 
 #[test]
@@ -543,5 +548,174 @@ fn the_attack_surface_query_from_the_docs_actually_works() {
     assert!(
         !g.contains("Encoder"),
         "lifecycle entries are not attack surface:\n{g}"
+    );
+}
+
+// ---------------------------------------------------------------------
+// Trust boundaries that are not frameworks at all
+// ---------------------------------------------------------------------
+
+#[test]
+fn solidity_visibility_is_the_trust_boundary() {
+    // Solidity has no framework to detect: `public`/`external` mean any
+    // address on the chain can call the function, and that is the whole
+    // attack surface of a contract.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Vault.sol",
+        "contract Vault {\n\
+         \x20   function deposit() public payable { _credit(); }\n\
+         \x20   function _credit() internal { }\n\
+         \x20   function drain() external { }\n\
+         \x20   function peek() private view returns (uint) { return 1; }\n\
+         }\n",
+    );
+    let (graph, err) = run(tmp.path(), &["--framework-coverage"]);
+    assert!(err.contains("solidity-public"), "{err}");
+    assert!(
+        graph.contains("::public::solidity-public::deposit"),
+        "{graph}"
+    );
+    assert!(
+        graph.contains("::public::solidity-public::drain"),
+        "{graph}"
+    );
+    // The whole point of reading visibility is that these are excluded
+    // as *entries*. `_credit` still appears as an ordinary callable —
+    // `deposit` really does call it — so the assertion has to be about
+    // the entry-node prefix, not about the name appearing at all.
+    assert!(
+        !graph.contains("::public::solidity-public::_credit"),
+        "internal is not attack surface: {graph}"
+    );
+    assert!(
+        !graph.contains("::public::solidity-public::peek"),
+        "{graph}"
+    );
+}
+
+#[test]
+fn rust_ffi_exports_are_entries_from_outside_the_tree() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Cargo.toml",
+        "[package]\nname = \"x\"\nversion = \"0.1.0\"\n",
+    );
+    write(
+        tmp.path(),
+        "src/lib.rs",
+        "#[no_mangle]\npub extern \"C\" fn c_entry() -> i32 { inner() }\n\
+         fn inner() -> i32 { 1 }\n",
+    );
+    let (graph, _) = run(tmp.path(), &["--framework-coverage"]);
+    assert!(graph.contains("::ffi::ffi-export::"), "{graph}");
+    assert!(graph.contains("c_entry"), "{graph}");
+}
+
+// ---------------------------------------------------------------------
+// A registrar handed a *type* rather than a callable
+// ---------------------------------------------------------------------
+
+#[test]
+fn django_as_view_binds_to_the_classes_http_methods() {
+    // Django's dominant modern idiom. The value reference resolves to
+    // `as_view`, which is not a handler and binds to nothing — the entry
+    // is every method of the class the rule calls an entry point.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "urls.py",
+        "from django.urls import path\nfrom . import views\n\n\
+         urlpatterns = [path('detail/', views.SiteView.as_view(), name='d')]\n",
+    );
+    write(
+        tmp.path(),
+        "views.py",
+        "class SiteView:\n    def get(self, request):\n        return 1\n",
+    );
+    let (graph, _) = run(tmp.path(), &["--framework-coverage"]);
+    assert!(
+        graph.contains("::network::django::path('detail/')"),
+        "{graph}"
+    );
+}
+
+#[test]
+fn drf_router_register_binds_the_viewsets_actions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "urls.py",
+        "from django.urls import path\n\
+         from rest_framework.routers import DefaultRouter\nfrom . import views\n\n\
+         router = DefaultRouter()\nrouter.register(r'sites', views.SiteViewSet)\n",
+    );
+    write(
+        tmp.path(),
+        "views.py",
+        "class SiteViewSet:\n    def list(self, request):\n        return 1\n\
+         \x20   def create(self, request):\n        return 2\n",
+    );
+    let (graph, _) = run(tmp.path(), &["--framework-coverage"]);
+    assert!(
+        graph.contains("::network::django::register('sites')"),
+        "{graph}"
+    );
+}
+
+// ---------------------------------------------------------------------
+// Descriptor → implementation, across languages
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_proto_rpc_links_to_its_go_implementation() {
+    // Neither file references the other: the .proto names no Go symbol,
+    // and the Go file's link to the service runs through generated code
+    // that is usually not committed.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "svc.proto",
+        "syntax = \"proto3\";\nservice Greeter {\n  rpc SayHello (Req) returns (Resp);\n}\n\
+         message Req { string name = 1; }\nmessage Resp { string msg = 1; }\n",
+    );
+    write(tmp.path(), "go.mod", "module demo\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "server.go",
+        "package main\n\ntype GreeterServer struct{}\n\n\
+         func (s *GreeterServer) SayHello(r *Req) *Resp { return nil }\n",
+    );
+    let (graph, _) = run(tmp.path(), &[]);
+    assert!(
+        graph.contains("desc"),
+        "descriptor edge must be tagged: {graph}"
+    );
+    assert!(graph.contains("SayHello"), "{graph}");
+}
+
+#[test]
+fn a_bare_method_name_does_not_link_a_descriptor() {
+    // `Get` appears in every codebase. Without the owner naming the
+    // service this would manufacture an edge into unrelated code.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "svc.proto",
+        "syntax = \"proto3\";\nservice Greeter {\n  rpc Get (Req) returns (Resp);\n}\n\
+         message Req { string a = 1; }\nmessage Resp { string b = 1; }\n",
+    );
+    write(tmp.path(), "go.mod", "module demo\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "cache.go",
+        "package main\n\ntype Store struct{}\n\nfunc (s *Store) Get() int { return 1 }\n",
+    );
+    let (graph, _) = run(tmp.path(), &[]);
+    assert!(
+        !graph.contains("|desc|"),
+        "no owner match, no edge: {graph}"
     );
 }

@@ -134,9 +134,10 @@ pub(crate) fn measure(
     let mut refs: BTreeMap<String, bool> = BTreeMap::new();
     for e in &graph.edges {
         if matches!(e.via, Via::Reference)
-            && let Some(n) = graph.callables.get(&e.dst) {
-                refs.insert(n.language.clone(), true);
-            }
+            && let Some(n) = graph.callables.get(&e.dst)
+        {
+            refs.insert(n.language.clone(), true);
+        }
     }
 
     let mut out = BTreeMap::new();

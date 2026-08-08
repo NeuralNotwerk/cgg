@@ -99,41 +99,136 @@ REPOS=(
 #                          with a variable path). These are the ones to
 #                          fix; the marker is a to-do, not an excuse.
 APPS=(
-    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|fastapi"
-    "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin"
-    "app-flaskbb-flask|https://github.com/flaskbb/flaskbb.git|flask"
-    "app-saleor-celery|https://github.com/saleor/saleor.git|celery"
-    "app-black-click|https://github.com/psf/black.git|click"
-    "app-torch-ultralytics|https://github.com/ultralytics/ultralytics.git|torch"
-    "app-ghost-express|https://github.com/TryGhost/Ghost.git|express,worker-threads"
-    "app-ghostfolio-nestjs|https://github.com/ghostfolio/ghostfolio.git|nestjs-schedule"
-    "app-immich-nestjs|https://github.com/immich-app/immich.git|nestjs,bullmq,~worker-threads"
-    "app-calcom-nextjs|https://github.com/calcom/cal.com.git|~nextjs"
-    "app-spring-mall|https://github.com/macrozheng/mall.git|spring,spring-jobs,spring-messaging"
-    "app-thingsboard-concurrent|https://github.com/thingsboard/thingsboard.git|java-concurrent"
-    "app-akka-samples|https://github.com/akka/akka-samples.git|akka"
-    "app-druid-jaxrs|https://github.com/apache/druid.git|jakarta-rs"
-    "app-micronaut-graalapp|https://github.com/micronaut-guides/micronaut-creating-first-graal-app.git|micronaut"
-    "app-gin-photoprism|https://github.com/photoprism/photoprism.git|gin,chi,net-http"
-    "app-memos-echo|https://github.com/usememos/memos.git|echo"
-    "app-fiber-recipes|https://github.com/gofiber/recipes.git|fiber"
-    "app-homebox-chi|https://github.com/sysadminsmedia/homebox.git|chi"
-    "app-temporal-samples|https://github.com/temporalio/samples-go.git|temporal"
-    "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,dotnet-hosting,~blazor"
-    "app-masstransit-sample|https://github.com/MassTransit/Sample-Twitch.git|masstransit"
-    "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|quartz"
-    "app-axum-cratesio|https://github.com/rust-lang/crates.io.git|axum"
-    "app-lemmy-actix|https://github.com/LemmyNet/lemmy.git|actix-web"
-    "app-actix-examples|https://github.com/actix/examples.git|actix-actor"
-    "app-vaultwarden-rocket|https://github.com/dani-garcia/vaultwarden.git|rocket"
-    "app-rails-mastodon|https://github.com/mastodon/mastodon.git|rails,sidekiq"
-    "app-resque-sinatra|https://github.com/resque/resque.git|sinatra"
-    "app-grape-swagger|https://github.com/ruby-grape/grape-swagger.git|grape"
-    "app-monica-laravel|https://github.com/monicahq/monica.git|laravel"
-    "app-symfony-demo|https://github.com/symfony/demo.git|symfony"
+    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|click,fastapi,py-signal,~py-context-manager,~py-threading,~py-unittest,~react"
+    "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin,py-unittest,rq,~py-argparse,~py-context-manager,~py-threading"
+    "app-flaskbb-flask|https://github.com/flaskbb/flaskbb.git|celery,click,flask,~py-context-manager"
+    "app-saleor-celery|https://github.com/saleor/saleor.git|celery,django,django-admin,py-context-manager,~py-threading,~py-unittest"
+    "app-black-click|https://github.com/psf/black.git|click,py-signal,py-unittest,~py-argparse,~py-context-manager,~py-threading"
+    "app-torch-ultralytics|https://github.com/ultralytics/ultralytics.git|flask,py-context-manager,py-threading,rust-std-traits,torch,~py-argparse,~py-signal,~py-unittest"
+    "app-ghost-express|https://github.com/TryGhost/Ghost.git|express,node-event-emitter,react,worker-threads"
+    "app-ghostfolio-nestjs|https://github.com/ghostfolio/ghostfolio.git|angular,angular-host,angular-router,bullmq,nestjs,nestjs-schedule,~express"
+    "app-immich-nestjs|https://github.com/immich-app/immich.git|android-broadcastreceiver,android-worker,bullmq,cocoa-delegate,compose,express,fastapi,nestjs,node-event-emitter,py-context-manager,torch,uikit-appdelegate,~android-activity,~android-application,~java-closeable,~nestjs-schedule,~py-argparse,~py-signal,~py-threading,~py-unittest,~react,~uikit-lifecycle,~worker-threads"
+    "app-calcom-nextjs|https://github.com/calcom/cal.com.git|bullmq,express,nestjs,node-event-emitter,react,wordpress,worker-threads"
+    "app-spring-mall|https://github.com/macrozheng/mall.git|junit,servlet,spring,spring-jobs,spring-messaging,~java-closeable,~java-concurrent"
+    "app-thingsboard-concurrent|https://github.com/thingsboard/thingsboard.git|angular,angular-host,angular-router,express,java-closeable,java-concurrent,junit,servlet,spring,spring-jobs,~hibernate-listeners,~jpa-lifecycle"
+    "app-akka-samples|https://github.com/akka/akka-samples.git|akka,junit,~java-closeable,~java-concurrent"
+    "app-druid-jaxrs|https://github.com/apache/druid.git|jakarta-rs,java-closeable,java-concurrent,junit,react,servlet,~py-argparse"
+    "app-micronaut-graalapp|https://github.com/micronaut-guides/micronaut-creating-first-graal-app.git|junit,micronaut,~java-closeable"
+    "app-gin-photoprism|https://github.com/photoprism/photoprism.git|chi,gin,go-encoding,gorilla-mux,net-http,robfig-cron"
+    "app-memos-echo|https://github.com/usememos/memos.git|echo,react,~go-encoding,~net-http"
+    "app-fiber-recipes|https://github.com/gofiber/recipes.git|asynq,fiber,hono,net-http,~go-encoding,~react"
+    "app-homebox-chi|https://github.com/sysadminsmedia/homebox.git|chi,go-encoding,py-unittest,~net-http"
+    "app-temporal-samples|https://github.com/temporalio/samples-go.git|net-http,temporal,~go-encoding"
+    "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,csharp-disposable,dotnet-hosting,ef-core,mstest,mvvm-toolkit,~blazor-lifecycle"
+    "app-masstransit-sample|https://github.com/MassTransit/Sample-Twitch.git|aspnet-mvc,dotnet-hosting,masstransit,~aspnet-minimal,~csharp-disposable"
+    "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|angular,angular-router,aspnet-mvc,csharp-disposable,ef-core,quartz,signalr,~angular-host,~aspnet-minimal,~dotnet-hosting"
+    "app-axum-cratesio|https://github.com/rust-lang/crates.io.git|axum,rust-std-traits,~py-argparse"
+    "app-lemmy-actix|https://github.com/LemmyNet/lemmy.git|actix-web,rust-std-traits"
+    "app-actix-examples|https://github.com/actix/examples.git|actix-actor,actix-web,rust-std-traits,~py-argparse,~py-context-manager,~py-signal"
+    "app-vaultwarden-rocket|https://github.com/dani-garcia/vaultwarden.git|rocket,rust-std-traits,~node-event-emitter,~py-argparse"
+    "app-rails-mastodon|https://github.com/mastodon/mastodon.git|express,rails,rails-callbacks,react,sidekiq,~actioncable"
+    "app-resque-sinatra|https://github.com/resque/resque.git|minitest,rails,sinatra,~actioncable,~rails-callbacks"
+    "app-grape-swagger|https://github.com/ruby-grape/grape-swagger.git|grape,~rails-callbacks"
+    "app-monica-laravel|https://github.com/monicahq/monica.git|laravel,laravel-lifecycle,phpunit,~symfony"
+    "app-symfony-demo|https://github.com/symfony/demo.git|phpunit,symfony"
     "app-wordpress|https://github.com/WordPress/WordPress.git|wordpress"
     "app-codeigniter-starter|https://github.com/codeigniter4/appstarter.git|codeigniter"
-    "app-cuda-samples|https://github.com/NVIDIA/cuda-samples.git|cuda"
+    "app-cuda-samples|https://github.com/NVIDIA/cuda-samples.git|cuda,~py-argparse,~py-context-manager,~py-threading,~torch"
+    "app-openzeppelin-solidity|https://github.com/OpenZeppelin/openzeppelin-contracts.git|solidity-public"
+    "app-pydantic-core|https://github.com/pydantic/pydantic-core.git|ffi-export,py-unittest,rust-std-traits"
+    "app-nextcloud-android|https://github.com/nextcloud/android.git|android-activity,android-application,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,android-service-bind,android-service-start,android-worker,compose,java-concurrent,junit,~java-closeable,~py-argparse"
+    "app-plausible-phoenix|https://github.com/plausible/analytics.git|express,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug,react,~phoenix-channel"
+    "app-hono-examples|https://github.com/honojs/examples.git|hono,~react"
+    "app-unity-gamekit|https://github.com/Unity-Technologies/EndlessRunnerSampleGame.git|csharp-disposable,unity"
+)
+
+# Framework rules with NO application in the APPS manifest above.
+#
+# The gate demands an app per enumerating rule, and the honest answer is
+# sometimes "there isn't one". Listing a rule here is that statement,
+# made out loud. Silence would have been the alternative, and silence is
+# the failure mode this whole subsystem exists to avoid.
+#
+# Two things this list does NOT say. It used to imply both.
+#
+# 1. It does not mean a fixture verifies the rule. There is no per-rule
+#    fixture for any of these. crates/cgg/tests/frameworks.rs tests the
+#    six hand-off *shapes*, not individual rules, and
+#    crates/cgg/tests/detect_prefixes.rs tests detection only — that a
+#    rule's first `detect` prefix can fire — explicitly not enumeration.
+#
+# 2. It does not mean the rule has never fired on real code. Eight of
+#    them enumerate against the *language* corpus (REPOS above), which
+#    scripts/framework-coverage.py never reads because those repos are
+#    libraries and framework sources rather than applications. Measured
+#    on 0.5.0 with `cgg <repo> --framework-coverage`:
+#
+#      mojolicious          283 entries  perl-mojolicious
+#      erlang-gen-server    101 entries  erlang-otp (lib/stdlib/src)
+#      tasty                 65 entries  haskell-pandoc
+#      plug-router           49 entries  elixir-phoenix
+#      julia-base-dispatch   35 entries  julia-flux
+#      phoenix-socket        19 entries  elixir-phoenix
+#      r-package-hooks        2 entries  r-ggplot2
+#      lambda-runtime         1 entry    app-serverless-examples (a clone
+#                                        that is in neither manifest)
+#      gradle-plugin        detected, enumerated nothing   groovy-gradle
+#      julia-module-init    detected, enumerated nothing   julia-flux
+#      mediatr              detected, enumerated nothing   app-serverless-examples
+#
+#    The other 34 were not detected anywhere in $CGG_BENCH_DIR at all.
+#    Promoting those eight to APPS entries is the real fix; until then
+#    this note is the evidence, and `tasty` in particular has a genuine
+#    application behind it — pandoc is an application, it is just filed
+#    under REPOS because it is also the Haskell language corpus.
+#
+# Format: id|why no application was found
+APPS_UNVERIFIED=(
+    "android-jobservice|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "apscheduler|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "avalonia|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "blazor-jsinterop|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "compojure|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "dancer2|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "dash|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "dramatiq|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "embedded-rt|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "erlang-gen-server|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "falcon|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "godot|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "gradle-plugin|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "hertz|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "hspec|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "huey|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "javafx|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "julia-base-dispatch|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "julia-module-init|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "lambda-runtime|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "litestar|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "loopback|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "martini|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "mediatr|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "mojolicious|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "monogame|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "ntex|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "orleans|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "phoenix-socket|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "plug-router|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "polka|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "powershell-dsc|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "quart|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "r-package-hooks|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "react-native|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "restify|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "robyn|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "salvo|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "scrapy|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "shuttle|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "spring-batch|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "storm|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "swing|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "symfony-messenger|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
+    "tasty|no APPS application exercises this rule; tests/detect_prefixes.rs proves its detect prefix can fire, nothing in APPS proves it enumerates — see the language-corpus note above"
 )
 
 # Clone or update repos

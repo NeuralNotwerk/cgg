@@ -341,17 +341,17 @@ impl<'a> JavaWalker<'a> {
         // Infer from `new Foo(...)` on RHS (covers `var x = new Foo()`)
         if let Some(value) = var_node.child_by_field_name("value")
             && value.kind() == "object_creation_expression"
-                && let Some(t) = value.child_by_field_name("type") {
-                    let type_name = self.text(t).to_string();
-                    if !type_name.is_empty() && type_name.starts_with(char::is_uppercase)
-                    {
-                        self.facts.local_types.push(cgg_core::LocalType {
-                            var_name,
-                            type_name,
-                            scope_byte: node.start_byte() as u32,
-                        });
-                    }
-                }
+            && let Some(t) = value.child_by_field_name("type")
+        {
+            let type_name = self.text(t).to_string();
+            if !type_name.is_empty() && type_name.starts_with(char::is_uppercase) {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name,
+                    type_name,
+                    scope_byte: node.start_byte() as u32,
+                });
+            }
+        }
     }
 }
 

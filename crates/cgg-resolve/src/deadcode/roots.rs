@@ -544,22 +544,23 @@ pub(crate) fn discover(
 
         // Trait methods invoked by syntax, an operator, or a derive.
         if lang == "rust"
-            && let Some(t) = &node.trait_impl_target {
-                // `trait_impl_target` keeps generic arguments, so
-                // `From<OutputFormatArg>` must be compared as `From`.
-                let bare = t.split('<').next().unwrap_or(t).trim();
-                if IMPLICIT_RUST_TRAITS.contains(&bare) {
-                    set.push(
-                        graph,
-                        *id,
-                        RootKind::LifecycleCallback,
-                        "rust:implicit-trait",
-                        format!("implements `{bare}`, invoked implicitly"),
-                        &mut seen,
-                    );
-                    continue;
-                }
+            && let Some(t) = &node.trait_impl_target
+        {
+            // `trait_impl_target` keeps generic arguments, so
+            // `From<OutputFormatArg>` must be compared as `From`.
+            let bare = t.split('<').next().unwrap_or(t).trim();
+            if IMPLICIT_RUST_TRAITS.contains(&bare) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::LifecycleCallback,
+                    "rust:implicit-trait",
+                    format!("implements `{bare}`, invoked implicitly"),
+                    &mut seen,
+                );
+                continue;
             }
+        }
 
         // Runtime-invoked lifecycle and conventional names.
         let lifecycle = LIFECYCLE

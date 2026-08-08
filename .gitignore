@@ -22,3 +22,4 @@ Cargo.lock.tmp
 
 # Python bytecode from scripts/
 __pycache__/
+/framework_coverage_plan.md

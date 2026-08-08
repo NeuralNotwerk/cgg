@@ -99,11 +99,12 @@ fn module_name(path: &Path) -> String {
     while let Some(d) = dir {
         let init_py = d.join("__init__.py");
         if init_py.exists()
-            && let Some(name) = d.file_name().and_then(|s| s.to_str()) {
-                parts.push(name.to_string());
-                dir = d.parent();
-                continue;
-            }
+            && let Some(name) = d.file_name().and_then(|s| s.to_str())
+        {
+            parts.push(name.to_string());
+            dir = d.parent();
+            continue;
+        }
         break;
     }
     parts.reverse();
@@ -167,6 +168,7 @@ impl<'a> Walker<'a> {
                 }
                 // Constructor inference: `x = Foo(...)`
                 self.infer_assignment_type(node);
+                self.capture_assignment_refs(node);
                 self.walk_children(node);
                 return;
             }
@@ -175,20 +177,41 @@ impl<'a> Walker<'a> {
                 return;
             }
             "call" => {
-                if let Some(r) = self.ref_from_call(node) {
-                    // Django's `urls.py` is ordinary Python:
-                    // `path("users/", views.list_users)` puts the
-                    // handler in argument position, so the callee alone
-                    // says nothing.
-                    let context = if r.receiver_hint.is_empty() {
-                        r.name.clone()
-                    } else {
-                        format!("{}.{}", r.receiver_hint, r.name)
-                    };
-                    self.facts.references.push(r);
-                    let extra = super::registrar::capture(node, self.source, &context);
-                    self.facts.references.extend(extra);
-                }
+                let context = match self.ref_from_call(node) {
+                    Some(r) => {
+                        // Django's `urls.py` is ordinary Python:
+                        // `path("users/", views.list_users)` puts the
+                        // handler in argument position, so the callee
+                        // alone says nothing.
+                        let context = if r.receiver_hint.is_empty() {
+                            r.name.clone()
+                        } else {
+                            format!("{}.{}", r.receiver_hint, r.name)
+                        };
+                        self.facts.references.push(r);
+                        let extra =
+                            super::registrar::capture(node, self.source, &context);
+                        self.facts.references.extend(extra);
+                        context
+                    }
+                    // The callee is not a plain name —
+                    // `ConfigAttribute[timedelta](...)` is a subscript,
+                    // and a call on any other expression lands here too.
+                    // Nothing names the *callee*, but the arguments are
+                    // still references, and flask's two `_make_timedelta`
+                    // definitions were reported dead on exactly this
+                    // shape. An empty context matches no registrar verb,
+                    // which is the right answer for an unnameable callee.
+                    None => String::new(),
+                };
+                // A callable handed to an *ordinary* call — click's
+                // `callback=`, SQLAlchemy's `event.listen`,
+                // `staticmethod(...)` — is a real reference that no
+                // framework rule covers. Without it the target reads as
+                // never-referenced.
+                let vals =
+                    super::registrar::capture_value_refs(node, self.source, &context);
+                self.facts.references.extend(vals);
                 self.walk_children(node);
                 return;
             }
@@ -206,6 +229,46 @@ impl<'a> Walker<'a> {
                     break;
                 }
             }
+        }
+    }
+
+    /// Capture callables named on the right-hand side of an assignment.
+    ///
+    /// `DAEMONIZED_TASKS = {'check_status': _check_status}` and
+    /// `__setitem__ = __delitem__ = _fail` are references, but no call
+    /// encloses them, so the argument-slot pass never sees them.
+    ///
+    /// Only literal containers and bare names are followed. A call on
+    /// the right (`x = compute()`) is left alone: the walker visits it
+    /// on its own turn, and descending here as well would emit the
+    /// callee twice.
+    fn capture_assignment_refs(&mut self, node: Node) {
+        let mut cursor = node.walk();
+        let assignments: Vec<Node> = node
+            .named_children(&mut cursor)
+            .filter(|c| matches!(c.kind(), "assignment" | "augmented_assignment"))
+            .collect();
+
+        for a in assignments {
+            let Some(rhs) = a.child_by_field_name("right") else {
+                continue;
+            };
+            if !matches!(
+                rhs.kind(),
+                "dictionary"
+                    | "list"
+                    | "tuple"
+                    | "set"
+                    | "identifier"
+                    | "attribute"
+                    // `a = b = _fail` nests the second assignment on
+                    // the right of the first.
+                    | "assignment"
+            ) {
+                continue;
+            }
+            let refs = super::registrar::capture_value_position(rhs, self.source, "");
+            self.facts.references.extend(refs);
         }
     }
 
@@ -307,16 +370,17 @@ impl<'a> Walker<'a> {
         }
         // Attribute constructor: module.Foo(...)
         if func.kind() == "attribute"
-            && let Some(attr) = func.child_by_field_name("attribute") {
-                let attr_text = self.text(attr);
-                if attr_text.starts_with(char::is_uppercase) {
-                    self.facts.local_types.push(cgg_core::LocalType {
-                        var_name,
-                        type_name: attr_text.to_string(),
-                        scope_byte: node.start_byte() as u32,
-                    });
-                }
+            && let Some(attr) = func.child_by_field_name("attribute")
+        {
+            let attr_text = self.text(attr);
+            if attr_text.starts_with(char::is_uppercase) {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name,
+                    type_name: attr_text.to_string(),
+                    scope_byte: node.start_byte() as u32,
+                });
             }
+        }
     }
 
     fn named_lambda(&mut self, node: Node) -> Option<DefRecord> {
@@ -401,15 +465,16 @@ impl<'a> Walker<'a> {
 fn parse_import(text: &str) -> (String, String, String) {
     // `import a.b as c` | `import a, b` | `from x import y as z`
     if let Some(rest) = text.strip_prefix("from ")
-        && let Some((module, items)) = rest.split_once(" import ") {
-            // For Task 4 we record the module + "import items" blob
-            // under `path`. The resolver in Task 6 parses per-item.
-            return (
-                "from-import".into(),
-                module.trim().to_string(),
-                items.trim().to_string(),
-            );
-        }
+        && let Some((module, items)) = rest.split_once(" import ")
+    {
+        // For Task 4 we record the module + "import items" blob
+        // under `path`. The resolver in Task 6 parses per-item.
+        return (
+            "from-import".into(),
+            module.trim().to_string(),
+            items.trim().to_string(),
+        );
+    }
     if let Some(rest) = text.strip_prefix("import ") {
         let r = rest.trim();
         if let Some((lhs, alias)) = r.split_once(" as ") {
@@ -444,15 +509,16 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
     let mut out = Vec::new();
     let mut parent = node.parent();
     if let Some(p) = parent
-        && p.kind() == "decorated_definition" {
-            let mut c = p.walk();
-            for child in p.children(&mut c) {
-                if child.kind() == "decorator" {
-                    out.push(child.utf8_text(source).unwrap_or("").trim().to_string());
-                }
+        && p.kind() == "decorated_definition"
+    {
+        let mut c = p.walk();
+        for child in p.children(&mut c) {
+            if child.kind() == "decorator" {
+                out.push(child.utf8_text(source).unwrap_or("").trim().to_string());
             }
-            return out;
         }
+        return out;
+    }
     parent = node.prev_sibling();
     while let Some(s) = parent {
         if s.kind() == "decorator" {
@@ -588,6 +654,107 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         extract_with("m.py", src)
+    }
+
+    /// Names captured as value references (a callable passed as a
+    /// value), not as calls.
+    fn value_refs(f: &FileFacts) -> Vec<&str> {
+        f.references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| r.name.as_str())
+            .collect()
+    }
+
+    /// A callable passed to an ordinary, non-registrar call is a real
+    /// reference. Before this was captured, every one of these read as
+    /// a `High`-confidence dead-code finding.
+    #[test]
+    fn value_ref_in_ordinary_call_is_captured() {
+        let f = extract(
+            "def _validate_key(ctx, param, value):\n    return value\n\n\
+             click.option('--key', callback=_validate_key)\n",
+        );
+        assert!(
+            value_refs(&f).contains(&"_validate_key"),
+            "`callback=_validate_key` is a reference; got {:?}",
+            value_refs(&f)
+        );
+    }
+
+    /// `ConfigAttribute[timedelta](get_converter=_make_timedelta)` —
+    /// the callee is a subscript, so nothing names it. The arguments
+    /// are still references; flask's two `_make_timedelta` definitions
+    /// were reported dead on exactly this shape.
+    #[test]
+    fn value_ref_survives_an_unnameable_callee() {
+        let f = extract(
+            "def _make_timedelta(v):\n    return v\n\n\
+             x = ConfigAttribute[timedelta]('KEY', get_converter=_make_timedelta)\n",
+        );
+        assert!(
+            value_refs(&f).contains(&"_make_timedelta"),
+            "a call on a subscript still has arguments; got {:?}",
+            value_refs(&f)
+        );
+    }
+
+    /// The ungated pass must not manufacture routing claims: strings in
+    /// an ordinary call are data, and only the framework rules can tell
+    /// `'photos#index'` from a log message.
+    #[test]
+    fn ordinary_call_strings_are_not_captured() {
+        let f = extract("def h():\n    pass\n\nlogger.warning('h')\n");
+        let strings: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::STRING_REF_HINT)
+            .map(|r| r.name.as_str())
+            .collect();
+        assert!(
+            strings.is_empty(),
+            "an ordinary call must not emit string refs; got {strings:?}"
+        );
+    }
+
+    /// A registrar verb goes through `capture`, which emits a superset.
+    /// Running both passes would double every record.
+    #[test]
+    fn registrar_call_value_refs_are_not_duplicated() {
+        let f = extract(
+            "def list_users(req):\n    pass\n\n\
+             app.route('/users', list_users)\n",
+        );
+        let n = value_refs(&f)
+            .iter()
+            .filter(|n| **n == "list_users")
+            .count();
+        assert_eq!(n, 1, "expected exactly one record, got {n}");
+    }
+
+    /// A dispatch table names its handlers in a value position that no
+    /// call encloses.
+    #[test]
+    fn value_refs_in_an_assigned_dict_are_captured() {
+        let f = extract(
+            "def _check_status():\n    pass\n\ndef _fetch_updates():\n    pass\n\n\
+             DAEMONIZED_TASKS = {\n    'check_status': _check_status,\n\
+             \x20   'fetch_updates': _fetch_updates,\n}\n",
+        );
+        let v = value_refs(&f);
+        assert!(
+            v.contains(&"_check_status") && v.contains(&"_fetch_updates"),
+            "dispatch-table values are references; got {v:?}"
+        );
+    }
+
+    /// A call on the right-hand side is visited by the walker on its own
+    /// turn. Descending into it here as well would emit the callee twice.
+    #[test]
+    fn assignment_to_a_call_does_not_double_count() {
+        let f = extract("def compute():\n    return 1\n\nx = compute()\n");
+        let n = f.references.iter().filter(|r| r.name == "compute").count();
+        assert_eq!(n, 1, "expected one record for `compute`, got {n}");
     }
 
     #[test]

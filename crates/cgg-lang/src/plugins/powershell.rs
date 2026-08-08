@@ -250,16 +250,17 @@ impl<'a> PowerShellWalker<'a> {
         }
         // Dot-sourcing: `. .\file.ps1` — command_invokation_operator is `.`, name is the path.
         if let Some(op) = self.child_kind(node, "command_invokation_operator")
-            && self.text(op).trim() == "." {
-                self.facts.imports.push(ImportRecord {
-                    kind: "dot-source".into(),
-                    path: name,
-                    alias: String::new(),
-                    site_line: (node.start_position().row as u32) + 1,
-                    site_byte: node.start_byte() as u32,
-                });
-                return;
-            }
+            && self.text(op).trim() == "."
+        {
+            self.facts.imports.push(ImportRecord {
+                kind: "dot-source".into(),
+                path: name,
+                alias: String::new(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
+            return;
+        }
 
         self.facts.references.push(RefRecord {
             name,

@@ -53,7 +53,17 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
     }
 
     let mut edges = Vec::new();
-    for (key, impl_ids) in &impls {
+    // Sorted. `impls` is a HashMap, and Rust's `RandomState` reseeds per
+    // process, so iterating it directly emitted the fan-out edges in a
+    // different order on every run — a nondeterministic graph whenever
+    // `--dynamic-dispatch` was on, which `--dead-code` force-enables.
+    // The edge SET was always correct; only the order varied, which is
+    // exactly the kind of defect a byte-diff catches and a spot check
+    // does not.
+    let mut keys: Vec<&(String, String, String)> = impls.keys().collect();
+    keys.sort_unstable();
+    for key in keys {
+        let impl_ids = &impls[key];
         let Some(&decl) = decls.get(key) else {
             continue;
         };

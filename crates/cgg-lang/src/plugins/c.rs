@@ -244,7 +244,25 @@ impl<'a> CWalker<'a> {
                 });
             }
         }
-        // system_lib_string (<stdio.h>) — skip for cross-file resolution.
+        // A system include (`<signal.h>`, `<gtest/gtest.h>`) names no
+        // file in the tree, so it stays out of the `include` kind the
+        // cross-file resolver follows. It is still the only evidence that
+        // a library is in use, though, and framework detection needs it —
+        // without this no C/C++ rule keyed on a system header could ever
+        // fire. Recorded under a distinct kind so the two consumers do not
+        // interfere.
+        else if kind == "system_lib_string" {
+            let path = self.text(path_node).trim_matches(['<', '>']).to_string();
+            if !path.is_empty() {
+                self.facts.imports.push(ImportRecord {
+                    kind: "system-include".into(),
+                    path,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+            }
+        }
     }
 
     fn record_call(&mut self, node: Node) {
@@ -340,9 +358,19 @@ mod tests {
     fn include_directive_captured() {
         let src = "#include \"helpers.h\"\n#include <stdio.h>\nvoid f() {}\n";
         let f = extract(src);
-        assert_eq!(f.imports.len(), 1);
-        assert_eq!(f.imports[0].kind, "include");
-        assert_eq!(f.imports[0].path, "helpers.h");
+        // Both forms are recorded, under different kinds. Only the quoted
+        // one names a file in the tree, so only it is an `include` the
+        // cross-file resolver follows; the system one is the sole
+        // evidence a library is in use and framework detection needs it.
+        assert_eq!(f.imports.len(), 2);
+        let quoted = f.imports.iter().find(|i| i.kind == "include").unwrap();
+        assert_eq!(quoted.path, "helpers.h");
+        let sys = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "system-include")
+            .expect("system include recorded");
+        assert_eq!(sys.path, "stdio.h");
     }
 
     #[test]

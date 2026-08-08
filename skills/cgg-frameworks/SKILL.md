@@ -17,7 +17,7 @@ work. Step 4 is the upstream offer, and has rules of its own.
 
 ## Step 0 — read the coverage table first
 
-cgg ships rules for 40+ frameworks and **tells you which ones it
+cgg ships rules for 340+ frameworks and **tells you which ones it
 recognised in your tree**. Run it and read stderr before writing
 anything:
 

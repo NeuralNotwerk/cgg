@@ -154,20 +154,21 @@ pub fn add_section_defs(
 pub fn collect_refs(node: Node, src: &[u8], facts: &mut FileFacts) {
     if is_pair(node.kind())
         && let Some(k) = node.child_by_field_name("key")
-            && scalar_text(k, src) == "$ref"
-                && let Some(v) = node.child_by_field_name("value") {
-                    let name = ref_simple_name(&scalar_text(v, src)).to_string();
-                    if !name.is_empty() {
-                        let vn = unwrap(v);
-                        facts.references.push(RefRecord {
-                            name,
-                            receiver_hint: String::new(),
-                            site_line: (vn.start_position().row as u32) + 1,
-                            site_byte: vn.start_byte() as u32,
-                            ..Default::default()
-                        });
-                    }
-                }
+        && scalar_text(k, src) == "$ref"
+        && let Some(v) = node.child_by_field_name("value")
+    {
+        let name = ref_simple_name(&scalar_text(v, src)).to_string();
+        if !name.is_empty() {
+            let vn = unwrap(v);
+            facts.references.push(RefRecord {
+                name,
+                receiver_hint: String::new(),
+                site_line: (vn.start_position().row as u32) + 1,
+                site_byte: vn.start_byte() as u32,
+                ..Default::default()
+            });
+        }
+    }
     let mut c = node.walk();
     if c.goto_first_child() {
         loop {

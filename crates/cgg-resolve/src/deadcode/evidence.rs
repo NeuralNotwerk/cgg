@@ -183,9 +183,10 @@ pub(crate) fn apply_caps(base: Confidence, evidence: &[Evidence]) -> Confidence 
     let mut cur = base;
     for e in evidence {
         if let Some(cap) = e.cap()
-            && rank(cap) < rank(cur) {
-                cur = cap;
-            }
+            && rank(cap) < rank(cur)
+        {
+            cur = cap;
+        }
     }
     cur
 }

@@ -139,29 +139,28 @@ impl<'a> CmakeWalker<'a> {
         if matches!(
             lower.as_str(),
             "include" | "add_subdirectory" | "find_package"
-        )
-            && let Some(args) = node
-                .children(&mut node.walk())
-                .find(|c| c.kind() == "argument_list")
-                && let Some(first) = args
-                    .children(&mut args.walk())
-                    .find(|c| c.kind() == "argument")
-                {
-                    let path = self
-                        .text(first)
-                        .trim_matches(|c: char| c == '"' || c == '\'')
-                        .to_string();
-                    if !path.is_empty() {
-                        self.facts.imports.push(ImportRecord {
-                            kind: lower,
-                            path,
-                            alias: String::new(),
-                            site_line: (node.start_position().row as u32) + 1,
-                            site_byte: node.start_byte() as u32,
-                        });
-                        return;
-                    }
-                }
+        ) && let Some(args) = node
+            .children(&mut node.walk())
+            .find(|c| c.kind() == "argument_list")
+            && let Some(first) = args
+                .children(&mut args.walk())
+                .find(|c| c.kind() == "argument")
+        {
+            let path = self
+                .text(first)
+                .trim_matches(|c: char| c == '"' || c == '\'')
+                .to_string();
+            if !path.is_empty() {
+                self.facts.imports.push(ImportRecord {
+                    kind: lower,
+                    path,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+                return;
+            }
+        }
 
         self.facts.references.push(RefRecord {
             name,

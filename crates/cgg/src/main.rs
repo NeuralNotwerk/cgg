@@ -60,6 +60,19 @@ use cgg_resolve::intra_file::{DefIdMap, link_file};
 use cgg_walk::{WalkConfig, walk};
 use cli::{AuditFormatArg, Cli};
 
+/// Wall time handed from `run` to `main` so the profile can be rendered
+/// after every span in `run` has dropped.
+static PROFILE_WALL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Extraction is allocation-heavy — a `String` per name, per reference,
+/// per qualified path, across every worker at once — and the system
+/// allocator serialises under that. Measured on netbox: the same work
+/// cost 6.8s of CPU at `--jobs 4` and 10.6s at `--jobs 64`, i.e. 56%
+/// more CPU burned to produce identical output, which is why thread
+/// scaling stopped paying after four cores.
+#[global_allocator]
+static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(c) => c,
@@ -72,7 +85,13 @@ fn main() -> ExitCode {
 
     init_tracing(&cli);
 
-    match run(cli) {
+    let want_profile = cli.profile;
+    let result = run(cli);
+    if want_profile {
+        let wall = PROFILE_WALL.load(std::sync::atomic::Ordering::Relaxed) as f64;
+        eprint!("{}", cgg_core::profile::render(wall));
+    }
+    match result {
         Ok(code) => code,
         // An error means the analysis was incomplete, so any findings it
         // did produce are untrustworthy. Errors therefore dominate the
@@ -179,6 +198,10 @@ fn run(cli: Cli) -> Result<ExitCode> {
         );
     }
 
+    if cli.profile {
+        cgg_core::profile::enable();
+    }
+
     let started = Instant::now();
 
     // --- Phase 1: walk -----------------------------------------------------
@@ -210,9 +233,8 @@ fn run(cli: Cli) -> Result<ExitCode> {
     let mut metrics = metrics;
 
     let lang_filter: Vec<&str> = cli.lang.iter().map(|s| s.as_str()).collect();
-    let langs_enabled = |lang: &str| -> bool {
-        lang_filter.is_empty() || lang_filter.contains(&lang)
-    };
+    let langs_enabled =
+        |lang: &str| -> bool { lang_filter.is_empty() || lang_filter.contains(&lang) };
 
     let parse_started = Instant::now();
     let mut next_file_id: u32 = 0;
@@ -256,12 +278,20 @@ fn run(cli: Cli) -> Result<ExitCode> {
         },
     }
 
-    // Configure rayon thread pool if --jobs specified.
-    if cli.jobs > 0 {
-        let _ = rayon::ThreadPoolBuilder::new()
-            .num_threads(cli.jobs)
-            .build_global();
-    }
+    // Worker count. `--jobs 0` (the default) means "decide for me":
+    // half the PHYSICAL cores, detected at runtime. rayon's own default
+    // is one worker per LOGICAL cpu, which on any SMT machine is double
+    // the physical count — and cgg's hot loops are compute- and
+    // allocator-bound, so hyperthread siblings contend for the units
+    // they saturate rather than adding throughput.
+    let jobs = if cli.jobs > 0 {
+        cli.jobs
+    } else {
+        cgg_core::cpu::default_jobs()
+    };
+    let _ = rayon::ThreadPoolBuilder::new()
+        .num_threads(jobs)
+        .build_global();
 
     let results: Vec<FileOutcome> = outcome
         .candidates
@@ -317,6 +347,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
             let hash = blake3::hash(&bytes).to_hex().to_string();
             let line_count = count_lines(&bytes);
 
+            let _sp = cgg_core::profile::span("parse::tree-sitter+extract");
             let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
                 Ok(out) => {
                     let status = if out.tree.root_node().has_error() {
@@ -326,6 +357,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
                     };
                     let plugin = pool.plugin(lang);
                     let facts = plugin.map(|p| {
+                        let _s = cgg_core::profile::span("parse::extract");
                         p.extract(FileId::new(0), &cand.path, &out.tree, &bytes)
                     });
                     (status.to_string(), out.parse_ms, facts)
@@ -348,6 +380,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
         .collect();
 
     // --- Sequential merge: assign IDs and build graph ---------------------
+    let _phase_merge_graph_build = cgg_core::profile::span("merge::graph-build");
     for result in results {
         match result {
             FileOutcome::Skipped { path, reason } => {
@@ -479,28 +512,81 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     // --- Phase 3: type propagation + intra-file link -----------------------
+    let _phase_resolve_intra_file = cgg_core::profile::span("resolve::intra-file");
     let link_started = Instant::now();
-    let return_types_owned: HashMap<String, String> =
+    let return_types_owned: HashMap<String, String> = {
+        let _s = cgg_core::profile::span("resolve::type-hints");
         cgg_resolve::type_hints::build_return_type_map(&all_facts)
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+            .collect()
+    };
     let return_types: HashMap<&str, &str> = return_types_owned
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
-    for facts in &mut all_facts {
-        cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
+    {
+        // Per-file and independent: each call only mutates its own facts.
+        let _s = cgg_core::profile::span("resolve::type-propagate");
+        all_facts.par_iter_mut().for_each(|facts| {
+            cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
+        });
     }
     let known_names = build_known_names(&all_facts);
-    for facts in &all_facts {
-        let outcome = link_file(facts, &def_ids);
-        let lang = facts.language.clone();
-        let lang_bucket = metrics.by_language.entry(lang).or_default();
-        lang_bucket.edges += outcome.edges.len() as u64;
+    // Hoisted out of the per-file loop below. It was rebuilt for every
+    // file from the same `known_names`, which is O(files x names) — on
+    // netbox that is 1,273 files times ~10,000 names, rebuilt 1,273
+    // times to produce the identical set each pass.
+    let known_refs: std::collections::HashSet<&str> =
+        known_names.iter().map(|s| s.as_str()).collect();
+    // Per-file and independent: `link_file` reads only its own facts
+    // plus the shared `def_ids`, and `classify_external` is pure. Run
+    // them in parallel and fold the results sequentially afterwards —
+    // `par_iter().collect()` preserves input order, so the graph's edge
+    // order, and therefore the whole output, stays byte-identical.
+    type LinkRow = (
+        cgg_core::ids::FileId,
+        String,
+        Vec<cgg_core::graph::CallEdge>,
+        cgg_core::external::ClassifyResult,
+    );
+    let linked: Vec<LinkRow> = {
+        let _s = cgg_core::profile::span("resolve::intra-file-parallel");
+        all_facts
+            .par_iter()
+            .map(|facts| {
+                let outcome = link_file(facts, &def_ids);
+                let aliases = FileAliases::from_facts(facts);
+                let mut per_file_aliases = std::collections::HashMap::new();
+                per_file_aliases.insert(facts.file, aliases);
+                let classified = classify_external(
+                    outcome.unresolved,
+                    &known_refs,
+                    &facts.language,
+                    Some(&per_file_aliases),
+                );
+                (
+                    facts.file,
+                    facts.language.clone(),
+                    outcome.edges,
+                    classified,
+                )
+            })
+            .collect()
+    };
 
-        // Fold edges into the graph and per-file audit.
-        for e in &outcome.edges {
+    // The per-file audit record was found with a linear scan inside the
+    // loop, which is O(files^2). Index it once.
+    let rec_idx: std::collections::HashMap<cgg_core::ids::FileId, usize> = file_records
+        .iter()
+        .enumerate()
+        .map(|(i, r)| (r.file, i))
+        .collect();
+
+    for (file, lang, edges, classified) in linked {
+        let lang_bucket = metrics.by_language.entry(lang.clone()).or_default();
+        lang_bucket.edges += edges.len() as u64;
+        for e in &edges {
             match e.confidence {
                 cgg_core::graph::Confidence::High => {
                     metrics.confidence_histogram.high += 1
@@ -511,22 +597,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
             }
         }
-        graph.edges.extend(outcome.edges.clone());
+        metrics.edges += edges.len() as u64;
+        graph.edges.extend(edges);
 
-        // Classify unresolved calls into unresolved / stdlib / external.
-        let known_refs: std::collections::HashSet<&str> =
-            known_names.iter().map(|s| s.as_str()).collect();
-        let aliases = FileAliases::from_facts(facts);
-        let mut per_file_aliases = std::collections::HashMap::new();
-        per_file_aliases.insert(facts.file, aliases);
-        let classified = classify_external(
-            outcome.unresolved,
-            &known_refs,
-            &facts.language,
-            Some(&per_file_aliases),
-        );
-
-        let lang = facts.language.clone();
         let lang_bucket = metrics.by_language.entry(lang).or_default();
         lang_bucket.unresolved += classified.unresolved.len() as u64;
         lang_bucket.stdlib += classified.stdlib.len() as u64;
@@ -534,13 +607,11 @@ fn run(cli: Cli) -> Result<ExitCode> {
         metrics.unresolved_calls += classified.unresolved.len() as u64;
         metrics.stdlib_calls += classified.stdlib.len() as u64;
         metrics.external_calls += classified.external.len() as u64;
-        metrics.edges += outcome.edges.len() as u64;
 
-        // Attach the three buckets to the per-file audit record.
-        if let Some(rec) = file_records.iter_mut().find(|r| r.file == facts.file) {
-            rec.unresolved_calls = classified.unresolved.clone();
-            rec.stdlib_calls = classified.stdlib.clone();
-            rec.external_calls = classified.external.clone();
+        if let Some(&i) = rec_idx.get(&file) {
+            file_records[i].unresolved_calls = classified.unresolved.clone();
+            file_records[i].stdlib_calls = classified.stdlib.clone();
+            file_records[i].external_calls = classified.external.clone();
         }
         graph.unresolved.extend(classified.unresolved);
     }
@@ -563,7 +634,10 @@ fn run(cli: Cli) -> Result<ExitCode> {
     let _ = cli.stack_graphs;
 
     // --- Phase 3c: cross-file import-chain resolver -----------------------
-    let cf_out = cgg_resolve::cross_file::resolve(&graph, &all_facts);
+    let cf_out = {
+        let _s = cgg_core::profile::span("resolve::cross-file");
+        cgg_resolve::cross_file::resolve(&graph, &all_facts)
+    };
     for e in &cf_out.edges {
         match e.confidence {
             cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
@@ -576,8 +650,28 @@ fn run(cli: Cli) -> Result<ExitCode> {
     metrics.edges += cf_out.edges.len() as u64;
     graph.edges.extend(cf_out.edges);
 
+    // Module-scope value references the cross-file pass could not turn
+    // into an edge. They are folded into the same bucket intra-file
+    // fills so the dead-code name correlation sees them, and into the
+    // per-file audit records so `--metrics` still explains every site.
+    for u in &cf_out.unresolved {
+        if let Some(rec) = file_records.iter_mut().find(|r| r.file == u.file) {
+            rec.unresolved_calls.push(u.clone());
+        }
+        if let Some(lang) = graph.files.get(&u.file).map(|f| f.language.clone())
+            && let Some(b) = metrics.by_language.get_mut(&lang)
+        {
+            b.unresolved += 1;
+        }
+    }
+    metrics.unresolved_calls += cf_out.unresolved.len() as u64;
+    graph.unresolved.extend(cf_out.unresolved);
+
     // --- Phase 3d: FFI linker (cross-language edges) ----------------------
-    let ffi_out = cgg_resolve::ffi::link_ffi(&graph, &all_facts);
+    let ffi_out = {
+        let _s = cgg_core::profile::span("resolve::ffi");
+        cgg_resolve::ffi::link_ffi(&graph, &all_facts)
+    };
     for e in &ffi_out.edges {
         match e.confidence {
             cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
@@ -590,6 +684,24 @@ fn run(cli: Cli) -> Result<ExitCode> {
     metrics.edges += ffi_out.edges.len() as u64;
     graph.edges.extend(ffi_out.edges);
 
+    // Descriptor → implementation, after FFI because it asks the same
+    // kind of question one level up and wants the whole graph present.
+    let desc_edges = {
+        let _s = cgg_core::profile::span("resolve::descriptor");
+        cgg_resolve::descriptor::link_descriptors(&graph)
+    };
+    for e in &desc_edges {
+        match e.confidence {
+            cgg_core::graph::Confidence::High => metrics.confidence_histogram.high += 1,
+            cgg_core::graph::Confidence::Medium => {
+                metrics.confidence_histogram.medium += 1
+            }
+            cgg_core::graph::Confidence::Low => metrics.confidence_histogram.low += 1,
+        }
+    }
+    metrics.edges += desc_edges.len() as u64;
+    graph.edges.extend(desc_edges);
+
     // Reference edges (function-as-value, Issue 4) are captured during
     // extraction but only surfaced under `--reference-edges`. Dropped
     // after *every* resolver has run and before reconciliation/metrics
@@ -601,6 +713,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     // --- Phase 3e: audit reconciliation -----------------------------------
+    let _phase_post_reconcile = cgg_core::profile::span("post::reconcile");
     // intra_file is the first resolver and gets first crack at every
     // call site. Calls it can't bind go into per-file `unresolved_calls`
     // / `external_calls` audit buckets. Later resolvers (stack_graphs,
@@ -693,6 +806,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // Synthesize external/stdlib exit nodes from the *post-reconciliation*
     // buckets, so calls that a later resolver bound are not surfaced.
     if cli.include_external || cli.include_stdlib {
+        let _s = cgg_core::profile::span("post::exit-nodes");
         synthesize_exit_nodes(
             &mut graph,
             &file_records,
@@ -734,6 +848,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
         .map(|e| (format!("{}:{}", e.framework, e.shape.slug()), e.target))
         .collect();
     if !framework_out.entries.is_empty() {
+        let _s = cgg_core::profile::span("post::entry-nodes");
         synthesize_entry_nodes(
             &mut graph,
             &framework_out.entries,
@@ -746,6 +861,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
     // Interface/trait dynamic-dispatch fan-out (Issue 3). Over-approximated
     // declaration → implementation edges, tagged `Via::Dynamic`; opt-in.
     if cli.dynamic_dispatch {
+        let _s = cgg_core::profile::span("resolve::dispatch");
         for e in cgg_resolve::dispatch::fanout(&graph) {
             graph.add_edge(e);
         }
@@ -800,6 +916,14 @@ fn run(cli: Cli) -> Result<ExitCode> {
     metrics.phases.extract_ms = (parse_wall - metrics.phases.parse_ms).max(0.0);
     metrics.phases.link_ms = link_ms;
     metrics.wall_ms = started.elapsed().as_secs_f64() * 1000.0;
+    // NOTE: the profile is rendered in `main`, after `run` returns.
+    // Several phase spans deliberately live to the end of this function
+    // (their whole point is "from here to the end"), so rendering here
+    // would report them as zero — they have not dropped yet.
+    let profile_wall = metrics.wall_ms;
+    if cli.profile {
+        PROFILE_WALL.store(profile_wall as u64, std::sync::atomic::Ordering::Relaxed);
+    }
     // The coverage disclosure goes into the audit log unconditionally,
     // so a machine consumer sees the gap list even when nobody read
     // stderr. The engine copies the disclaimer in; no writer here can
@@ -814,8 +938,12 @@ fn run(cli: Cli) -> Result<ExitCode> {
     });
 
     // --- Phase 4: emit ----------------------------------------------------
+    let _phase_post_emit = cgg_core::profile::span("post::emit");
     // Deduplicate edges (same src+dst+site_byte, keep highest confidence).
-    dedup_edges(&mut graph);
+    {
+        let _s = cgg_core::profile::span("post::dedup-edges");
+        dedup_edges(&mut graph);
+    }
 
     // `--since` augments `--filter` with the qualified names of every
     // callable whose body overlaps a changed line range from the diff.
@@ -859,6 +987,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
     }
 
     // --- Dead-code analysis (pre-query) ------------------------------------
+    let _phase_post_deadcode = cgg_core::profile::span("post::deadcode");
     //
     // This must run on the *unpruned* graph. `query::prune` drops
     // callables outright, so a filtered subgraph would report every
@@ -893,9 +1022,11 @@ fn run(cli: Cli) -> Result<ExitCode> {
         .context("running dead-code analysis")?;
     }
 
-    let (graph, query_stats) =
+    let (graph, query_stats) = {
+        let _s = cgg_core::profile::span("post::query");
         query::apply_query(&graph, &effective_filters, cli.hops, cli.max_paths)
-            .map_err(|e| anyhow::anyhow!(e))?;
+            .map_err(|e| anyhow::anyhow!(e))?
+    };
     // A capped `-n 0` looks exactly like a complete one in the output,
     // so the cap has to announce itself in both places a caller might
     // look: the audit trail after the fact, and stderr right now.
@@ -991,7 +1122,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
             || !framework_coverage.seen_no_rules.is_empty();
         if worth_printing {
             eprintln!();
-            eprint!("{}", framework_coverage.render_text());
+            eprint!("{}", framework_coverage.render(cli.framework_coverage));
         }
         if framework_coverage.nodes_minted > 0 || framework_coverage.root_marks_only > 0 {
             eprintln!(

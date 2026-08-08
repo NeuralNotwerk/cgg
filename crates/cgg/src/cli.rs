@@ -100,7 +100,14 @@ pub struct Cli {
     #[arg(long = "ignore-file", value_name = "PATH")]
     pub ignore_file: Option<PathBuf>,
 
-    /// Number of parallel jobs. `0` means "auto" (rayon default).
+    /// Number of parallel worker threads.
+    ///
+    /// `0` (the default) means auto: half the machine's **physical**
+    /// cores, detected at runtime, capped at 8 and bounded by any cgroup
+    /// quota. The cap keeps cgg a good guest on a large shared host —
+    /// it is not a claim that more threads stop helping. On a big tree
+    /// they do help: pass `--jobs 32` and expect roughly a 2x speedup
+    /// over the default.
     #[arg(long = "jobs", value_name = "N", default_value_t = 0)]
     pub jobs: usize,
 
@@ -162,6 +169,14 @@ pub struct Cli {
     /// one framework was detected; the gap list is never suppressed.
     #[arg(long = "framework-coverage", action = ArgAction::SetTrue)]
     pub framework_coverage: bool,
+
+    /// Print a per-phase timing breakdown to stderr after the run.
+    ///
+    /// The four coarse buckets in the audit stop being useful once a
+    /// phase has sub-phases; this shows where the time inside them goes.
+    /// Off by default and free when off.
+    #[arg(long = "profile", action = ArgAction::SetTrue)]
+    pub profile: bool,
 
     /// Emit reference edges for functions passed by name as values
     /// (`register(handler)`), distinct from call edges and tagged

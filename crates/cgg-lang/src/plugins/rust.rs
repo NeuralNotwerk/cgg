@@ -197,9 +197,10 @@ fn crate_dir_for(path: &Path) -> Option<(String, std::path::PathBuf)> {
         let cargo = d.join("Cargo.toml");
         if cargo.exists() {
             if let Ok(text) = std::fs::read_to_string(&cargo)
-                && let Some(name) = extract_package_name(&text) {
-                    return Some((name, d.to_path_buf()));
-                }
+                && let Some(name) = extract_package_name(&text)
+            {
+                return Some((name, d.to_path_buf()));
+            }
             return None;
         }
         dir = d.parent();
@@ -327,8 +328,7 @@ impl<'a> Walker<'a> {
                 // Stored as written, generics included — the matcher
                 // strips `<…>` itself, and the full form is what a
                 // reader of the audit log needs to see.
-                self.bases
-                    .push(trait_name.clone().into_iter().collect());
+                self.bases.push(trait_name.clone().into_iter().collect());
                 self.walk_children(node);
                 self.bases.pop();
                 self.scope.pop();
@@ -1145,10 +1145,11 @@ fn simplify_rust_type(raw: &str) -> String {
     ] {
         let prefix = format!("{wrapper}<");
         if let Some(inner) = s.strip_prefix(&prefix)
-            && let Some(end) = matching_angle(inner) {
-                s = inner[..end].trim().to_string();
-                break;
-            }
+            && let Some(end) = matching_angle(inner)
+        {
+            s = inner[..end].trim().to_string();
+            break;
+        }
     }
     // Strip `dyn ` so `Arc<dyn Trait>` becomes `Trait`.
     if let Some(rest) = s.strip_prefix("dyn ") {

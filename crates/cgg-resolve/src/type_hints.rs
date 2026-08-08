@@ -30,9 +30,11 @@ pub fn build_return_type_map<'a>(
     for facts in all_facts {
         for def in &facts.definitions {
             if let Some(ret) = extract_return_type(&def.signature_hint)
-                && ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
-                    map.entry(def.simple_name.as_str()).or_insert(ret);
-                }
+                && ret.starts_with(char::is_uppercase)
+                && !is_primitive(ret)
+            {
+                map.entry(def.simple_name.as_str()).or_insert(ret);
+            }
         }
     }
     map
@@ -98,10 +100,11 @@ pub fn propagate_types_with_returns(
         // self_field_map populated by the Rust extractor.
         if rh.starts_with("self.") {
             if let Some(enc) = enclosing_def(facts, rref.site_byte)
-                && let Some(&ty) = self_field_map.get(&(enc.start_byte, rh)) {
-                    rewrites.push((i, ty.to_string()));
-                    continue;
-                }
+                && let Some(&ty) = self_field_map.get(&(enc.start_byte, rh))
+            {
+                rewrites.push((i, ty.to_string()));
+                continue;
+            }
             // No match — leave as-is so the resolver can still try a
             // direct lookup downstream.
             continue;
@@ -115,10 +118,11 @@ pub fn propagate_types_with_returns(
 
         // Strategy 1: parameter type annotations
         if let Some(enc) = enclosing
-            && let Some(&ty) = type_map.get(&(enc.start_byte, rh)) {
-                rewrites.push((i, ty.to_string()));
-                continue;
-            }
+            && let Some(&ty) = type_map.get(&(enc.start_byte, rh))
+        {
+            rewrites.push((i, ty.to_string()));
+            continue;
+        }
 
         // Strategy 3: explicit local variable type declarations
         if let Some(&ty) = local_type_map.get(rh) {
@@ -140,23 +144,38 @@ pub fn propagate_types_with_returns(
             // type (e.g., "service" from "Service", "config" from "Config")
             // OR if we find a bare call to a function returning that type.
             let rh_lower = rh.to_lowercase();
-            for (&fn_name, &ret_type) in return_types.iter() {
-                let ret_lower = ret_type.to_lowercase();
-                // Match: variable named "service" and a function "getService" returns "Service"
-                // Match: variable named "config" and a function "loadConfig" returns "Config"
-                if rh_lower == ret_lower || rh_lower == format!("{}s", ret_lower)
-                // plurals
-                {
-                    // Verify this function is actually called in this scope
-                    let called = facts.references.iter().any(|r| {
-                        r.name == fn_name
-                            && r.receiver_hint.is_empty()
-                            && r.site_byte < rref.site_byte
-                    });
-                    if called {
-                        rewrites.push((i, ret_type.to_string()));
-                        break;
-                    }
+            // Sorted, and the tie-break is total. `return_types` is a
+            // HashMap, and the match below is deliberately loose — it
+            // accepts an exact name match OR a plural, so `Config` and
+            // `Configs` BOTH claim a receiver called `configs`. Taking
+            // whichever came first out of hash order meant a 20-line
+            // file produced two different graphs across 25 identical
+            // single-threaded runs with default flags.
+            //
+            // Exact matches win over plural ones; ties beyond that break
+            // on the function name, which is unique in the map.
+            let mut candidates: Vec<(&str, &str)> = return_types
+                .iter()
+                .map(|(&f, &r)| (f, r))
+                .filter(|(_, ret)| {
+                    let rl = ret.to_lowercase();
+                    rh_lower == rl || rh_lower == format!("{rl}s")
+                })
+                .collect();
+            candidates.sort_unstable_by(|a, b| {
+                let exact = |r: &str| rh_lower != r.to_lowercase();
+                exact(a.1).cmp(&exact(b.1)).then_with(|| a.0.cmp(b.0))
+            });
+            for (fn_name, ret_type) in candidates {
+                // Verify this function is actually called in this scope.
+                let called = facts.references.iter().any(|r| {
+                    r.name == fn_name
+                        && r.receiver_hint.is_empty()
+                        && r.site_byte < rref.site_byte
+                });
+                if called {
+                    rewrites.push((i, ret_type.to_string()));
+                    break;
                 }
             }
             if rewrites.last().map(|(idx, _)| *idx) == Some(i) {
@@ -236,11 +255,7 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
         .trim_start_matches('*')
         .trim();
     // Take just the type identifier (before any <, [, etc.)
-    let ty = ty
-        .split(['<', '[', ',', ')'])
-        .next()
-        .unwrap_or(ty)
-        .trim();
+    let ty = ty.split(['<', '[', ',', ')']).next().unwrap_or(ty).trim();
     if name.is_empty() || ty.is_empty() {
         return None;
     }
@@ -316,7 +331,13 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
     // For the common pattern where the variable name matches the type
     // (lowercased), we can infer: `service.run()` -> type `Service`.
     let mut map = HashMap::new();
-    for ty in &type_names {
+    // Sorted. `type_names` is a HashSet and the inserts below are
+    // last-write-wins, so two type names whose lowercase forms collide
+    // (`HttpClient`/`HTTPClient`, `Repo`/`REPO`) fought for the same key
+    // and the winner depended on hash order.
+    let mut type_names_sorted: Vec<&&str> = type_names.iter().collect();
+    type_names_sorted.sort_unstable();
+    for ty in type_names_sorted {
         // `ty[..1]` panics whenever the first character is multi-byte,
         // and identifiers may legally be non-ASCII in Python, Java, C#
         // and Rust. Split on the first *character* instead of the first
@@ -356,11 +377,7 @@ fn extract_return_type(sig: &str) -> Option<&str> {
             .trim_start_matches('&')
             .trim_start_matches("mut ")
             .trim();
-        let ret = ret
-            .split(['<', '{', ',', ' '])
-            .next()
-            .unwrap_or(ret)
-            .trim();
+        let ret = ret.split(['<', '{', ',', ' ']).next().unwrap_or(ret).trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
             return Some(ret);
         }
@@ -370,11 +387,7 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     // TS/Kotlin: `fun foo(): Config` or `foo(): Config`
     if let Some(pos) = sig.find("): ") {
         let ret = sig[pos + 3..].trim();
-        let ret = ret
-            .split(['<', '{', ' ', '?'])
-            .next()
-            .unwrap_or(ret)
-            .trim();
+        let ret = ret.split(['<', '{', ' ', '?']).next().unwrap_or(ret).trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
             return Some(ret);
         }
@@ -383,11 +396,7 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     if let Some(paren_close) = sig.rfind(')') {
         let after = sig[paren_close + 1..].trim();
         let after = after.trim_start_matches('*');
-        let ret = after
-            .split(['{', ',', ' '])
-            .next()
-            .unwrap_or("")
-            .trim();
+        let ret = after.split(['{', ',', ' ']).next().unwrap_or("").trim();
         if !ret.is_empty() && ret.starts_with(char::is_uppercase) && !is_primitive(ret) {
             return Some(ret);
         }

@@ -237,20 +237,189 @@ impl<'a> ClojureWalker<'a> {
     fn record_call(&mut self, node: Node) {
         // (func_name ...)
         if let Some(func_node) = node.named_child(0)
-            && func_node.kind() == "sym_lit" {
-                let name = self.text(func_node).to_string();
-                if name.is_empty() || name.starts_with(':') {
-                    return;
-                }
-
-                self.facts.references.push(RefRecord {
-                    name,
-                    receiver_hint: String::new(),
-                    site_line: (node.start_position().row as u32) + 1,
-                    site_byte: node.start_byte() as u32,
-                    ..Default::default()
-                });
+            && func_node.kind() == "sym_lit"
+        {
+            let name = self.text(func_node).to_string();
+            if name.is_empty() || name.starts_with(':') {
+                return;
             }
+
+            // The rule engine matches `registrars` against the last
+            // dotted segment of the context, and it does not split
+            // on `/` — so a namespace-qualified operator like
+            // `compojure.core/GET` has to be reduced to `GET` here
+            // or no rule could ever see it.
+            let verb = super::registrar::last_segment(&name).to_string();
+
+            self.facts.references.push(RefRecord {
+                name,
+                receiver_hint: String::new(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+                ..Default::default()
+            });
+
+            self.record_registrar(node, &verb);
+        }
+    }
+
+    /// Capture the argument slots of a Compojure/Ring registration form.
+    ///
+    /// `(GET "/users" [] list-users)` hands control to `list-users`
+    /// without calling it, which is exactly what
+    /// `super::registrar::capture` exists to record. That helper cannot
+    /// be used here: it locates arguments through `arguments_of`, which
+    /// wants a distinct argument-list node, and Clojure has none — a
+    /// call is a `list_lit` whose operator and operands are siblings
+    /// under the same parent. So the same shapes are read off the
+    /// s-expression directly, emitting the same
+    /// `VALUE_REF_HINT`/`STRING_REF_HINT` records with the same
+    /// `context`/`route` slots.
+    ///
+    /// Like that helper this is deliberately over-eager and gated only
+    /// on the verb; the framework rule engine decides whether a record
+    /// means anything, and an unmatched one is inert.
+    fn record_registrar(&mut self, node: Node, verb: &str) {
+        if !crate::is_registrar_verb(verb) {
+            return;
+        }
+        let mut cursor = node.walk();
+        // Everything after the operator symbol.
+        let elems: Vec<Node> = node.named_children(&mut cursor).skip(1).collect();
+        if elems.is_empty() {
+            return;
+        }
+
+        // Only a *leading* string is a route. `(get headers "accept")`
+        // shares the verb `get` with every HTTP router in the table, and
+        // treating its second argument as an identity would make Clojure's
+        // single most common map lookup look like a route registration.
+        let route = match elems.first() {
+            Some(n) if n.kind() == "str_lit" => super::registrar::unquote(self.text(*n)),
+            _ => String::new(),
+        };
+
+        // Compojure's arity is `(VERB path binding & body)`. The slot
+        // right after the path destructures the request — `req`, `[]`,
+        // `{:keys [id]}` — and never names a handler, so claiming it
+        // would bind every route to whatever definition happens to
+        // share the binding's name.
+        let binding_pos = (!route.is_empty()).then_some(1usize);
+
+        let mut out: Vec<RefRecord> = Vec::new();
+        let mut body: Vec<Node> = Vec::new();
+        let mut named_target = false;
+
+        for (i, el) in elems.iter().enumerate() {
+            let line = (el.start_position().row as u32) + 1;
+            let byte = el.start_byte() as u32;
+            match el.kind() {
+                "str_lit" => {
+                    // The leading string is the route itself, already
+                    // carried in `route`; a later one may name the
+                    // target. A lone string is both at once, so it is
+                    // kept — the same rule `registrar::capture` applies.
+                    if i == 0 && !route.is_empty() && elems.len() > 1 {
+                        continue;
+                    }
+                    let s = super::registrar::unquote(self.text(*el));
+                    if s.is_empty() {
+                        continue;
+                    }
+                    out.push(RefRecord {
+                        name: s,
+                        receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                        site_line: line,
+                        site_byte: byte,
+                        context: verb.to_string(),
+                        route: route.clone(),
+                    });
+                }
+                "sym_lit" => {
+                    if Some(i) == binding_pos {
+                        continue;
+                    }
+                    let t = super::registrar::last_segment(self.text(*el))
+                        .trim_start_matches(['\'', '#', '@']);
+                    if t.is_empty()
+                        || !t.starts_with(|c: char| c.is_alphabetic() || c == '_')
+                    {
+                        continue;
+                    }
+                    named_target = true;
+                    out.push(RefRecord {
+                        name: t.to_string(),
+                        receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                        site_line: line,
+                        site_byte: byte,
+                        context: verb.to_string(),
+                        route: route.clone(),
+                    });
+                }
+                "list_lit" | "anon_fn_lit" => {
+                    if Some(i) != binding_pos {
+                        body.push(*el);
+                    }
+                }
+                // A vector or map in a route form is data — the binding
+                // vector, a middleware stack, a Reitit route table. None
+                // of them is a handler reference.
+                _ => {}
+            }
+        }
+
+        self.synthesize_inline_handler(&route, named_target, &body, verb, &mut out);
+        self.facts.references.extend(out);
+    }
+
+    /// Name the body of a route registration so it can be a handler.
+    ///
+    /// Compojure's dominant idiom writes the handler in place —
+    /// `(GET "/" [] (home-page))` — so there is no callable for a rule
+    /// to mark and the whole framework enumerates nothing. Worse, the
+    /// body usually sits inside `(defroutes …)`, which is not a
+    /// definition either, so the calls it makes have no owner at all.
+    /// Mirrors `ruby.rs::extract_inline_handler` and is gated the same
+    /// way — on the registrar verb and a leading route string, and only
+    /// when no argument already names a handler — so `(wrap-defaults
+    /// app-routes site-defaults)` and every ordinary form mint nothing.
+    fn synthesize_inline_handler(
+        &mut self,
+        route: &str,
+        named_target: bool,
+        body: &[Node],
+        verb: &str,
+        out: &mut Vec<RefRecord>,
+    ) {
+        if route.is_empty() || named_target || body.is_empty() {
+            return;
+        }
+        let first = body[0];
+        let last = body[body.len() - 1];
+        let line = (first.start_position().row as u32) + 1;
+        let simple = format!("handler_at_{line}");
+        let qn = self.qn(&simple);
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple.clone(),
+            qualified_name: qn,
+            variant: DefVariant::NamedClosure,
+            start_line: line,
+            end_line: (last.end_position().row as u32) + 1,
+            start_byte: first.start_byte() as u32,
+            end_byte: last.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(first)),
+            visibility: String::new(),
+            attributes: vec!["synthetic".to_string()],
+            ..Default::default()
+        });
+        out.push(RefRecord {
+            name: simple,
+            receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+            site_line: line,
+            site_byte: first.start_byte() as u32,
+            context: verb.to_string(),
+            route: route.to_string(),
+        });
     }
 }
 
@@ -438,5 +607,116 @@ mod tests {
         // tree-sitter yields an ERROR tree; extraction must survive it.
         let f = extract("(defn broken [x]\n  (+ x\n");
         let _ = defs(&f);
+    }
+
+    fn hinted<'a>(f: &'a FileFacts, hint: &str) -> Vec<&'a RefRecord> {
+        f.references
+            .iter()
+            .filter(|r| r.receiver_hint == hint)
+            .collect()
+    }
+
+    #[test]
+    fn a_compojure_route_captures_its_named_handler_and_path() {
+        // `(GET "/users" [] list-users)` hands control to `list-users`
+        // without calling it; without the capture the framework rule
+        // engine has nothing to match and the route enumerates nothing.
+        let f = extract("(ns app)\n(GET \"/users\" [] list-users)\n");
+        let v = hinted(&f, cgg_core::VALUE_REF_HINT);
+        let r = v
+            .iter()
+            .find(|r| r.name == "list-users")
+            .unwrap_or_else(|| panic!("value refs: {v:?}"));
+        assert_eq!(r.context, "GET", "the operator symbol is the context");
+        assert_eq!(r.route, "/users", "the leading string is the route");
+    }
+
+    #[test]
+    fn the_request_binding_slot_is_not_a_handler() {
+        // Compojure is `(VERB path binding & body)`. Claiming `req`
+        // would bind the route to any definition sharing that name.
+        let f = extract("(ns app)\n(POST \"/users\" req (create-user req))\n");
+        assert!(
+            !hinted(&f, cgg_core::VALUE_REF_HINT)
+                .iter()
+                .any(|r| r.name == "req"),
+            "refs: {:?}",
+            hinted(&f, cgg_core::VALUE_REF_HINT)
+        );
+    }
+
+    #[test]
+    fn an_inline_route_body_becomes_a_named_handler() {
+        // The dominant Compojure idiom writes the handler in place, and
+        // it usually sits inside `(defroutes …)` — not a definition —
+        // so without this the body has no callable at all.
+        let f = extract("(ns app)\n(GET \"/\" [] (home-page))\n");
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name.starts_with("handler_at_"))
+            .unwrap_or_else(|| panic!("defs: {:?}", defs(&f)));
+        assert_eq!(d.variant, DefVariant::NamedClosure);
+        assert!(d.attributes.iter().any(|a| a == "synthetic"));
+        assert!(
+            hinted(&f, cgg_core::VALUE_REF_HINT)
+                .iter()
+                .any(|r| r.name == d.simple_name && r.route == "/"),
+            "the synthetic handler needs a reference naming it"
+        );
+    }
+
+    #[test]
+    fn a_named_handler_suppresses_the_synthetic_one() {
+        let f = extract("(ns app)\n(GET \"/\" [] home-handler)\n");
+        assert!(
+            !f.definitions
+                .iter()
+                .any(|d| d.simple_name.starts_with("handler_at_")),
+            "defs: {:?}",
+            defs(&f)
+        );
+    }
+
+    #[test]
+    fn a_non_registrar_form_captures_nothing() {
+        // The gate is what keeps this off the hot path: an ordinary
+        // call must not pay for an argument scan or contribute records.
+        let f = extract("(ns app)\n(defn f [] (my-helper a b \"lit\"))\n");
+        assert!(
+            f.references.iter().all(|r| r.receiver_hint.is_empty()),
+            "refs: {:?}",
+            f.references
+        );
+    }
+
+    #[test]
+    fn a_map_lookup_does_not_mint_a_handler() {
+        // `get` is a route verb in every HTTP rule table and also
+        // Clojure's most common function. Only a *leading* string is a
+        // route, so `(get (headers r) "accept")` stays a map lookup
+        // instead of becoming a route with a synthesized handler.
+        let f = extract("(ns app)\n(defn f [r] (get (headers r) \"accept\"))\n");
+        assert!(
+            !f.definitions
+                .iter()
+                .any(|d| d.simple_name.starts_with("handler_at_")),
+            "defs: {:?}",
+            defs(&f)
+        );
+    }
+
+    #[test]
+    fn a_namespaced_operator_reduces_to_its_verb() {
+        // The rule engine splits the context on `.`/`:`/`-`/`>` and not
+        // on `/`, so `compojure.core/GET` has to arrive as `GET`.
+        let f = extract("(ns app)\n(compojure.core/GET \"/x\" [] show)\n");
+        assert!(
+            hinted(&f, cgg_core::VALUE_REF_HINT)
+                .iter()
+                .any(|r| r.name == "show" && r.context == "GET"),
+            "refs: {:?}",
+            hinted(&f, cgg_core::VALUE_REF_HINT)
+        );
     }
 }

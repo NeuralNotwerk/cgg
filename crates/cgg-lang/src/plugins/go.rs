@@ -429,29 +429,30 @@ impl<'a> Walker<'a> {
             Some(right)
         };
         if let Some(rhs) = rhs
-            && rhs.kind() == "func_literal" {
-                let qn = format!("{}.{var_name}", self.pkg);
-                let (sl, el) = (
-                    (node.start_position().row as u32) + 1,
-                    (node.end_position().row as u32) + 1,
-                );
-                let vis = go_vis(&var_name);
-                self.facts.definitions.push(cgg_core::DefRecord {
-                    simple_name: var_name.clone(),
-                    qualified_name: qn,
-                    variant: cgg_core::DefVariant::FreeFunction,
-                    start_line: sl,
-                    end_line: el,
-                    start_byte: node.start_byte() as u32,
-                    end_byte: node.end_byte() as u32,
-                    signature_hint: super::extract_signature(self.text(node)),
-                    visibility: String::new(),
-                    vis,
-                    attributes: Vec::new(),
-                    ..Default::default()
-                });
-                return;
-            }
+            && rhs.kind() == "func_literal"
+        {
+            let qn = format!("{}.{var_name}", self.pkg);
+            let (sl, el) = (
+                (node.start_position().row as u32) + 1,
+                (node.end_position().row as u32) + 1,
+            );
+            let vis = go_vis(&var_name);
+            self.facts.definitions.push(cgg_core::DefRecord {
+                simple_name: var_name.clone(),
+                qualified_name: qn,
+                variant: cgg_core::DefVariant::FreeFunction,
+                start_line: sl,
+                end_line: el,
+                start_byte: node.start_byte() as u32,
+                end_byte: node.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(node)),
+                visibility: String::new(),
+                vis,
+                attributes: Vec::new(),
+                ..Default::default()
+            });
+            return;
+        }
 
         // Heuristic: if RHS is a call to NewFoo(), type is Foo.
         let call = if right.kind() == "expression_list" {
@@ -536,9 +537,10 @@ fn go_test_role(simple: &str) -> Option<cgg_core::TestRole> {
     }
     for pfx in ["Test", "Benchmark", "Fuzz", "Example"] {
         if let Some(rest) = simple.strip_prefix(pfx)
-            && rest.chars().next().is_some_and(|c| c.is_uppercase()) {
-                return Some(cgg_core::TestRole::Case);
-            }
+            && rest.chars().next().is_some_and(|c| c.is_uppercase())
+        {
+            return Some(cgg_core::TestRole::Case);
+        }
     }
     None
 }

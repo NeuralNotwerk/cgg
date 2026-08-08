@@ -755,6 +755,7 @@ pub fn why_live(
                         Via::External => "external".into(),
                         Via::Stdlib => "stdlib".into(),
                         Via::Ffi(f) => format!("ffi:{f}"),
+                        Via::Descriptor(f) => format!("descriptor:{f}"),
                         Via::FrameworkEntry(f) => format!("framework-entry:{f}"),
                     },
                     confidence: e.confidence,

@@ -95,6 +95,13 @@ impl<'a> ProtoWalker<'a> {
             }
             "service" => {
                 self.record(node, "service_name", "service");
+                // Each `rpc` is a callable in its own right — it is the
+                // thing a server implements and a client calls, and the
+                // unit any cross-language link has to name. Recording
+                // only the service leaves nothing to bind an
+                // implementation to.
+                let svc = self.name_of(node, "service_name");
+                self.record_rpcs(node, &svc);
                 return;
             }
             _ => {}
@@ -103,6 +110,52 @@ impl<'a> ProtoWalker<'a> {
         if c.goto_first_child() {
             loop {
                 self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+    }
+
+    /// Text of a named child, e.g. the `service_name` of a `service`.
+    fn name_of(&self, node: Node, name_kind: &str) -> String {
+        let mut c = node.walk();
+        node.children(&mut c)
+            .find(|n| n.kind() == name_kind)
+            .map(|n| self.text(n).trim().to_string())
+            .unwrap_or_default()
+    }
+
+    /// Record every `rpc` inside a service as `Service.Rpc`.
+    fn record_rpcs(&mut self, node: Node, service: &str) {
+        if node.kind() == "rpc" {
+            let name = self.name_of(node, "rpc_name");
+            if !name.is_empty() && !service.is_empty() {
+                let owner = if self.package.is_empty() {
+                    service.to_string()
+                } else {
+                    format!("{}.{}", self.package, service)
+                };
+                self.facts.definitions.push(DefRecord {
+                    simple_name: name.clone(),
+                    qualified_name: format!("{owner}.{name}"),
+                    variant: DefVariant::InherentMethod,
+                    start_line: (node.start_position().row as u32) + 1,
+                    end_line: (node.end_position().row as u32) + 1,
+                    start_byte: node.start_byte() as u32,
+                    end_byte: node.end_byte() as u32,
+                    signature_hint: format!("rpc {name}"),
+                    visibility: String::new(),
+                    attributes: Vec::new(),
+                    ..Default::default()
+                });
+            }
+            return;
+        }
+        let mut c = node.walk();
+        if c.goto_first_child() {
+            loop {
+                self.record_rpcs(c.node(), service);
                 if !c.goto_next_sibling() {
                     break;
                 }

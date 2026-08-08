@@ -17,12 +17,14 @@
 #![warn(unreachable_pub)]
 
 pub mod audit;
+pub mod cpu;
 pub mod deadcode;
 pub mod external;
 pub mod facts;
 pub mod frameworks;
 pub mod graph;
 pub mod ids;
+pub mod profile;
 pub mod stdlib;
 pub mod testfile;
 pub mod version;

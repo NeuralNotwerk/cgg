@@ -17,6 +17,8 @@ fn via_dot(via: &Via) -> (&'static str, &'static str) {
         Via::External => ("ext", ", color=\"#2266cc\""),
         Via::Stdlib => ("std", ", color=\"#22aa66\""),
         Via::Ffi(_) => ("ffi", ", color=\"#cc6622\""),
+        // Same hue family as FFI: both cross a language boundary.
+        Via::Descriptor(_) => ("desc", ", color=\"#cc9922\", style=bold"),
         // Bold, because an entry node is where control comes *in*: on a
         // rendered graph these are the sources a reader traces from.
         Via::FrameworkEntry(_) => ("entry", ", color=\"#aa22cc\", style=bold"),

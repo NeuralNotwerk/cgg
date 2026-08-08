@@ -23,7 +23,11 @@ Two gates, both fatal:
   * a framework declared by an app in the manifest that does not fire
     on that app — the manifest is stale, or a rule regressed.
   * a rule id in rules.rs that no app in the manifest claims — the
-    framework ships with no real-world evidence behind it.
+    framework ships with no real-world evidence behind it. The one
+    exemption is `APPS_UNVERIFIED` in benchmark.sh: a rule listed there
+    declares out loud that no application exercises it, and that its
+    enumeration is therefore verified nowhere. The summary counts those
+    separately and never folds them into the "has an application" number.
 
 Usage:
     scripts/framework-coverage.py [--clone] [--app NAME] [--json OUT]
@@ -62,8 +66,16 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
-def rule_ids() -> dict[str, set[str]]:
-    """Every (id → languages) pair declared in rules.rs."""
+def rule_ids() -> tuple[dict[str, set[str]], set[str]]:
+    """Every (id → languages) pair in rules.rs, plus the detect-only ids.
+
+    A detect-only rule — no matchers, non-empty `gap` — asserts that cgg
+    sees the framework and cannot enumerate it. There is no enumeration
+    to verify against an application, so requiring one would mean a
+    repository clone per row of a table whose whole purpose is breadth.
+    Same exemption `scripts/docs-check.py` applies; the two gates have to
+    agree or one of them is lying.
+    """
     text = RULES_RS.read_text()
     pairs = re.findall(
         r'id:\s*"([^"]+)",\s*\n\s*language:\s*"([^"]+)"', text
@@ -73,7 +85,24 @@ def rule_ids() -> dict[str, set[str]]:
     out: dict[str, set[str]] = {}
     for fid, lang in pairs:
         out.setdefault(fid, set()).add(lang)
-    return out
+
+    detect_only: set[str] = set()
+    enumerating: set[str] = set()
+    for block in re.split(r"(?=RuleSpec\s*\{)", text):
+        m = re.search(r'id:\s*"([^"]+)"', block)
+        if not m:
+            continue
+        has_matchers = any(
+            re.search(rf"{f}:\s*(&\[|HTTP_VERBS)", block)
+            for f in ("attributes", "registrars", "base_types", "methods")
+        )
+        gap = re.search(r'gap:\s*"([^"]*)"', block)
+        if has_matchers:
+            enumerating.add(m.group(1))
+        elif gap and gap.group(1):
+            detect_only.add(m.group(1))
+    # An id enumerating in *any* language still needs an app.
+    return out, detect_only - enumerating
 
 
 def manifest() -> list[dict]:
@@ -106,6 +135,22 @@ def manifest() -> list[dict]:
     return apps
 
 
+def unverified() -> dict[str, str]:
+    """Rules explicitly declared to have no application in the corpus."""
+    text = BENCH_SH.read_text()
+    m = re.search(r"APPS_UNVERIFIED=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    if not m:
+        return {}
+    out: dict[str, str] = {}
+    for line in m.group(1).splitlines():
+        line = line.strip().strip('"')
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("|", 1)
+        out[parts[0]] = parts[1] if len(parts) > 1 else ""
+    return out
+
+
 def clone_missing(apps: list[dict]) -> None:
     REPOS_DIR.mkdir(parents=True, exist_ok=True)
     for app in apps:
@@ -116,7 +161,7 @@ def clone_missing(apps: list[dict]) -> None:
         rc = subprocess.run(
             ["git", "clone", "--depth", "1", "--single-branch", "-q",
              app["url"], str(dest)],
-            capture_output=True,
+            capture_output=True, check=False,
         )
         if rc.returncode != 0:
             print(f"  FAILED {app['name']}: {app['url']}", file=sys.stderr)
@@ -133,6 +178,7 @@ def analyze(path: Path) -> dict | None:
              "--framework-coverage", "--no-update-check"],
             capture_output=True,
             timeout=900,
+            check=False,
         )
         elapsed = (time.monotonic() - start) * 1000
         if not out.exists():
@@ -198,7 +244,7 @@ def main() -> None:
     if not CGG.exists():
         fail(f"{CGG} not found — run `cargo build --release -p cgg`")
 
-    declared = rule_ids()
+    declared, detect_only = rule_ids()
     apps = manifest()
     if args.clone:
         clone_missing(apps)
@@ -298,7 +344,8 @@ def main() -> None:
 
     claimed_any = {f for a in apps
                    for f in a["frameworks"] + a["detect_only"]}
-    unclaimed = sorted(set(declared) - claimed_any)
+    unver = unverified()
+    unclaimed = sorted(set(declared) - claimed_any - detect_only - set(unver))
     never_seen = sorted(set(declared) - detected_ids)
     pair_gaps = sorted(
         {(i, lang) for i, langs in declared.items() for lang in langs}
@@ -308,6 +355,19 @@ def main() -> None:
     total_rules = sum(len(v) for v in declared.values())
     print(f"Frameworks with rules       : {len(declared)} "
           f"({total_rules} id×language rules)")
+    print(f"Detect-only (no app needed) : {len(detect_only)}")
+    if unver:
+        # Stated, not hidden: these rules enumerate, and no app here has
+        # ever exercised them. Two things this is careful not to claim.
+        # It does not claim a fixture — there is no per-rule fixture, and
+        # tests/detect_prefixes.rs covers detection only. And it does not
+        # claim the rule never fired anywhere: this script reads APPS,
+        # never the REPOS language corpus, and eight of these do
+        # enumerate there. benchmark.sh carries that evidence.
+        print(f"Enumerating, NO application : {len(unver)} — not exercised "
+              f"by any app in APPS")
+        for k, why in sorted(unver.items()):
+            print(f"    {k:<22} {why}")
     print(f"Enumerating entries         : {len(fired_ids)}")
     print(f"Detected, entries not built : {len(detected_ids - fired_ids)}"
           f" — {', '.join(sorted(detected_ids - fired_ids)) or '—'}")
@@ -330,10 +390,22 @@ def main() -> None:
         print(f"  {', '.join(unclaimed)}")
         print("  every rule in rules.rs needs an APPS entry that exercises it")
         ok = False
-    if never_seen and not unclaimed:
-        print(f"\nClaimed but never even detected ({len(never_seen)}): "
-              f"{', '.join(never_seen)}")
-        ok = False
+    if never_seen:
+        # INFORMATIONAL, not a failure. The detect-only table is
+        # deliberately broad — it exists so an unknown framework produces
+        # a disclosed gap rather than silence — and no corpus contains
+        # every framework in it. Failing here would mean cloning a
+        # repository per row, which is the cost the table was designed to
+        # avoid. What it *does* tell you is which rules no application
+        # here has evidence for, so a wrong `detect` prefix in one of
+        # them would never be noticed by this gate. It is scoped to
+        # APPS: this script never reads the REPOS language corpus, where
+        # some of these do fire (see APPS_UNVERIFIED in benchmark.sh).
+        print(f"\nNo evidence in APPS ({len(never_seen)}) — never detected in "
+              f"any app in the manifest, so their `detect` prefixes are\n"
+              f"verified only synthetically, by tests/detect_prefixes.rs:")
+        for i in range(0, len(never_seen), 6):
+            print("  " + ", ".join(never_seen[i:i + 6]))
     if improved:
         # Not fatal: cgg got better than the manifest admits.
         print(f"\nGap markers now stale ({len(improved)}):")
@@ -351,9 +423,32 @@ def main() -> None:
 
     if not ok:
         sys.exit(1)
-    print(f"\nEvery framework rule has an application behind it: "
-          f"{len(fired_ids)} enumerate entry points, "
-          f"{len(detected_ids - fired_ids)} are detected with the gap disclosed.")
+    # What the gates actually proved, stated as the arithmetic rather
+    # than as a slogan. "Every framework rule has an application behind
+    # it" was false the moment APPS_UNVERIFIED had a line in it, and
+    # false again for the detect-only table, which is exempt by design.
+    # The rules the corpus never touched rest on tests/detect_prefixes.rs,
+    # and that test proves a `detect` prefix *can* fire — not that the
+    # rule enumerates anything on real code.
+    print("\nGates passed: every framework an app declares fired, and every")
+    print("enumerating rule is either claimed by an app or declared "
+          "application-less.")
+    print(f"  {len(fired_ids):>3} enumerate entry points in a real application")
+    print(f"  {len(detected_ids - fired_ids):>3} more are detected in an "
+          f"application, with the gap disclosed")
+    if unver:
+        print(f"  {len(unver):>3} enumerating rules have no app in APPS at "
+              f"all — see APPS_UNVERIFIED in")
+        print("      scripts/benchmark.sh for what does and does not stand "
+              "behind each")
+    print(f"  {len(detect_only):>3} are detect-only: they enumerate nothing, "
+          f"so no application is required")
+    print(f"  {len(never_seen):>3} of {len(declared)} rules were never detected "
+          f"in any APPS application; the")
+    print("      REPOS language corpus is not read here, so check the "
+          "APPS_UNVERIFIED note")
+    print("      in scripts/benchmark.sh before concluding a rule has never "
+          "fired")
 
 
 if __name__ == "__main__":

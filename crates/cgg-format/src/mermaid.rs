@@ -26,6 +26,7 @@ fn via_tag(via: &Via) -> &'static str {
         Via::External => "ext",
         Via::Stdlib => "std",
         Via::Ffi(_) => "ffi",
+        Via::Descriptor(_) => "desc",
         Via::FrameworkEntry(_) => "entry",
     }
 }

@@ -76,10 +76,7 @@ fn git_toplevel(cwd: &Path) -> Result<PathBuf> {
         .output()
         .context("failed to invoke `git rev-parse`")?;
     if !out.status.success() {
-        return Err(anyhow!(
-            "{}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        ));
+        return Err(anyhow!("{}", String::from_utf8_lossy(&out.stderr).trim()));
     }
     let s = String::from_utf8(out.stdout)
         .context("`git rev-parse` output was not valid UTF-8")?;

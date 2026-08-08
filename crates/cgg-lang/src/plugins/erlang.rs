@@ -68,6 +68,15 @@ impl<'a> ErlangWalker<'a> {
                 self.record_import(node);
                 self.walk_children(node);
             }
+            // `-behaviour(gen_server).` is how Erlang declares that a
+            // module implements an OTP contract, and it is the ONLY
+            // evidence of it — the callbacks are ordinary exported
+            // functions. Without recording it no Erlang framework rule
+            // can detect anything, since `-import` is rare in practice.
+            "attribute" | "behaviour_attribute" => {
+                self.record_behaviour(node);
+                self.walk_children(node);
+            }
             "function_clause" | "function" => {
                 self.record_function(node);
                 self.walk_children(node);
@@ -97,10 +106,11 @@ impl<'a> ErlangWalker<'a> {
         // Find the atom child
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && child.kind() == "atom" {
-                    self.module = self.text(child).to_string();
-                    break;
-                }
+                && child.kind() == "atom"
+            {
+                self.module = self.text(child).to_string();
+                break;
+            }
         }
     }
 
@@ -109,10 +119,12 @@ impl<'a> ErlangWalker<'a> {
         let mut module_name = String::new();
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && child.kind() == "atom" && module_name.is_empty() {
-                    module_name = self.text(child).to_string();
-                    break;
-                }
+                && child.kind() == "atom"
+                && module_name.is_empty()
+            {
+                module_name = self.text(child).to_string();
+                break;
+            }
         }
         if !module_name.is_empty() {
             self.facts.imports.push(ImportRecord {
@@ -125,31 +137,59 @@ impl<'a> ErlangWalker<'a> {
         }
     }
 
+    /// `-behaviour(gen_server).` / `-behavior(...)` (both spellings).
+    fn record_behaviour(&mut self, node: Node) {
+        let text = self.text(node);
+        let t = text.trim_start_matches('-').trim_start();
+        if !(t.starts_with("behaviour") || t.starts_with("behavior")) {
+            return;
+        }
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom"
+            {
+                let name = self.text(child).to_string();
+                if name.is_empty() || name.starts_with("behavi") {
+                    continue;
+                }
+                self.facts.imports.push(ImportRecord {
+                    kind: "behaviour".to_string(),
+                    path: name,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+                return;
+            }
+        }
+    }
+
     fn record_function(&mut self, node: Node) {
         // function_clause: atom ( ... ) -> ... ;
         // Extract the atom (function name)
         if let Some(name_node) = node.child(0)
-            && name_node.kind() == "atom" {
-                let name = self.text(name_node).to_string();
-                let qn = self.qn(&name);
-                let (sl, el) = (
-                    (node.start_position().row as u32) + 1,
-                    (node.end_position().row as u32) + 1,
-                );
-                self.facts.definitions.push(DefRecord {
-                    simple_name: name,
-                    qualified_name: qn,
-                    variant: DefVariant::FreeFunction,
-                    start_line: sl,
-                    end_line: el,
-                    start_byte: node.start_byte() as u32,
-                    end_byte: node.end_byte() as u32,
-                    signature_hint: super::extract_signature(self.text(node)),
-                    visibility: String::new(),
-                    attributes: Vec::new(),
-                    ..Default::default()
-                });
-            }
+            && name_node.kind() == "atom"
+        {
+            let name = self.text(name_node).to_string();
+            let qn = self.qn(&name);
+            let (sl, el) = (
+                (node.start_position().row as u32) + 1,
+                (node.end_position().row as u32) + 1,
+            );
+            self.facts.definitions.push(DefRecord {
+                simple_name: name,
+                qualified_name: qn,
+                variant: DefVariant::FreeFunction,
+                start_line: sl,
+                end_line: el,
+                start_byte: node.start_byte() as u32,
+                end_byte: node.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(node)),
+                visibility: String::new(),
+                attributes: Vec::new(),
+                ..Default::default()
+            });
+        }
     }
 
     fn record_call(&mut self, node: Node) {

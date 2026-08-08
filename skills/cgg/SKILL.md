@@ -6,10 +6,13 @@ description: Use the `cgg` call-graph CLI to map function-level call relationshi
 # cgg — call graph for agents
 
 `cgg` is an offline, language-agnostic CLI that turns source code into
-a mermaid call graph in milliseconds. Most projects finish in under a
-second; the largest under a minute. Output is plain text designed for
-direct injection into a prompt, so use it to reason about call
-relationships *before* you edit.
+a mermaid call graph in milliseconds. A typical library or service
+finishes in well under a second; a large application (NetBox, ~1,300
+analyzed files) takes a few seconds. Very large trees — hundreds of
+thousands of callables — still take minutes, so scope with a path
+argument rather than pointing it at a monorepo root. Output is plain
+text designed for direct injection into a prompt, so use it to reason
+about call relationships *before* you edit.
 
 ## When to reach for cgg
 
@@ -348,8 +351,13 @@ than emitting low-confidence edges.
 
 ## Performance and limits
 
-- Most projects finish in under a second. Don't pre-optimize; just
-  run it.
+- Most projects finish in under a second; a large application takes a
+  few seconds (NetBox: 1,273 files, ~6.8s). Don't pre-optimize; just
+  run it. On a very large tree, narrow the *path* you point it at —
+  that is the only lever that matters, and `--filter` is not it
+  (filtering happens after the whole tree is parsed and resolved).
+- cgg uses every core by default. `--jobs N` caps it; the graph is the
+  same at any thread count.
 - There is **no cache**, and no flag to control one. Every run
   re-parses from source, which is why a run is reproducible from the
   tree alone — and why a re-run costs the same as the first. If you

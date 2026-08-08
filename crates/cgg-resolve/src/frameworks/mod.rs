@@ -28,6 +28,8 @@ pub use cgg_core::frameworks::rules;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
+use rayon::prelude::*;
+
 use cgg_core::frameworks::{
     EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
     SeenFramework, UncoveredLanguage,
@@ -61,20 +63,89 @@ pub fn detect(
     let mut all: Vec<FrameworkRule> = user_rules.to_vec();
     all.extend(rules::builtin());
 
-    let evidence = Detection::scan(graph, facts, &all);
+    let _sp = cgg_core::profile::span("frameworks::total");
+    let evidence = {
+        let _s = cgg_core::profile::span("frameworks::detect-scan");
+        Detection::scan(graph, facts, &all)
+    };
     let called_in_file = callees_within_their_file(graph);
-    let mut entries: Vec<FrameworkEntry> = Vec::new();
+    let mut name_indexes: HashMap<String, NameIndex> = HashMap::new();
+    let mut base_indexes: HashMap<String, BaseTypeIndex> = HashMap::new();
+    let mut reg_indexes: HashMap<String, RegistrarIndex> = HashMap::new();
 
-    for rule in &all {
-        if !evidence.is_active(&rule.id, &rule.language) {
-            continue;
+    // Build every per-language index up front. They are shared by all
+    // rules of that language, so this must happen before the rules fan
+    // out — and it is cheap next to matching.
+    {
+        let _si = cgg_core::profile::span("frameworks::index-build");
+        for rule in &all {
+            if !evidence.is_active(&rule.id, &rule.language) {
+                continue;
+            }
+            name_indexes
+                .entry(rule.language.clone())
+                .or_insert_with(|| NameIndex::build(graph, &rule.language));
+            base_indexes
+                .entry(rule.language.clone())
+                .or_insert_with(|| BaseTypeIndex::build(facts, &rule.language));
+            reg_indexes
+                .entry(rule.language.clone())
+                .or_insert_with(|| RegistrarIndex::build(facts, &rule.language));
         }
-        match_attributes(graph, rule, &mut entries);
-        match_base_types(graph, facts, rule, &mut entries);
-        match_methods(graph, rule, &mut entries);
-        match_registrars(graph, facts, rule, &called_in_file, &mut entries);
-        match_self_modules(graph, facts, rule, &called_in_file, &mut entries);
     }
+
+    // Rules are independent: each reads the shared read-only indexes and
+    // produces its own entries. `par_iter().flat_map().collect()`
+    // preserves rule order, so the entry sequence — and every node id
+    // minted from it — is identical to the serial form.
+    let active: Vec<&FrameworkRule> = all
+        .iter()
+        .filter(|r| evidence.is_active(&r.id, &r.language))
+        .collect();
+    let mut entries: Vec<FrameworkEntry> = active
+        .par_iter()
+        .flat_map_iter(|rule| {
+            let rule = *rule;
+            let names = &name_indexes[&rule.language];
+            let bases = &base_indexes[&rule.language];
+            let regs = &reg_indexes[&rule.language];
+            let mut entries: Vec<FrameworkEntry> = Vec::new();
+
+            {
+                let _s = cgg_core::profile::span("frameworks::match-attributes");
+                match_attributes(graph, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-base-types");
+                match_base_types(graph, bases, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-methods");
+                match_methods(graph, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-registrars");
+                match_registrars(
+                    graph,
+                    facts,
+                    regs,
+                    names,
+                    rule,
+                    &called_in_file,
+                    &mut entries,
+                );
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-self-modules");
+                match_self_modules(graph, facts, rule, &called_in_file, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-visibility");
+                match_visibility(graph, rule, &mut entries);
+            }
+            entries.into_iter()
+        })
+        .collect();
 
     dedup(&mut entries);
     let coverage = evidence.into_coverage(&all, &entries, graph);
@@ -100,9 +171,20 @@ impl Detection {
 
         // Index rules by language so each file is compared only against
         // the rules that could possibly apply to it.
-        let mut by_lang: HashMap<&str, Vec<&FrameworkRule>> = HashMap::new();
-        for r in all {
-            by_lang.entry(r.language.as_str()).or_default().push(r);
+        let mut by_lang: HashMap<&str, Vec<(usize, &FrameworkRule)>> = HashMap::new();
+        for (i, r) in all.iter().enumerate() {
+            by_lang.entry(r.language.as_str()).or_default().push((i, r));
+        }
+
+        // (language, import prefix) -> rule indices. Built once.
+        let mut prefix_index: HashMap<(&str, &str), Vec<usize>> = HashMap::new();
+        for (i, r) in all.iter().enumerate() {
+            for p in &r.detect {
+                prefix_index
+                    .entry((r.language.as_str(), p.as_str()))
+                    .or_default()
+                    .push(i);
+            }
         }
 
         // Attributes per file, read from the *graph* — the same place
@@ -137,11 +219,26 @@ impl Detection {
                 .map(|r| r.name.as_str())
                 .collect();
 
-            for rule in candidates {
-                let mut hit = rule
-                    .detect
-                    .iter()
-                    .any(|p| f.imports.iter().any(|i| import_matches(&i.path, p)));
+            // Which rules this file's imports could possibly match,
+            // looked up rather than scanned. The table went from 51
+            // rules to several hundred, and the old form was
+            // `rules x prefixes x imports` per file — on a TypeScript
+            // tree that is ~40 rules times ~30 imports for every file,
+            // which measured as a ~9% whole-run regression. Every prefix
+            // that can match a path is a cut of that path at a separator,
+            // so the candidates are a map lookup per cut instead.
+            let mut import_hits: HashSet<usize> = HashSet::new();
+            for imp in &f.imports {
+                let raw = imp.path.trim().trim_matches(|c| c == '"' || c == '\'');
+                for key in prefix_keys(raw) {
+                    if let Some(ids) = prefix_index.get(&(f.language.as_str(), key)) {
+                        import_hits.extend(ids.iter().copied());
+                    }
+                }
+            }
+
+            for (ri, rule) in candidates {
+                let mut hit = import_hits.contains(ri);
                 if !hit {
                     hit = rule.detect_paths.iter().any(|p| path_matches(&path, p));
                 }
@@ -165,6 +262,16 @@ impl Detection {
                                 || contains_ci(&rule.attributes, attribute_verb(a))
                         })
                     });
+                    // A visibility rule has nothing to import either: the
+                    // keyword on the definition is the evidence.
+                    if !hit {
+                        let want =
+                            rules::visibility_entries_for(&rule.id, &rule.language);
+                        hit = !want.is_empty()
+                            && f.definitions
+                                .iter()
+                                .any(|d| eq_any_ci(want, &d.visibility));
+                    }
                 }
                 if hit {
                     *hits
@@ -300,6 +407,24 @@ impl Detection {
 /// Segment-aware so `next` does not match `nextcloud` and `express` does
 /// not match `expresso`, while `flask` still matches `flask.views` and
 /// `github.com/gin-gonic/gin` matches itself with a version suffix.
+/// Every prefix of `path` that [`import_matches`] would accept: the
+/// whole path, and the path cut at each separator. Looking these up in
+/// the prefix index is equivalent to testing the path against every
+/// rule's prefixes, without visiting the rules that cannot match.
+fn prefix_keys(path: &str) -> impl Iterator<Item = &str> {
+    std::iter::once(path).chain(
+        path.char_indices()
+            .filter(|(_, c)| matches!(c, '.' | '/' | ':' | '\\'))
+            .map(move |(i, _)| &path[..i]),
+    )
+}
+
+/// The predicate the prefix index replaces. Kept as the definition of
+/// what "this import proves this framework" means, and pinned to the
+/// index by `prefix_index_agrees_with_import_matches` — an index that
+/// silently diverged from it would make rules stop firing with no
+/// symptom other than a coverage table quietly claiming less.
+#[cfg_attr(not(test), allow(dead_code))]
 fn import_matches(path: &str, prefix: &str) -> bool {
     let p = path.trim().trim_matches(|c| c == '"' || c == '\'');
     if p == prefix {
@@ -414,36 +539,120 @@ fn match_attributes(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<Framework
 /// no identity of its own to name. The exceptions are the ones that do —
 /// one Akka actor's `createReceive`, one Quartz `IJob` — and those carry
 /// `node: true` in the rule.
+/// Registrar-shaped references for one language, bucketed by verb.
+///
+/// A reference is a candidate only if it is a value/string ref with a
+/// non-empty context; those three tests and the language filter are the
+/// same for every rule, so they run once here rather than once per rule.
+struct RegistrarIndex<'a> {
+    by_verb: HashMap<String, Vec<(&'a FileFacts, &'a cgg_core::RefRecord)>>,
+}
+
+impl<'a> RegistrarIndex<'a> {
+    fn build(facts: &'a [FileFacts], language: &str) -> Self {
+        let mut by_verb: HashMap<String, Vec<(&'a FileFacts, &'a cgg_core::RefRecord)>> =
+            HashMap::new();
+        for f in facts {
+            if f.language != language {
+                continue;
+            }
+            for r in &f.references {
+                if r.receiver_hint != VALUE_REF_HINT && r.receiver_hint != STRING_REF_HINT
+                {
+                    continue;
+                }
+                if r.context.is_empty() {
+                    continue;
+                }
+                let verb = r
+                    .context
+                    .rsplit(['.', ':', '-', '>'])
+                    .next()
+                    .unwrap_or(&r.context);
+                by_verb
+                    .entry(verb.to_ascii_lowercase())
+                    .or_default()
+                    .push((f, r));
+                // A rule may name the whole receiver path
+                // (`Route::get`), which the old scan also accepted.
+                let full = r.context.to_ascii_lowercase();
+                if full != verb.to_ascii_lowercase() {
+                    by_verb.entry(full).or_default().push((f, r));
+                }
+            }
+        }
+        Self { by_verb }
+    }
+
+    /// Every (file, reference) this rule's registrars could match, each
+    /// at most once.
+    fn candidates(
+        &self,
+        rule: &FrameworkRule,
+    ) -> Vec<(&'a FileFacts, &'a cgg_core::RefRecord)> {
+        // Dedup by record IDENTITY, not by site. One site can carry
+        // several distinct references: `SiteView.as_view()` emits both
+        // the callee (`as_view`) and its qualifier (`SiteView`) at the
+        // same byte, and the qualifier is the one that binds. Keying on
+        // (file, site_byte) dropped it and silently un-did Django's
+        // class-based-view support.
+        let mut seen: HashSet<*const cgg_core::RefRecord> = HashSet::new();
+        let mut out = Vec::new();
+        for reg in &rule.registrars {
+            let Some(hits) = self.by_verb.get(&reg.to_ascii_lowercase()) else {
+                continue;
+            };
+            for (f, r) in hits {
+                if seen.insert(*r as *const _) {
+                    out.push((*f, *r));
+                }
+            }
+        }
+        out
+    }
+}
+
+/// Declared base types for one language, indexed once.
+struct BaseTypeIndex {
+    /// (file, start_byte) -> base types, from the facts side.
+    bases: HashMap<(FileId, u32), Vec<String>>,
+    /// owner type -> its declared bases, for walking the chain.
+    by_owner: HashMap<String, Vec<String>>,
+}
+
+impl BaseTypeIndex {
+    fn build(facts: &[FileFacts], language: &str) -> Self {
+        let mut bases: HashMap<(FileId, u32), Vec<String>> = HashMap::new();
+        let mut by_owner: HashMap<String, Vec<String>> = HashMap::new();
+        for f in facts {
+            if f.language != language {
+                continue;
+            }
+            for d in &f.definitions {
+                if d.base_types.is_empty() {
+                    continue;
+                }
+                bases.insert((f.file, d.start_byte), d.base_types.clone());
+                if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
+                    by_owner.insert(owner.to_string(), d.base_types.clone());
+                }
+            }
+        }
+        Self { bases, by_owner }
+    }
+}
+
 fn match_base_types(
     graph: &Graph,
-    facts: &[FileFacts],
+    idx: &BaseTypeIndex,
     rule: &FrameworkRule,
     out: &mut Vec<FrameworkEntry>,
 ) {
-    if rule.base_types.is_empty() {
+    if rule.base_types.is_empty() || idx.bases.is_empty() {
         return;
     }
-    // (file, start_byte) -> base types, from the facts side.
-    let mut bases: HashMap<(FileId, u32), &Vec<String>> = HashMap::new();
-    // owner type -> its declared bases, for walking the chain.
-    let mut by_owner: HashMap<&str, &Vec<String>> = HashMap::new();
-    for f in facts {
-        if f.language != rule.language {
-            continue;
-        }
-        for d in &f.definitions {
-            if d.base_types.is_empty() {
-                continue;
-            }
-            bases.insert((f.file, d.start_byte), &d.base_types);
-            if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
-                by_owner.insert(owner, &d.base_types);
-            }
-        }
-    }
-    if bases.is_empty() {
-        return;
-    }
+    let bases = &idx.bases;
+    let by_owner = &idx.by_owner;
 
     for (id, node) in &graph.callables {
         if node.language != rule.language || node.synthetic {
@@ -457,7 +666,7 @@ fn match_base_types(
         // ObjectListView)`, and only three levels up does anything name
         // Django's `View`. Matching the immediate bases alone sees none
         // of a real application's class-based views.
-        let Some(hit) = find_in_base_chain(types, &by_owner, &rule.base_types) else {
+        let Some(hit) = find_in_base_chain(types, by_owner, &rule.base_types) else {
             continue;
         };
         if !rule.methods.is_empty() && !contains_ci(&rule.methods, &node.simple_name) {
@@ -485,7 +694,7 @@ fn match_base_types(
 /// deep hierarchy is not more evidence than a shallow one.
 fn find_in_base_chain(
     direct: &[String],
-    by_owner: &HashMap<&str, &Vec<String>>,
+    by_owner: &HashMap<String, Vec<String>>,
     wanted: &[String],
 ) -> Option<String> {
     let mut seen: BTreeSet<String> = BTreeSet::new();
@@ -533,10 +742,7 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     if contains_ci(wanted, bare) {
         return true;
     }
-    let last = bare
-        .rsplit(['.', ':', '\\'])
-        .next()
-        .unwrap_or(bare);
+    let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
     contains_ci(wanted, last)
 }
 
@@ -587,6 +793,8 @@ fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEnt
 fn match_registrars(
     graph: &Graph,
     facts: &[FileFacts],
+    regs: &RegistrarIndex<'_>,
+    index: &NameIndex,
     rule: &FrameworkRule,
     called_in_file: &HashSet<CallableId>,
     out: &mut Vec<FrameworkEntry>,
@@ -594,31 +802,21 @@ fn match_registrars(
     if rule.registrars.is_empty() {
         return;
     }
-    let index = NameIndex::build(graph, &rule.language);
 
-    for f in facts {
-        if f.language != rule.language {
-            continue;
-        }
-        for r in &f.references {
+    // Walk only the references whose verb some registrar of THIS rule
+    // names, instead of every reference in the tree once per rule.
+    // Measured on netbox: the old form was 5.3s of a 6.2s framework
+    // phase, because seven active rules each re-scanned ~1,300 files
+    // worth of references to reject almost all of them.
+    for (f, r) in regs.candidates(rule) {
+        {
             let is_value = r.receiver_hint == VALUE_REF_HINT;
             let is_string = r.receiver_hint == STRING_REF_HINT;
-            if !is_value && !is_string {
-                continue;
-            }
-            if r.context.is_empty() {
-                continue;
-            }
             let verb = r
                 .context
                 .rsplit(['.', ':', '-', '>'])
                 .next()
                 .unwrap_or(&r.context);
-            if !contains_ci(&rule.registrars, verb)
-                && !contains_ci(&rule.registrars, &r.context)
-            {
-                continue;
-            }
             // An ambiguous verb needs corroboration — see AMBIGUOUS_VERBS.
             let receiverless = r.context.eq_ignore_ascii_case(verb);
             if contains_ci(
@@ -638,36 +836,79 @@ fn match_registrars(
             // reference to that file anywhere, so without this the
             // entire module reads as dead.
             if is_string
-                && let Some(target_file) = resolve_module_path(graph, f.file, &r.name) {
-                    let mut any = false;
-                    for (id, node) in &graph.callables {
-                        if node.file != target_file || node.synthetic {
-                            continue;
-                        }
-                        if !is_module_surface(node, facts, target_file, called_in_file) {
-                            continue;
-                        }
-                        any = true;
-                        out.push(FrameworkEntry {
-                            framework: rule.id.clone(),
-                            kind: rule.kind,
-                            shape: EntryShape::ModulePath,
-                            route: format!("{}(\"{}\")", verb, r.name),
-                            target: *id,
-                            target_name: node.qualified_name.clone(),
-                            evidence: format!(
-                                "module loaded by `{}(\"{}\")`",
-                                r.context, r.name
-                            ),
-                            file: f.file,
-                            site_line: r.site_line,
-                            node: rule.node,
-                        });
-                    }
-                    if any {
+                && let Some(target_file) = resolve_module_path(graph, f.file, &r.name)
+            {
+                let mut any = false;
+                for (id, node) in &graph.callables {
+                    if node.file != target_file || node.synthetic {
                         continue;
                     }
+                    if !is_module_surface(node, facts, target_file, called_in_file) {
+                        continue;
+                    }
+                    any = true;
+                    out.push(FrameworkEntry {
+                        framework: rule.id.clone(),
+                        kind: rule.kind,
+                        shape: EntryShape::ModulePath,
+                        route: format!("{}(\"{}\")", verb, r.name),
+                        target: *id,
+                        target_name: node.qualified_name.clone(),
+                        evidence: format!(
+                            "module loaded by `{}(\"{}\")`",
+                            r.context, r.name
+                        ),
+                        file: f.file,
+                        site_line: r.site_line,
+                        node: rule.node,
+                    });
                 }
+                if any {
+                    continue;
+                }
+            }
+
+            // A reference that names a *type* rather than a callable:
+            // `path("/x", SiteView.as_view())`, `router.register("s",
+            // SiteViewSet)`. cgg has no node for a type, so the entry is
+            // every method of that type the rule calls an entry point.
+            // Gated on `rule.methods` — without it this would claim every
+            // method of every class handed to a registrar.
+            if is_value && !rule.methods.is_empty() {
+                let mut any = false;
+                for m in &rule.methods {
+                    let Some(target) = index.by_owner_method(Some(&r.name), m, f.file)
+                    else {
+                        continue;
+                    };
+                    let Some(node) = graph.callables.get(&target) else {
+                        continue;
+                    };
+                    any = true;
+                    out.push(FrameworkEntry {
+                        framework: rule.id.clone(),
+                        kind: rule.kind,
+                        shape: EntryShape::BaseType,
+                        route: if r.route.is_empty() {
+                            String::new()
+                        } else {
+                            format!("{}(\"{}\")", verb.to_ascii_lowercase(), r.route)
+                        },
+                        target,
+                        target_name: node.qualified_name.clone(),
+                        evidence: format!(
+                            "`{}` handed to `{}`; `{}` is an entry method of it",
+                            r.name, r.context, m
+                        ),
+                        file: f.file,
+                        site_line: r.site_line,
+                        node: rule.node,
+                    });
+                }
+                if any {
+                    continue;
+                }
+            }
 
             let (candidates, shape) = if is_value {
                 let id = index.by_simple(&r.name, f.file);
@@ -781,6 +1022,54 @@ fn resolve_module_path(graph: &Graph, from: FileId, raw: &str) -> Option<FileId>
     None
 }
 
+/// A visibility keyword that is itself the trust boundary.
+///
+/// Solidity needs no framework and no import: `public` and `external`
+/// mean any address on the chain can call the function. That is the
+/// whole attack surface of a contract, and no other matcher can state
+/// it — the other four all key on something written *around* a
+/// definition, while this is a keyword *on* it.
+///
+/// Reads `CallableNode::visibility`, the language-native string, rather
+/// than the normalized `vis` enum: Solidity populates the former and
+/// leaves the latter `Unknown`.
+/// Case-insensitive membership over a static list. `contains_ci` takes
+/// `&[String]` (rule fields are owned); the out-of-band lookups are
+/// `&'static [&'static str]`.
+fn eq_any_ci(set: &[&str], value: &str) -> bool {
+    set.iter().any(|w| w.eq_ignore_ascii_case(value))
+}
+
+fn match_visibility(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEntry>) {
+    let wanted =
+        cgg_core::frameworks::rules::visibility_entries_for(&rule.id, &rule.language);
+    if wanted.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        if !eq_any_ci(wanted, &node.visibility) {
+            continue;
+        }
+        out.push(FrameworkEntry {
+            framework: rule.id.clone(),
+            kind: rule.kind,
+            // The keyword is a marker on the definition, which is
+            // shape A even though no framework is involved.
+            shape: EntryShape::Attribute,
+            route: node.simple_name.clone(),
+            target: *id,
+            target_name: node.qualified_name.clone(),
+            evidence: format!("`{}` visibility", node.visibility),
+            file: node.file,
+            site_line: node.start_line,
+            node: rule.node,
+        });
+    }
+}
+
 /// **Shape F, self-identifying** — the file itself is what the framework
 /// enters, and it says so.
 ///
@@ -801,10 +1090,8 @@ fn match_self_modules(
     called_in_file: &HashSet<CallableId>,
     out: &mut Vec<FrameworkEntry>,
 ) {
-    let markers = cgg_core::frameworks::rules::self_module_markers_for(
-        &rule.id,
-        &rule.language,
-    );
+    let markers =
+        cgg_core::frameworks::rules::self_module_markers_for(&rule.id, &rule.language);
     if markers.is_empty() {
         return;
     }
@@ -853,7 +1140,10 @@ fn match_self_modules(
                 route: format!("module(\"{stem}\")"),
                 target: *id,
                 target_name: node.qualified_name.clone(),
-                evidence: format!("worker module: imports {} and uses `{marker}`", rule.language),
+                evidence: format!(
+                    "worker module: imports {} and uses `{marker}`",
+                    rule.language
+                ),
                 file: f.file,
                 site_line: 1,
                 node: rule.node,
@@ -882,9 +1172,10 @@ fn is_module_surface(
         return false;
     }
     if let Some(f) = facts.iter().find(|f| f.file == file)
-        && !f.exports.is_empty() {
-            return f.exports.iter().any(|e| e.name == node.simple_name);
-        }
+        && !f.exports.is_empty()
+    {
+        return f.exports.iter().any(|e| e.name == node.simple_name);
+    }
     !called_in_file.contains(&node.id)
 }
 
@@ -921,24 +1212,28 @@ fn decode_string_target(s: &str, language: &str) -> Option<(Option<String>, Stri
         return None;
     }
     if let Some((ctrl, action)) = s.split_once('#')
-        && language == "ruby" && is_identifierish(action) {
-            // Rails names controllers by convention: `photos#index` is
-            // `PhotosController#index`. Match on the action plus a
-            // controller whose name starts with the camelized segment,
-            // which the index resolves loosely.
-            let owner = camelize(ctrl.rsplit('/').next().unwrap_or(ctrl));
-            return Some((Some(format!("{owner}Controller")), action.to_string()));
-        }
+        && language == "ruby"
+        && is_identifierish(action)
+    {
+        // Rails names controllers by convention: `photos#index` is
+        // `PhotosController#index`. Match on the action plus a
+        // controller whose name starts with the camelized segment,
+        // which the index resolves loosely.
+        let owner = camelize(ctrl.rsplit('/').next().unwrap_or(ctrl));
+        return Some((Some(format!("{owner}Controller")), action.to_string()));
+    }
     if let Some((class, method)) = s.split_once('@')
-        && is_identifierish(method) {
-            let owner = class.rsplit('\\').next().unwrap_or(class);
-            return Some((Some(owner.to_string()), method.to_string()));
-        }
+        && is_identifierish(method)
+    {
+        let owner = class.rsplit('\\').next().unwrap_or(class);
+        return Some((Some(owner.to_string()), method.to_string()));
+    }
     if let Some((class, method)) = s.rsplit_once("::")
-        && is_identifierish(method) {
-            let owner = class.rsplit('\\').next().unwrap_or(class);
-            return Some((Some(owner.to_string()), method.to_string()));
-        }
+        && is_identifierish(method)
+    {
+        let owner = class.rsplit('\\').next().unwrap_or(class);
+        return Some((Some(owner.to_string()), method.to_string()));
+    }
     if is_identifierish(s) {
         return Some((None, s.to_string()));
     }
@@ -1030,9 +1325,10 @@ impl NameIndex {
         if let Some(ids) = self
             .by_owner_method
             .get(&(owner.to_string(), method.to_string()))
-            && let [id] = ids.as_slice() {
-                return Some(*id);
-            }
+            && let [id] = ids.as_slice()
+        {
+            return Some(*id);
+        }
         // Rails' convention pluralizes and suffixes, so an exact owner
         // match often fails where a suffix match succeeds. Only accept
         // it when exactly one owner matches — a near-miss must not
@@ -1053,10 +1349,7 @@ impl NameIndex {
 /// Whether two owner names are the same type modulo namespace and the
 /// `Controller` suffix Rails adds by convention.
 fn owner_is_close(declared: &str, wanted: &str) -> bool {
-    let d = declared
-        .rsplit([':', '.', '\\'])
-        .next()
-        .unwrap_or(declared);
+    let d = declared.rsplit([':', '.', '\\']).next().unwrap_or(declared);
     if d.eq_ignore_ascii_case(wanted) {
         return true;
     }
@@ -1117,6 +1410,55 @@ fn shape_rank(s: EntryShape) -> u8 {
 
 #[cfg(test)]
 mod tests {
+    /// The optimization guard: for every (path, prefix) pair, looking
+    /// the prefix up among `prefix_keys(path)` must give the same answer
+    /// as calling `import_matches` directly.
+    #[test]
+    fn prefix_index_agrees_with_import_matches() {
+        let paths = [
+            "flask",
+            "flask.views",
+            "org.springframework.web.bind.annotation",
+            "axum::routing::get",
+            "github.com/go-chi/chi/v5",
+            "node:worker_threads",
+            "@nestjs/schedule",
+            "package:flutter/material.dart",
+            "System.Web.Mvc",
+            "a",
+            "",
+        ];
+        let prefixes = [
+            "flask",
+            "flask.views",
+            "org",
+            "org.springframework",
+            "axum",
+            "github.com/go-chi/chi",
+            "node",
+            "node:worker_threads",
+            "@nestjs",
+            "package:flutter",
+            "System.Web",
+            "a",
+            "b",
+            "",
+            "org.springframework.web.bind.annotation",
+        ];
+        for p in paths {
+            let keys: Vec<&str> = prefix_keys(p).collect();
+            for pre in prefixes {
+                let want = import_matches(p, pre);
+                let got = keys.contains(&pre);
+                assert_eq!(
+                    want, got,
+                    "path {p:?} prefix {pre:?}: import_matches={want} \
+                     index={got} (keys {keys:?})"
+                );
+            }
+        }
+    }
+
     use super::*;
     use crate::deadcode::testutil::{graph_with, node};
     use cgg_core::frameworks::TrustKind;
@@ -1231,16 +1573,20 @@ mod tests {
 
     #[test]
     fn languages_with_no_rules_at_all_are_disclosed() {
-        let g = graph_with(vec![node(0, "m.f", "f", "fortran")]);
+        // Uses a language with no rule in the table. Fortran served here
+        // until it gained one; if this fails because `verilog` gains a
+        // rule, pick another language with none rather than weakening
+        // the assertion — the disclosure is the thing being tested.
+        let g = graph_with(vec![node(0, "top", "top", "verilog")]);
         let facts = vec![FileFacts::new(
             FileId::new(0),
-            PathBuf::from("m.f90"),
-            "fortran",
+            PathBuf::from("top.v"),
+            "verilog",
         )];
         let out = detect(&g, &facts, &[]);
         assert_eq!(out.coverage.no_markers.len(), 1);
-        assert_eq!(out.coverage.no_markers[0].language, "fortran");
-        assert!(out.coverage.render_text().contains("fortran"));
+        assert_eq!(out.coverage.no_markers[0].language, "verilog");
+        assert!(out.coverage.render_text().contains("verilog"));
     }
 
     #[test]
@@ -1515,18 +1861,14 @@ mod tests {
 
     #[test]
     fn a_cyclic_base_chain_terminates() {
-        let mut by_owner_a = vec!["B".to_string()];
-        let mut by_owner_b = vec!["A".to_string()];
-        let mut map: HashMap<&str, &Vec<String>> = HashMap::new();
-        map.insert("A", &by_owner_a);
-        map.insert("B", &by_owner_b);
+        let mut map: HashMap<String, Vec<String>> = HashMap::new();
+        map.insert("A".to_string(), vec!["B".to_string()]);
+        map.insert("B".to_string(), vec!["A".to_string()]);
         // Two classes naming each other: must return rather than spin.
         assert_eq!(
             find_in_base_chain(&["A".to_string()], &map, &["Nope".to_string()]),
             None
         );
-        by_owner_a.clear();
-        by_owner_b.clear();
     }
 
     #[test]

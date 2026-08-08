@@ -8,7 +8,14 @@ When this runs:
   - Safe to run by hand from the repo root any time:
     `python3 scripts/docs-check.py`
 
-Six checks:
+Seven checks:
+
+0. Benchmark-table coverage. `ENTRIES` in update-readme-stats.sh (which
+   writes the README's markdown benchmark table) must cover exactly the
+   languages in `REPOS` in benchmark.sh (which clones the corpus).
+   `ENTRIES` shipped five languages short of `REPOS`, so the README
+   table claimed to cover every supported language while omitting
+   smithy, proto, graphql, openapi and asyncapi.
 
 1. Language-count consistency. The number of `register(` calls in
    `crates/cgg-lang/src/plugins.rs` must equal:
@@ -105,6 +112,50 @@ def readme_lang_table_rows(readme: str) -> int:
     return sum(1 for line in body.splitlines() if line.startswith("|"))
 
 
+def _bash_array_rows(path: Path, name: str) -> list[str]:
+    text = path.read_text()
+    m = re.search(rf"{name}=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    if not m:
+        fail(f"could not locate {name}=( ... ) array in {path.name}")
+    return [
+        line.strip().strip('"')
+        for line in m.group(1).splitlines()
+        if line.strip().startswith('"')
+    ]
+
+
+def check_benchmark_table_languages() -> None:
+    """The README benchmark table must cover every benchmarked language.
+
+    Two scripts hold the corpus list: `REPOS` in benchmark.sh (which
+    clones and prints a terminal table) and `ENTRIES` in
+    update-readme-stats.sh (which writes the README's markdown table).
+    Nothing tied them together, and `ENTRIES` shipped five languages
+    short — smithy, proto, graphql, openapi and asyncapi each had a
+    cloned repository in the corpus and a row in benchmark.sh's output,
+    but never appeared in the table a reader actually sees. The README
+    claimed 44-language support above a table measuring 39 of them.
+    """
+    repos = _bash_array_rows(BENCH_SH, "REPOS")
+    entries = _bash_array_rows(REPO_ROOT / "scripts/update-readme-stats.sh", "ENTRIES")
+    # REPOS: name|url|lang|subdir|ctags_lang|ctags_kinds
+    # ENTRIES: display|name|lang|subdir
+    repo_langs = sorted(r.split("|")[2] for r in repos)
+    entry_langs = sorted(e.split("|")[2] for e in entries)
+    if repo_langs != entry_langs:
+        missing = sorted(set(repo_langs) - set(entry_langs))
+        extra = sorted(set(entry_langs) - set(repo_langs))
+        parts = []
+        if missing:
+            parts.append(f"benchmarked but absent from the README table: {', '.join(missing)}")
+        if extra:
+            parts.append(f"in the README table with no corpus repo: {', '.join(extra)}")
+        fail(
+            "scripts/benchmark.sh REPOS and scripts/update-readme-stats.sh "
+            "ENTRIES disagree — " + "; ".join(parts or ["counts differ"])
+        )
+
+
 def benchmark_repo_count() -> int:
     text = BENCH_SH.read_text()
     # benchmark.sh has lines like:  "name|lang|url|subdir"  inside REPOS=( ... )
@@ -188,8 +239,7 @@ def readme_flag_table_entries(readme: str) -> list[str]:
             continue
         first_col = line.split("|", 2)[1].strip()
         # First column entries look like `` `--filter` `` or `` `-t` ``.
-        for tok in re.findall(r"`([^`]+)`", first_col):
-            entries.append(tok)
+        entries.extend(re.findall(r"`([^`]+)`", first_col))
     return entries
 
 
@@ -363,7 +413,27 @@ def check_framework_apps() -> None:
     rules = REPO_ROOT / "crates/cgg-core/src/frameworks/rules.rs"
     if not rules.exists():
         return
-    ids = set(re.findall(r'id:\s*"([^"]+)"', rules.read_text()))
+    text_rs = rules.read_text()
+    # Only rules that claim to *enumerate* need an application behind
+    # them. A detect-only rule — no matchers, non-empty `gap` — asserts
+    # the opposite: that cgg sees the framework and cannot enumerate it.
+    # There is no enumeration to verify, so demanding an app would mean
+    # cloning a repository per entry in a table whose whole purpose is to
+    # be broad. scripts/framework-coverage.py reports which of these were
+    # never observed in the corpus, as information rather than failure.
+    ids: set[str] = set()
+    for block in re.split(r"(?=RuleSpec\s*\{)", text_rs):
+        m = re.search(r'id:\s*"([^"]+)"', block)
+        if not m:
+            continue
+        enumerates = any(
+            re.search(rf"{f}:\s*&\[", block)
+            for f in ("attributes", "registrars", "base_types", "methods")
+        )
+        gap = re.search(r'gap:\s*"([^"]*)"', block)
+        detect_only = not enumerates and gap and gap.group(1)
+        if not detect_only:
+            ids.add(m.group(1))
     if not ids:
         fail(f"could not parse any framework rule ids out of {rules}")
 
@@ -384,7 +454,18 @@ def check_framework_apps() -> None:
             # by scripts/framework-coverage.py, not here.
             claimed |= {f.lstrip("~") for f in parts[2].split(",") if f}
 
-    orphaned = sorted(ids - claimed)
+    # Rules explicitly declared to have no real-world application. The
+    # declaration is the point: it is greppable and reviewable, where a
+    # missing app is not.
+    unverified: set[str] = set()
+    mu = re.search(r"APPS_UNVERIFIED=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    if mu:
+        for line in mu.group(1).splitlines():
+            line = line.strip().strip('"')
+            if line and not line.startswith("#"):
+                unverified.add(line.split("|")[0])
+
+    orphaned = sorted(ids - claimed - unverified)
     if orphaned:
         fail(
             f"{len(orphaned)} framework rule(s) with no application in "
@@ -392,7 +473,8 @@ def check_framework_apps() -> None:
             f"that uses the framework, then verify with "
             f"scripts/framework-coverage.py"
         )
-    unknown = sorted(claimed - ids)
+    all_ids = set(re.findall(r'id:\s*"([^"]+)"', text_rs))
+    unknown = sorted((claimed | unverified) - all_ids)
     if unknown:
         fail(
             f"scripts/benchmark.sh APPS claims framework(s) with no rule in "
@@ -402,6 +484,7 @@ def check_framework_apps() -> None:
 
 def main() -> None:
     check_language_counts()
+    check_benchmark_table_languages()
     check_framework_apps()
     check_cli_flags()
     check_cli_synopsis()

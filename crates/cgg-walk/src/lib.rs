@@ -259,12 +259,13 @@ fn is_symlink_chain(p: &Path) -> bool {
 fn classify_file(path: &Path, cfg: &WalkConfig) -> Result<Option<Skip>> {
     let md = fs::metadata(path).with_context(|| format!("stat {}", path.display()))?;
     if let Some(max) = cfg.max_file_size
-        && md.len() > max {
-            return Ok(Some(Skip {
-                path: path.to_path_buf(),
-                reason: SkipReason::TooLarge,
-            }));
-        }
+        && md.len() > max
+    {
+        return Ok(Some(Skip {
+            path: path.to_path_buf(),
+            reason: SkipReason::TooLarge,
+        }));
+    }
     if is_binary(path)? {
         return Ok(Some(Skip {
             path: path.to_path_buf(),
@@ -290,9 +291,10 @@ fn is_binary(path: &Path) -> Result<bool> {
 fn builtin_reason(path: &Path) -> Option<SkipReason> {
     for comp in path.components() {
         if let Some(name) = comp.as_os_str().to_str()
-            && BUILTIN_DENY_DIRS.contains(&name) {
-                return Some(SkipReason::Builtin(name.to_string()));
-            }
+            && BUILTIN_DENY_DIRS.contains(&name)
+        {
+            return Some(SkipReason::Builtin(name.to_string()));
+        }
     }
     None
 }

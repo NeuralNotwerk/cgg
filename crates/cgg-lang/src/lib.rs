@@ -81,9 +81,30 @@ pub fn is_registrar_verb(verb: &str) -> bool {
     if verb.is_empty() {
         return false;
     }
-    if cgg_core::frameworks::rules::registrar_verbs()
-        .iter()
-        .any(|v| v.eq_ignore_ascii_case(verb))
+    // A set, not a linear scan. This runs once per call site in every
+    // file, and the verb list grew from ~30 to 157 as the rule table
+    // grew — which turned an already-hot gate into O(call sites x 157)
+    // string compares and showed up as a ~25% extraction regression.
+    static SET: std::sync::OnceLock<std::collections::HashSet<String>> =
+        std::sync::OnceLock::new();
+    let set = SET.get_or_init(|| {
+        cgg_core::frameworks::rules::registrar_verbs()
+            .iter()
+            .map(|v| v.to_ascii_lowercase())
+            .collect()
+    });
+    // This runs once per call site in every file, and the miss is the
+    // overwhelmingly common case — most calls are not registrations. So
+    // the miss path must not allocate: look up the borrowed string, and
+    // only build a lowercased copy when the verb actually contains an
+    // uppercase byte (Go's `GET`, NestJS's `Get`). An unconditional
+    // `to_ascii_lowercase()` here allocated once per call site and gave
+    // back everything the set lookup won.
+    if set.contains(verb) {
+        return true;
+    }
+    if verb.bytes().any(|b| b.is_ascii_uppercase())
+        && set.contains(&verb.to_ascii_lowercase())
     {
         return true;
     }
@@ -206,4 +227,3 @@ mod tests {
         assert_eq!(reg.all().len(), 44);
     }
 }
-

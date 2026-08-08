@@ -19,8 +19,7 @@ impl GraphFormatter for JsonFormatter {
     }
 
     fn render(&self, graph: &Graph, out: &mut dyn io::Write) -> io::Result<()> {
-        serde_json::to_writer_pretty(out, graph)
-            .map_err(io::Error::other)
+        serde_json::to_writer_pretty(out, graph).map_err(io::Error::other)
     }
 }
 

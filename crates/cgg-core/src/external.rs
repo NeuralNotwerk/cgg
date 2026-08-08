@@ -196,10 +196,7 @@ fn classify_one(
     let (rh_owned, name_owned);
     if call.receiver_hint.is_empty() {
         let n = call.name.as_str();
-        if let Some(idx) = n
-            .rfind(['.', ':'])
-            .filter(|&i| i > 0 && i < n.len() - 1)
-        {
+        if let Some(idx) = n.rfind(['.', ':']).filter(|&i| i > 0 && i < n.len() - 1) {
             rh_owned = n[..idx].to_string();
             name_owned = n[idx + 1..].to_string();
         } else {
@@ -242,9 +239,10 @@ fn classify_one(
             //     (`import typing as t` → check `typing`).
             if let Some(a) = aliases
                 && let Some(resolved) = a.import_aliases.get(rh)
-                    && module_is_stdlib(resolved, std) {
-                        return Verdict::Stdlib;
-                    }
+                && module_is_stdlib(resolved, std)
+            {
+                return Verdict::Stdlib;
+            }
         }
         if rh.is_empty() {
             // (c) Bare call whose name is in stdlib AND the project does
@@ -265,9 +263,10 @@ fn classify_one(
             //     rule applies even when the project also defines `name`.
             if let Some(a) = aliases
                 && let Some(source) = a.from_imports.get(name)
-                    && module_is_stdlib(source, std) {
-                        return Verdict::Stdlib;
-                    }
+                && module_is_stdlib(source, std)
+            {
+                return Verdict::Stdlib;
+            }
         } else if !is_self_receiver && std.contains(name) {
             // (e) Method whose name is in the stdlib manifest, called on
             //     some receiver `rh`. We classify as stdlib only when

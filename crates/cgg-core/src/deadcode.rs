@@ -843,11 +843,13 @@ mod tests {
 
     #[test]
     fn evidence_sorts_caveats_before_corroboration() {
-        let mut ev = [Evidence::PrivateVisibility {
+        let mut ev = [
+            Evidence::PrivateVisibility {
                 token: "pub".into(),
             },
             Evidence::NoIncomingEdges,
-            Evidence::LanguageLacksVisibility];
+            Evidence::LanguageLacksVisibility,
+        ];
         ev.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
         assert_eq!(ev[0].slug(), "language-lacks-visibility");
         assert_eq!(ev[1].slug(), "no-incoming-edges");

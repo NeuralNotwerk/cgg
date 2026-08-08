@@ -15,6 +15,7 @@ fn via_slug(via: &Via) -> &'static str {
         Via::External => "external",
         Via::Stdlib => "stdlib",
         Via::Ffi(_) => "ffi",
+        Via::Descriptor(_) => "descriptor",
         Via::FrameworkEntry(_) => "framework-entry",
     }
 }

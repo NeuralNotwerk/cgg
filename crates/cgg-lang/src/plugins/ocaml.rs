@@ -96,10 +96,11 @@ impl<'a> OcamlWalker<'a> {
         // module Name = struct ... end
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && child.kind() == "module_name" {
-                    self.module = self.text(child).to_string();
-                    break;
-                }
+                && child.kind() == "module_name"
+            {
+                self.module = self.text(child).to_string();
+                break;
+            }
         }
     }
 
@@ -107,19 +108,20 @@ impl<'a> OcamlWalker<'a> {
         // open Module
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && (child.kind() == "module_path" || child.kind() == "module_name") {
-                    let module_name = self.text(child).to_string();
-                    if !module_name.is_empty() {
-                        self.facts.imports.push(ImportRecord {
-                            kind: "open".to_string(),
-                            path: module_name,
-                            alias: String::new(),
-                            site_line: (node.start_position().row as u32) + 1,
-                            site_byte: node.start_byte() as u32,
-                        });
-                    }
-                    break;
+                && (child.kind() == "module_path" || child.kind() == "module_name")
+            {
+                let module_name = self.text(child).to_string();
+                if !module_name.is_empty() {
+                    self.facts.imports.push(ImportRecord {
+                        kind: "open".to_string(),
+                        path: module_name,
+                        alias: String::new(),
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
                 }
+                break;
+            }
         }
     }
 
@@ -129,10 +131,11 @@ impl<'a> OcamlWalker<'a> {
 
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && (child.kind() == "value_name" || child.kind() == "identifier") {
-                    name = self.text(child).to_string();
-                    break;
-                }
+                && (child.kind() == "value_name" || child.kind() == "identifier")
+            {
+                name = self.text(child).to_string();
+                break;
+            }
         }
 
         if name.is_empty() {
@@ -165,18 +168,18 @@ impl<'a> OcamlWalker<'a> {
             && (func_node.kind() == "value_name"
                 || func_node.kind() == "value_path"
                 || func_node.kind() == "identifier")
-            {
-                let name = self.text(func_node).to_string();
-                if !name.is_empty() {
-                    self.facts.references.push(RefRecord {
-                        name,
-                        receiver_hint: String::new(),
-                        site_line: (node.start_position().row as u32) + 1,
-                        site_byte: node.start_byte() as u32,
-                        ..Default::default()
-                    });
-                }
+        {
+            let name = self.text(func_node).to_string();
+            if !name.is_empty() {
+                self.facts.references.push(RefRecord {
+                    name,
+                    receiver_hint: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                    ..Default::default()
+                });
             }
+        }
     }
 }
 

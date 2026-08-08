@@ -105,6 +105,15 @@ const CLOSURE_KINDS: &[&str] = &[
     "lambda_literal",
 ];
 
+/// Second-to-last segment of a dotted path: `views.SiteView.as_view`
+/// -> `SiteView`.
+fn qualifier_of(path: &str) -> Option<&str> {
+    let cut = path.rfind(['.', ':', '>'])?;
+    let head = path[..cut].trim_end_matches([':', '-', '.', '>']);
+    let seg = last_segment(head);
+    (!seg.is_empty()).then_some(seg)
+}
+
 /// How far to follow a chain of handler wrappers before giving up.
 const MAX_WRAPPER_DEPTH: u8 = 3;
 
@@ -158,10 +167,7 @@ pub(crate) fn last_segment(path: &str) -> &str {
         .rfind("::")
         .map(|i| i + 2)
         .into_iter()
-        .chain(
-            p.rfind(['.', '/', '>', '\\'])
-                .map(|i| i + 1),
-        )
+        .chain(p.rfind(['.', '/', '>', '\\']).map(|i| i + 1))
         .max();
     match cut {
         Some(i) if i < p.len() => &p[i..],
@@ -289,10 +295,11 @@ fn class_method_pair(node: Node, source: &[u8]) -> Option<(String, String)> {
         if (n.kind() == "class_constant_access_expression"
             || n.kind() == "scoped_property_access_expression")
             && let Ok(t) = n.utf8_text(source)
-                && let Some(base) = t.trim().strip_suffix("::class") {
-                    *class_name = Some(last_segment(base.trim()).to_string());
-                    return;
-                }
+            && let Some(base) = t.trim().strip_suffix("::class")
+        {
+            *class_name = Some(last_segment(base.trim()).to_string());
+            return;
+        }
         if let Some(s) = string_within(n, source) {
             if method.is_none() {
                 *method = Some(s);
@@ -381,6 +388,7 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
     if !crate::is_registrar_verb(last_segment(context)) {
         return out;
     }
+    let _s = cgg_core::profile::span("extract::registrar-capture");
     let Some(args) = arguments_of(call) else {
         return out;
     };
@@ -425,6 +433,82 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
     out
 }
 
+/// Value references in the argument slots of an *ordinary* call.
+///
+/// [`capture`] is gated to verbs some framework rule could match,
+/// because computing a route and scanning strings for every call in a
+/// tree was measured as the whole of a 74% slowdown on TypeORM. But a
+/// function passed as a value is not a framework concern:
+/// `callback=_validate_key` in a click decorator,
+/// `event.listen(cls, "before_update", cls._updated_at)`,
+/// `staticmethod(_lazy_sha1)`, `synonym(descriptor=property(_get, _set))`.
+/// No rule registers those verbs, yet each reference is the only thing
+/// keeping its target alive. Measured across flask, httpie, black,
+/// flaskbb and dispatch, their absence produced 28 of 45 false
+/// positives in the dead-code top band.
+///
+/// So this pass runs ungated but does strictly less than [`capture`]:
+/// no route, no string references, value references only. Strings are
+/// both what made the registrar path expensive and what makes it
+/// framework-specific; a bare identifier in argument position is
+/// neither.
+pub(crate) fn capture_value_refs(
+    call: Node,
+    source: &[u8],
+    context: &str,
+) -> Vec<RefRecord> {
+    // Registrar verbs already went through `capture`, which emits a
+    // superset of this. Running both would duplicate every record.
+    if crate::is_registrar_verb(last_segment(context)) {
+        return Vec::new();
+    }
+    let Some(args) = arguments_of(call) else {
+        return Vec::new();
+    };
+
+    let mut out = Vec::new();
+    let mut cursor = args.walk();
+    for arg in args.named_children(&mut cursor) {
+        // A string in an ordinary call is data, not a handler name.
+        // Only the framework rules can tell `'photos#index'` from a
+        // log message, and they are not consulted here.
+        if string_within(arg, source).is_some() {
+            continue;
+        }
+        let line = (arg.start_position().row as u32) + 1;
+        collect_value_refs(arg, source, context, "", line, &mut out, 0);
+    }
+    // `collect_value_refs` still mints string refs from inside
+    // containers (`[C::class, 'method']`). Those belong to the gated
+    // path; drop them so this pass cannot manufacture a routing claim.
+    out.retain(|r| r.receiver_hint == VALUE_REF_HINT);
+    out
+}
+
+/// Value references in a single value position that is not an argument
+/// slot — the right-hand side of an assignment, most often.
+///
+/// A dispatch table (`DAEMONIZED_TASKS = {'check_status': _check_status}`),
+/// a class-level filter map (`_FILTERS = {Post: _post_clause}`) or a
+/// plain alias (`__setitem__ = _fail`) names its targets somewhere
+/// [`capture_value_refs`] never looks, because no call encloses them.
+/// Measured on flaskbb, httpie, black and flask these were 6 of the
+/// remaining dead-code false positives.
+///
+/// The caller decides which nodes are value positions; passing a call
+/// node here would double-count the callee.
+pub(crate) fn capture_value_position(
+    node: Node,
+    source: &[u8],
+    context: &str,
+) -> Vec<RefRecord> {
+    let mut out = Vec::new();
+    let line = (node.start_position().row as u32) + 1;
+    collect_value_refs(node, source, context, "", line, &mut out, 0);
+    out.retain(|r| r.receiver_hint == VALUE_REF_HINT);
+    out
+}
+
 /// Pull every callable-shaped name out of one argument slot.
 ///
 /// Recurses into nested calls and array/hash literals so `get(handler)`
@@ -456,6 +540,11 @@ fn collect_value_refs(
             | "array"
             | "list"
             | "pair"
+            // Python's dict/set literals. A dispatch table is the
+            // commonest way to name a handler without calling it:
+            // `{'check_status': _check_status}`.
+            | "dictionary"
+            | "set"
             | "hash"
             | "keyword_argument"
             | "tuple"
@@ -503,7 +592,15 @@ fn collect_value_refs(
     // nothing is what distinguishes `ToHandlerFunc` (a wrapper, to be
     // skipped) from `ctrl.Handle` (the target).
     if is_kind(arg, CALL_KINDS) {
-        if depth >= MAX_WRAPPER_DEPTH {
+        // Only inside a call that carries a route. A registrar verb on
+        // its own proves nothing: Django's ORM is `Model.objects.get(...)`
+        // and `.filter(...)`, and `get`/`filter` are route verbs too, so
+        // an ungated descent walked every ORM call in the tree. On netbox
+        // that produced ~95,000 references that bound to nothing. A
+        // wrapped handler always sits beside the path it is registered
+        // at, so requiring the route costs no real case and removes the
+        // false ones.
+        if route.is_empty() || depth >= MAX_WRAPPER_DEPTH {
             return;
         }
         let callee = callee_of(arg)
@@ -528,6 +625,31 @@ fn collect_value_refs(
                 context: context.to_string(),
                 route: route.to_string(),
             });
+            // `SiteView.as_view()` is a class adapter: the callable the
+            // framework ends up invoking is a *method of the qualifier*,
+            // not `as_view` itself, and cgg has no node for a type to
+            // point at. Emit the qualifier too and let the rule engine
+            // try it as an owner.
+            //
+            // Only when the registration carries a route. Without that
+            // gate this fires on every wrapped call in the tree: on
+            // `black` it emitted ~2,400 module-level references that
+            // bound to nothing, inflating the unresolved-call count from
+            // 575 to 3,009 and costing ~25% of the run. A qualifier is
+            // only ever useful when there is a route to attach its
+            // handler to.
+            if !route.is_empty()
+                && let Some(owner) = qualifier_of(&callee)
+            {
+                out.push(RefRecord {
+                    name: owner.to_string(),
+                    receiver_hint: VALUE_REF_HINT.to_string(),
+                    site_line: line,
+                    site_byte: arg.start_byte() as u32,
+                    context: context.to_string(),
+                    route: route.to_string(),
+                });
+            }
         }
         return;
     }

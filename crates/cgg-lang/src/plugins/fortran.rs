@@ -100,10 +100,11 @@ impl<'a> FortranWalker<'a> {
         // Find the name child
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && child.kind() == "name" {
-                    self.module = self.text(child).to_string();
-                    break;
-                }
+                && child.kind() == "name"
+            {
+                self.module = self.text(child).to_string();
+                break;
+            }
         }
     }
 
@@ -112,17 +113,18 @@ impl<'a> FortranWalker<'a> {
         // Find the name child
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32)
-                && matches!(child.kind(), "name" | "module_name") {
-                    let module_name = self.text(child).to_string();
-                    self.facts.imports.push(ImportRecord {
-                        kind: "use".to_string(),
-                        path: module_name,
-                        alias: String::new(),
-                        site_line: (node.start_position().row as u32) + 1,
-                        site_byte: node.start_byte() as u32,
-                    });
-                    break;
-                }
+                && matches!(child.kind(), "name" | "module_name")
+            {
+                let module_name = self.text(child).to_string();
+                self.facts.imports.push(ImportRecord {
+                    kind: "use".to_string(),
+                    path: module_name,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+                break;
+            }
         }
     }
 

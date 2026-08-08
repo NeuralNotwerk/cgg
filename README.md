@@ -98,7 +98,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--why-live PATTERN]... [--fail-on-dead]
               [--include-external] [--include-stdlib]
               [--dynamic-dispatch] [--reference-edges]
-              [--no-entry-nodes] [--framework-coverage]
+              [--no-entry-nodes] [--framework-coverage] [--profile]
               [--jobs N] [--lang rust,python,...]
               [--audit-format json|jsonl] [--metrics FILE]
               [-v|-vv|-q]
@@ -128,7 +128,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--ignore-attributes` | — | Suppress findings by attribute/decorator pattern. Repeatable |
 | `--why-live` | — | Print the shortest path from a root proving a callable is live |
 | `--fail-on-dead` | off | Exit 3 when the report is non-empty |
-| `--jobs` | 0 (auto) | Rayon thread count for parallel extraction |
+| `--jobs` | 0 (auto = half the physical cores, capped at 8) | Worker thread count. The default is deliberately conservative so cgg is a good guest on a shared host; on a large tree `--jobs 32` is roughly twice as fast. Parsing, extraction, type propagation, intra-file linking, cross-file resolution, framework matching and audit serialisation all run in parallel. The graph is identical at any thread count — `mermaid`, `dot` and `graphml` output is byte-identical; `-t json` and the audit sidecar embed per-file parse timings, so those two differ byte-wise between *any* two runs, same thread count or not |
 | `--lang` | (all) | Comma-separated language filter |
 | `--include-external` | off | Surface third-party calls as deduplicated leaf "exit nodes" (edges tagged `ext`) |
 | `--include-stdlib` | off | Surface standard-library calls as deduplicated leaf "exit nodes" (edges tagged `std`) |
@@ -136,6 +136,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--no-entry-nodes` | off | Suppress synthesized `<framework-entry>` nodes. **Entry nodes are ON by default** |
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
+| `--profile` | off | Per-phase timing breakdown. Compiled out of release builds; use a debug build |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 | `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
@@ -171,6 +172,22 @@ source files
     ▼
 mermaid flowchart (or json/dot/graphml)
 ```
+
+### Dependencies
+
+cgg uses **`mimalloc`** as its global allocator (MIT; `libmimalloc-sys`
+bundles C source compiled at build time). It is why parallel scaling pays
+past four cores — the system allocator serialised under extraction's
+allocation load. Building from source already required a C toolchain for
+the vendored Smithy grammar, so this adds no new build requirement, and
+it pulls in nothing at runtime. Two details worth stating outright: the
+build takes **mimalloc v3.3.2** (upstream's recommended line — selected
+by leaving the `v2` feature off), and the `override` feature is **off**,
+so mimalloc serves only Rust's `Global` and the 44 tree-sitter C parsers
+that handle untrusted input keep glibc's hardened allocator.
+
+The full dependency tree is **178 packages** (`cargo metadata`),
+every one permissively licensed — see [License](#license).
 
 Every analysis phase is offline and deterministic — no network calls, no
 language servers, no build artifacts. cgg makes **no network requests at
@@ -329,7 +346,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1659 callables, 3652 edges, 1161 cross-file, 240ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1771 callables, 4085 edges, 1419 cross-file, 161ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a <!-- markdownlint-disable-line MD013 -->
 real cross-crate function call:
 
 ```bash
@@ -340,175 +357,198 @@ cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
 ```mermaid
 flowchart LR
   C2["cgg_walk::walk"]
-  C91["cgg::cgg"]
-  C93["cgg::run"]
-  C94["cgg::shape_a_python_flask_route_is_a_network_entry"]
-  C95["cgg::shape_a_java_spring_mapping_keeps_its_route"]
-  C96["cgg::shape_a_csharp_attribute_is_captured"]
-  C97["cgg::shape_a_php_symfony_attribute_is_captured"]
-  C98["cgg::shape_b_express_named_handler_binds_to_its_route"]
-  C99["cgg::shape_b_go_router_verb_matches_case_insensitively"]
-  C100["cgg::shape_c_anonymous_handler_still_gets_its_route_named"]
-  C101["cgg::ordinary_callbacks_do_not_mint_synthesized_handlers"]
-  C102["cgg::shape_d_torch_module_marks_a_root_without_minting_a_node"]
-  C103["cgg::shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity"]
-  C104["cgg::shape_e_rails_string_routing_reaches_the_controller_action"]
-  C105["cgg::shape_e_laravel_supports_both_the_string_and_the_array_form"]
-  C106["cgg::shape_f_worker_module_path_rescues_a_whole_file"]
-  C107["cgg::shape_f_cuda_kernel_is_an_entry_despite_the_unparsable_launch"]
-  C108["cgg::coverage_names_a_framework_it_cannot_enumerate"]
-  C109["cgg::coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap"]
-  C110["cgg::coverage_discloses_languages_with_no_rules_at_all"]
-  C111["cgg::the_taint_caveat_rides_with_every_network_entry"]
-  C112["cgg::an_undetected_framework_contributes_nothing"]
-  C113["cgg::no_entry_nodes_restores_the_previous_default_graph"]
-  C115["cgg::a_user_rule_covers_a_framework_cgg_does_not_ship"]
-  C163["cgg::query::apply_query"]
-  C164["cgg::query::apply_exclusions"]
-  C185["cgg::since::resolve_since"]
-  C205["cgg::deadcode::report::render_text"]
-  C217["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C219["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C227["cgg::main"]
-  C229["cgg::run"]
-  C230["cgg::langs_enabled"]
-  C231["cgg::run_dead_code"]
-  C236["cgg::run_why_live"]
-  C237["cgg::since_seeds"]
-  C238["cgg::count_lines"]
-  C239["cgg::read_file"]
-  C240["cgg::variant_to_kind"]
-  C242["cgg::synthesize_exit_nodes"]
-  C243["cgg::synthesize_entry_nodes"]
-  C244["cgg::trait_impl_target_from_qn"]
-  C245["cgg::dedup_edges"]
-  C247["cgg::emit_graph"]
-  C249["cgg::emit_audit"]
-  C258["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C259["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C1184["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C1185["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C1186["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1191["cgg_lang::set_deadcode_signals"]
-  C1193["cgg_lang::set_extra_registrar_verbs"]
-  C1205["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1210["cgg_lang::notebook::extract_python_source"]
-  C1252["cgg_resolve::dispatch::fanout"]
-  C1264["cgg_resolve::frameworks::detect"]
-  C1317["cgg_resolve::type_hints::build_return_type_map"]
-  C1318["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C1334["cgg_resolve::ffi::link_ffi"]
-  C1488["cgg_resolve::cross_file::resolve"]
-  C1500["cgg_resolve::intra_file::link_file"]
-  C1588["cgg_core::frameworks::FrameworkCoverage::render_text"]
-  C1623["cgg_core::external::FileAliases::from_facts"]
-  C1624["cgg_core::external::classify_external"]
-  C1627["cgg_core::external::build_known_names"]
-  C1641["cgg_core::testfile::classify_test_file"]
-  C1650["cgg_core::graph::Graph::new"]
-  C1651["cgg_core::graph::Graph::add_callable"]
-  C1652["cgg_core::graph::Graph::add_file"]
-  C1653["cgg_core::graph::Graph::add_edge"]
-  C93 --> C91
-  C94 --> C93
-  C95 --> C93
-  C96 --> C93
-  C97 --> C93
-  C98 --> C93
-  C99 --> C93
-  C100 --> C93
-  C101 --> C93
-  C102 --> C93
-  C103 --> C93
-  C104 --> C93
-  C105 --> C93
-  C106 --> C93
-  C107 --> C93
-  C108 --> C93
-  C109 --> C93
-  C110 --> C93
-  C111 --> C93
-  C112 --> C93
-  C113 -->|2x| C93
-  C115 --> C93
-  C227 --> C229
-  C229 --> C230
-  C229 --> C239
-  C229 --> C238
-  C229 --> C240
-  C229 --> C244
-  C229 --> C242
-  C229 --> C243
-  C229 --> C245
-  C229 --> C237
-  C229 --> C236
-  C229 -->|2x| C249
-  C229 --> C231
-  C229 --> C247
-  C1185 --> C1185
-  C94 --> C229
-  C95 --> C229
-  C96 --> C229
-  C97 --> C229
-  C98 --> C229
-  C99 --> C229
-  C100 --> C229
-  C101 --> C229
-  C102 --> C229
-  C103 --> C229
-  C104 --> C229
-  C105 --> C229
-  C106 --> C229
-  C107 --> C229
-  C108 --> C229
-  C109 --> C229
-  C110 --> C229
-  C111 --> C229
-  C112 --> C229
-  C113 -->|2x| C229
-  C115 --> C229
-  C163 --> C1650
-  C227 --> C93
-  C229 --> C1191
-  C229 --> C219
-  C229 --> C217
-  C229 --> C1193
-  C229 --> C2
-  C229 --> C1205
-  C229 --> C258
-  C229 --> C1184
-  C229 --> C1650
-  C229 --> C259
-  C229 --> C1210
-  C229 --> C1185
-  C229 --> C1186
-  C229 --> C1641
-  C229 --> C1652
-  C229 --> C1651
-  C229 --> C1317
-  C229 --> C1318
-  C229 --> C1627
-  C229 --> C1500
-  C229 --> C1623
-  C229 --> C1624
-  C229 --> C1488
-  C229 --> C1334
-  C229 --> C1264
-  C229 --> C1252
-  C229 --> C1653
-  C229 --> C185
-  C229 --> C163
-  C229 --> C164
-  C229 --> C205
-  C229 --> C1588
-  C231 --> C1205
-  C231 -->|2x| C205
-  C242 -->|2x| C1652
-  C242 --> C1651
-  C242 --> C1653
-  C243 --> C1652
-  C243 --> C1651
-  C243 --> C1653
+  C108["cgg::cgg"]
+  C110["cgg::run"]
+  C111["cgg::shape_a_python_flask_route_is_a_network_entry"]
+  C112["cgg::shape_a_java_spring_mapping_keeps_its_route"]
+  C113["cgg::shape_a_csharp_attribute_is_captured"]
+  C114["cgg::shape_a_php_symfony_attribute_is_captured"]
+  C115["cgg::shape_b_express_named_handler_binds_to_its_route"]
+  C116["cgg::shape_b_go_router_verb_matches_case_insensitively"]
+  C117["cgg::shape_c_anonymous_handler_still_gets_its_route_named"]
+  C118["cgg::ordinary_callbacks_do_not_mint_synthesized_handlers"]
+  C119["cgg::shape_d_torch_module_marks_a_root_without_minting_a_node"]
+  C120["cgg::shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity"]
+  C121["cgg::shape_e_rails_string_routing_reaches_the_controller_action"]
+  C122["cgg::shape_e_laravel_supports_both_the_string_and_the_array_form"]
+  C123["cgg::shape_f_worker_module_path_rescues_a_whole_file"]
+  C124["cgg::shape_f_cuda_kernel_is_an_entry_despite_the_unparsable_launch"]
+  C125["cgg::coverage_names_a_framework_it_cannot_enumerate"]
+  C126["cgg::coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap"]
+  C127["cgg::coverage_discloses_languages_with_no_rules_at_all"]
+  C128["cgg::the_taint_caveat_rides_with_every_network_entry"]
+  C129["cgg::an_undetected_framework_contributes_nothing"]
+  C130["cgg::no_entry_nodes_restores_the_previous_default_graph"]
+  C132["cgg::a_user_rule_covers_a_framework_cgg_does_not_ship"]
+  C134["cgg::solidity_visibility_is_the_trust_boundary"]
+  C135["cgg::rust_ffi_exports_are_entries_from_outside_the_tree"]
+  C136["cgg::django_as_view_binds_to_the_classes_http_methods"]
+  C137["cgg::drf_router_register_binds_the_viewsets_actions"]
+  C138["cgg::a_proto_rpc_links_to_its_go_implementation"]
+  C139["cgg::a_bare_method_name_does_not_link_a_descriptor"]
+  C186["cgg::query::apply_query"]
+  C187["cgg::query::apply_exclusions"]
+  C208["cgg::since::resolve_since"]
+  C240["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  C242["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  C250["cgg::main"]
+  C252["cgg::run"]
+  C253["cgg::langs_enabled"]
+  C254["cgg::run_dead_code"]
+  C259["cgg::run_why_live"]
+  C260["cgg::since_seeds"]
+  C261["cgg::count_lines"]
+  C262["cgg::read_file"]
+  C263["cgg::variant_to_kind"]
+  C265["cgg::synthesize_exit_nodes"]
+  C266["cgg::synthesize_entry_nodes"]
+  C267["cgg::trait_impl_target_from_qn"]
+  C268["cgg::dedup_edges"]
+  C270["cgg::emit_graph"]
+  C272["cgg::emit_audit"]
+  C281["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C282["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C1257["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C1258["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C1259["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1264["cgg_lang::set_deadcode_signals"]
+  C1266["cgg_lang::set_extra_registrar_verbs"]
+  C1278["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1283["cgg_lang::notebook::extract_python_source"]
+  C1325["cgg_resolve::dispatch::fanout"]
+  C1337["cgg_resolve::frameworks::detect"]
+  C1397["cgg_resolve::type_hints::build_return_type_map"]
+  C1398["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C1415["cgg_resolve::ffi::link_ffi"]
+  C1569["cgg_resolve::cross_file::resolve"]
+  C1583["cgg_resolve::descriptor::link_descriptors"]
+  C1590["cgg_resolve::intra_file::link_file"]
+  C1717["cgg_core::external::FileAliases::from_facts"]
+  C1718["cgg_core::external::classify_external"]
+  C1721["cgg_core::external::build_known_names"]
+  C1735["cgg_core::testfile::classify_test_file"]
+  C1744["cgg_core::graph::Graph::new"]
+  C1745["cgg_core::graph::Graph::add_callable"]
+  C1746["cgg_core::graph::Graph::add_file"]
+  C1747["cgg_core::graph::Graph::add_edge"]
+  C1755["cgg_core::profile::enable"]
+  C1758["cgg_core::profile::span"]
+  C1765["cgg_core::cpu::default_jobs"]
+  C110 --> C108
+  C111 --> C110
+  C112 --> C110
+  C113 --> C110
+  C114 --> C110
+  C115 --> C110
+  C116 --> C110
+  C117 --> C110
+  C118 --> C110
+  C119 --> C110
+  C120 --> C110
+  C121 --> C110
+  C122 --> C110
+  C123 --> C110
+  C124 --> C110
+  C125 --> C110
+  C126 --> C110
+  C127 --> C110
+  C128 --> C110
+  C129 --> C110
+  C130 -->|2x| C110
+  C132 --> C110
+  C134 --> C110
+  C135 --> C110
+  C136 --> C110
+  C137 --> C110
+  C138 --> C110
+  C139 --> C110
+  C250 --> C252
+  C252 --> C253
+  C252 --> C262
+  C252 --> C261
+  C252 --> C263
+  C252 --> C267
+  C252 --> C265
+  C252 --> C266
+  C252 --> C268
+  C252 --> C260
+  C252 --> C259
+  C252 -->|2x| C272
+  C252 --> C254
+  C252 --> C270
+  C1258 --> C1258
+  C111 --> C252
+  C112 --> C252
+  C113 --> C252
+  C114 --> C252
+  C115 --> C252
+  C116 --> C252
+  C117 --> C252
+  C118 --> C252
+  C119 --> C252
+  C120 --> C252
+  C121 --> C252
+  C122 --> C252
+  C123 --> C252
+  C124 --> C252
+  C125 --> C252
+  C126 --> C252
+  C127 --> C252
+  C128 --> C252
+  C129 --> C252
+  C130 -->|2x| C252
+  C132 --> C252
+  C134 --> C252
+  C135 --> C252
+  C136 --> C252
+  C137 --> C252
+  C138 --> C252
+  C139 --> C252
+  C186 --> C1744
+  C250 --> C110
+  C252 --> C1264
+  C252 --> C242
+  C252 --> C240
+  C252 --> C1266
+  C252 --> C1755
+  C252 --> C2
+  C252 --> C1278
+  C252 --> C281
+  C252 --> C1257
+  C252 --> C1744
+  C252 --> C1765
+  C252 --> C282
+  C252 --> C1283
+  C252 -->|18x| C1758
+  C252 --> C1258
+  C252 --> C1259
+  C252 --> C1735
+  C252 --> C1746
+  C252 --> C1745
+  C252 --> C1397
+  C252 --> C1398
+  C252 --> C1721
+  C252 --> C1590
+  C252 --> C1717
+  C252 --> C1718
+  C252 --> C1569
+  C252 --> C1415
+  C252 --> C1583
+  C252 --> C1337
+  C252 --> C1325
+  C252 --> C1747
+  C252 --> C208
+  C252 --> C186
+  C252 --> C187
+  C254 --> C1278
+  C265 -->|2x| C1746
+  C265 --> C1745
+  C265 --> C1747
+  C266 --> C1746
+  C266 --> C1745
+  C266 --> C1747
+  C1337 -->|9x| C1758
+  C1569 -->|2x| C1758
 ```
 <!-- cgg:end:self -->
 
@@ -771,11 +811,11 @@ therefore exercise nothing:
 
 | app | framework | entries found |
 | --- | --- | --- |
-| [NetBox](https://github.com/netbox-community/netbox) | Django | 128 `network` · 22 `cli` |
+| [NetBox](https://github.com/netbox-community/netbox) | Django | 338 `network` · 22 `cli` |
 | [Netflix Dispatch](https://github.com/Netflix/dispatch) | FastAPI | 318 `network` · 38 `cli` |
-| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 199 `network` · 109 `queue` |
+| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 191 `network` · 109 `queue` |
 | [mall](https://github.com/macrozheng/mall) | Spring Boot | 250 `network` · 1 `schedule` |
-| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 44 `network` |
+| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 43 `network` |
 | [crates.io](https://github.com/rust-lang/crates.io) | Axum | 70 `network` |
 | [Ultralytics](https://github.com/ultralytics/ultralytics) | PyTorch | 159 `lifecycle` (root-marked, no nodes) |
 
@@ -852,55 +892,60 @@ jq '.[] | select(.event=="file_analyzed") | .unresolved_calls[]?' out.mmd.audit.
 
 ## Benchmark
 
-Run `./scripts/benchmark.sh` to reproduce on real-world projects:
+One repository per language plugin. `./scripts/benchmark.sh` clones the
+corpus and prints its own (wider) terminal table; the markdown table
+below is regenerated from the same corpus by
+`./scripts/update-readme-stats.sh`. **`Time` is single-shot wall clock on
+one machine** — it is a scale cue, not a benchmark result, and it moves
+with whatever else that machine is doing.
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 | ------- | -------- | --------- | ----- | ---------- | ---- |
-| ripgrep | rust | 2,771 | 6,984 | 55% | 339ms |
-| flask | python | 391 | 290 | 38% | 43ms |
+| ripgrep | rust | 2,771 | 6,984 | 55% | 208ms |
+| flask | python | 391 | 290 | 38% | 35ms |
 | express | javascript | 94 | 115 | 17% | 17ms |
-| zod | typescript | 1,795 | 2,539 | 66% | 250ms |
-| fzf | go | 1,056 | 6,046 | 57% | 171ms |
-| gson | java | 942 | 1,939 | 65% | 67ms |
-| okio | kotlin | 3,716 | 21,453 | 90% | 221ms |
-| jq | c | 1,077 | 21,639 | 92% | 101ms |
-| nlohmann/json | cpp | 1,182 | 2,247 | 58% | 87ms |
-| serilog | csharp | 824 | 446 | 67% | 83ms |
-| acme.sh | bash | 1,437 | 3,907 | 0% | 149ms |
-| jekyll | ruby | 902 | 1,246 | 63% | 63ms |
-| laravel | php | 13,740 | 4,392 | 84% | 2789ms |
-| AFNetworking | objc | 299 | 96 | 5% | 54ms |
-| ggplot2 | r | 946 | 419 | 3% | 85ms |
-| Alamofire | swift | 829 | 758 | 38% | 60ms |
-| kong | lua | 2,782 | 3,190 | 28% | 1264ms |
-| flame | dart | 1,591 | 9 | 0% | 510ms |
-| play | scala | 1,997 | 1,466 | 43% | 231ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 83ms |
-| http.zig | zig | 486 | 784 | 51% | 77ms |
-| gradle | groovy | 1,290 | 1,573 | 71% | 399ms |
-| Flux.jl | julia | 252 | 207 | 0% | 28ms |
-| mojolicious | perl | 1,127 | 689 | 0% | 96ms |
-| phoenix | elixir | 1,558 | 1,723 | 25% | 83ms |
-| otp/stdlib | erlang | 17,271 | 12,751 | 28% | 575ms |
-| stdlib | fortran | 335 | 190 | 8% | 64ms |
-| ring | clojure | 209 | 220 | 11% | 36ms |
-| pandoc | haskell | 21,115 | 19,917 | 53% | 1387ms |
-| dune | ocaml | 21,224 | 12,072 | 44% | 1308ms |
-| PowerShellGet | powershell | 62 | 23 | 0% | 50ms |
-| openzeppelin-contracts | solidity | 2,753 | 2,796 | 56% | 338ms |
-| Paket | fsharp | 1,865 | 4,663 | 49% | 301ms |
-| bazel-skylib | starlark | 93 | 44 | 0% | 19ms |
-| CMake/Modules | cmake | 946 | 866 | 9% | 3725ms |
-| home-manager | nix | 1,072 | 1,158 | 30% | 320ms |
-| picorv32 | verilog | 79 | 84 | 0% | 124ms |
-| UVVM | vhdl | 1,036 | 0 | — | 170ms |
-| xv6 | asm | 22 | 4 | 0% | 22ms |
-| xv6 (c+asm) | c,asm | 491 | 2,092 | 83% | 32ms |
-| smithy (protocol tests) | smithy | 827 | 1,683 | 58% | 94ms |
-| grpc-proto | proto | 220 | 347 | 35% | 23ms |
-| octokit/graphql-schema | graphql | 1,623 | 5,722 | 0% | 165ms |
-| OpenAPI-Specification | openapi | 132 | 347 | 3% | 41ms |
-| asyncapi/spec | asyncapi | 279 | 557 | 37% | 26ms |
+| zod | typescript | 1,795 | 2,539 | 66% | 212ms |
+| fzf | go | 1,056 | 6,046 | 57% | 151ms |
+| gson | java | 942 | 1,939 | 65% | 50ms |
+| okio | kotlin | 3,716 | 21,453 | 90% | 160ms |
+| jq | c | 1,077 | 21,639 | 92% | 82ms |
+| nlohmann/json | cpp | 1,182 | 2,247 | 58% | 107ms |
+| serilog | csharp | 824 | 446 | 67% | 59ms |
+| acme.sh | bash | 1,437 | 3,907 | 0% | 142ms |
+| jekyll | ruby | 902 | 1,246 | 63% | 43ms |
+| laravel | php | 13,828 | 4,392 | 84% | 571ms |
+| AFNetworking | objc | 299 | 96 | 5% | 56ms |
+| ggplot2 | r | 946 | 419 | 3% | 93ms |
+| Alamofire | swift | 829 | 758 | 38% | 53ms |
+| kong | lua | 2,782 | 3,215 | 28% | 267ms |
+| flame | dart | 1,591 | 9 | 0% | 133ms |
+| play | scala | 1,997 | 1,466 | 43% | 199ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 81ms |
+| http.zig | zig | 486 | 784 | 51% | 54ms |
+| gradle | groovy | 1,290 | 1,573 | 71% | 350ms |
+| Flux.jl | julia | 490 | 218 | 2% | 30ms |
+| mojolicious | perl | 1,130 | 2,041 | 58% | 104ms |
+| phoenix | elixir | 1,595 | 1,776 | 27% | 62ms |
+| otp/stdlib | erlang | 17,271 | 12,751 | 28% | 324ms |
+| stdlib | fortran | 335 | 190 | 8% | 66ms |
+| ring | clojure | 209 | 220 | 11% | 19ms |
+| pandoc | haskell | 21,115 | 19,917 | 53% | 443ms |
+| dune | ocaml | 21,224 | 12,072 | 44% | 438ms |
+| PowerShellGet | powershell | 62 | 23 | 0% | 51ms |
+| openzeppelin-contracts | solidity | 3,183 | 3,814 | 68% | 114ms |
+| Paket | fsharp | 1,865 | 4,663 | 49% | 228ms |
+| bazel-skylib | starlark | 93 | 44 | 0% | 15ms |
+| CMake/Modules | cmake | 946 | 866 | 9% | 711ms |
+| home-manager | nix | 1,072 | 1,158 | 30% | 214ms |
+| picorv32 | verilog | 79 | 84 | 0% | 212ms |
+| UVVM | vhdl | 1,036 | 0 | — | 188ms |
+| xv6 | asm | 22 | 4 | 0% | 19ms |
+| xv6 (c+asm) | c,asm | 491 | 2,087 | 83% | 37ms |
+| smithy/protocol-tests | smithy | 827 | 1,683 | 58% | 97ms |
+| grpc-proto | proto | 269 | 347 | 35% | 18ms |
+| graphql-schema | graphql | 1,623 | 5,722 | 0% | 167ms |
+| OpenAPI-Specification | openapi | 132 | 347 | 3% | 25ms |
+| asyncapi/spec | asyncapi | 279 | 557 | 37% | 21ms |
 
 ## Dead code
 
@@ -1026,7 +1071,7 @@ know](#adding-a-framework-cgg-does-not-know).
   where to look, never to conclude something is exploitable.
 - Dead-code signal coverage is very uneven across languages. `visibility` is
   extracted for 7 of 44 plugins, real attributes for 9, and value-reference
-  capture for 9. Every report prints a per-language capability table so a "no"
+  capture for 11. Every report prints a per-language capability table so a "no"
   column is visible before the findings are.
 
 ## Potential future improvements
@@ -1045,7 +1090,7 @@ flight.
   resolver and output machinery are language-agnostic, but the
   per-plugin capture still needs porting to the other interface-bearing
   plugins. (Function-as-value capture now covers python, javascript,
-  typescript, go, java, csharp, php, ruby and rust.)
+  typescript, go, java, csharp, php, ruby, rust, elixir and perl.)
 - **File-system-routed frameworks.** Next.js and Blazor put the route in
   the file layout or in markup cgg does not parse, so both are detected
   and reported as gaps rather than enumerated. Closing this means
@@ -1072,7 +1117,7 @@ One crate, `r-efi` (a UEFI-target transitive dependency), offers
 `MIT OR Apache-2.0 OR LGPL-2.1-or-later` — a disjunction, so the
 operative license is MIT or Apache-2.0 and never the LGPL option. That
 string is the only copyleft identifier anywhere in the dependency tree
-(`cargo metadata` over all 176 packages); `Cargo.lock` itself records no
+(`cargo metadata` over all 178 packages); `Cargo.lock` itself records no
 license fields at all, so the lockfile is not where this is checked.
 
 The allow-list `cargo-deny` actually enforces is in `deny.toml` and is

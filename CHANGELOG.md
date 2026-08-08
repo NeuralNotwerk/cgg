@@ -5,6 +5,294 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.5.0] - 2026-08-07
+
+Two releases in one. The framework rule table went from 51 rules to 394
+across 36 languages, and then the tool was taught to use the machine it
+runs on. **Whole-corpus latency fell from 3,202s to 205s.**
+
+### Performance
+
+0.4.2 → 0.5.0, measured on the **shipped default worker count** — which
+is what you actually get, not a tuned best case:
+
+| repo | 0.4.2 | 0.5.0 default | 0.5.0 `--jobs 32` |
+| --- | --- | --- | --- |
+| app-druid-jaxrs | 143.7 s | **18.6 s** (7.7×) | 8.0 s (18×) |
+| c-redis | 41.4 s | **7.9 s** (5.2×) | 2.6 s (15.7×) |
+| rust-ripgrep | 0.53 s | **0.27 s** (2.0×) | 0.40 s |
+| app-django-netbox | 4.07 s | **3.58 s** | 3.74 s |
+| python-flask | 0.18 s | **0.13 s** | 0.16 s |
+
+**Two numbers, on purpose.** The default is deliberately conservative —
+half the physical cores, capped at 8 — so cgg is a good guest on a shared
+host. On a large tree more workers genuinely help, and `--jobs 32`
+roughly doubles the default again. Small repositories are *faster* at
+the default, where thread-spawn cost dominates.
+
+The corpus-wide figure below was measured before that cap existed, at one
+worker per logical CPU. It is the ceiling the parallelism reaches, not
+what an untuned run produces:
+
+**Whole corpus: 3,202 s → 205 s (−93.6%)** over 103 repositories, 100 of
+them comparable. 73 of 100 repositories are more than 5% faster. **None
+is more than 10% slower in absolute terms** — the 9 that show a
+percentage regression are
+all sub-200ms runs where a few milliseconds of process startup dominates.
+
+**`zig-zig` could not be analysed at all before this release.** It
+exceeded a 1,800-second timeout on 0.4.2 and now completes in 498s,
+producing 344,807 callables. That is a capability change, not a speed
+one, and it is why the raw corpus node and finding totals jump: excluding
+that one repository, nodes move +8,107 and dead-code findings move
+**−9,146**. `dart-flutter` and `erlang-otp` still exceed 1,800s on both
+releases and are excluded from every total here.
+
+Standard 9-repo comparison set:
+
+| repo | latency | nodes | edges | entry | dead |
+| --- | --- | --- | --- | --- | --- |
+| rust-ripgrep | 399→249 ms | 2,906 | 7,106 | 0 | 1,429→1,420 |
+| python-flask | 158→118 ms | 1,732→1,736 | 1,744→1,752 | 444→452 | 174→131 |
+| js-express | 102→75 ms | 546→548 | 393 | 0 | 65→66 |
+| go-fzf | 263→229 ms | 1,615 | 10,291 | 0 | 131 |
+| c-jq | 123→130 ms | 1,119 | 21,724 | 0 | 425→424 |
+| cpp-spdlog | 350→315 ms | 1,357 | 11,412 | 0 | 809 |
+| csharp-serilog | 118→121 ms | 1,689 | 1,864 | 0 | 663→658 |
+| swift-alamofire | 414→313 ms | 2,538 | 6,737 | 0 | 946→826 |
+| cpp-nlohmann-json | 911→788 ms | 5,567 | 7,075 | 0 | 2,109→2,105 |
+| **TOTAL** | **2,839→2,339 ms** | **19,069→19,075** | **68,346→68,354** | **444→452** | **6,751→6,570** |
+
+Reproduce with `scripts/compare-release.py OLD_BIN NEW_BIN`. Note that
+`--jobs 1` is the setting for numbers being published; the default runs
+repositories concurrently, which is sound for an A/B delta but not for an
+absolute latency claim.
+
+### Parallelism
+
+cgg parallelised exactly one phase before this release — the per-file
+parse loop — and everything after it ran on one core. On Druid that was
+110% CPU on a 64-core machine for 150 seconds.
+
+Five phases now run in parallel, each verified to produce a
+**byte-identical graph** at any thread count:
+
+- **Cross-file resolution.** The single biggest win, and the reason Druid
+  went from 150s to 8s. A 637-line per-file loop that read shared indexes
+  and wrote only its own output.
+- **Intra-file linking and type propagation.** Per-file and independent.
+- **Framework matching**, fanned out across rules once the per-language
+  indexes are hoisted out of the loop.
+- **Audit serialisation** — 569ms of a Druid run spent on one core
+  serialising JSON. Output is byte-identical to `to_writer_pretty`.
+
+**The allocator was the ceiling.** Thread scaling stopped paying after
+four cores, and the profiler showed why: the *same work* cost 6.8s of CPU
+at `--jobs 4` and 10.6s at `--jobs 64` — 56% more CPU to produce
+identical output. That is the system allocator serialising under
+extraction's load, which allocates a `String` per name, per reference,
+per qualified path, on every worker at once. **cgg now uses `mimalloc`
+as its global allocator**; on its own that took Druid from 138s to 106s.
+
+Two ordinary inefficiencies turned up in the same pass and are worth
+naming because neither needed parallelism to fix: `known_refs` was
+rebuilt **once per file** from identical data (1,273 files × ~10,000
+names on netbox), and each file's audit record was located by linear
+scan, making that step O(files²).
+
+### Added: `--profile`
+
+`RunMetrics::phases` records four coarse buckets. That stopped being
+enough once "link" grew a type propagator, a cross-file resolver, an FFI
+linker, a descriptor linker, a framework engine with six matchers and a
+dead-code pass — a 25% regression inside that bucket is invisible from
+outside it.
+
+`--profile` prints a per-span breakdown. It is **compiled out of release
+builds**: `span()` is `#[cfg]`-reduced to a constant `None`, so there is
+no atomic load, no clock read and no branch to argue about. The numbers
+this project publishes are measured on release binaries, and a profiler
+that *could* perturb them is a profiler that makes those numbers
+arguable. Debug builds collect by default. For release-speed numbers with
+attribution, build with `RUSTFLAGS="-C debug-assertions=on"`.
+
+Spans accumulate into per-thread-cached atomics rather than a locked map.
+The first version used a global mutex and reported 263% CPU on a run the
+plain binary did at 212% — it was measuring the contention it caused.
+
+### Framework coverage: 45 → 343 frameworks, 12 → 36 languages
+
+The rule table went from 51 to 394 `(id, language)` rules.
+
+**The failure this fixes is silence.** An unrecognised framework
+previously produced *no coverage line at all* — a real aiohttp app with
+two routes reported `recognised (none)` and `seen, no rules (none)`, so
+the disclosure pointed the reader at an empty list. Most of the new rules
+are deliberately **detect-only**: they enumerate nothing and carry a
+`gap` string naming the concrete construct to inspect by hand. A rule
+that enumerates badly is worse than one that declines and says why.
+
+Six detection gaps that were defects are closed, each traced to a
+specific real-world idiom:
+
+| framework | what was missed |
+| --- | --- |
+| `actix-actor` | `rust.rs` never populated `base_types`, so no base-type rule could fire on Rust at all |
+| `chi` | handlers wrapped in `chain.ToHandlerFunc(...)` |
+| `sinatra` | `get "/x" do … end` — Ruby hangs the block off the call's `block` field, never the argument list |
+| `worker-threads` | worker modules that identify *themselves* rather than being named at a literal spawn path |
+| `spring-messaging` | Spring AMQP puts `@RabbitListener` on the class and `@RabbitHandler` on the method |
+| `nestjs-schedule` | nothing — the rule was correct; the corpus app scheduled via `SchedulerRegistry` |
+
+New trust boundaries: **`TrustKind::Public`** for Solidity, where the
+language *is* the framework — every `public`/`external` function is
+callable by any address on the chain. 1,495 entries on OpenZeppelin, and
+dead-code false positives there fell 37%. **`TrustKind::Ffi`** is now
+produced, for `#[no_mangle]`/PyO3/wasm-bindgen exports.
+
+**Descriptor → implementation linking** (`Via::Descriptor`). cgg parses
+`.proto` and the languages that implement it, so it can now link
+`service Greeter { rpc SayHello }` to the Go method serving it — an edge
+neither file references. `.proto` rpcs became callables to make this
+possible. The match requires the implementing type to *name the service*:
+method name alone matches `Get` everywhere, and a missing edge is a gap
+while a wrong edge is a lie about where control goes.
+
+### Fixed: two nondeterminism defects, one of them shipped in 0.4.2
+
+> **Read this section even if you skip the rest.** cgg's central claim is
+> that the same input yields the same graph. Two code paths broke that,
+> and **one of them is in the released 0.4.2 binary**. Neither produced a
+> wrong edge *set* — only a varying edge or node *order* — which is
+> precisely why they survived: a spot check passes, and only a byte-diff
+> of two runs shows it.
+
+- **`--dead-code` produced a different graph on every run, on any
+  codebase with traits.** `--dead-code` force-enables
+  `--dynamic-dispatch`, and `dispatch::fanout` iterated a `HashMap` to
+  emit its declaration→implementation edges. Rust's `RandomState`
+  reseeds per process, so the fan-out edges came out in a different order
+  each time. Four runs over cgg's own source produced four different
+  graphs. **This is present in 0.4.2 and every release that had
+  `--dynamic-dispatch`.** If you diffed dead-code output between runs and
+  saw churn, this was why. Fixed by sorting the keys.
+- **`-n 0 --max-paths N` produced a different graph on every run when the
+  cap truncated.** Entry points were walked in `HashMap` order, so *which*
+  paths survived the cap varied. Node counts swung 7–9 across four runs of
+  the same command. Without truncation the result was identical either
+  way, which is why it hid. Fixed by sorting the entry set.
+
+Both are now covered by `crates/cgg/tests/determinism.rs`, and both tests
+were verified to *fail* against the unfixed code — a regression test that
+has never seen the bug it guards is a guess.
+
+**The determinism test that shipped alongside the parallelism work did
+not catch either of these**, because its fixture had no trait with
+multiple implementations and never triggered path truncation. That is the
+more useful lesson than the bugs themselves: a green determinism suite is
+only evidence for the shapes it actually exercises.
+
+### Fixed: four plugin bugs that silently disabled whole languages
+
+> **Read this section.** Each of these made a language's framework
+> detection impossible, with no error and no warning — the coverage table
+> simply reported nothing and looked correct doing it.
+
+- **Lua recorded every `require` as the literal string `"("`.**
+  `arguments.child(0)` returns the `(` token; it needed `named_child(0)`.
+  Kong now detects across 744 files where it previously detected none,
+  and Lua cross-file resolution gains real edges.
+- **C and C++ ignored system includes entirely.** Only quoted includes
+  were recorded, so `#include <gtest/gtest.h>` produced nothing and no
+  C/C++ rule keyed on a system header could fire. System includes are now
+  recorded under a distinct `system-include` kind, so the cross-file
+  resolver still correctly ignores them.
+- **Erlang recorded only `-import(...)`.** `-behaviour(gen_server)` — the
+  only way Erlang declares an OTP contract — was invisible.
+- **`FrameworkRule::has_matchers()` omitted `methods`.** Any methods-only
+  rule (the structural-typing escape hatch that exists precisely for Go
+  interfaces and Elixir OTP behaviours) filed itself under "seen, no
+  rules" no matter how many entries it minted — a rule reporting a gap it
+  did not have. Elixir went 0 → 359 entries on a real Phoenix app.
+
+Registrar capture was added to the Elixir, Perl and Clojure plugins,
+which had none: Phoenix's router now enumerates 151 routes on Plausible,
+and Mojolicious 283 on its own tree. Lua was assessed and deliberately
+**not** changed — its two rules are declared-gap rules, so capture there
+would have had no consumer.
+
+### Added: verification that the table cannot rot
+
+- **`tests/detect_prefixes.rs`** synthesises, for every rule, a file
+  importing that rule's own first `detect` prefix, and asserts the rule
+  fires. A rule whose prefix does not match how the language actually
+  writes that import is worse than no rule, because the coverage table
+  then implies the framework was considered and found absent. This test
+  found the Lua, C/C++ and Erlang bugs above.
+- **`tests/determinism.rs`** asserts the graph is identical at 1, 2, 8
+  and 32 threads. It compares *structure*, not bytes: the JSON and audit
+  documents embed per-run timings, so a naive hash comparison reports
+  nondeterminism that is not there.
+- **`scripts/sync-app-manifest.py`** derives the corpus manifest from
+  measurement rather than by hand, and **`APPS_UNVERIFIED`** in
+  `benchmark.sh` states out loud which rules no real application
+  exercises, with a reason each.
+
+### Changed
+
+#### Dependency disclosure: `mimalloc`
+
+**cgg takes a new dependency in this release** — the first since
+`b2afced` removed the update check and every network dependency. Stated
+plainly because a dependency added for speed is still a dependency:
+
+| | |
+| --- | --- |
+| crate | `mimalloc` 0.1.52 → `libmimalloc-sys` 0.1.49 |
+| licence | **MIT** (both), already on `deny.toml`'s permissive allow-list |
+| what it is | Microsoft's general-purpose allocator, set as cgg's `#[global_allocator]` |
+| ships C | yes — `libmimalloc-sys` bundles mimalloc's C source and compiles it at build time via `cc` |
+| new transitive deps | none. `cc` 1.2.62 was already in `Cargo.lock` |
+| generation | **mimalloc v3.3.2** — upstream's recommended line, not the v2 "stable" line. Selected by leaving the `v2` feature off; every number above was measured on v3. Take `features = ["v2"]` for the conservative choice |
+| features | none. `override` is **off**, which matters: mimalloc serves only Rust's `Global`, so the 44 tree-sitter C parsers that handle untrusted input keep glibc's hardened allocator |
+
+**It does not change cgg's build requirements.** 45 crates in the graph
+already required `cc` — every tree-sitter grammar, plus
+`crates/cgg-lang/build.rs` compiling a vendored `parser.c` for the Smithy
+grammar — and `skills/cgg-install/SKILL.md` already documents the C
+toolchain check. A from-source install without a C compiler was already
+broken before 0.5.0. Cost measured: +4.3s on a clean release build, and a
+416 KB static library. Nothing changes at runtime; cgg still makes no
+network requests.
+
+**One advisory exists and does not apply.** RUSTSEC-2022-0094
+(`unsound`, bad alignment) is patched in mimalloc >= 0.1.39; the pin is
+0.1.52. `cargo deny check` passes all four checks — advisories, bans,
+licenses, sources.
+
+What it buys: thread scaling stopped paying past four cores because the
+system allocator serialised under extraction's allocation load. mimalloc
+alone took Druid from 138s to 106s, and is a substantial part of the
+overall 15× speedup.
+
+If you would rather not ship it, removing the `#[global_allocator]`
+attribute in `crates/cgg/src/main.rs` and the two `Cargo.toml` entries
+restores the previous allocator; everything else in this release stands
+without it.
+
+#### Other changes
+
+- `--profile` is a new flag (see above).
+- `scripts/compare-release.py` and `scripts/sync-app-manifest.py` are new
+  release tooling.
+
+### Compatibility
+
+The default graph grows, as it only ever does: +8,107 nodes and +20,581
+edges across the corpus, excluding the repository that previously timed
+out. Dead-code findings *fall* by 9,146 — the new entry points give
+previously-unreferenced handlers a caller.
+
 ## [0.4.2] - 2026-08-06
 
 One real application per framework, and every detection gap that was a

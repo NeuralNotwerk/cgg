@@ -292,12 +292,30 @@ impl<'a> CppWalker<'a> {
         let Some(path_node) = node.child_by_field_name("path") else {
             return;
         };
-        if path_node.kind() == "string_literal" || path_node.kind() == "string_content" {
+        let kind = path_node.kind();
+        if kind == "string_literal" || kind == "string_content" {
             let raw = self.text(path_node);
             let path = raw.trim_matches('"').to_string();
             if !path.is_empty() {
                 self.facts.imports.push(ImportRecord {
                     kind: "include".into(),
+                    path,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+            }
+        } else if kind == "system_lib_string" {
+            // A system include (`<gtest/gtest.h>`) names no file in the
+            // tree, so it stays out of the `include` kind the cross-file
+            // resolver follows. It is still the only evidence that a
+            // library is in use, and framework detection needs it —
+            // without this no C/C++ rule keyed on a system header could
+            // ever fire. A distinct kind keeps the two consumers apart.
+            let path = self.text(path_node).trim_matches(['<', '>']).to_string();
+            if !path.is_empty() {
+                self.facts.imports.push(ImportRecord {
+                    kind: "system-include".into(),
                     path,
                     alias: String::new(),
                     site_line: (node.start_position().row as u32) + 1,
@@ -450,11 +468,21 @@ public:
 
     #[test]
     fn include_directive_captured() {
-        let src = "#include \"base.h\"\n#include <vector>\nvoid f() {}\n";
+        let src = "#include \"helpers.h\"\n#include <stdio.h>\nvoid f() {}\n";
         let f = extract(src);
-        assert_eq!(f.imports.len(), 1);
-        assert_eq!(f.imports[0].kind, "include");
-        assert_eq!(f.imports[0].path, "base.h");
+        // Both forms are recorded, under different kinds. Only the quoted
+        // one names a file in the tree, so only it is an `include` the
+        // cross-file resolver follows; the system one is the sole
+        // evidence a library is in use and framework detection needs it.
+        assert_eq!(f.imports.len(), 2);
+        let quoted = f.imports.iter().find(|i| i.kind == "include").unwrap();
+        assert_eq!(quoted.path, "helpers.h");
+        let sys = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "system-include")
+            .expect("system include recorded");
+        assert_eq!(sys.path, "stdio.h");
     }
 }
 
