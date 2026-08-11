@@ -22,74 +22,59 @@ ever grows in default mode — see *Compatibility* below).
   Verified to fire on the 0.6.1 wheel.
 
 
-### Performance — the 0.6.0 regression, diagnosed
+### Performance — the "0.6.0 regression" was one atypical repository
 
-No fix yet. What follows corrects the cause 0.6.0 guessed at, so the next
-attempt does not start from the wrong place.
+**There is no corpus-wide regression.** Paired A/B over 29 repositories,
+both binaries run back to back within each trial:
 
-**It is lost parallelism, not extra work.** Measured on `c-jq` with
-`/usr/bin/time -v`, medians of 7, binaries alternated:
+| | |
+| --- | --- |
+| median per-repo delta | **+0.0%** |
+| total wall across all 29 | +2.7% |
+| within ±5% | 18 of 29 |
+| **faster** | **10 of 29** |
+| worse than +10% | 2 |
 
-| `--jobs` | 0.5.0 wall | 0.6.x wall | 0.5.0 CPU | 0.6.x CPU |
-| --- | --- | --- | --- | --- |
-| 1 | 290 ms | **270 ms** | 300 ms | **260 ms** |
-| 2 | 200 ms | 250 ms | 300 ms | 290 ms |
-| 4 | 170 ms | 230 ms | 330 ms | 330 ms |
-| 8 | 120 ms | 160 ms | 370 ms | 410 ms |
+Only `c-jq` regresses in every paired trial. Its magnitude is unstable
+between sessions (+23% to +45%), and `cpp-nlohmann-json`, which looked
+like a second case at +9.5% in one run, came back +0.0% in another — it
+was noise.
 
-At `--jobs 4` the CPU time is **identical** and the wall time is 35%
-worse. At `--jobs 1`, 0.6.x is *faster* on both. The work got cheaper; the
-scheduling got worse.
+**Where the earlier "+4-6.8%" came from.** `scripts/perf-compare.sh` uses
+a fixed 9-repo set that contains `c-jq`, so one anomalous repository
+carried a ninth of the weight of the headline number. Two earlier entries
+in this file reported that as a real, corpus-wide regression. It was not.
 
-**"Identical CPU, worse wall" does not by itself prove that** — a busier
-machine produces the same signature, since descheduled threads cost wall
-time and no CPU time. So it was re-run as a paired A/B: both binaries
-measured back to back inside each of 15 trials, per-trial differences
-reported rather than aggregate medians.
+**It is not the C grammar.** No tree-sitter crate changed between v0.5.0
+and now — 44 of them, all identical versions; the 0.26 upgrade predates
+0.5.0 and is inside both binaries. And `c-redis` is 13 MB of C across 950
+files and is unaffected (−1.6%).
 
-| `--jobs` | trials 0.6.x slower | paired median | involuntary ctx switches |
+**What makes `c-jq` different is its shape, not its language:**
+
+| repo | analyzed files | biggest file | top 8 files |
 | --- | --- | --- | --- |
-| 1 | **0 / 15** | −20 ms (faster) | 3 vs 2 |
-| 4 | **15 / 15** | +60 ms (+40…+90) | 4 vs 2 |
-| 8 | **15 / 15** | +30 ms (+10…+50) | 2 vs 3 |
+| c-jq | 69 | 22% of bytes | 63% |
+| c-redis | 950 | 5.1% | 20.7% |
+| cpp-spdlog | 157 | 14.2% | 48.3% |
 
-External load would scatter those differences around zero. Instead every
-trial agrees and the sign **reverses** at one thread — load does not know
-how many workers were requested. Independently: involuntary context
-switches, which count the scheduler preempting the process because
-something else wanted the CPU, are 2-4 everywhere for both binaries. A
-machine stealing time would show them in the hundreds.
+69 work items across 8 workers, one of them a fifth of the total work, so
+wall time is the critical path of a single file. That is long-tail load
+imbalance, and it amplifies any change in how work is scheduled. The
+0.6.x per-call pool does schedule slightly differently — `install` runs
+the driver on a pool worker where 0.5.0 drove from the main thread — but
+on any tree without that skew the difference does not survive the noise.
 
-**0.6.0 blamed `ExtractCtx`. That was wrong.** Threading the extraction
-switches replaced an atomic load with a field read, which is why
-single-threaded got faster. It cannot explain a regression that only
-appears with more than one worker and costs no extra CPU.
+**Consequence: this is not worth optimising the pipeline for.** The thing
+to fix, if anything, is the load imbalance itself — splitting or ordering
+large files so one item cannot dominate a phase — which would help every
+skewed repository rather than reverting a change that exists to make
+`--jobs` work on the second call.
 
-**The cause is `ThreadPool::install(whole_pipeline)`**, which runs the
-driver *on* a pool worker instead of on the calling thread. 0.5.0 drove
-from the main thread because its pool was global. Rebuilding 0.6.1 with
-`build_global` recovers most of it — +8-12% against 0.5.0 rather than
-+33-35% — but that is exactly the global pool whose one-shot
-initialisation made `--jobs` silently ignored after the first call, so it
-cannot simply be reverted.
-
-Scaling confirms the shape: `install` at `2N` threads matches
-`build_global` at `N`. Achieved speedup at `--jobs 8` is 3.17x for 0.5.0
-against 2.56x for `install`.
-
-**A tried and rejected fix:** keeping the driver on the calling thread and
-wrapping each of the five parallel regions in `pool.install` individually.
-That is *worse* — +39-50% against 0.5.0 — because the repeated handoffs
-cost more than the single one they replace. Recorded so nobody spends the
-afternoon on it twice.
-
-**Workaround today:** pass roughly double the threads. `--jobs 16` on this
-64-core box performs like 0.5.0's `--jobs 8`.
-
-Note for anyone re-measuring: the whole-corpus figure is +4-6.8%, not
-+33%. `c-jq` is the worst case, chosen here because a large effect is
-easier to attribute. Machine load moves these numbers several points, so
-compare on an idle box.
+Recorded because it was diagnosed wrongly twice: first blamed on the
+`ExtractCtx` threading, then correctly narrowed to the pool but wrongly
+reported as corpus-wide. Both earlier claims came from measuring one
+repository, or a repo set weighted towards it.
 
 ## [0.6.1] - 2026-08-11
 
@@ -203,10 +188,9 @@ over the standard 9-repo set: **2258 ms → 2260 ms, +0.1%** — far inside
 the ~1–1.5% noise floor. Expected: the leak fix changes where the strings
 are freed, not how many are allocated.
 
-The +4–6.8% regression 0.6.0 introduced against 0.5.0 is unchanged by
-this and is still open. (Its cause was later re-measured — it is the
-per-call pool's `install`, not the `ExtractCtx` threading. See the
-Unreleased entry.)
+The "+4–6.8% regression" reported against 0.5.0 was later re-measured
+across 29 repositories and is **not corpus-wide** — median per-repo delta
+is +0.0% and 10 of 29 are faster. See the 0.6.2 entry.
 
 ## [0.6.0] - 2026-08-11
 
@@ -299,11 +283,13 @@ cost buys nothing in output — it is the price of the correctness fixes
 above. `parse` CPU rises ~7% while wall time rises more, so the loss is mostly
 parallel efficiency rather than extra work.
 
-> **This entry's attribution was wrong.** It blamed the `ExtractCtx`
-> threading on a bisect run against a loaded machine. Re-measured on a
-> quieter one, the cause is `ThreadPool::install` running the driver on a
-> pool worker, and `ExtractCtx` is if anything a small *win*. See the
-> Unreleased entry for the corrected analysis.
+> **This entry is wrong twice over.** It blamed the `ExtractCtx`
+> threading, and it reported a corpus-wide regression. Neither holds: a
+> 29-repository paired comparison puts the median per-repo delta at
+> +0.0%, with 10 repositories faster, and the only consistently slower
+> one is `c-jq` — whose file-size skew makes it uniquely sensitive to
+> scheduling. The table below is a 9-repo set containing it. See the
+> 0.6.2 entry.
 
 **Recovering this is open follow-up work.** It is a deliberate trade for
 now: the globals it replaced made a second analysis in one process return
