@@ -1,17 +1,49 @@
+# Build output.
 /target
 **/*.rs.bk
 Cargo.lock.tmp
-.DS_Store
-*.swp
+
+# Nested build trees. Agent worktrees and any hand-made worktree carry
+# their own `target/`, which `/target` (anchored at the repo root) does
+# not cover. Without these, a worktree under the repo leaks a few GB of
+# object files into `git status`.
+**/target/
+/worktrees/
+/.worktrees/
 
 # Local agent state — track only the shared bits.
-# `.claude/skills/` and `.kiro/skills/` are checked in so repo-scoped
-# skills (docs-sync, etc.) travel with the codebase. Per-user state
-# (settings.local.json, etc.) stays local.
+#
+# `.claude/*` excludes the *contents* of the directory rather than the
+# directory itself, which is what makes the re-includes below work: git
+# will not descend into an excluded directory, so `.claude/` (with the
+# trailing slash and no star) would make `!.claude/skills/` silently
+# dead and drop the repo-scoped skills from version control.
+#
+# Tracked: `skills/` (docs-sync, push — they travel with the codebase)
+# and `settings.json` (shared project config, if one is ever added).
+# Untracked: `settings.local.json`, `worktrees/`, and anything else
+# personal to one machine.
 .claude/*
 !.claude/skills/
+!.claude/settings.json
 .kiro/*
 !.kiro/skills/
+!.kiro/settings.json
+
+# Editor and OS state.
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+*.orig
+*.rej
+
+# Local environment. `.env` can hold credentials; none of it is
+# reproducible from the repo.
+.env
+.envrc
+.direnv/
 
 # Planning / analysis docs written during a working session. These are
 # working notes, not part of the published contract — the README and
@@ -20,13 +52,21 @@ Cargo.lock.tmp
 /*_plan.md
 /*-plan.md
 
-# Python bytecode from scripts/
+# Python tooling caches.
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
 # Python extension build products.
+#
+# The compiled module is scoped to where maturin puts it rather than a
+# bare `*.so`: an unanchored rule would also swallow a vendored grammar
+# or a test fixture anywhere in the tree, silently, and this repo already
+# vendors parser sources under `crates/cgg-lang/vendor/`.
+/crates/cgg-py/python/cgg/*.so
+/crates/cgg-py/python/cgg/*.pyd
+/crates/cgg-py/python/cgg/*.dylib
 /dist/
-*.so
 *.egg-info/
 .venv/
-/framework_coverage_plan.md

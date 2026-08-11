@@ -5,7 +5,7 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.6.0] - 2026-08-11
 
 The pipeline is a library, and there is a Python module on top of it.
 
@@ -104,6 +104,29 @@ mostly parallel efficiency rather than extra work.
 now: the globals it replaced made a second analysis in one process return
 wrong answers, and correctness at 4% is a better default than speed that
 silently lies.
+
+### Compatibility
+
+**No change to the CLI.** Every flag, every output format, every exit
+code and the stdout/stderr interleaving are what 0.5.0 produced, verified
+byte-for-byte on `./crates` and on the 9-repo comparison corpus. The
+default graph does not grow: this release adds no resolver and no rule.
+
+**`cgg-lang` has a breaking API change.** `LanguagePlugin::extract` takes
+`&ExtractCtx` as its first argument, and `set_deadcode_signals`,
+`deadcode_signals`, `set_extra_registrar_verbs` and `is_registrar_verb`
+are gone from the crate root — `ExtractCtx::is_registrar_verb` replaces
+the last. All 44 in-tree plugins are updated. An out-of-tree plugin must
+add the parameter; `ExtractCtx::plain()` is the no-switches context that
+plugin tests use.
+
+**The Rust library API is new, and pre-1.0.** `cgg::analyze`,
+`RunOptions`, `RunOutcome`, `Emission` and `cgg::emit` are public as of
+this release and may change in any 0.x minor — `RunOptions` in
+particular gains a field whenever a graph-affecting flag is added, and it
+is deliberately *not* `#[non_exhaustive]`, because `From<&Cli>`
+destructures it with no `..` rest so that a new flag fails to compile
+until it is routed. Pin an exact minor if you depend on it.
 
 ## [0.5.0] - 2026-08-07
 

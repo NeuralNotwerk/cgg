@@ -141,7 +141,40 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 | `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
 
-## Python
+## Library
+
+The same pipeline the CLI runs is a Rust library and a Python module. All
+three front ends call `cgg::analyze`, so the resolver ordering exists in
+exactly one place and cannot drift between them.
+
+### Rust
+
+```rust
+use cgg::{RunOptions, analyze};
+
+let outcome = analyze(&RunOptions {
+    paths: vec!["./src".into()],
+    ..Default::default()
+})?;
+
+println!("{} callables", outcome.graph.callables.len());
+```
+
+`analyze` performs **no I/O beyond reading the source tree** — no writes,
+no stdout, no stderr, no `process::exit`. Everything a run would write
+comes back on `RunOutcome`: the graph, the audit event stream, the
+metrics, the dead-code report, and a `transcript` of every diagnostic and
+artifact in the order the CLI emits them. `cgg::emit::all` is the CLI's
+own front end over that value, and it is the only place in the crate that
+touches a file descriptor.
+
+Safe to call concurrently — it takes no locks and keeps no process-global
+state, and each call gets its own worker pool sized by `RunOptions::jobs`.
+
+> The library API is new in 0.6.0 and **pre-1.0**: `RunOptions` gains a
+> field whenever a graph-affecting flag is added. Pin an exact minor.
+
+### Python
 
 ```python
 import cgg
@@ -181,6 +214,10 @@ Build it with `scripts/build-python.sh`, which needs `uv` and a Rust
 toolchain and downloads a CPython on first run. It is a developer script
 only — `cargo build` and `cargo test --workspace` never need a Python
 interpreter, and the `cgg` binary links no libpython.
+
+`--why-live` proofs, the `--write-roots` baseline, the audit event stream
+and the framework-coverage table are reachable from the Rust API but are
+not exposed to Python yet. Use the CLI for those.
 
 Renderer vs attribute cost, and what is not yet exposed:
 [`crates/cgg-py/README.md`](crates/cgg-py/README.md).
@@ -390,7 +427,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1949 callables, 4481 edges, 1701 cross-file, 158ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1949 callables, 4481 edges, 1701 cross-file, 150ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
