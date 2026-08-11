@@ -17,8 +17,23 @@ compares this module's JSON output against the binary's on the same tree.
 ## Install
 
 ```bash
-pip install cgg
+pip install cgg-callgraphgenerator
 ```
+
+```python
+import cgg
+```
+
+**The distribution is `cgg-callgraphgenerator`; the import is `cgg`.**
+PyPI's `cgg` belongs to an unrelated GGUF tool, so the short name was not
+available. Python separates these two names routinely — `pip install
+pillow` gives you `import PIL`.
+
+> One caveat, because the other package also installs a top-level `cgg`
+> module: **do not install both into the same environment.** Both write to
+> `site-packages/cgg/`, pip will not stop you, and whichever lands second
+> overwrites the first. If you already have `pip install cgg` (the GGUF
+> tool), use a separate virtualenv.
 
 One wheel per platform covers every CPython ≥ 3.9 (the extension is built
 against the stable ABI).

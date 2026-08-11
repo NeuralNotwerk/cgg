@@ -177,12 +177,22 @@ state, and each call gets its own worker pool sized by `RunOptions::jobs`.
 
 ### Python
 
+```bash
+pip install cgg-callgraphgenerator
+```
+
 ```python
 import cgg
 
 g = cgg.analyze("./src")
 print(g.to_mermaid())
 ```
+
+> The distribution is `cgg-callgraphgenerator`; the import is `cgg`.
+> PyPI's `cgg` belongs to an unrelated GGUF tool, so the short name was
+> not available — and since that package also installs a top-level `cgg`
+> module, **do not install both into the same environment**. They would
+> write to the same directory.
 
 Same pipeline, same order, in-process — not a subprocess wrapper.
 `crates/cgg-py` is a thin PyO3 layer over `cgg::analyze`, so there is one

@@ -3,8 +3,13 @@ requires      = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "cgg"
-description = "Offline, deterministic call-graph generation for 44 languages."
+# The distribution is `cgg-callgraphgenerator`; the import is `cgg`.
+# PyPI's `cgg` belongs to an unrelated GGUF tool, so the short name was
+# not available. Spelling out what CGG stands for is the point of the
+# long form. Python routinely separates these two names — `pip install
+# pillow` gives you `import PIL`.
+name = "cgg-callgraphgenerator"
+description = "Offline, deterministic call-graph generation for 44 languages. Import as `cgg`."
 readme = "README.md"
 license = { text = "Apache-2.0 OR MIT" }
 authors = [{ name = "cgg contributors" }]
@@ -19,8 +24,13 @@ classifiers = [
 # Version comes from Cargo.toml so there is one place to bump.
 dynamic = ["version"]
 
+keywords = ["call-graph", "static-analysis", "tree-sitter", "mermaid", "codebase"]
+
 [project.urls]
+Homepage = "https://github.com/NeuralNotwerk/cgg"
 Repository = "https://github.com/NeuralNotwerk/cgg"
+Changelog = "https://github.com/NeuralNotwerk/cgg/blob/main/CHANGELOG.md"
+Issues = "https://github.com/NeuralNotwerk/cgg/issues"
 
 [tool.maturin]
 # Mixed layout: the compiled module is `cgg._cgg`, and `python/cgg/` adds

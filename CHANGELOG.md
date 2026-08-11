@@ -12,6 +12,21 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Packaging
 
+- **Published to PyPI as `cgg-callgraphgenerator`** — `pip install
+  cgg-callgraphgenerator`, then `import cgg`. PyPI's `cgg` belongs to an
+  unrelated GGUF tool with 49 releases, so the short name was never
+  available; the long form spells out what CGG stands for. That package
+  also ships a top-level `cgg` module, so **the two must not share an
+  environment** — both write to `site-packages/cgg/` and pip will not stop
+  you. Documented in both READMEs.
+
+  The wheel is `manylinux_2_17` + `abi3-cp39`: built in maturin's CentOS 7
+  container, because PyPI rejects plain `linux_x86_64` wheels and a wheel
+  built on a modern box links a glibc newer than most users have. One
+  wheel covers every CPython from 3.9 up. 10.1 MB.
+  `scripts/publish-python.sh` does the build, the clean-venv test and the
+  upload.
+
 - All six library/binary crates now carry the metadata a registry listing
   needs — `repository`, `homepage`, `keywords`, `categories`,
   `rust-version` — inherited from the workspace so the listing cannot

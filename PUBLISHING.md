@@ -77,31 +77,67 @@ missing is only the multi-platform build and the upload.
 so the matrix is platforms, not platform × Python version — about six
 wheels, not thirty.
 
-### What you do
+### The name
 
-1. Account at <https://pypi.org/account/register/>, then an API token at
-   <https://pypi.org/manage/account/token/>.
-2. Reserve the name early — `cgg` may be taken on PyPI; check
-   <https://pypi.org/project/cgg/>. If it is, `cgg-callgraph` is the
-   obvious fallback and only `[project].name` changes.
-3. Set `PYPI_API_TOKEN` as a GitHub Actions secret.
+**Distribution `cgg-callgraphgenerator`, import `cgg`.** PyPI's `cgg` is
+an unrelated GGUF tool — 49 releases, actively maintained — so the short
+name was never available.
 
-### What still needs building
+That package also ships a top-level `cgg` module, so the import names
+collide. We took the collision knowingly: `import cgg` matches the CLI,
+the crate and every example, and Python separates distribution from
+import name routinely. The cost is that **the two packages must not share
+an environment** — both write to `site-packages/cgg/` and pip will not
+stop you. Documented in the README and the module README.
 
-A release workflow using `PyO3/maturin-action`, which handles the
-manylinux containers that make a Linux wheel portable — a wheel built on
-this machine links a glibc newer than most users have. Roughly:
+`cgg-callgraphgen` is also free if the shorter form is ever preferred;
+only `[project].name` changes.
 
-```yaml
-- uses: PyO3/maturin-action@v1
-  with:
-    command: build
-    args: --release --out dist -m crates/cgg-py/Cargo.toml
-    manylinux: auto
+### Building a wheel PyPI will accept
+
+**PyPI rejects plain `linux_x86_64` wheels.** Only `manylinux`-tagged
+ones are accepted, and a wheel built on a modern box links a glibc newer
+than most users have (this machine: 2.39). Build in maturin's container
+instead — CentOS 7, glibc 2.17, so the wheel runs essentially everywhere:
+
+```bash
+docker run --rm -v "$PWD:/io" -w /io \
+  -e CARGO_HOME=/io/target/manylinux-cargo \
+  -e CARGO_TARGET_DIR=/io/target/manylinux \
+  ghcr.io/pyo3/maturin build --release \
+  -m crates/cgg-py/Cargo.toml --out /io/dist
 ```
 
-across `ubuntu-latest`, `macos-latest` (x86_64 + aarch64) and
-`windows-latest`, then `maturin upload`.
+Run it as **root** (the default). Passing `--user` fails with
+`Permission denied` starting `cargo metadata`, because the toolchain in
+the image is root-owned. Chown the outputs back afterwards:
+
+```bash
+docker run --rm -v "$PWD:/io" --entrypoint chown ghcr.io/pyo3/maturin \
+  -R "$(id -u):$(id -g)" /io/dist /io/target/manylinux /io/target/manylinux-cargo
+```
+
+`scripts/publish-python.sh` wraps both steps plus the upload.
+
+### Upload
+
+```bash
+scripts/publish-python.sh --check    # build + twine check, no upload
+scripts/publish-python.sh            # uploads, asks you to confirm
+```
+
+Needs a token at <https://pypi.org/manage/account/token/> in
+`~/.pypi.token`. Scope it to the project after the first upload; the
+first one needs an account-wide token because the project does not exist
+yet.
+
+### Other platforms
+
+The command above produces a Linux x86_64 wheel only. macOS and Windows
+need a CI matrix — `PyO3/maturin-action` across `ubuntu-latest`,
+`macos-latest` (x86_64 + aarch64) and `windows-latest`. `abi3-py39` means
+one wheel per *platform* covers every CPython ≥ 3.9, so that is about six
+wheels, not thirty.
 
 **Size note:** ~99 MB on disk, ~10 MB compressed — comfortably under
 PyPI's 100 MB per-file limit, but do not add grammars carelessly.
