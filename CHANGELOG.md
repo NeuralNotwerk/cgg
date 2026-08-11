@@ -41,23 +41,51 @@ ever grows in default mode — see *Compatibility* below).
   deny_unknown_fields)]`, which is what the JSON options boundary is built
   on.
 
-### Known issues
+### Fixed
 
-- **`cgg::analyze` leaks about 161 bytes per call.** Measured under
-  valgrind: 0 bytes for a run that parses no files, 161 bytes in 28 blocks
-  for one file, 163 for several, independent of `--jobs`. So it is a
-  fixed, one-time cost at parser setup inside tree-sitter's C
-  allocations — it does not grow with tree size, but it does accumulate
-  across calls (~14 MB after a million analyses).
+- **`cgg::analyze` no longer leaks memory per call.** 0.6.0 leaked ~161
+  bytes every time it was called. `cgg_resolve::type_hints` had a
+  `leak_str` helper that `Box::leak`ed a copy of every parameter name and
+  type, with a comment calling that "acceptable because we're in a
+  short-lived analysis pass" — true while the pipeline was private to a
+  binary that analyzed once and exited, and false the moment 0.6.0 made it
+  a library, a Python module and a C ABI callable in a loop. A host
+  process analyzing on a loop grew without bound.
 
-  Not specific to the new C ABI: a pure Rust consumer of `cgg::analyze`
-  leaks identically, and so does `cgg-py`. It was unreachable before
-  0.6.0, when one analysis per process was the only option. The CLI is
-  unaffected — it analyzes once and exits.
+  The leak existed only to dodge a borrow conflict: the strings are slices
+  of `def.signature_hint`, and `facts` is mutably borrowed later in the
+  same function. They now go into an owned `Vec` that the function drops.
+  **The allocation count is unchanged** — the leaked version called
+  `to_string()` too — so this costs nothing; the strings are simply freed.
 
-  Worth knowing if you are embedding cgg in a long-lived service.
-  `mimalloc` hides it from valgrind entirely, which is why 0.6.0 shipped
-  without noticing.
+  Verified under valgrind: 0 bytes definitely lost on `cgg-walk`,
+  `cgg-format`, a single 467-line file and all of `./crates`, where 0.6.0
+  lost 161 bytes in 28 blocks. Graph output is byte-identical on
+  `./crates`, `c-jq`, `go-fzf` and `python-flask`, and still deterministic
+  across `--jobs` 1–32.
+
+  Diagnosis note, because it is the reason 0.6.0 shipped with this:
+  **`mimalloc` hides leaks from valgrind entirely.** With the global
+  allocator in place valgrind reported no leak summary at all; the 161
+  bytes only appeared once it was removed. The CLI was never affected — it
+  analyzes once and exits.
+
+- `docs-check.py` check 9: `Box::leak`, `.leak()` and `mem::forget` in the
+  pipeline crates must be listed in `ALLOWED_LEAKS` with a reason. A leak
+  justified by "the process is about to exit" has to be re-checked when
+  that stops being true, and nothing was re-checking. The one remaining
+  entry is `profile.rs`, which is bounded by `&'static str` span literals
+  and compiled out of release builds.
+
+### Performance
+
+Flat. `scripts/perf-compare.sh` against the previous commit, median of 7
+over the standard 9-repo set: **2258 ms → 2260 ms, +0.1%** — far inside
+the ~1–1.5% noise floor. Expected: the leak fix changes where the strings
+are freed, not how many are allocated.
+
+The +4–6.8% regression 0.6.0 introduced against 0.5.0 is unchanged by
+this; it lives in the `ExtractCtx` threading and is still open.
 
 ## [0.6.0] - 2026-08-11
 

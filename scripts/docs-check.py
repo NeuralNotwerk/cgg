@@ -74,6 +74,18 @@ Seven checks:
    pipeline and never reaches Python. With two front ends over one
    pipeline, that is the drift that costs nothing to introduce.
 
+9. Deliberate leaks. `Box::leak`, `.leak()` and `mem::forget` in the
+   pipeline crates must appear in `ALLOWED_LEAKS` below, with a reason.
+   `type_hints.rs` leaked a copy of every parameter name and type, with a
+   comment calling it "acceptable because we're in a short-lived analysis
+   pass". That was true while the pipeline was private to a binary that
+   analyzed once and exited. 0.6.0 made it a library, a Python module and
+   a C ABI callable in a loop, and the same line became ~161 bytes of
+   unbounded growth per call in a host process. Nothing failed; the CLI
+   never noticed. A leak whose justification is "the process is about to
+   exit" needs re-checking every time that stops being true, so it has to
+   be listed rather than merely commented.
+
 Run from the repo root. Exits non-zero on any mismatch with a
 human-readable message naming the offending file.
 """
@@ -633,6 +645,81 @@ def check_python_option_parity() -> None:
         )
 
 
+# Deliberate leaks that are genuinely bounded, and why. Anything else in
+# the pipeline crates is a check-9 failure.
+#
+# Key is "<path>:<symbol>". The reason is the point: a leak is only
+# acceptable while its justification holds, and these are the ones whose
+# justification does not depend on the process being about to exit.
+ALLOWED_LEAKS = {
+    "crates/cgg-core/src/profile.rs:Box::leak": (
+        "One Counters per distinct span name. Span names are &'static str "
+        "literals, so the set is bounded by the source, not by input or by "
+        "call count — a cache, not a leak. Also #[cfg(debug_assertions)], "
+        "so it is compiled out of release entirely."
+    ),
+}
+
+# Where a leak would ride on user input rather than on the source.
+LEAK_SCANNED_CRATES = (
+    "cgg-core",
+    "cgg-lang",
+    "cgg-resolve",
+    "cgg-format",
+    "cgg-walk",
+    "cgg",
+)
+
+LEAK_PATTERN = re.compile(r"\bBox::leak\b|\.leak\(\)|\bmem::forget\b")
+
+
+def check_deliberate_leaks() -> None:
+    """Check 9 — no unlisted deliberate leak in the pipeline crates."""
+    found: dict[str, list[int]] = {}
+    for crate in LEAK_SCANNED_CRATES:
+        src = REPO_ROOT / "crates" / crate / "src"
+        if not src.is_dir():
+            continue
+        for path in sorted(src.rglob("*.rs")):
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            for i, line in enumerate(path.read_text().splitlines(), 1):
+                # Skip the doc/comment prose that explains the rule.
+                stripped = line.lstrip()
+                if stripped.startswith(("//", "///", "//!", "*")):
+                    continue
+                m = LEAK_PATTERN.search(line)
+                if not m:
+                    continue
+                symbol = m.group(0).replace("()", "").lstrip(".")
+                symbol = "Box::leak" if "Box::leak" in m.group(0) else symbol
+                key = f"{rel}:{symbol}"
+                if key in ALLOWED_LEAKS:
+                    continue
+                found.setdefault(key, []).append(i)
+
+    if found:
+        detail = "\n".join(
+            f"    {k} (line{'s' if len(v) > 1 else ''} {', '.join(map(str, v))})"
+            for k, v in sorted(found.items())
+        )
+        fail(
+            "deliberate leak(s) in the pipeline with no entry in "
+            f"ALLOWED_LEAKS (check 9):\n{detail}\n"
+            "  `cgg::analyze` is called in a loop by the library, the Python\n"
+            "  module and the C ABI, so a per-call leak grows without bound in\n"
+            "  a host process. If it is genuinely bounded, add it to\n"
+            "  ALLOWED_LEAKS in this script with the reason it is bounded."
+        )
+
+    # split on the FIRST colon: the path has none, but the symbol
+    # (`Box::leak`) is full of them.
+    stale = sorted(
+        k for k in ALLOWED_LEAKS if not (REPO_ROOT / k.split(":", 1)[0]).exists()
+    )
+    if stale:
+        fail(f"ALLOWED_LEAKS names missing file(s): {', '.join(stale)} (check 9)")
+
+
 def main() -> None:
     check_language_counts()
     check_benchmark_table_languages()
@@ -644,6 +731,7 @@ def main() -> None:
     check_attribute_claims()
     check_self_analysis_showcase()
     check_python_option_parity()
+    check_deliberate_leaks()
     print("[docs-check] ok")
 
 

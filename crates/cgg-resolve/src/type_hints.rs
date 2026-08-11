@@ -46,14 +46,34 @@ pub fn propagate_types_with_returns(
     facts: &mut FileFacts,
     return_types: &HashMap<&str, &str>,
 ) {
-    // Build type map per enclosing callable (by byte range).
-    // Key: (enclosing_start_byte, variable_name) -> type_name
-    let mut type_map: HashMap<(u32, &str), &str> = HashMap::new();
-
     // Pass 1: Extract type hints from definition signatures.
-    for def in &facts.definitions {
-        extract_param_types(def, &mut type_map);
-    }
+    //
+    // The names and types are slices of `def.signature_hint`, and `facts`
+    // is mutably borrowed at the end of this function, so the map cannot
+    // borrow them directly. They go into an owned store that this function
+    // drops instead.
+    //
+    // That store is why there is no `leak_str` here any more. It used to
+    // `Box::leak` a copy of every parameter name and type, justified in a
+    // comment by "we're in a short-lived analysis pass" — true while the
+    // pipeline was a private function in a binary that analyzed once and
+    // exited, and false from 0.6.0, when `cgg::analyze` became callable in
+    // a loop by a library, a Python module and a C ABI. Measured at ~161
+    // bytes per call on cgg's own tree, and it accumulated forever in a
+    // long-lived host process. The allocation *count* is unchanged — the
+    // leaked version called `to_string()` too — so this costs nothing; the
+    // strings are simply freed now.
+    let param_store: Vec<(u32, String, String)> = facts
+        .definitions
+        .iter()
+        .flat_map(collect_param_types)
+        .collect();
+    // Key: (enclosing_start_byte, variable_name) -> type_name. Last write
+    // wins, exactly as the repeated `map.insert` did.
+    let type_map: HashMap<(u32, &str), &str> = param_store
+        .iter()
+        .map(|(byte, name, ty)| ((*byte, name.as_str()), ty.as_str()))
+        .collect();
 
     // Pass 2: Scan references for constructor patterns that reveal types.
     // We look for assignment-like patterns in the source by examining
@@ -193,10 +213,14 @@ pub fn propagate_types_with_returns(
     }
 }
 
-fn extract_param_types<'a>(
-    def: &'a DefRecord,
-    map: &mut HashMap<(u32, &'a str), &'a str>,
-) {
+/// Parameter `(enclosing_start_byte, name, type)` triples from one
+/// definition's `signature_hint`.
+///
+/// Returns owned strings rather than writing borrowed ones into a map: the
+/// caller needs them to outlive its borrow of `facts`, and owning them
+/// there is what lets the caller free them. See the call site.
+fn collect_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
+    let mut out = Vec::new();
     // Parse parameter types from signature_hint.
     // Patterns we recognize:
     //   Rust:   `fn foo(x: Service, y: &Helper)`
@@ -208,14 +232,18 @@ fn extract_param_types<'a>(
     //   C#:     `void Foo(Service x, Helper y)`
     let sig = &def.signature_hint;
     if sig.is_empty() {
-        return;
+        return out;
     }
 
     // Find the parameter list between parens
-    let Some(open) = sig.find('(') else { return };
-    let Some(close) = sig.rfind(')') else { return };
+    let Some(open) = sig.find('(') else {
+        return out;
+    };
+    let Some(close) = sig.rfind(')') else {
+        return out;
+    };
     if close <= open {
-        return;
+        return out;
     }
     let params_str = &sig[open + 1..close];
 
@@ -227,15 +255,16 @@ fn extract_param_types<'a>(
 
         // Try "name: Type" pattern (Rust, Python, TS, Kotlin)
         if let Some((name, ty)) = parse_colon_param(param) {
-            map.insert((def.start_byte, leak_str(name)), leak_str(ty));
+            out.push((def.start_byte, name.to_string(), ty.to_string()));
             continue;
         }
 
         // Try "Type name" pattern (Java, C#, C++, Go)
         if let Some((name, ty)) = parse_type_first_param(param) {
-            map.insert((def.start_byte, leak_str(name)), leak_str(ty));
+            out.push((def.start_byte, name.to_string(), ty.to_string()));
         }
     }
+    out
 }
 
 fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
@@ -444,13 +473,6 @@ fn is_primitive(ty: &str) -> bool {
             | "Nothing"
             | "Void"
     )
-}
-
-/// Leak a string slice to get a `'static` lifetime. This is acceptable
-/// because we're in a short-lived analysis pass and the total leaked
-/// memory is bounded by the number of parameters in the file.
-fn leak_str(s: &str) -> &'static str {
-    Box::leak(s.to_string().into_boxed_str())
 }
 
 #[cfg(test)]

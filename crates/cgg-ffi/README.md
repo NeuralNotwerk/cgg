@@ -89,14 +89,15 @@ stripped, so that floor is the grammars, not the code. It compresses about
 10:1 (9.4 MB gzip, 5.6 MB xz), so the download a package registry serves is
 roughly 10 MB.
 
-## Known issue
+## Long-lived hosts
 
-`cgg::analyze` leaks about **161 bytes per call** — a fixed, one-time cost
-at parser setup inside tree-sitter's C allocations, not per file: 0 bytes
-for a run that parses nothing, 161 for one file, 163 for several,
-independent of thread count. It does not accumulate with tree size, but it
-does accumulate across calls, so a long-lived host process analyzing on a
-loop will grow slowly (~14 MB after a million analyses). It is not specific
-to this crate — a pure Rust consumer of `cgg::analyze` leaks identically —
-and it was unreachable before 0.6.0, when one analysis per process was the
-only option. Tracked for a fix.
+`cgg_analyze` is safe to call in a loop. 0.6.0 leaked ~161 bytes per call
+through a `Box::leak` in the type-hint resolver whose justification —
+"we're in a short-lived analysis pass" — stopped being true the moment the
+pipeline became embeddable. That is fixed, and valgrind reports 0 bytes
+definitely lost across every tree tested.
+
+If you profile this library for leaks yourself, note that **`mimalloc`
+hides them from valgrind**: build with the `#[global_allocator]` removed,
+or valgrind will report nothing at all. That is exactly how the original
+leak escaped notice.
