@@ -5,6 +5,58 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+### Performance — the 0.6.0 regression, diagnosed
+
+No fix yet. What follows corrects the cause 0.6.0 guessed at, so the next
+attempt does not start from the wrong place.
+
+**It is lost parallelism, not extra work.** Measured on `c-jq` with
+`/usr/bin/time -v`, medians of 7, binaries alternated:
+
+| `--jobs` | 0.5.0 wall | 0.6.x wall | 0.5.0 CPU | 0.6.x CPU |
+| --- | --- | --- | --- | --- |
+| 1 | 290 ms | **270 ms** | 300 ms | **260 ms** |
+| 2 | 200 ms | 250 ms | 300 ms | 290 ms |
+| 4 | 170 ms | 230 ms | 330 ms | 330 ms |
+| 8 | 120 ms | 160 ms | 370 ms | 410 ms |
+
+At `--jobs 4` the CPU time is **identical** and the wall time is 35%
+worse. At `--jobs 1`, 0.6.x is *faster* on both. The work got cheaper; the
+scheduling got worse.
+
+**0.6.0 blamed `ExtractCtx`. That was wrong.** Threading the extraction
+switches replaced an atomic load with a field read, which is why
+single-threaded got faster. It cannot explain a regression that only
+appears with more than one worker and costs no extra CPU.
+
+**The cause is `ThreadPool::install(whole_pipeline)`**, which runs the
+driver *on* a pool worker instead of on the calling thread. 0.5.0 drove
+from the main thread because its pool was global. Rebuilding 0.6.1 with
+`build_global` recovers most of it — +8-12% against 0.5.0 rather than
++33-35% — but that is exactly the global pool whose one-shot
+initialisation made `--jobs` silently ignored after the first call, so it
+cannot simply be reverted.
+
+Scaling confirms the shape: `install` at `2N` threads matches
+`build_global` at `N`. Achieved speedup at `--jobs 8` is 3.17x for 0.5.0
+against 2.56x for `install`.
+
+**A tried and rejected fix:** keeping the driver on the calling thread and
+wrapping each of the five parallel regions in `pool.install` individually.
+That is *worse* — +39-50% against 0.5.0 — because the repeated handoffs
+cost more than the single one they replace. Recorded so nobody spends the
+afternoon on it twice.
+
+**Workaround today:** pass roughly double the threads. `--jobs 16` on this
+64-core box performs like 0.5.0's `--jobs 8`.
+
+Note for anyone re-measuring: the whole-corpus figure is +4-6.8%, not
++33%. `c-jq` is the worst case, chosen here because a large effect is
+easier to attribute. Machine load moves these numbers several points, so
+compare on an idle box.
+
 ## [0.6.1] - 2026-08-11
 
 **First release published to crates.io.** `cargo install cgg` works, and
@@ -118,7 +170,9 @@ the ~1–1.5% noise floor. Expected: the leak fix changes where the strings
 are freed, not how many are allocated.
 
 The +4–6.8% regression 0.6.0 introduced against 0.5.0 is unchanged by
-this; it lives in the `ExtractCtx` threading and is still open.
+this and is still open. (Its cause was later re-measured — it is the
+per-call pool's `install`, not the `ExtractCtx` threading. See the
+Unreleased entry.)
 
 ## [0.6.0] - 2026-08-11
 
@@ -208,12 +262,14 @@ before tagging.
 
 The graph is byte-identical to 0.5.0 on every repo in the table, so the
 cost buys nothing in output — it is the price of the correctness fixes
-above. Bisected by rebuilding with the per-call pool swapped back to
-`build_global`: that recovers only a few points, so most of the cost is
-the `ExtractCtx` threading, where extraction's two switches moved from
-process-globals to a borrowed context passed through `extract` in all 44
-plugins. `parse` CPU rises ~7% while wall time rises more, so the loss is
-mostly parallel efficiency rather than extra work.
+above. `parse` CPU rises ~7% while wall time rises more, so the loss is mostly
+parallel efficiency rather than extra work.
+
+> **This entry's attribution was wrong.** It blamed the `ExtractCtx`
+> threading on a bisect run against a loaded machine. Re-measured on a
+> quieter one, the cause is `ThreadPool::install` running the driver on a
+> pool worker, and `ExtractCtx` is if anything a small *win*. See the
+> Unreleased entry for the corrected analysis.
 
 **Recovering this is open follow-up work.** It is a deliberate trade for
 now: the globals it replaced made a second analysis in one process return
