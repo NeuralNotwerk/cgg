@@ -53,6 +53,27 @@ Seven checks:
    (`--stack-graphs`, `--no-update-check`) are exempt — they identify
    themselves with "No effect" in their help text.
 
+7. Self-analysis showcase. Every place that names the filter for the
+   README's showcase graph — README prose and its bash block, the
+   pre-commit hook, update-readme-stats.sh, patch-readme-stats.py's
+   anchor, CLAUDE.md — must name the SAME callable, and the generated
+   mermaid block must span at least three crates. The 0.6.0 library
+   split moved the pipeline out of `cgg::run` into
+   `cgg::analyze_in_pool`, leaving `cgg::run` a 12-line shim whose name
+   several test helpers also share. Everything kept "working": the hook
+   regenerated the block, docs-check passed, and the README's flagship
+   graph quietly became a wall of test-function names spanning one
+   crate, under a sentence promising cross-crate calls. Nothing was
+   broken enough to notice, which is exactly why this check exists.
+
+8. Python keyword parity. Every `RunOptions` field must be reachable
+   from `cgg-py` as a keyword argument, or be listed in
+   `PY_DEFERRED_OPTIONS` below. `From<&Cli> for RunOptions` destructures
+   with no `..` rest, so the compiler already catches a new flag that
+   never reaches the pipeline — but nothing catches one that reaches the
+   pipeline and never reaches Python. With two front ends over one
+   pipeline, that is the drift that costs nothing to introduce.
+
 Run from the repo root. Exits non-zero on any mismatch with a
 human-readable message naming the offending file.
 """
@@ -482,6 +503,136 @@ def check_framework_apps() -> None:
         )
 
 
+def check_self_analysis_showcase() -> None:
+    """Check 7 — the showcase filter agrees everywhere and still shows a
+    cross-crate graph.
+
+    Two failure modes, both silent. The filter drifts in one file and not
+    the others, so the hook regenerates a block the README's prose no
+    longer describes; or the filter still resolves but to something
+    trivial, so the block regenerates into a graph that proves nothing.
+    The second is what happened when the pipeline moved out of
+    `cgg::run`, and only the second needs the graph itself to catch.
+    """
+    sources = {
+        ".githooks/pre-commit": r"--filter\s+'([^']+)'",
+        "scripts/update-readme-stats.sh": r"--filter\s+'([^']+)'\s+-n 1 -o /tmp/cgg_self_graph",
+        "README.md": r"cgg \./crates -t mermaid --filter '([^']+)'",
+        "CLAUDE.md": r"--filter '([^']+)' -n 1",
+    }
+    found: dict[str, str] = {}
+    for rel, pattern in sources.items():
+        path = REPO_ROOT / rel
+        m = re.search(pattern, path.read_text())
+        if not m:
+            fail(f"{rel}: could not find the self-analysis --filter (check 7)")
+        found[rel] = m.group(1)
+
+    distinct = set(found.values())
+    if len(distinct) != 1:
+        detail = "\n".join(f"    {k}: {v}" for k, v in sorted(found.items()))
+        fail(
+            "the self-analysis showcase filter disagrees between files "
+            f"(check 7):\n{detail}\n"
+            "  All of these regenerate or describe the same README block."
+        )
+    filt = distinct.pop()
+
+    # patch-readme-stats.py locates the block by substring, so it has to
+    # contain the bare callable name rather than the anchored regex.
+    bare = filt.rstrip("$")
+    patcher = (REPO_ROOT / "scripts/patch-readme-stats.py").read_text()
+    if bare not in patcher:
+        fail(
+            f"scripts/patch-readme-stats.py does not mention '{bare}', so its "
+            "anchor cannot find the self-analysis mermaid block (check 7)"
+        )
+
+    # The generated block must still be the cross-crate graph the prose
+    # promises. Read the committed block rather than re-running cgg, so
+    # this check costs nothing and works without a built binary.
+    readme = README.read_text()
+    m = re.search(
+        r"<!-- cgg:begin:self -->(.*?)<!-- cgg:end:self -->", readme, re.S
+    )
+    if not m:
+        fail("README.md: no <!-- cgg:begin:self --> block found (check 7)")
+    block = m.group(1)
+    crates = {
+        n.split("::")[0]
+        for n in re.findall(r'^\s*C\d+\["([^"]+)"\]', block, re.M)
+    }
+    if len(crates) < 3:
+        fail(
+            "README.md's self-analysis graph spans only "
+            f"{len(crates)} crate(s) ({', '.join(sorted(crates)) or 'none'}), but the "
+            "prose above it calls every edge a real cross-crate function "
+            f"call (check 7).\n  The filter is '{filt}'. If the pipeline moved, "
+            "retarget it everywhere check 7 looks."
+        )
+
+
+# `RunOptions` fields with no `cgg-py` keyword, and why. Anything not
+# listed here must be reachable from Python.
+PY_DEFERRED_OPTIONS = {
+    # Replace the graph with a different artifact entirely. Exposing them
+    # as keywords on a function that returns a Graph would mean returning
+    # something that is not one; they want their own entry points.
+    "why_live": "returns proofs, not a graph — needs its own entry point",
+    "write_roots": "returns a TOML baseline, not a graph — ditto",
+    # CLI-only concerns that do not change the graph.
+    "framework_coverage": "controls a stderr table; Python reads .notices",
+    "profile": "renders a stderr timing table from a process-global",
+}
+
+
+def check_python_option_parity() -> None:
+    """Check 8 — every graph-changing option is reachable from Python."""
+    opts_rs = (REPO_ROOT / "crates/cgg/src/options.rs").read_text()
+    # Fields of `pub struct RunOptions`, up to its closing brace.
+    m = re.search(r"pub struct RunOptions \{(.*?)\n\}", opts_rs, re.S)
+    if not m:
+        fail("crates/cgg/src/options.rs: could not find `pub struct RunOptions`")
+    fields = set(re.findall(r"^\s*pub ([a-z_0-9]+):", m.group(1), re.M))
+    if not fields:
+        fail("crates/cgg/src/options.rs: parsed RunOptions but found no fields")
+
+    py_rs = (REPO_ROOT / "crates/cgg-py/src/lib.rs").read_text()
+    sig = re.search(r"#\[pyo3\(signature = \((.*?)\)\)\]", py_rs, re.S)
+    if not sig:
+        fail("crates/cgg-py/src/lib.rs: could not find the #[pyo3(signature = …)]")
+    kwargs = set(re.findall(r"^\s*\*?\s*([a-z_0-9]+)", sig.group(1), re.M))
+    # `--no-entry-nodes` is deliberately un-negated as `entry_nodes`.
+    if "entry_nodes" in kwargs:
+        kwargs.add("no_entry_nodes")
+
+    missing = sorted(fields - kwargs - set(PY_DEFERRED_OPTIONS))
+    if missing:
+        fail(
+            "RunOptions field(s) with no cgg-py keyword argument: "
+            f"{', '.join(missing)} (check 8).\n"
+            "  Add the keyword in crates/cgg-py/src/lib.rs and the stub in\n"
+            "  crates/cgg-py/python/cgg/_cgg.pyi, or add it to\n"
+            "  PY_DEFERRED_OPTIONS in this script with a reason."
+        )
+
+    stale = sorted(set(PY_DEFERRED_OPTIONS) - fields)
+    if stale:
+        fail(
+            "PY_DEFERRED_OPTIONS names field(s) that no longer exist on "
+            f"RunOptions: {', '.join(stale)} (check 8)"
+        )
+
+    # A deferred option that quietly gained a keyword should stop being
+    # listed as deferred, or the list becomes decoration.
+    contradictory = sorted(set(PY_DEFERRED_OPTIONS) & kwargs)
+    if contradictory:
+        fail(
+            f"PY_DEFERRED_OPTIONS lists {', '.join(contradictory)}, but cgg-py "
+            "exposes it as a keyword (check 8) — drop it from the list"
+        )
+
+
 def main() -> None:
     check_language_counts()
     check_benchmark_table_languages()
@@ -491,6 +642,8 @@ def main() -> None:
     check_skill_language_count()
     check_skill_inventory()
     check_attribute_claims()
+    check_self_analysis_showcase()
+    check_python_option_parity()
     print("[docs-check] ok")
 
 

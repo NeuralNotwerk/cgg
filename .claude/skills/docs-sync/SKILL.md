@@ -48,11 +48,16 @@ touches X, verify Y."
 | Help text / flag descriptions | `cgg --help` output is what you intended; quoted examples in README and SKILL.md still parse. |
 | An output format (added, schema changed) | The "Output formats" table in both `README.md` and `skills/cgg/SKILL.md` lists it with the right use case. |
 | Language plugin added/removed | The "Supported languages" table in `README.md`, the count in the README intro ("Supported languages (N)"), and `scripts/benchmark.sh`'s `REPOS=( … )` list all agree. The `skills/cgg/SKILL.md` frontmatter description's language enumeration is accurate (or generic enough to not drift). |
-| Resolver phase order or new resolver | The pipeline ASCII diagram in `README.md` ("## How it works") matches the order in `cgg::run`. `CLAUDE.md`'s "Architecture" section matches. |
+| Resolver phase order or new resolver | The pipeline ASCII diagram in `README.md` ("## How it works") matches the order in `cgg::analyze_in_pool` (`crates/cgg/src/lib.rs`). `CLAUDE.md`'s "Architecture" section matches. |
 | FFI detection (new attribute / language) | The FFI bullet under "## How it works" in `README.md` lists it. |
 | Benchmark script (`scripts/benchmark.sh`) | Re-run `./scripts/benchmark.sh` and paste current numbers into the README benchmark table. Use `scripts/patch-readme-stats.py` if it applies. |
 | Anything about caching / `.cgg-cache` | `skills/cgg/SKILL.md`'s "Performance and limits" section matches reality. |
 | Audit format (`json`/`jsonl` shape) | README "## Audit / metrics" matches; SKILL.md's audit-diagnosis recipe still works. |
+| A CLI flag that changes the graph | It is routed into `RunOptions` (`crates/cgg/src/options.rs`) **and** exposed as a `cgg-py` keyword argument, with the stub in `crates/cgg-py/python/cgg/_cgg.pyi` updated. `From<&Cli>` destructures with no `..` rest, so the compiler catches the first half; nothing catches the second. |
+| `crates/cgg/src/lib.rs` public API (`analyze`, `RunOptions`, `RunOutcome`, `Emission`) | `crates/cgg-py/src/lib.rs` still compiles and the parity test in `crates/cgg-py/tests/test_analyze.py` still passes. `CLAUDE.md`'s **cgg (library + binary)** bullet matches. |
+| Anything under `crates/cgg-py/` | `README.md`'s "## Python" section and `crates/cgg-py/README.md` agree, and every measured number in them was re-measured, not carried over. |
+| `LanguagePlugin::extract` signature or `ExtractCtx` | All 44 plugins updated; `CLAUDE.md`'s "Adding a new language" step 2 matches. No new process-global — that is the bug `ExtractCtx` exists to prevent. |
+| Anything that writes to stdout/stderr | It is an `Emission` on the transcript, in the right position, with the right `-q` gating. `crates/cgg/tests/cli_surface.rs` captures both streams as one file; add a case if the position is new. |
 
 ## Verification commands
 

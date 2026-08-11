@@ -65,7 +65,7 @@ lines = content.split('\n')
 start_idx = None
 end_idx = None
 for i, line in enumerate(lines):
-    if 'cgg ./crates -t mermaid --filter' in line and 'cgg::run' in line:
+    if 'cgg ./crates -t mermaid --filter' in line and 'cgg::analyze_in_pool' in line:
         for j in range(i, min(i + 5, len(lines))):
             if lines[j] == '```mermaid':
                 start_idx = j + 1
@@ -78,7 +78,7 @@ if not (start_idx and end_idx):
     die(
         "could not locate the self-analysis mermaid block in "
         f"{readme_path} (anchor: the `cgg ./crates -t mermaid --filter "
-        "... cgg::run` command followed by a ```mermaid fence)"
+        "... cgg::analyze_in_pool` command followed by a ```mermaid fence)"
     )
 lines = lines[:start_idx] + new_graph.split('\n') + lines[end_idx:]
 content = '\n'.join(lines)

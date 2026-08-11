@@ -140,7 +140,7 @@ For a real smoke test, run cgg against itself if the user has the
 source tree:
 
 ```bash
-cgg ./crates --filter 'cgg::run$' -n 1
+cgg ./crates --filter 'cgg::analyze_in_pool$' -n 1
 ```
 
 A few lines of mermaid output means everything works.

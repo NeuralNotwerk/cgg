@@ -76,7 +76,11 @@ echo "[cgg pre-commit] regenerating cgg-lang graph"
     > /dev/null
 
 echo "[cgg pre-commit] regenerating self-analysis graph"
-./target/release/cgg ./crates --filter 'cgg::run$' -n 1 \
+# `analyze_in_pool`, not `run`: since the library split, `cgg::run` is a
+# 12-line shim in main.rs and the pipeline lives here. Filtering on `run`
+# also matched several test helpers of that name, so the showcase graph
+# had become a wall of test functions rather than a cross-crate call graph.
+./target/release/cgg ./crates --filter 'cgg::analyze_in_pool$' -n 1 \
     -o "$MERMAID_DIR/self.mmd" 2>"$MERMAID_DIR/self.stderr" >/dev/null
 
 echo "[cgg pre-commit] patching README.md mermaid blocks"

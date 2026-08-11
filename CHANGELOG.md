@@ -5,6 +5,106 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+The pipeline is a library, and there is a Python module on top of it.
+
+```python
+import cgg
+g = cgg.analyze("./src")
+print(g.to_mermaid())
+```
+
+The 1,035-line `run()` inside `main.rs` was private to a bin-only crate,
+so nothing outside the binary could invoke it. `crates/cgg` now has a
+`[lib]` target alongside its `[[bin]]`, and `crates/cgg-py` is a PyO3
+extension module over it. Both front ends call `cgg::analyze`, so the
+resolver ordering that CLAUDE.md calls load-bearing exists in exactly one
+place.
+
+**The CLI is unchanged.** Graph output is byte-identical to 0.5.0 across
+all four formats, and so is the stdout/stderr interleaving, the exit
+codes, and every advisory's `-q` gating. The binary links no libpython
+and grew 48 KB.
+
+### Added
+
+- `cgg::analyze(&RunOptions) -> RunOutcome`, performing no I/O beyond
+  reading source — no writes, no stdout/stderr, no `process::exit`.
+  Everything a run writes comes back as an ordered `Vec<Emission>`.
+- `crates/cgg-py`: `import cgg`. Every option that changes the graph is a
+  keyword argument, with one rename — `entry_nodes=True` rather than
+  `--no-entry-nodes`, same default. Four renderers, `.callables`,
+  `.edges`, `.files`, `.metrics`, `.notices`, `.jobs`, `to_dict()`,
+  `callable()`, `callers_of()`, `callees_of()`. `abi3-py39`, so one wheel
+  per platform serves every CPython >= 3.9. Build with
+  `scripts/build-python.sh`.
+- `docs-check.py` checks 7 and 8: the self-analysis showcase filter must
+  agree across every file that names it and must still produce a graph
+  spanning three or more crates, and every `RunOptions` field must be
+  reachable from `cgg-py` or listed as deliberately deferred.
+
+### Fixed
+
+Three bugs that a binary running one analysis per process could not
+reach, and a second caller can:
+
+- **`--jobs` was ignored after the first analysis in a process.**
+  `build_global()`'s error was dropped with `let _ =`, and the global
+  pool can only be set once, so later calls silently reused the first
+  call's thread count. Now a per-call pool entered with
+  `ThreadPool::install`, with `RunOutcome::jobs` reporting
+  `rayon::current_num_threads()` read inside it.
+- **One project's framework rules suppressed the next project's.**
+  `set_extra_registrar_verbs` wrote to a `OnceLock` where only the first
+  call took effect, so the second project analyzed in a process could
+  lose its entry points. The switch now travels in a per-run
+  `cgg_lang::ExtractCtx`; `DEADCODE_SIGNALS`, `EXTRA_REGISTRAR_VERBS` and
+  `HAS_EXTRA_VERBS` are gone.
+- **`--write-roots` called `std::process::exit(0)` inside the pipeline.**
+  Harmless in a binary; linked into CPython it would terminate the
+  interpreter with no traceback. It returns the baseline now.
+
+### Performance
+
+**cgg is roughly 4–5% slower on the standard 9-repo comparison set.**
+Measured with `scripts/perf-compare.sh` against 0.5.0, median of 7:
+
+| repo | 0.5.0 | unreleased | delta |
+| --- | --- | --- | --- |
+| rust-ripgrep | 236 ms | 238 ms | +0.8% |
+| python-flask | 129 ms | 130 ms | +0.8% |
+| js-express | 83 ms | 83 ms | +0.0% |
+| go-fzf | 219 ms | 226 ms | +3.2% |
+| c-jq | 145 ms | 182 ms | +25.5% |
+| cpp-spdlog | 308 ms | 308 ms | +0.0% |
+| csharp-serilog | 115 ms | 120 ms | +4.3% |
+| swift-alamofire | 238 ms | 242 ms | +1.7% |
+| cpp-nlohmann-json | 724 ms | 756 ms | +4.4% |
+| **TOTAL** | **2197 ms** | **2285 ms** | **+4.0%** |
+
+Three runs of the full set gave totals of **+4.0%, +5.5% and +6.8%**, with
+`c-jq` at +25.5%, +21.5% and +25.9%. The direction is reproducible and
+well above the ~1–1.5% noise floor, so this is a real regression, not
+jitter. The spread tracks machine load, which was 1.0–2.8 across the
+three runs — `perf-compare.sh` warns that a loaded machine invalidates
+the comparison, so treat +4% as the floor and re-run on an idle box
+before tagging.
+
+The graph is byte-identical to 0.5.0 on every repo in the table, so the
+cost buys nothing in output — it is the price of the correctness fixes
+above. Bisected by rebuilding with the per-call pool swapped back to
+`build_global`: that recovers only a few points, so most of the cost is
+the `ExtractCtx` threading, where extraction's two switches moved from
+process-globals to a borrowed context passed through `extract` in all 44
+plugins. `parse` CPU rises ~7% while wall time rises more, so the loss is
+mostly parallel efficiency rather than extra work.
+
+**Recovering this is open follow-up work.** It is a deliberate trade for
+now: the globals it replaced made a second analysis in one process return
+wrong answers, and correctness at 4% is a better default than speed that
+silently lies.
+
 ## [0.5.0] - 2026-08-07
 
 Two releases in one. The framework rule table went from 51 rules to 394

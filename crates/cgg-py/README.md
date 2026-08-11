@@ -83,9 +83,9 @@ solid = [e for e in g.edges if e.confidence == "high" and e.via == "direct"]
 
 **Renderers never build Python objects.** `to_mermaid()` and friends
 render straight from the Rust graph; `g.callables` constructs one Python
-object per callable, once, then caches. Measured on cgg's own tree (1,943
-callables): `to_mermaid()` produces 178 KB in 1.4 ms, and the first
-`.callables` access costs 1.0 ms. Both are small here and both scale with
+object per callable, once, then caches. Measured on cgg's own tree (1,949
+callables): `to_mermaid()` produces 175 KB in 2.9 ms, and the first
+`.callables` access costs 1.6 ms. Both are small here and both scale with
 the graph, so on a repository an order of magnitude larger the attribute
 path is what you would notice. Reach for the renderer when a string is
 what you want.
@@ -96,16 +96,20 @@ released and there is no internal lock, so a thread pool scales. Measured on
 
 | threads | wall | vs. one analysis |
 | --- | --- | --- |
-| 1 | 106 ms | 1.00x |
-| 2 | 107 ms | 1.00x |
-| 4 | 114 ms | 1.07x |
-| 8 | 178 ms | 1.68x |
+| 1 | 53 ms | 0.99x |
+| 2 | 65 ms | 1.21x |
+| 4 | 72 ms | 1.34x |
+| 8 | 91 ms | 1.68x |
 
-Earlier builds took a process-wide lock for the whole of `analyze`, because
-extraction read two process-global switches. Those now travel in a
-per-run context, so the lock is gone: at 4 threads that is 421 ms before
-versus 114 ms after. Raising `jobs` on one call still works and is simpler
-if you only have one tree to analyze.
+Four analyses for 1.34x the wall clock of one; eight for 1.68x. Absolute
+numbers are machine-specific — regenerate them rather than trusting them.
+
+Earlier builds would have had to take a process-wide lock for the whole of
+`analyze`, because extraction read two process-global switches
+(`DEADCODE_SIGNALS` and `EXTRA_REGISTRAR_VERBS`) that a second concurrent
+call would corrupt. Those now travel in a per-run `cgg_lang::ExtractCtx`,
+so there is no lock and no shared cell. Raising `jobs` on one call still
+works and is simpler if you only have one tree to analyze.
 
 ## Not in this release
 

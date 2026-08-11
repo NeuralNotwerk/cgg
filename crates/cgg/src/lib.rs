@@ -42,7 +42,6 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{Context, Result};
-use tracing::info;
 
 use rayon::prelude::*;
 
@@ -117,12 +116,10 @@ pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
 
 /// The pipeline proper. Always called inside [`analyze`]'s thread pool.
 fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
-    info!(
-        version = cgg_core::CGG_VERSION,
-        paths = opts.paths.len(),
-        "cgg starting"
-    );
-
+    // No "cgg starting" line here. It names the output format, which is a
+    // `Cli` concern that never reaches `RunOptions`, and emitting an
+    // application's startup banner is the application's call for the same
+    // reason installing the subscriber is. `main.rs` logs it.
     if opts.paths.is_empty() {
         return Err(anyhow::anyhow!("no input paths given"));
     }
@@ -1371,7 +1368,10 @@ fn dead_code_analysis(
         // the list is read off the plugins rather than typed here. The
         // hardcoded version said "python, rust" long after seven more
         // plugins had learned to capture attributes.
-        transcript.push(Emission::line(format!(
+        // `always`: verified against 0.5.0, this note has never been gated
+        // on `--quiet`. It reports that a flag the user passed did nothing,
+        // which is the one class of advisory worth keeping under `-q`.
+        transcript.push(Emission::always(format!(
             "note: --ignore-attributes matched nothing — no callable in this run \
              carries attributes (attribute capture: {})\n",
             languages_capturing_attributes().join(", ")
@@ -1516,7 +1516,10 @@ fn why_live_proofs(
     let targets =
         query::match_callables(graph, &opts.why_live).map_err(|e| anyhow::anyhow!(e))?;
     if targets.is_empty() {
-        transcript.push(Emission::line("cgg: --why-live matched no callables\n"));
+        // `always`: verified against 0.5.0. `--why-live` produces no other
+        // output when nothing matched, so gating this on `-q` would make the
+        // run print nothing at all and exit 0.
+        transcript.push(Emission::always("cgg: --why-live matched no callables\n"));
     }
     Ok(why_live(graph, all_facts, &dc_opts, &targets))
 }

@@ -170,13 +170,17 @@ Every CLI flag that changes the graph is a keyword argument, with one
 rename: `entry_nodes=True` rather than `--no-entry-nodes`. Same default; a
 Python keyword has no reason to be a double negative.
 
-The GIL is released for the analysis, and the module runs 7–43% faster
-than the CLI on the same input — it skips process start and writing
-output. Build it with `scripts/build-python.sh` (needs `uv` and a Rust
-toolchain).
+The GIL is released for the analysis and there is no internal lock, so a
+thread pool scales: on `./crates`, four concurrent analyses cost 178 ms
+against 151 ms for one — 1.18× the wall clock for 4× the work. The module
+also runs 21–40% faster than the CLI on the same input, since it skips
+process start and writing output (measured: 39.6% on `cgg-walk`, 24.9% on
+all of `./crates`).
 
-The GIL is released and there is no internal lock, so a thread pool
-scales: 4 concurrent analyses cost 114 ms against 106 ms for one.
+Build it with `scripts/build-python.sh`, which needs `uv` and a Rust
+toolchain and downloads a CPython on first run. It is a developer script
+only — `cargo build` and `cargo test --workspace` never need a Python
+interpreter, and the `cgg` binary links no libpython.
 
 Renderer vs attribute cost, and what is not yet exposed:
 [`crates/cgg-py/README.md`](crates/cgg-py/README.md).
@@ -386,150 +390,124 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1943 callables, 4431 edges, 1673 cross-file, 153ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a <!-- markdownlint-disable-line MD013 -->
-real cross-crate function call:
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1949 callables, 4481 edges, 1701 cross-file, 158ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+body — every edge is a real cross-crate function call, and the fan-out is
+the resolver ordering described under [How it works](#how-it-works):
 
 ```bash
-cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
+cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 ```
 
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  C0["cgg::main"]
-  C1["cgg::run"]
-  C20["cgg::emit::all"]
-  C66["cgg::analyze"]
-  C125["cgg::cgg"]
-  C127["cgg::run"]
-  C128["cgg::shape_a_python_flask_route_is_a_network_entry"]
-  C129["cgg::shape_a_java_spring_mapping_keeps_its_route"]
-  C130["cgg::shape_a_csharp_attribute_is_captured"]
-  C131["cgg::shape_a_php_symfony_attribute_is_captured"]
-  C132["cgg::shape_b_express_named_handler_binds_to_its_route"]
-  C133["cgg::shape_b_go_router_verb_matches_case_insensitively"]
-  C134["cgg::shape_c_anonymous_handler_still_gets_its_route_named"]
-  C135["cgg::ordinary_callbacks_do_not_mint_synthesized_handlers"]
-  C136["cgg::shape_d_torch_module_marks_a_root_without_minting_a_node"]
-  C137["cgg::shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity"]
-  C138["cgg::shape_e_rails_string_routing_reaches_the_controller_action"]
-  C139["cgg::shape_e_laravel_supports_both_the_string_and_the_array_form"]
-  C140["cgg::shape_f_worker_module_path_rescues_a_whole_file"]
-  C141["cgg::shape_f_cuda_kernel_is_an_entry_despite_the_unparsable_launch"]
-  C142["cgg::coverage_names_a_framework_it_cannot_enumerate"]
-  C143["cgg::coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap"]
-  C144["cgg::coverage_discloses_languages_with_no_rules_at_all"]
-  C145["cgg::the_taint_caveat_rides_with_every_network_entry"]
-  C146["cgg::an_undetected_framework_contributes_nothing"]
-  C147["cgg::no_entry_nodes_restores_the_previous_default_graph"]
-  C149["cgg::a_user_rule_covers_a_framework_cgg_does_not_ship"]
-  C151["cgg::solidity_visibility_is_the_trust_boundary"]
-  C152["cgg::rust_ffi_exports_are_entries_from_outside_the_tree"]
-  C153["cgg::django_as_view_binds_to_the_classes_http_methods"]
-  C154["cgg::drf_router_register_binds_the_viewsets_actions"]
-  C155["cgg::a_proto_rpc_links_to_its_go_implementation"]
-  C156["cgg::a_bare_method_name_does_not_link_a_descriptor"]
-  C158["cgg::structure"]
-  C223["cgg::opts"]
-  C224["cgg::structure"]
-  C227["cgg::two_projects_each_get_their_own_framework_rules"]
-  C229["cgg::run"]
-  C1771["cgg_resolve::deadcode::tests::opts"]
-  C0 --> C1
-  C127 --> C125
-  C128 --> C127
-  C129 --> C127
-  C130 --> C127
-  C131 --> C127
-  C132 --> C127
-  C133 --> C127
-  C134 --> C127
-  C135 --> C127
-  C136 --> C127
-  C137 --> C127
-  C138 --> C127
-  C139 --> C127
-  C140 --> C127
-  C141 --> C127
-  C142 --> C127
-  C143 --> C127
-  C144 --> C127
-  C145 --> C127
-  C146 --> C127
-  C147 -->|2x| C127
-  C149 --> C127
-  C151 --> C127
-  C152 --> C127
-  C153 --> C127
-  C154 --> C127
-  C155 --> C127
-  C156 --> C127
-  C229 --> C224
-  C229 --> C223
-  C227 -->|4x| C229
-  C0 --> C127
-  C0 --> C229
-  C1 --> C66
-  C1 --> C20
-  C128 --> C1
-  C128 --> C229
-  C129 --> C1
-  C129 --> C229
-  C130 --> C1
-  C130 --> C229
-  C131 --> C1
-  C131 --> C229
-  C132 --> C1
-  C132 --> C229
-  C133 --> C1
-  C133 --> C229
-  C134 --> C1
-  C134 --> C229
-  C135 --> C1
-  C135 --> C229
-  C136 --> C1
-  C136 --> C229
-  C137 --> C1
-  C137 --> C229
-  C138 --> C1
-  C138 --> C229
-  C139 --> C1
-  C139 --> C229
-  C140 --> C1
-  C140 --> C229
-  C141 --> C1
-  C141 --> C229
-  C142 --> C1
-  C142 --> C229
-  C143 --> C1
-  C143 --> C229
-  C144 --> C1
-  C144 --> C229
-  C145 --> C1
-  C145 --> C229
-  C146 --> C1
-  C146 --> C229
-  C147 -->|2x| C1
-  C147 -->|2x| C229
-  C149 --> C1
-  C149 --> C229
-  C151 --> C1
-  C151 --> C229
-  C152 --> C1
-  C152 --> C229
-  C153 --> C1
-  C153 --> C229
-  C154 --> C1
-  C154 --> C229
-  C155 --> C1
-  C155 --> C229
-  C156 --> C1
-  C156 --> C229
-  C229 --> C158
-  C229 --> C66
-  C229 --> C1771
-  C227 -->|4x| C1
-  C227 -->|4x| C127
+  C2["cgg_walk::walk"]
+  C212["cgg::analyze"]
+  C213["cgg::analyze_in_pool"]
+  C214["cgg::langs_enabled"]
+  C215["cgg::dead_code_analysis"]
+  C219["cgg::why_live_proofs"]
+  C220["cgg::since_seeds"]
+  C221["cgg::count_lines"]
+  C222["cgg::read_file"]
+  C223["cgg::variant_to_kind"]
+  C225["cgg::synthesize_exit_nodes"]
+  C226["cgg::synthesize_entry_nodes"]
+  C227["cgg::trait_impl_target_from_qn"]
+  C228["cgg::dedup_edges"]
+  C230["cgg::query::apply_query"]
+  C231["cgg::query::apply_exclusions"]
+  C252["cgg::since::resolve_since"]
+  C284["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  C286["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  C294["cgg::outcome::Emission::line"]
+  C295["cgg::outcome::Emission::always"]
+  C303["cgg::options::RunOptions::dead_mode"]
+  C454["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C455["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C1430["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C1431["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C1432["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1452["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1459["cgg_lang::notebook::extract_python_source"]
+  C1501["cgg_resolve::dispatch::fanout"]
+  C1513["cgg_resolve::frameworks::detect"]
+  C1573["cgg_resolve::type_hints::build_return_type_map"]
+  C1574["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C1591["cgg_resolve::ffi::link_ffi"]
+  C1745["cgg_resolve::cross_file::resolve"]
+  C1759["cgg_resolve::descriptor::link_descriptors"]
+  C1766["cgg_resolve::intra_file::link_file"]
+  C1893["cgg_core::external::FileAliases::from_facts"]
+  C1894["cgg_core::external::classify_external"]
+  C1897["cgg_core::external::build_known_names"]
+  C1911["cgg_core::testfile::classify_test_file"]
+  C1920["cgg_core::graph::Graph::new"]
+  C1921["cgg_core::graph::Graph::add_callable"]
+  C1922["cgg_core::graph::Graph::add_file"]
+  C1923["cgg_core::graph::Graph::add_edge"]
+  C1931["cgg_core::profile::enable"]
+  C1934["cgg_core::profile::span"]
+  C212 --> C213
+  C213 --> C214
+  C213 --> C222
+  C213 --> C221
+  C213 --> C223
+  C213 --> C227
+  C213 --> C225
+  C213 --> C226
+  C213 --> C228
+  C213 --> C220
+  C213 --> C219
+  C213 --> C215
+  C1431 --> C1431
+  C213 --> C303
+  C213 --> C286
+  C213 --> C284
+  C213 --> C1931
+  C213 --> C2
+  C213 --> C1452
+  C213 --> C454
+  C213 --> C1430
+  C213 --> C1920
+  C213 --> C455
+  C213 --> C1459
+  C213 -->|18x| C1934
+  C213 --> C1431
+  C213 --> C1432
+  C213 --> C1911
+  C213 --> C1922
+  C213 --> C1921
+  C213 --> C1573
+  C213 --> C1574
+  C213 --> C1897
+  C213 --> C1766
+  C213 --> C1893
+  C213 --> C1894
+  C213 --> C1745
+  C213 --> C1591
+  C213 --> C1759
+  C213 --> C1513
+  C213 --> C1501
+  C213 --> C1923
+  C213 --> C252
+  C213 -->|2x| C295
+  C213 --> C230
+  C213 -->|4x| C294
+  C213 --> C231
+  C215 --> C1452
+  C215 --> C295
+  C215 --> C294
+  C219 --> C295
+  C225 -->|2x| C1922
+  C225 --> C1921
+  C225 --> C1923
+  C226 --> C1922
+  C226 --> C1921
+  C226 --> C1923
+  C230 --> C1920
+  C1513 -->|9x| C1934
+  C1745 -->|2x| C1934
 ```
 <!-- cgg:end:self -->
 
@@ -578,40 +556,43 @@ flowchart LR
   C20["cgg_lang::parser::ParserPool<'r>::parse"]
   C21["cgg_lang::parser::ParserPool<'r>::plugin"]
   C22["cgg_lang::parser::set_language"]
-  C26["cgg_lang::set_deadcode_signals"]
-  C27["cgg_lang::deadcode_signals"]
-  C28["cgg_lang::set_extra_registrar_verbs"]
-  C29["cgg_lang::is_registrar_verb"]
-  C30["cgg_lang::LanguagePlugin::id"]
-  C31["cgg_lang::LanguagePlugin::extensions"]
-  C32["cgg_lang::LanguagePlugin::shebangs"]
-  C33["cgg_lang::LanguagePlugin::signals"]
-  C34["cgg_lang::LanguagePlugin::ts_language"]
-  C35["cgg_lang::LanguagePlugin::extract"]
-  C36["cgg_lang::PluginRegistry::new"]
-  C37["cgg_lang::PluginRegistry::register"]
-  C38["cgg_lang::PluginRegistry::all"]
-  C39["cgg_lang::PluginRegistry::by_id"]
-  C40["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C26["cgg_lang::builtin_verbs"]
+  C27["cgg_lang::no_extra_verbs"]
+  C28["cgg_lang::ExtractCtx<'a>::new"]
+  C29["cgg_lang::ExtractCtx<'a>::plain"]
+  C30["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
+  C31["cgg_lang::LanguagePlugin::id"]
+  C32["cgg_lang::LanguagePlugin::extensions"]
+  C33["cgg_lang::LanguagePlugin::shebangs"]
+  C34["cgg_lang::LanguagePlugin::signals"]
+  C35["cgg_lang::LanguagePlugin::ts_language"]
+  C36["cgg_lang::LanguagePlugin::extract"]
+  C37["cgg_lang::PluginRegistry::new"]
+  C38["cgg_lang::PluginRegistry::register"]
+  C39["cgg_lang::PluginRegistry::all"]
+  C40["cgg_lang::PluginRegistry::by_id"]
+  C41["cgg_lang::PluginRegistry::with_v1_plugins"]
   C1 -->|2x| C2
   C1 -->|2x| C3
-  C1 --> C30
-  C1 --> C32
-  C1 --> C38
+  C1 --> C31
+  C1 --> C33
+  C1 --> C39
   C1 --> C4
   C1 --> C5
   C1 -->|2x| C6
-  C2 --> C30
   C2 --> C31
-  C2 --> C38
+  C2 --> C32
+  C2 --> C39
   C20 --> C20
   C20 --> C22
-  C20 --> C34
-  C20 --> C39
-  C21 --> C39
-  C35 --> C30
-  C39 --> C30
-  C40 --> C36
+  C20 --> C35
+  C20 --> C40
+  C21 --> C40
+  C29 --> C27
+  C30 --> C26
+  C36 --> C31
+  C40 --> C31
+  C41 --> C37
 ```
 <!-- cgg:end:lang -->
 

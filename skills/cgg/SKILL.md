@@ -289,9 +289,9 @@ A mermaid flowchart from cgg looks like:
 
 ```text
 flowchart LR
-  C87["cgg::run"]
-  C90["cgg::read_file"]
-  C87 --> C90
+  C213["cgg::analyze_in_pool"]
+  C222["cgg::read_file"]
+  C213 --> C222
 ```
 
 Each node is a callable, labeled with its fully-qualified name. Each
@@ -301,8 +301,8 @@ the graph with guesses.
 
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
-into a single arrow with a multiplicity label — e.g. `C87 -->|3x| C90`
-in mermaid, or `n87 -> n90 [label="3x"];` in dot. The bare arrow form
+into a single arrow with a multiplicity label — e.g. `C213 -->|3x| C222`
+in mermaid, or `n213 -> n222 [label="3x"];` in dot. The bare arrow form
 is used when the count is 1. JSON and GraphML still emit one edge per
 call site (with `site_line`/`site_byte`) so programmatic consumers
 don't lose call-frequency information.

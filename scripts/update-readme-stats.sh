@@ -7,8 +7,8 @@
 #     $CGG_BENCH_DIR — this is what produces the per-project numbers in
 #     the README benchmark table.
 #   - When the self-analysis mermaid graph (the big one under
-#     "## Self-analysis", filtered to `cgg::run`) needs to reflect
-#     resolver/plugin changes.
+#     "## Self-analysis", filtered to `cgg::analyze_in_pool`) needs to
+#     reflect resolver/plugin changes.
 #   - As a follow-up after large refactors that change the benchmark
 #     numbers materially.
 #
@@ -38,7 +38,7 @@ fi
 # --- Generate data files ---
 echo "Generating self-analysis..."
 $CGG "$ROOT/crates" -t mermaid -o /dev/null --metrics /dev/null 2>/tmp/cgg_self_stats.txt
-$CGG "$ROOT/crates" -t mermaid --filter 'cgg::run$' -n 1 -o /tmp/cgg_self_graph.mmd 2>/dev/null
+$CGG "$ROOT/crates" -t mermaid --filter 'cgg::analyze_in_pool$' -n 1 -o /tmp/cgg_self_graph.mmd 2>/dev/null
 
 # Self-stats line is patched separately via marker-based updater so
 # this workflow stays consistent with the pre-commit hook.

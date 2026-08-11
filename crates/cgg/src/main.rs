@@ -8,7 +8,9 @@
 
 use std::process::ExitCode;
 
+use cgg_format::OutputFormat;
 use clap::Parser;
+use tracing::info;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use cgg::cli::Cli;
@@ -57,6 +59,16 @@ fn main() -> ExitCode {
 /// Returns the wall time alongside it so `main` can render the `--profile`
 /// table after every span has dropped, without a process-global.
 fn run(cli: &Cli) -> anyhow::Result<(ExitCode, f64)> {
+    // The application's startup banner. Here rather than in `analyze`
+    // because it names the output format, which never reaches
+    // `RunOptions` — `-t` does not change the graph.
+    info!(
+        version = cgg_core::CGG_VERSION,
+        paths = cli.paths.len(),
+        format = %OutputFormat::from(cli.format),
+        "cgg starting"
+    );
+
     let outcome = cgg::analyze(&RunOptions::from(cli))?;
     let wall_ms = outcome.metrics.wall_ms;
     emit::all(cli, &outcome)?;
