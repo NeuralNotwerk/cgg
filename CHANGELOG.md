@@ -5,6 +5,60 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+### Added
+
+- **`crates/cgg-ffi` — a C ABI.** One shared library (`libcgg.so`) or
+  static archive (`libcgg.a`) serves C, .NET, Java, Go, Ruby and anything
+  else with an FFI, so a binding is source rather than another native
+  artifact per language per platform.
+
+  Six functions. Options cross as a JSON document and results as strings,
+  which is the load-bearing decision: adding a cgg flag adds a JSON key,
+  not an entry point, so **the ABI does not change when cgg gains a
+  feature** and no wrapper needs rebuilding. It is affordable because
+  rendering is nearly free next to analysis — 6.5 ms for `to_json()` and
+  1.3 ms for `to_mermaid()` against 137.7 ms of analysis on cgg's own
+  tree. `cgg_analyze` returns an opaque handle rather than a rendered
+  string, so mermaid *and* JSON *and* the metrics cost one analysis.
+
+  Output is byte-identical to the CLI across all four formats, asserted by
+  test. Statically linked, a C program depends on nothing but libc and
+  libgcc — the CLI's self-contained promise survives the boundary.
+
+  Unknown option keys are an error rather than ignored: C callers
+  hand-write the JSON, so a silently-dropped `"hopz"` is the failure this
+  boundary is most exposed to.
+
+- **The Rust library needs only one dependency now.** `cgg` re-exports
+  `OutputFormat`, `Result`/`Error` and the graph types, so a consumer no
+  longer has to name `cgg-format` and `anyhow` in its own manifest just to
+  call the API — which also stopped their versions from drifting from the
+  ones cgg was built against.
+
+- `RunOptions` derives `Serialize`/`Deserialize`, with `#[serde(default,
+  deny_unknown_fields)]`, which is what the JSON options boundary is built
+  on.
+
+### Known issues
+
+- **`cgg::analyze` leaks about 161 bytes per call.** Measured under
+  valgrind: 0 bytes for a run that parses no files, 161 bytes in 28 blocks
+  for one file, 163 for several, independent of `--jobs`. So it is a
+  fixed, one-time cost at parser setup inside tree-sitter's C
+  allocations — it does not grow with tree size, but it does accumulate
+  across calls (~14 MB after a million analyses).
+
+  Not specific to the new C ABI: a pure Rust consumer of `cgg::analyze`
+  leaks identically, and so does `cgg-py`. It was unreachable before
+  0.6.0, when one analysis per process was the only option. The CLI is
+  unaffected — it analyzes once and exits.
+
+  Worth knowing if you are embedding cgg in a long-lived service.
+  `mimalloc` hides it from valgrind entirely, which is why 0.6.0 shipped
+  without noticing.
+
 ## [0.6.0] - 2026-08-11
 
 The pipeline is a library, and there is a Python module on top of it.

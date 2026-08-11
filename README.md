@@ -143,9 +143,9 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 
 ## Library
 
-The same pipeline the CLI runs is a Rust library and a Python module. All
-three front ends call `cgg::analyze`, so the resolver ordering exists in
-exactly one place and cannot drift between them.
+The same pipeline the CLI runs is a Rust library, a Python module, and a C
+ABI. Every front end calls `cgg::analyze`, so the resolver ordering exists
+in exactly one place and cannot drift between them.
 
 ### Rust
 
@@ -218,6 +218,36 @@ interpreter, and the `cgg` binary links no libpython.
 `--why-live` proofs, the `--write-roots` baseline, the audit event stream
 and the framework-coverage table are reachable from the Rust API but are
 not exposed to Python yet. Use the CLI for those.
+
+### C — and everything that can call C
+
+```c
+#include "cgg.h"
+
+char *err = NULL;
+cgg_graph *g = cgg_analyze("{\"paths\":[\"./src\"]}", &err);
+char *mermaid = cgg_graph_render(g, "mermaid", &err);
+puts(mermaid);
+cgg_string_free(mermaid);
+cgg_graph_free(g);
+```
+
+```bash
+cargo build --release -p cgg-ffi     # libcgg.so + libcgg.a, header in
+                                     # crates/cgg-ffi/include/cgg.h
+```
+
+Six functions. Options go in as JSON and results come out as strings,
+which is what lets **one** shared library serve C, .NET, Java, Go, Ruby
+and anything else with an FFI — adding a cgg flag adds a JSON key, not an
+entry point, so the ABI does not change when cgg gains a feature. Analysis
+returns an opaque handle, so mermaid *and* JSON *and* the metrics cost one
+analysis rather than three. Output is byte-identical to the CLI's, and a
+test asserts it across all four formats.
+
+Link `libcgg.a` instead and your program stays a single binary depending
+on nothing but libc — the same promise the CLI makes.
+[`crates/cgg-ffi/README.md`](crates/cgg-ffi/README.md).
 
 Renderer vs attribute cost, and what is not yet exposed:
 [`crates/cgg-py/README.md`](crates/cgg-py/README.md).

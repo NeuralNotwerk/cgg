@@ -19,7 +19,18 @@ use cgg_core::graph::Confidence;
 /// `max_paths: 1000`, `dead_code_confidence: High`, everything else
 /// empty or off. `crates/cgg/tests/lib_api.rs` asserts that equivalence
 /// against a freshly parsed bare command line, so the two cannot drift.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// `serde` so the options can cross a boundary that has no Rust types:
+/// `crates/cgg-ffi` takes them as a JSON document, which is what lets one
+/// C ABI serve every language without gaining a function per flag. Every
+/// field is `#[serde(default)]` via the container attribute, so a caller
+/// sends only what it wants to change and a *new* field never breaks a
+/// caller that predates it.
+///
+/// `deny_unknown_fields` on purpose: a typo'd key in a hand-written JSON
+/// options blob would otherwise be silently ignored, which is the same
+/// class of failure as a framework rule naming a verb cgg does not ship.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct RunOptions {
     /// Source directories or files to analyze. Must be non-empty.
     pub paths: Vec<PathBuf>,

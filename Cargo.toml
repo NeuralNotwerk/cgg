@@ -13,6 +13,9 @@ members = [
     # `scripts/build-python.sh` for a wheel — cargo builds the cdylib but
     # cannot install it.
     "crates/cgg-py",
+    # The C ABI. One shared library serves every language with an FFI, so
+    # a wrapper is source rather than another native artifact per target.
+    "crates/cgg-ffi",
 ]
 
 [workspace.package]

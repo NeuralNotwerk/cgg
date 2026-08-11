@@ -1,0 +1,33 @@
+[package]
+name        = "cgg-ffi"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "C ABI for the cgg call-graph generator — one shared library, every language."
+# Not published to crates.io: nothing in Rust would link this rather than
+# `cgg` itself. The artifact is the shared library.
+publish     = false
+
+[lib]
+name = "cgg"
+# `cdylib` is the shared library every non-Rust caller loads. `staticlib`
+# is here so a C or Go program can link cgg in and stay a single binary,
+# which is the whole promise of the CLI and should not be lost at the
+# boundary.
+crate-type = ["cdylib", "staticlib"]
+doctest    = false
+
+[dependencies]
+# The pipeline. This crate is a translation layer and holds no analysis
+# logic, exactly like `cgg-py`.
+cgg        = { workspace = true }
+cgg-core   = { workspace = true }
+cgg-format = { workspace = true }
+
+serde      = { workspace = true }
+serde_json = { workspace = true }
+
+# Mirrors main.rs and cgg-py. A GlobalAlloc governs only this library's
+# own allocations; every buffer handed to C is released through
+# `cgg_string_free`, which routes back here.
+mimalloc   = { workspace = true }

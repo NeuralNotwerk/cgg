@@ -194,6 +194,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cgg-ffi"
+version = "0.6.0"
+dependencies = [
+ "cgg",
+ "cgg-core",
+ "cgg-format",
+ "mimalloc",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cgg-format"
 version = "0.6.0"
 dependencies = [

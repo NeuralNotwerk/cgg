@@ -35,24 +35,40 @@ mod since;
 pub use options::RunOptions;
 pub use outcome::{Emission, RunOutcome};
 
+/// Everything needed to call this crate, re-exported.
+///
+/// A consumer had to add `cgg-format` and `anyhow` to its own manifest
+/// just to *use* the API: `analyze` returns `anyhow::Result`, and
+/// [`emit::graph_to_string`] takes a `cgg_format::OutputFormat`. Naming a
+/// dependency you never `use` directly is a papercut, and worse, it lets
+/// a consumer's version drift from the one this crate was built against.
+///
+/// These are the same types, not wrappers — `cgg::OutputFormat` *is*
+/// `cgg_format::OutputFormat`, so a value crosses between them freely.
+/// The graph types are re-exported below, on the imports this module
+/// already needed, rather than listed twice.
+pub use anyhow::Error;
+pub use cgg_core as core;
+pub use cgg_format::OutputFormat;
+
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
+pub use anyhow::Result;
 
 use rayon::prelude::*;
 
 use cgg_core::audit::{
     AuditCallableRef, AuditEvent, AuditFileRecord, RunMetrics, SkipReason,
 };
-use cgg_core::graph::{
-    CallEdge, CallableKind, CallableNode, Confidence, FileRecord as GraphFileRecord,
-    Graph, Via,
-};
-use cgg_core::ids::{CallableId, FileId, ResolverId};
+use cgg_core::graph::FileRecord as GraphFileRecord;
+pub use cgg_core::graph::{CallEdge, CallableKind, CallableNode, Confidence, Graph, Via};
+use cgg_core::ids::ResolverId;
+pub use cgg_core::ids::{CallableId, FileId};
 use cgg_core::{
     DefVariant, FileAliases, FileFacts, build_known_names, classify_external,
 };
