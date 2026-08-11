@@ -1,0 +1,35 @@
+[package]
+name        = "cgg-node"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Node.js bindings for the cgg call-graph generator."
+# Not published to crates.io: the artifact anyone wants is the npm
+# package, and nothing in Rust would link this rather than `cgg` itself.
+publish     = false
+
+[lib]
+name = "cgg_node"
+# cdylib only: loaded by Node through N-API, never linked by another Rust
+# crate. `test = false` because the tests that matter drive the built
+# module from JavaScript, in tests/.
+crate-type = ["cdylib"]
+test       = false
+doctest    = false
+
+[dependencies]
+# The pipeline. A translation layer with no analysis logic, the same
+# contract cgg-py and cgg-ffi hold.
+cgg        = { workspace = true }
+cgg-core   = { workspace = true }
+cgg-format = { workspace = true }
+
+napi        = { workspace = true }
+napi-derive = { workspace = true }
+
+# Mirrors main.rs, cgg-py and cgg-ffi. Extraction is allocation-heavy and
+# the system allocator serialises under it.
+mimalloc   = { workspace = true }
+
+[build-dependencies]
+napi-build  = { workspace = true }

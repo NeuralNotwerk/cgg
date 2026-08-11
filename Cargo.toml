@@ -16,6 +16,10 @@ members = [
     # The C ABI. One shared library serves every language with an FFI, so
     # a wrapper is source rather than another native artifact per target.
     "crates/cgg-ffi",
+    # Node.js bindings. Like cgg-py, a native module rather than a wrapper
+    # over the C ABI: npm needs a per-platform artifact either way, so the
+    # C ABI buys nothing here and N-API gives a far better consumer.
+    "crates/cgg-node",
 ]
 
 [workspace.package]
@@ -67,6 +71,10 @@ memory-stats       = "1.2"
 # abi3-py39: one wheel per platform serves every CPython >= 3.9.
 # extension-module: libpython is not linked, so no interpreter is needed.
 pyo3               = { version = "0.29", features = ["abi3-py39", "extension-module"] }
+# N-API. `napi-build` is a build dep; the others are the runtime binding.
+napi               = { version = "3", default-features = false, features = ["napi8", "tokio_rt"] }
+napi-derive        = { version = "3" }
+napi-build         = { version = "2" }
 petgraph           = { version = "0.6", features = ["serde-1"] }
 
 # --- Parsers and grammars (all MIT) ---
