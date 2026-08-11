@@ -9,8 +9,8 @@ are real projects.
 | Target | Artifact | Status | Blocked on you |
 | --- | --- | --- | --- |
 | GitHub Releases | source + binaries | shipping | nothing |
-| crates.io | 6 Rust crates | **ready, blocked** | verified email |
-| PyPI | `cgg` wheel | buildable, not packaged for CI | account + token |
+| crates.io | 6 Rust crates | **published** | nothing |
+| PyPI | `cgg-callgraphgenerator` wheel | **published** (Linux x86_64) | other platforms need CI |
 | GitHub Releases (bin) | CLI + `libcgg` | not wired | nothing |
 | npm | Node module | **wrapper not written** | account + token |
 | NuGet | .NET package | **wrapper not written** | account + key |
@@ -18,36 +18,38 @@ are real projects.
 
 ---
 
-## 1. crates.io — ready now, one thing blocking
+## 1. crates.io — published
 
-Everything on the code side is done: names verified free, metadata
-complete, per-crate READMEs, `cargo package` clean.
-
-**The blocker:** the account has no verified email, so every upload is
-rejected:
-
-```
-400 Bad Request: A verified email address is required to publish crates
-to crates.io. Visit https://crates.io/settings/profile
-```
-
-Nothing was consumed by the failed attempt — all six names are still free.
-
-### What you do
-
-1. <https://crates.io/settings/profile> — set an email, then click the
-   link in the confirmation message. This is the whole blocker.
-2. <https://crates.io/settings/tokens> — a token scoped `publish-new` and
-   `publish-update`. (You already have one at `~/.crates.io.token`; a
-   fresh one is only needed if that one lacks `publish-new`.)
-3. `cargo login < ~/.crates.io.token`
-
-### Then
+All six crates are live at 0.6.1. `cargo install cgg` works, and the
+library can be depended on by version.
 
 ```bash
 scripts/publish-crates.sh --dry-run   # packages everything, uploads nothing
 scripts/publish-crates.sh             # asks you to type the version
 ```
+
+Prerequisites, for the record:
+
+1. A **verified email** on the account. Without it every upload is
+   rejected with `400 A verified email address is required` — nothing is
+   consumed, but nothing publishes either.
+2. A token from <https://crates.io/settings/tokens>, then
+   `cargo login < ~/.crates.io.token`.
+
+### Two things that bite on a first release
+
+**New-crate rate limiting.** crates.io allows a burst of new crates and
+then roughly one per ten minutes. A six-crate workspace hits it — ours
+failed on the sixth and most important one with `429 Too Many Requests`,
+after the other five had published. The version is not consumed by a
+failed upload, so the fix is to wait and retry that crate alone. The
+script now parses the retry time out of the error and waits. Publishing a
+new *version* of an existing crate is not limited, so this is a
+first-release problem only.
+
+**Order is not optional.** Each crate must be on crates.io before
+anything depending on it can even be packaged, and the index is a CDN, so
+the script waits for each to become visible before continuing.
 
 The script exists because a workspace cannot be published in one command.
 Each crate's dependencies must already **be on crates.io** before it can

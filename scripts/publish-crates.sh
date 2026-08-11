@@ -92,6 +92,38 @@ wait_for_index() {
     exit 1
 }
 
+# crates.io rate-limits the creation of NEW crates — a burst allowance,
+# then roughly one every ten minutes. Publishing a six-crate workspace for
+# the first time hits it, and it hit us on the sixth and most important
+# one. The error names the exact time to retry, so parse it and wait
+# rather than making the operator rerun the script and re-publish nothing.
+#
+# Only new-crate creation is limited; publishing a new VERSION of an
+# existing crate is not, so this matters on a first release and
+# essentially never again.
+publish_with_retry() {
+    local c="$1" out rc until_str wait_s
+    for attempt in 1 2 3; do
+        out="$(cargo publish -p "$c" 2>&1)"; rc=$?
+        printf '%s\n' "$out"
+        [ "$rc" -eq 0 ] && return 0
+        grep -q '429 Too Many Requests' <<<"$out" || return "$rc"
+
+        until_str="$(grep -oE 'try again after [^ ]+, [0-9]{2} [A-Za-z]{3} [0-9]{4} [0-9:]{8} GMT' <<<"$out" \
+                     | sed 's/try again after //')"
+        if [ -z "$until_str" ]; then
+            echo "  rate limited, but could not parse the retry time" >&2
+            return "$rc"
+        fi
+        wait_s=$(( $(date -u -d "$until_str" +%s) - $(date -u +%s) + 15 ))
+        [ "$wait_s" -lt 0 ] && wait_s=15
+        echo "  rate limited (new-crate quota). Waiting ${wait_s}s until $until_str …"
+        sleep "$wait_s"
+    done
+    echo "error: $c still rate limited after 3 attempts" >&2
+    return 1
+}
+
 for c in "${CRATES[@]}"; do
     echo "=== $c ==="
     if [ "$DRY" = "1" ]; then
@@ -114,7 +146,7 @@ for c in "${CRATES[@]}"; do
         fi
         continue
     fi
-    cargo publish -p "$c"
+    publish_with_retry "$c"
     [ "$c" = "${CRATES[-1]}" ] || wait_for_index "$c" "$VERSION"
     echo
 done
