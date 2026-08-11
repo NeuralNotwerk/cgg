@@ -1,0 +1,52 @@
+{
+  "name": "cgg-callgraphgenerator",
+  "version": "0.6.3",
+  "description": "Offline, deterministic call-graph generation for 44 languages. Point it at a directory, get a mermaid diagram.",
+  "keywords": [
+    "call-graph",
+    "static-analysis",
+    "tree-sitter",
+    "mermaid",
+    "codebase"
+  ],
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NeuralNotwerk/cgg.git",
+    "directory": "crates/cgg-node"
+  },
+  "homepage": "https://github.com/NeuralNotwerk/cgg",
+  "bugs": {
+    "url": "https://github.com/NeuralNotwerk/cgg/issues"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">= 12"
+  },
+  "napi": {
+    "binaryName": "cgg",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "artifacts": "napi artifacts",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.8.5"
+  }
+}

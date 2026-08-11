@@ -1,0 +1,38 @@
+{
+  "name": "cgg-callgraphgenerator-linux-x64-gnu",
+  "version": "0.6.3",
+  "cpu": [
+    "x64"
+  ],
+  "main": "cgg.linux-x64-gnu.node",
+  "files": [
+    "cgg.linux-x64-gnu.node"
+  ],
+  "description": "Offline, deterministic call-graph generation for 44 languages. Point it at a directory, get a mermaid diagram.",
+  "keywords": [
+    "call-graph",
+    "static-analysis",
+    "tree-sitter",
+    "mermaid",
+    "codebase"
+  ],
+  "homepage": "https://github.com/NeuralNotwerk/cgg",
+  "license": "Apache-2.0 OR MIT",
+  "engines": {
+    "node": ">= 12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NeuralNotwerk/cgg.git",
+    "directory": "crates/cgg-node"
+  },
+  "bugs": {
+    "url": "https://github.com/NeuralNotwerk/cgg/issues"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "glibc"
+  ]
+}

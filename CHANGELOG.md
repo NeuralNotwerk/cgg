@@ -5,7 +5,55 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [0.6.2] - 2026-08-11
+## [0.6.3] - 2026-08-11
+
+### Added
+
+- **Node.js bindings** — `npm install cgg-callgraphgenerator`.
+
+  ```js
+  const cgg = require("cgg-callgraphgenerator");
+  const g = await cgg.analyze("./src");
+  console.log(g.toMermaid());
+  ```
+
+  `crates/cgg-node` is an N-API module over `cgg::analyze`, a translation
+  layer with no analysis logic — the same contract `cgg-py` and `cgg-ffi`
+  hold. `analyze` is async and runs on libuv's pool so a server does not
+  stall its event loop; `analyzeSync` is there for scripts. TypeScript
+  definitions are generated from the Rust, so they cannot drift.
+
+  Shapes mirror the Python module field for field — `Edge` is
+  `src`/`dst`/`siteLine`/`siteByte`/`confidence`/`via` — because two
+  bindings over one pipeline should not describe the same graph with
+  different words. Same single rename from the CLI: `entryNodes: true`.
+
+  15 tests, including byte-identical parity with the binary across all
+  four formats and seven option combinations, with a guard that fails if
+  no option changed the graph — otherwise parity could pass while the
+  module ignored every keyword it was given.
+
+  **Native, not a wrapper over the C ABI.** npm needs a per-platform
+  artifact either way, so the C ABI would buy nothing here while costing
+  an FFI dependency and a slower boundary.
+
+  **Packaged the way npm does native modules**: one package per platform,
+  listed as `optionalDependencies`, so npm installs only the one matching
+  the host. That needs no install script, which matters more than it
+  looks — `npm ci --ignore-scripts` is common in CI and in
+  security-conscious orgs, and a source-build `postinstall` silently
+  produces a broken install under it. A source package was considered and
+  rejected for that reason: it also needs a Rust toolchain, ~53 s of
+  compilation, and leaves 779 MB of build artifacts. npm has no `sdist`
+  equivalent to fall back on the way PyPI does.
+
+  Naming: `cgg` is taken on npm (an unrelated ChampionGG API wrapper), so
+  the package matches PyPI rather than inventing a third spelling.
+
+- `.github/workflows/release.yml` gains a five-target Node matrix, and the
+  publish job now pushes to npm as well as PyPI.
+
+
 
 ### Fixed
 

@@ -92,6 +92,56 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
+  # Node.js. The per-platform packages are npm's standard model for a
+  # native module (esbuild, swc and napi-rs itself all ship this way): the
+  # main package lists them as optionalDependencies, and npm installs only
+  # the one matching the host. It needs no install script, so it survives
+  # `npm ci --ignore-scripts` — which a source-build postinstall does not.
+  node:
+    name: node (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64-gnu, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { name: linux-arm64-gnu, os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { name: darwin-x64, os: macos-13, target: x86_64-apple-darwin }
+          - { name: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: win32-x64-msvc, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        working-directory: crates/cgg-node
+        run: |
+          npm ci
+          npx napi build --platform --release --target ${{ matrix.target }}
+
+      # Load the module and make it analyse a real tree. A .node that
+      # builds and does not load is the failure a build-only matrix ships.
+      - name: Smoke test
+        if: matrix.name != 'linux-arm64-gnu' # runner cannot execute ARM
+        working-directory: crates/cgg-node
+        run: |
+          node -e "
+          const cgg = require('./index.js');
+          const g = cgg.analyzeSync('../cgg-walk');
+          if (g.callableCount < 1) { throw new Error('no callables'); }
+          if (!g.toMermaid().startsWith('flowchart')) { throw new Error('bad mermaid'); }
+          console.log('ok', cgg.version(), g.callableCount, 'callables');
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.name }}
+          path: crates/cgg-node/*.node
+
   binaries:
     name: binaries (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -138,7 +188,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [wheels, sdist, binaries]
+    needs: [wheels, sdist, binaries, node]
     runs-on: ubuntu-latest
     # Only on a tag. A manual run builds and tests everything but
     # publishes nothing, so the matrix is safe to exercise any time.
@@ -174,3 +224,22 @@ jobs:
         with:
           packages-dir: dist
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - uses: actions/checkout@v4
+        with: { path: src }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, registry-url: "https://registry.npmjs.org" }
+
+      # `napi prepublish` moves each .node into its npm/<triple>/ package,
+      # publishes those, then publishes the main package that depends on
+      # them. Order matters: the main package's optionalDependencies must
+      # already exist.
+      - name: Publish to npm
+        working-directory: src/crates/cgg-node
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm ci
+          find ../../../artifacts -name '*.node' -exec cp {} . \;
+          ls -la *.node
+          npx napi prepublish -t npm --skip-gh-release
