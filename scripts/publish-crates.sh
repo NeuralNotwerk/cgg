@@ -95,12 +95,23 @@ wait_for_index() {
 for c in "${CRATES[@]}"; do
     echo "=== $c ==="
     if [ "$DRY" = "1" ]; then
-        # `--no-verify` because a dependent cannot be verified until its
-        # dependencies are actually on crates.io — that check is exactly
-        # what a first-time dry run cannot satisfy.
-        cargo package -p "$c" --no-verify --quiet \
-            && echo "  packages OK" \
-            || { echo "  FAILED to package" >&2; exit 1; }
+        # A dependent cannot be packaged until its siblings are actually
+        # ON crates.io — `--no-verify` skips the build check but not
+        # dependency resolution, so there is no flag that makes this work
+        # offline. On a first release only the root crate is checkable;
+        # reporting the rest as failures would be wrong, so they are
+        # reported as blocked on a sibling and the run continues.
+        if cargo package -p "$c" --no-verify --quiet 2>/tmp/cgg-pkg.err; then
+            echo "  packages OK"
+        elif grep -q 'no matching package named `cgg' /tmp/cgg-pkg.err; then
+            missing="$(grep -o 'no matching package named `[^`]*`' /tmp/cgg-pkg.err \
+                       | head -1 | sed 's/.*`\(.*\)`/\1/')"
+            echo "  not yet checkable — needs $missing on crates.io first (expected)"
+        else
+            echo "  FAILED to package" >&2
+            sed 's/^/      /' /tmp/cgg-pkg.err >&2
+            exit 1
+        fi
         continue
     fi
     cargo publish -p "$c"
