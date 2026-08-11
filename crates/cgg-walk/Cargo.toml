@@ -4,6 +4,12 @@ version     = { workspace = true }
 edition     = { workspace = true }
 license     = { workspace = true }
 description = "Directory walker with built-in deny-list, .gitignore and .cggignore support for cgg."
+repository  = { workspace = true }
+homepage    = { workspace = true }
+keywords    = { workspace = true }
+rust-version = { workspace = true }
+readme      = "README.md"
+categories  = { workspace = true }
 
 [dependencies]
 cgg-core = { workspace = true }

@@ -4,6 +4,12 @@ version     = { workspace = true }
 edition     = { workspace = true }
 license     = { workspace = true }
 description = "Core IR, audit schema, and run-level types for the cgg call-graph generator."
+repository  = { workspace = true }
+homepage    = { workspace = true }
+keywords    = { workspace = true }
+rust-version = { workspace = true }
+readme      = "README.md"
+categories  = { workspace = true }
 
 [dependencies]
 anyhow     = { workspace = true }

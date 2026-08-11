@@ -35,7 +35,8 @@ with zero setup.
 ## Quick start
 
 ```bash
-cargo install --path crates/cgg
+cargo install cgg          # from crates.io
+cargo install --path crates/cgg   # or from a clone
 cgg ./src -o graph.mmd
 ```
 

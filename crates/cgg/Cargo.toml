@@ -4,6 +4,12 @@ version     = { workspace = true }
 edition     = { workspace = true }
 license     = { workspace = true }
 description = "Call graph generator — point at folders, get a graph."
+repository  = { workspace = true }
+homepage    = { workspace = true }
+keywords    = { workspace = true }
+rust-version = { workspace = true }
+readme      = "README.md"
+categories  = ["development-tools", "command-line-utilities", "visualization"]
 default-run = "cgg"
 
 # The pipeline is a library so more than one front end can drive it —

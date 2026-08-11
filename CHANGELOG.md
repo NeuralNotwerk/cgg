@@ -5,7 +5,25 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.6.1] - 2026-08-11
+
+**First release published to crates.io.** `cargo install cgg` works, and
+`cgg` is usable as a library dependency. 0.6.0 shipped only as a git tag.
+
+### Packaging
+
+- All six library/binary crates now carry the metadata a registry listing
+  needs — `repository`, `homepage`, `keywords`, `categories`,
+  `rust-version` — inherited from the workspace so the listing cannot
+  drift from it, plus a per-crate `README.md`. The root README lives
+  outside every package directory, so without one each crates.io page
+  would have rendered blank.
+- The five internal library crates say so on their own front page: they
+  are published only so `cgg` can depend on them by version, and their
+  APIs change freely between minors to serve that one consumer.
+- `cgg-py` and `cgg-ffi` stay `publish = false`. The artifact anyone
+  wants from those is a wheel and a shared library, not a crate.
+
 
 ### Added
 
