@@ -51,16 +51,11 @@ first-release problem only.
 anything depending on it can even be packaged, and the index is a CDN, so
 the script waits for each to become visible before continuing.
 
-The script exists because a workspace cannot be published in one command.
-Each crate's dependencies must already **be on crates.io** before it can
-even be packaged, so the order is fixed —
+The fixed order is:
 
 ```
 cgg-core → cgg-walk → cgg-format → cgg-lang → cgg-resolve → cgg
 ```
-
-— and the index is a CDN, so the script waits for each crate to become
-visible before publishing whatever depends on it.
 
 `cgg-py` and `cgg-ffi` are `publish = false`: the artifact anyone wants
 from those is a wheel and a shared library, not a crate.
@@ -70,14 +65,17 @@ from those is a wheel and a shared library, not a crate.
 
 ---
 
-## 2. PyPI — the wheel already builds
+## 2. PyPI — published (Linux x86_64)
 
-`scripts/build-python.sh --wheel` produces a working wheel today. What is
-missing is only the multi-platform build and the upload.
+Live: <https://pypi.org/project/cgg-callgraphgenerator/>
+
+```bash
+pip install cgg-callgraphgenerator
+```
 
 `abi3-py39` means **one wheel per platform covers every CPython ≥ 3.9**,
 so the matrix is platforms, not platform × Python version — about six
-wheels, not thirty.
+wheels, not thirty. Only the Linux x86_64 one is published so far.
 
 ### The name
 
