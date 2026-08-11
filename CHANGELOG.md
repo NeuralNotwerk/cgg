@@ -41,6 +41,25 @@ At `--jobs 4` the CPU time is **identical** and the wall time is 35%
 worse. At `--jobs 1`, 0.6.x is *faster* on both. The work got cheaper; the
 scheduling got worse.
 
+**"Identical CPU, worse wall" does not by itself prove that** — a busier
+machine produces the same signature, since descheduled threads cost wall
+time and no CPU time. So it was re-run as a paired A/B: both binaries
+measured back to back inside each of 15 trials, per-trial differences
+reported rather than aggregate medians.
+
+| `--jobs` | trials 0.6.x slower | paired median | involuntary ctx switches |
+| --- | --- | --- | --- |
+| 1 | **0 / 15** | −20 ms (faster) | 3 vs 2 |
+| 4 | **15 / 15** | +60 ms (+40…+90) | 4 vs 2 |
+| 8 | **15 / 15** | +30 ms (+10…+50) | 2 vs 3 |
+
+External load would scatter those differences around zero. Instead every
+trial agrees and the sign **reverses** at one thread — load does not know
+how many workers were requested. Independently: involuntary context
+switches, which count the scheduler preempting the process because
+something else wanted the CPU, are 2-4 everywhere for both binaries. A
+machine stealing time would show them in the hundreds.
+
 **0.6.0 blamed `ExtractCtx`. That was wrong.** Threading the extraction
 switches replaced an atomic load with a field read, which is why
 single-threaded got faster. It cannot explain a regression that only
