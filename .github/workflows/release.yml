@@ -1,0 +1,176 @@
+# Release artifacts: Python wheels for every platform, CLI binaries, and
+# the C ABI shared library.
+#
+# Why a matrix at all: `crates/cgg-py` and `crates/cgg-ffi` are compiled
+# extensions, so a wheel or a `.so` only runs on the platform it was built
+# for. Cross-compiling to macOS needs Apple's SDK and to Windows needs the
+# MSVC toolchain, neither of which is practical from a Linux box — so each
+# target gets a runner that is already that platform.
+#
+# `abi3-py39` keeps this small: one wheel per PLATFORM covers every
+# CPython from 3.9 up, so this is six wheels rather than six times seven.
+#
+# Triggered by a `v*` tag. `workflow_dispatch` builds everything but
+# publishes nothing, so the matrix can be exercised without a release.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # to attach binaries to the GitHub release
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wheels:
+    name: wheel (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # one platform failing should not hide the others
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-gnu, manylinux: "2014" }
+          # Built under QEMU in a manylinux container. Slow (tens of
+          # minutes for 44 grammars) but it needs no ARM runner.
+          - { name: linux-aarch64, os: ubuntu-latest, target: aarch64-unknown-linux-gnu, manylinux: "2_28" }
+          - { name: macos-x86_64, os: macos-13, target: x86_64-apple-darwin }
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          # `auto` on Linux picks the oldest glibc it can, which is what
+          # makes the wheel installable on more than just the runner.
+          # PyPI rejects a plain `linux_x86_64` tag outright.
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist -m crates/cgg-py/Cargo.toml
+          sccache: "true"
+
+      # Prove the wheel imports and analyses before it is ever uploaded.
+      # A wheel that builds and does not load is the failure this catches.
+      - name: Smoke test
+        if: matrix.name != 'linux-aarch64' # runner cannot execute ARM
+        shell: bash
+        run: |
+          python -m pip install --find-links dist --no-index cgg-callgraphgenerator
+          python -c "
+          import cgg
+          g = cgg.analyze('crates/cgg-walk')
+          assert len(g.callables) > 0, 'no callables'
+          assert g.to_mermaid().startswith('flowchart'), 'bad mermaid'
+          print('ok', cgg.__version__, len(g.callables), 'callables')
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.name }}
+          path: dist/*.whl
+
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist -m crates/cgg-py/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  binaries:
+    name: binaries (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # The CLI and the C ABI together: someone linking libcgg needs the
+      # header, and someone using the CLI needs neither. Shipping them in
+      # one archive per platform keeps the release page short.
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }} -p cgg -p cgg-ffi
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p out
+          T="target/${{ matrix.target }}/release"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$T/cgg.exe" out/
+            cp "$T/cgg.dll" out/ 2>/dev/null || true
+            cp "$T/cgg.lib" out/ 2>/dev/null || true
+          else
+            cp "$T/cgg" out/
+            cp "$T"/libcgg.* out/ 2>/dev/null || true
+          fi
+          cp crates/cgg-ffi/include/cgg.h out/
+          cp README.md LICENSE-APACHE LICENSE-MIT out/
+          tar czf "cgg-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" -C out .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.name }}
+          path: cgg-*.tar.gz
+
+  publish:
+    name: publish
+    needs: [wheels, sdist, binaries]
+    runs-on: ubuntu-latest
+    # Only on a tag. A manual run builds and tests everything but
+    # publishes nothing, so the matrix is safe to exercise any time.
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: release # gate this in repo settings if you want approval
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: Collect
+        run: |
+          mkdir -p dist bin
+          find artifacts -name '*.whl' -o -name '*.tar.gz' | while read -r f; do
+            case "$f" in
+              *cgg-v*) cp "$f" bin/ ;;
+              *) cp "$f" dist/ ;;
+            esac
+          done
+          ls -la dist bin
+
+      - name: Attach binaries to the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*
+
+      # Trusted publishing: no token in secrets at all. Configure the
+      # publisher once at
+      # https://pypi.org/manage/project/cgg-callgraphgenerator/settings/publishing/
+      # (owner NeuralNotwerk, repo cgg, workflow release.yml, environment
+      # release). Delete the `password:` line below once that is set up.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          password: ${{ secrets.PYPI_API_TOKEN }}
