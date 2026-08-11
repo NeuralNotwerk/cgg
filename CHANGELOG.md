@@ -5,7 +5,22 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.6.2] - 2026-08-11
+
+### Fixed
+
+- **The PyPI page told people to `pip install cgg` — the wrong project.**
+  0.6.1's wheel embedded a stale README: it was edited while the maturin
+  build was already running, so maturin had read the previous text. The
+  repository was correct the whole time; only the published artifact was
+  wrong. PyPI metadata cannot be edited after upload, which is why this
+  costs a version rather than a re-upload.
+
+  `scripts/publish-python.sh` now compares the wheel's embedded
+  description against `crates/cgg-py/README.md` and refuses to upload on
+  a mismatch — catching both that race and a plainly forgotten rebuild.
+  Verified to fire on the 0.6.1 wheel.
+
 
 ### Performance — the 0.6.0 regression, diagnosed
 

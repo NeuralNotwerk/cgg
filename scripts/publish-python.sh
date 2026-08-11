@@ -65,6 +65,37 @@ case "$(basename "$WHEEL")" in
     *) echo "error: wheel is not manylinux-tagged; PyPI will reject it" >&2; exit 1 ;;
 esac
 
+# The wheel's embedded description must match the README on disk.
+#
+# 0.6.1 shipped with a stale one: the README was edited while the build
+# was already running, maturin had read the old text, and the wheel went
+# out telling everyone to `pip install cgg` — the wrong project. PyPI
+# metadata cannot be edited after upload, so fixing it cost a version.
+# This is cheap and catches both that race and a plain forgotten rebuild.
+echo "[1b/4] checking the wheel's description matches README.md"
+python3 - "$WHEEL" "$ROOT/crates/cgg-py/README.md" <<'PY'
+import sys, zipfile
+whl, readme = sys.argv[1], sys.argv[2]
+z = zipfile.ZipFile(whl)
+name = next(n for n in z.namelist() if n.endswith(".dist-info/METADATA"))
+# Decoded as UTF-8 explicitly and split by hand rather than through
+# `email`, whose default payload decoding mangles every non-ASCII byte —
+# this README is full of em-dashes, so that route reports a difference on
+# every line that has one.
+raw = z.read(name).decode("utf-8")
+embedded = raw.split("\n\n", 1)[1].strip() if "\n\n" in raw else ""
+on_disk = open(readme, encoding="utf-8").read().strip()
+if embedded != on_disk:
+    print("error: the wheel's description does not match crates/cgg-py/README.md.", file=sys.stderr)
+    print("       The README changed after maturin read it — rebuild the wheel.", file=sys.stderr)
+    import difflib
+    diff = list(difflib.unified_diff(embedded.splitlines(), on_disk.splitlines(),
+                                     "wheel", "README.md", lineterm="", n=1))
+    print("\n".join("       " + l for l in diff[:20]), file=sys.stderr)
+    sys.exit(1)
+print("  description matches")
+PY
+
 # --- verify -----------------------------------------------------------
 # Against the INSTALLED wheel, not the source tree: the point is that what
 # ships works, and the parity test compares it to the binary from this
