@@ -24,6 +24,7 @@ impl LanguagePlugin for PowerShellPlugin {
 
     fn extract(
         &self,
+        _ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -396,6 +397,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         PowerShellPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.ps1"),
             &tree,

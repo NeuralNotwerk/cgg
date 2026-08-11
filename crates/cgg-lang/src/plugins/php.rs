@@ -33,6 +33,7 @@ impl LanguagePlugin for PhpPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -40,6 +41,7 @@ impl LanguagePlugin for PhpPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "php");
         let mut w = PhpWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -52,6 +54,8 @@ impl LanguagePlugin for PhpPlugin {
 
 struct PhpWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// `extends`/`implements` of the enclosing class, innermost last.
@@ -268,7 +272,7 @@ impl<'a> PhpWalker<'a> {
         // Laravel needs BOTH `'Controller@method'` strings (<= L7) and
         // `[Controller::class, 'method']` arrays (>= L8); WordPress
         // needs `add_action('hook', 'fn')`. All three arrive here.
-        let extra = super::registrar::capture(node, self.source, &context);
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
     }
 }
@@ -286,6 +290,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         PhpPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.php"),
             &tree,

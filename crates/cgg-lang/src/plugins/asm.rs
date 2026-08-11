@@ -27,6 +27,7 @@ impl LanguagePlugin for AsmPlugin {
 
     fn extract(
         &self,
+        _ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -220,6 +221,7 @@ mod tests {
         p.set_language(&tree_sitter_asm::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         AsmPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/x.s"),
             &tree,

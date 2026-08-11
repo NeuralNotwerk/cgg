@@ -104,9 +104,10 @@ ok "version: $VERSION (Cargo.toml says $CUR_VERSION)"
 
 # Internal crate pins must track the workspace version or `cargo build`
 # fails in a way that is confusing at exactly the wrong moment.
-BADPIN="$(grep -E '^cgg-[a-z]+ *= *\{ *path' Cargo.toml | grep -v "version = \"$CUR_VERSION\"" || true)"
+BADPIN="$(grep -E '^cgg(-[a-z]+)? *= *\{ *path' Cargo.toml | grep -v "version = \"$CUR_VERSION\"" || true)"
 [ -n "$BADPIN" ] && fail "internal crate pins disagree with $CUR_VERSION:
 $BADPIN"
+
 
 if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
     warn "working tree is dirty — that is normal mid-release, but the diff

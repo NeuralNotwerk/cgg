@@ -30,6 +30,7 @@ impl LanguagePlugin for ElixirPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -37,6 +38,7 @@ impl LanguagePlugin for ElixirPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "elixir");
         let mut w = ElixirWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -49,6 +51,8 @@ impl LanguagePlugin for ElixirPlugin {
 
 struct ElixirWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// Start offset of the head of the `def` currently being walked, if
@@ -244,7 +248,10 @@ impl<'a> ElixirWalker<'a> {
     /// contributes nothing. As everywhere else in this pass the records
     /// are inert until a framework rule claims them.
     fn record_registrar(&mut self, node: Node, context: &str) {
-        if !crate::is_registrar_verb(super::registrar::last_segment(context)) {
+        if !self
+            .ctx
+            .is_registrar_verb(super::registrar::last_segment(context))
+        {
             return;
         }
         // The path is the gate, not an extra. Every Elixir route macro
@@ -266,7 +273,7 @@ impl<'a> ElixirWalker<'a> {
         if route.is_empty() {
             return;
         }
-        let extra = super::registrar::capture(node, self.source, context);
+        let extra = super::registrar::capture(&self.ctx, node, self.source, context);
         self.facts.references.extend(extra);
 
         let mut cursor = args.walk();
@@ -509,6 +516,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         ElixirPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.ex"),
             &tree,

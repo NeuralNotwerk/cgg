@@ -22,95 +22,118 @@ use std::fmt;
 use std::path::Path;
 
 use cgg_core::{FileFacts, ids::FileId};
-use std::sync::atomic::{AtomicBool, Ordering};
 
-/// Whether the run needs dead-code-only extraction signals.
+/// Per-run extraction switches, threaded rather than process-global.
 ///
-/// Unreachable-statement detection and reflection capture are an extra
-/// tree walk per file and feed nothing but `--dead-code`. Measured on
-/// the benchmark corpus they cost ~6% on Go and ~11% on JavaScript, so
-/// an ordinary `cgg <path>` must not pay for them.
+/// Both values used to be `static`s in this module, set by the driver just
+/// before the parallel phase. That was fine for a binary running one
+/// analysis and exiting, and wrong for a library: two analyses in one
+/// process wrote each other's switches, so `cgg::analyze` had to take a
+/// process-wide lock for its whole duration to stop them. Passing them
+/// instead removes the globals, the lock, and the reason a Python caller
+/// could not use a thread pool.
 ///
-/// A process-global rather than a parameter because the alternative is
-/// widening `LanguagePlugin::extract` across all 44 plugins for a value
-/// none of them vary. The driver sets it once before the parallel
-/// extraction phase and nothing writes it again, so the reads below are
-/// uncontended and `Relaxed` is sufficient.
-static DEADCODE_SIGNALS: AtomicBool = AtomicBool::new(false);
+/// Borrowed, not owned: one of these is built per run in `cgg::analyze` and
+/// shared by every worker, so `extract` pays a pointer rather than a clone.
+#[derive(Clone, Copy, Debug)]
+pub struct ExtractCtx<'a> {
+    /// Collect the extra signals only `--dead-code` consumes.
+    ///
+    /// Unreachable-statement detection and reflection capture are an extra
+    /// tree walk per file: ~6% on Go and ~11% on JavaScript on the
+    /// benchmark corpus, so an ordinary run must not pay for them.
+    pub deadcode_signals: bool,
 
-/// Enable the dead-code-only extraction signals for this process.
-pub fn set_deadcode_signals(on: bool) {
-    DEADCODE_SIGNALS.store(on, Ordering::Relaxed);
+    /// Registrar verbs contributed by user-authored framework rules,
+    /// pre-lowercased.
+    ///
+    /// Argument capture is gated on the built-in verb list so an ordinary
+    /// `foo(x)` costs nothing — measured on TypeORM, capturing
+    /// unconditionally doubled the run and minted four thousand nodes for
+    /// `describe('...', () => {})` blocks shaped exactly like a route
+    /// registration and not one. A user rule naming a verb cgg does not
+    /// ship would be inert under that gate, which is what this widens.
+    extra_verbs: &'a std::collections::HashSet<String>,
 }
 
-/// Whether to collect dead-code-only extraction signals.
-#[inline]
-pub fn deadcode_signals() -> bool {
-    DEADCODE_SIGNALS.load(Ordering::Relaxed)
-}
-
-/// Registrar verbs contributed by user-authored framework rules.
+/// The built-in registrar verbs, lowercased once per process.
 ///
-/// Argument capture is gated on the built-in verb list so that an
-/// ordinary `foo(x)` costs nothing — measured on TypeORM, capturing
-/// unconditionally doubled the run and minted four thousand nodes for
-/// `describe('...', () => {})` blocks that are shaped exactly like a
-/// route registration and are not one.
-///
-/// A user rule naming a verb cgg does not ship would be silently inert
-/// under that gate, which is the failure mode this whole feature exists
-/// to avoid. The driver widens the gate from the config file before
-/// extraction starts.
-///
-/// A process-global for the same reason as [`DEADCODE_SIGNALS`]: the
-/// alternative is widening `LanguagePlugin::extract` across 44 plugins
-/// for a value none of them vary. Written once before the parallel
-/// phase and never again.
-static EXTRA_REGISTRAR_VERBS: std::sync::OnceLock<Vec<String>> =
-    std::sync::OnceLock::new();
-
-/// Register verbs from user-authored framework rules. Idempotent; only
-/// the first call takes effect.
-pub fn set_extra_registrar_verbs(verbs: Vec<String>) {
-    let _ = EXTRA_REGISTRAR_VERBS.set(verbs);
-}
-
-/// Whether a call's verb could ever be matched by a framework rule.
-#[inline]
-pub fn is_registrar_verb(verb: &str) -> bool {
-    if verb.is_empty() {
-        return false;
-    }
-    // A set, not a linear scan. This runs once per call site in every
-    // file, and the verb list grew from ~30 to 157 as the rule table
-    // grew — which turned an already-hot gate into O(call sites x 157)
-    // string compares and showed up as a ~25% extraction regression.
+/// Still a global, and legitimately so: it is a cache of a compile-time
+/// constant, identical for every run, not per-run state.
+fn builtin_verbs() -> &'static std::collections::HashSet<String> {
     static SET: std::sync::OnceLock<std::collections::HashSet<String>> =
         std::sync::OnceLock::new();
-    let set = SET.get_or_init(|| {
+    SET.get_or_init(|| {
         cgg_core::frameworks::rules::registrar_verbs()
             .iter()
             .map(|v| v.to_ascii_lowercase())
             .collect()
-    });
-    // This runs once per call site in every file, and the miss is the
-    // overwhelmingly common case — most calls are not registrations. So
-    // the miss path must not allocate: look up the borrowed string, and
-    // only build a lowercased copy when the verb actually contains an
-    // uppercase byte (Go's `GET`, NestJS's `Get`). An unconditional
-    // `to_ascii_lowercase()` here allocated once per call site and gave
-    // back everything the set lookup won.
-    if set.contains(verb) {
-        return true;
+    })
+}
+
+/// A shared empty set, so [`ExtractCtx::plain`] allocates nothing.
+fn no_extra_verbs() -> &'static std::collections::HashSet<String> {
+    static EMPTY: std::sync::OnceLock<std::collections::HashSet<String>> =
+        std::sync::OnceLock::new();
+    EMPTY.get_or_init(std::collections::HashSet::new)
+}
+
+impl<'a> ExtractCtx<'a> {
+    /// Context for a run with user framework rules.
+    pub fn new(
+        deadcode_signals: bool,
+        extra_verbs: &'a std::collections::HashSet<String>,
+    ) -> Self {
+        Self {
+            deadcode_signals,
+            extra_verbs,
+        }
     }
-    if verb.bytes().any(|b| b.is_ascii_uppercase())
-        && set.contains(&verb.to_ascii_lowercase())
-    {
-        return true;
+
+    /// An ordinary run: no dead-code signals, no user rules.
+    ///
+    /// What the plugin tests use, and the default for anyone calling
+    /// `extract` directly.
+    pub fn plain() -> ExtractCtx<'static> {
+        ExtractCtx {
+            deadcode_signals: false,
+            extra_verbs: no_extra_verbs(),
+        }
     }
-    EXTRA_REGISTRAR_VERBS
-        .get()
-        .is_some_and(|v| v.iter().any(|x| x.eq_ignore_ascii_case(verb)))
+
+    /// Whether a call's verb could ever be matched by a framework rule.
+    ///
+    /// Runs once per call site in every file, and misses for nearly all of
+    /// them, so the miss path must not allocate: probe the borrowed string
+    /// and only build a lowercased copy when the verb actually contains an
+    /// uppercase byte (Go's `GET`, NestJS's `Get`). An unconditional
+    /// `to_ascii_lowercase()` here allocated per call site and gave back
+    /// everything the set lookup won.
+    ///
+    /// A set, not a linear scan: the built-in list grew from ~30 to 157
+    /// verbs, which turned this into O(call sites x 157) string compares
+    /// and showed up as a ~25% extraction regression.
+    #[inline]
+    pub fn is_registrar_verb(&self, verb: &str) -> bool {
+        if verb.is_empty() {
+            return false;
+        }
+        let builtin = builtin_verbs();
+        if builtin.contains(verb) {
+            return true;
+        }
+        // `is_empty` first: the overwhelmingly common case is no user rules,
+        // and a length check beats hashing the verb a second time.
+        if !self.extra_verbs.is_empty() && self.extra_verbs.contains(verb) {
+            return true;
+        }
+        if verb.bytes().any(|b| b.is_ascii_uppercase()) {
+            let lower = verb.to_ascii_lowercase();
+            return builtin.contains(&lower)
+                || (!self.extra_verbs.is_empty() && self.extra_verbs.contains(&lower));
+        }
+        false
+    }
 }
 
 pub use cgg_core as core;
@@ -177,6 +200,7 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
     /// callables).
     fn extract(
         &self,
+        _ctx: &ExtractCtx<'_>,
         _file: FileId,
         _path: &Path,
         _tree: &tree_sitter::Tree,
@@ -225,5 +249,50 @@ mod tests {
     fn v1_registry_has_all_languages() {
         let reg = PluginRegistry::with_v1_plugins();
         assert_eq!(reg.all().len(), 44);
+    }
+
+    /// Two contexts do not see each other's verbs.
+    ///
+    /// The property that matters, stated directly. It used to be violated by
+    /// a `OnceLock`: the second project analyzed in a process kept applying
+    /// the first one's rules. Now the verbs travel with the context, so
+    /// there is no shared cell for a second run to inherit — this test can
+    /// only fail if someone reintroduces one.
+    #[test]
+    fn contexts_do_not_share_registrar_verbs() {
+        use std::collections::HashSet;
+
+        // Verbs no fixture in this crate contains.
+        let a: HashSet<String> = ["zzq_alpha".to_string()].into_iter().collect();
+        let b: HashSet<String> = ["zzq_beta".to_string()].into_iter().collect();
+        let ctx_a = ExtractCtx::new(false, &a);
+        let ctx_b = ExtractCtx::new(false, &b);
+
+        assert!(ctx_a.is_registrar_verb("zzq_alpha"));
+        assert!(!ctx_a.is_registrar_verb("zzq_beta"));
+        assert!(ctx_b.is_registrar_verb("zzq_beta"));
+        assert!(!ctx_b.is_registrar_verb("zzq_alpha"));
+
+        // Interleaving them changes nothing — no order dependence to have.
+        assert!(ctx_a.is_registrar_verb("zzq_alpha"));
+
+        // A plain context sees neither, and the built-in table is intact
+        // for all three.
+        let plain = ExtractCtx::plain();
+        assert!(!plain.is_registrar_verb("zzq_alpha"));
+        assert!(!plain.is_registrar_verb("zzq_beta"));
+        for c in [&ctx_a, &ctx_b, &plain] {
+            assert!(c.is_registrar_verb("route"), "built-in table disturbed");
+        }
+        assert!(!plain.is_registrar_verb(""));
+    }
+
+    /// `deadcode_signals` is per-context, not per-process.
+    #[test]
+    fn deadcode_signals_travel_with_the_context() {
+        let empty = std::collections::HashSet::new();
+        assert!(ExtractCtx::new(true, &empty).deadcode_signals);
+        assert!(!ExtractCtx::new(false, &empty).deadcode_signals);
+        assert!(!ExtractCtx::plain().deadcode_signals);
     }
 }

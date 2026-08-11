@@ -1,0 +1,34 @@
+[build-system]
+requires      = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "cgg"
+description = "Offline, deterministic call-graph generation for 44 languages."
+readme = "README.md"
+license = { text = "Apache-2.0 OR MIT" }
+authors = [{ name = "cgg contributors" }]
+# abi3-py39 in Cargo.toml is what makes one wheel serve all of these.
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+# Version comes from Cargo.toml so there is one place to bump.
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/NeuralNotwerk/cgg"
+
+[tool.maturin]
+# Mixed layout: the compiled module is `cgg._cgg`, and `python/cgg/` adds
+# the docstrings, type stubs and the small amount of ergonomics that are
+# clearer in Python than in a #[pyclass].
+python-source = "python"
+module-name   = "cgg._cgg"
+features      = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

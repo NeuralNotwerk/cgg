@@ -30,6 +30,7 @@ impl LanguagePlugin for PerlPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -37,6 +38,7 @@ impl LanguagePlugin for PerlPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "perl");
         let mut w = PerlWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -48,6 +50,8 @@ impl LanguagePlugin for PerlPlugin {
 
 struct PerlWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
 }
@@ -329,7 +333,10 @@ impl<'a> PerlWalker<'a> {
     /// an unmatched one is inert. The `is_registrar_verb` check keeps
     /// the whole pass off the hot path.
     fn capture_registrar(&mut self, node: Node, context: &str) {
-        if !crate::is_registrar_verb(super::registrar::last_segment(context)) {
+        if !self
+            .ctx
+            .is_registrar_verb(super::registrar::last_segment(context))
+        {
             return;
         }
         let Some(args) = Self::arg_list(node) else {
@@ -484,6 +491,7 @@ mod tests {
         p.set_language(&tree_sitter_perl::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         PerlPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/X.pl"),
             &tree,

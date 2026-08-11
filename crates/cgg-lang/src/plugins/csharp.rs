@@ -55,6 +55,7 @@ impl LanguagePlugin for CSharpPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -62,6 +63,7 @@ impl LanguagePlugin for CSharpPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "csharp");
         let mut w = Walker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -88,6 +90,8 @@ impl Scope {
 
 struct Walker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<Scope>,
     /// Base list of the enclosing type, innermost last — `: IJob` is
@@ -189,7 +193,8 @@ impl<'a> Walker<'a> {
                         format!("{}.{}", r.receiver_hint, r.name)
                     };
                     self.facts.references.push(r);
-                    let extra = super::registrar::capture(node, self.source, &context);
+                    let extra =
+                        super::registrar::capture(&self.ctx, node, self.source, &context);
                     self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
@@ -413,6 +418,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         CSharpPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.cs"),
             &tree,

@@ -7,6 +7,12 @@ members = [
     "crates/cgg-format",
     "crates/cgg-walk",
     "crates/cgg",
+    # A member like any other: `abi3-py39` + `extension-module` mean pyo3
+    # needs no interpreter at build time, verified with no python3 on PATH.
+    # Membership is what makes its version inherit rather than drift. Use
+    # `scripts/build-python.sh` for a wheel — cargo builds the cdylib but
+    # cannot install it.
+    "crates/cgg-py",
 ]
 
 [workspace.package]
@@ -19,6 +25,7 @@ authors = ["cgg contributors"]
 
 [workspace.dependencies]
 # --- Internal crates ---
+cgg         = { path = "crates/cgg",         version = "0.5.0" }
 cgg-core    = { path = "crates/cgg-core",    version = "0.5.0" }
 cgg-lang    = { path = "crates/cgg-lang",    version = "0.5.0" }
 cgg-resolve = { path = "crates/cgg-resolve", version = "0.5.0" }
@@ -49,6 +56,9 @@ rayon              = "1.10"
 mimalloc           = { version = "0.1" }
 blake3             = "1.5"
 memory-stats       = "1.2"
+# abi3-py39: one wheel per platform serves every CPython >= 3.9.
+# extension-module: libpython is not linked, so no interpreter is needed.
+pyo3               = { version = "0.29", features = ["abi3-py39", "extension-module"] }
 petgraph           = { version = "0.6", features = ["serde-1"] }
 
 # --- Parsers and grammars (all MIT) ---

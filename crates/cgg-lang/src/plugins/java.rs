@@ -32,6 +32,7 @@ impl LanguagePlugin for JavaPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -39,6 +40,7 @@ impl LanguagePlugin for JavaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "java");
         let mut w = JavaWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -46,11 +48,11 @@ impl LanguagePlugin for JavaPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::JAVA);
         }
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.dyn_uses = super::dynuse::extract(tree, source, "java");
         }
         out
@@ -59,6 +61,8 @@ impl LanguagePlugin for JavaPlugin {
 
 struct JavaWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// Base types of the enclosing class, innermost last. A method
@@ -296,7 +300,7 @@ impl<'a> JavaWalker<'a> {
         });
         // Shape B/C: a handler passed in argument position. Inert unless
         // a detected framework's rule names this call.
-        let extra = super::registrar::capture(node, self.source, &context);
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
     }
 
@@ -403,6 +407,7 @@ mod tests {
         p.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         JavaPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/X.java"),
             &tree,

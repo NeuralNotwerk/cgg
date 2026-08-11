@@ -29,6 +29,7 @@ impl LanguagePlugin for KotlinPlugin {
 
     fn extract(
         &self,
+        _ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -400,6 +401,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         KotlinPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.kt"),
             &tree,

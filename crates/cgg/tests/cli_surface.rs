@@ -694,3 +694,52 @@ fn since_outside_a_repository_is_a_clear_error() {
         .assert()
         .failure();
 }
+
+/// Without `-o`, the graph goes to stdout and diagnostics to stderr — and
+/// their relative order is observable to anyone running `cgg ./src 2>&1`.
+///
+/// Every other output test in this repo passes `-o`, which sends the graph to
+/// a file and so never exercises interleaving at all. That gap let a
+/// regression through once: hoisting the artifact writes to the end of the run
+/// left all recorded artifacts byte-identical while reordering the combined
+/// stream for everyone who pipes.
+///
+/// The graph belongs in the MIDDLE: after the `--max-paths` warning, before
+/// the run summary.
+#[test]
+fn graph_lands_mid_stream_when_stdout_and_stderr_are_combined() {
+    use std::process::{Command, Stdio};
+
+    let dir = tempfile::TempDir::new().unwrap();
+    std::fs::write(
+        dir.path().join("a.py"),
+        "def helper():\n    return 1\n\ndef caller():\n    return helper()\n",
+    )
+    .unwrap();
+
+    // Point stdout and stderr at the same file, which is what `2>&1` does.
+    let out = dir.path().join("combined.txt");
+    let f = std::fs::File::create(&out).unwrap();
+    let status = Command::new(env!("CARGO_BIN_EXE_cgg"))
+        .arg(dir.path())
+        .stdout(Stdio::from(f.try_clone().unwrap()))
+        .stderr(Stdio::from(f))
+        .status()
+        .expect("cgg runs");
+    assert!(status.success(), "cgg exited {status:?}");
+
+    let text = std::fs::read_to_string(&out).unwrap();
+    let graph_at = text
+        .find("flowchart")
+        .unwrap_or_else(|| panic!("no graph in combined output:\n{text}"));
+    let summary_at = text
+        .find("cgg: 1 files")
+        .or_else(|| text.find("cgg: 2 files"))
+        .unwrap_or_else(|| panic!("no run summary in combined output:\n{text}"));
+
+    assert!(
+        graph_at < summary_at,
+        "the graph must be written before the run summary, not after it.\n\
+         graph at {graph_at}, summary at {summary_at}:\n{text}"
+    );
+}
