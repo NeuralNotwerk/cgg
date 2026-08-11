@@ -52,6 +52,9 @@ pub struct Cli {
     /// *added* to any explicit `--filter` patterns — they do not
     /// replace them.
     ///
+    // rustdoc warns "unclosed HTML tag" on the `<ref>` below. Leave it:
+    // clap renders these doc comments as `--help` text, so escaping it for
+    // rustdoc puts literal backticks in front of the user.
     /// A bare ref (e.g. `HEAD~5`) is interpreted by git as
     /// "<ref> vs working tree", which includes uncommitted edits. Use
     /// `HEAD~5..HEAD` if you want committed changes only.

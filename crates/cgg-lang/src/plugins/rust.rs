@@ -54,6 +54,7 @@ impl LanguagePlugin for RustPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -92,7 +93,7 @@ impl LanguagePlugin for RustPlugin {
         let struct_fields = std::mem::take(&mut walker.struct_fields);
         emit_self_field_local_types(&mut facts, &struct_fields);
 
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             facts.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::RUST);
         }
@@ -1451,6 +1452,7 @@ mod tests {
         // depend on. Task 6a's integration tests cover the real
         // crate-name path.
         RustPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.rs"),
             &tree,

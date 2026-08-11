@@ -379,13 +379,18 @@ fn enclosing_call<'t>(node: Node<'t>) -> Option<Node<'t>> {
 /// with no reference-shaped or string-shaped arguments, which is the
 /// overwhelming majority — this pass adds records only where a handoff
 /// could plausibly be happening.
-pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord> {
+pub(crate) fn capture(
+    ctx: &crate::ExtractCtx<'_>,
+    call: Node,
+    source: &[u8],
+    context: &str,
+) -> Vec<RefRecord> {
     let mut out = Vec::new();
     // Only calls whose verb some framework rule could match. Without
     // this gate every `foo(x)` in the tree pays for an argument scan and
     // contributes an inert record — measured on TypeORM that was the
     // whole of a 74% slowdown.
-    if !crate::is_registrar_verb(last_segment(context)) {
+    if !ctx.is_registrar_verb(last_segment(context)) {
         return out;
     }
     let _s = cgg_core::profile::span("extract::registrar-capture");
@@ -428,7 +433,7 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
             continue;
         }
 
-        collect_value_refs(arg, source, context, &route, line, &mut out, 0);
+        collect_value_refs(ctx, arg, source, context, &route, line, &mut out, 0);
     }
     out
 }
@@ -453,13 +458,14 @@ pub(crate) fn capture(call: Node, source: &[u8], context: &str) -> Vec<RefRecord
 /// framework-specific; a bare identifier in argument position is
 /// neither.
 pub(crate) fn capture_value_refs(
+    ctx: &crate::ExtractCtx<'_>,
     call: Node,
     source: &[u8],
     context: &str,
 ) -> Vec<RefRecord> {
     // Registrar verbs already went through `capture`, which emits a
     // superset of this. Running both would duplicate every record.
-    if crate::is_registrar_verb(last_segment(context)) {
+    if ctx.is_registrar_verb(last_segment(context)) {
         return Vec::new();
     }
     let Some(args) = arguments_of(call) else {
@@ -476,7 +482,7 @@ pub(crate) fn capture_value_refs(
             continue;
         }
         let line = (arg.start_position().row as u32) + 1;
-        collect_value_refs(arg, source, context, "", line, &mut out, 0);
+        collect_value_refs(ctx, arg, source, context, "", line, &mut out, 0);
     }
     // `collect_value_refs` still mints string refs from inside
     // containers (`[C::class, 'method']`). Those belong to the gated
@@ -498,13 +504,14 @@ pub(crate) fn capture_value_refs(
 /// The caller decides which nodes are value positions; passing a call
 /// node here would double-count the callee.
 pub(crate) fn capture_value_position(
+    ctx: &crate::ExtractCtx<'_>,
     node: Node,
     source: &[u8],
     context: &str,
 ) -> Vec<RefRecord> {
     let mut out = Vec::new();
     let line = (node.start_position().row as u32) + 1;
-    collect_value_refs(node, source, context, "", line, &mut out, 0);
+    collect_value_refs(ctx, node, source, context, "", line, &mut out, 0);
     out.retain(|r| r.receiver_hint == VALUE_REF_HINT);
     out
 }
@@ -514,7 +521,14 @@ pub(crate) fn capture_value_position(
 /// Recurses into nested calls and array/hash literals so `get(handler)`
 /// (axum), `[Controller::class, 'method']` (Laravel 8+) and
 /// `to: 'photos#index'` (Rails) all give up their payload.
+// Eight parameters, one over clippy's threshold, because `ctx` joined the
+// recursion's existing walk state. Same rationale as the crate-level allow
+// in `cgg/src/lib.rs`: threading it explicitly is what removed the
+// process-globals, and bundling the walk state into a struct to satisfy a
+// count would put the state back behind an indirection.
+#[allow(clippy::too_many_arguments)]
 fn collect_value_refs(
+    ctx: &crate::ExtractCtx<'_>,
     arg: Node,
     source: &[u8],
     context: &str,
@@ -574,7 +588,7 @@ fn collect_value_refs(
                     route: route.to_string(),
                 });
             } else {
-                collect_value_refs(child, source, context, route, line, out, depth);
+                collect_value_refs(ctx, child, source, context, route, line, out, depth);
             }
         }
         return;
@@ -606,14 +620,23 @@ fn collect_value_refs(
         let callee = callee_of(arg)
             .map(|n| n.utf8_text(source).unwrap_or("").trim().to_string())
             .unwrap_or_default();
-        if callee.is_empty() || crate::is_registrar_verb(last_segment(&callee)) {
+        if callee.is_empty() || ctx.is_registrar_verb(last_segment(&callee)) {
             return;
         }
         let before = out.len();
         if let Some(inner) = arguments_of(arg) {
             let mut cursor = inner.walk();
             for child in inner.named_children(&mut cursor) {
-                collect_value_refs(child, source, context, route, line, out, depth + 1);
+                collect_value_refs(
+                    ctx,
+                    child,
+                    source,
+                    context,
+                    route,
+                    line,
+                    out,
+                    depth + 1,
+                );
             }
         }
         if out.len() == before {

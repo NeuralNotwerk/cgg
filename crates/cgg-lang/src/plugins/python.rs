@@ -55,6 +55,7 @@ impl LanguagePlugin for PythonPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -62,6 +63,7 @@ impl LanguagePlugin for PythonPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "python");
         let mut walker = Walker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: vec![module_name(path)],
@@ -69,11 +71,11 @@ impl LanguagePlugin for PythonPlugin {
         };
         walker.walk(tree.root_node());
         let mut out = facts;
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::PYTHON);
         }
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.dyn_uses = super::dynuse::extract(tree, source, "python");
         }
         // `__all__` is Python's explicit export list; a name in it is
@@ -113,6 +115,8 @@ fn module_name(path: &Path) -> String {
 
 struct Walker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// Base classes of the enclosing `class`, innermost last.
@@ -189,8 +193,12 @@ impl<'a> Walker<'a> {
                             format!("{}.{}", r.receiver_hint, r.name)
                         };
                         self.facts.references.push(r);
-                        let extra =
-                            super::registrar::capture(node, self.source, &context);
+                        let extra = super::registrar::capture(
+                            &self.ctx,
+                            node,
+                            self.source,
+                            &context,
+                        );
                         self.facts.references.extend(extra);
                         context
                     }
@@ -209,8 +217,12 @@ impl<'a> Walker<'a> {
                 // `staticmethod(...)` — is a real reference that no
                 // framework rule covers. Without it the target reads as
                 // never-referenced.
-                let vals =
-                    super::registrar::capture_value_refs(node, self.source, &context);
+                let vals = super::registrar::capture_value_refs(
+                    &self.ctx,
+                    node,
+                    self.source,
+                    &context,
+                );
                 self.facts.references.extend(vals);
                 self.walk_children(node);
                 return;
@@ -267,7 +279,8 @@ impl<'a> Walker<'a> {
             ) {
                 continue;
             }
-            let refs = super::registrar::capture_value_position(rhs, self.source, "");
+            let refs =
+                super::registrar::capture_value_position(&self.ctx, rhs, self.source, "");
             self.facts.references.extend(refs);
         }
     }
@@ -649,7 +662,13 @@ mod tests {
             .set_language(&tree_sitter_python::LANGUAGE.into())
             .unwrap();
         let tree = parser.parse(src, None).unwrap();
-        PythonPlugin.extract(FileId::new(0), &PathBuf::from(path), &tree, src.as_bytes())
+        PythonPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(0),
+            &PathBuf::from(path),
+            &tree,
+            src.as_bytes(),
+        )
     }
 
     fn extract(src: &str) -> FileFacts {

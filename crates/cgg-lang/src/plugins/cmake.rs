@@ -27,6 +27,7 @@ impl LanguagePlugin for CmakePlugin {
 
     fn extract(
         &self,
+        _ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -184,6 +185,7 @@ mod tests {
         p.set_language(&tree_sitter_cmake::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         CmakePlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/x.cmake"),
             &tree,

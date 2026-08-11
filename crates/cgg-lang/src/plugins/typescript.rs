@@ -47,19 +47,20 @@ impl LanguagePlugin for TypeScriptPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "typescript");
-        let mut w = JsWalker::new(source, &mut facts);
+        let mut w = JsWalker::new(*ctx, source, &mut facts);
         w.walk(tree.root_node());
         let mut out = facts;
         // Same passes the JavaScript plugin runs. They were missing
         // here, which meant TypeScript silently produced none of the
         // dead-code signals its `signals()` manifest now declares.
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
             out.dyn_uses = super::dynuse::extract(tree, source, "typescript");
@@ -81,6 +82,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         TypeScriptPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.ts"),
             &tree,

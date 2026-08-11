@@ -53,6 +53,7 @@ impl LanguagePlugin for GoPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -80,17 +81,18 @@ impl LanguagePlugin for GoPlugin {
         });
 
         let mut w = Walker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             pkg,
         };
         w.walk(root);
         let mut out = facts;
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::GO);
         }
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.dyn_uses = super::dynuse::extract(tree, source, "go");
         }
         out
@@ -113,6 +115,8 @@ fn package_name(root: Node, source: &[u8]) -> Option<String> {
 
 struct Walker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     pkg: String,
 }
@@ -156,7 +160,8 @@ impl<'a> Walker<'a> {
                         format!("{}.{}", r.receiver_hint, r.name)
                     };
                     self.facts.references.push(r);
-                    let extra = super::registrar::capture(node, self.source, &context);
+                    let extra =
+                        super::registrar::capture(&self.ctx, node, self.source, &context);
                     self.facts.references.extend(extra);
                 }
                 self.walk_children(node);
@@ -557,6 +562,7 @@ mod tests {
         p.set_language(&tree_sitter_go::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         GoPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.go"),
             &tree,

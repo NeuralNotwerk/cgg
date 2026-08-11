@@ -8649,7 +8649,7 @@ pub fn languages_with_rules() -> Vec<&'static str> {
 ///
 /// Gating here loses nothing a built-in rule could have matched — the
 /// list is their union. User-authored rules add their own verbs through
-/// `cgg_lang::set_extra_registrar_verbs`.
+/// `cgg_lang::ExtractCtx`.
 pub fn registrar_verbs() -> &'static [&'static str] {
     static VERBS: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
     VERBS.get_or_init(|| {

@@ -32,6 +32,7 @@ impl LanguagePlugin for RubyPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -39,6 +40,7 @@ impl LanguagePlugin for RubyPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "ruby");
         let mut w = RubyWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -51,6 +53,8 @@ impl LanguagePlugin for RubyPlugin {
 
 struct RubyWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// `class X < Y` superclasses **and** `include M` mixins of the
@@ -263,7 +267,7 @@ impl<'a> RubyWalker<'a> {
         // 'photos#index'`. The target is a string, so nothing here
         // becomes an edge — only an entry node, once a rule supplies
         // the premise that Rails invokes it.
-        let extra = super::registrar::capture(node, self.source, &context);
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
         self.extract_inline_handler(node, &context);
     }
@@ -278,7 +282,10 @@ impl<'a> RubyWalker<'a> {
     /// leading string literal — so an ordinary `items.each do |i| … end`
     /// mints nothing.
     fn extract_inline_handler(&mut self, node: Node, context: &str) {
-        if !crate::is_registrar_verb(super::registrar::last_segment(context)) {
+        if !self
+            .ctx
+            .is_registrar_verb(super::registrar::last_segment(context))
+        {
             return;
         }
         let Some(route) = super::registrar::is_registration_shape(node, self.source)
@@ -326,6 +333,7 @@ mod tests {
         p.set_language(&tree_sitter_ruby::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         RubyPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.rb"),
             &tree,

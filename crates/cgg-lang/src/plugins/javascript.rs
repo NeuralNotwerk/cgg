@@ -48,6 +48,7 @@ impl LanguagePlugin for JavaScriptPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -55,6 +56,7 @@ impl LanguagePlugin for JavaScriptPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "javascript");
         let mut w = JsWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -62,11 +64,11 @@ impl LanguagePlugin for JavaScriptPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
         }
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.dyn_uses = super::dynuse::extract(tree, source, "javascript");
         }
         out
@@ -75,6 +77,8 @@ impl LanguagePlugin for JavaScriptPlugin {
 
 pub(crate) struct JsWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     pub facts: &'a mut FileFacts,
     scope: Vec<String>,
     /// `extends`/`implements` of the enclosing class, innermost last.
@@ -82,9 +86,14 @@ pub(crate) struct JsWalker<'a> {
 }
 
 impl<'a> JsWalker<'a> {
-    pub(crate) fn new(source: &'a [u8], facts: &'a mut FileFacts) -> Self {
+    pub(crate) fn new(
+        ctx: crate::ExtractCtx<'a>,
+        source: &'a [u8],
+        facts: &'a mut FileFacts,
+    ) -> Self {
         Self {
             source,
+            ctx,
             facts,
             scope: Vec::new(),
             bases: Vec::new(),
@@ -692,7 +701,7 @@ impl<'a> JsWalker<'a> {
         // Shape B/E: `app.get('/x', listUsers)` and
         // `new Worker('./w.js')`. Both put the handler in argument
         // position, where the callee alone says nothing.
-        let extra = super::registrar::capture(node, self.source, &context);
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
     }
 
@@ -717,7 +726,10 @@ impl<'a> JsWalker<'a> {
         // registration. Gating on the verb is what keeps a test suite
         // from minting a synthesized handler per block — four thousand
         // of them on TypeORM, none of which any rule could use.
-        if !crate::is_registrar_verb(super::registrar::last_segment(&context)) {
+        if !self
+            .ctx
+            .is_registrar_verb(super::registrar::last_segment(&context))
+        {
             return;
         }
         let Some(route) = super::registrar::is_registration_shape(node, self.source)
@@ -782,6 +794,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         JavaScriptPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.js"),
             &tree,

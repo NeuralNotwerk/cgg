@@ -6,6 +6,14 @@ license     = { workspace = true }
 description = "Call graph generator — point at folders, get a graph."
 default-run = "cgg"
 
+# The pipeline is a library so more than one front end can drive it —
+# the `cgg` binary below, and the PyO3 extension module in
+# `crates/cgg-py`. Both call `cgg::run`, so the resolver ordering that
+# CLAUDE.md calls load-bearing exists in exactly one place.
+[lib]
+name = "cgg"
+path = "src/lib.rs"
+
 [[bin]]
 name = "cgg"
 path = "src/main.rs"

@@ -141,6 +141,46 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 | `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
 
+## Python
+
+```python
+import cgg
+
+g = cgg.analyze("./src")
+print(g.to_mermaid())
+```
+
+Same pipeline, same order, in-process — not a subprocess wrapper.
+`crates/cgg-py` is a thin PyO3 layer over `cgg::analyze`, so there is one
+copy of the resolver ordering rather than two that can drift. A test in
+`crates/cgg-py/tests` compares the module's JSON against the binary's on
+the same tree, across the option surface, and fails if they diverge.
+
+```python
+g = cgg.analyze("./src", filter=[r"handle_request$"], hops=2)
+g = cgg.analyze(["./api", "./worker"], lang=["python", "go"])
+
+g.to_mermaid() / g.to_json() / g.to_dot() / g.to_graphml()   # -> str
+g.to_dict()                        # the whole graph as a dict
+len(g), g.callables, g.edges, g.files, g.metrics, g.notices
+g.callable("pkg.mod.fn"), g.callers_of(...), g.callees_of(...)
+```
+
+Every CLI flag that changes the graph is a keyword argument, with one
+rename: `entry_nodes=True` rather than `--no-entry-nodes`. Same default; a
+Python keyword has no reason to be a double negative.
+
+The GIL is released for the analysis, and the module runs 7–43% faster
+than the CLI on the same input — it skips process start and writing
+output. Build it with `scripts/build-python.sh` (needs `uv` and a Rust
+toolchain).
+
+The GIL is released and there is no internal lock, so a thread pool
+scales: 4 concurrent analyses cost 114 ms against 106 ms for one.
+
+Renderer vs attribute cost, and what is not yet exposed:
+[`crates/cgg-py/README.md`](crates/cgg-py/README.md).
+
 ## How it works
 
 ```text
@@ -346,7 +386,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1771 callables, 4085 edges, 1419 cross-file, 161ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(1943 callables, 4431 edges, 1673 cross-file, 153ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::run` — every edge is a <!-- markdownlint-disable-line MD013 -->
 real cross-crate function call:
 
 ```bash
@@ -356,199 +396,140 @@ cgg ./crates -t mermaid --filter 'cgg::run$' -n 1
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  C2["cgg_walk::walk"]
-  C108["cgg::cgg"]
-  C110["cgg::run"]
-  C111["cgg::shape_a_python_flask_route_is_a_network_entry"]
-  C112["cgg::shape_a_java_spring_mapping_keeps_its_route"]
-  C113["cgg::shape_a_csharp_attribute_is_captured"]
-  C114["cgg::shape_a_php_symfony_attribute_is_captured"]
-  C115["cgg::shape_b_express_named_handler_binds_to_its_route"]
-  C116["cgg::shape_b_go_router_verb_matches_case_insensitively"]
-  C117["cgg::shape_c_anonymous_handler_still_gets_its_route_named"]
-  C118["cgg::ordinary_callbacks_do_not_mint_synthesized_handlers"]
-  C119["cgg::shape_d_torch_module_marks_a_root_without_minting_a_node"]
-  C120["cgg::shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity"]
-  C121["cgg::shape_e_rails_string_routing_reaches_the_controller_action"]
-  C122["cgg::shape_e_laravel_supports_both_the_string_and_the_array_form"]
-  C123["cgg::shape_f_worker_module_path_rescues_a_whole_file"]
-  C124["cgg::shape_f_cuda_kernel_is_an_entry_despite_the_unparsable_launch"]
-  C125["cgg::coverage_names_a_framework_it_cannot_enumerate"]
-  C126["cgg::coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap"]
-  C127["cgg::coverage_discloses_languages_with_no_rules_at_all"]
-  C128["cgg::the_taint_caveat_rides_with_every_network_entry"]
-  C129["cgg::an_undetected_framework_contributes_nothing"]
-  C130["cgg::no_entry_nodes_restores_the_previous_default_graph"]
-  C132["cgg::a_user_rule_covers_a_framework_cgg_does_not_ship"]
-  C134["cgg::solidity_visibility_is_the_trust_boundary"]
-  C135["cgg::rust_ffi_exports_are_entries_from_outside_the_tree"]
-  C136["cgg::django_as_view_binds_to_the_classes_http_methods"]
-  C137["cgg::drf_router_register_binds_the_viewsets_actions"]
-  C138["cgg::a_proto_rpc_links_to_its_go_implementation"]
-  C139["cgg::a_bare_method_name_does_not_link_a_descriptor"]
-  C186["cgg::query::apply_query"]
-  C187["cgg::query::apply_exclusions"]
-  C208["cgg::since::resolve_since"]
-  C240["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C242["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C250["cgg::main"]
-  C252["cgg::run"]
-  C253["cgg::langs_enabled"]
-  C254["cgg::run_dead_code"]
-  C259["cgg::run_why_live"]
-  C260["cgg::since_seeds"]
-  C261["cgg::count_lines"]
-  C262["cgg::read_file"]
-  C263["cgg::variant_to_kind"]
-  C265["cgg::synthesize_exit_nodes"]
-  C266["cgg::synthesize_entry_nodes"]
-  C267["cgg::trait_impl_target_from_qn"]
-  C268["cgg::dedup_edges"]
-  C270["cgg::emit_graph"]
-  C272["cgg::emit_audit"]
-  C281["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C282["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C1257["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C1258["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C1259["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1264["cgg_lang::set_deadcode_signals"]
-  C1266["cgg_lang::set_extra_registrar_verbs"]
-  C1278["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1283["cgg_lang::notebook::extract_python_source"]
-  C1325["cgg_resolve::dispatch::fanout"]
-  C1337["cgg_resolve::frameworks::detect"]
-  C1397["cgg_resolve::type_hints::build_return_type_map"]
-  C1398["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C1415["cgg_resolve::ffi::link_ffi"]
-  C1569["cgg_resolve::cross_file::resolve"]
-  C1583["cgg_resolve::descriptor::link_descriptors"]
-  C1590["cgg_resolve::intra_file::link_file"]
-  C1717["cgg_core::external::FileAliases::from_facts"]
-  C1718["cgg_core::external::classify_external"]
-  C1721["cgg_core::external::build_known_names"]
-  C1735["cgg_core::testfile::classify_test_file"]
-  C1744["cgg_core::graph::Graph::new"]
-  C1745["cgg_core::graph::Graph::add_callable"]
-  C1746["cgg_core::graph::Graph::add_file"]
-  C1747["cgg_core::graph::Graph::add_edge"]
-  C1755["cgg_core::profile::enable"]
-  C1758["cgg_core::profile::span"]
-  C1765["cgg_core::cpu::default_jobs"]
-  C110 --> C108
-  C111 --> C110
-  C112 --> C110
-  C113 --> C110
-  C114 --> C110
-  C115 --> C110
-  C116 --> C110
-  C117 --> C110
-  C118 --> C110
-  C119 --> C110
-  C120 --> C110
-  C121 --> C110
-  C122 --> C110
-  C123 --> C110
-  C124 --> C110
-  C125 --> C110
-  C126 --> C110
-  C127 --> C110
-  C128 --> C110
-  C129 --> C110
-  C130 -->|2x| C110
-  C132 --> C110
-  C134 --> C110
-  C135 --> C110
-  C136 --> C110
-  C137 --> C110
-  C138 --> C110
-  C139 --> C110
-  C250 --> C252
-  C252 --> C253
-  C252 --> C262
-  C252 --> C261
-  C252 --> C263
-  C252 --> C267
-  C252 --> C265
-  C252 --> C266
-  C252 --> C268
-  C252 --> C260
-  C252 --> C259
-  C252 -->|2x| C272
-  C252 --> C254
-  C252 --> C270
-  C1258 --> C1258
-  C111 --> C252
-  C112 --> C252
-  C113 --> C252
-  C114 --> C252
-  C115 --> C252
-  C116 --> C252
-  C117 --> C252
-  C118 --> C252
-  C119 --> C252
-  C120 --> C252
-  C121 --> C252
-  C122 --> C252
-  C123 --> C252
-  C124 --> C252
-  C125 --> C252
-  C126 --> C252
-  C127 --> C252
-  C128 --> C252
-  C129 --> C252
-  C130 -->|2x| C252
-  C132 --> C252
-  C134 --> C252
-  C135 --> C252
-  C136 --> C252
-  C137 --> C252
-  C138 --> C252
-  C139 --> C252
-  C186 --> C1744
-  C250 --> C110
-  C252 --> C1264
-  C252 --> C242
-  C252 --> C240
-  C252 --> C1266
-  C252 --> C1755
-  C252 --> C2
-  C252 --> C1278
-  C252 --> C281
-  C252 --> C1257
-  C252 --> C1744
-  C252 --> C1765
-  C252 --> C282
-  C252 --> C1283
-  C252 -->|18x| C1758
-  C252 --> C1258
-  C252 --> C1259
-  C252 --> C1735
-  C252 --> C1746
-  C252 --> C1745
-  C252 --> C1397
-  C252 --> C1398
-  C252 --> C1721
-  C252 --> C1590
-  C252 --> C1717
-  C252 --> C1718
-  C252 --> C1569
-  C252 --> C1415
-  C252 --> C1583
-  C252 --> C1337
-  C252 --> C1325
-  C252 --> C1747
-  C252 --> C208
-  C252 --> C186
-  C252 --> C187
-  C254 --> C1278
-  C265 -->|2x| C1746
-  C265 --> C1745
-  C265 --> C1747
-  C266 --> C1746
-  C266 --> C1745
-  C266 --> C1747
-  C1337 -->|9x| C1758
-  C1569 -->|2x| C1758
+  C0["cgg::main"]
+  C1["cgg::run"]
+  C20["cgg::emit::all"]
+  C66["cgg::analyze"]
+  C125["cgg::cgg"]
+  C127["cgg::run"]
+  C128["cgg::shape_a_python_flask_route_is_a_network_entry"]
+  C129["cgg::shape_a_java_spring_mapping_keeps_its_route"]
+  C130["cgg::shape_a_csharp_attribute_is_captured"]
+  C131["cgg::shape_a_php_symfony_attribute_is_captured"]
+  C132["cgg::shape_b_express_named_handler_binds_to_its_route"]
+  C133["cgg::shape_b_go_router_verb_matches_case_insensitively"]
+  C134["cgg::shape_c_anonymous_handler_still_gets_its_route_named"]
+  C135["cgg::ordinary_callbacks_do_not_mint_synthesized_handlers"]
+  C136["cgg::shape_d_torch_module_marks_a_root_without_minting_a_node"]
+  C137["cgg::shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity"]
+  C138["cgg::shape_e_rails_string_routing_reaches_the_controller_action"]
+  C139["cgg::shape_e_laravel_supports_both_the_string_and_the_array_form"]
+  C140["cgg::shape_f_worker_module_path_rescues_a_whole_file"]
+  C141["cgg::shape_f_cuda_kernel_is_an_entry_despite_the_unparsable_launch"]
+  C142["cgg::coverage_names_a_framework_it_cannot_enumerate"]
+  C143["cgg::coverage_reports_a_recognised_framework_that_matched_nothing_as_a_gap"]
+  C144["cgg::coverage_discloses_languages_with_no_rules_at_all"]
+  C145["cgg::the_taint_caveat_rides_with_every_network_entry"]
+  C146["cgg::an_undetected_framework_contributes_nothing"]
+  C147["cgg::no_entry_nodes_restores_the_previous_default_graph"]
+  C149["cgg::a_user_rule_covers_a_framework_cgg_does_not_ship"]
+  C151["cgg::solidity_visibility_is_the_trust_boundary"]
+  C152["cgg::rust_ffi_exports_are_entries_from_outside_the_tree"]
+  C153["cgg::django_as_view_binds_to_the_classes_http_methods"]
+  C154["cgg::drf_router_register_binds_the_viewsets_actions"]
+  C155["cgg::a_proto_rpc_links_to_its_go_implementation"]
+  C156["cgg::a_bare_method_name_does_not_link_a_descriptor"]
+  C158["cgg::structure"]
+  C223["cgg::opts"]
+  C224["cgg::structure"]
+  C227["cgg::two_projects_each_get_their_own_framework_rules"]
+  C229["cgg::run"]
+  C1771["cgg_resolve::deadcode::tests::opts"]
+  C0 --> C1
+  C127 --> C125
+  C128 --> C127
+  C129 --> C127
+  C130 --> C127
+  C131 --> C127
+  C132 --> C127
+  C133 --> C127
+  C134 --> C127
+  C135 --> C127
+  C136 --> C127
+  C137 --> C127
+  C138 --> C127
+  C139 --> C127
+  C140 --> C127
+  C141 --> C127
+  C142 --> C127
+  C143 --> C127
+  C144 --> C127
+  C145 --> C127
+  C146 --> C127
+  C147 -->|2x| C127
+  C149 --> C127
+  C151 --> C127
+  C152 --> C127
+  C153 --> C127
+  C154 --> C127
+  C155 --> C127
+  C156 --> C127
+  C229 --> C224
+  C229 --> C223
+  C227 -->|4x| C229
+  C0 --> C127
+  C0 --> C229
+  C1 --> C66
+  C1 --> C20
+  C128 --> C1
+  C128 --> C229
+  C129 --> C1
+  C129 --> C229
+  C130 --> C1
+  C130 --> C229
+  C131 --> C1
+  C131 --> C229
+  C132 --> C1
+  C132 --> C229
+  C133 --> C1
+  C133 --> C229
+  C134 --> C1
+  C134 --> C229
+  C135 --> C1
+  C135 --> C229
+  C136 --> C1
+  C136 --> C229
+  C137 --> C1
+  C137 --> C229
+  C138 --> C1
+  C138 --> C229
+  C139 --> C1
+  C139 --> C229
+  C140 --> C1
+  C140 --> C229
+  C141 --> C1
+  C141 --> C229
+  C142 --> C1
+  C142 --> C229
+  C143 --> C1
+  C143 --> C229
+  C144 --> C1
+  C144 --> C229
+  C145 --> C1
+  C145 --> C229
+  C146 --> C1
+  C146 --> C229
+  C147 -->|2x| C1
+  C147 -->|2x| C229
+  C149 --> C1
+  C149 --> C229
+  C151 --> C1
+  C151 --> C229
+  C152 --> C1
+  C152 --> C229
+  C153 --> C1
+  C153 --> C229
+  C154 --> C1
+  C154 --> C229
+  C155 --> C1
+  C155 --> C229
+  C156 --> C1
+  C156 --> C229
+  C229 --> C158
+  C229 --> C66
+  C229 --> C1771
+  C227 -->|4x| C1
+  C227 -->|4x| C127
 ```
 <!-- cgg:end:self -->
 

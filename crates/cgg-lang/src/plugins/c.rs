@@ -38,6 +38,7 @@ impl LanguagePlugin for CPlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -50,7 +51,7 @@ impl LanguagePlugin for CPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
-        if crate::deadcode_signals() {
+        if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
@@ -316,6 +317,7 @@ mod tests {
         p.set_language(&tree_sitter_c::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         CPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/x.c"),
             &tree,

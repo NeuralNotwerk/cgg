@@ -24,6 +24,7 @@ impl LanguagePlugin for ClojurePlugin {
 
     fn extract(
         &self,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -31,6 +32,7 @@ impl LanguagePlugin for ClojurePlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "clojure");
         let mut w = ClojureWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             namespace: String::new(),
@@ -42,6 +44,8 @@ impl LanguagePlugin for ClojurePlugin {
 
 struct ClojureWalker<'a> {
     source: &'a [u8],
+    /// Per-run extraction switches; see `crate::ExtractCtx`.
+    ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     namespace: String,
 }
@@ -280,7 +284,7 @@ impl<'a> ClojureWalker<'a> {
     /// on the verb; the framework rule engine decides whether a record
     /// means anything, and an unmatched one is inert.
     fn record_registrar(&mut self, node: Node, verb: &str) {
-        if !crate::is_registrar_verb(verb) {
+        if !self.ctx.is_registrar_verb(verb) {
             return;
         }
         let mut cursor = node.walk();
@@ -436,6 +440,7 @@ mod tests {
             .unwrap();
         let tree = p.parse(src, None).unwrap();
         ClojurePlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/x.clj"),
             &tree,

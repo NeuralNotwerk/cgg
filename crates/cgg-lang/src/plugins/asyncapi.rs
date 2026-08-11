@@ -39,6 +39,7 @@ impl LanguagePlugin for AsyncApiPlugin {
 
     fn extract(
         &self,
+        _ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -85,6 +86,7 @@ mod tests {
         p.set_language(&tree_sitter_yaml::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         AsyncApiPlugin.extract(
+            &crate::ExtractCtx::plain(),
             FileId::new(0),
             &PathBuf::from("/tmp/__cgg_test__/async.yaml"),
             &tree,
