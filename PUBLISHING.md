@@ -96,7 +96,7 @@ before continuing.
 
 The fixed order, from `CRATES=(…)` in the script:
 
-```
+```text
 cgg-core → cgg-walk → cgg-format → cgg-lang → cgg-resolve → cgg
 ```
 
@@ -301,14 +301,14 @@ the second one is easy to misread.
 
 **A classic read/publish token** on a 2FA-protected account:
 
-```
+```text
 403 … Two-factor authentication or granular access token with bypass
 2fa enabled is required to publish packages.
 ```
 
 **A granular token scoped to "Only select packages"**:
 
-```
+```text
 403 Forbidden - PUT … - You may not perform that action with these
 credentials.
 ```
@@ -332,19 +332,5 @@ names exist, a narrower granular token can take over.
 
 ## What this project does not publish
 
-Only the four channels above: crates.io, PyPI, npm and GitHub Releases.
-
-There is no NuGet or Maven Central package, and this document deliberately
-does not explain how to create accounts or signing keys for them. A
-runbook that walks someone through registering credentials on a registry
-the project does not use is pure downside — it invites long-lived secrets
-for services nobody is watching, on platforms outside our control.
-
 The C ABI (`crates/cgg-ffi`) is deliberately shaped so that a .NET, Java
-or Go binding is a source-only wrapper over one shared library. If one is
-ever written and actually maintained, the credentials discussion belongs
-in the same commit as the working wrapper — not years ahead of it.
-
-Every registry is a standing commitment to the people who install from
-it. Four half-maintained bindings serve users worse than the ones that
-work.
+or Go binding is a source-only wrapper over one shared library.

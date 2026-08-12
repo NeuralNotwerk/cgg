@@ -5,6 +5,24 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+### Fixed
+
+- **The npm publish step could go green without publishing.**
+  `napi prepublish` ships only the per-platform packages; the root
+  package — the one users install — needs its own `npm publish`, which
+  the workflow never ran. On v0.6.5 that produced five platform packages
+  at 0.6.5, a root package still at 0.6.4, and a green job. Caught by
+  installing from the registry in a container rather than trusting the
+  job status. The workflow now publishes the root and then asserts that
+  `npm view` reports the version it just built, failing loudly if not.
+
+  `prepublish` also tries to attach the `.node` files to a GitHub release
+  that the workflow already created, which 400s. Those errors are logged
+  and swallowed, so a green job proves nothing on its own — hence the
+  explicit check.
+
 ## [0.6.5] - 2026-08-12
 
 > ## ⚠ Node IDs and node order change in this release

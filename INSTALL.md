@@ -53,7 +53,7 @@ python3 -m venv /opt/v && /opt/v/bin/pip install cgg-callgraphgenerator
 **`python3-venv` is not optional on Ubuntu 24.04.** The system Python is
 PEP 668 "externally managed", so a plain `pip3 install` refuses:
 
-```
+```text
 error: externally-managed-environment
 ```
 

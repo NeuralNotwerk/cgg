@@ -287,4 +287,25 @@ jobs:
           # `--gh-release` is opt-IN in @napi-rs/cli v3; there is no
           # `--skip-gh-release`, and passing it aborts with "Unsupported
           # option name". The GitHub release is created by the step above.
+          # `prepublish` publishes ONLY the per-platform packages. The
+          # root package — the one users actually install — needs its own
+          # `npm publish`. Without it the job goes green, five platform
+          # packages ship, and `npm install cgg-callgraphgenerator` still
+          # resolves to the previous release. That happened on v0.6.5.
+          #
+          # It also tries to attach the .node files to a GitHub release
+          # that the step above already created, which 400s. Those errors
+          # are logged and swallowed, so they cannot be relied on to fail
+          # the job either.
           npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
+          npm publish
+
+          # Belt and braces: a publish path that can succeed without
+          # publishing has to be checked, not trusted.
+          PUBLISHED="$(npm view cgg-callgraphgenerator version)"
+          LOCAL="$(node -p "require('./package.json').version")"
+          echo "npm latest=$PUBLISHED local=$LOCAL"
+          [ "$PUBLISHED" = "$LOCAL" ] || {
+            echo "::error::npm still reports $PUBLISHED after publishing $LOCAL"
+            exit 1
+          }

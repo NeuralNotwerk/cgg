@@ -50,10 +50,10 @@
     "@napi-rs/cli": "^3.8.5"
   },
   "optionalDependencies": {
-    "cgg-callgraphgenerator-linux-x64-gnu": "0.6.4",
-    "cgg-callgraphgenerator-linux-arm64-gnu": "0.6.4",
-    "cgg-callgraphgenerator-darwin-x64": "0.6.4",
-    "cgg-callgraphgenerator-darwin-arm64": "0.6.4",
-    "cgg-callgraphgenerator-win32-x64-msvc": "0.6.4"
+    "cgg-callgraphgenerator-linux-x64-gnu": "0.6.5",
+    "cgg-callgraphgenerator-linux-arm64-gnu": "0.6.5",
+    "cgg-callgraphgenerator-darwin-x64": "0.6.5",
+    "cgg-callgraphgenerator-darwin-arm64": "0.6.5",
+    "cgg-callgraphgenerator-win32-x64-msvc": "0.6.5"
   }
 }
