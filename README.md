@@ -491,7 +491,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2019 callables, 4566 edges, 1719 cross-file, 131ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2020 callables, 4568 edges, 1719 cross-file, 126ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -502,113 +502,113 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  C2["cgg_walk::walk"]
-  C268["cgg::analyze"]
-  C269["cgg::analyze_in_pool"]
-  C270["cgg::langs_enabled"]
-  C271["cgg::dead_code_analysis"]
-  C275["cgg::why_live_proofs"]
-  C276["cgg::since_seeds"]
-  C277["cgg::count_lines"]
-  C278["cgg::read_file"]
-  C279["cgg::variant_to_kind"]
-  C281["cgg::synthesize_exit_nodes"]
-  C282["cgg::synthesize_entry_nodes"]
-  C283["cgg::trait_impl_target_from_qn"]
-  C284["cgg::dedup_edges"]
-  C286["cgg::query::apply_query"]
-  C287["cgg::query::apply_exclusions"]
-  C308["cgg::since::resolve_since"]
-  C340["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C342["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C350["cgg::outcome::Emission::line"]
-  C351["cgg::outcome::Emission::always"]
-  C359["cgg::options::RunOptions::dead_mode"]
-  C510["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C511["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C1486["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C1487["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C1488["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1508["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1515["cgg_lang::notebook::extract_python_source"]
-  C1557["cgg_resolve::dispatch::fanout"]
-  C1569["cgg_resolve::frameworks::detect"]
-  C1629["cgg_resolve::type_hints::build_return_type_map"]
-  C1630["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C1646["cgg_resolve::ffi::link_ffi"]
-  C1800["cgg_resolve::cross_file::resolve"]
-  C1814["cgg_resolve::descriptor::link_descriptors"]
-  C1821["cgg_resolve::intra_file::link_file"]
-  C1948["cgg_core::external::FileAliases::from_facts"]
-  C1949["cgg_core::external::classify_external"]
-  C1952["cgg_core::external::build_known_names"]
-  C1966["cgg_core::testfile::classify_test_file"]
-  C1975["cgg_core::graph::Graph::new"]
-  C1976["cgg_core::graph::Graph::add_callable"]
-  C1977["cgg_core::graph::Graph::add_file"]
-  C1978["cgg_core::graph::Graph::add_edge"]
-  C1986["cgg_core::profile::enable"]
-  C1989["cgg_core::profile::span"]
-  C268 --> C269
-  C269 --> C270
-  C269 --> C278
-  C269 --> C277
-  C269 --> C279
-  C269 --> C283
-  C269 --> C281
-  C269 --> C282
-  C269 --> C284
-  C269 --> C276
-  C269 --> C275
-  C269 --> C271
-  C1487 --> C1487
-  C269 --> C359
-  C269 --> C342
-  C269 --> C340
-  C269 --> C1986
-  C269 --> C2
-  C269 --> C1508
-  C269 --> C510
-  C269 --> C1486
-  C269 --> C1975
-  C269 --> C511
-  C269 --> C1515
-  C269 -->|18x| C1989
-  C269 --> C1487
-  C269 --> C1488
-  C269 --> C1966
-  C269 --> C1977
-  C269 --> C1976
-  C269 --> C1629
-  C269 --> C1630
-  C269 --> C1952
-  C269 --> C1821
-  C269 --> C1948
-  C269 --> C1949
-  C269 --> C1800
-  C269 --> C1646
-  C269 --> C1814
-  C269 --> C1569
-  C269 --> C1557
-  C269 --> C1978
-  C269 --> C308
-  C269 -->|2x| C351
-  C269 --> C286
-  C269 -->|4x| C350
-  C269 --> C287
-  C271 --> C1508
-  C271 --> C351
-  C271 --> C350
-  C275 --> C351
-  C281 -->|2x| C1977
-  C281 --> C1976
-  C281 --> C1978
-  C282 --> C1977
-  C282 --> C1976
-  C282 --> C1978
-  C286 --> C1975
-  C1569 -->|9x| C1989
-  C1800 -->|2x| C1989
+  C7["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  C9["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  C46["cgg::analyze"]
+  C47["cgg::analyze_in_pool"]
+  C48["cgg::langs_enabled"]
+  C49["cgg::dead_code_analysis"]
+  C53["cgg::why_live_proofs"]
+  C54["cgg::since_seeds"]
+  C55["cgg::count_lines"]
+  C56["cgg::read_file"]
+  C57["cgg::variant_to_kind"]
+  C59["cgg::synthesize_exit_nodes"]
+  C60["cgg::synthesize_entry_nodes"]
+  C61["cgg::trait_impl_target_from_qn"]
+  C62["cgg::dedup_edges"]
+  C69["cgg::options::RunOptions::dead_mode"]
+  C71["cgg::outcome::Emission::line"]
+  C72["cgg::outcome::Emission::always"]
+  C75["cgg::query::apply_query"]
+  C76["cgg::query::apply_exclusions"]
+  C97["cgg::since::resolve_since"]
+  C366["cgg_core::external::FileAliases::from_facts"]
+  C367["cgg_core::external::classify_external"]
+  C370["cgg_core::external::build_known_names"]
+  C430["cgg_core::graph::Graph::new"]
+  C431["cgg_core::graph::Graph::add_callable"]
+  C432["cgg_core::graph::Graph::add_file"]
+  C433["cgg_core::graph::Graph::add_edge"]
+  C451["cgg_core::profile::enable"]
+  C454["cgg_core::profile::span"]
+  C462["cgg_core::testfile::classify_test_file"]
+  C533["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C534["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C567["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C571["cgg_lang::notebook::extract_python_source"]
+  C577["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C578["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C579["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1706["cgg_resolve::cross_file::resolve"]
+  C1839["cgg_resolve::descriptor::link_descriptors"]
+  C1846["cgg_resolve::dispatch::fanout"]
+  C1850["cgg_resolve::ffi::link_ffi"]
+  C1866["cgg_resolve::frameworks::detect"]
+  C1925["cgg_resolve::intra_file::link_file"]
+  C1967["cgg_resolve::type_hints::build_return_type_map"]
+  C1968["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C1986["cgg_walk::walk"]
+  C46 --> C47
+  C47 --> C48
+  C47 --> C56
+  C47 --> C55
+  C47 --> C57
+  C47 --> C61
+  C47 --> C59
+  C47 --> C60
+  C47 --> C62
+  C47 --> C54
+  C47 --> C53
+  C47 --> C49
+  C578 --> C578
+  C47 --> C69
+  C47 --> C9
+  C47 --> C7
+  C47 --> C451
+  C47 --> C1986
+  C47 --> C567
+  C47 --> C533
+  C47 --> C577
+  C47 --> C430
+  C47 --> C534
+  C47 --> C571
+  C47 -->|18x| C454
+  C47 --> C578
+  C47 --> C579
+  C47 --> C462
+  C47 --> C432
+  C47 --> C431
+  C47 --> C1967
+  C47 --> C1968
+  C47 --> C370
+  C47 --> C1925
+  C47 --> C366
+  C47 --> C367
+  C47 --> C1706
+  C47 --> C1850
+  C47 --> C1839
+  C47 --> C1866
+  C47 --> C1846
+  C47 --> C433
+  C47 --> C97
+  C47 -->|2x| C72
+  C47 --> C75
+  C47 -->|4x| C71
+  C47 --> C76
+  C49 --> C567
+  C49 --> C72
+  C49 --> C71
+  C53 --> C72
+  C59 -->|2x| C432
+  C59 --> C431
+  C59 --> C433
+  C60 --> C432
+  C60 --> C431
+  C60 --> C433
+  C75 --> C430
+  C1706 -->|2x| C454
+  C1866 -->|9x| C454
 ```
 <!-- cgg:end:self -->
 

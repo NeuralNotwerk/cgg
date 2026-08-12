@@ -5,7 +5,24 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.6.5] - 2026-08-12
+
+> ## ⚠ Node IDs and node order change in this release
+>
+> **cgg produced a different graph on different machines for the same
+> commit, and 0.6.5 fixes that.** The walker returned files in filesystem
+> enumeration order, which is not stable across machines, and node ids are
+> positional — so `C0`, `C1`, … were assigned differently depending on
+> whose disk the files came off.
+>
+> **If you have committed cgg output, expect a one-time diff** when you
+> regenerate it on 0.6.5: node ids are renumbered and nodes are declared
+> in a new (sorted) order. **Edges, callables and every semantic property
+> are unchanged** — the same graph, written down in a stable order.
+>
+> After this release, the same commit gives the same bytes on any machine.
+> That is what "deterministic" and "diffable in a PR" were supposed to
+> mean, and until now they only held for one machine at a time.
 
 ### Fixed
 

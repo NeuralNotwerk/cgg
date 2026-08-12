@@ -1,6 +1,6 @@
 {
   "name": "cgg-callgraphgenerator",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Offline, deterministic call-graph generation for 44 languages. Point it at a directory, get a mermaid diagram.",
   "keywords": [
     "call-graph",

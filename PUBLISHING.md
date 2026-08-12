@@ -3,24 +3,24 @@
 What exists, what it takes to ship it, and what you personally have to do
 because it needs an account only you can own.
 
-Everything below was checked against the live registries and the workflow
-on 2026-08-12. Where a claim is about the world rather than the repo, the
-command that proves it is printed next to it.
+Everything below was checked against the live registries and the workflow.
+Where a claim is about the world rather than the repo, the command that
+proves it is printed next to it.
+
+Only four channels exist: crates.io, PyPI, npm and GitHub Releases. See
+[What this project does not publish](#what-this-project-does-not-publish).
 
 | Target | Artifact | Status | Blocked on |
 | --- | --- | --- | --- |
-| crates.io | 6 Rust crates | **published, 0.6.3** | nothing |
-| PyPI | `cgg-callgraphgenerator` wheel | **published, 0.6.3** (Linux x86_64 only) | a tag, for the other platforms |
+| crates.io | 6 Rust crates | **published** | nothing |
+| PyPI | `cgg-callgraphgenerator` wheel + sdist | **published** | nothing |
 | GitHub Releases (source) | auto tarballs | shipping (7 releases) | nothing |
-| GitHub Releases (binaries) | CLI + `libcgg` | **wired in CI, never run** | a tag |
-| npm | `cgg-callgraphgenerator` | **wrapper written + green in CI, NOT published** | a tag |
-| NuGet | .NET package | wrapper not written | account + key |
-| Maven Central | Java artifact | wrapper not written | Sonatype + GPG |
+| GitHub Releases (binaries) | CLI + `libcgg` + `cgg.h` | **published** | nothing |
+| npm | `cgg-callgraphgenerator` + 5 platform packages | **published** | nothing |
 
-**The single thing blocking three of those rows is a tag.** The newest tag
-is `v0.6.1`; the release workflow landed *after* it, so no tag has ever
-exercised it. Meanwhile 0.6.2 and 0.6.3 went to crates.io and PyPI from
-this machine, so the registries are ahead of the tags.
+All four ship from one `v*` tag, except crates.io, which stays manual on
+purpose — it is the one registry where a bad upload cannot be corrected by
+re-running.
 
 ```bash
 git tag --list 'v*'                                    # newest: v0.6.1
@@ -262,7 +262,7 @@ publisher at
 
 ---
 
-## 3. Prebuilt binaries on GitHub Releases — wired, waiting on a tag
+## 3. Prebuilt binaries on GitHub Releases — published
 
 The `binaries` job builds the CLI and the C ABI for linux-x86_64,
 macos-arm64 and windows-x64, packs each with `cgg.h`, `README.md` and both
@@ -280,93 +280,13 @@ point at, so the first tag unblocks both.
 
 ---
 
-## 4. npm — blocked on the token type, not on the code
+## 4. npm — published
 
-The five platform packages build green in CI and `napi prepublish
---dry-run` passes locally against the real artifacts. Publishing fails:
-
-```
-403 … Two-factor authentication or granular access token with bypass
-2fa enabled is required to publish packages.
-```
-
-Two different 403s were hit, in order, and the second is the subtle one.
-
-**First**, with a classic read/publish token:
-
-```
-403 … Two-factor authentication or granular access token with bypass
-2fa enabled is required to publish packages.
-```
-
-**Then**, with a granular token:
-
-```
-403 Forbidden - PUT … - You may not perform that action with these
-credentials.
-```
-
-The account owns **no packages yet** and the registry 404s on every one
-of these six names, so each publish is a package *creation*. A granular
-token scoped to **"Only select packages"** cannot create a package —
-there was nothing to select in the first place. Scope it to **all
-packages**, or use a classic Automation token:
-
-* **Automation token** — npmjs.com → Access Tokens → Generate New Token →
-  *Classic* → **Automation**. Full account rights, bypasses 2FA. Simplest
-  thing that works for a first publish.
-* **Granular Access Token** — *Packages and scopes:* **Read and write**,
-  *Select packages:* **All packages**. Narrowing it to selected packages
-  only becomes possible after the six names exist.
-
-The six names: `cgg-callgraphgenerator` plus
-`-linux-x64-gnu`, `-linux-arm64-gnu`, `-darwin-x64`, `-darwin-arm64`,
-`-win32-x64-msvc`.
-
-Then `gh secret set NPM_TOKEN` and re-run the release workflow, or publish
-by hand:
-
-```bash
-cd crates/cgg-node
-gh run download <run-id> -D /tmp/art -p 'node-*'
-npx --yes --package=@napi-rs/cli@3.8.5 -- napi artifacts -d /tmp/art --npm-dir npm
-npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm --dry-run
-npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
-```
-
-**`napi artifacts` is not optional.** `prepublish` validates that every
-`npm/<triple>/` package already contains its `.node` and aborts with
-"Release package … is incomplete" otherwise; copying the files to the
-crate root is not enough. And there is no `--skip-gh-release` —
-`--gh-release` is opt-in. Both cost a tagged release to discover.
-
-
-**The wrapper exists.** `crates/cgg-node` is a napi-rs N-API module — not
-`ffi-napi` over the C ABI, which would have been slower and dragged in a
-fragile dependency. npm needs a per-platform artifact either way, so the C
-ABI bought nothing here.
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' \
-  https://registry.npmjs.org/cgg-callgraphgenerator     # 404 — not published
-```
-
-Package layout, from `crates/cgg-node/package.json` and `npm/*/`:
-
-* main package `cgg-callgraphgenerator` (`index.js` + `index.d.ts`)
-* five platform packages `cgg-callgraphgenerator-{linux-x64-gnu,
-  linux-arm64-gnu, darwin-x64, darwin-arm64, win32-x64-msvc}`
-
-Unscoped, so no npm organisation is needed. `napi prepublish` moves each
-`.node` into its platform package, publishes those, then publishes the main
-package that depends on them — order matters, since the main package's
-`optionalDependencies` must already exist. That is what the `Publish to
-npm` step runs, using `NPM_TOKEN`, which is already set.
-
-So: **an npm account owning the name is the only remaining requirement, and
-the first `v*` tag ships it.**
-
-Build and test it locally:
+`cgg-callgraphgenerator` plus five platform packages
+(`-linux-x64-gnu`, `-linux-arm64-gnu`, `-darwin-x64`, `-darwin-arm64`,
+`-win32-x64-msvc`), listed as `optionalDependencies` so npm installs only
+the one matching the host. Verified from a bare container: `npm install`
+pulls **two** packages and nothing else.
 
 ```bash
 cd crates/cgg-node
@@ -374,51 +294,57 @@ npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release
 node --test tests/*.test.js     # includes parity against target/release/cgg
 ```
 
+### The token has to be able to CREATE packages
+
+Two different 403s stand between a fresh token and a first publish, and
+the second one is easy to misread.
+
+**A classic read/publish token** on a 2FA-protected account:
+
+```
+403 … Two-factor authentication or granular access token with bypass
+2fa enabled is required to publish packages.
+```
+
+**A granular token scoped to "Only select packages"**:
+
+```
+403 Forbidden - PUT … - You may not perform that action with these
+credentials.
+```
+
+The second is the trap: publishing a name that does not exist yet is a
+package *creation*, and you cannot pre-select a package that does not
+exist. Use a classic **Automation** token, or a granular token with
+*Packages and scopes: Read and write* over **all packages**. Once the six
+names exist, a narrower granular token can take over.
+
+### Two things that cost a tagged release to find
+
+* **`napi artifacts` is not optional.** `prepublish` validates that every
+  `npm/<triple>/` package already contains its `.node` and aborts with
+  "Release package … is incomplete" otherwise. Copying the artifacts to
+  the crate root is not enough.
+* **There is no `--skip-gh-release`.** `--gh-release` is opt-in in
+  `@napi-rs/cli` v3; passing the skip form aborts the job.
+
 ---
 
-## 5. NuGet and Maven Central — wrappers first
+## What this project does not publish
 
-Neither has a wrapper. The C ABI (`crates/cgg-ffi`, seven exported
-functions, header at `crates/cgg-ffi/include/cgg.h`) is the foundation both
-ride on, and it is done and tested — but the language-side binding is still
-to write.
+Only the four channels above: crates.io, PyPI, npm and GitHub Releases.
 
-### NuGet (.NET)
+There is no NuGet or Maven Central package, and this document deliberately
+does not explain how to create accounts or signing keys for them. A
+runbook that walks someone through registering credentials on a registry
+the project does not use is pure downside — it invites long-lived secrets
+for services nobody is watching, on platforms outside our control.
 
-The easier of the two. P/Invoke over `cgg.h` is pure C# — no native build
-on the .NET side — and native libraries ship in `runtimes/<rid>/native/`
-inside one package. The `binaries` job already produces the `libcgg` half
-for three platforms.
+The C ABI (`crates/cgg-ffi`) is deliberately shaped so that a .NET, Java
+or Go binding is a source-only wrapper over one shared library. If one is
+ever written and actually maintained, the credentials discussion belongs
+in the same commit as the working wrapper — not years ahead of it.
 
-You need: a nuget.org account and an API key.
-
-### Maven Central (Java)
-
-The most painful, entirely for reasons outside the code. The **Foreign
-Function & Memory API** (JDK 22+) avoids a JNI shim and `jextract` can
-generate bindings from `cgg.h` directly; JNA is the fallback if older JDKs
-must be supported.
-
-You need: a Sonatype Central account, a **verified namespace** (proving you
-control `io.github.neuralnotwerk` or a domain), and a **published GPG
-key** — every artifact must be signed. Budget the account setup separately
-from the code.
-
----
-
-## Recommended order
-
-1. **Tag.** `scripts/release.sh --purpose …`, then `git tag -a v0.6.4`.
-   One action ships the npm package, the macOS/Windows wheels and the first
-   prebuilt binaries, all of which already build green.
-2. **Run `scripts/publish-crates.sh`** for the same version. It is the one
-   registry CI deliberately does not touch.
-3. **Switch PyPI to trusted publishing** and delete `PYPI_API_TOKEN`.
-4. **NuGet**, then **Maven** — each needs its wrapper written first, and
-   each is a genuinely separate piece of work.
-
-A note on doing all of them: every registry is a permanent commitment to
-users who install from it. Four half-maintained bindings serve people worse
-than two that work. The C ABI is deliberately shaped so that adding a
-language is a source-only wrapper — no new native artifact — so there is no
-rush to claim them all at once.
+Every registry is a standing commitment to the people who install from
+it. Four half-maintained bindings serve users worse than the ones that
+work.
