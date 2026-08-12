@@ -77,9 +77,7 @@ def rule_ids() -> tuple[dict[str, set[str]], set[str]]:
     agree or one of them is lying.
     """
     text = RULES_RS.read_text()
-    pairs = re.findall(
-        r'id:\s*"([^"]+)",\s*\n\s*language:\s*"([^"]+)"', text
-    )
+    pairs = re.findall(r'id:\s*"([^"]+)",\s*\n\s*language:\s*"([^"]+)"', text)
     if not pairs:
         fail(f"could not parse any framework rules out of {RULES_RS}")
     out: dict[str, set[str]] = {}
@@ -159,9 +157,18 @@ def clone_missing(apps: list[dict]) -> None:
             continue
         print(f"  cloning {app['name']}…", file=sys.stderr)
         rc = subprocess.run(
-            ["git", "clone", "--depth", "1", "--single-branch", "-q",
-             app["url"], str(dest)],
-            capture_output=True, check=False,
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--single-branch",
+                "-q",
+                app["url"],
+                str(dest),
+            ],
+            capture_output=True,
+            check=False,
         )
         if rc.returncode != 0:
             print(f"  FAILED {app['name']}: {app['url']}", file=sys.stderr)
@@ -174,8 +181,16 @@ def analyze(path: Path) -> dict | None:
         out = tmp / "g.json"
         start = time.monotonic()
         proc = subprocess.run(
-            [str(CGG), str(path), "-t", "json", "-o", str(out),
-             "--framework-coverage", "--no-update-check"],
+            [
+                str(CGG),
+                str(path),
+                "-t",
+                "json",
+                "-o",
+                str(out),
+                "--framework-coverage",
+                "--no-update-check",
+            ],
             capture_output=True,
             timeout=900,
             check=False,
@@ -202,11 +217,13 @@ def analyze(path: Path) -> dict | None:
 
         callables = graph.get("callables", {})
         entry_nodes = [
-            c for c in callables.values()
+            c
+            for c in callables.values()
             if c.get("qualified_name", "").startswith(ENTRY_SENTINEL)
         ]
         entry_edges = sum(
-            1 for e in graph.get("edges", [])
+            1
+            for e in graph.get("edges", [])
             if isinstance(e.get("via"), dict)
             and e["via"].get("kind") == "framework_entry"
         )
@@ -235,8 +252,11 @@ def analyze(path: Path) -> dict | None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--clone", action="store_true",
-                    help="clone any app missing from the corpus first")
+    ap.add_argument(
+        "--clone",
+        action="store_true",
+        help="clone any app missing from the corpus first",
+    )
     ap.add_argument("--app", help="only run this app")
     ap.add_argument("--json", help="write the metrics table as JSON here")
     args = ap.parse_args()
@@ -258,8 +278,21 @@ def main() -> None:
         f"{'entry':>5} │ {'regs':>5} │ {'time':>8} │ frameworks"
     )
     print(header)
-    print("─" * 26 + "─┼─" + "─" * 7 + "─┼─" + "─" * 7 + "─┼─"
-          + "─" * 5 + "─┼─" + "─" * 5 + "─┼─" + "─" * 8 + "─┼─" + "─" * 30)
+    print(
+        "─" * 26
+        + "─┼─"
+        + "─" * 7
+        + "─┼─"
+        + "─" * 7
+        + "─┼─"
+        + "─" * 5
+        + "─┼─"
+        + "─" * 5
+        + "─┼─"
+        + "─" * 8
+        + "─┼─"
+        + "─" * 30
+    )
 
     fired_ids: set[str] = set()
     detected_ids: set[str] = set()
@@ -317,22 +350,27 @@ def main() -> None:
             f"{res['entry_nodes']:>5} │ {res['registrations']:>5} │ "
             f"{res['ms']:>6.0f}ms │ {','.join(sorted(got)) or '—'}"
         )
-        rows.append({"app": app["name"], **{k: v for k, v in res.items()
-                                            if k != "recognised"}})
+        rows.append(
+            {"app": app["name"], **{k: v for k, v in res.items() if k != "recognised"}}
+        )
 
     print()
     # The registrations-vs-nodes gap, stated rather than buried. A
     # framework with no route string to key on collapses every handler
     # of the same method name onto one node.
-    collapsed = [r for r in rows
-                 if r["registrations"] > 0
-                 and r["entry_nodes"] < r["registrations"] / 2]
+    collapsed = [
+        r
+        for r in rows
+        if r["registrations"] > 0 and r["entry_nodes"] < r["registrations"] / 2
+    ]
     if collapsed:
         print("Entry-node collapse (registrations ≫ distinct nodes — handlers")
         print("share a node because the framework carries no route string):")
         for r in collapsed:
-            print(f"  {r['app']:<26} {r['registrations']:>4} registrations "
-                  f"→ {r['entry_nodes']:>3} nodes")
+            print(
+                f"  {r['app']:<26} {r['registrations']:>4} registrations "
+                f"→ {r['entry_nodes']:>3} nodes"
+            )
         print()
 
     if gaps:
@@ -342,19 +380,19 @@ def main() -> None:
             print(f"  {fid:<18} {lang:<12} {reason}")
         print()
 
-    claimed_any = {f for a in apps
-                   for f in a["frameworks"] + a["detect_only"]}
+    claimed_any = {f for a in apps for f in a["frameworks"] + a["detect_only"]}
     unver = unverified()
     unclaimed = sorted(set(declared) - claimed_any - detect_only - set(unver))
     never_seen = sorted(set(declared) - detected_ids)
     pair_gaps = sorted(
-        {(i, lang) for i, langs in declared.items() for lang in langs}
-        - fired_pairs
+        {(i, lang) for i, langs in declared.items() for lang in langs} - fired_pairs
     )
 
     total_rules = sum(len(v) for v in declared.values())
-    print(f"Frameworks with rules       : {len(declared)} "
-          f"({total_rules} id×language rules)")
+    print(
+        f"Frameworks with rules       : {len(declared)} "
+        f"({total_rules} id×language rules)"
+    )
     print(f"Detect-only (no app needed) : {len(detect_only)}")
     if unver:
         # Stated, not hidden: these rules enumerate, and no app here has
@@ -364,16 +402,22 @@ def main() -> None:
         # claim the rule never fired anywhere: this script reads APPS,
         # never the REPOS language corpus, and eight of these do
         # enumerate there. benchmark.sh carries that evidence.
-        print(f"Enumerating, NO application : {len(unver)} — not exercised "
-              f"by any app in APPS")
+        print(
+            f"Enumerating, NO application : {len(unver)} — not exercised "
+            f"by any app in APPS"
+        )
         for k, why in sorted(unver.items()):
             print(f"    {k:<22} {why}")
     print(f"Enumerating entries         : {len(fired_ids)}")
-    print(f"Detected, entries not built : {len(detected_ids - fired_ids)}"
-          f" — {', '.join(sorted(detected_ids - fired_ids)) or '—'}")
+    print(
+        f"Detected, entries not built : {len(detected_ids - fired_ids)}"
+        f" — {', '.join(sorted(detected_ids - fired_ids)) or '—'}"
+    )
     if pair_gaps:
-        print(f"id×language never exercised : {len(pair_gaps)} — "
-              + ", ".join(f"{i}/{l}" for i, l in pair_gaps))
+        print(
+            f"id×language never exercised : {len(pair_gaps)} — "
+            + ", ".join(f"{i}/{l}" for i, l in pair_gaps)
+        )
 
     ok = True
     if missing_apps:
@@ -401,11 +445,13 @@ def main() -> None:
         # them would never be noticed by this gate. It is scoped to
         # APPS: this script never reads the REPOS language corpus, where
         # some of these do fire (see APPS_UNVERIFIED in benchmark.sh).
-        print(f"\nNo evidence in APPS ({len(never_seen)}) — never detected in "
-              f"any app in the manifest, so their `detect` prefixes are\n"
-              f"verified only synthetically, by tests/detect_prefixes.rs:")
+        print(
+            f"\nNo evidence in APPS ({len(never_seen)}) — never detected in "
+            f"any app in the manifest, so their `detect` prefixes are\n"
+            f"verified only synthetically, by tests/detect_prefixes.rs:"
+        )
         for i in range(0, len(never_seen), 6):
-            print("  " + ", ".join(never_seen[i:i + 6]))
+            print("  " + ", ".join(never_seen[i : i + 6]))
     if improved:
         # Not fatal: cgg got better than the manifest admits.
         print(f"\nGap markers now stale ({len(improved)}):")
@@ -413,13 +459,20 @@ def main() -> None:
             print(f"  {i}")
 
     if args.json:
-        Path(args.json).write_text(json.dumps(
-            {"apps": rows, "fired": sorted(fired_ids),
-             "detected": sorted(detected_ids),
-             "detect_only": sorted(detected_ids - fired_ids),
-             "gaps": {f"{k[0]}/{k[1]}": v for k, v in sorted(gaps.items())},
-             "unclaimed": unclaimed,
-             "pair_gaps": [list(p) for p in pair_gaps]}, indent=2))
+        Path(args.json).write_text(
+            json.dumps(
+                {
+                    "apps": rows,
+                    "fired": sorted(fired_ids),
+                    "detected": sorted(detected_ids),
+                    "detect_only": sorted(detected_ids - fired_ids),
+                    "gaps": {f"{k[0]}/{k[1]}": v for k, v in sorted(gaps.items())},
+                    "unclaimed": unclaimed,
+                    "pair_gaps": [list(p) for p in pair_gaps],
+                },
+                indent=2,
+            )
+        )
 
     if not ok:
         sys.exit(1)
@@ -431,24 +484,31 @@ def main() -> None:
     # and that test proves a `detect` prefix *can* fire — not that the
     # rule enumerates anything on real code.
     print("\nGates passed: every framework an app declares fired, and every")
-    print("enumerating rule is either claimed by an app or declared "
-          "application-less.")
+    print("enumerating rule is either claimed by an app or declared application-less.")
     print(f"  {len(fired_ids):>3} enumerate entry points in a real application")
-    print(f"  {len(detected_ids - fired_ids):>3} more are detected in an "
-          f"application, with the gap disclosed")
+    print(
+        f"  {len(detected_ids - fired_ids):>3} more are detected in an "
+        f"application, with the gap disclosed"
+    )
     if unver:
-        print(f"  {len(unver):>3} enumerating rules have no app in APPS at "
-              f"all — see APPS_UNVERIFIED in")
-        print("      scripts/benchmark.sh for what does and does not stand "
-              "behind each")
-    print(f"  {len(detect_only):>3} are detect-only: they enumerate nothing, "
-          f"so no application is required")
-    print(f"  {len(never_seen):>3} of {len(declared)} rules were never detected "
-          f"in any APPS application; the")
-    print("      REPOS language corpus is not read here, so check the "
-          "APPS_UNVERIFIED note")
-    print("      in scripts/benchmark.sh before concluding a rule has never "
-          "fired")
+        print(
+            f"  {len(unver):>3} enumerating rules have no app in APPS at "
+            f"all — see APPS_UNVERIFIED in"
+        )
+        print("      scripts/benchmark.sh for what does and does not stand behind each")
+    print(
+        f"  {len(detect_only):>3} are detect-only: they enumerate nothing, "
+        f"so no application is required"
+    )
+    print(
+        f"  {len(never_seen):>3} of {len(declared)} rules were never detected "
+        f"in any APPS application; the"
+    )
+    print(
+        "      REPOS language corpus is not read here, so check the "
+        "APPS_UNVERIFIED note"
+    )
+    print("      in scripts/benchmark.sh before concluding a rule has never fired")
 
 
 if __name__ == "__main__":

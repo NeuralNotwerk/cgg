@@ -1,3 +1,8 @@
+<!-- markdownlint-disable MD013 -->
+<!-- CLAUDE.md is agent-facing prose: long unwrapped paragraphs on
+     purpose, because an agent reads the file whole and rewrapping
+     would churn it on every edit. Every other rule still applies. -->
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

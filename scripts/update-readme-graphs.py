@@ -72,9 +72,7 @@ def clean(mmd_text: str) -> str:
     edges = {(s, d): lbl for (s, d), lbl in edges.items() if s in keep and d in keep}
 
     def tidy(lbl: str) -> str:
-        return (
-            lbl.replace("crate::", "").replace("&lt;", "<").replace("&gt;", ">")
-        )
+        return lbl.replace("crate::", "").replace("&lt;", "<").replace("&gt;", ">")
 
     out = ["flowchart LR"]
     for nid in sorted(keep, key=lambda x: int(x[1:])):

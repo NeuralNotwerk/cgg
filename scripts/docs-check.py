@@ -100,6 +100,7 @@ human-readable message naming the offending file.
 
 from __future__ import annotations
 
+import itertools
 import re
 import subprocess
 import sys
@@ -114,8 +115,16 @@ SKILLS_DIR = REPO_ROOT / "skills"
 CGG_BIN = REPO_ROOT / "target/release/cgg"
 
 NUMBER_WORDS = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
 }
 WORD_FOR = {v: k for k, v in NUMBER_WORDS.items()}
 
@@ -128,6 +137,7 @@ def fail(msg: str) -> None:
 # ---------------------------------------------------------------------
 # Check 1: language counts
 # ---------------------------------------------------------------------
+
 
 def count_plugins() -> int:
     text = PLUGINS_RS.read_text()
@@ -188,7 +198,9 @@ def check_benchmark_table_languages() -> None:
         extra = sorted(set(entry_langs) - set(repo_langs))
         parts = []
         if missing:
-            parts.append(f"benchmarked but absent from the README table: {', '.join(missing)}")
+            parts.append(
+                f"benchmarked but absent from the README table: {', '.join(missing)}"
+            )
         if extra:
             parts.append(f"in the README table with no corpus repo: {', '.join(extra)}")
         fail(
@@ -238,6 +250,7 @@ def check_language_counts() -> None:
 # Check 2: CLI flag freshness
 # ---------------------------------------------------------------------
 
+
 def cgg_help_text() -> str:
     if not CGG_BIN.exists():
         fail(f"{CGG_BIN} not found — run `cargo build --release -p cgg` first")
@@ -252,7 +265,9 @@ def cgg_help_text() -> str:
 def cgg_help_flags() -> set[str]:
     out = cgg_help_text()
     flags: set[str] = set()
-    for m in re.finditer(r"(?<![A-Za-z0-9])(--[a-z][a-z0-9-]*|-[a-zA-Z])(?=[ ,\n])", out):
+    for m in re.finditer(
+        r"(?<![A-Za-z0-9])(--[a-z][a-z0-9-]*|-[a-zA-Z])(?=[ ,\n])", out
+    ):
         flags.add(m.group(1))
     return flags
 
@@ -378,6 +393,7 @@ def check_cli_synopsis() -> None:
 # Checks 3-5: the bundled skills
 # ---------------------------------------------------------------------
 
+
 def skill_files() -> list[Path]:
     return sorted(SKILLS_DIR.glob("*/SKILL.md"))
 
@@ -441,6 +457,7 @@ def check_attribute_claims() -> None:
 
 
 # ---------------------------------------------------------------------
+
 
 def check_framework_apps() -> None:
     """Every framework rule needs a real application that exercises it.
@@ -573,14 +590,14 @@ def check_self_analysis_showcase() -> None:
     # this check costs nothing and works without a built binary.
     readme = README.read_text()
     m = re.search(
-        r"<!-- cgg:begin:self -->(.*?)<!-- cgg:end:self -->", readme, re.S
+        r"<!-- cgg:begin:self -->(.*?)<!-- cgg:end:self -->", readme, re.DOTALL
     )
     if not m:
         fail("README.md: no <!-- cgg:begin:self --> block found (check 7)")
     block = m.group(1)
     crates = {
         n.split("::")[0]
-        for n in re.findall(r'^\s*C\d+\["([^"]+)"\]', block, re.M)
+        for n in re.findall(r'^\s*C\d+\["([^"]+)"\]', block, re.MULTILINE)
     }
     if len(crates) < 3:
         fail(
@@ -610,18 +627,18 @@ def check_python_option_parity() -> None:
     """Check 8 — every graph-changing option is reachable from Python."""
     opts_rs = (REPO_ROOT / "crates/cgg/src/options.rs").read_text()
     # Fields of `pub struct RunOptions`, up to its closing brace.
-    m = re.search(r"pub struct RunOptions \{(.*?)\n\}", opts_rs, re.S)
+    m = re.search(r"pub struct RunOptions \{(.*?)\n\}", opts_rs, re.DOTALL)
     if not m:
         fail("crates/cgg/src/options.rs: could not find `pub struct RunOptions`")
-    fields = set(re.findall(r"^\s*pub ([a-z_0-9]+):", m.group(1), re.M))
+    fields = set(re.findall(r"^\s*pub ([a-z_0-9]+):", m.group(1), re.MULTILINE))
     if not fields:
         fail("crates/cgg/src/options.rs: parsed RunOptions but found no fields")
 
     py_rs = (REPO_ROOT / "crates/cgg-py/src/lib.rs").read_text()
-    sig = re.search(r"#\[pyo3\(signature = \((.*?)\)\)\]", py_rs, re.S)
+    sig = re.search(r"#\[pyo3\(signature = \((.*?)\)\)\]", py_rs, re.DOTALL)
     if not sig:
         fail("crates/cgg-py/src/lib.rs: could not find the #[pyo3(signature = …)]")
-    kwargs = set(re.findall(r"^\s*\*?\s*([a-z_0-9]+)", sig.group(1), re.M))
+    kwargs = set(re.findall(r"^\s*\*?\s*([a-z_0-9]+)", sig.group(1), re.MULTILINE))
     # `--no-entry-nodes` is deliberately un-negated as `entry_nodes`.
     if "entry_nodes" in kwargs:
         kwargs.add("no_entry_nodes")
@@ -731,14 +748,16 @@ def check_deliberate_leaks() -> None:
 def check_changelog() -> None:
     """Check 10 — the changelog agrees with the version and the tags."""
     path = REPO_ROOT / "CHANGELOG.md"
-    headers = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", path.read_text(), re.M)
+    headers = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", path.read_text(), re.MULTILINE)
     if not headers:
         fail("CHANGELOG.md has no `## [x.y.z]` version headers (check 10)")
 
     def key(v: str) -> tuple[int, ...]:
         return tuple(int(p) for p in v.split("."))
 
-    cargo = re.search(r'^version = "(.+?)"', (REPO_ROOT / "Cargo.toml").read_text(), re.M)
+    cargo = re.search(
+        r'^version = "(.+?)"', (REPO_ROOT / "Cargo.toml").read_text(), re.MULTILINE
+    )
     if cargo and headers[0] != cargo.group(1):
         fail(
             f"CHANGELOG.md's newest entry is {headers[0]} but Cargo.toml is "
@@ -746,16 +765,18 @@ def check_changelog() -> None:
             "shipped must not disagree"
         )
 
-    for a, b in zip(headers, headers[1:]):
+    for a, b in itertools.pairwise(headers):
         if key(a) <= key(b):
-            fail(f"CHANGELOG.md versions are not strictly decreasing: {a} then {b} (check 10)")
+            fail(
+                f"CHANGELOG.md versions are not strictly decreasing: {a} then {b} (check 10)"
+            )
 
     # A gap in the patch series inside one minor means an entry went
     # missing — which is the actual failure this check exists for, and
     # which the tag rule below cannot see because an untagged release has
     # no tag to compare against. Deliberate skips are declarable.
     text = path.read_text()
-    for a, b in zip(headers, headers[1:]):
+    for a, b in itertools.pairwise(headers):
         ka, kb = key(a), key(b)
         if ka[:2] != kb[:2]:
             continue  # different minor; a patch gap is meaningless
@@ -772,14 +793,21 @@ def check_changelog() -> None:
     # A tag is a promise that a version was released; it needs an entry.
     try:
         tags = subprocess.run(
-            ["git", "tag", "-l", "v*"], cwd=REPO_ROOT,
-            capture_output=True, text=True, check=True,
+            ["git", "tag", "-l", "v*"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.split()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return  # not a git checkout; the rest of the check still ran
     have = set(headers)
     missing = sorted(
-        (t[1:] for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t) and t[1:] not in have),
+        (
+            t[1:]
+            for t in tags
+            if re.fullmatch(r"v\d+\.\d+\.\d+", t) and t[1:] not in have
+        ),
         key=key,
     )
     if missing:

@@ -14,9 +14,8 @@ import subprocess
 import threading
 from pathlib import Path
 
-import pytest
-
 import cgg
+import pytest
 
 # --- fixtures ----------------------------------------------------------
 
@@ -110,7 +109,9 @@ def test_parity_with_cli(tree: Path) -> None:
     """
     binary = _cli()
     if not binary.exists():
-        pytest.skip(f"cgg binary not built at {binary}; run cargo build --release -p cgg")
+        pytest.skip(
+            f"cgg binary not built at {binary}; run cargo build --release -p cgg"
+        )
 
     proc = subprocess.run(
         [str(binary), str(tree), "-t", "json"],
@@ -139,10 +140,14 @@ def test_parity_with_cli_under_options(tree: Path) -> None:
         pytest.skip("cgg binary not built")
 
     cases = [
-        (["--include-external", "--include-stdlib"],
-         {"include_external": True, "include_stdlib": True}),
-        (["--dynamic-dispatch", "--reference-edges"],
-         {"dynamic_dispatch": True, "reference_edges": True}),
+        (
+            ["--include-external", "--include-stdlib"],
+            {"include_external": True, "include_stdlib": True},
+        ),
+        (
+            ["--dynamic-dispatch", "--reference-edges"],
+            {"dynamic_dispatch": True, "reference_edges": True},
+        ),
         (["--no-entry-nodes"], {"entry_nodes": False}),
         (["--lang", "python"], {"lang": ["python"]}),
         (["--filter", "caller_1", "-n", "1"], {"filter": ["caller_1"], "hops": 1}),

@@ -21,6 +21,7 @@ What this does NOT own (don't add it back):
 Usage:
   patch-readme-stats.py <readme> <self-graph.mmd> <bench-table.md>
 """
+
 import sys
 from pathlib import Path
 
@@ -61,16 +62,16 @@ if len(table_rows) < 3:
         f"data - check $CGG_BENCH_DIR is populated."
     )
 
-lines = content.split('\n')
+lines = content.split("\n")
 start_idx = None
 end_idx = None
 for i, line in enumerate(lines):
-    if 'cgg ./crates -t mermaid --filter' in line and 'cgg::analyze_in_pool' in line:
+    if "cgg ./crates -t mermaid --filter" in line and "cgg::analyze_in_pool" in line:
         for j in range(i, min(i + 5, len(lines))):
-            if lines[j] == '```mermaid':
+            if lines[j] == "```mermaid":
                 start_idx = j + 1
                 break
-    if start_idx and end_idx is None and i > start_idx and line == '```':
+    if start_idx and end_idx is None and i > start_idx and line == "```":
         end_idx = i
         break
 
@@ -80,19 +81,19 @@ if not (start_idx and end_idx):
         f"{readme_path} (anchor: the `cgg ./crates -t mermaid --filter "
         "... cgg::analyze_in_pool` command followed by a ```mermaid fence)"
     )
-lines = lines[:start_idx] + new_graph.split('\n') + lines[end_idx:]
-content = '\n'.join(lines)
+lines = lines[:start_idx] + new_graph.split("\n") + lines[end_idx:]
+content = "\n".join(lines)
 
 # 2. Replace the benchmark table
 new_table = new_table_raw
 
-lines = content.split('\n')
+lines = content.split("\n")
 start_idx = None
 end_idx = None
 for i, line in enumerate(lines):
-    if '| Project | Language | Callables' in line:
+    if "| Project | Language | Callables" in line:
         start_idx = i
-    if start_idx and i > start_idx + 1 and not line.startswith('|'):
+    if start_idx and i > start_idx + 1 and not line.startswith("|"):
         end_idx = i
         break
 
@@ -101,10 +102,10 @@ if not (start_idx and end_idx):
         f"could not locate the benchmark table in {readme_path} "
         "(anchor: a '| Project | Language | Callables' header row)"
     )
-lines = lines[:start_idx] + new_table.split('\n') + lines[end_idx:]
-content = '\n'.join(lines)
+lines = lines[:start_idx] + new_table.split("\n") + lines[end_idx:]
+content = "\n".join(lines)
 
-with open(readme_path, 'w') as f:
+with open(readme_path, "w") as f:
     f.write(content)
 
 print("Patched: graph updated, table updated")

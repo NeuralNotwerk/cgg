@@ -90,7 +90,9 @@ def strip_timings(doc: dict) -> dict:
     fa = out.get("file_audits")
     if isinstance(fa, list):
         out["file_audits"] = [
-            {kk: vv for kk, vv in e.items() if kk != "parse_ms"} if isinstance(e, dict) else e
+            {kk: vv for kk, vv in e.items() if kk != "parse_ms"}
+            if isinstance(e, dict)
+            else e
             for e in fa
         ]
     return out
@@ -111,7 +113,12 @@ def run_once(repo: Path, fmt: str, flags: list[str], jobs: int, tmp: Path) -> di
         cmd += ["--jobs", str(jobs)]
     proc = subprocess.run(
         [*cmd, *flags],
-        capture_output=True, text=True, timeout=2400,
+        capture_output=True,
+        text=True,
+        timeout=2400,
+        # A nonzero exit is data, not an error: the caller records it as
+        # a `run-failed` finding.
+        check=False,
     )
     if not out.exists():
         return {"error": proc.stderr[-400:] or f"exit {proc.returncode}"}
@@ -120,9 +127,12 @@ def run_once(repo: Path, fmt: str, flags: list[str], jobs: int, tmp: Path) -> di
     if audit.exists():
         try:
             res["audit"] = json.dumps(
-                [strip_timings(e) if isinstance(e, dict) else e
-                 for e in json.loads(audit.read_text())],
-                sort_keys=False, indent=1,
+                [
+                    strip_timings(e) if isinstance(e, dict) else e
+                    for e in json.loads(audit.read_text())
+                ],
+                sort_keys=False,
+                indent=1,
             )
         except json.JSONDecodeError as e:
             res["audit"] = f"UNPARSEABLE: {e}"
@@ -169,7 +179,7 @@ def main() -> None:
 
     for repo in repos:
         for cname, flags in configs:
-            for fmt in (["json"] if args.quick else FORMATS):
+            for fmt in ["json"] if args.quick else FORMATS:
                 tmp = Path(tempfile.mkdtemp(prefix="cgg-det-"))
                 try:
                     base = None
@@ -187,25 +197,38 @@ def main() -> None:
                         res = run_once(repo, fmt, flags, jobs, tmp)
                         checked += 1
                         if "error" in res:
-                            findings.append({
-                                "repo": repo.name, "config": cname, "fmt": fmt,
-                                "kind": "run-failed", "detail": res["error"],
-                            })
+                            findings.append(
+                                {
+                                    "repo": repo.name,
+                                    "config": cname,
+                                    "fmt": fmt,
+                                    "kind": "run-failed",
+                                    "detail": res["error"],
+                                }
+                            )
                             break
                         if base is None:
                             base = res
                             continue
                         for part in ("main", "audit", "report"):
                             if part in base and part in res and base[part] != res[part]:
-                                findings.append({
-                                    "repo": repo.name, "config": cname, "fmt": fmt,
-                                    "kind": f"nondeterministic:{part}",
-                                    "jobs": jobs,
-                                    "detail": first_diff(base[part], res[part]),
-                                })
+                                findings.append(
+                                    {
+                                        "repo": repo.name,
+                                        "config": cname,
+                                        "fmt": fmt,
+                                        "kind": f"nondeterministic:{part}",
+                                        "jobs": jobs,
+                                        "detail": first_diff(base[part], res[part]),
+                                    }
+                                )
                                 break
                 finally:
-                    subprocess.run(["rm", "-rf", str(tmp)], capture_output=True)
+                    # Best-effort cleanup in a finally block; a failure here must
+                    # not mask the exception being unwound.
+                    subprocess.run(
+                        ["rm", "-rf", str(tmp)], capture_output=True, check=False
+                    )
         print(f"  {repo.name:<30} done ({checked} runs so far)", flush=True)
 
     nd = [f for f in findings if f["kind"].startswith("nondeterministic")]
@@ -214,15 +237,24 @@ def main() -> None:
     print(f"  nondeterministic: {len(nd)}")
     print(f"  failed to run   : {len(err)}")
     for f in nd[:20]:
-        print(f"\n  !! {f['repo']} [{f['config']}/{f['fmt']}] {f['kind']} at --jobs {f.get('jobs')}")
+        print(
+            f"\n  !! {f['repo']} [{f['config']}/{f['fmt']}] {f['kind']} at --jobs {f.get('jobs')}"
+        )
         print(f"     {f['detail']}")
     for f in err[:5]:
         print(f"  ?? {f['repo']} [{f['config']}/{f['fmt']}] {f['detail'][:160]}")
 
     if args.json:
-        Path(args.json).write_text(json.dumps(
-            {"checked": checked, "repos": [r.name for r in repos],
-             "findings": findings}, indent=1))
+        Path(args.json).write_text(
+            json.dumps(
+                {
+                    "checked": checked,
+                    "repos": [r.name for r in repos],
+                    "findings": findings,
+                },
+                indent=1,
+            )
+        )
 
     sys.exit(1 if nd else 0)
 

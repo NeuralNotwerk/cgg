@@ -32,7 +32,42 @@ gh api repos/NeuralNotwerk/cgg/releases \
 
 ---
 
-## 0. Before any of it: `scripts/release.sh`
+## 0a. Before any of it: `scripts/security-check.sh`
+
+```bash
+scripts/security-check.sh          # everything, including git history
+scripts/security-check.sh --quick  # skip the history sweep
+```
+
+`release.sh` answers *is this correct?*. This answers *is it safe to make
+public?* — a different question, and it has to come first, because
+publishing is irreversible and a leaked credential stays leaked after you
+yank the release.
+
+Eight checks: trufflehog over the working tree **and** git history; a
+direct byte-search for this machine's actual tokens in both; no
+credential-shaped files in the repo; `.env` is gitignored; `cargo-deny`
+advisories/licences/bans/sources and `npm audit`; no workflow step that
+could print a secret; what `cargo package` and `npm pack` would actually
+ship; and the permissions on your local token files.
+
+Two things it took a wrong answer to learn, both now baked in:
+
+* **`--results=verified,unknown` is not enough.** trufflehog only marks a
+  finding `verified` when it can authenticate against the live API, so a
+  real credential that has since been rotated reports as `unverified`.
+  Tested against three randomly generated AWS / GitHub / npm
+  credentials: that filter finds **zero** of them. The script uses
+  `verified,unknown,unverified`.
+* **The `Lob` detector is excluded**, narrowly and on purpose. It matches
+  `test_<alnum>`, which is every pytest function name in
+  `crates/cgg-py/tests`, and Lob's test endpoint accepts any such string
+  — so twelve function names get reported as *verified secrets*. If a Lob
+  dependency is ever added, drop the exclusion.
+
+---
+
+## 0. Then: `scripts/release.sh`
 
 ```bash
 scripts/release.sh --purpose "what this release is for"

@@ -52,16 +52,13 @@ def main() -> None:
     # churn commits.
     ms_int = round(float(ms))
     new_body = (
-        f"({callables} callables, {edges} edges, "
-        f"{cross_file} cross-file, {ms_int}ms)"
+        f"({callables} callables, {edges} edges, {cross_file} cross-file, {ms_int}ms)"
     )
 
     readme_path = Path("README.md")
     readme = readme_path.read_text()
 
-    pattern = re.compile(
-        re.escape(BEGIN) + r".*?" + re.escape(END), re.DOTALL
-    )
+    pattern = re.compile(re.escape(BEGIN) + r".*?" + re.escape(END), re.DOTALL)
     replacement = f"{BEGIN}{new_body}{END}"
     patched, n = pattern.subn(replacement, readme)
     if n == 0:

@@ -74,9 +74,18 @@ def run(binary: Path, repo: Path, extra: list[str]) -> tuple[float, str]:
     try:
         start = time.monotonic()
         proc = subprocess.run(
-            [str(binary), str(repo), "-o", str(tmp / "g.mmd"),
-             "--no-update-check", *extra],
-            capture_output=True, text=True, timeout=1800, check=False,
+            [
+                str(binary),
+                str(repo),
+                "-o",
+                str(tmp / "g.mmd"),
+                "--no-update-check",
+                *extra,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=1800,
+            check=False,
         )
         return (time.monotonic() - start) * 1000, proc.stderr
     except subprocess.TimeoutExpired:
@@ -90,8 +99,10 @@ def parse(stderr: str) -> dict:
     m = SUMMARY.search(stderr)
     if m:
         out.update(
-            callables=int(m.group(1)), edges=int(m.group(2)),
-            cross=int(m.group(3)), unresolved=int(m.group(4)),
+            callables=int(m.group(1)),
+            edges=int(m.group(2)),
+            cross=int(m.group(3)),
+            unresolved=int(m.group(4)),
         )
     e = re.search(r"framework entries: (\d+) node\(s\) minted", stderr)
     if e:
@@ -103,10 +114,23 @@ def ctags_count(repo: Path, lang: str, kinds: str, sub: str) -> int:
     scan = repo / sub if sub and (repo / sub).is_dir() else repo
     try:
         p = subprocess.run(
-            ["ctags", "-R", f"--languages={lang}", f"--kinds-{lang}={kinds}",
-             "--exclude=test*", "--exclude=*_test*", "--exclude=spec",
-             "--exclude=vendor", "--exclude=node_modules", "-f", "-", str(scan)],
-            capture_output=True, timeout=600, check=False,
+            [
+                "ctags",
+                "-R",
+                f"--languages={lang}",
+                f"--kinds-{lang}={kinds}",
+                "--exclude=test*",
+                "--exclude=*_test*",
+                "--exclude=spec",
+                "--exclude=vendor",
+                "--exclude=node_modules",
+                "-f",
+                "-",
+                str(scan),
+            ],
+            capture_output=True,
+            timeout=600,
+            check=False,
         )
     except subprocess.TimeoutExpired:
         return 0
@@ -128,8 +152,12 @@ def main() -> None:
     ap.add_argument("new_bin")
     ap.add_argument("--out", default="")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--jobs", type=int, default=8,
-                    help="repos measured concurrently (1 for published numbers)")
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=8,
+        help="repos measured concurrently (1 for published numbers)",
+    )
     args = ap.parse_args()
 
     old, new = Path(args.old_bin), Path(args.new_bin)
@@ -157,8 +185,10 @@ def main() -> None:
         ma, mb = DEAD.search(da), DEAD.search(db)
         row = {
             "repo": name,
-            "old_ms": min(ta1, ta2), "new_ms": min(tb1, tb2),
-            "old": ga, "new": gb,
+            "old_ms": min(ta1, ta2),
+            "new_ms": min(tb1, tb2),
+            "old": ga,
+            "new": gb,
             "old_dead": (int(ma.group(1)) + int(ma.group(2))) if ma else 0,
             "new_dead": (int(mb.group(1)) + int(mb.group(2))) if mb else 0,
         }
@@ -180,12 +210,14 @@ def main() -> None:
             done += 1
             ga, gb = row["old"], row["new"]
             rows.append(row)
-            print(f"[{done}/{len(repos)}] {row['repo']:<28} "
-                  f"{row['old_ms']:>8.0f} -> {row['new_ms']:>8.0f} ms  "
-                  f"nodes {ga['callables']:>6}->{gb['callables']:<6} "
-                  f"edges {ga['edges']:>6}->{gb['edges']:<6} "
-                  f"entry {ga['entries']:>5}->{gb['entries']:<5}",
-                  flush=True)
+            print(
+                f"[{done}/{len(repos)}] {row['repo']:<28} "
+                f"{row['old_ms']:>8.0f} -> {row['new_ms']:>8.0f} ms  "
+                f"nodes {ga['callables']:>6}->{gb['callables']:<6} "
+                f"edges {ga['edges']:>6}->{gb['edges']:<6} "
+                f"entry {ga['entries']:>5}->{gb['entries']:<5}",
+                flush=True,
+            )
 
     if args.out:
         Path(args.out).write_text(json.dumps(rows, indent=1))

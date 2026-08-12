@@ -95,9 +95,19 @@ def measure(name: str) -> tuple[set[str], set[str], str | None]:
     try:
         out = tmp / "g.json"
         proc = subprocess.run(
-            [str(CGG), str(path), "-t", "json", "-o", str(out),
-             "--framework-coverage", "--no-update-check"],
-            capture_output=True, timeout=1200, check=False,
+            [
+                str(CGG),
+                str(path),
+                "-t",
+                "json",
+                "-o",
+                str(out),
+                "--framework-coverage",
+                "--no-update-check",
+            ],
+            capture_output=True,
+            timeout=1200,
+            check=False,
         )
         if proc.returncode != 0:
             tail = proc.stderr.decode("utf-8", "replace").strip().splitlines()
@@ -109,8 +119,11 @@ def measure(name: str) -> tuple[set[str], set[str], str | None]:
         for ev in json.loads(audit.read_text()):
             if isinstance(ev, dict) and ev.get("event") == "framework_coverage":
                 cov = ev["coverage"]
-                enum = {r["id"] for r in cov.get("recognised", [])
-                        if r.get("entries", 0) > 0}
+                enum = {
+                    r["id"]
+                    for r in cov.get("recognised", [])
+                    if r.get("entries", 0) > 0
+                }
                 seen = {s["id"] for s in cov.get("seen_no_rules", [])}
                 return enum, seen - enum, None
         return set(), set(), "audit has no framework_coverage event"
@@ -126,10 +139,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument(
-        "--allow-partial", action="store_true",
+        "--allow-partial",
+        action="store_true",
         help="write even though some apps failed to measure. Their claims "
-             "WILL be emptied and their rules moved to APPS_UNVERIFIED. "
-             "Only pass this if you have read the failure list and accept it.",
+        "WILL be emptied and their rules moved to APPS_UNVERIFIED. "
+        "Only pass this if you have read the failure list and accept it.",
     )
     args = ap.parse_args()
 
@@ -151,22 +165,30 @@ def main() -> None:
         mine = sorted(enum & need) + sorted(f"~{s}" for s in (seen & need))
         claims[name] = mine
         covered |= (enum | seen) & need
-        print(f"  {name:<30} {len(enum & need):>3} enumerated, "
-              f"{len(seen & need):>3} detected-only", file=sys.stderr)
+        print(
+            f"  {name:<30} {len(enum & need):>3} enumerated, "
+            f"{len(seen & need):>3} detected-only",
+            file=sys.stderr,
+        )
 
     orphans = sorted(need - covered)
-    print(f"\n{len(covered)} of {len(need)} enumerating rules exercised; "
-          f"{len(orphans)} with no application", file=sys.stderr)
+    print(
+        f"\n{len(covered)} of {len(need)} enumerating rules exercised; "
+        f"{len(orphans)} with no application",
+        file=sys.stderr,
+    )
 
     # --dry-run is inspection only and never writes, so it must run
     # BEFORE the refusal guards below — otherwise the very failure the
     # guards are complaining about is the thing you cannot inspect, and
     # the guard's own "pass --dry-run" advice is a dead end.
     if args.dry_run:
-        print(json.dumps(
-            {"claims": claims, "orphans": orphans, "failures": failures},
-            indent=1,
-        ))
+        print(
+            json.dumps(
+                {"claims": claims, "orphans": orphans, "failures": failures},
+                indent=1,
+            )
+        )
         return
 
     # Refuse to write a manifest built from a failed measurement.
@@ -187,8 +209,11 @@ def main() -> None:
                 f"  Fix the corpus/binary and re-run, use --dry-run to "
                 f"inspect, or --allow-partial to accept the loss."
             )
-        print(f"\n--allow-partial: accepting {len(failures)} failed apps; "
-              f"their claims will be emptied:\n{detail}", file=sys.stderr)
+        print(
+            f"\n--allow-partial: accepting {len(failures)} failed apps; "
+            f"their claims will be emptied:\n{detail}",
+            file=sys.stderr,
+        )
 
     # Backstop for the case where every app measured "successfully" but
     # matched nothing — a plausible symptom of a rule table that failed
@@ -206,9 +231,13 @@ def main() -> None:
     for name, url in rows:
         c = ",".join(claims.get(name) or [])
         lines.append(f'    "{name}|{url}|{c}"')
-    text, n_apps = re.subn(r"(APPS=\(\s*\n).*?(\n\))",
-                  lambda m: m.group(1) + "\n".join(lines) + m.group(2),
-                  text, count=1, flags=re.DOTALL)
+    text, n_apps = re.subn(
+        r"(APPS=\(\s*\n).*?(\n\))",
+        lambda m: m.group(1) + "\n".join(lines) + m.group(2),
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
     if n_apps != 1:
         sys.exit("refusing to write: APPS=( ... ) block not found in benchmark.sh")
 
@@ -221,14 +250,20 @@ def main() -> None:
     # rule that enumerates on a REPOS language repo lands here anyway.
     # Eight currently do. Scope the claim to what was measured and let
     # the hand-written note above APPS_UNVERIFIED carry the rest.
-    un = [f'    "{o}|no APPS application exercises this rule; '
-          f'tests/detect_prefixes.rs proves its detect prefix can fire, '
-          f'nothing in APPS proves it enumerates '
-          f'— see the language-corpus note above"'
-          for o in orphans]
-    text, n_un = re.subn(r"(APPS_UNVERIFIED=\(\s*\n).*?(\n\))",
-                  lambda m: m.group(1) + "\n".join(un) + m.group(2),
-                  text, count=1, flags=re.DOTALL)
+    un = [
+        f'    "{o}|no APPS application exercises this rule; '
+        f"tests/detect_prefixes.rs proves its detect prefix can fire, "
+        f"nothing in APPS proves it enumerates "
+        f'— see the language-corpus note above"'
+        for o in orphans
+    ]
+    text, n_un = re.subn(
+        r"(APPS_UNVERIFIED=\(\s*\n).*?(\n\))",
+        lambda m: m.group(1) + "\n".join(un) + m.group(2),
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
     if n_un != 1:
         sys.exit(
             "refusing to write: APPS_UNVERIFIED=( ... ) block not found in "

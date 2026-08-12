@@ -7,6 +7,44 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/security-check.sh`** — a pre-publish gate that runs before
+  `release.sh`. Eight checks: trufflehog over the working tree *and* git
+  history, a direct byte-search for this machine's real tokens in both,
+  no credential-shaped files in the repo, `.env` gitignored,
+  `cargo-deny` + `npm audit`, no workflow step that could print a secret,
+  what `cargo package` and `npm pack` would actually ship, and the
+  permissions on local token files.
+
+  Each check was verified to fire by planting the thing it looks for.
+  That caught a flaw in the first version: **`--results=verified,unknown`
+  finds nothing.** trufflehog only marks a finding `verified` when it can
+  authenticate against the live API, so a real credential that has since
+  been rotated reports as `unverified` — and three randomly generated
+  AWS / GitHub / npm credentials planted in the tree went completely
+  undetected. Fixed to `verified,unknown,unverified`, then re-verified.
+
+  The `Lob` detector is excluded because it matches `test_<alnum>`, which
+  is every pytest function name in `crates/cgg-py/tests`, and Lob's test
+  endpoint accepts any such string — so it reports twelve function names
+  as *verified secrets*.
+
+### Changed
+
+- `release.sh` now gates on the formatters it was missing:
+  **`ruff format --check`** (it ran `ruff check` only, and nine files had
+  drifted out of format while reporting clean), **markdownlint over all
+  22 tracked docs** rather than just README and CHANGELOG, `node --check`
+  on the hand-written JavaScript, and a TOML parse of every manifest.
+  Extending ruff to `crates/cgg-py/tests/` surfaced 13 real lint errors,
+  now fixed — including two `subprocess.run` calls without an explicit
+  `check`, both of which genuinely expect a nonzero exit.
+
+  `CLAUDE.md` disables MD013 in-file, with the reason: it is agent-facing
+  prose written as long unwrapped paragraphs on purpose. Every other rule
+  still applies to it.
+
 ### Fixed
 
 - **The npm publish step could go green without publishing.**
@@ -219,7 +257,6 @@ stale "Seven checks" is now eleven.
   a mismatch — catching both that race and a plainly forgotten rebuild.
   Verified to fire on the 0.6.1 wheel.
 
-
 ### Performance — the "0.6.0 regression" was one atypical repository
 
 **There is no corpus-wide regression.** Paired A/B over 29 repositories,
@@ -307,7 +344,6 @@ repository, or a repo set weighted towards it.
   APIs change freely between minors to serve that one consumer.
 - `cgg-py` and `cgg-ffi` stay `publish = false`. The artifact anyone
   wants from those is a wheel and a shared library, not a crate.
-
 
 ### Added
 
