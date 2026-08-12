@@ -264,8 +264,21 @@ jobs:
       - name: Publish to npm
         working-directory: src/crates/cgg-node
         env:
+          # NPM_TOKEN must be an *automation* token, or a granular token
+          # with "bypass 2FA" enabled. A classic read/publish token on a
+          # 2FA-protected account is rejected with:
+          #   403 … Two-factor authentication or granular access token
+          #   with bypass 2fa enabled is required to publish packages.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          find ../../../artifacts -name '*.node' -exec cp {} . \;
-          ls -la *.node
-          npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm --skip-gh-release
+          # `napi artifacts` is not optional: `prepublish` validates that
+          # every npm/<triple>/ package already CONTAINS its .node, and
+          # aborts with "Release package … is incomplete" otherwise.
+          # Copying the files to the crate root is not enough.
+          npx --yes --package=@napi-rs/cli@3.8.5 -- napi artifacts \
+              -d ../../../artifacts --npm-dir npm
+          find npm -name '*.node' -exec ls -la {} \;
+          # `--gh-release` is opt-IN in @napi-rs/cli v3; there is no
+          # `--skip-gh-release`, and passing it aborts with "Unsupported
+          # option name". The GitHub release is created by the step above.
+          npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
