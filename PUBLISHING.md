@@ -290,13 +290,38 @@ The five platform packages build green in CI and `napi prepublish
 2fa enabled is required to publish packages.
 ```
 
-The account requires 2FA on publish; a classic read/publish token cannot
-satisfy that. Generate one of:
+Two different 403s were hit, in order, and the second is the subtle one.
+
+**First**, with a classic read/publish token:
+
+```
+403 … Two-factor authentication or granular access token with bypass
+2fa enabled is required to publish packages.
+```
+
+**Then**, with a granular token:
+
+```
+403 Forbidden - PUT … - You may not perform that action with these
+credentials.
+```
+
+The account owns **no packages yet** and the registry 404s on every one
+of these six names, so each publish is a package *creation*. A granular
+token scoped to **"Only select packages"** cannot create a package —
+there was nothing to select in the first place. Scope it to **all
+packages**, or use a classic Automation token:
 
 * **Automation token** — npmjs.com → Access Tokens → Generate New Token →
-  *Classic* → **Automation**. Bypasses 2FA; this is the CI-intended type.
-* **Granular Access Token** with *Bypass 2FA* enabled, scoped to the
-  `cgg-callgraphgenerator*` packages.
+  *Classic* → **Automation**. Full account rights, bypasses 2FA. Simplest
+  thing that works for a first publish.
+* **Granular Access Token** — *Packages and scopes:* **Read and write**,
+  *Select packages:* **All packages**. Narrowing it to selected packages
+  only becomes possible after the six names exist.
+
+The six names: `cgg-callgraphgenerator` plus
+`-linux-x64-gnu`, `-linux-arm64-gnu`, `-darwin-x64`, `-darwin-arm64`,
+`-win32-x64-msvc`.
 
 Then `gh secret set NPM_TOKEN` and re-run the release workflow, or publish
 by hand:
