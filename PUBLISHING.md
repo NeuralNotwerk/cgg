@@ -12,7 +12,7 @@ are real projects.
 | crates.io | 6 Rust crates | **published** | nothing |
 | PyPI | `cgg-callgraphgenerator` wheel | **published** (Linux x86_64) | other platforms need CI |
 | GitHub Releases (bin) | CLI + `libcgg` | not wired | nothing |
-| npm | Node module | **wrapper not written** | account + token |
+| npm | `cgg-callgraphgenerator` | **built, publishes on tag** | nothing |
 | NuGet | .NET package | **wrapper not written** | account + key |
 | Maven Central | Java artifact | **wrapper not written** | Sonatype + GPG |
 
@@ -141,6 +141,35 @@ wheels, not thirty.
 
 **Size note:** ~99 MB on disk, ~10 MB compressed — comfortably under
 PyPI's 100 MB per-file limit, but do not add grammars carelessly.
+
+---
+
+## 2b. Releasing from a tag (CI)
+
+`NPM_TOKEN` and `PYPI_API_TOKEN` are set as repository secrets, and the
+`release` environment exists, so a `v*` tag builds everything and
+publishes PyPI and npm without anyone holding a token locally.
+
+```bash
+git tag -a v0.6.4 -m "…" && git push origin v0.6.4
+```
+
+`workflow_dispatch` runs the identical matrix and publishes **nothing** —
+the publish job is gated on `refs/tags/v`. Dispatch first; a tag is the
+expensive way to discover a typo.
+
+Two things the tag path does **not** cover:
+
+* **crates.io.** No workflow publishes it; run `scripts/publish-crates.sh`
+  by hand. It is the one registry where a bad upload cannot be corrected
+  by re-running, so it stays deliberate.
+* **Ordering.** If a version is already on PyPI, the upload step skips it
+  (`skip-existing: true`) rather than failing. npm has no equivalent — a
+  version already published makes the npm step fail, so do not publish a
+  version locally and then tag it.
+
+Add an approval gate, if you want one, on the `release` environment in
+repo settings; the publish job already targets it.
 
 ---
 
