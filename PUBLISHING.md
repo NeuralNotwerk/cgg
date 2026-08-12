@@ -280,7 +280,41 @@ point at, so the first tag unblocks both.
 
 ---
 
-## 4. npm — written and green, never published
+## 4. npm — blocked on the token type, not on the code
+
+The five platform packages build green in CI and `napi prepublish
+--dry-run` passes locally against the real artifacts. Publishing fails:
+
+```
+403 … Two-factor authentication or granular access token with bypass
+2fa enabled is required to publish packages.
+```
+
+The account requires 2FA on publish; a classic read/publish token cannot
+satisfy that. Generate one of:
+
+* **Automation token** — npmjs.com → Access Tokens → Generate New Token →
+  *Classic* → **Automation**. Bypasses 2FA; this is the CI-intended type.
+* **Granular Access Token** with *Bypass 2FA* enabled, scoped to the
+  `cgg-callgraphgenerator*` packages.
+
+Then `gh secret set NPM_TOKEN` and re-run the release workflow, or publish
+by hand:
+
+```bash
+cd crates/cgg-node
+gh run download <run-id> -D /tmp/art -p 'node-*'
+npx --yes --package=@napi-rs/cli@3.8.5 -- napi artifacts -d /tmp/art --npm-dir npm
+npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm --dry-run
+npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
+```
+
+**`napi artifacts` is not optional.** `prepublish` validates that every
+`npm/<triple>/` package already contains its `.node` and aborts with
+"Release package … is incomplete" otherwise; copying the files to the
+crate root is not enough. And there is no `--skip-gh-release` —
+`--gh-release` is opt-in. Both cost a tagged release to discover.
+
 
 **The wrapper exists.** `crates/cgg-node` is a napi-rs N-API module — not
 `ffi-napi` over the C ABI, which would have been slower and dragged in a
