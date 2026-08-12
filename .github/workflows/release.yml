@@ -112,16 +112,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
+      # `npx @napi-rs/cli@<exact>` rather than `npm ci` + `npx napi`.
+      # The CLI's *-wasm32-wasi optional dependencies resolve differently
+      # on a runner than they did locally, and `npm ci` fails hard on that
+      # ("lock file's @emnapi/runtime@1.11.2 does not satisfy 2.0.0-alpha.3").
+      # Nothing here needs a reproducible node_modules — the .node is
+      # determined by Rust — so pinning the one tool we invoke is both
+      # simpler and stricter than trusting a lock across platforms.
       - name: Build
         working-directory: crates/cgg-node
-        run: |
-          npm ci
-          npx napi build --platform --release --target ${{ matrix.target }}
+        run: npx --yes @napi-rs/cli@3.8.5 build --platform --release --target ${{ matrix.target }}
 
       # Load the module and make it analyse a real tree. A .node that
       # builds and does not load is the failure a build-only matrix ships.
@@ -224,11 +229,13 @@ jobs:
         with:
           packages-dir: dist
           password: ${{ secrets.PYPI_API_TOKEN }}
+          # A re-run of a tag must not fail on files already uploaded.
+          skip-existing: true
 
       - uses: actions/checkout@v4
         with: { path: src }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, registry-url: "https://registry.npmjs.org" }
+        with: { node-version: 22, registry-url: "https://registry.npmjs.org" }
 
       # `napi prepublish` moves each .node into its npm/<triple>/ package,
       # publishes those, then publishes the main package that depends on
@@ -239,7 +246,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm ci
           find ../../../artifacts -name '*.node' -exec cp {} . \;
           ls -la *.node
-          npx napi prepublish -t npm --skip-gh-release
+          npx --yes @napi-rs/cli@3.8.5 prepublish -t npm --skip-gh-release
