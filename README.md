@@ -43,6 +43,10 @@ cgg ./src -o graph.mmd
 That's it. `graph.mmd` is a mermaid flowchart you can paste into any
 markdown file, feed to an agent, or render in a viewer.
 
+Prebuilt binaries, `pip`, `npm` and building from source are all covered
+in [INSTALL.md](INSTALL.md), with the exact package list each one needs —
+verified by installing into bare containers.
+
 ### Give an agent context about a module
 
 ```bash

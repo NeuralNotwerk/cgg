@@ -5,6 +5,47 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+### Fixed
+
+- **The graph depended on filesystem enumeration order.** `cgg-walk` used
+  `WalkBuilder::build()` with no sort, so it yielded readdir order — which
+  differs between machines for byte-identical trees. Node ids are
+  positional, so the same commit produced different `C0`/`C1`/… ids and a
+  different declaration order on each machine, making the mermaid output
+  non-diffable across a team and undercutting both "deterministic" and
+  "diffable in a PR".
+
+  Found by installing 0.6.4 through all five distribution channels in five
+  containers and diffing the output of one fixture: **three distinct
+  graphs**. The enumeration orders were genuinely different
+  (`lib.rs app.py mod.go app.js` / `app.js mod.go app.py lib.rs` /
+  `lib.rs mod.go app.py app.js`) and the graphs tracked them exactly.
+
+  The `--jobs` determinism test could not catch this: it varies thread
+  count against one directory on one host, where readdir order is a
+  constant. Fixed with `sort_by_file_path`, covered by a new test that
+  asserts sorted order directly, and verified by re-running the same
+  binary in all three containers — one identical graph.
+
+  **This changes node ids and node order for any tree the filesystem did
+  not already enumerate in sorted order.** Edges and semantics are
+  unaffected.
+
+- The release tarballs shipped `libcgg.d` (a make-style dep-info file) and
+  `libcgg.rlib` (the Rust lib target's archive, unusable from C), because
+  the packaging step globbed `libcgg.*`. Now copies explicit extensions.
+
+### Added
+
+- `INSTALL.md` — the minimum packages each distribution channel actually
+  needs, established by installing into bare `ubuntu:24.04` containers and
+  adding only what each channel refused to work without. Notable findings:
+  Ubuntu's Rust (1.75) cannot build cgg (needs 1.85), a C compiler is
+  required even though cgg is a Rust program, and `python3-venv` is
+  mandatory on 24.04 because the system Python is PEP 668 managed.
+
 ## [0.6.4] - 2026-08-12
 
 Documentation correctness pass. No behaviour change; the code fixes below

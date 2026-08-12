@@ -200,7 +200,13 @@ jobs:
             cp "$T/cgg.lib" out/ 2>/dev/null || true
           else
             cp "$T/cgg" out/
-            cp "$T"/libcgg.* out/ 2>/dev/null || true
+            # Explicit extensions, not `libcgg.*`: that glob also matched
+            # `libcgg.d` (a make-style dep-info file) and `libcgg.rlib`
+            # (the Rust lib target's archive, unusable from C), both of
+            # which shipped in the v0.6.4 tarballs.
+            cp "$T"/libcgg.so out/ 2>/dev/null || true
+            cp "$T"/libcgg.dylib out/ 2>/dev/null || true
+            cp "$T"/libcgg.a out/ 2>/dev/null || true
           fi
           cp crates/cgg-ffi/include/cgg.h out/
           cp README.md LICENSE-APACHE LICENSE-MIT out/

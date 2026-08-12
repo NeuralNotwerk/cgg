@@ -170,6 +170,21 @@ fn walk_one(
         builder.add_ignore(extra);
     }
 
+    // Sort, or the graph depends on readdir order.
+    //
+    // Without this the walker yields whatever order the filesystem hands
+    // back, which differs between machines for byte-identical trees.
+    // Node ids are positional, so the same commit produced a different
+    // `C0`/`C1`/… assignment and a different declaration order on each
+    // one — caught by running the same fixture through five distribution
+    // channels in five containers and getting three distinct graphs.
+    //
+    // `--jobs` determinism never saw this: it varies thread count against
+    // one directory on one host, where readdir order is a constant.
+    // "Deterministic" and "diffable in a PR" both mean across machines,
+    // not just across runs.
+    builder.sort_by_file_path(std::path::Path::cmp);
+
     for entry in builder.build() {
         let entry = match entry {
             Ok(e) => e,
@@ -463,5 +478,47 @@ mod tests {
         };
         let out = walk(&cfg).unwrap();
         assert_eq!(out.candidates.len(), 1);
+    }
+
+    /// The walk must not depend on filesystem enumeration order.
+    ///
+    /// Shipped through 0.6.4: `WalkBuilder::build()` yields readdir
+    /// order, which differs between machines for byte-identical trees.
+    /// Node ids downstream are positional, so the same commit produced
+    /// different ids and a different declaration order on each machine.
+    /// Found by running one fixture through five distribution channels
+    /// in five containers and getting three distinct graphs.
+    ///
+    /// The `--jobs` determinism test could not catch it: it varies
+    /// thread count against one directory on one host, where readdir
+    /// order is a constant.
+    ///
+    /// Asserts the property directly rather than trying to provoke a
+    /// shuffle — creation order is the only lever available, and on a
+    /// name-hashing filesystem it is not one.
+    #[test]
+    fn walk_order_is_sorted_not_readdir() {
+        let tmp = TempDir::new().unwrap();
+        // Neither sorted nor reverse-sorted on creation.
+        for name in ["m.rs", "a.rs", "z.rs", "b.rs", "c.rs"] {
+            write(tmp.path(), name, b"fn f() {}\n");
+        }
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+        let names: Vec<String> = out
+            .candidates
+            .iter()
+            .map(|c| c.path.file_name().unwrap().to_string_lossy().into_owned())
+            .collect();
+        let mut sorted = names.clone();
+        sorted.sort();
+        assert_eq!(
+            names, sorted,
+            "walk yielded readdir order, not sorted order — the graph \
+             will differ between machines for the same tree"
+        );
     }
 }
