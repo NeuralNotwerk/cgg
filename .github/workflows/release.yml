@@ -126,7 +126,7 @@ jobs:
       # simpler and stricter than trusting a lock across platforms.
       - name: Build
         working-directory: crates/cgg-node
-        run: npx --yes @napi-rs/cli@3.8.5 build --platform --release --target ${{ matrix.target }}
+        run: npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release --target ${{ matrix.target }}
 
       # Load the module and make it analyse a real tree. A .node that
       # builds and does not load is the failure a build-only matrix ships.
@@ -248,4 +248,4 @@ jobs:
         run: |
           find ../../../artifacts -name '*.node' -exec cp {} . \;
           ls -la *.node
-          npx --yes @napi-rs/cli@3.8.5 prepublish -t npm --skip-gh-release
+          npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm --skip-gh-release
