@@ -5,11 +5,17 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [0.6.3] - 2026-08-11
+## [0.6.3] - 2026-08-12
+
+> Published to crates.io and PyPI. **Not tagged**, and not on npm — the
+> npm packages publish from a `v0.6.3` tag, which has not been pushed.
 
 ### Added
 
-- **Node.js bindings** — `npm install cgg-callgraphgenerator`.
+- **Node.js bindings**, `crates/cgg-node`. The package builds on all five
+  platforms in CI but is **not published to npm yet** — `npm install
+  cgg-callgraphgenerator` does not work until a `v*` tag runs the publish
+  job. Build it locally with `napi build --platform --release`.
 
   ```js
   const cgg = require("cgg-callgraphgenerator");
@@ -53,7 +59,9 @@ ever grows in default mode — see *Compatibility* below).
 - `.github/workflows/release.yml` gains a five-target Node matrix, and the
   publish job now pushes to npm as well as PyPI.
 
+## [0.6.2] - 2026-08-11
 
+> Published to crates.io and PyPI. Not tagged.
 
 ### Fixed
 

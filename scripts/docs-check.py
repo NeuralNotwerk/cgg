@@ -8,7 +8,7 @@ When this runs:
   - Safe to run by hand from the repo root any time:
     `python3 scripts/docs-check.py`
 
-Seven checks:
+Eleven checks:
 
 0. Benchmark-table coverage. `ENTRIES` in update-readme-stats.sh (which
    writes the README's markdown benchmark table) must cover exactly the
@@ -85,6 +85,14 @@ Seven checks:
    never noticed. A leak whose justification is "the process is about to
    exit" needs re-checking every time that stops being true, so it has to
    be listed rather than merely commented.
+
+10. CHANGELOG integrity. The newest entry must match the workspace
+    version, version headers must strictly decrease, and every released
+    `v*` tag must have an entry. An edit meant to INSERT the 0.6.3 entry
+    replaced the `## [0.6.2]` header instead, so 0.6.2 vanished from the
+    changelog while remaining published on two registries — its content
+    silently absorbed into the entry above it. Nothing noticed, because
+    nothing was checking that the file's own structure held together.
 
 Run from the repo root. Exits non-zero on any mismatch with a
 human-readable message naming the offending file.
@@ -720,6 +728,67 @@ def check_deliberate_leaks() -> None:
         fail(f"ALLOWED_LEAKS names missing file(s): {', '.join(stale)} (check 9)")
 
 
+def check_changelog() -> None:
+    """Check 10 — the changelog agrees with the version and the tags."""
+    path = REPO_ROOT / "CHANGELOG.md"
+    headers = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", path.read_text(), re.M)
+    if not headers:
+        fail("CHANGELOG.md has no `## [x.y.z]` version headers (check 10)")
+
+    def key(v: str) -> tuple[int, ...]:
+        return tuple(int(p) for p in v.split("."))
+
+    cargo = re.search(r'^version = "(.+?)"', (REPO_ROOT / "Cargo.toml").read_text(), re.M)
+    if cargo and headers[0] != cargo.group(1):
+        fail(
+            f"CHANGELOG.md's newest entry is {headers[0]} but Cargo.toml is "
+            f"{cargo.group(1)} (check 10) — release notes and the version "
+            "shipped must not disagree"
+        )
+
+    for a, b in zip(headers, headers[1:]):
+        if key(a) <= key(b):
+            fail(f"CHANGELOG.md versions are not strictly decreasing: {a} then {b} (check 10)")
+
+    # A gap in the patch series inside one minor means an entry went
+    # missing — which is the actual failure this check exists for, and
+    # which the tag rule below cannot see because an untagged release has
+    # no tag to compare against. Deliberate skips are declarable.
+    text = path.read_text()
+    for a, b in zip(headers, headers[1:]):
+        ka, kb = key(a), key(b)
+        if ka[:2] != kb[:2]:
+            continue  # different minor; a patch gap is meaningless
+        for missing in range(kb[2] + 1, ka[2]):
+            gap = f"{ka[0]}.{ka[1]}.{missing}"
+            if f"changelog:skipped {gap}" in text:
+                continue
+            fail(
+                f"CHANGELOG.md jumps {b} -> {a}, so {gap} has no entry "
+                f"(check 10). If {gap} was never released, declare it with "
+                f"an HTML comment containing `changelog:skipped {gap}`."
+            )
+
+    # A tag is a promise that a version was released; it needs an entry.
+    try:
+        tags = subprocess.run(
+            ["git", "tag", "-l", "v*"], cwd=REPO_ROOT,
+            capture_output=True, text=True, check=True,
+        ).stdout.split()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return  # not a git checkout; the rest of the check still ran
+    have = set(headers)
+    missing = sorted(
+        (t[1:] for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t) and t[1:] not in have),
+        key=key,
+    )
+    if missing:
+        fail(
+            f"released tag(s) with no CHANGELOG entry: {', '.join('v' + m for m in missing)} "
+            "(check 10)"
+        )
+
+
 def main() -> None:
     check_language_counts()
     check_benchmark_table_languages()
@@ -732,6 +801,7 @@ def main() -> None:
     check_self_analysis_showcase()
     check_python_option_parity()
     check_deliberate_leaks()
+    check_changelog()
     print("[docs-check] ok")
 
 
