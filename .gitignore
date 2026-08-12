@@ -45,6 +45,15 @@ Cargo.lock.tmp
 .envrc
 .direnv/
 
+# Task-run archives. `test_results/` was 63 files of build-out notes that
+# nothing regenerated and no document linked, and by the time it was
+# removed it documented a stack-graphs integration that had become a
+# no-op stub — a confidently wrong claim sitting where an agent scanning
+# the repo would read it. Ignored so it cannot drift back in; if a real
+# test-artifact directory is ever wanted, give it a name that says when
+# it was generated and by what.
+/test_results/
+
 # Planning / analysis docs written during a working session. These are
 # working notes, not part of the published contract — the README and
 # CHANGELOG are. Keep them on disk, out of the repo.
