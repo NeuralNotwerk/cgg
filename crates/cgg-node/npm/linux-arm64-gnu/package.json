@@ -1,6 +1,6 @@
 {
   "name": "cgg-callgraphgenerator-linux-arm64-gnu",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "cpu": [
     "arm64"
   ],

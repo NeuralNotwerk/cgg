@@ -35,8 +35,14 @@ pillow` gives you `import PIL`.
 > overwrites the first. If you already have `pip install cgg` (the GGUF
 > tool), use a separate virtualenv.
 
-One wheel per platform covers every CPython ≥ 3.9 (the extension is built
-against the stable ABI).
+The extension is built against the stable ABI (`abi3-py39`), so a single
+wheel per platform covers every CPython ≥ 3.9 — no per-version builds.
+
+**Prebuilt, that is one platform today: `manylinux_2_17_x86_64`.** 0.6.3
+also publishes an sdist, so `pip install` still works on macOS, Windows
+and aarch64 Linux — pip falls back to building from source there, which
+needs a Rust toolchain (≥ 1.85) and takes a few minutes. Wheels for those
+platforms build in CI and ship with the first tagged release.
 
 ## Usage
 
@@ -52,8 +58,8 @@ g = cgg.analyze("./src", filter=[r"handle_request$"], hops=2)
 # Several trees, one graph.
 g = cgg.analyze(["./api", "./worker"], lang=["python", "go"])
 
-g.to_mermaid()        # str — what agents read
-g.to_json()           # str — identical to `cgg -t json`
+g.to_mermaid()        # str — what agents read; byte-identical to `cgg -t mermaid`
+g.to_json()           # str — `cgg -t json`, bar the per-run timings it embeds
 g.to_dot()            # str — Graphviz
 g.to_graphml()        # str — Gephi / yEd / networkx
 g.to_dict()           # dict — the escape hatch
@@ -98,26 +104,29 @@ solid = [e for e in g.edges if e.confidence == "high" and e.via == "direct"]
 
 **Renderers never build Python objects.** `to_mermaid()` and friends
 render straight from the Rust graph; `g.callables` constructs one Python
-object per callable, once, then caches. Measured on cgg's own tree (1,949
-callables): `to_mermaid()` produces 175 KB in 2.9 ms, and the first
-`.callables` access costs 1.6 ms. Both are small here and both scale with
-the graph, so on a repository an order of magnitude larger the attribute
-path is what you would notice. Reach for the renderer when a string is
-what you want.
+object per callable, once, then caches. Measured on cgg's own `crates/`
+(2,019 callables): `to_mermaid()` produces 180 KB in 1.5 ms, the first
+`.callables` access costs 0.84 ms, and every access after it costs 0.2 µs.
+Both are small here and both scale with the graph, so on a repository an
+order of magnitude larger the attribute path is what you would notice.
+Reach for the renderer when a string is what you want.
 
 **Concurrent `analyze()` calls actually run concurrently.** The GIL is
-released and there is no internal lock, so a thread pool scales. Measured on
-`crates/cgg-lang/src/plugins`, against a single analysis alone:
+released (`py.detach`) and there is no internal lock, so a thread pool
+scales. N analyses of `crates/cgg-lang/src/plugins` from a
+`ThreadPoolExecutor(N)`, against one analysis alone (56 ms) — medians of
+four repetitions, 32-core host, `jobs` at its default of 8:
 
 | threads | wall | vs. one analysis |
 | --- | --- | --- |
-| 1 | 53 ms | 0.99x |
-| 2 | 65 ms | 1.21x |
-| 4 | 72 ms | 1.34x |
-| 8 | 91 ms | 1.68x |
+| 1 | 55 ms | 0.97x |
+| 2 | 65 ms | 1.15x |
+| 4 | 76 ms | 1.34x |
+| 8 | 88 ms | 1.57x |
 
-Four analyses for 1.34x the wall clock of one; eight for 1.68x. Absolute
-numbers are machine-specific — regenerate them rather than trusting them.
+Four analyses for 1.34x the wall clock of one; eight for 1.57x. Absolute
+numbers are machine-specific and each analysis is already internally
+parallel — regenerate them rather than trusting them.
 
 Earlier builds would have had to take a process-wide lock for the whole of
 `analyze`, because extraction read two process-global switches
@@ -128,9 +137,14 @@ works and is simpler if you only have one tree to analyze.
 
 ## Not in this release
 
-`--why-live` proofs, the `--write-roots` baseline, the audit event stream,
-and the framework-coverage table are all reachable from the Rust API but
-are not yet exposed here. Use the CLI for those.
+`--why-live` proofs, the `--write-roots` baseline and the audit event
+stream are reachable from the Rust API but have no keyword and no `Graph`
+attribute here. Use the CLI for those.
+
+The framework-coverage table is *not* missing — it arrives rendered, as
+one of the strings in `g.notices`, naming both what cgg recognised and
+what it saw without rules. What is missing is a structured object; parse
+the notice or use `cgg --framework-coverage` if you need fields.
 
 ## Building from source
 
@@ -138,7 +152,8 @@ are not yet exposed here. Use the CLI for those.
 scripts/build-python.sh          # from the repository root
 ```
 
-Needs a Rust toolchain (≥ 1.85) and `uv`.
+Needs `cargo` (Rust ≥ 1.85), `uv` and `git` — the script checks for all
+three up front and stops if one is missing.
 
 `cargo build` compiles the `.so`, but only maturin can make it importable
 — it writes the wheel metadata and puts the library where Python will find

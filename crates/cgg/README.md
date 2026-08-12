@@ -8,9 +8,10 @@ cargo install cgg
 cgg ./src -o graph.mmd
 ```
 
-Offline, deterministic, single-binary. **44 languages** via tree-sitter, plus
-Jupyter notebooks and the Smithy / Protobuf / GraphQL / OpenAPI / AsyncAPI
-descriptor languages. It makes no network calls, ever.
+Offline, deterministic, single-binary. **44 languages** via tree-sitter —
+the Smithy, Protobuf, GraphQL, OpenAPI and AsyncAPI descriptor languages
+among them — plus Jupyter notebooks, which route through the Python plugin.
+It makes no network calls, ever.
 
 The primary output is a **mermaid flowchart**, because the primary consumer is
 a coding agent reading it in a context window. JSON, DOT and GraphML are there
@@ -42,8 +43,10 @@ println!("{}", cgg::emit::graph_to_string(&outcome.graph, cgg::OutputFormat::Mer
 ```
 
 `analyze` performs **no I/O beyond reading the source tree** — no writes, no
-stdout, no stderr, no `process::exit`. Everything a run produces comes back on
-`RunOutcome`, including an ordered transcript of every diagnostic and artifact.
+stdout, no stderr, no `process::exit`. (`RunOptions::since` is the single
+exception: resolving a revspec shells out to `git diff`.) Everything a run
+produces comes back on `RunOutcome`, including an ordered transcript of every
+diagnostic and artifact.
 `cgg::emit` is the CLI's own front end over that value.
 
 It takes no locks and keeps no process-global state, so it is safe to call

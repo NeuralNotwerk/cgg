@@ -57,8 +57,23 @@ docker run --rm -v "$ROOT:/io" -w /io \
 docker run --rm -v "$ROOT:/io" --entrypoint chown "$IMAGE" \
     -R "$(id -u):$(id -g)" /io/dist /io/target/manylinux /io/target/manylinux-cargo
 
+# An sdist as well as the wheel. Without one, every platform with no
+# matching wheel gets "No matching distribution found" instead of falling
+# back to a source build — pip has that fallback, but only if an sdist
+# exists. 0.6.2 and 0.6.3 shipped wheel-only and were uninstallable on
+# macOS, Windows and Linux ARM because this step was missing.
+echo "[1a/4] building sdist"
+docker run --rm -v "$ROOT:/io" -w /io \
+    -e CARGO_HOME=/io/target/manylinux-cargo \
+    -e CARGO_TARGET_DIR=/io/target/manylinux \
+    "$IMAGE" sdist -m crates/cgg-py/Cargo.toml --out /io/dist
+docker run --rm -v "$ROOT:/io" --entrypoint chown "$IMAGE" \
+    -R "$(id -u):$(id -g)" /io/dist
+
 WHEEL="$(ls "$DIST"/*.whl)"
+SDIST="$(ls "$DIST"/*.tar.gz)"
 echo "  $(basename "$WHEEL") ($(du -h "$WHEEL" | cut -f1))"
+echo "  $(basename "$SDIST") ($(du -h "$SDIST" | cut -f1))"
 
 case "$(basename "$WHEEL")" in
     *manylinux*) ;;
@@ -109,7 +124,7 @@ cargo build --release -p cgg --quiet
 CGG_BIN="$ROOT/target/release/cgg" "$VENV/bin/python" -m pytest crates/cgg-py/tests -q
 
 echo "[3/4] twine check"
-"$VENV/bin/twine" check "$WHEEL"
+"$VENV/bin/twine" check "$WHEEL" "$SDIST"
 
 if [ "$CHECK_ONLY" = "1" ]; then
     echo
@@ -136,7 +151,7 @@ read -r CONFIRM
 
 echo "[4/4] uploading"
 TWINE_USERNAME=__token__ TWINE_PASSWORD="$TOKEN" \
-    "$VENV/bin/twine" upload --non-interactive "$WHEEL"
+    "$VENV/bin/twine" upload --non-interactive "$WHEEL" "$SDIST"
 
 echo
 echo "published. Verify with:"

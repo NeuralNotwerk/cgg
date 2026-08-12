@@ -17,20 +17,29 @@ work. Step 4 is the upstream offer, and has rules of its own.
 
 ## Step 0 — read the coverage table first
 
-cgg ships rules for 340+ frameworks and **tells you which ones it
-recognised in your tree**. Run it and read stderr before writing
-anything:
+cgg ships a built-in rule table covering 340+ distinct frameworks across
+36 languages, and **tells you which ones it recognised in your tree**.
+Run it and read stderr before writing anything:
 
 ```bash
 cgg ./src
 ```
 
+Real output, from `cgg` on a Flask application:
+
 ```text
 framework coverage
-  recognised     flask (network, 415 entries) · celery (queue, 3 entries)
-  seen, no rules django — found in 7 file(s), entries NOT enumerated
-                   (cgg has no entry rules for this framework)
-  no rules      18 file(s) in languages with no framework rules (go, ruby)
+  recognised     flask (network, 130 entries) · click (cli, 31 entries)
+                 celery (queue, 3 entries)
+  seen, no rules py-context-manager — found in 2 file(s), entries NOT enumerated
+                   detected, but no entry point matched its rules
+                 pytest — found in 34 file(s), entries NOT enumerated
+                   cgg has no entry rules for pytest; the runner -- not any
+                   code in the tree -- collects and invokes everything.
+                   [...]
+
+  Entry-node coverage is PARTIAL. Handlers of the frameworks listed under
+  "seen, no rules" are not represented and will still appear unreferenced.
 ```
 
 Three outcomes, three different jobs:
@@ -39,11 +48,22 @@ Three outcomes, three different jobs:
   flagged, the cause is something else; check `--why-live` before
   writing a rule.
 - **Listed under `seen, no rules`** — cgg knows the framework is there
-  and cannot enumerate it. This is your case. The `(reason)` line says
-  whether a rule can fix it or whether the routes live somewhere cgg
-  cannot read (Next.js file-system routing, Blazor `.razor` markup).
+  and cannot enumerate it. This is your case. The indented reason under
+  each name is the rule's own `gap` prose, and it says whether a rule
+  can fix it or whether the routes live somewhere cgg cannot read
+  (Next.js file-system routing, Blazor `.razor` markup). The reason
+  `detected, but no entry point matched its rules` means something
+  different — see Step 3.
 - **Not listed at all** — an in-house framework, or one cgg has never
   heard of. Also your case; you supply the `detect` marker too.
+
+Two things about the table itself:
+
+- It is printed only when at least one framework was **detected**. Pass
+  `--framework-coverage` to print it unconditionally.
+- Above six `seen, no rules` entries the list collapses to a count and
+  six ids. `--framework-coverage` also restores the full list and each
+  entry's reason.
 
 ## Step 1 — identify the shape, not the framework
 
@@ -52,11 +72,11 @@ framework does it. Find one flagged handler and look at its definition:
 
 | | Shape | Looks like | Fix |
 | --- | --- | --- | --- |
-| **A** | marker on the definition | `@app.route(...)`, `@GetMapping`, `#[get("/")]`, `@shared_task` | `root_attributes` — **easiest** |
-| **B** | callable passed as a value | `app.get("/x", handler)`, `RegisterWorkflow(W)` | `roots` by name pattern |
+| **A** | marker on the definition | `@app.route(...)`, `@GetMapping`, `#[get("/")]`, `@shared_task` | `attributes` — **easiest** |
+| **B** | callable passed as a value | `app.get("/x", handler)`, `RegisterWorkflow(W)` | `registrars` |
 | **C** | inline closure at the call site | `app.get("/x", (req,res) => {...})` | `registrars` — same as B |
 | **D** | base class / interface | `class X(nn.Module): def forward`, `implements Runnable`, `: IJob` | `base_types` + `methods` |
-| **E** | a string names it | `'photos#index'`, `"App\C@method"` | `registrars` — cgg decodes the string |
+| **E** | a string names it | `'photos#index'`, `"App\C@method"` | `registrars` **plus `string_targets = true`** |
 | **F** | separate file by path | `new Worker('./w.js')`, CUDA `__global__` | `registrars` (path) / `attributes` (pragma) |
 
 **Bucket C usually needs nothing.** The handler body is lexically inside
@@ -70,8 +90,9 @@ Confirm the diagnosis before fixing it:
 cgg ./src --why-live 'MyHandler::method$'
 ```
 
-`NOT REACHED` confirms cgg has no path to it. If it prints a proof path,
-the finding had a different cause.
+With no `-o`, the proof prints to stdout. `NOT REACHED — no path from
+any known root` confirms cgg has no path to it. If it prints a proof
+path, the finding had a different cause.
 
 ## Step 2 — write a `[[framework]]` rule
 
@@ -84,26 +105,47 @@ table stops listing the framework as a gap.
 [[framework]]
 id       = "myfw"        # appears in the node name and coverage table
 language = "python"      # plugin id: python, javascript, typescript, java, ...
-kind     = "network"     # network | queue | schedule | cli | ffi | lifecycle | test
+kind     = "network"     # see below — eight values
 
-# DETECTION — the gate. Nothing below fires until one of these matches.
+# DETECTION — the gate for registrars/base_types/methods. See the
+# hazard note below: it is NOT a gate for `attributes`.
 detect       = ["myfw"]              # import path prefixes
-# detect_paths = ["config/routes.rb"] # or a file convention
+# detect_paths = ["config/routes.rb"] # or a path suffix convention
 
 # MATCHERS — pick the ones for your shape. All optional, all combinable.
 attributes = ["endpoint", "handler"]   # A: decorator/annotation keys
-registrars = ["get", "post"]           # B/C/E/F: `app.get("/x", handler)`
+registrars = ["get", "post"]           # B/C/F: `app.get("/x", handler)`
 base_types = ["BaseHandler"]           # D: class/interface that declares it
 methods    = ["handle", "process"]     # D: which methods of those types
 
-node = true   # false = mark a root but mint no node (see below)
+string_targets = false  # E: allow a string argument to NAME the handler
+node = true             # false = mark a root but mint no node (see below)
 ```
+
+Those are every key `[[framework]]` accepts. The file is parsed with
+`deny_unknown_fields`, so a typo is a hard error rather than a silent
+no-op. (The built-in table's `RuleSpec` has two extra fields —
+`detect_calls` and `gap` — that a TOML rule cannot set.)
 
 **Get `kind` right.** It is part of the entry node's name and therefore
 of every `--filter '<framework-entry>::network::'` query someone runs to
-enumerate attack surface. Use `network` only for things reachable from
-outside the process. A worker that trusted internal code enqueues is
-`queue`; a `forward`/`onCreate`/lifecycle hook is `lifecycle`.
+enumerate attack surface. The eight values are `network`, `queue`,
+`schedule`, `cli`, `ffi`, `lifecycle` (the default), `test` and
+`public`. Use `network` only for things reachable from outside the
+process. A worker that trusted internal code enqueues is `queue`; a
+`forward`/`onCreate`/lifecycle hook is `lifecycle`; `public` is for a
+callable the *language* exposes to anyone with no framework involved
+(a Solidity `public`/`external` function).
+
+**Shape E needs `string_targets = true`.** `registrars` alone matches
+the registration call but will not decode a string argument into a
+handler name. Verified: a Ruby rule with `registrars = ["route"]` and no
+`string_targets` reports `detected, but no entry point matched its
+rules`; adding `string_targets = true` mints
+`<framework-entry>::network::myrouter::route('photos#index')`. It is
+off by default because decoding strings everywhere turns any
+`session.get("user_id")` into an entry point as soon as some callable
+happens to be named `user_id`.
 
 **Set `node = false` for shapes with no identity.** A rule matching
 every `forward` in the repo would mint one node fanning out to every
@@ -113,23 +155,41 @@ a scheduled job.
 
 **Matchers compare case-insensitively, and against both the full
 attribute key and its last segment.** `attributes = ["route"]` matches
-`@app.route`, `@bp.route` and `@api.route` — the `detect` gate is what
-keeps that from matching every `route` in every codebase, which is why
-`detect` is not optional in practice.
+`@app.route`, `@bp.route` and `@api.route`. `base_types` likewise
+matches on the last segment with generic arguments stripped, so
+`base_types = ["Module"]` matches `class Net(nn.Module)` — and also any
+unrelated class named `Module`.
+
+### The `detect` hazard, in both directions
+
+`detect` is **not** uniformly a gate, and getting this wrong fails
+silently in one of two opposite ways. Both behaviours are verified:
+
+- **A rule whose only matchers are `registrars`, `base_types` or
+  `methods`, with no `detect` and no `detect_paths`, never fires and is
+  never even reported as a gap** — the coverage table prints
+  `recognised (none)` / `seen, no rules (none)` and the rule is
+  invisible. Always give those rules a `detect`.
+- **An `attributes`-only rule with no `detect` fires everywhere.** When
+  a rule declares no detection at all, cgg falls back to treating the
+  marker itself as the evidence (this is how CUDA's `__global__` works).
+  A rule with `attributes = ["endpoint"]` and no `detect` matched a file
+  that imports nothing at all. That is usually not what you want:
+  add `detect` so `endpoint` cannot mean "every `endpoint` in every
+  codebase".
 
 Notes that save a round trip:
 
-- **`detect` is the gate, and a rule with no `detect` never fires.**
-  If the framework has no import (PHP's WordPress, an ambient global),
-  use `detect_paths` with a file convention instead.
+- If the framework has no import (PHP's WordPress, an ambient global),
+  use `detect_paths` with a path-suffix convention instead.
 - `attributes` only works where cgg captures attributes — rust, python,
   java, csharp, javascript, typescript, php, kotlin and cpp. On other
   languages it matches nothing; use `registrars` or `base_types`.
 - Verify the config was found. Discovery searches upward from each
   analyzed path and then the working directory, so
-  `cgg /path/to/project` from anywhere picks it up — but a typo in a key
-  is a hard error, and an unmatched rule shows in the coverage table as
-  "detected, but no entry point matched its rules".
+  `cgg /path/to/project` from anywhere picks it up — but an unmatched
+  rule shows in the coverage table as "detected, but no entry point
+  matched its rules".
 
 ### When `roots` is still the right tool
 
@@ -167,7 +227,7 @@ EOF
 
 (`--dead-code-report` is the explicit form. `-o graph.mmd` also works and
 puts the report at `graph.mmd.deadcode.json` — the sidecar extension
-follows `--dead-code-format`, so the text format lands at
+follows `--dead-code-format`, so the default text format lands at
 `.deadcode.txt`. `stale_suppressions` is omitted from the JSON when
 empty, which is why the read above uses `.get`.)
 
@@ -176,7 +236,8 @@ Three checks:
 - **The coverage table moved the framework out of "seen, no rules".**
   This is the fastest signal that the rule fired at all. If it now reads
   "detected, but no entry point matched its rules", `detect` worked and
-  the matchers did not.
+  the matchers did not. If the framework vanishes from the table
+  entirely, the rule never fired — see the `detect` hazard above.
 - **The count dropped by more than one per handler.** If a handler had
   private helpers, they should have gone too. If only the handler
   disappeared, the rule is in `[[allow]]` rather than a `[[framework]]`
@@ -186,7 +247,7 @@ Three checks:
   is worse than no rule, because it looks like it is working.
 
 Worked example, verified end to end. An in-house decorator plus a
-PyTorch model, all flagged before the rule:
+PyTorch-style model, all flagged before the rule:
 
 ```text
 before:  ['forward', 'genuinely_unused', 'list_orders']
@@ -212,10 +273,14 @@ node       = false      # no identity worth naming — root-mark only
 
 ```text
 after:   ['genuinely_unused']
+
+framework coverage
+  recognised     acme (network, 1 entry) · acme-ml (lifecycle, 1 entry)
+  seen, no rules (none)
 ```
 
 The private helpers of both handlers (`_fmt`, `_project`) disappear too,
-because `roots` propagates liveness transitively. That drop — 3 findings
+because a root propagates liveness transitively. That drop — 3 findings
 to 1, with the one genuine finding surviving — is the signal the rule is
 doing its job rather than just muting output.
 
@@ -294,13 +359,24 @@ Only on approval. Do not push to any remote the user has not named.
    documentation** — not from their repository.
 2. Add a `RuleSpec` to the built-in `SPECS` table in
    `crates/cgg-core/src/frameworks/rules.rs`, alongside the existing
-   entries. The table's own tests enforce that every rule is either
-   detectable or declares why it cannot enumerate entries.
-3. Add an integration test in `crates/cgg/tests/frameworks.rs` asserting
+   entries. `RuleSpec` is the Rust form of the same rule and carries two
+   fields TOML does not: `detect_calls` and `gap`. The table's own tests
+   enforce that every rule is either detectable or declares a `gap`
+   (`every_rule_is_either_detectable_or_a_declared_gap`,
+   `a_rule_with_no_matchers_must_declare_why`).
+3. **Add an application to `APPS` in `scripts/benchmark.sh` that uses
+   the framework** — one field of that entry names the rule id.
+   `scripts/docs-check.py` fails on any enumerating rule with no app
+   behind it, so skipping this blocks the commit. A rule that genuinely
+   has no real-world application goes in `APPS_UNVERIFIED` instead, and
+   the declaration is the point. Then check it actually fires with
+   `scripts/framework-coverage.py`.
+4. Add an integration test in `crates/cgg/tests/frameworks.rs` asserting
    the entry node appears with the right kind and the handler is not
    reported.
-4. `cargo test --workspace` and `scripts/docs-check.py` must pass.
-5. Open the PR against the cgg repository, describing the framework, its
+5. `cargo test --workspace` and `python3 scripts/docs-check.py` must
+   pass.
+6. Open the PR against the cgg repository, describing the framework, its
    shape, and the registry it is published on.
 
 If the user declines, or the framework is private: keep the rule in
@@ -313,22 +389,33 @@ requirement.
 
 Be honest rather than writing a rule that silently does nothing:
 
-- **Route paths are not captured.** You can mark a handler live; you
-  cannot yet get a `GET /users/{id} → handler` edge.
-- **Base-type rules are name-based only.** There is no
-  `base = "nn.Module"` matcher yet, so a bucket-D rule matches by method
-  name (`"\\.forward$"`) and will also match unrelated methods of that
-  name. Narrow it with a module prefix where possible.
+- **The HTTP method is not a separate field.** The route string *is*
+  captured — `@app.route("/users/<int:uid>")` becomes
+  `<framework-entry>::network::flask::route('/users/<int:uid>')`, and
+  `@app.post("/users")` becomes `post('/users')`. But the verb is only
+  there when the decorator name carries it; a `methods=["GET"]` keyword
+  is not decoded, and there is no structured `method` + `path` pair on
+  the entry to query.
+- **Base-type matching is by name, not by resolved type.** `base_types`
+  is a real matcher, but it compares the declared base's last segment
+  case-insensitively with generics stripped. `base_types = ["Module"]`
+  catches `nn.Module` and every unrelated `Module` in the tree. Write
+  the most specific segment you can. A rule with `methods` and no
+  `base_types` is weaker still — the structural-typing escape hatch for
+  Go interfaces and Elixir behaviours, matching on method name alone.
 - **Attribute capture does not cover every language.** `attributes` and
   `root_attributes` work on the nine plugins listed in Step 2 and match
   nothing on the rest. Don't guess the list from memory — a run whose
   `--ignore-attributes` matched nothing prints the current one, and the
-  report's capability table has an `attrs` column per language.
-- **Nothing reads framework config files** — `urls.py`, `routes.rb`,
-  `routes/web.php` are not parsed as config, so routing declared only
-  there is out of reach. (Rails, Django and Laravel *are* recognised
-  through their registrar calls and string handler forms — check the
-  coverage table before writing a rule for them.)
+  dead-code report's capability table has an `attrs` column per
+  language.
+- **Framework config files are used for detection, never parsed.**
+  `detect_paths` can prove a framework is present from a path like
+  `config/routes.rb` or `routes/web.php`, but nothing reads the routes
+  declared inside them, so routing that exists only there is out of
+  reach. (Rails, Django and Laravel *are* recognised through their
+  registrar calls and string handler forms — check the coverage table
+  before writing a rule for them.)
 
 ## Anti-patterns
 
@@ -337,7 +424,11 @@ Be honest rather than writing a rule that silently does nothing:
 2. **Writing a broad pattern to make the report quiet.** `".*"` in
    `roots` marks the entire codebase live. The report is then clean and
    worthless.
-3. **Sending an upstream PR without asking**, or asking once and
+3. **Shipping a rule without re-running cgg.** The two silent failures
+   above — a matcher-only rule with no `detect`, and a shape-E rule
+   without `string_targets` — both produce a config file that looks
+   right and does nothing.
+4. **Sending an upstream PR without asking**, or asking once and
    treating it as standing permission.
-4. **Upstreaming a rule derived from private code.** Even if the
+5. **Upstreaming a rule derived from private code.** Even if the
    framework is public, the *fixture* must come from its public docs.

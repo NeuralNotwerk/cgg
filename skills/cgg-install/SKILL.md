@@ -1,16 +1,23 @@
 ---
 name: cgg-install
-description: Install the `cgg` call-graph CLI on the user's machine. Trigger when the user says "install cgg", "set up cgg", "I don't have cgg", "how do I get cgg", or when another skill (like the `cgg` skill) reports `cgg` is not on PATH and the user wants it installed. Handles bootstrapping Rust via rustup if missing, the C toolchain check that tree-sitter grammars need, choosing between `cargo install --git` (end-user) and a clone-based dev install, PATH setup for `~/.cargo/bin`, and a post-install verification. Walks the user through each step rather than running long-running installs without confirmation.
+description: Install the `cgg` call-graph CLI on the user's machine. Trigger when the user says "install cgg", "set up cgg", "I don't have cgg", "how do I get cgg", or when another skill (like the `cgg` skill) reports `cgg` is not on PATH and the user wants it installed. Handles bootstrapping Rust via rustup if missing, the C toolchain check that tree-sitter grammars need, choosing between `cargo install cgg` from crates.io (end-user), a `--git` install for unreleased commits, and a clone-based dev install, PATH setup for `~/.cargo/bin`, and a post-install verification. Walks the user through each step rather than running long-running installs without confirmation.
 ---
 
 # cgg-install — install cgg from source
 
-`cgg` is distributed as a Rust crate (no prebuilt binaries today), so
-installing it means compiling it. This skill is the procedure for
-doing that on a machine that may not have Rust set up.
+`cgg` is published on crates.io and distributed as source — the GitHub
+releases carry no prebuilt binaries — so installing it means compiling
+it. This skill is the procedure for doing that on a machine that may
+not have Rust set up.
 
-Total build time on a clean machine: ~3–8 minutes depending on CPU.
-Most of that is one-time tree-sitter grammar compilation.
+The build is 132 crates, 44 of them tree-sitter grammars that compile
+C. Wall time is dominated by core count: ~25 s on a 64-core host,
+several minutes on a laptop. Budget up to ~10 minutes and don't let
+the user cancel a build that looks stalled on a `tree-sitter-*` crate.
+
+There is a PyPI package (`cgg-callgraphgenerator`), but it ships the
+Python *library* only — no `cgg` executable. It is not an install path
+for the CLI. See "Things to NOT do".
 
 ## Prerequisites — check before installing
 
@@ -22,7 +29,8 @@ prerequisite is green or the user has confirmed the bootstrap step.**
 command -v cargo && cargo --version
 command -v rustc && rustc --version
 
-# 2. git (needed for cargo install --git)
+# 2. git — only needed for the --git or clone installs (3b/3c).
+#    `cargo install cgg` uses the sparse registry and does not need it.
 command -v git && git --version
 
 # 3. C toolchain — tree-sitter grammars compile C code
@@ -73,26 +81,39 @@ run the package manager command themselves.
 
 ## Step 3 — Install cgg
 
-Two install paths. Pick based on what the user wants:
+Three install paths. Pick based on what the user wants:
 
 ### 3a. End-user install (recommended)
 
-The user just wants the `cgg` binary on PATH.
+The user just wants the `cgg` binary on PATH. Install the released
+crate from crates.io:
+
+```bash
+cargo install cgg --locked
+```
+
+Notes:
+
+- `--locked` uses the `Cargo.lock` published inside the crate, for a
+  reproducible build. The published crate does contain one, so
+  `--locked` will not fail here.
+- The binary lands in `~/.cargo/bin/cgg`.
+- Re-running this command upgrades to the latest release.
+- First-time build compiles 44 grammar crates. Don't cancel.
+
+### 3b. Unreleased commits
+
+Only if the user needs a fix that is on `main` but not yet released:
 
 ```bash
 cargo install --git https://github.com/NeuralNotwerk/cgg --locked
 ```
 
-Notes:
+The repo root is a virtual workspace, but `crates/cgg` is its only
+package with a binary, so cargo resolves the target without needing
+`--bin` or `-p`. Re-running upgrades to the latest commit on `main`.
 
-- `--locked` uses the committed `Cargo.lock` for reproducible builds.
-- The binary lands in `~/.cargo/bin/cgg`.
-- Re-running this command upgrades to the latest commit on the
-  default branch.
-- First-time build pulls ~40 grammar crates and takes several
-  minutes. Don't cancel.
-
-### 3b. Developer install
+### 3c. Developer install
 
 The user wants a local clone (to read source, file PRs, run the
 benchmark script, etc.).
@@ -105,6 +126,8 @@ cargo install --path crates/cgg --locked
 
 Same destination (`~/.cargo/bin/cgg`), but they keep the source tree
 for `./scripts/benchmark.sh`, `./scripts/install-skill.sh`, and so on.
+Note the path is `crates/cgg`, not `.` — the workspace root has no
+package of its own.
 
 ## Step 4 — Verify PATH
 
@@ -136,14 +159,31 @@ cgg --help        # should print usage
 cgg --version     # prints `cgg <version>`
 ```
 
-For a real smoke test, run cgg against itself if the user has the
-source tree:
+For a real smoke test that needs no clone, build a two-function file
+and check the edge comes back:
+
+```bash
+mkdir -p /tmp/cgg-smoke
+printf 'def a():\n    return b()\n\ndef b():\n    return 1\n' > /tmp/cgg-smoke/t.py
+cgg /tmp/cgg-smoke
+```
+
+Expected output, exactly:
+
+```text
+flowchart LR
+  C0["t.a"]
+  C1["t.b"]
+  C0 --> C1
+```
+
+If the user *does* have the source tree, run cgg against itself:
 
 ```bash
 cgg ./crates --filter 'cgg::analyze_in_pool$' -n 1
 ```
 
-A few lines of mermaid output means everything works.
+A few dozen lines of mermaid means everything works.
 
 ## Step 6 — Offer to install the skills
 
@@ -166,7 +206,8 @@ what it would do.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `error: linker 'cc' not found` | No C toolchain | Step 2 above |
-| `error: rustc 1.x.x is not supported` | Rust too old | `rustup update stable` |
+| An error naming `requires rustc 1.85 or newer` | Rust too old (cgg is edition 2024) | `rustup update stable` |
+| `error: could not find 'cgg' in registry` | Stale registry index | `cargo install cgg --locked` again; if it persists the user is behind a proxy/mirror that has not synced |
 | Build hangs/fails on a `tree-sitter-*` crate | OOM on small machines (each grammar compile is RAM-heavy) | `cargo install ... -j 2` to limit parallelism |
 | `cgg: command not found` after install | `~/.cargo/bin` not on PATH | Step 4 above |
 | `error: failed to compile … tree-sitter-…` on Windows MSVC | Missing C++ build tools | Install VS Build Tools "C++ build tools" workload |
@@ -179,8 +220,18 @@ what it would do.
   to run as the user.
 - **Don't suggest a system package manager (`apt install cgg`, `brew
   install cgg`).** No such package exists today.
-- **Don't try to half-install** by downloading individual files or
-  building a single crate — the workspace needs to build together.
+- **Don't use `pip` or `npm` to get the CLI.**
+  `pip install cgg-callgraphgenerator` installs a Python library
+  (`import cgg`) and no `cgg` executable. It publishes a manylinux
+  x86_64 wheel plus an sdist, so on macOS, Windows and aarch64 pip
+  falls back to building from source — which needs a Rust toolchain
+  and takes minutes. Offer it only when the user explicitly wants the
+  Python API. The npm package `cgg-callgraphgenerator` is
+  **not published** — do not tell the user to install it.
+- **Don't try to half-install** by downloading individual files from
+  the repo or `cargo build`-ing a sibling crate like `cgg-lang` on its
+  own. Only `crates/cgg` produces the binary, and only cargo can pull
+  its dependency graph — installing it by hand is not a shortcut.
 - **Don't run the install non-interactively** (no `< /dev/null`,
   no piping `yes`). Build errors need to surface; the user may need
   to make platform-specific decisions mid-install.

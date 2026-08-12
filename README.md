@@ -127,9 +127,9 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--write-roots` | off | Emit a baseline accepting every current finding, in place of the graph. Implies `--dead-code` |
 | `--ignore-names` | — | Suppress findings by qualified-name pattern. Repeatable |
 | `--ignore-attributes` | — | Suppress findings by attribute/decorator pattern. Repeatable |
-| `--why-live` | — | Print the shortest path from a root proving a callable is live |
+| `--why-live` | — | Print the shortest path from a root proving a callable is live, to the primary output in place of the graph |
 | `--fail-on-dead` | off | Exit 3 when the report is non-empty |
-| `--jobs` | 0 (auto = half the physical cores, capped at 8) | Worker thread count. The default is deliberately conservative so cgg is a good guest on a shared host; on a large tree `--jobs 32` is roughly twice as fast. Parsing, extraction, type propagation, intra-file linking, cross-file resolution, framework matching and audit serialisation all run in parallel. The graph is identical at any thread count — `mermaid`, `dot` and `graphml` output is byte-identical; `-t json` and the audit sidecar embed per-file parse timings, so those two differ byte-wise between *any* two runs, same thread count or not |
+| `--jobs` | 0 (auto = half the physical cores, capped at 8) | Worker thread count. The default is deliberately conservative so cgg is a good guest on a shared host; raising it pays on a large tree (pandoc, 21k callables: 0.58s at the default, 0.41s at `--jobs 32` on a 64-thread host). Parsing, extraction, type propagation, intra-file linking, cross-file resolution, framework matching and audit serialisation all run in parallel. The graph is identical at any thread count — `mermaid`, `dot` and `graphml` output is byte-identical; `-t json` and the audit sidecar embed per-file parse timings, so those two differ byte-wise between *any* two runs, same thread count or not |
 | `--lang` | (all) | Comma-separated language filter |
 | `--include-external` | off | Surface third-party calls as deduplicated leaf "exit nodes" (edges tagged `ext`) |
 | `--include-stdlib` | off | Surface standard-library calls as deduplicated leaf "exit nodes" (edges tagged `std`) |
@@ -144,9 +144,10 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 
 ## Library
 
-The same pipeline the CLI runs is a Rust library, a Python module, and a C
-ABI. Every front end calls `cgg::analyze`, so the resolver ordering exists
-in exactly one place and cannot drift between them.
+The same pipeline the CLI runs is a Rust library, a Python module, a C ABI
+and an N-API module for Node. Every front end calls `cgg::analyze`, so the
+resolver ordering exists in exactly one place and cannot drift between
+them.
 
 ### Rust
 
@@ -169,8 +170,9 @@ artifact in the order the CLI emits them. `cgg::emit::all` is the CLI's
 own front end over that value, and it is the only place in the crate that
 touches a file descriptor.
 
-Safe to call concurrently — it takes no locks and keeps no process-global
-state, and each call gets its own worker pool sized by `RunOptions::jobs`.
+Safe to call concurrently — no run state is shared between calls (the
+only process-globals left are immutable lookup tables), and each call gets
+its own rayon pool sized by `RunOptions::jobs`.
 
 > The library API is new in 0.6.0 and **pre-1.0**: `RunOptions` gains a
 > field whenever a graph-affecting flag is added. Pin an exact minor.
@@ -215,11 +217,13 @@ rename: `entry_nodes=True` rather than `--no-entry-nodes`. Same default; a
 Python keyword has no reason to be a double negative.
 
 The GIL is released for the analysis and there is no internal lock, so a
-thread pool scales: on `./crates`, four concurrent analyses cost 178 ms
-against 151 ms for one — 1.18× the wall clock for 4× the work. The module
-also runs 21–40% faster than the CLI on the same input, since it skips
-process start and writing output (measured: 39.6% on `cgg-walk`, 24.9% on
-all of `./crates`).
+thread pool scales: on `./crates`, four concurrent analyses cost 1.3–1.5×
+the wall clock of one — 4× the work for well under 2× the time (three
+rounds, best of nine each, on a 64-thread host). The module also beats the
+CLI on the same input, since it skips process start and writing output:
+56% on `cgg-walk`, and 9–29% run-to-run on all of `./crates`, where
+process start is a much smaller share of a bigger number. Re-measure
+rather than trusting either figure — they are machine- and load-specific.
 
 Build it with `scripts/build-python.sh`, which needs `uv` and a Rust
 toolchain and downloads a CPython on first run. It is a developer script
@@ -248,7 +252,7 @@ cargo build --release -p cgg-ffi     # libcgg.so + libcgg.a, header in
                                      # crates/cgg-ffi/include/cgg.h
 ```
 
-Six functions. Options go in as JSON and results come out as strings,
+Seven functions. Options go in as JSON and results come out as strings,
 which is what lets **one** shared library serve C, .NET, Java, Go, Ruby
 and anything else with an FFI — adding a cgg flag adds a JSON key, not an
 entry point, so the ABI does not change when cgg gains a feature. Analysis
@@ -262,6 +266,19 @@ on nothing but libc — the same promise the CLI makes.
 
 Renderer vs attribute cost, and what is not yet exposed:
 [`crates/cgg-py/README.md`](crates/cgg-py/README.md).
+
+### Node — built, not yet published
+
+`crates/cgg-node` is an N-API module over the same `cgg::analyze`:
+`analyze(paths, options)` returns a promise, `analyzeSync` blocks, and the
+graph handle carries `toMermaid()` / `toJson()` / `toDot()` /
+`toGraphml()` alongside `callables`, `edges`, `files`, `metrics` and
+`notices`. TypeScript definitions are generated from the Rust.
+
+**It is not on npm yet** — `cgg-callgraphgenerator` 404s on the registry
+as of 0.6.3, so `npm install` will not get you this. Build it from a
+clone: `npm run build` in `crates/cgg-node` (`napi build --platform
+--release`), which emits the `.node` addon beside `index.js`.
 
 ## How it works
 
@@ -279,10 +296,10 @@ source files
 │                ├── type propagation (params, locals,      │
 │                │   constructors, return types)            │
 │                ├── intra-file (scope + containment)       │
-│                ├── (stack-graphs: removed, see Limitations)│
 │                ├── cross-file (imports, pub-use, #include)│
 │                ├── FFI (PyO3, wasm-bindgen, napi, JNI,    │
 │                │   P/Invoke, C ABI)                       │
+│                ├── descriptors ($ref / shape members)     │
 │                └── framework entry points (routes, jobs,  │
 │                    handlers) → <framework-entry> nodes    │
 ├───────────────────────────────────────────────────────────┤
@@ -308,8 +325,10 @@ by leaving the `v2` feature off), and the `override` feature is **off**,
 so mimalloc serves only Rust's `Global` and the 44 tree-sitter C parsers
 that handle untrusted input keep glibc's hardened allocator.
 
-The full dependency tree is **178 packages** (`cargo metadata`),
-every one permissively licensed — see [License](#license).
+The full dependency tree is **211 packages** (`cargo metadata` over the
+whole workspace — CLI plus the Python, C and Node bindings); the `cgg`
+binary itself links 137 of them. Every one is permissively licensed —
+see [License](#license).
 
 Every analysis phase is offline and deterministic — no network calls, no
 language servers, no build artifacts. cgg makes **no network requests at
@@ -468,7 +487,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(1949 callables, 4481 edges, 1701 cross-file, 150ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2019 callables, 4566 edges, 1719 cross-file, 131ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -480,112 +499,112 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 ```mermaid
 flowchart LR
   C2["cgg_walk::walk"]
-  C212["cgg::analyze"]
-  C213["cgg::analyze_in_pool"]
-  C214["cgg::langs_enabled"]
-  C215["cgg::dead_code_analysis"]
-  C219["cgg::why_live_proofs"]
-  C220["cgg::since_seeds"]
-  C221["cgg::count_lines"]
-  C222["cgg::read_file"]
-  C223["cgg::variant_to_kind"]
-  C225["cgg::synthesize_exit_nodes"]
-  C226["cgg::synthesize_entry_nodes"]
-  C227["cgg::trait_impl_target_from_qn"]
-  C228["cgg::dedup_edges"]
-  C230["cgg::query::apply_query"]
-  C231["cgg::query::apply_exclusions"]
-  C252["cgg::since::resolve_since"]
-  C284["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C286["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C294["cgg::outcome::Emission::line"]
-  C295["cgg::outcome::Emission::always"]
-  C303["cgg::options::RunOptions::dead_mode"]
-  C454["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C455["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C1430["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C1431["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C1432["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1452["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1459["cgg_lang::notebook::extract_python_source"]
-  C1501["cgg_resolve::dispatch::fanout"]
-  C1513["cgg_resolve::frameworks::detect"]
-  C1573["cgg_resolve::type_hints::build_return_type_map"]
-  C1574["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C1591["cgg_resolve::ffi::link_ffi"]
-  C1745["cgg_resolve::cross_file::resolve"]
-  C1759["cgg_resolve::descriptor::link_descriptors"]
-  C1766["cgg_resolve::intra_file::link_file"]
-  C1893["cgg_core::external::FileAliases::from_facts"]
-  C1894["cgg_core::external::classify_external"]
-  C1897["cgg_core::external::build_known_names"]
-  C1911["cgg_core::testfile::classify_test_file"]
-  C1920["cgg_core::graph::Graph::new"]
-  C1921["cgg_core::graph::Graph::add_callable"]
-  C1922["cgg_core::graph::Graph::add_file"]
-  C1923["cgg_core::graph::Graph::add_edge"]
-  C1931["cgg_core::profile::enable"]
-  C1934["cgg_core::profile::span"]
-  C212 --> C213
-  C213 --> C214
-  C213 --> C222
-  C213 --> C221
-  C213 --> C223
-  C213 --> C227
-  C213 --> C225
-  C213 --> C226
-  C213 --> C228
-  C213 --> C220
-  C213 --> C219
-  C213 --> C215
-  C1431 --> C1431
-  C213 --> C303
-  C213 --> C286
-  C213 --> C284
-  C213 --> C1931
-  C213 --> C2
-  C213 --> C1452
-  C213 --> C454
-  C213 --> C1430
-  C213 --> C1920
-  C213 --> C455
-  C213 --> C1459
-  C213 -->|18x| C1934
-  C213 --> C1431
-  C213 --> C1432
-  C213 --> C1911
-  C213 --> C1922
-  C213 --> C1921
-  C213 --> C1573
-  C213 --> C1574
-  C213 --> C1897
-  C213 --> C1766
-  C213 --> C1893
-  C213 --> C1894
-  C213 --> C1745
-  C213 --> C1591
-  C213 --> C1759
-  C213 --> C1513
-  C213 --> C1501
-  C213 --> C1923
-  C213 --> C252
-  C213 -->|2x| C295
-  C213 --> C230
-  C213 -->|4x| C294
-  C213 --> C231
-  C215 --> C1452
-  C215 --> C295
-  C215 --> C294
-  C219 --> C295
-  C225 -->|2x| C1922
-  C225 --> C1921
-  C225 --> C1923
-  C226 --> C1922
-  C226 --> C1921
-  C226 --> C1923
-  C230 --> C1920
-  C1513 -->|9x| C1934
-  C1745 -->|2x| C1934
+  C268["cgg::analyze"]
+  C269["cgg::analyze_in_pool"]
+  C270["cgg::langs_enabled"]
+  C271["cgg::dead_code_analysis"]
+  C275["cgg::why_live_proofs"]
+  C276["cgg::since_seeds"]
+  C277["cgg::count_lines"]
+  C278["cgg::read_file"]
+  C279["cgg::variant_to_kind"]
+  C281["cgg::synthesize_exit_nodes"]
+  C282["cgg::synthesize_entry_nodes"]
+  C283["cgg::trait_impl_target_from_qn"]
+  C284["cgg::dedup_edges"]
+  C286["cgg::query::apply_query"]
+  C287["cgg::query::apply_exclusions"]
+  C308["cgg::since::resolve_since"]
+  C340["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  C342["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  C350["cgg::outcome::Emission::line"]
+  C351["cgg::outcome::Emission::always"]
+  C359["cgg::options::RunOptions::dead_mode"]
+  C510["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C511["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C1486["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C1487["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C1488["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1508["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C1515["cgg_lang::notebook::extract_python_source"]
+  C1557["cgg_resolve::dispatch::fanout"]
+  C1569["cgg_resolve::frameworks::detect"]
+  C1629["cgg_resolve::type_hints::build_return_type_map"]
+  C1630["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C1646["cgg_resolve::ffi::link_ffi"]
+  C1800["cgg_resolve::cross_file::resolve"]
+  C1814["cgg_resolve::descriptor::link_descriptors"]
+  C1821["cgg_resolve::intra_file::link_file"]
+  C1948["cgg_core::external::FileAliases::from_facts"]
+  C1949["cgg_core::external::classify_external"]
+  C1952["cgg_core::external::build_known_names"]
+  C1966["cgg_core::testfile::classify_test_file"]
+  C1975["cgg_core::graph::Graph::new"]
+  C1976["cgg_core::graph::Graph::add_callable"]
+  C1977["cgg_core::graph::Graph::add_file"]
+  C1978["cgg_core::graph::Graph::add_edge"]
+  C1986["cgg_core::profile::enable"]
+  C1989["cgg_core::profile::span"]
+  C268 --> C269
+  C269 --> C270
+  C269 --> C278
+  C269 --> C277
+  C269 --> C279
+  C269 --> C283
+  C269 --> C281
+  C269 --> C282
+  C269 --> C284
+  C269 --> C276
+  C269 --> C275
+  C269 --> C271
+  C1487 --> C1487
+  C269 --> C359
+  C269 --> C342
+  C269 --> C340
+  C269 --> C1986
+  C269 --> C2
+  C269 --> C1508
+  C269 --> C510
+  C269 --> C1486
+  C269 --> C1975
+  C269 --> C511
+  C269 --> C1515
+  C269 -->|18x| C1989
+  C269 --> C1487
+  C269 --> C1488
+  C269 --> C1966
+  C269 --> C1977
+  C269 --> C1976
+  C269 --> C1629
+  C269 --> C1630
+  C269 --> C1952
+  C269 --> C1821
+  C269 --> C1948
+  C269 --> C1949
+  C269 --> C1800
+  C269 --> C1646
+  C269 --> C1814
+  C269 --> C1569
+  C269 --> C1557
+  C269 --> C1978
+  C269 --> C308
+  C269 -->|2x| C351
+  C269 --> C286
+  C269 -->|4x| C350
+  C269 --> C287
+  C271 --> C1508
+  C271 --> C351
+  C271 --> C350
+  C275 --> C351
+  C281 -->|2x| C1977
+  C281 --> C1976
+  C281 --> C1978
+  C282 --> C1977
+  C282 --> C1976
+  C282 --> C1978
+  C286 --> C1975
+  C1569 -->|9x| C1989
+  C1800 -->|2x| C1989
 ```
 <!-- cgg:end:self -->
 
@@ -695,17 +714,15 @@ function each call site actually targets:
    containment with receiver-hint narrowing. Same-name candidates
    (`Parser::new` vs `Cursor::new`, `Self::new`) are disambiguated by
    the call's *owner* qualifier rather than abandoned
-3. **Stack-graphs resolution** — precise name resolution using
-   the cross-file import-chain resolver and type propagation
-   (stack-graphs was removed in the tree-sitter 0.26 upgrade;
-   `--stack-graphs` is accepted but has no effect)
-4. **Cross-file resolution** — walk import chains, `#include`
+3. **Cross-file resolution** — walk import chains, `#include`
    transitive closure (depth 8), pub-use re-export chains. Method calls
    on a receiver of known type resolve through an `(owner type, method)`
    index — including through import aliases (`use a::b::Engine as Motor`)
-5. **FFI linking** — detect `#[pyfunction]`, `#[wasm_bindgen]`,
+4. **FFI linking** — detect `#[pyfunction]`, `#[wasm_bindgen]`,
    `#[napi]`, `@JNI`, `[DllImport]`, `extern "C"` and link across
    language boundaries
+5. **Descriptor linking** — `$ref` and shape-member edges for the
+   interface languages (Smithy, Protobuf, GraphQL, OpenAPI, AsyncAPI)
 6. **Framework entry points** — recognise where control enters from
    outside the tree (a route decorator, a registration call, a base-type
    contract) and synthesize a `<framework-entry>` node for it. On by
@@ -784,6 +801,7 @@ is part of the qualified name, so it is filterable:
 | **`ffi`** | `#[no_mangle]`, pyo3/napi/JNI export | depends on the host |
 | **`lifecycle`** | `forward`, `onCreate`, `ServeHTTP` on an internal type | no |
 | **`test`** | test harness entry | no |
+| **`public`** | Solidity `public`/`external` contract function | yes — any address on the chain can call it |
 
 ```bash
 # Attack surface plus its blast radius
@@ -887,7 +905,7 @@ release.
 [[framework]]
 id       = "myfw"
 language = "python"
-kind     = "network"          # network | queue | schedule | cli | ffi | lifecycle | test
+kind     = "network"          # network | queue | schedule | cli | ffi | lifecycle | test | public
 detect   = ["myfw"]           # import prefixes proving the framework is in use
 attributes = ["endpoint"]     # shape A
 # registrars = ["get", "post"]      # shape B/C/E
@@ -1094,9 +1112,9 @@ know](#adding-a-framework-cgg-does-not-know).
   lines keep working.
 - **Dead-code findings are hypotheses, not facts.** `--dead-code` reports what
   cgg could not find a caller for, which is not the same as proving no caller
-  exists. On cgg's own source the highest-confidence band is roughly 20-45%
-  precise. Every report states this, and every finding carries the evidence
-  for and against it.
+  exists. How much of any band is genuinely dead is a manual-review question
+  cgg does not answer for you. Every report states this, and every finding
+  carries the evidence for and against it.
 - **Framework coverage is partial and always will be.** Entry nodes are
   *inferred* from markers cgg recognises, not observed: nothing in the
   source states that the call happens. A framework cgg does not
@@ -1151,14 +1169,18 @@ flight.
 
 Apache-2.0 OR MIT (dual). Every transitive dependency is permissively
 licensed: MIT, Apache-2.0 (including the LLVM exception), BSD-2-Clause,
-Unlicense, CC0-1.0, MIT-0, Zlib, and Unicode-3.0 (`unicode-ident`).
+Unlicense, CC0-1.0, MIT-0, Zlib, ISC (`libloading`, via the Node
+bindings' N-API stack), and Unicode-3.0 (`unicode-ident`).
 
 One crate, `r-efi` (a UEFI-target transitive dependency), offers
 `MIT OR Apache-2.0 OR LGPL-2.1-or-later` — a disjunction, so the
 operative license is MIT or Apache-2.0 and never the LGPL option. That
 string is the only copyleft identifier anywhere in the dependency tree
-(`cargo metadata` over all 178 packages); `Cargo.lock` itself records no
+(`cargo metadata` over all 211 packages); `Cargo.lock` itself records no
 license fields at all, so the lockfile is not where this is checked.
+Separately, `tree-sitter-graphql` declares no `license` field and ships a
+plain MIT `LICENSE` file instead, so it reads as unlicensed to a tool that
+only looks at metadata.
 
 The allow-list `cargo-deny` actually enforces is in `deny.toml` and is
 the authority; it is slightly wider than the set in use.

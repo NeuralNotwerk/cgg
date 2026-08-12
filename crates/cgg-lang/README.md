@@ -3,9 +3,9 @@
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
 offline, deterministic call-graph generator for 44 languages.
 
-The language layer: extension/shebang/header detection, a tree-sitter parser
-pool, and 44 `LanguagePlugin` implementations that pull callables and raw call
-sites out of a syntax tree.
+The language layer: detection by shebang, content sniff, extension and `.h`
+header heuristic; a tree-sitter parser pool; and 44 `LanguagePlugin`
+implementations that pull callables and raw call sites out of a syntax tree.
 
 ## You probably want `cgg` instead
 

@@ -3,25 +3,66 @@
 What exists, what it takes to ship it, and what you personally have to do
 because it needs an account only you can own.
 
-Ordered by effort-to-value. The first two are close to free; the last two
-are real projects.
+Everything below was checked against the live registries and the workflow
+on 2026-08-12. Where a claim is about the world rather than the repo, the
+command that proves it is printed next to it.
 
-| Target | Artifact | Status | Blocked on you |
+| Target | Artifact | Status | Blocked on |
 | --- | --- | --- | --- |
-| GitHub Releases | source + binaries | shipping | nothing |
-| crates.io | 6 Rust crates | **published** | nothing |
-| PyPI | `cgg-callgraphgenerator` wheel | **published** (Linux x86_64) | other platforms need CI |
-| GitHub Releases (bin) | CLI + `libcgg` | not wired | nothing |
-| npm | `cgg-callgraphgenerator` | **built, publishes on tag** | nothing |
-| NuGet | .NET package | **wrapper not written** | account + key |
-| Maven Central | Java artifact | **wrapper not written** | Sonatype + GPG |
+| crates.io | 6 Rust crates | **published, 0.6.3** | nothing |
+| PyPI | `cgg-callgraphgenerator` wheel | **published, 0.6.3** (Linux x86_64 only) | a tag, for the other platforms |
+| GitHub Releases (source) | auto tarballs | shipping (7 releases) | nothing |
+| GitHub Releases (binaries) | CLI + `libcgg` | **wired in CI, never run** | a tag |
+| npm | `cgg-callgraphgenerator` | **wrapper written + green in CI, NOT published** | a tag |
+| NuGet | .NET package | wrapper not written | account + key |
+| Maven Central | Java artifact | wrapper not written | Sonatype + GPG |
+
+**The single thing blocking three of those rows is a tag.** The newest tag
+is `v0.6.1`; the release workflow landed *after* it, so no tag has ever
+exercised it. Meanwhile 0.6.2 and 0.6.3 went to crates.io and PyPI from
+this machine, so the registries are ahead of the tags.
+
+```bash
+git tag --list 'v*'                                    # newest: v0.6.1
+git log --oneline --follow -- .github/workflows/release.yml | tail -1
+                                                       # dbf2612, after v0.6.1
+gh api repos/NeuralNotwerk/cgg/releases \
+  -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # every one: assets=0
+```
+
+---
+
+## 0. Before any of it: `scripts/release.sh`
+
+```bash
+scripts/release.sh --purpose "what this release is for"
+```
+
+Runs every gate this project has, in order — build, test, clippy, fmt,
+docs-check, determinism — then measures perf against the previous release,
+then drafts the CHANGELOG from the measured numbers. **It never commits,
+tags or pushes.** It prints the commands and stops.
+
+`--quick` for gates only, `--skip-ai` to measure without generating prose,
+`--skip-perf` to skip the corpus comparison. Version numbers come from
+`Cargo.toml` unless you pass `--version`.
+
+Published performance numbers are taken at `--jobs 1`. Do not put a number
+in the CHANGELOG that this script did not produce.
 
 ---
 
 ## 1. crates.io — published
 
-All six crates are live at 0.6.1. `cargo install cgg` works, and the
-library can be depended on by version.
+All six publishable crates are live at 0.6.3.
+
+```bash
+# crates.io rejects curl's default User-Agent; -A is not optional here.
+for c in cgg cgg-core cgg-walk cgg-format cgg-lang cgg-resolve; do
+  curl -s -A cgg-release-check "https://crates.io/api/v1/crates/$c" \
+    | jq -r --arg c "$c" '"\($c) \(.crate.max_version)"'
+done
+```
 
 ```bash
 scripts/publish-crates.sh --dry-run   # packages everything, uploads nothing
@@ -34,34 +75,40 @@ Prerequisites, for the record:
    rejected with `400 A verified email address is required` — nothing is
    consumed, but nothing publishes either.
 2. A token from <https://crates.io/settings/tokens>, then
-   `cargo login < ~/.crates.io.token`.
+   `cargo login < /path/to/token`.
 
-### Two things that bite on a first release
+### Two things that bit on the first release
 
 **New-crate rate limiting.** crates.io allows a burst of new crates and
 then roughly one per ten minutes. A six-crate workspace hits it — ours
 failed on the sixth and most important one with `429 Too Many Requests`,
 after the other five had published. The version is not consumed by a
-failed upload, so the fix is to wait and retry that crate alone. The
-script now parses the retry time out of the error and waits. Publishing a
+failed upload, so the fix is to wait and retry that crate alone.
+`publish_with_retry` in the script now greps for `429 Too Many Requests`,
+parses the retry time out of the message and sleeps until it. Publishing a
 new *version* of an existing crate is not limited, so this is a
 first-release problem only.
 
-**Order is not optional.** Each crate must be on crates.io before
-anything depending on it can even be packaged, and the index is a CDN, so
-the script waits for each to become visible before continuing.
+**Order is not optional.** Each crate must be on crates.io before anything
+depending on it can even be packaged, and the sparse index is a CDN, so
+`wait_for_index` polls `https://index.crates.io/…` for the exact version
+before continuing.
 
-The fixed order is:
+The fixed order, from `CRATES=(…)` in the script:
 
 ```
 cgg-core → cgg-walk → cgg-format → cgg-lang → cgg-resolve → cgg
 ```
 
-`cgg-py` and `cgg-ffi` are `publish = false`: the artifact anyone wants
-from those is a wheel and a shared library, not a crate.
+`cgg-py`, `cgg-ffi` and `cgg-node` are `publish = false`: the artifact
+anyone wants from those is a wheel, a shared library and an npm package,
+not a crate.
 
 > **Publishing is forever.** A version can be yanked but never deleted,
 > and the name is claimed permanently. Dry run first.
+
+No workflow publishes crates.io. It is the one registry where a bad upload
+cannot be corrected by re-running, so it stays a deliberate local act.
 
 ---
 
@@ -73,32 +120,46 @@ Live: <https://pypi.org/project/cgg-callgraphgenerator/>
 pip install cgg-callgraphgenerator
 ```
 
-`abi3-py39` means **one wheel per platform covers every CPython ≥ 3.9**,
-so the matrix is platforms, not platform × Python version — about six
-wheels, not thirty. Only the Linux x86_64 one is published so far.
+Three releases are up — 0.6.1, 0.6.2, 0.6.3 — and each carries exactly one
+manylinux x86_64 wheel. Only 0.6.1 also has an sdist. macOS and Windows
+wheels build green in CI but have never been uploaded, because that
+happens on a tag and there has not been one.
+
+```bash
+curl -s https://pypi.org/pypi/cgg-callgraphgenerator/json \
+  | jq '.releases | map_values(map(.filename))'
+```
+
+`abi3-py39` means **one wheel per platform covers every CPython ≥ 3.9**, so
+the matrix is platforms, not platform × Python version — five wheels in
+`release.yml`, not thirty-five.
 
 ### The name
 
-**Distribution `cgg-callgraphgenerator`, import `cgg`.** PyPI's `cgg` is
-an unrelated GGUF tool — 49 releases, actively maintained — so the short
-name was never available.
+**Distribution `cgg-callgraphgenerator`, import `cgg`.** PyPI's `cgg` is an
+unrelated GGUF tool, so the short name was never available. npm's `cgg` is
+taken too — a ChampionGG API wrapper, five versions, untouched since 2022 —
+which is why the Node package carries the same long name.
 
-That package also ships a top-level `cgg` module, so the import names
-collide. We took the collision knowingly: `import cgg` matches the CLI,
-the crate and every example, and Python separates distribution from
-import name routinely. The cost is that **the two packages must not share
-an environment** — both write to `site-packages/cgg/` and pip will not
-stop you. Documented in the README and the module README.
+```bash
+curl -s https://registry.npmjs.org/cgg | jq '{name, description}'
+```
 
-`cgg-callgraphgen` is also free if the shorter form is ever preferred;
-only `[project].name` changes.
+The PyPI package also ships a top-level `cgg` module, so the import names
+collide. We took the collision knowingly: `import cgg` matches the CLI, the
+crate and every example, and Python separates distribution from import name
+routinely. The cost is that **the two packages must not share an
+environment** — both write to `site-packages/cgg/` and pip will not stop
+you. Documented in the README and the module README.
+
+`cgg-callgraphgen` is also free if the shorter form is ever preferred; only
+`[project].name` changes.
 
 ### Building a wheel PyPI will accept
 
-**PyPI rejects plain `linux_x86_64` wheels.** Only `manylinux`-tagged
-ones are accepted, and a wheel built on a modern box links a glibc newer
-than most users have (this machine: 2.39). Build in maturin's container
-instead — CentOS 7, glibc 2.17, so the wheel runs essentially everywhere:
+**PyPI rejects plain `linux_x86_64` wheels.** Only `manylinux`-tagged ones
+are accepted, and a wheel built on a modern box links a glibc newer than
+most users have. Build in maturin's container instead:
 
 ```bash
 docker run --rm -v "$PWD:/io" -w /io \
@@ -109,15 +170,19 @@ docker run --rm -v "$PWD:/io" -w /io \
 ```
 
 Run it as **root** (the default). Passing `--user` fails with
-`Permission denied` starting `cargo metadata`, because the toolchain in
-the image is root-owned. Chown the outputs back afterwards:
+`Permission denied` starting `cargo metadata`, because the toolchain in the
+image is root-owned. Chown the outputs back afterwards:
 
 ```bash
 docker run --rm -v "$PWD:/io" --entrypoint chown ghcr.io/pyo3/maturin \
   -R "$(id -u):$(id -g)" /io/dist /io/target/manylinux /io/target/manylinux-cargo
 ```
 
-`scripts/publish-python.sh` wraps both steps plus the upload.
+`scripts/publish-python.sh` wraps both steps, asserts the wheel is
+manylinux-tagged, checks the wheel's embedded description still matches
+`README.md` on disk — 0.6.1 shipped a stale one telling everyone to
+`pip install cgg`, the wrong project, and PyPI metadata cannot be edited
+after upload — then installs it into a venv, runs pytest and twine.
 
 ### Upload
 
@@ -127,122 +192,174 @@ scripts/publish-python.sh            # uploads, asks you to confirm
 ```
 
 Needs a token at <https://pypi.org/manage/account/token/> in
-`~/.pypi.token`. Scope it to the project after the first upload; the
-first one needs an account-wide token because the project does not exist
-yet.
+`~/.pypi.token` (or `$PYPI_TOKEN_FILE`). Scope it to the project after the
+first upload; the first one needs an account-wide token because the project
+does not exist yet.
 
-### Other platforms
-
-The command above produces a Linux x86_64 wheel only. macOS and Windows
-need a CI matrix — `PyO3/maturin-action` across `ubuntu-latest`,
-`macos-latest` (x86_64 + aarch64) and `windows-latest`. `abi3-py39` means
-one wheel per *platform* covers every CPython ≥ 3.9, so that is about six
-wheels, not thirty.
-
-**Size note:** ~99 MB on disk, ~10 MB compressed — comfortably under
-PyPI's 100 MB per-file limit, but do not add grammars carelessly.
+**Size.** The published 0.6.3 wheel is **10.1 MB** compressed and unpacks to
+**104 MB**, essentially all of it `cgg/_cgg.abi3.so` at 103.9 MB. PyPI's
+limit applies to the uploaded file, which is the 10.1 MB one, and the
+default cap is 100 MiB — so there is an order of magnitude of headroom, but
+44 vendored grammars is what fills the 104 MB. Add more carefully.
 
 ---
 
 ## 2b. Releasing from a tag (CI)
 
-`NPM_TOKEN` and `PYPI_API_TOKEN` are set as repository secrets, and the
-`release` environment exists, so a `v*` tag builds everything and
-publishes PyPI and npm without anyone holding a token locally.
+`.github/workflows/release.yml` triggers on `push` of a `v*` tag and on
+`workflow_dispatch`. Five jobs:
+
+| Job | Matrix | Produces |
+| --- | --- | --- |
+| `wheels` | linux x86_64/aarch64, macOS x86_64/arm64, windows x64 | 5 abi3 wheels, smoke-tested by importing and analysing |
+| `sdist` | — | source distribution |
+| `node` | linux x64/arm64-gnu, darwin x64/arm64, win32 x64-msvc | 5 `.node` binaries, smoke-tested by `require()` + analyse |
+| `binaries` | linux x86_64, macOS arm64, windows x64 | `cgg` + `libcgg`/`cgg.dll` + `cgg.h` + licences, one tar.gz per platform |
+| `publish` | needs all four | GitHub release assets, PyPI upload, npm publish |
+
+`NPM_TOKEN` and `PYPI_API_TOKEN` exist as repository secrets and the
+`release` environment exists, so a tag publishes without anyone holding a
+token locally. The environment currently has **no protection rules** — add
+an approval gate in repo settings if you want one; the publish job already
+targets it.
+
+```bash
+gh api repos/NeuralNotwerk/cgg/actions/secrets -q '.secrets[].name'
+gh api repos/NeuralNotwerk/cgg/environments \
+  -q '.environments[] | "\(.name) rules=\(.protection_rules|length)"'
+```
 
 ```bash
 git tag -a v0.6.4 -m "…" && git push origin v0.6.4
 ```
 
 `workflow_dispatch` runs the identical matrix and publishes **nothing** —
-the publish job is gated on `refs/tags/v`. Dispatch first; a tag is the
-expensive way to discover a typo.
+the publish job is `if: startsWith(github.ref, 'refs/tags/v')`. Dispatch
+first; a tag is the expensive way to discover a typo. The most recent
+dispatch (run 31554017653) was green: all 14 build jobs succeeded in about
+five minutes and `publish` was skipped, exactly as designed.
+
+```bash
+gh run list --workflow=release.yml -L 1
+gh run view 31554017653 --json jobs -q '.jobs[] | "\(.name) \(.conclusion)"'
+```
 
 Two things the tag path does **not** cover:
 
 * **crates.io.** No workflow publishes it; run `scripts/publish-crates.sh`
-  by hand. It is the one registry where a bad upload cannot be corrected
-  by re-running, so it stays deliberate.
-* **Ordering.** If a version is already on PyPI, the upload step skips it
-  (`skip-existing: true`) rather than failing. npm has no equivalent — a
-  version already published makes the npm step fail, so do not publish a
-  version locally and then tag it.
+  by hand. See §1.
+* **Re-running a tag.** PyPI's step sets `skip-existing: true`, so an
+  already-uploaded file is skipped rather than failing. npm has no
+  equivalent: a version already on the registry makes the npm step fail.
+  Do not publish a version locally and then tag it.
 
-Add an approval gate, if you want one, on the `release` environment in
-repo settings; the publish job already targets it.
-
----
-
-## 3. Prebuilt binaries on GitHub Releases — free, do it next
-
-The cheapest reach for the most users, and it needs no account at all.
-Every release should attach:
-
-- `cgg-<version>-<target>.tar.gz` — the CLI
-- `libcgg-<version>-<target>.tar.gz` — `libcgg.so`/`.a` + `cgg.h`, so C,
-  .NET, Java and Go users have something to link without a Rust toolchain
-
-`taiki-e/upload-rust-binary-action` does the CLI half in a few lines.
-This also unblocks a Homebrew tap and a Scoop manifest later, both of
-which just point at these URLs.
+The PyPI step still passes `password: ${{ secrets.PYPI_API_TOKEN }}`.
+Trusted publishing would remove the token entirely — configure the
+publisher at
+<https://pypi.org/manage/project/cgg-callgraphgenerator/settings/publishing/>
+(owner `NeuralNotwerk`, repo `cgg`, workflow `release.yml`, environment
+`release`) and delete that line.
 
 ---
 
-## 4. npm, NuGet, Maven Central — wrappers first
+## 3. Prebuilt binaries on GitHub Releases — wired, waiting on a tag
 
-**None of these have a wrapper yet.** The C ABI (`crates/cgg-ffi`) is the
-foundation all three ride on, and it is done and tested — but the
-language-side binding is still to write.
+The `binaries` job builds the CLI and the C ABI for linux-x86_64,
+macos-arm64 and windows-x64, packs each with `cgg.h`, `README.md` and both
+licences into `cgg-<tag>-<platform>.tar.gz`, and `publish` attaches them
+with `softprops/action-gh-release`. None of the seven existing releases has
+a single asset, because all seven predate that workflow.
 
-Rough order of effort:
+Note the current archive naming is one tar.gz per platform containing both
+the CLI and `libcgg` — not the separate `cgg-…`/`libcgg-…` archives an
+earlier draft of this document proposed. If you want them split, change the
+`Package` step; nothing downstream depends on the current shape yet.
 
-### npm (Node)
+Attached binaries are also what a Homebrew tap or a Scoop manifest would
+point at, so the first tag unblocks both.
 
-Two routes:
+---
 
-- **napi-rs** (recommended) — a native module, best DX, `@cgg/core` plus
-  per-platform `@cgg/core-linux-x64-gnu` packages. Mirrors what
-  `crates/cgg-py` already does; `napi-rs/action` handles the matrix.
-- **ffi-napi over the C ABI** — no native build, but slower and drags in
-  a fragile dependency. Not worth it here.
+## 4. npm — written and green, never published
 
-You need: an npm account, `NPM_TOKEN` as a secret, and an `@yourscope`
-organisation if you want scoped packages.
+**The wrapper exists.** `crates/cgg-node` is a napi-rs N-API module — not
+`ffi-napi` over the C ABI, which would have been slower and dragged in a
+fragile dependency. npm needs a per-platform artifact either way, so the C
+ABI bought nothing here.
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  https://registry.npmjs.org/cgg-callgraphgenerator     # 404 — not published
+```
+
+Package layout, from `crates/cgg-node/package.json` and `npm/*/`:
+
+* main package `cgg-callgraphgenerator` (`index.js` + `index.d.ts`)
+* five platform packages `cgg-callgraphgenerator-{linux-x64-gnu,
+  linux-arm64-gnu, darwin-x64, darwin-arm64, win32-x64-msvc}`
+
+Unscoped, so no npm organisation is needed. `napi prepublish` moves each
+`.node` into its platform package, publishes those, then publishes the main
+package that depends on them — order matters, since the main package's
+`optionalDependencies` must already exist. That is what the `Publish to
+npm` step runs, using `NPM_TOKEN`, which is already set.
+
+So: **an npm account owning the name is the only remaining requirement, and
+the first `v*` tag ships it.**
+
+Build and test it locally:
+
+```bash
+cd crates/cgg-node
+npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release
+node --test tests/*.test.js     # includes parity against target/release/cgg
+```
+
+---
+
+## 5. NuGet and Maven Central — wrappers first
+
+Neither has a wrapper. The C ABI (`crates/cgg-ffi`, seven exported
+functions, header at `crates/cgg-ffi/include/cgg.h`) is the foundation both
+ride on, and it is done and tested — but the language-side binding is still
+to write.
 
 ### NuGet (.NET)
 
-The easiest of the three. P/Invoke over `cgg.h` is pure C# — no native
-build on the .NET side — and native libraries ship in
-`runtimes/<rid>/native/` inside one package.
+The easier of the two. P/Invoke over `cgg.h` is pure C# — no native build
+on the .NET side — and native libraries ship in `runtimes/<rid>/native/`
+inside one package. The `binaries` job already produces the `libcgg` half
+for three platforms.
 
 You need: a nuget.org account and an API key.
 
 ### Maven Central (Java)
 
-The most painful, entirely for reasons outside the code. Use the
-**Foreign Function & Memory API** (JDK 22+) rather than JNI — no C shim
-to compile, and `jextract` generates bindings from `cgg.h` directly. Fall
-back to JNA only if you must support older JDKs.
+The most painful, entirely for reasons outside the code. The **Foreign
+Function & Memory API** (JDK 22+) avoids a JNI shim and `jextract` can
+generate bindings from `cgg.h` directly; JNA is the fallback if older JDKs
+must be supported.
 
-You need: a Sonatype Central account, a **verified namespace** (proving
-you control `io.github.neuralnotwerk` or a domain), and a **published GPG
-key** — every artifact must be signed. Budget a day for the account
-setup alone, separate from the code.
+You need: a Sonatype Central account, a **verified namespace** (proving you
+control `io.github.neuralnotwerk` or a domain), and a **published GPG
+key** — every artifact must be signed. Budget the account setup separately
+from the code.
 
 ---
 
 ## Recommended order
 
-1. **Verify the crates.io email** and run `scripts/publish-crates.sh`.
-   Everything is ready; this is minutes of your time.
-2. **Attach binaries to GitHub Releases.** No account, wide reach,
-   unblocks Homebrew/Scoop later.
-3. **PyPI.** The wheel already works; this is a CI workflow.
-4. **npm**, then **NuGet**, then **Maven** — each needs its wrapper
-   written first, and each is a genuinely separate piece of work.
+1. **Tag.** `scripts/release.sh --purpose …`, then `git tag -a v0.6.4`.
+   One action ships the npm package, the macOS/Windows wheels and the first
+   prebuilt binaries, all of which already build green.
+2. **Run `scripts/publish-crates.sh`** for the same version. It is the one
+   registry CI deliberately does not touch.
+3. **Switch PyPI to trusted publishing** and delete `PYPI_API_TOKEN`.
+4. **NuGet**, then **Maven** — each needs its wrapper written first, and
+   each is a genuinely separate piece of work.
 
 A note on doing all of them: every registry is a permanent commitment to
-users who install from it. Four half-maintained bindings serve people
-worse than two that work. The C ABI is deliberately shaped so that adding
-a language is a source-only wrapper — no new native artifact — so there
-is no rush to claim them all at once.
+users who install from it. Four half-maintained bindings serve people worse
+than two that work. The C ABI is deliberately shaped so that adding a
+language is a source-only wrapper — no new native artifact — so there is no
+rush to claim them all at once.

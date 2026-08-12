@@ -7,12 +7,13 @@ description: Use the `cgg` call-graph CLI to map function-level call relationshi
 
 `cgg` is an offline, language-agnostic CLI that turns source code into
 a mermaid call graph in milliseconds. A typical library or service
-finishes in well under a second; a large application (NetBox, ~1,300
-analyzed files) takes a few seconds. Very large trees — hundreds of
-thousands of callables — still take minutes, so scope with a path
-argument rather than pointing it at a monorepo root. Output is plain
-text designed for direct injection into a prompt, so use it to reason
-about call relationships *before* you edit.
+finishes in well under a second (cgg's own `crates/`: 125 files
+analyzed, ~140 ms); a large application takes a few seconds (NetBox:
+1,273 analyzed files, ~3 s). A really big tree — the Flutter SDK, say
+— runs for many minutes, so scope with a path argument rather than
+pointing it at a monorepo root. Output is plain text designed for
+direct injection into a prompt, so use it to reason about call
+relationships *before* you edit.
 
 ## When to reach for cgg
 
@@ -38,13 +39,13 @@ deleting a constant with three referenced sites).
 ## Check it's installed
 
 Run `which cgg` once. If missing, surface the install command to the
-user and stop — `cargo install` takes minutes and shouldn't run
-without confirmation:
+user and stop — `cargo install` compiles 44 tree-sitter grammars and
+shouldn't run without confirmation:
 
 ```bash
-cargo install --git https://github.com/NeuralNotwerk/cgg
+cargo install cgg --locked
 # or, from inside a clone of the cgg repo:
-cargo install --path crates/cgg
+cargo install --path crates/cgg --locked
 ```
 
 If the user declines or doesn't have Rust, fall back to grep/Read.
@@ -64,11 +65,12 @@ Almost every useful invocation is a combination of these two:
   `auth::login`, `MyClass.foo`, or `pkg.module.fn`. Prefix with
   `glob:` for glob syntax. Repeatable — multiple filters OR together.
   This is what makes cgg precise rather than overwhelming.
-- **`-n N`** is the **hop depth** around each filter match. `-n 1` is
-  the right default. `-n 0` is special: it enumerates entry-to-exit
-  paths *passing through* the matches — use it when the question is
-  "what are all the ways this gets called?" rather than "what's
-  near it?".
+- **`-n N`** is the **hop depth** around each filter match. Omitting
+  `-n` gives the *whole* filtered graph, not one hop — always pass
+  `-n 1` explicitly as your starting point. `-n 0` is special: it
+  enumerates entry-to-exit paths *passing through* the matches — use
+  it when the question is "what are all the ways this gets called?"
+  rather than "what's near it?".
 
 Default output is mermaid to stdout. For anything bigger than ~50
 nodes, write to a file and Read it back rather than letting it flood
@@ -146,10 +148,29 @@ cgg . -t json -o /tmp/graph.json
 jq '.edges | length' /tmp/graph.json
 ```
 
-JSON output is the format for CI gates and drift detection — nodes
-carry qualified names, files, and kinds; edges carry confidence
-levels and resolver provenance. Useful for "fail the build if module
-A starts calling into module B's internals."
+JSON output is the format for CI gates and drift detection. Top-level
+keys are `callables`, `files`, `edges`, `unresolved`, `file_audits`,
+`metrics`. Two shapes to get right before writing a jq expression:
+
+- **`callables` is an object keyed by stringified id, not an array** —
+  `.callables[]` iterates values, but `.callables[0]` is an error. Each
+  value has `qualified_name`, `simple_name`, `kind`, `language`, `file`
+  (an index into `files`), `start_line`/`end_line`, `signature_hint`,
+  `visibility`.
+- **Edges use `src`/`dst`, not `from`/`to`**, and carry `site_line`,
+  `site_byte`, `confidence`, `via`, `resolver`.
+
+```bash
+# every callee of a given caller, by name
+jq -r --arg fn 'cgg::analyze_in_pool' '
+  (.callables | with_entries({key: .key, value: .value.qualified_name})) as $name
+  | [ $name | to_entries[] | select(.value == $fn) | .key | tonumber ] as $ids
+  | .edges[] | select(.src as $s | $ids | index($s)) | $name[(.dst|tostring)]
+' /tmp/graph.json | sort -u
+```
+
+Useful for "fail the build if module A starts calling into module B's
+internals."
 
 ### Restrict to one language in a polyglot tree
 
@@ -187,12 +208,25 @@ handler would otherwise have in-degree zero — which is a claim
 `<framework-entry>` node for each recognised entry point:
 
 ```text
-C0["<framework-entry>::network::flask::route('/users') ⟨framework entry callback⟩"]
-C0 -->|entry| C1["svc.list_users"]
+%% cgg: &lt;framework-entry&gt; nodes are SYNTHESIZED. No call to them exists
+%% in your source; they represent control entering from a framework.
+%% BEST EFFORT — see the coverage table for what cgg did and did not recognise.
+flowchart LR
+  C0["svc.list_users"]
+  C1["app.list_users"]
+  C2["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
+  C1 --> C0
+  C2 -->|entry| C1
 ```
 
+Note the mermaid escaping: the emitted label is `&lt;framework-entry&gt;`,
+not `<framework-entry>`. Match on the *unescaped* form in `--filter`
+(patterns run against qualified names, before escaping) but on the
+escaped form if you grep cgg's own output.
+
 These are **INFERRED, not observed** — nothing in the source says the
-call happens. Say so when relaying them. `--no-entry-nodes` opts out.
+call happens; cgg says so itself in the `%%` banner above the graph.
+Say so when relaying them. `--no-entry-nodes` opts out.
 
 The kind is part of the name, which makes the security query expressible:
 
@@ -204,8 +238,11 @@ cgg ./src --filter '<framework-entry>::network::' -n 3
 cgg ./src --exclude-partial '<framework-entry>::lifecycle::'
 ```
 
-Kinds: `network` (attack surface), `queue`, `schedule`, `cli`, `ffi`,
-`lifecycle`, `test`.
+Kinds: `network` (the only one cgg treats as attack surface), `queue`,
+`schedule`, `cli`, `ffi`, `lifecycle` (the default when no trust
+boundary is asserted), `test`, and `public` (a callable the *language*
+exposes to anyone with no framework involved — a Solidity
+`public`/`external` function).
 
 **Two things to relay honestly, every time:**
 
@@ -228,11 +265,25 @@ cgg ./src --dead-code -o g.mmd           # ...also g.mmd.deadcode.txt
 cgg ./src --why-live 'MyType::method$'   # why is this considered live?
 ```
 
-The graph owns stdout, so the report lands next to it: a
-`.deadcode.txt` / `.deadcode.json` sidecar when you pass `-o`, and
-stderr for the text report when you don't. `--dead-code-format json`
-needs a destination (`-o` or `--dead-code-report FILE`) — it will tell
-you so rather than writing unparseable JSON into the run summary.
+Under `--dead-code` the graph still owns stdout, so the report lands
+next to it: a `.deadcode.txt` / `.deadcode.json` sidecar when you pass
+`-o`, and stderr for the text report when you don't.
+`--dead-code-format json` needs a destination (`-o` or
+`--dead-code-report FILE`) — it will tell you so rather than writing
+unparseable JSON into the run summary.
+
+`--why-live` is the exception: its proof **replaces** the graph on
+stdout, so a run with `--why-live -o out.mmd` writes the proof to
+`out.mmd`, not mermaid. Don't pipe it somewhere expecting a diagram.
+It looks like this:
+
+```text
+cgg::read_file
+  LIVE — proof: 2 hop(s) from cgg::analyze [ExportedApi]
+   └→ cgg::analyze_in_pool                         ./cgg/src/lib.rs:134  direct / High
+   └→ cgg::read_file                               ./cgg/src/lib.rs:1608  direct / High
+  weakest hop: High
+```
 
 **BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT.** cgg reports
 what it could not find a caller for, which is not the same as proving no
@@ -246,14 +297,18 @@ route handlers, jobs and lifecycle methods no longer produce findings —
 *for the frameworks in the run's `recognised` list*. For anything under
 `seen, no rules`, the old caveat still applies in full.
 
-Relay findings as *candidates*, never as facts. On cgg's own source the
-highest-confidence band is roughly 20-45% precise. The report prints a
+Relay findings as *candidates*, never as facts. How much of any band is
+genuinely dead is a manual-review question — cgg reports that it found no
+caller, which is not the same as there being none. The report prints a
 per-language capability table; a "no" column means cgg was guessing for
 that language.
 
 `--why-live` is often a better answer to "what calls X?" than
-`--filter X -n 1`, because it prints the shortest proving path from an
-entry point rather than a neighbourhood.
+`--filter X -n 1`, because it prints the shortest proving path from a
+*root* rather than a neighbourhood. A root is whatever cgg treats as
+an entry: a framework entry point, an exported API, a declared root in
+`cgg-deadcode.toml`. The bracketed tag on the proof line
+(`[ExportedApi]` above) names which.
 
 ## Filter tips that save tokens
 
@@ -285,14 +340,18 @@ graph than reducing scope.
 
 ## Reading the output
 
-A mermaid flowchart from cgg looks like:
+A mermaid flowchart from cgg looks like this (real output of
+`cgg ./crates --filter 'cgg::read_file$' -n 1` on cgg's own tree):
 
 ```text
 flowchart LR
-  C213["cgg::analyze_in_pool"]
-  C222["cgg::read_file"]
-  C213 --> C222
+  C269["cgg::analyze_in_pool"]
+  C278["cgg::read_file"]
+  C269 --> C278
 ```
+
+Node ids (`C269`) are positional and have no meaning across runs —
+never quote them back to the user, quote the labels.
 
 Each node is a callable, labeled with its fully-qualified name. Each
 edge is a *resolved* call site — cgg doesn't emit edges it can't
@@ -301,11 +360,14 @@ the graph with guesses.
 
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
-into a single arrow with a multiplicity label — e.g. `C213 -->|3x| C222`
-in mermaid, or `n213 -> n222 [label="3x"];` in dot. The bare arrow form
-is used when the count is 1. JSON and GraphML still emit one edge per
-call site (with `site_line`/`site_byte`) so programmatic consumers
-don't lose call-frequency information.
+into a single arrow with a multiplicity label — e.g. `C269 -->|18x| C1989`
+in mermaid, or `n269 -> n1989 [label="18x"];` in dot. The bare arrow form
+is used when the count is 1. When an edge also carries a `Via` tag the
+label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.
+JSON and GraphML still emit one edge per call site (with
+`site_line`/`site_byte`) so programmatic consumers don't lose
+call-frequency information — on the run above, 60 mermaid arrows
+against 91 JSON/GraphML edges.
 
 If an edge you expected is missing, check the audit sidecar. It is a
 **JSON array of events**, not an object, so select the event first:
@@ -351,13 +413,19 @@ than emitting low-confidence edges.
 
 ## Performance and limits
 
-- Most projects finish in under a second; a large application takes a
-  few seconds (NetBox: 1,273 files, ~6.8s). Don't pre-optimize; just
-  run it. On a very large tree, narrow the *path* you point it at —
-  that is the only lever that matters, and `--filter` is not it
-  (filtering happens after the whole tree is parsed and resolved).
-- cgg uses every core by default. `--jobs N` caps it; the graph is the
-  same at any thread count.
+- Most projects finish in under a second (cgg's own `crates/`: 125
+  files analyzed, ~140 ms); a large application takes a few seconds
+  (NetBox: 2,637 files discovered, 1,273 analyzed, ~3.0 s). Don't
+  pre-optimize; just run it. On a very large tree, narrow the *path*
+  you point it at — that is the only lever that matters, and
+  `--filter` is not it (filtering happens after the whole tree is
+  parsed and resolved).
+- `--jobs` defaults to `0`, which means **auto: half the machine's
+  physical cores, capped at 8** and bounded by any cgroup quota — not
+  every core. Raise it explicitly (`--jobs 32`) on a big tree if the
+  machine has the cores; it helps on parse-bound trees and does
+  roughly nothing on resolve-bound ones, so measure rather than
+  assume. The graph is byte-identical at any thread count.
 - There is **no cache**, and no flag to control one. Every run
   re-parses from source, which is why a run is reproducible from the
   tree alone — and why a re-run costs the same as the first. If you

@@ -5,6 +5,72 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.6.4] - 2026-08-12
+
+Documentation correctness pass. No behaviour change; the code fixes below
+are to comments that ship inside published artifacts.
+
+### Fixed
+
+- **PyPI 0.6.2 and 0.6.3 shipped without an sdist**, so `pip install` on
+  macOS, Windows and aarch64 Linux failed outright with "no matching
+  distribution" — there was no source fallback to build from.
+  `scripts/publish-python.sh` only ever built the wheel. It now builds,
+  `twine check`s and uploads an sdist alongside every wheel, and the
+  missing 0.6.3 sdist was uploaded (verified by forcing a source install
+  from PyPI with `--no-binary :all:`).
+
+- **`crates/cgg-node` doc comments were wrong, and they ship to npm.**
+  `index.d.ts` is generated from them, so the types users read in their
+  editor claimed `toJson()` was "byte-identical to `cgg -t json`" (it
+  embeds per-run `parse_ms`/`wall_ms`; mermaid, dot and graphml *are*
+  byte-identical) and that the analysis runs on "libuv's thread pool"
+  (it is `spawn_blocking` on tokio's, via napi's `tokio_rt`). Both
+  corrected at the source and the stubs regenerated.
+
+- **The C example in `crates/cgg-ffi/README.md` did not compile** —
+  missing `<stdio.h>`, so `NULL`, `stderr`, `fputs` and `puts` were all
+  undeclared. It now builds clean under `-Wall -Wextra`.
+
+- **`CHANGELOG.md` had lost the whole `[0.6.2]` entry** while 0.6.2 was
+  live on two registries: an edit adding 0.6.3 replaced the header
+  instead of inserting before it, so 0.6.2's content sat under the
+  0.6.3 heading. Restored, and `docs-check` check 10 now fails on a
+  skipped patch version.
+
+### Documentation
+
+Every factual claim in every markdown file was re-verified against a
+command rather than accepted. The corrections that mattered most:
+
+- **A pipeline stage that does not exist.** README documented
+  "Stack-graphs resolution" as step 3 of the resolution pipeline;
+  descriptor linking was missing entirely.
+- **Verification commands that silently prove the wrong thing.** The
+  `push` and `docs-sync` skills told an agent to check plugin counts
+  with `rg -c 'plugin\.register'` (returns nothing — the calls are
+  `reg.register(`, so it "proves" zero plugins), to find
+  `trait_impl_target` in `main.rs` (it is in `lib.rs`, so it "proves"
+  dynamic dispatch was removed), and used `rg -E` as extended-regex
+  (it is `--encoding`, and errors). A verification procedure whose
+  commands lie is worse than none.
+- **Self-contradictions in `cgg-frameworks`**: bucket A pointed at
+  `root_attributes`, which is not a `FrameworkRule` field; "`detect` is
+  the gate" was disproven in both directions by live test; "route paths
+  are not captured" (they are — the gap is the HTTP verb); "there is no
+  `base = …` matcher" while the same doc documented `base_types`.
+- **Counts and measurements**: 178 → **211** dependency packages; six →
+  **seven** C ABI functions; seven → **eight** trust-boundary kinds
+  (`public` was missing); 40 → **44** grammars; `--jobs 32` is 1.4× on
+  pandoc, not "roughly twice as fast"; NetBox is ~3.0 s, not 6.8 s; and
+  the Python concurrency and speedup figures were re-measured.
+- **Unprovable claims deleted**, notably "the highest-confidence band is
+  roughly 20-45% precise", which has no provenance anywhere in the repo
+  and cannot be established without manually reviewing every finding.
+
+`docs-check` gains check 10 (CHANGELOG integrity) and its docstring's
+stale "Seven checks" is now eleven.
+
 ## [0.6.3] - 2026-08-12
 
 > Published to crates.io and PyPI. **Not tagged**, and not on npm — the
@@ -174,7 +240,7 @@ repository, or a repo set weighted towards it.
   else with an FFI, so a binding is source rather than another native
   artifact per language per platform.
 
-  Six functions. Options cross as a JSON document and results as strings,
+  Seven functions. Options cross as a JSON document and results as strings,
   which is the load-bearing decision: adding a cgg flag adds a JSON key,
   not an entry point, so **the ABI does not change when cgg gains a
   feature** and no wrapper needs rebuilding. It is affordable because

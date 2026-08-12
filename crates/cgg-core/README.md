@@ -3,9 +3,9 @@
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
 offline, deterministic call-graph generator for 44 languages.
 
-The substrate: `Graph`, callable and edge IDs, the audit schema, facts, and
-stdlib lookup tables. Every other cgg crate depends on this one; it depends
-on none of them.
+The substrate: `Graph`, the `CallableId` / `FileId` / `ResolverId` newtypes,
+the audit schema, facts, framework rules, and stdlib lookup tables. Every
+other cgg crate depends on this one; it depends on none of them.
 
 ## You probably want `cgg` instead
 

@@ -9,9 +9,9 @@
 //! per-platform artifact either way, so the C ABI would buy nothing here
 //! while costing an FFI dependency and a slower boundary.
 //!
-//! The analysis releases the JS thread — `analyze` is exposed as an async
-//! task, so a server calling it does not stall its event loop for the
-//! ~100ms+ a real tree takes.
+//! The analysis releases the JS thread — `analyze` hands the pipeline to
+//! `spawn_blocking`, so a server calling it does not stall its event loop
+//! for the ~130 ms a real tree takes.
 
 use std::sync::Arc;
 
@@ -307,7 +307,12 @@ impl Graph {
         cgg::emit::graph_to_string(&self.outcome.graph, OutputFormat::Mermaid)
     }
 
-    /// Render as `cgg.graph.v1` JSON, byte-identical to `cgg -t json`.
+    /// Render as `cgg.graph.v1` JSON.
+    ///
+    /// Matches `cgg -t json` except for the per-run parse timings it
+    /// embeds (`parse_ms`, `wall_ms`), which differ between any two runs
+    /// of any build. `toMermaid`, `toDot` and `toGraphml` carry no
+    /// timings and ARE byte-identical.
     #[napi]
     pub fn to_json(&self) -> String {
         cgg::emit::graph_to_string(&self.outcome.graph, OutputFormat::Json)
@@ -329,8 +334,10 @@ impl Graph {
 /// Analyze a source tree.
 ///
 /// Accepts one path or several. Returns a promise: the analysis runs on
-/// libuv's thread pool, not the JS thread, so an event loop stays
-/// responsive for the ~100ms+ a real tree costs.
+/// tokio's blocking pool via `spawn_blocking` (napi's `tokio_rt`
+/// feature), not on the JS thread, so an event loop stays responsive for
+/// the ~130 ms a real tree costs. Verified by counting timer ticks during
+/// a run: they keep firing under `analyze` and stop under `analyzeSync`.
 ///
 /// ```js
 /// const cgg = require("cgg-callgraphgenerator");
