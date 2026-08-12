@@ -124,8 +124,22 @@ jobs:
       # Nothing here needs a reproducible node_modules — the .node is
       # determined by Rust — so pinning the one tool we invoke is both
       # simpler and stricter than trusting a lock across platforms.
+      # cgg compiles C — blake3, and the vendored tree-sitter grammars —
+      # so an ARM build needs a cross-compiler the x86 runner does not
+      # ship. (The Python ARM wheel does not need this because maturin's
+      # manylinux container brings its own.)
+      - name: Install ARM cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
       - name: Build
         working-directory: crates/cgg-node
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release --target ${{ matrix.target }}
 
       # Load the module and make it analyse a real tree. A .node that
