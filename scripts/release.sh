@@ -137,12 +137,10 @@ else
         (cargo install cargo-deny --locked)"
 fi
 
-# Every tracked markdown file, not just the two that used to be listed —
-# the skills, INSTALL.md, PUBLISHING.md and the nine per-crate READMEs are
-# all published surfaces. `test_results/` is an archive of past runs and
-# is deliberately out of scope; the generated npm platform READMEs are
-# three lines each and written by the napi CLI.
-MD_FILES="$(git ls-files '*.md' | grep -vE 'crates/cgg-node/npm|^test_results/' | tr '\n' ' ')"
+# Every tracked markdown file. The skills, INSTALL.md, PUBLISHING.md and
+# the nine per-crate READMEs are all published surfaces. The generated npm
+# platform READMEs are three lines each, written by the napi CLI.
+MD_FILES="$(git ls-files '*.md' | grep -v 'crates/cgg-node/npm' | tr '\n' ' ')"
 
 if have npx; then
     # shellcheck disable=SC2086
