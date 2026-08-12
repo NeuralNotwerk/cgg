@@ -38,7 +38,7 @@ jobs:
           # Built under QEMU in a manylinux container. Slow (tens of
           # minutes for 44 grammars) but it needs no ARM runner.
           - { name: linux-aarch64, os: ubuntu-latest, target: aarch64-unknown-linux-gnu, manylinux: "2_28" }
-          - { name: macos-x86_64, os: macos-13, target: x86_64-apple-darwin }
+          - { name: macos-x86_64, os: macos-latest, target: x86_64-apple-darwin }
           - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
           - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
     steps:
@@ -61,7 +61,7 @@ jobs:
       # Prove the wheel imports and analyses before it is ever uploaded.
       # A wheel that builds and does not load is the failure this catches.
       - name: Smoke test
-        if: matrix.name != 'linux-aarch64' # runner cannot execute ARM
+        if: matrix.name != 'linux-aarch64' && matrix.name != 'macos-x86_64' # host cannot execute the target
         shell: bash
         run: |
           python -m pip install --find-links dist --no-index cgg-callgraphgenerator
@@ -106,7 +106,7 @@ jobs:
         include:
           - { name: linux-x64-gnu, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
           - { name: linux-arm64-gnu, os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
-          - { name: darwin-x64, os: macos-13, target: x86_64-apple-darwin }
+          - { name: darwin-x64, os: macos-latest, target: x86_64-apple-darwin }
           - { name: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin }
           - { name: win32-x64-msvc, os: windows-latest, target: x86_64-pc-windows-msvc }
     steps:
@@ -145,7 +145,7 @@ jobs:
       # Load the module and make it analyse a real tree. A .node that
       # builds and does not load is the failure a build-only matrix ships.
       - name: Smoke test
-        if: matrix.name != 'linux-arm64-gnu' # runner cannot execute ARM
+        if: matrix.name != 'linux-arm64-gnu' && matrix.name != 'darwin-x64' # host cannot execute the target
         working-directory: crates/cgg-node
         run: |
           node -e "
@@ -180,8 +180,14 @@ jobs:
       # The CLI and the C ABI together: someone linking libcgg needs the
       # header, and someone using the CLI needs neither. Shipping them in
       # one archive per platform keeps the release page short.
+      # Two invocations, not `-p cgg -p cgg-ffi`. Building the binary and
+      # the staticlib in one command fails to link on Windows with a wall
+      # of LNK2019 unresolved-symbol errors out of clap and alloc; built
+      # separately, each links cleanly.
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }} -p cgg -p cgg-ffi
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p cgg
+          cargo build --release --target ${{ matrix.target }} -p cgg-ffi
 
       - name: Package
         shell: bash
