@@ -38,11 +38,21 @@ pillow` gives you `import PIL`.
 The extension is built against the stable ABI (`abi3-py39`), so a single
 wheel per platform covers every CPython ≥ 3.9 — no per-version builds.
 
-**Prebuilt, that is one platform today: `manylinux_2_17_x86_64`.** 0.6.3
-also publishes an sdist, so `pip install` still works on macOS, Windows
-and aarch64 Linux — pip falls back to building from source there, which
-needs a Rust toolchain (≥ 1.85) and takes a few minutes. Wheels for those
-platforms build in CI and ship with the first tagged release.
+**Five prebuilt wheels, ~10 MB each**, so `pip install` needs no compiler
+on any of them:
+
+| Wheel | Covers |
+| --- | --- |
+| `manylinux_2_17_x86_64` | x86-64 Linux (glibc ≥ 2.17) |
+| `manylinux_2_28_aarch64` | arm64 Linux (glibc ≥ 2.28) |
+| `macosx_10_12_x86_64` | Intel macOS |
+| `macosx_11_0_arm64` | Apple-silicon macOS |
+| `win_amd64` | x86-64 Windows |
+
+An sdist ships too, so `pip install` still succeeds off that list — musl
+Linux (Alpine) and Windows on arm64 are the ones that reach for it. There
+pip builds from source, which needs a Rust toolchain (≥ 1.85) and takes a
+few minutes.
 
 ## Usage
 

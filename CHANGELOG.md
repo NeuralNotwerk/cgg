@@ -64,6 +64,34 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Fixed
 
+- **Docs claimed a distribution state that three releases had overtaken.**
+  All four registries have been on 0.6.5 since the tag, but the prose had
+  not caught up, and in two places it steered users away from a working
+  install:
+
+  - `README.md` announced "**It is not on npm yet** — `cgg-callgraphgenerator`
+    404s on the registry as of 0.6.3" under a heading reading *Node — built,
+    not yet published*, and told readers to build from a clone. The package
+    has been on npm since v0.6.4. Replaced with the `npm install` line, a
+    runnable snippet, and the `optionalDependencies` layout — verified in a
+    container: `added 2 packages`, the root plus only `linux-x64-gnu`, and
+    the snippet renders a graph.
+  - `crates/cgg-py/README.md` and `INSTALL.md` both said the only prebuilt
+    wheel was `manylinux_2_17_x86_64` and that macOS, Windows and aarch64
+    Linux fall back to a multi-minute source build. Five wheels have
+    shipped since 0.6.4. Corrected to the real matrix, with musl Linux and
+    Windows-on-arm64 named as what actually reaches the sdist — verified by
+    a clean `pip install`, which downloads the 10.1 MB wheel and builds
+    nothing.
+
+  `INSTALL.md` also pinned its download URL and `git clone --branch` to
+  v0.6.4, and `PUBLISHING.md` still described crates.io as "live at 0.6.3",
+  PyPI as one-wheel-per-release, and every GitHub release as `assets=0`.
+
+  None of this is checked by `docs-check.py`: its eleven checks cover
+  counts, flags and CHANGELOG structure, but nothing compares a prose claim
+  about a registry against that registry.
+
 - **The npm publish step could go green without publishing.**
   `napi prepublish` ships only the per-platform packages; the root
   package — the one users install — needs its own `npm publish`, which

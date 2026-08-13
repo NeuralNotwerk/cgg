@@ -23,12 +23,14 @@ purpose — it is the one registry where a bad upload cannot be corrected by
 re-running.
 
 ```bash
-git tag --list 'v*'                                    # newest: v0.6.1
-git log --oneline --follow -- .github/workflows/release.yml | tail -1
-                                                       # dbf2612, after v0.6.1
+git tag --list 'v*'                                    # newest: v0.6.5
 gh api repos/NeuralNotwerk/cgg/releases \
-  -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # every one: assets=0
+  -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # v0.6.4 and v0.6.5:
+                                                       # assets=3; older: 0
 ```
+
+The asset split is the history, not a bug: the release matrix landed in
+`dbf2612`, after v0.6.1, so every tag before v0.6.4 predates it.
 
 ---
 
@@ -89,7 +91,7 @@ in the CHANGELOG that this script did not produce.
 
 ## 1. crates.io — published
 
-All six publishable crates are live at 0.6.3.
+All six publishable crates are live at 0.6.5.
 
 ```bash
 # crates.io rejects curl's default User-Agent; -A is not optional here.
@@ -147,7 +149,7 @@ cannot be corrected by re-running, so it stays a deliberate local act.
 
 ---
 
-## 2. PyPI — published (Linux x86_64)
+## 2. PyPI — published (all five wheel platforms)
 
 Live: <https://pypi.org/project/cgg-callgraphgenerator/>
 
@@ -155,10 +157,12 @@ Live: <https://pypi.org/project/cgg-callgraphgenerator/>
 pip install cgg-callgraphgenerator
 ```
 
-Three releases are up — 0.6.1, 0.6.2, 0.6.3 — and each carries exactly one
-manylinux x86_64 wheel. Only 0.6.1 also has an sdist. macOS and Windows
-wheels build green in CI but have never been uploaded, because that
-happens on a tag and there has not been one.
+0.6.5 carries the full set the matrix builds — five abi3 wheels
+(`manylinux_2_17_x86_64`, `manylinux_2_28_aarch64`, `macosx_10_12_x86_64`,
+`macosx_11_0_arm64`, `win_amd64`) plus an sdist. Earlier releases are
+thinner: 0.6.2 and 0.6.3 went up by hand and carry one Linux wheel and no
+sdist, which is why `pip install` failed on macOS and Windows until 0.6.4
+tagged and let CI upload everything.
 
 ```bash
 curl -s https://pypi.org/pypi/cgg-callgraphgenerator/json \
@@ -231,7 +235,7 @@ Needs a token at <https://pypi.org/manage/account/token/> in
 first upload; the first one needs an account-wide token because the project
 does not exist yet.
 
-**Size.** The published 0.6.3 wheel is **10.1 MB** compressed and unpacks to
+**Size.** The published 0.6.5 wheel is **10.1 MB** compressed and unpacks to
 **104 MB**, essentially all of it `cgg/_cgg.abi3.so` at 103.9 MB. PyPI's
 limit applies to the uploaded file, which is the 10.1 MB one, and the
 default cap is 100 MiB — so there is an order of magnitude of headroom, but
@@ -265,14 +269,22 @@ gh api repos/NeuralNotwerk/cgg/environments \
 ```
 
 ```bash
-git tag -a v0.6.4 -m "…" && git push origin v0.6.4
+git tag -a vX.Y.Z -m "…" && git push origin vX.Y.Z
 ```
 
 `workflow_dispatch` runs the identical matrix and publishes **nothing** —
 the publish job is `if: startsWith(github.ref, 'refs/tags/v')`. Dispatch
-first; a tag is the expensive way to discover a typo. The most recent
-dispatch (run 31554017653) was green: all 14 build jobs succeeded in about
-five minutes and `publish` was skipped, exactly as designed.
+first; a tag is the expensive way to discover a typo. Run 31554017653 is
+the reference green dispatch: all 14 build jobs succeeded in about five
+minutes and `publish` was skipped, exactly as designed.
+
+**A dispatch can also hang rather than fail.** Four of them stalled
+indefinitely on `wheel (macos-x86_64)` and `node (darwin-x64)` waiting for
+macOS runners that never got allocated, and GitHub expired them at the 24h
+limit with every other job already green. If a run sits in `queued` for
+hours, that is what it is — cancel it and re-dispatch rather than waiting.
+The v0.6.5 tag run hit the same matrix and finished in 8 minutes, so it is
+capacity, not configuration.
 
 ```bash
 gh run list --workflow=release.yml -L 1

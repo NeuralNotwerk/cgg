@@ -9,7 +9,7 @@ containers are kept for post-publish retesting (`cgg-test-*`).
 | --- | --- | --- | --- |
 | **GitHub binaries** | `ca-certificates curl` | — | no |
 | **npm** | `nodejs npm` | — | no |
-| **PyPI** | `python3 python3-pip python3-venv` | — | no (x86_64 Linux) |
+| **PyPI** | `python3 python3-pip python3-venv` | — | no (wheel platforms) |
 | **crates.io** | `ca-certificates curl gcc libc6-dev` | rustup ≥ 1.85 | **yes** |
 | **GitHub source** | `ca-certificates curl git gcc libc6-dev` | rustup ≥ 1.85 | **yes** |
 
@@ -22,7 +22,7 @@ All five produce a byte-identical graph from the same input.
 ```bash
 apt-get install -y --no-install-recommends ca-certificates curl
 curl -fsSL -o cgg.tar.gz \
-  https://github.com/NeuralNotwerk/cgg/releases/download/v0.6.4/cgg-v0.6.4-linux-x86_64.tar.gz
+  https://github.com/NeuralNotwerk/cgg/releases/download/v0.6.5/cgg-v0.6.5-linux-x86_64.tar.gz
 tar xzf cgg.tar.gz -C /opt/cgg
 install -m755 /opt/cgg/cgg /usr/local/bin/cgg
 ```
@@ -58,9 +58,12 @@ error: externally-managed-environment
 ```
 
 `--break-system-packages` also works but is what the error is warning you
-against. On x86_64 Linux pip takes the prebuilt wheel and no toolchain is
-needed; on macOS, Windows and aarch64 it falls back to the sdist, which
-needs Rust ≥ 1.85 and several minutes.
+against.
+
+Wheels are published for x86-64 and arm64 Linux, Intel and Apple-silicon
+macOS, and x86-64 Windows, so pip takes a prebuilt one on all of those and
+needs no toolchain. Off that list — musl Linux, Windows on arm64 — it
+falls back to the sdist, which needs Rust ≥ 1.85 and several minutes.
 
 ## crates.io
 
@@ -87,7 +90,7 @@ Two requirements that are easy to get wrong:
 apt-get install -y --no-install-recommends ca-certificates curl git gcc libc6-dev
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 . "$HOME/.cargo/env"
-git clone --depth 1 --branch v0.6.4 https://github.com/NeuralNotwerk/cgg
+git clone --depth 1 --branch v0.6.5 https://github.com/NeuralNotwerk/cgg
 cd cgg && cargo build --release -p cgg
 ```
 

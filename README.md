@@ -271,7 +271,18 @@ on nothing but libc — the same promise the CLI makes.
 Renderer vs attribute cost, and what is not yet exposed:
 [`crates/cgg-py/README.md`](crates/cgg-py/README.md).
 
-### Node — built, not yet published
+### Node
+
+```bash
+npm install cgg-callgraphgenerator
+```
+
+```javascript
+const cgg = require("cgg-callgraphgenerator");
+
+const g = await cgg.analyze("./src");
+console.log(g.toMermaid());
+```
 
 `crates/cgg-node` is an N-API module over the same `cgg::analyze`:
 `analyze(paths, options)` returns a promise, `analyzeSync` blocks, and the
@@ -279,10 +290,14 @@ graph handle carries `toMermaid()` / `toJson()` / `toDot()` /
 `toGraphml()` alongside `callables`, `edges`, `files`, `metrics` and
 `notices`. TypeScript definitions are generated from the Rust.
 
-**It is not on npm yet** — `cgg-callgraphgenerator` 404s on the registry
-as of 0.6.3, so `npm install` will not get you this. Build it from a
-clone: `npm run build` in `crates/cgg-node` (`napi build --platform
---release`), which emits the `.node` addon beside `index.js`.
+The native binaries are `optionalDependencies`, one package per platform —
+`linux-x64-gnu`, `linux-arm64-gnu`, `darwin-x64`, `darwin-arm64`,
+`win32-x64-msvc` — so an install pulls the root plus **only** the one
+binary your host needs. No compiler and no Rust toolchain.
+
+To build from a clone instead: `npm run build` in `crates/cgg-node`
+(`napi build --platform --release`), which emits the `.node` addon beside
+`index.js`.
 
 ## How it works
 
@@ -491,7 +506,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2020 callables, 4568 edges, 1719 cross-file, 126ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2020 callables, 4568 edges, 1719 cross-file, 116ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
