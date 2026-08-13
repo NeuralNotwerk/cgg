@@ -140,6 +140,14 @@ APPS=(
     "app-plausible-phoenix|https://github.com/plausible/analytics.git|express,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug,react,~phoenix-channel"
     "app-hono-examples|https://github.com/honojs/examples.git|hono,~react"
     "app-unity-gamekit|https://github.com/Unity-Technologies/EndlessRunnerSampleGame.git|csharp-disposable,unity"
+    # AWS Lambda spans six languages and two registration mechanisms, so
+    # it takes three applications to exercise. cdk-examples is the one
+    # that matters most: it is the only app in this list where the entry
+    # points are named by a *string in the infrastructure code* rather
+    # than by anything in the handler's own file.
+    "app-powertools-lambda|https://github.com/aws-powertools/powertools-lambda-python.git|aws-lambda,aws-lambda-powertools,aws-cdk"
+    "app-awslambda-go|https://github.com/aws/aws-lambda-go.git|aws-lambda-go,net-http"
+    "app-cdk-examples|https://github.com/aws-samples/aws-cdk-examples.git|aws-cdk,aws-lambda,aws-lambda-go,junit"
 )
 
 # Framework rules with NO application in the APPS manifest above.

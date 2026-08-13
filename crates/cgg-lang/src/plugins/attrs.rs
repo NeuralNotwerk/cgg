@@ -202,10 +202,7 @@ fn split_type_list(raw: &str) -> Vec<String> {
     for kw in ["extends", "implements", "public", "private", "protected"] {
         s = s.trim_start_matches(kw).trim_start();
     }
-    let s = s
-        .trim_start_matches(['(', ':', '<', '['])
-        .trim_end_matches([')', ']', '>'])
-        .trim();
+    let s = trim_unbalanced_close(s.trim_start_matches(['(', ':', '<', '[']).trim());
 
     let mut parts: Vec<String> = Vec::new();
     let mut depth = 0i32;
@@ -241,6 +238,30 @@ fn split_type_list(raw: &str) -> Vec<String> {
         .collect()
 }
 
+/// Strip trailing closers that close nothing — the container's own
+/// delimiter, left over after the matching opener was trimmed.
+///
+/// A blanket `trim_end_matches` cannot tell that apart from the `>` of a
+/// generic argument list, and eating it truncates
+/// `RequestHandler<String, String>` into `RequestHandler<String, String`
+/// — which then fails every downstream check. Java's
+/// `implements Foo<A, B>` is exactly that shape.
+fn trim_unbalanced_close(s: &str) -> &str {
+    let mut t = s.trim_end();
+    while let Some(last) = t.chars().last() {
+        if !matches!(last, ')' | ']' | '>') {
+            break;
+        }
+        let opens = t.chars().filter(|c| matches!(c, '(' | '[' | '<')).count();
+        let closes = t.chars().filter(|c| matches!(c, ')' | ']' | '>')).count();
+        if closes <= opens {
+            break;
+        }
+        t = t[..t.len() - last.len_utf8()].trim_end();
+    }
+    t
+}
+
 /// Whether a token looks like a type name rather than a keyword
 /// argument, a literal, or grammar noise.
 fn is_type_name(s: &str) -> bool {
@@ -249,7 +270,14 @@ fn is_type_name(s: &str) -> bool {
         return false;
     }
     // `metaclass=Meta` and `**kwargs` are not base types.
-    if s.contains('=') || s.starts_with('*') || s.contains(' ') {
+    if s.contains('=') || s.starts_with('*') {
+        return false;
+    }
+    // A space is legal *inside* generic arguments — `Map<String, Long>`,
+    // `RequestHandler<S3Event, String>` — and nowhere else. Outside them
+    // it means the splitter handed over two types it could not separate
+    // (`A implements B`), which is not one type with a space in it.
+    if s.split(['<', '[']).next().unwrap_or(s).contains(' ') {
         return false;
     }
     if matches!(
@@ -260,7 +288,8 @@ fn is_type_name(s: &str) -> bool {
     }
     s.starts_with(|c: char| c.is_alphabetic() || c == '_')
         && s.chars().all(|c| {
-            c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '<' | '>' | ',' | '\\')
+            c.is_alphanumeric()
+                || matches!(c, '_' | '.' | ':' | '<' | '>' | ',' | '\\' | ' ')
         })
 }
 
@@ -283,6 +312,30 @@ mod tests {
             split_type_list(": IConsumer<Order, Item>, IJob"),
             vec!["IConsumer<Order, Item>", "IJob"]
         );
+        // A generic's own `>` must survive. Trimming it as if it were
+        // the container's delimiter truncated Java's
+        // `implements RequestHandler<String, String>` into a token no
+        // rule could match, which is why AWS Lambda's Java handler —
+        // the one runtime where the entry point is a declared contract
+        // — produced no entry at all.
+        assert_eq!(
+            split_type_list("implements RequestHandler<String, String>"),
+            vec!["RequestHandler<String, String>"]
+        );
+        // The container's own delimiter still goes.
+        assert_eq!(split_type_list("(Base, Mixin)"), vec!["Base", "Mixin"]);
+    }
+
+    #[test]
+    fn multi_argument_generics_are_type_names() {
+        // Spaces inside generic arguments are legal; `is_type_name`
+        // rejected every one of them, so `IRequestHandler<Req, Res>`
+        // and `RequestHandler<String, String>` were dropped before any
+        // rule saw them.
+        assert!(is_type_name("RequestHandler<String, String>"));
+        assert!(is_type_name("IRequestHandler<GetUser, UserDto>"));
+        // Two types the splitter could not separate are still not one.
+        assert!(!is_type_name("A implements B"));
     }
 
     #[test]

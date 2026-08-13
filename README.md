@@ -506,7 +506,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2020 callables, 4568 edges, 1719 cross-file, 116ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2034 callables, 4627 edges, 1732 cross-file, 136ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -538,32 +538,33 @@ flowchart LR
   C75["cgg::query::apply_query"]
   C76["cgg::query::apply_exclusions"]
   C97["cgg::since::resolve_since"]
-  C366["cgg_core::external::FileAliases::from_facts"]
-  C367["cgg_core::external::classify_external"]
-  C370["cgg_core::external::build_known_names"]
-  C430["cgg_core::graph::Graph::new"]
-  C431["cgg_core::graph::Graph::add_callable"]
-  C432["cgg_core::graph::Graph::add_file"]
-  C433["cgg_core::graph::Graph::add_edge"]
-  C451["cgg_core::profile::enable"]
-  C454["cgg_core::profile::span"]
-  C462["cgg_core::testfile::classify_test_file"]
-  C533["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C534["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C567["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C571["cgg_lang::notebook::extract_python_source"]
-  C577["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C578["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C579["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1706["cgg_resolve::cross_file::resolve"]
-  C1839["cgg_resolve::descriptor::link_descriptors"]
-  C1846["cgg_resolve::dispatch::fanout"]
-  C1850["cgg_resolve::ffi::link_ffi"]
-  C1866["cgg_resolve::frameworks::detect"]
-  C1925["cgg_resolve::intra_file::link_file"]
-  C1967["cgg_resolve::type_hints::build_return_type_map"]
-  C1968["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C1986["cgg_walk::walk"]
+  C372["cgg_core::external::FileAliases::from_facts"]
+  C373["cgg_core::external::classify_external"]
+  C376["cgg_core::external::build_known_names"]
+  C437["cgg_core::graph::Graph::new"]
+  C438["cgg_core::graph::Graph::add_callable"]
+  C439["cgg_core::graph::Graph::add_file"]
+  C440["cgg_core::graph::Graph::add_edge"]
+  C458["cgg_core::profile::enable"]
+  C461["cgg_core::profile::span"]
+  C469["cgg_core::testfile::classify_test_file"]
+  C540["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C541["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C563["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  C576["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C581["cgg_lang::notebook::extract_python_source"]
+  C587["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C588["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C589["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1718["cgg_resolve::cross_file::resolve"]
+  C1851["cgg_resolve::descriptor::link_descriptors"]
+  C1858["cgg_resolve::dispatch::fanout"]
+  C1862["cgg_resolve::ffi::link_ffi"]
+  C1878["cgg_resolve::frameworks::detect"]
+  C1939["cgg_resolve::intra_file::link_file"]
+  C1981["cgg_resolve::type_hints::build_return_type_map"]
+  C1982["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C2000["cgg_walk::walk"]
   C46 --> C47
   C47 --> C48
   C47 --> C56
@@ -576,54 +577,55 @@ flowchart LR
   C47 --> C54
   C47 --> C53
   C47 --> C49
-  C578 --> C578
+  C588 --> C588
   C47 --> C69
   C47 --> C9
   C47 --> C7
-  C47 --> C451
-  C47 --> C1986
-  C47 --> C567
-  C47 --> C533
-  C47 --> C577
-  C47 --> C430
-  C47 --> C534
-  C47 --> C571
-  C47 -->|18x| C454
-  C47 --> C578
-  C47 --> C579
-  C47 --> C462
-  C47 --> C432
-  C47 --> C431
-  C47 --> C1967
-  C47 --> C1968
-  C47 --> C370
-  C47 --> C1925
-  C47 --> C366
-  C47 --> C367
-  C47 --> C1706
-  C47 --> C1850
-  C47 --> C1839
-  C47 --> C1866
-  C47 --> C1846
-  C47 --> C433
+  C47 --> C458
+  C47 --> C2000
+  C47 --> C576
+  C47 --> C540
+  C47 --> C587
+  C47 --> C437
+  C47 --> C541
+  C47 --> C581
+  C47 -->|18x| C461
+  C47 --> C588
+  C47 --> C589
+  C47 --> C563
+  C47 --> C469
+  C47 --> C439
+  C47 --> C438
+  C47 --> C1981
+  C47 --> C1982
+  C47 --> C376
+  C47 --> C1939
+  C47 --> C372
+  C47 --> C373
+  C47 --> C1718
+  C47 --> C1862
+  C47 --> C1851
+  C47 --> C1878
+  C47 --> C1858
+  C47 --> C440
   C47 --> C97
   C47 -->|2x| C72
   C47 --> C75
   C47 -->|4x| C71
   C47 --> C76
-  C49 --> C567
+  C49 --> C576
   C49 --> C72
   C49 --> C71
   C53 --> C72
-  C59 -->|2x| C432
-  C59 --> C431
-  C59 --> C433
-  C60 --> C432
-  C60 --> C431
-  C60 --> C433
-  C75 --> C430
-  C1706 -->|2x| C454
-  C1866 -->|9x| C454
+  C59 -->|2x| C439
+  C59 --> C438
+  C59 --> C440
+  C60 --> C439
+  C60 --> C438
+  C60 --> C440
+  C75 --> C437
+  C1718 -->|2x| C461
+  C1878 -->|9x| C461
 ```
 <!-- cgg:end:self -->
 
@@ -673,42 +675,45 @@ flowchart LR
   C21["cgg_lang::parser::ParserPool<'r>::plugin"]
   C22["cgg_lang::parser::set_language"]
   C26["cgg_lang::builtin_verbs"]
-  C27["cgg_lang::no_extra_verbs"]
-  C28["cgg_lang::ExtractCtx<'a>::new"]
-  C29["cgg_lang::ExtractCtx<'a>::plain"]
-  C30["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
-  C31["cgg_lang::LanguagePlugin::id"]
-  C32["cgg_lang::LanguagePlugin::extensions"]
-  C33["cgg_lang::LanguagePlugin::shebangs"]
-  C34["cgg_lang::LanguagePlugin::signals"]
-  C35["cgg_lang::LanguagePlugin::ts_language"]
-  C36["cgg_lang::LanguagePlugin::extract"]
-  C37["cgg_lang::PluginRegistry::new"]
-  C38["cgg_lang::PluginRegistry::register"]
-  C39["cgg_lang::PluginRegistry::all"]
-  C40["cgg_lang::PluginRegistry::by_id"]
-  C41["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C27["cgg_lang::builtin_verbs_for"]
+  C28["cgg_lang::no_extra_verbs"]
+  C29["cgg_lang::ExtractCtx<'a>::new"]
+  C30["cgg_lang::ExtractCtx<'a>::for_language"]
+  C31["cgg_lang::ExtractCtx<'a>::plain"]
+  C32["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
+  C33["cgg_lang::LanguagePlugin::id"]
+  C34["cgg_lang::LanguagePlugin::extensions"]
+  C35["cgg_lang::LanguagePlugin::shebangs"]
+  C36["cgg_lang::LanguagePlugin::signals"]
+  C37["cgg_lang::LanguagePlugin::ts_language"]
+  C38["cgg_lang::LanguagePlugin::extract"]
+  C39["cgg_lang::PluginRegistry::new"]
+  C40["cgg_lang::PluginRegistry::register"]
+  C41["cgg_lang::PluginRegistry::all"]
+  C42["cgg_lang::PluginRegistry::by_id"]
+  C43["cgg_lang::PluginRegistry::with_v1_plugins"]
   C1 -->|2x| C2
   C1 -->|2x| C3
-  C1 --> C31
   C1 --> C33
-  C1 --> C39
+  C1 --> C35
   C1 --> C4
+  C1 --> C41
   C1 --> C5
   C1 -->|2x| C6
-  C2 --> C31
-  C2 --> C32
-  C2 --> C39
+  C2 --> C33
+  C2 --> C34
+  C2 --> C41
   C20 --> C20
   C20 --> C22
-  C20 --> C35
-  C20 --> C40
-  C21 --> C40
-  C29 --> C27
-  C30 --> C26
-  C36 --> C31
-  C40 --> C31
-  C41 --> C37
+  C20 --> C37
+  C20 --> C42
+  C21 --> C42
+  C31 --> C28
+  C32 --> C26
+  C32 --> C27
+  C38 --> C33
+  C42 --> C33
+  C43 --> C39
 ```
 <!-- cgg:end:lang -->
 
@@ -842,13 +847,51 @@ import actually being present — without that gate, every decorator named
 | **B** callable passed as a value | `app.get("/x", handler)` | Express, Gin, Echo, Fiber, Chi, net/http, Axum, Django `urls.py`, Temporal |
 | **C** inline closure at the call site | `app.get("/x", (req,res)=>{})` | Express, Sinatra, Grape |
 | **D** base class / interface | `nn.Module.forward`, `IJob.Execute` | PyTorch, Quartz, MassTransit, Sidekiq, Akka, `BackgroundService`, `Runnable` |
-| **E** string names the target | `'photos#index'`, `"App\C@method"` | Rails, Laravel (both the `@` string and the `[C::class,'m']` array), WordPress |
+| **E** string names the target | `'photos#index'`, `"App\C@method"`, `handler="app.lambda_handler"` | Rails, Laravel (both the `@` string and the `[C::class,'m']` array), WordPress, AWS CDK |
 | **F** separate unit by path/pragma | `new Worker('./w.js')`, CUDA `__global__` | `worker_threads`, piscina, CUDA |
 
 Bucket **D** usually marks a root without minting a node: one
 `torch:Module.forward` node fanning out to every model in a repository
 is visually useless. The exceptions are entries with real identity of
 their own — a Quartz `IJob`, an Akka actor — which do get one.
+
+### AWS Lambda
+
+Lambda is the hard case for a call-graph tool, and the reason bucket
+**E** matters: **nothing in a handler's own file calls it.** The runtime
+invokes whatever the deployment config names, so without a rule an entire
+handler module reads as dead code.
+
+`cgg` covers all six runtimes, each by the mechanism that runtime
+actually uses:
+
+| runtime | how the handler is found |
+| --- | --- |
+| Go | the value passed to `lambda.Start` / `StartWithContext` / … |
+| Java | `handleRequest` on a `RequestHandler`/`RequestStreamHandler` — the one runtime where it is a declared contract |
+| Python | the `lambda_handler` convention, plus Powertools resolver routes (`@app.get`) and `@batch_processor` |
+| JS / TS | `handler` / `lambdaHandler`, middy-wrapped handlers, Powertools decorators |
+| C# | `[LambdaFunction]` and the `FunctionHandler` convention |
+| Rust | the closure passed to `service_fn` |
+
+And **CDK is read as source**, which is what recovers handlers that no
+convention would find:
+
+```python
+_lambda.Function(self, "Api", handler="app.lambda_handler", …)
+```
+
+That string is bound to `lambda_handler` in `app.py` — across files, and
+whether or not the handler's own module imports anything AWS-related. The
+TypeScript form (`{ handler: "orders.processOrder" }`) resolves the same
+way, by file stem.
+
+What none of this reads is `serverless.yml`, `template.yaml` or the
+console setting. A handler named only there is still invisible; declare
+it in `cgg-deadcode.toml`. Each rule's coverage line states its own
+limit, including the one they all share — the trust boundary depends on
+the event source, and `cgg` reports `network` regardless of whether the
+trigger is an API Gateway or an SQS queue.
 
 ### Coverage is partial, and says so
 

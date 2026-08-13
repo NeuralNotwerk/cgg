@@ -563,6 +563,12 @@ fn collect_value_refs(
             | "keyword_argument"
             | "tuple"
             | "argument"
+            // A JS/TS options object. `pair` was already here, but
+            // nothing descended into the `object` holding the pairs, so
+            // every options-bag registration was invisible:
+            // `new lambda.Function(this, "Api", { handler: "app.handler" })`
+            // is how CDK names every Lambda in a TypeScript stack.
+            | "object"
     ) {
         // `[C::class, 'method']` is one target, not two loose names.
         if let Some((owner, method)) = class_method_pair(arg, source) {

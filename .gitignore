@@ -2,6 +2,7 @@
 /target
 **/*.rs.bk
 Cargo.lock.tmp
+/*_plan.md
 
 # Nested build trees. Agent worktrees and any hand-made worktree carry
 # their own `target/`, which `/target` (anchored at the repo root) does

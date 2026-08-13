@@ -1401,13 +1401,41 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["aws_lambda_powertools"],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: NONE,
-        registrars: NONE,
+        // Two families. The resolver routes are the same decorator shape
+        // as FastAPI — `@app.get("/users")` on an APIGatewayRestResolver
+        // — and the rest decorate the handler itself, which is exactly
+        // the function the runtime calls and nothing in source does.
+        attributes: &[
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "head",
+            "options",
+            "route",
+            "not_found",
+            "exception_handler",
+            "inject_lambda_context",
+            "capture_lambda_handler",
+            "log_metrics",
+            "batch_processor",
+            "async_batch_processor",
+            "event_source",
+            "event_parser",
+            "validator",
+        ],
+        // `process_partial_response(event, ctx, record_handler=fn)` —
+        // the per-record handler for SQS/Kinesis/DynamoDB streams,
+        // passed as a value rather than decorated.
+        registrars: &["process_partial_response", "process_partial_response_async"],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
-        node: false,
-        gap: "cgg has no entry rules for AWS Lambda Powertools. The real entry point is the module-level handler function (conventionally lambda_handler(event, context)) named by the Handler/handler setting in template.yaml, serverless.yml or the CDK stack - not by anything in the Python source. Below it, the entries are the routes registered on an APIGatewayRestResolver/APIGatewayHttpResolver/ALBResolver/AppSyncResolver/BedrockAgentResolver via @app.get/@app.post/@app.route, and the record handlers passed to process_partial_response() or marked @batch_processor for SQS/Kinesis/DynamoDB streams. Read the handler module and the deployment template by hand; the trust boundary depends on the event source, which the source code does not state.",
+        node: true,
+        // What remains is the trust boundary, which the resolver type
+        // states and cgg does not read.
+        gap: "cgg binds Powertools resolver routes and the decorated handler, but reports every entry as `network`. Which boundary it really is depends on the resolver class (APIGatewayRestResolver and ALBResolver are internet-facing; AppSyncResolver sits behind AppSync auth; BedrockAgentResolver is model-invoked) and, for batch handlers, on the event source. cgg does not read the constructor, so check the resolver type before treating an entry as internet-facing.",
     },
     RuleSpec {
         id: "koa",
@@ -2032,12 +2060,25 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        // The handler is a function *value* in argument position —
+        // shape B, the same form as `service_fn` in Rust. Each binary
+        // has exactly one of these inside `main()`.
+        registrars: &[
+            "Start",
+            "StartWithContext",
+            "StartWithOptions",
+            "StartHandler",
+            "StartHandlerFunc",
+            "StartHandlerWithContext",
+        ],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for aws-lambda-go. Each binary has exactly one entry point: the handler function value passed to lambda.Start / lambda.StartWithOptions / lambda.StartWithContext / lambda.StartHandlerFunc inside main(). Inspect each main package for that single call and treat its first argument as the graph root; the event struct it receives (from github.com/aws/aws-lambda-go/events, e.g. events.APIGatewayProxyRequest or events.SQSEvent) tells you what actually triggers it and therefore whether the trust boundary is network or queue.",
+        // The remaining gap is the trust boundary, not the entry: the
+        // event struct the handler receives is what says whether this is
+        // network, queue or timer, and cgg does not read parameter types.
+        gap: "cgg binds the handler value passed to lambda.Start and its variants, but reports every aws-lambda-go entry as `network` regardless of trigger. The event struct the handler receives (github.com/aws/aws-lambda-go/events — APIGatewayProxyRequest, SQSEvent, S3Event, CloudWatchEvent) is what actually names the trust boundary, and cgg does not read parameter types. Read the handler signature before treating an entry as internet-facing.",
     },
     RuleSpec {
         id: "azure-functions",
@@ -3370,10 +3411,15 @@ pub const SPECS: &[RuleSpec] = &[
         attributes: NONE,
         registrars: NONE,
         base_types: NONE,
-        methods: NONE,
+        // Convention, not contract: the runtime calls whatever the
+        // `Handler` setting names, and `lambda_handler` is what every
+        // AWS template, quickstart and console default writes. Gated on
+        // an aws-lambda import like every other rule, so this cannot
+        // claim a `lambda_handler` in a project that is not a Lambda.
+        methods: &["lambda_handler"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for AWS Lambda. The handler is named in configuration cgg does not read - the `handler:` key in serverless.yml, `Handler:`/`ImageConfig` in a SAM or CloudFormation template, or the function's Handler setting in the console - as a path like `src/handlers/user.create`. Nothing in the source references it, so the whole handler module reads as dead. Read the deployment config and treat each named path as an entry point.",
+        gap: "cgg binds handlers named by the `lambda_handler` convention. A handler under any other name is invisible: the real name lives in configuration cgg does not read - the `handler:` key in serverless.yml, `Handler:`/`ImageConfig` in a SAM or CloudFormation template, or the console setting - as a path like `src/handlers/user.create`. If your handlers are named otherwise, read the deployment config and treat each named path as an entry point, or declare them in cgg-deadcode.toml. A CDK stack in the same tree IS read - see the aws-cdk rule.",
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3382,13 +3428,24 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["aws-lambda", "@aws-lambda-powertools", "@middy/core"],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: NONE,
-        registrars: NONE,
+        // Powertools for TypeScript decorates the handler method rather
+        // than the routes.
+        attributes: &[
+            "injectLambdaContext",
+            "captureLambdaHandler",
+            "logMetrics",
+            "captureMethod",
+        ],
+        // `middy(baseHandler).use(...)` — the wrapped function is the
+        // real handler and is passed as a value.
+        registrars: &["middy"],
         base_types: NONE,
-        methods: NONE,
+        // `export const handler = ...` / `exports.handler = ...`. The
+        // name is the contract every AWS template defaults to.
+        methods: &["handler", "lambdaHandler"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for AWS Lambda. The handler is named in configuration cgg does not read - the `handler:` key in serverless.yml, `Handler:`/`ImageConfig` in a SAM or CloudFormation template, or the function's Handler setting in the console - as a path like `src/handlers/user.create`. Nothing in the source references it, so the whole handler module reads as dead. Read the deployment config and treat each named path as an entry point.",
+        gap: "cgg binds handlers named `handler`/`lambdaHandler`, middy-wrapped handlers, and Powertools-decorated methods. Two limits. A handler under any other name is invisible - the real name lives in the `handler:` key of serverless.yml, `Handler:` in a SAM template, or the CDK stack (see the aws-cdk rule, which cgg does read). And detection is per-language across the whole run, not per-file: in a mixed repository where one file imports aws-lambda, any function named `handler` anywhere - an event handler in a React component, for instance - is claimed as an entry. Check the file each entry points at before trusting it.",
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3398,12 +3455,100 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &["middy"],
         base_types: NONE,
-        methods: NONE,
+        methods: &["handler", "lambdaHandler"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for AWS Lambda. The handler is named in configuration cgg does not read - the `handler:` key in serverless.yml, `Handler:`/`ImageConfig` in a SAM or CloudFormation template, or the function's Handler setting in the console - as a path like `src/handlers/user.create`. Nothing in the source references it, so the whole handler module reads as dead. Read the deployment config and treat each named path as an entry point.",
+        gap: "cgg binds handlers named `handler`/`lambdaHandler` and middy-wrapped handlers. Two limits. A handler under any other name is invisible - the real name lives in the `handler:` key of serverless.yml, `Handler:` in a SAM template, or the CDK stack (see the aws-cdk rule, which cgg does read). And detection is per-language across the whole run, not per-file: in a mixed repository where one file imports aws-lambda, any function named `handler` anywhere is claimed as an entry. Check the file each entry points at before trusting it.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "java",
+        kind: TrustKind::Network,
+        detect: &["com.amazonaws.services.lambda", "com.amazonaws.lambda"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        // Java is the one runtime where the handler is a *contract*
+        // rather than a convention: the class implements the interface
+        // and the runtime calls the single method it declares. That
+        // makes this the highest-confidence Lambda rule of the six.
+        base_types: &["RequestHandler", "RequestStreamHandler"],
+        methods: &["handleRequest"],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "csharp",
+        kind: TrustKind::Network,
+        detect: &["Amazon.Lambda"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // Amazon.Lambda.Annotations generates the wiring from these at
+        // build time, so the attribute is the registration.
+        attributes: &["LambdaFunction", "LambdaStartup"],
+        registrars: NONE,
+        base_types: NONE,
+        // The pre-Annotations convention, still the majority of
+        // deployed C# Lambdas.
+        methods: &["FunctionHandler"],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds [LambdaFunction]-annotated methods and the `FunctionHandler` convention. A handler under any other name is named only in the `Handler` field of aws-lambda-tools-defaults.json or the SAM template, as `Assembly::Namespace.Class::Method`, which cgg does not read.",
+    },
+    // CDK is infrastructure code, and the thing that makes it worth a
+    // rule is that it is the one place the handler string lives *in
+    // source* rather than in a YAML file cgg never opens. `handler=
+    // "app.lambda_handler"` names a real function in a real file, and
+    // shape E is exactly the machinery for turning a string into an
+    // edge — so a CDK stack in the tree recovers the entry points that
+    // serverless.yml would have hidden.
+    RuleSpec {
+        id: "aws-cdk",
+        language: "python",
+        kind: TrustKind::Network,
+        detect: &["aws_cdk"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "Function",
+            "DockerImageFunction",
+            "SingletonFunction",
+            "NodejsFunction",
+            "PythonFunction",
+            "GoFunction",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: true,
+        node: true,
+        gap: "cgg binds the `handler=\"module.function\"` string on a CDK Function construct to that function when both live in the analyzed tree. Three things it cannot do: resolve a handler built by string concatenation or held in a variable, follow `Code.from_asset` into a directory that was not analyzed, or name the trust boundary — the event source is wired by a separate `add_event_source`/API-Gateway construct, so an entry reported as `network` may in fact be queue- or timer-driven.",
+    },
+    RuleSpec {
+        id: "aws-cdk",
+        language: "typescript",
+        kind: TrustKind::Network,
+        detect: &["aws-cdk-lib", "@aws-cdk/aws-lambda", "aws-cdk"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "Function",
+            "DockerImageFunction",
+            "SingletonFunction",
+            "NodejsFunction",
+            "GoFunction",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: true,
+        node: true,
+        gap: "cgg binds the `handler: \"module.function\"` property on a CDK Function construct to that function when both live in the analyzed tree. It cannot resolve a handler built by concatenation or held in a variable, follow `Code.fromAsset` into an unanalyzed directory, or name the trust boundary, which a separate event-source construct decides. NodejsFunction with only an `entry` path and no `handler` defaults to `index.handler`, which cgg does not infer.",
     },
     // ---------------------------------------------------------------
     // Wave 2: the remaining languages, and in-language entry points.
@@ -8661,6 +8806,41 @@ pub fn registrar_verbs() -> &'static [&'static str] {
         v.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
         v
     })
+}
+
+/// The registrar verbs of one language only.
+///
+/// The union above is a coarse gate: `Start` is a verb because Go's
+/// aws-lambda rule registers it, and every Ruby, PHP and Python file was
+/// paying an argument scan for its own `start` calls as a result. A verb
+/// can only ever match a rule of its own language, so narrowing the gate
+/// loses nothing and removes that cross-language cost — the effect grows
+/// with the table, which is now several hundred rules.
+///
+/// Returns `None` for a language with no registrar-bearing rule at all,
+/// which lets the caller skip the lookup entirely.
+pub fn registrar_verbs_for(language: &str) -> Option<&'static [&'static str]> {
+    static BY_LANG: std::sync::OnceLock<
+        std::collections::HashMap<&'static str, Vec<&'static str>>,
+    > = std::sync::OnceLock::new();
+    BY_LANG
+        .get_or_init(|| {
+            let mut m: std::collections::HashMap<&'static str, Vec<&'static str>> =
+                std::collections::HashMap::new();
+            for s in SPECS {
+                if s.registrars.is_empty() {
+                    continue;
+                }
+                m.entry(s.language).or_default().extend(s.registrars);
+            }
+            for v in m.values_mut() {
+                v.sort_unstable_by_key(|a| a.to_ascii_lowercase());
+                v.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+            }
+            m
+        })
+        .get(language)
+        .map(Vec::as_slice)
 }
 
 #[cfg(test)]

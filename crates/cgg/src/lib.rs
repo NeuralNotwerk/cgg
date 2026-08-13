@@ -361,8 +361,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     let plugin = pool.plugin(lang);
                     let facts = plugin.map(|p| {
                         let _s = cgg_core::profile::span("parse::extract");
+                        // Narrow the registrar-verb gate to this file's
+                        // language; the union of every rule in the table
+                        // makes each language pay for the others'.
                         p.extract(
-                            &extract_ctx,
+                            &extract_ctx.for_language(lang),
                             FileId::new(0),
                             &cand.path,
                             &out.tree,

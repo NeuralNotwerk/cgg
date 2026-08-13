@@ -719,3 +719,169 @@ fn a_bare_method_name_does_not_link_a_descriptor() {
         "no owner match, no edge: {graph}"
     );
 }
+
+// ---------------------------------------------------------------------
+// AWS Lambda — six languages, and the one framework whose entry point is
+// conventionally named *outside* the source tree
+// ---------------------------------------------------------------------
+//
+// Lambda is the case the framework feature exists for. Nothing in a
+// handler's own file calls it, so before these rules every Lambda
+// codebase reported its entire handler module as dead. Each runtime
+// names the handler differently, which is why this is six rules rather
+// than one.
+
+#[test]
+fn aws_lambda_go_start_binds_the_handler_value() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", "module demo\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "main.go",
+        "package main\n\nimport (\n\t\"context\"\n\t\
+         \"github.com/aws/aws-lambda-go/lambda\"\n)\n\n\
+         func work(s string) string { return s }\n\n\
+         func HandleRequest(ctx context.Context, e string) (string, error) {\n\
+         \treturn work(e), nil\n}\n\n\
+         func main() { lambda.Start(HandleRequest) }\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("aws-lambda-go::main.HandleRequest"),
+        "lambda.Start's argument is the entry point:\n{g}"
+    );
+}
+
+#[test]
+fn aws_lambda_python_handler_convention_and_powertools_routes() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app.py",
+        "from aws_lambda_powertools.event_handler import APIGatewayRestResolver\n\
+         app = APIGatewayRestResolver()\n\n\
+         def load(uid):\n    return uid\n\n\
+         @app.get(\"/users\")\ndef get_user(uid):\n    return load(uid)\n\n\
+         def lambda_handler(event, context):\n    return app.resolve(event, context)\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    // Shape A: the resolver route. (Mermaid HTML-escapes `<`/`>`, so the
+    // fixture uses a path parameter-free route to keep the assertion
+    // about the rule rather than about escaping.)
+    assert!(
+        g.contains("aws-lambda-powertools::get('/users')"),
+        "powertools route should be an entry:\n{g}"
+    );
+    // The handler itself, by convention rather than by any marker.
+    assert!(
+        g.contains("aws-lambda::app.lambda_handler"),
+        "lambda_handler is the conventional entry point:\n{g}"
+    );
+}
+
+#[test]
+fn a_lambda_handler_outside_a_lambda_project_is_not_an_entry() {
+    // The detection gate is what makes a name convention safe. Without
+    // an aws-lambda import this is just a function with a common name.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app.py",
+        "import json\n\ndef helper(e):\n    return e\n\n\
+         def lambda_handler(event, context):\n    return helper(event)\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        !g.contains("framework-entry"),
+        "no aws import, no claim:\n{g}"
+    );
+}
+
+#[test]
+fn aws_lambda_java_request_handler_is_a_declared_contract() {
+    // The generic parameters matter: `RequestHandler<String, String>`
+    // was truncated by the base-type splitter, so Java — the runtime
+    // where the entry point is an actual interface — produced nothing.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Handler.java",
+        "package com.example;\n\
+         import com.amazonaws.services.lambda.runtime.Context;\n\
+         import com.amazonaws.services.lambda.runtime.RequestHandler;\n\n\
+         public class Handler implements RequestHandler<String, String> {\n\
+         \tprivate String norm(String s) { return s.trim(); }\n\
+         \tpublic String handleRequest(String in, Context ctx) { return norm(in); }\n}\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("aws-lambda::com.example.Handler.handleRequest"),
+        "handleRequest on a RequestHandler impl is the entry:\n{g}"
+    );
+}
+
+#[test]
+fn aws_cdk_binds_a_handler_string_to_a_function_in_another_file() {
+    // The point of the CDK rule. The handler has no AWS import of its
+    // own and nothing calls it — the only thing naming it is a string
+    // in the infrastructure code.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/app.py",
+        "def validate(e):\n    return True\n\n\
+         def lambda_handler(event, context):\n    return validate(event)\n",
+    );
+    write(
+        tmp.path(),
+        "infra/stack.py",
+        "from aws_cdk import Stack, aws_lambda as _lambda\n\
+         from constructs import Construct\n\n\
+         class ApiStack(Stack):\n\
+         \tdef __init__(self, scope, cid):\n\
+         \t\t_lambda.Function(self, \"Api\",\n\
+         \t\t\thandler=\"app.lambda_handler\",\n\
+         \t\t\tcode=_lambda.Code.from_asset(\"src\"))\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("aws-cdk::function('Api')"),
+        "the CDK construct should mint an entry:\n{g}"
+    );
+    // And it must point at the real handler, not merely exist.
+    assert!(
+        g.contains("app.lambda_handler"),
+        "the entry must bind the function the string names:\n{g}"
+    );
+}
+
+#[test]
+fn aws_cdk_typescript_binds_a_handler_from_an_options_object() {
+    // TypeScript CDK puts the handler in an options object rather than
+    // a keyword argument, and TS callables are not module-qualified —
+    // so this resolves through the file-stem index instead.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/orders.ts",
+        "function validate(e: any) { return !!e; }\n\
+         export const processOrder = async (event: any) => validate(event);\n",
+    );
+    write(
+        tmp.path(),
+        "infra/stack.ts",
+        "import * as cdk from \"aws-cdk-lib\";\n\
+         import * as lambda from \"aws-cdk-lib/aws-lambda\";\n\n\
+         export class S extends cdk.Stack {\n\
+         \tconstructor(scope: any, id: string) {\n\
+         \t\tsuper(scope, id);\n\
+         \t\tnew lambda.Function(this, \"Orders\", {\n\
+         \t\t\thandler: \"orders.processOrder\",\n\
+         \t\t\tcode: lambda.Code.fromAsset(\"src\"),\n\t\t});\n\t}\n}\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("aws-cdk::function('Orders')") && g.contains("processOrder"),
+        "TS CDK options-object handler should bind:\n{g}"
+    );
+}

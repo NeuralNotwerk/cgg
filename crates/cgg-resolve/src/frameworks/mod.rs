@@ -1196,6 +1196,14 @@ fn callees_within_their_file(graph: &Graph) -> HashSet<CallableId> {
         .collect()
 }
 
+/// Trailing segments that mean the string is a filename rather than a
+/// `module.function` handler path.
+const ASSET_EXTENSIONS: &[&str] = &[
+    "html", "htm", "css", "js", "mjs", "cjs", "json", "yml", "yaml", "toml", "xml",
+    "txt", "md", "csv", "svg", "png", "jpg", "jpeg", "gif", "ico", "pdf", "zip", "gz",
+    "lock", "sql", "sh", "log",
+];
+
 /// Decode a string that names a callable — shape E.
 ///
 /// This is the only genuinely framework-specific decoding in the module,
@@ -1205,6 +1213,7 @@ fn callees_within_their_file(graph: &Graph) -> HashSet<CallableId> {
 /// * Rails    — `"photos#index"` → (`PhotosController`, `index`)
 /// * Laravel  — `"App\\Http\\C@method"` → (`C`, `method`)
 /// * PHP/misc — `"C::method"` → (`C`, `method`)
+/// * AWS      — `"app.lambda_handler"` → (`app`, `lambda_handler`)
 /// * bare     — `"handler_name"` → (none, `handler_name`)
 fn decode_string_target(s: &str, language: &str) -> Option<(Option<String>, String)> {
     let s = s.trim();
@@ -1233,6 +1242,32 @@ fn decode_string_target(s: &str, language: &str) -> Option<(Option<String>, Stri
     {
         let owner = class.rsplit('\\').next().unwrap_or(class);
         return Some((Some(owner.to_string()), method.to_string()));
+    }
+    // `module.function` — how every AWS runtime names a Lambda handler,
+    // in a CDK stack (`handler="app.lambda_handler"`), a SAM template or
+    // serverless.yml (`src/handlers/user.create`). The module segment is
+    // the owner, which is exactly what `owner_from_qn` derives for a
+    // free function in a dot-joined language.
+    //
+    // Deliberately narrow. The directory prefix is only stripped when
+    // what remains still carries a dot, so `"application/json"` does not
+    // become a claim on a callable named `json`. Both halves must be
+    // identifiers, and an unresolvable target is dropped rather than
+    // guessed at — a wrong entry node is worse than a missing one.
+    let tail = s.rsplit('/').next().unwrap_or(s);
+    if let Some((module, func)) = tail.rsplit_once('.')
+        && is_identifierish(module)
+        && is_identifierish(func)
+        // `index.html` is indistinguishable from `module.function` by
+        // shape alone. Resolution would drop it anyway — nothing in the
+        // graph is called `html` on an owner called `index` — but a
+        // filename is never a handler, and saying so here keeps the
+        // failure impossible rather than merely unlikely.
+        && !ASSET_EXTENSIONS
+            .iter()
+            .any(|e| func.eq_ignore_ascii_case(e))
+    {
+        return Some((Some(module.to_string()), func.to_string()));
     }
     if is_identifierish(s) {
         return Some((None, s.to_string()));
@@ -1264,12 +1299,21 @@ fn camelize(s: &str) -> String {
 struct NameIndex {
     by_simple: HashMap<String, Vec<(FileId, CallableId)>>,
     by_owner_method: HashMap<(String, String), Vec<CallableId>>,
+    /// `(file stem, simple name)`. A deployment string like
+    /// `"orders.processOrder"` names a *module*, not a type, and in
+    /// every AWS runtime the module is the file stem. Python happens to
+    /// qualify its callables that way already, so `by_owner_method`
+    /// finds them; JavaScript, TypeScript and Go do not qualify by file
+    /// at all, and without this the same string resolves to nothing.
+    by_stem_method: HashMap<(String, String), Vec<CallableId>>,
 }
 
 impl NameIndex {
     fn build(graph: &Graph, language: &str) -> Self {
         let mut by_simple: HashMap<String, Vec<(FileId, CallableId)>> = HashMap::new();
         let mut by_owner_method: HashMap<(String, String), Vec<CallableId>> =
+            HashMap::new();
+        let mut by_stem_method: HashMap<(String, String), Vec<CallableId>> =
             HashMap::new();
         for (id, n) in &graph.callables {
             // Sentinel nodes (`<external>`, `<stdlib>`,
@@ -1291,10 +1335,22 @@ impl NameIndex {
                     .or_default()
                     .push(*id);
             }
+            if let Some(stem) = graph
+                .files
+                .get(&n.file)
+                .and_then(|f| f.path.file_stem())
+                .and_then(|s| s.to_str())
+            {
+                by_stem_method
+                    .entry((stem.to_string(), n.simple_name.clone()))
+                    .or_default()
+                    .push(*id);
+            }
         }
         Self {
             by_simple,
             by_owner_method,
+            by_stem_method,
         }
     }
 
@@ -1339,8 +1395,21 @@ impl NameIndex {
             .filter(|((o, m), _)| m == method && owner_is_close(o, owner))
             .flat_map(|(_, ids)| ids.iter().copied())
             .collect();
-        match matches.as_slice() {
-            [id] => Some(*id),
+        if let [id] = matches.as_slice() {
+            return Some(*id);
+        }
+        // Last: read the qualifier as a module rather than a type. A
+        // Lambda handler string is `<file stem>.<function>`, and outside
+        // Python nothing qualifies a callable by its file, so this is
+        // the only lookup that can resolve one. Still requires a unique
+        // hit — two files with the same stem and the same function name
+        // resolve to neither.
+        match self
+            .by_stem_method
+            .get(&(owner.to_string(), method.to_string()))
+            .map(Vec::as_slice)
+        {
+            Some([id]) => Some(*id),
             _ => None,
         }
     }
@@ -1773,6 +1842,38 @@ mod tests {
         assert_eq!(decode_string_target("/users/:id", "ruby"), None);
         assert_eq!(decode_string_target("", "php"), None);
         assert_eq!(decode_string_target("a b c", "ruby"), None);
+    }
+
+    #[test]
+    fn lambda_handler_paths_decode_to_module_and_function() {
+        // How every AWS runtime names a handler: in a CDK stack, a SAM
+        // template and serverless.yml alike.
+        assert_eq!(
+            decode_string_target("app.lambda_handler", "python"),
+            Some((Some("app".into()), "lambda_handler".into()))
+        );
+        // serverless.yml writes the module as a path.
+        assert_eq!(
+            decode_string_target("src/handlers/user.create", "python"),
+            Some((Some("user".into()), "create".into()))
+        );
+        assert_eq!(
+            decode_string_target("orders.processOrder", "typescript"),
+            Some((Some("orders".into()), "processOrder".into()))
+        );
+    }
+
+    #[test]
+    fn a_path_without_a_dotted_tail_is_not_a_handler() {
+        // The directory prefix is only stripped when what remains still
+        // carries a dot. Otherwise `"application/json"` — a content type
+        // sitting in some registrar's argument list — would become a
+        // claim on any callable named `json`.
+        assert_eq!(decode_string_target("application/json", "typescript"), None);
+        assert_eq!(decode_string_target("text/html", "python"), None);
+        // A dotted string whose halves are not identifiers stays out.
+        assert_eq!(decode_string_target("v1.2.3", "python"), None);
+        assert_eq!(decode_string_target("index.html", "python"), None);
     }
 
     #[test]

@@ -54,6 +54,14 @@ pub struct ExtractCtx<'a> {
     /// registration and not one. A user rule naming a verb cgg does not
     /// ship would be inert under that gate, which is what this widens.
     extra_verbs: &'a std::collections::HashSet<String>,
+
+    /// The language currently being extracted, or `""` for "any".
+    ///
+    /// A verb can only match a rule of its own language, so knowing it
+    /// narrows the gate from the union of every rule in the table to the
+    /// handful that could actually fire. Empty means the caller did not
+    /// say, and the union is used — the conservative answer.
+    language: &'a str,
 }
 
 /// The built-in registrar verbs, lowercased once per process.
@@ -69,6 +77,36 @@ fn builtin_verbs() -> &'static std::collections::HashSet<String> {
             .map(|v| v.to_ascii_lowercase())
             .collect()
     })
+}
+
+/// The built-in verbs of one language, lowercased once per process.
+///
+/// `None` when the language has no registrar-bearing rule, which is the
+/// cheapest possible answer: every call in such a file skips the gate.
+fn builtin_verbs_for(
+    language: &str,
+) -> Option<&'static std::collections::HashSet<String>> {
+    #[allow(clippy::type_complexity)]
+    static BY_LANG: std::sync::OnceLock<
+        std::collections::HashMap<&'static str, std::collections::HashSet<String>>,
+    > = std::sync::OnceLock::new();
+    BY_LANG
+        .get_or_init(|| {
+            let mut m: std::collections::HashMap<
+                &'static str,
+                std::collections::HashSet<String>,
+            > = std::collections::HashMap::new();
+            for spec in cgg_core::frameworks::rules::SPECS {
+                if spec.registrars.is_empty() {
+                    continue;
+                }
+                m.entry(spec.language)
+                    .or_default()
+                    .extend(spec.registrars.iter().map(|v| v.to_ascii_lowercase()));
+            }
+            m
+        })
+        .get(language)
 }
 
 /// A shared empty set, so [`ExtractCtx::plain`] allocates nothing.
@@ -87,7 +125,17 @@ impl<'a> ExtractCtx<'a> {
         Self {
             deadcode_signals,
             extra_verbs,
+            language: "",
         }
+    }
+
+    /// The same context, narrowed to one language's registrar verbs.
+    ///
+    /// Called once per file by the pipeline, which knows the language the
+    /// generic constructor does not. Copies two pointers and a bool.
+    #[must_use]
+    pub fn for_language(self, language: &'a str) -> Self {
+        Self { language, ..self }
     }
 
     /// An ordinary run: no dead-code signals, no user rules.
@@ -98,6 +146,7 @@ impl<'a> ExtractCtx<'a> {
         ExtractCtx {
             deadcode_signals: false,
             extra_verbs: no_extra_verbs(),
+            language: "",
         }
     }
 
@@ -118,7 +167,22 @@ impl<'a> ExtractCtx<'a> {
         if verb.is_empty() {
             return false;
         }
-        let builtin = builtin_verbs();
+        // Narrowed to this file's language when the caller named one.
+        // A language with no registrar-bearing rule can only match a
+        // user verb, and most calls in every other language stop here
+        // instead of probing the union of the whole table.
+        let builtin = if self.language.is_empty() {
+            builtin_verbs()
+        } else {
+            match builtin_verbs_for(self.language) {
+                Some(set) => set,
+                None => {
+                    return !self.extra_verbs.is_empty()
+                        && (self.extra_verbs.contains(verb)
+                            || self.extra_verbs.contains(&verb.to_ascii_lowercase()));
+                }
+            }
+        };
         if builtin.contains(verb) {
             return true;
         }
@@ -249,6 +313,33 @@ mod tests {
     fn v1_registry_has_all_languages() {
         let reg = PluginRegistry::with_v1_plugins();
         assert_eq!(reg.all().len(), 44);
+    }
+
+    /// A verb belongs to its own language's rules and no other's.
+    ///
+    /// `Start` is a registrar only because Go's aws-lambda rule passes
+    /// the handler to `lambda.Start`. Before the gate was narrowed,
+    /// every Ruby, PHP and Python file paid an argument scan for its own
+    /// `start` calls — measured as ~5% on a Go corpus once the verb was
+    /// added, and the same tax already existed for every other rule's
+    /// vocabulary.
+    #[test]
+    fn the_registrar_gate_is_scoped_to_one_language() {
+        let ctx = ExtractCtx::plain();
+        // Unscoped: the union, which is the conservative default.
+        assert!(ctx.is_registrar_verb("Start"));
+        assert!(ctx.is_registrar_verb("middy"));
+
+        // Scoped: only the language that registers it.
+        assert!(ctx.for_language("go").is_registrar_verb("Start"));
+        assert!(!ctx.for_language("python").is_registrar_verb("Start"));
+        assert!(!ctx.for_language("ruby").is_registrar_verb("Start"));
+
+        assert!(ctx.for_language("javascript").is_registrar_verb("middy"));
+        assert!(!ctx.for_language("go").is_registrar_verb("middy"));
+
+        // A language with no registrar-bearing rule matches nothing.
+        assert!(!ctx.for_language("cobol").is_registrar_verb("Start"));
     }
 
     /// Two contexts do not see each other's verbs.
