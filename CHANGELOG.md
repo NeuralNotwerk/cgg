@@ -5,6 +5,24 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.6.7] - 2026-08-14
+
+**CI smoke test. No functional change** — the graph 0.6.7 produces is
+byte-identical to 0.6.6's.
+
+0.6.6's `publish` job failed after all fourteen build jobs passed: the
+root npm package's `prepublishOnly` re-runs `napi prepublish`, and
+`napi` is not on PATH in that step, so `npm publish` exited 127. Five
+platform packages shipped at 0.6.6 while the root stayed at 0.6.5 — the
+split-brain the post-publish verification check exists to catch, and it
+did catch it. The root package was then published by hand and the
+workflow fixed to pass `--ignore-scripts`.
+
+That fix cannot be exercised except by tagging, so this release exists
+to tag. If the `publish` job goes green and `npm view
+cgg-callgraphgenerator version` reports 0.6.7 without manual
+intervention, the fix is confirmed.
+
 ## [0.6.6] - 2026-08-14
 
 ### Added

@@ -23,7 +23,7 @@ purpose — it is the one registry where a bad upload cannot be corrected by
 re-running.
 
 ```bash
-git tag --list 'v*'                                    # newest: v0.6.6
+git tag --list 'v*'                                    # newest: v0.6.7
 gh api repos/NeuralNotwerk/cgg/releases \
   -q '.[] | "\(.tag_name) assets=\(.assets | length)"' # v0.6.4 onward:
                                                        # assets=3; older: 0
@@ -91,7 +91,7 @@ in the CHANGELOG that this script did not produce.
 
 ## 1. crates.io — published
 
-All six publishable crates are live at 0.6.6.
+All six publishable crates are live at 0.6.7.
 
 ```bash
 # crates.io rejects curl's default User-Agent; -A is not optional here.
@@ -157,7 +157,7 @@ Live: <https://pypi.org/project/cgg-callgraphgenerator/>
 pip install cgg-callgraphgenerator
 ```
 
-0.6.6 carries the full set the matrix builds — five abi3 wheels
+0.6.7 carries the full set the matrix builds — five abi3 wheels
 (`manylinux_2_17_x86_64`, `manylinux_2_28_aarch64`, `macosx_10_12_x86_64`,
 `macosx_11_0_arm64`, `win_amd64`) plus an sdist. Earlier releases are
 thinner: 0.6.2 and 0.6.3 went up by hand and carry one Linux wheel and no
