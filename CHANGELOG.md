@@ -5,7 +5,7 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.6.6] - 2026-08-14
 
 ### Added
 
