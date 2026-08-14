@@ -106,6 +106,20 @@ impl CandidateCounts {
     }
 }
 
+/// One external module's share of the unresolved calls.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UnresolvedModuleBucket {
+    /// Import path as written (`boto3`, `@aws-sdk/client-s3`), or
+    /// `"(unattributed)"` when no import in the calling file explains
+    /// the name. Unattributed is a real answer, not a failure: a bare
+    /// call to something cgg cannot see has no module to blame.
+    pub module: String,
+    pub count: u32,
+    /// A few of the names, for orientation. Deduplicated and sorted, so
+    /// the list is stable across runs.
+    pub sample: Vec<String>,
+}
+
 /// Which resolution stage rejected an unresolved call, with the
 /// stage-specific failure (Issue 9). Replaces the old free-form reason
 /// string; legacy string forms still deserialize via [`de_reason`], so
@@ -372,6 +386,17 @@ pub enum AuditEvent {
     /// with the numbers rather than beside them.
     FrameworkCoverage {
         coverage: crate::frameworks::FrameworkCoverage,
+    },
+    /// Unresolved calls bucketed by the external module they belong to.
+    ///
+    /// Answers the question an audit usually has after reading a graph:
+    /// *what can I not see from here, and how much of it is there?* On
+    /// one package in the field report, 74 unresolved calls mapped
+    /// almost exactly onto a dependency the reader had no access to, and
+    /// the tally quantified the evidence gap for free — but only after
+    /// they grouped it by hand.
+    UnresolvedByModule {
+        modules: Vec<UnresolvedModuleBucket>,
     },
     /// `-n 0` path enumeration stopped at `--max-paths`.
     ///

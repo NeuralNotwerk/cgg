@@ -337,6 +337,7 @@ impl<'a> ClojureWalker<'a> {
                         site_byte: byte,
                         context: verb.to_string(),
                         route: route.clone(),
+                        kwargs: Vec::new(),
                     });
                 }
                 "sym_lit" => {
@@ -358,6 +359,7 @@ impl<'a> ClojureWalker<'a> {
                         site_byte: byte,
                         context: verb.to_string(),
                         route: route.clone(),
+                        kwargs: Vec::new(),
                     });
                 }
                 "list_lit" | "anon_fn_lit" => {
@@ -423,6 +425,7 @@ impl<'a> ClojureWalker<'a> {
             site_byte: first.start_byte() as u32,
             context: verb.to_string(),
             route: route.to_string(),
+            kwargs: Vec::new(),
         });
     }
 }

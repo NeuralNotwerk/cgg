@@ -431,6 +431,7 @@ impl<'a> ElixirWalker<'a> {
             site_byte: byte,
             context: context.to_string(),
             route: route.to_string(),
+            kwargs: Vec::new(),
         });
     }
 

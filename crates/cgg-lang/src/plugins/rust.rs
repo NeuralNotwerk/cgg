@@ -1060,6 +1060,7 @@ impl<'a> Walker<'a> {
                 site_byte: arg.start_byte() as u32,
                 context: context.clone(),
                 route: route.clone(),
+                kwargs: Vec::new(),
             });
         }
     }

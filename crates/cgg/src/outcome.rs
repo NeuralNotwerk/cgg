@@ -38,6 +38,8 @@ pub enum Emission {
     },
     /// The call graph, rendered with whatever `-t` selected.
     Graph,
+    /// `--report-unreferenced` findings, which replace the graph.
+    Unreferenced(Vec<UnreferencedFinding>),
     /// `--why-live` liveness proofs, which replace the graph.
     WhyLive(Vec<LivenessProof>),
     /// `--write-roots` baseline config, already rendered as TOML.
@@ -148,4 +150,15 @@ impl RunOutcome {
             .filter_map(|e| e.text())
             .map(|t| t.trim_end_matches('\n'))
     }
+}
+
+/// One callable that nothing in the analyzed tree points at.
+#[derive(Clone, Debug)]
+pub struct UnreferencedFinding {
+    pub qualified_name: String,
+    pub path: String,
+    pub start_line: u32,
+    /// The root rule that explains it, when cgg has one. `None` is the
+    /// finding; `Some` is the bucket that explains itself away.
+    pub root: Option<String>,
 }

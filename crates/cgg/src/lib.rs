@@ -941,6 +941,10 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         Vec::new()
     };
 
+    // Bucket the unresolved population by the dependency it belongs to,
+    // before the records are moved into the event stream.
+    let unresolved_modules = group_unresolved_by_module(&file_records, &all_facts);
+
     // Push every per-file audit record as a FileAnalyzed event.
     for rec in file_records {
         events.push(AuditEvent::FileAnalyzed(rec));
@@ -975,6 +979,29 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             coverage: framework_coverage.clone(),
         });
     }
+    if !unresolved_modules.is_empty() {
+        events.push(AuditEvent::UnresolvedByModule {
+            modules: unresolved_modules.clone(),
+        });
+        // Top few on stderr, full list in the audit. "What can I not see
+        // from here, and how much of it is there" is often the actual
+        // question in audit work, and the tally quantifies the evidence
+        // gap for free — but only if it is in front of the reader.
+        let total: u32 = unresolved_modules.iter().map(|m| m.count).sum();
+        let mut line = format!(
+            "cgg: {total} unresolved call(s) across {} module(s) — largest:",
+            unresolved_modules.len()
+        );
+        for m in unresolved_modules.iter().take(3) {
+            line.push_str(&format!(" {} ({})", m.module, m.count));
+        }
+        if unresolved_modules.len() > 3 {
+            line.push_str(" …");
+        }
+        line.push_str(" [full list in the audit log]\n");
+        transcript.push(Emission::line(line));
+    }
+
     events.push(AuditEvent::RunFinished {
         metrics: metrics.clone(),
     });
@@ -1051,6 +1078,58 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // formatter renders it. The detailed report goes to a sidecar,
     // following the same convention the audit already uses.
     let mut graph = graph;
+    // `--report-unreferenced` replaces the graph, like `--why-live`.
+    // Deliberately *not* part of the dead-code pipeline: it asks a
+    // strictly weaker question — "does anything point at this?" — and
+    // that weakness is the feature. Dead-code reachability cascades, so
+    // one unrooted framework handler drags its whole subtree into the
+    // report; this cannot, because it never looks past one edge.
+    if opts.report_unreferenced {
+        let mut referenced: std::collections::HashSet<CallableId> =
+            std::collections::HashSet::new();
+        for e in &graph.edges {
+            referenced.insert(e.dst);
+        }
+        let roots: HashMap<CallableId, String> = framework_roots
+            .iter()
+            .map(|(rule, id)| (*id, rule.clone()))
+            .collect();
+        let mut findings: Vec<crate::outcome::UnreferencedFinding> = graph
+            .callables
+            .values()
+            .filter(|c| !c.synthetic && !referenced.contains(&c.id))
+            .map(|c| crate::outcome::UnreferencedFinding {
+                qualified_name: c.qualified_name.clone(),
+                path: graph
+                    .files
+                    .get(&c.file)
+                    .map(|f| f.path.display().to_string())
+                    .unwrap_or_default(),
+                start_line: c.start_line,
+                root: roots.get(&c.id).cloned(),
+            })
+            .collect();
+        findings.sort_by(|a, b| {
+            a.qualified_name
+                .cmp(&b.qualified_name)
+                .then_with(|| a.start_line.cmp(&b.start_line))
+        });
+        transcript.push(Emission::Unreferenced(findings));
+        transcript.push(Emission::Audit);
+        return Ok(RunOutcome {
+            graph,
+            transcript,
+            events,
+            metrics,
+            framework_coverage,
+            dead_code: None,
+            dead_code_marked: 0,
+            dead_code_threshold: opts.dead_code_confidence,
+            cross_file_edges: cross_file,
+            jobs,
+        });
+    }
+
     let mut dead_code: Option<cgg_core::deadcode::DeadCodeReport> = None;
     let mut dead_code_marked = 0usize;
 
@@ -1933,4 +2012,108 @@ fn dedup_edges(graph: &mut Graph) {
         idx += 1;
         k
     });
+}
+
+/// Attribute each unresolved call to the dependency it most likely
+/// belongs to, and count them.
+///
+/// Attribution is by the calling file's own import table, which is the
+/// only evidence available: a name cgg could not resolve is by
+/// definition not in the graph, so nothing downstream can say where it
+/// lives. Three signals, in order of strength — the receiver's first
+/// segment matching an import alias or module, then the bare name
+/// appearing in a `from X import name` list, then nothing.
+fn group_unresolved_by_module(
+    file_records: &[cgg_core::audit::AuditFileRecord],
+    facts: &[cgg_core::FileFacts],
+) -> Vec<cgg_core::audit::UnresolvedModuleBucket> {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    // Per-file lookup tables, built once. Scanning a file's import list
+    // per unresolved call is O(calls x imports), which on a JavaScript
+    // tree with a quarter-million unresolved calls was ~4% of the run.
+    struct FileIndex {
+        by_head: HashMap<String, String>,
+        by_name: HashMap<String, String>,
+    }
+    let index: HashMap<FileId, FileIndex> = facts
+        .iter()
+        .map(|f| {
+            let mut by_head: HashMap<String, String> = HashMap::new();
+            let mut by_name: HashMap<String, String> = HashMap::new();
+            for imp in &f.imports {
+                let last = imp.path.rsplit(['.', '/', ':']).next().unwrap_or(&imp.path);
+                for key in [imp.alias.as_str(), imp.path.as_str(), last] {
+                    if !key.is_empty() {
+                        by_head
+                            .entry(key.to_string())
+                            .or_insert_with(|| imp.path.clone());
+                    }
+                }
+                if imp.kind == "from-import" {
+                    for n in imp.alias.split(',') {
+                        let n = n.split_whitespace().next_back().unwrap_or("").trim();
+                        if !n.is_empty() {
+                            by_name
+                                .entry(n.to_string())
+                                .or_insert_with(|| imp.path.clone());
+                        }
+                    }
+                }
+            }
+            (f.file, FileIndex { by_head, by_name })
+        })
+        .collect();
+
+    // Borrowed keys: the index owns every module string, so the hot loop
+    // allocates nothing. Cloning one `String` per unresolved call cost
+    // real time on a tree with a quarter-million of them.
+    let mut buckets: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    let mut counts: BTreeMap<&str, u32> = BTreeMap::new();
+
+    // Read the per-file audit buckets, not `graph.unresolved`: the
+    // latter is the cross-file rollup and a call screened as external
+    // never reaches it — which is exactly the population an auditor
+    // asking "what can't I see?" cares about.
+    for rec in file_records {
+        let idx = index.get(&rec.file);
+        for u in rec.unresolved_calls.iter().chain(rec.external_calls.iter()) {
+            let module: &str = idx
+                .and_then(|idx| {
+                    let head = u
+                        .receiver_hint
+                        .split(['.', ':'])
+                        .find(|s| !s.is_empty())
+                        .unwrap_or("");
+                    idx.by_head
+                        .get(head)
+                        .or_else(|| idx.by_name.get(&u.name))
+                        .map(String::as_str)
+                })
+                .unwrap_or("(unattributed)");
+            *counts.entry(module).or_default() += 1;
+            let names = buckets.entry(module).or_default();
+            if names.len() < 8 {
+                names.insert(u.name.as_str());
+            }
+        }
+    }
+
+    let mut out: Vec<cgg_core::audit::UnresolvedModuleBucket> = counts
+        .into_iter()
+        .map(|(module, count)| cgg_core::audit::UnresolvedModuleBucket {
+            sample: buckets
+                .remove(module)
+                .unwrap_or_default()
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            module: module.to_string(),
+            count,
+        })
+        .collect();
+    // Largest gap first — the whole point is to see how much is missing.
+    // Ties break on the module name so the order is stable.
+    out.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.module.cmp(&b.module)));
+    out
 }

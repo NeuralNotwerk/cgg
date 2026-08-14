@@ -226,3 +226,34 @@ fn an_uncapped_run_stays_quiet_about_truncation() {
         "no cap was hit; nothing to report"
     );
 }
+
+#[test]
+fn report_unreferenced_lists_what_nothing_points_at() {
+    // The case that prompted the mode: a class documented as the
+    // contract between two pipeline stages and imported by nothing,
+    // where `--dead-code`'s cascade buried the signal under inherited
+    // doubt from an unrooted framework handler.
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        tmp.path().join("wire.py"),
+        b"class Envelope:\n    def to_dict(self):\n        return {}\n" as &[u8],
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.path().join("stage.py"),
+        b"def emit(x):\n    return x\ndef run():\n    return emit(1)\n" as &[u8],
+    )
+    .unwrap();
+
+    cgg()
+        .arg(tmp.path())
+        .arg("--report-unreferenced")
+        .assert()
+        .success()
+        // The finding.
+        .stdout(predicate::str::contains("Envelope.to_dict"))
+        // `emit` has a caller, so it is not one.
+        .stdout(predicate::str::contains("stage.emit").not())
+        // And it replaces the graph rather than adding to it.
+        .stdout(predicate::str::contains("flowchart").not());
+}

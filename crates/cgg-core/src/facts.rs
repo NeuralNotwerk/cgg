@@ -271,6 +271,15 @@ pub struct RefRecord {
     /// path, queue name, or command string. Empty when there was none.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub route: String,
+    /// Keyword-argument names at the call site (`f(data=1, ctx=2)` ->
+    /// `["data", "ctx"]`).
+    ///
+    /// Used to eliminate duck-typed fan-out candidates whose signature
+    /// cannot accept the call: a call passing `data=`/`context=` is not
+    /// reaching a method that takes `w, x, y, z`. Empty when the call
+    /// passes none, or when the plugin does not capture them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kwargs: Vec<String>,
 }
 
 /// The two-phase AST pass output for a single file.

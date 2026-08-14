@@ -371,6 +371,7 @@ impl<'a> PerlWalker<'a> {
                     site_byte: byte,
                     context: context.to_string(),
                     route: route.clone(),
+                    kwargs: Vec::new(),
                 });
                 continue;
             }
@@ -383,6 +384,7 @@ impl<'a> PerlWalker<'a> {
                     site_byte: byte,
                     context: context.to_string(),
                     route: route.clone(),
+                    kwargs: Vec::new(),
                 });
             }
         }
@@ -463,6 +465,7 @@ impl<'a> PerlWalker<'a> {
                 site_byte: arg.start_byte() as u32,
                 context: context.to_string(),
                 route: route.to_string(),
+                kwargs: Vec::new(),
             });
         }
     }

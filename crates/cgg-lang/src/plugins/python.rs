@@ -465,11 +465,27 @@ impl<'a> Walker<'a> {
             return None;
         }
         let site_line = (node.start_position().row as u32) + 1;
+        // Keyword names at the call site. They are the cheapest evidence
+        // there is for narrowing duck-typed dispatch: a call passing
+        // `data=`/`context=` cannot be reaching a method that takes
+        // `w, x, y, z`, and cgg was emitting an edge to every one of them.
+        let mut kwargs: Vec<String> = Vec::new();
+        if let Some(args) = node.child_by_field_name("arguments") {
+            let mut c = args.walk();
+            for a in args.named_children(&mut c) {
+                if a.kind() == "keyword_argument"
+                    && let Some(n) = a.child_by_field_name("name")
+                {
+                    kwargs.push(self.text(n).to_string());
+                }
+            }
+        }
         Some(RefRecord {
             name,
             receiver_hint: receiver,
             site_line,
             site_byte: node.start_byte() as u32,
+            kwargs,
             ..Default::default()
         })
     }

@@ -1701,6 +1701,7 @@ mod tests {
             site_byte: 40,
             context: "app.get".into(),
             route: "/users".into(),
+            kwargs: Vec::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
@@ -1728,6 +1729,7 @@ mod tests {
             site_byte: 30,
             context: "crate_ids.get".into(),
             route: String::new(),
+            kwargs: Vec::new(),
         });
         assert!(detect(&g, &f_vec(bare), &[]).entries.is_empty());
 
@@ -1741,6 +1743,7 @@ mod tests {
             site_byte: 30,
             context: "get".into(),
             route: "/api/x".into(),
+            kwargs: Vec::new(),
         });
         assert_eq!(detect(&g, &f_vec(free), &[]).entries.len(), 1);
     }
@@ -1761,6 +1764,7 @@ mod tests {
             site_byte: 30,
             context: "session.get".into(),
             route: "user_id".into(),
+            kwargs: Vec::new(),
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
@@ -1806,6 +1810,7 @@ mod tests {
             site_byte: 40,
             context: "app.get".into(),
             route: "/users".into(),
+            kwargs: Vec::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert!(out.entries.is_empty());

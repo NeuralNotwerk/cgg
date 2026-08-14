@@ -9,6 +9,47 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Added
 
+- **The three enhancements from the same field report.**
+
+  **Duck-typed fan-out is narrowed by what a candidate can accept.** A
+  call passing `data=`/`context=` fanned out to four same-named
+  `evaluate` methods, three of which accept neither keyword and require
+  four others. Keyword names are now captured at the call site and
+  checked against each candidate's `signature_hint` — which the
+  extractors already recorded, so no new extraction. Measured on the
+  reported shape: **4 candidates → 1**.
+
+  Deliberately one-sided. A candidate is eliminated only when a keyword
+  is *provably* not one of its parameters and it has no `**kwargs`; an
+  unparseable signature accepts anything, and if narrowing would empty
+  the set the original fan-out stands. Narrowing must not become a way
+  to lose real edges.
+
+  **`--report-unreferenced`** lists callables nothing points at, in
+  place of the graph. Not `--dead-code`: it asks a strictly weaker
+  question — "does anything point at this?" — and the weakness is the
+  feature. Reachability cascades, so one unrooted framework handler
+  drags its whole subtree into the report; a reference check cannot,
+  because it never looks past one edge. Entries cgg already treats as
+  roots are bucketed separately rather than hidden. The case that
+  prompted it: two classes documented as the serialization contract
+  between two pipeline stages, imported by nothing, found by grep.
+
+  **Unresolved calls are grouped by external module**, largest first,
+  in the audit (`unresolved_by_module`) with a one-line stderr summary.
+  On one package in the report, 74 unresolved calls mapped almost
+  exactly onto a dependency the reader had no access to, and the tally
+  quantified the evidence gap — after they grouped it by hand. On
+  Netflix's dispatch it reports 27,974 unresolved across 353 modules,
+  led by sqlalchemy (3,726) and alembic (1,334).
+
+  **Cost.** Paired medians of five runs at `--jobs 1` against 0.6.5:
+  photoprism -0.6%, dispatch +0.7%, ghost +1.8%, netbox +2.0%, flaskbb
+  +3.3%. Two rounds of profiling took the grouping from +4.7% to +1.8%
+  on the worst case — a quarter-million unresolved calls were each
+  scanning their file's whole import list, then each allocating a key —
+  by indexing imports once per file and borrowing the keys.
+
 - **Twelve resolver and reporting fixes from a field report** — a
   call-graph audit of a ~200-file Python service (AWS Lambda +
   Powertools + Pydantic). Every one was reproduced against 0.6.5 before

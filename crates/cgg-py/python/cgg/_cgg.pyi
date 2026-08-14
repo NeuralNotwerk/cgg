@@ -145,6 +145,7 @@ def analyze(
     hops: int = ...,
     max_paths: int = ...,
     fanout_cap: int = ...,
+    report_unreferenced: bool = ...,
     exclude_partial: Sequence[str] | None = ...,
     exclude_glob: Sequence[str] | None = ...,
     exclude_regex: Sequence[str] | None = ...,

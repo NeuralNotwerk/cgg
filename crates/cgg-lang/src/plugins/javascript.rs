@@ -769,6 +769,7 @@ impl<'a> JsWalker<'a> {
                 site_byte: closure.start_byte() as u32,
                 context: context.clone(),
                 route: route.clone(),
+                kwargs: Vec::new(),
             });
         }
     }

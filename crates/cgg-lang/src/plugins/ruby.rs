@@ -316,6 +316,7 @@ impl<'a> RubyWalker<'a> {
                 site_byte: closure.start_byte() as u32,
                 context: context.to_string(),
                 route: route.clone(),
+                kwargs: Vec::new(),
             });
         }
     }

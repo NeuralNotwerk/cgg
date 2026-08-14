@@ -1139,3 +1139,77 @@ fn graph_of(dir: &Path) -> String {
         .success();
     fs::read_to_string(&out).unwrap()
 }
+
+/// Duck-typed fan-out is narrowed by what a candidate can accept.
+///
+/// The field report's example: a call passing `data=`/`context=` fanned
+/// out to four same-named `evaluate` methods, three of which accept
+/// neither keyword and require four others.
+#[test]
+fn fanout_is_narrowed_by_keyword_compatibility() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "impls.py",
+        b"class A:\n    def evaluate(self, data=None, context=None):\n        return data\n\
+          class B:\n    def evaluate(self, w, x, y, z):\n        return w\n\
+          class C:\n    def evaluate(self, w, x, y, z):\n        return w\n",
+    );
+    write(
+        tmp.path(),
+        "use.py",
+        b"def go(obj):\n    return obj.evaluate(data=1, context=2)\n",
+    );
+    let g = graph_of(tmp.path());
+    // B and C are still nodes — they are real definitions. What they
+    // must not be is targets of this call.
+    let targets: Vec<String> = g
+        .lines()
+        .filter_map(|l| l.split("-->").nth(1))
+        .map(|t| {
+            let id = t.trim();
+            g.lines()
+                .find(|n| n.trim().starts_with(&format!("{id}[")))
+                .unwrap_or("")
+                .to_string()
+        })
+        .collect();
+    let joined = targets.join("\n");
+    assert!(
+        joined.contains("A.evaluate"),
+        "the compatible one must resolve:\n{g}"
+    );
+    assert!(
+        !joined.contains("B.evaluate"),
+        "B accepts neither keyword:\n{g}"
+    );
+    assert!(
+        !joined.contains("C.evaluate"),
+        "C accepts neither keyword:\n{g}"
+    );
+}
+
+/// Narrowing never removes the last candidate.
+///
+/// One-sided by design: a keyword no candidate accepts is evidence that
+/// cgg's picture is incomplete, not licence to drop every edge.
+#[test]
+fn a_keyword_matching_nothing_does_not_erase_the_fanout() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "impls.py",
+        b"class A:\n    def run(self, w):\n        return w\n\
+          class B:\n    def run(self, w):\n        return w\n",
+    );
+    write(
+        tmp.path(),
+        "use.py",
+        b"def go(obj):\n    return obj.run(nonexistent=1)\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(
+        g.contains("A.run") && g.contains("B.run"),
+        "both candidates should survive:\n{g}"
+    );
+}

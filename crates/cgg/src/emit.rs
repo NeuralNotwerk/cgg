@@ -218,6 +218,9 @@ pub fn all(cli: &Cli, outcome: &RunOutcome) -> Result<()> {
                     graph(cli, &outcome.graph)?;
                 }
             }
+            Emission::Unreferenced(findings) => {
+                write_primary(cli, |sink| unreferenced_report(findings, sink))?;
+            }
             Emission::WhyLive(proofs) => {
                 write_primary(cli, |sink| {
                     deadcode::report::render_why_live(proofs, sink)
@@ -251,5 +254,66 @@ fn write_primary(
     let mut sink = open_sink(&dest)?;
     render(&mut sink)?;
     sink.flush()?;
+    Ok(())
+}
+
+/// Render `--report-unreferenced`.
+///
+/// Two buckets, because they carry different weight. A callable nothing
+/// points at *and* that no root rule explains is the finding — a class
+/// documented as a contract between two pipeline stages and imported by
+/// nothing, which is the case that prompted this mode. One that a root
+/// rule does explain is listed separately rather than hidden, so the
+/// reader can check the rule rather than trust it.
+fn unreferenced_report(
+    findings: &[crate::outcome::UnreferencedFinding],
+    out: &mut dyn Write,
+) -> io::Result<()> {
+    let (explained, bare): (Vec<_>, Vec<_>) =
+        findings.iter().partition(|f| f.root.is_some());
+
+    writeln!(out, "cgg unreferenced-callable report")?;
+    writeln!(
+        out,
+        "\nNothing in the analyzed tree points at these. This is a \
+         *reference* check,\nnot reachability: no cascade, so nothing \
+         here is guilty by association. A\ncaller outside the tree, or \
+         through reflection, is still possible."
+    )?;
+
+    writeln!(
+        out,
+        "\n== unreferenced, and no root rule explains it ({}) ==",
+        bare.len()
+    )?;
+    for f in &bare {
+        writeln!(
+            out,
+            "  {:<52} {}:{}",
+            f.qualified_name, f.path, f.start_line
+        )?;
+    }
+    if bare.is_empty() {
+        writeln!(out, "  (none)")?;
+    }
+
+    writeln!(
+        out,
+        "\n== unreferenced, but cgg treats it as a root ({}) ==",
+        explained.len()
+    )?;
+    for f in &explained {
+        writeln!(
+            out,
+            "  {:<52} {}:{}  [{}]",
+            f.qualified_name,
+            f.path,
+            f.start_line,
+            f.root.as_deref().unwrap_or("")
+        )?;
+    }
+    if explained.is_empty() {
+        writeln!(out, "  (none)")?;
+    }
     Ok(())
 }

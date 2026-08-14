@@ -104,7 +104,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--include-external] [--include-stdlib]
               [--dynamic-dispatch] [--reference-edges]
               [--no-entry-nodes] [--framework-coverage] [--profile]
-              [--no-graph]
+              [--no-graph] [--report-unreferenced]
               [--jobs N] [--lang rust,python,...]
               [--audit-format json|jsonl] [--metrics FILE]
               [-v|-vv|-q]
@@ -144,6 +144,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--no-entry-nodes` | off | Suppress synthesized `<framework-entry>` nodes. **Entry nodes are ON by default** |
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
 | `--no-graph` | off | Suppress the graph output, leaving only the report. With `--dead-code-format json` the report takes stdout |
+| `--report-unreferenced` | off | List callables nothing points at, in place of the graph. A reference check, not reachability — no cascade, and framework roots are bucketed separately |
 | `--profile` | off | Per-phase timing breakdown. Compiled out of release builds; use a debug build |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
@@ -509,7 +510,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2054 callables, 4850 edges, 1741 cross-file, 163ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2062 callables, 4866 edges, 1742 cross-file, 186ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -522,115 +523,117 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 flowchart LR
   C7["cgg::deadcode::config::DeadCodeConfigFile::load"]
   C9["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C47["cgg::analyze"]
-  C48["cgg::analyze_in_pool"]
-  C49["cgg::langs_enabled"]
-  C50["cgg::specific"]
-  C51["cgg::dead_code_analysis"]
-  C55["cgg::why_live_proofs"]
-  C56["cgg::since_seeds"]
-  C57["cgg::count_lines"]
-  C58["cgg::read_file"]
-  C59["cgg::variant_to_kind"]
-  C61["cgg::synthesize_exit_nodes"]
-  C62["cgg::synthesize_entry_nodes"]
-  C63["cgg::trait_impl_target_from_qn"]
-  C64["cgg::dedup_edges"]
-  C71["cgg::options::RunOptions::dead_mode"]
-  C73["cgg::outcome::Emission::line"]
-  C74["cgg::outcome::Emission::always"]
-  C77["cgg::query::apply_query"]
-  C78["cgg::query::apply_exclusions"]
-  C99["cgg::since::resolve_since"]
-  C382["cgg_core::external::FileAliases::from_facts"]
-  C383["cgg_core::external::classify_external"]
-  C386["cgg_core::external::build_known_names"]
-  C447["cgg_core::graph::Graph::new"]
-  C448["cgg_core::graph::Graph::add_callable"]
-  C449["cgg_core::graph::Graph::add_file"]
-  C450["cgg_core::graph::Graph::add_edge"]
-  C468["cgg_core::profile::enable"]
-  C471["cgg_core::profile::span"]
-  C479["cgg_core::testfile::classify_test_file"]
-  C550["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C551["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C573["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  C586["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C591["cgg_lang::notebook::extract_python_source"]
-  C597["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C598["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C599["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1731["cgg_resolve::cross_file::resolve"]
-  C1867["cgg_resolve::descriptor::link_descriptors"]
-  C1874["cgg_resolve::dispatch::fanout"]
-  C1878["cgg_resolve::ffi::link_ffi"]
-  C1894["cgg_resolve::frameworks::detect"]
-  C1957["cgg_resolve::intra_file::link_file"]
-  C2001["cgg_resolve::type_hints::build_return_type_map"]
-  C2002["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C2020["cgg_walk::walk"]
-  C47 --> C48
+  C48["cgg::analyze"]
+  C49["cgg::analyze_in_pool"]
+  C50["cgg::langs_enabled"]
+  C51["cgg::specific"]
+  C52["cgg::dead_code_analysis"]
+  C56["cgg::why_live_proofs"]
+  C57["cgg::since_seeds"]
+  C58["cgg::count_lines"]
+  C59["cgg::read_file"]
+  C60["cgg::variant_to_kind"]
+  C62["cgg::synthesize_exit_nodes"]
+  C63["cgg::synthesize_entry_nodes"]
+  C64["cgg::trait_impl_target_from_qn"]
+  C65["cgg::dedup_edges"]
+  C67["cgg::group_unresolved_by_module"]
+  C73["cgg::options::RunOptions::dead_mode"]
+  C75["cgg::outcome::Emission::line"]
+  C76["cgg::outcome::Emission::always"]
+  C79["cgg::query::apply_query"]
+  C80["cgg::query::apply_exclusions"]
+  C101["cgg::since::resolve_since"]
+  C387["cgg_core::external::FileAliases::from_facts"]
+  C388["cgg_core::external::classify_external"]
+  C391["cgg_core::external::build_known_names"]
+  C452["cgg_core::graph::Graph::new"]
+  C453["cgg_core::graph::Graph::add_callable"]
+  C454["cgg_core::graph::Graph::add_file"]
+  C455["cgg_core::graph::Graph::add_edge"]
+  C473["cgg_core::profile::enable"]
+  C476["cgg_core::profile::span"]
+  C484["cgg_core::testfile::classify_test_file"]
+  C555["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C556["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C578["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  C591["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C596["cgg_lang::notebook::extract_python_source"]
+  C602["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C603["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C604["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1739["cgg_resolve::cross_file::resolve"]
+  C1875["cgg_resolve::descriptor::link_descriptors"]
+  C1882["cgg_resolve::dispatch::fanout"]
+  C1886["cgg_resolve::ffi::link_ffi"]
+  C1902["cgg_resolve::frameworks::detect"]
+  C1965["cgg_resolve::intra_file::link_file"]
+  C2009["cgg_resolve::type_hints::build_return_type_map"]
+  C2010["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C2028["cgg_walk::walk"]
   C48 --> C49
-  C48 --> C58
-  C48 --> C57
-  C48 --> C59
-  C48 --> C63
-  C48 -->|2x| C50
-  C48 --> C61
-  C48 --> C62
-  C48 --> C64
-  C48 --> C56
-  C48 --> C55
-  C48 --> C51
-  C598 --> C598
-  C48 --> C71
-  C48 --> C9
-  C48 --> C7
-  C48 --> C468
-  C48 --> C2020
-  C48 --> C586
-  C48 --> C550
-  C48 --> C597
-  C48 --> C447
-  C48 --> C551
-  C48 --> C591
-  C48 -->|18x| C471
-  C48 --> C598
-  C48 --> C599
-  C48 --> C573
-  C48 --> C479
-  C48 --> C449
-  C48 --> C448
-  C48 --> C2001
-  C48 --> C2002
-  C48 --> C386
-  C48 --> C1957
-  C48 --> C382
-  C48 --> C383
-  C48 --> C1731
-  C48 --> C1878
-  C48 --> C1867
-  C48 --> C1894
-  C48 --> C1874
-  C48 --> C450
-  C48 --> C99
-  C48 -->|2x| C74
-  C48 --> C77
-  C48 -->|4x| C73
-  C48 --> C78
-  C51 --> C586
-  C51 --> C74
-  C51 --> C73
-  C55 --> C74
-  C61 -->|2x| C449
-  C61 --> C448
-  C61 --> C450
-  C62 --> C449
-  C62 --> C448
-  C62 --> C450
-  C77 --> C447
-  C1731 -->|2x| C471
-  C1894 -->|9x| C471
+  C49 --> C50
+  C49 --> C59
+  C49 --> C58
+  C49 --> C60
+  C49 --> C64
+  C49 -->|2x| C51
+  C49 --> C62
+  C49 --> C63
+  C49 --> C67
+  C49 --> C65
+  C49 --> C57
+  C49 --> C56
+  C49 --> C52
+  C603 --> C603
+  C49 --> C73
+  C49 --> C9
+  C49 --> C7
+  C49 --> C473
+  C49 --> C2028
+  C49 --> C591
+  C49 --> C555
+  C49 --> C602
+  C49 --> C452
+  C49 --> C556
+  C49 --> C596
+  C49 -->|18x| C476
+  C49 --> C603
+  C49 --> C604
+  C49 --> C578
+  C49 --> C484
+  C49 --> C454
+  C49 --> C453
+  C49 --> C2009
+  C49 --> C2010
+  C49 --> C391
+  C49 --> C1965
+  C49 --> C387
+  C49 --> C388
+  C49 --> C1739
+  C49 --> C1886
+  C49 --> C1875
+  C49 --> C1902
+  C49 --> C1882
+  C49 --> C455
+  C49 -->|5x| C75
+  C49 --> C101
+  C49 -->|2x| C76
+  C49 --> C79
+  C49 --> C80
+  C52 --> C591
+  C52 --> C76
+  C52 --> C75
+  C56 --> C76
+  C62 -->|2x| C454
+  C62 --> C453
+  C62 --> C455
+  C63 --> C454
+  C63 --> C453
+  C63 --> C455
+  C79 --> C452
+  C1739 -->|2x| C476
+  C1902 -->|9x| C476
 ```
 <!-- cgg:end:self -->
 
@@ -998,6 +1001,10 @@ Every run produces a structured audit trail:
   the unresolved population sliceable by category for regression
   tracking. The reason field still parses the legacy free-form string
   form, so older audit JSON remains readable.
+- **Unresolved calls grouped by external module**, largest first
+  (`unresolved_by_module`), with a one-line summary on stderr. Answers
+  the question an audit usually has after reading a graph: *what can I
+  not see from here, and how much of it is there?*
 - Timing per phase
 - Anything the run had to leave out: a `paths_truncated` event when
   `-n 0` stopped at `--max-paths`, and `since_resolved.unmatched_files`

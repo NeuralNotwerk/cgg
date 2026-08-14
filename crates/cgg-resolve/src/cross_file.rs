@@ -121,6 +121,89 @@ fn resolve_via_bases(
     None
 }
 
+/// Parameter names a signature accepts, and whether it takes `**kwargs`.
+///
+/// Parsed from `signature_hint`, which the extractors already record —
+/// no new extraction, and no attempt to be a type checker. `None` means
+/// "cannot tell", and every caller treats that as "accepts anything".
+fn accepted_params(sig: &str) -> Option<(std::collections::HashSet<String>, bool)> {
+    let open = sig.find('(')?;
+    let rest = &sig[open + 1..];
+    let mut depth = 0i32;
+    let mut end = rest.len();
+    for (i, c) in rest.char_indices() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' if depth == 0 => {
+                end = i;
+                break;
+            }
+            ')' | ']' | '}' => depth -= 1,
+            _ => {}
+        }
+    }
+    let mut names = std::collections::HashSet::new();
+    let mut star_star = false;
+    let mut depth = 0i32;
+    let mut cur = String::new();
+    fn flush(
+        cur: &mut String,
+        names: &mut std::collections::HashSet<String>,
+        star_star: &mut bool,
+    ) {
+        let t = cur.trim();
+        if t.starts_with("**") {
+            *star_star = true;
+        } else {
+            let name = t
+                .trim_start_matches('*')
+                .split([':', '='])
+                .next()
+                .unwrap_or("")
+                .trim();
+            if !name.is_empty() {
+                names.insert(name.to_string());
+            }
+        }
+        cur.clear();
+    }
+    for c in rest[..end].chars() {
+        match c {
+            '(' | '[' | '{' => {
+                depth += 1;
+                cur.push(c);
+            }
+            ')' | ']' | '}' => {
+                depth -= 1;
+                cur.push(c);
+            }
+            ',' if depth <= 0 => flush(&mut cur, &mut names, &mut star_star),
+            _ => cur.push(c),
+        }
+    }
+    flush(&mut cur, &mut names, &mut star_star);
+    Some((names, star_star))
+}
+
+/// Whether `sig` could accept a call passing these keyword names.
+///
+/// Deliberately one-sided: it returns `false` only when a keyword is
+/// provably not a parameter and the signature has no `**kwargs`. An
+/// unparseable signature, or one cgg has no hint for, accepts anything —
+/// narrowing fan-out must not become a way to lose real edges.
+fn signature_accepts(sig: &str, kwargs: &[String]) -> bool {
+    if kwargs.is_empty() || sig.is_empty() {
+        return true;
+    }
+    let Some((params, star_star)) = accepted_params(sig) else {
+        return true;
+    };
+    if star_star || params.is_empty() {
+        return true;
+    }
+    kwargs.iter().all(|k| params.contains(k))
+}
+
 /// The default duck-typing fan-out cap.
 ///
 /// When a method call's receiver type is unknown, cgg emits an edge to
@@ -203,6 +286,18 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
             .map(|c| c.id)
             .collect()
     };
+
+    // Signature text per callable, for narrowing duck-typed fan-out by
+    // what a candidate can actually accept.
+    // Borrowed, not cloned: the graph outlives this pass, and cloning
+    // one string per callable cost ~4% on a 20k-callable tree for
+    // nothing.
+    let signatures: HashMap<CallableId, &str> = graph
+        .callables
+        .values()
+        .filter(|c| c.signature_hint.contains('('))
+        .map(|c| (c.id, c.signature_hint.as_str()))
+        .collect();
 
     // Every type cgg has at least one method for. Distinguishes "this
     // class declares no initializer" from "cgg has never seen this name".
@@ -957,6 +1052,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                     &bases_by_owner,
                     &known_owners,
                     &stub_ids,
+                    &signatures,
                     &var_types,
                     caller_qn,
                     fanout_cap,
@@ -1212,6 +1308,7 @@ fn try_resolve_ref(
     bases_by_owner: &HashMap<(String, String), Vec<String>>,
     known_owners: &std::collections::HashSet<(String, String)>,
     stub_ids: &std::collections::HashSet<CallableId>,
+    signatures: &HashMap<CallableId, &str>,
     var_types: &HashMap<String, String>,
     caller_qn: Option<&str>,
     fanout_cap: usize,
@@ -1508,6 +1605,21 @@ fn try_resolve_ref(
                 } else {
                     concrete
                 };
+                // Drop candidates whose signature cannot accept this
+                // call's keywords. One-sided and evidence-based: only a
+                // keyword that is provably not a parameter eliminates a
+                // candidate, so narrowing fan-out can never turn a real
+                // edge into a missing one.
+                let fits: Vec<CallableId> = cids
+                    .iter()
+                    .copied()
+                    .filter(|c| {
+                        signatures
+                            .get(c)
+                            .is_none_or(|sig| signature_accepts(sig, &r.kwargs))
+                    })
+                    .collect();
+                let cids = if fits.is_empty() { cids } else { fits };
                 if cids.len() <= fanout_cap {
                     return Some(cids);
                 }

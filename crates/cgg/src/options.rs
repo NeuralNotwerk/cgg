@@ -50,6 +50,8 @@ pub struct RunOptions {
     pub hops: i32,
     /// Cap on per-match path count in `hops == 0` mode.
     pub max_paths: u32,
+    /// Emit the unreferenced-callable report in place of the graph.
+    pub report_unreferenced: bool,
     /// Max same-named candidates before a duck-typed method call's
     /// fan-out is dropped. The drop is always recorded.
     pub fanout_cap: u32,
@@ -115,6 +117,7 @@ impl Default for RunOptions {
             // sentinel for "no query" has to be outside the valid range.
             hops: -1,
             max_paths: 1000,
+            report_unreferenced: false,
             fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
             lang: Vec::new(),
@@ -176,6 +179,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             exclude_regex,
             hops,
             max_paths,
+            report_unreferenced,
             // Output-shape only: `--no-graph` suppresses the artifact,
             // it does not change the graph, so `RunOptions` — which is
             // strictly what changes the graph — must not carry it.
@@ -225,6 +229,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             exclude_regex: exclude_regex.clone(),
             hops: *hops,
             max_paths: *max_paths,
+            report_unreferenced: *report_unreferenced,
             fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),
             lang: lang.clone(),
