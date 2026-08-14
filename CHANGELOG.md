@@ -9,6 +9,82 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Added
 
+- **Twelve resolver and reporting fixes from a field report** — a
+  call-graph audit of a ~200-file Python service (AWS Lambda +
+  Powertools + Pydantic). Every one was reproduced against 0.6.5 before
+  being fixed, and two reported issues turned out not to need work:
+  `--dead-code-report` with `--dead-code-format json` already wrote JSON
+  (the repro re-read a stale file), and the Powertools dead-code cascade
+  was closed by this release's Lambda rules.
+
+  **Wrong edges** — worse than missing ones, because they read as facts:
+
+  - `super().m()` resolved to the *calling class's own* `m` when the base
+    was outside the analyzed tree. Combined with the real forward edge
+    this formed a phantom cycle, so a reader tracing control flow
+    concluded infinite recursion. `super()` now excludes the calling
+    class, and reports `super-base-out-of-graph` when nothing remains.
+  - A bare `helper(2)` resolved to a same-file `Holder.helper` **at
+    `high`**, outranking the correct `from lib import helper` target at
+    `medium`. A bare identifier cannot reach a method in Python, Rust,
+    Go, JS/TS or PHP — Ruby, Java and C# are excluded, where it can — and
+    an unambiguous import binding is now `high`, because it is not a
+    guess.
+
+  **Silently dropped calls**:
+
+  - Duck-typed fan-out above 5 candidates emitted no edges *and no
+    record*: indistinguishable from "there is no call here". One method
+    with 24 call sites by grep showed 2 inbound edges with no signal that
+    22 were dropped. Now recorded as `fanout-cap-exceeded` with the
+    candidate count, and the cap is `--fanout-cap`.
+
+  **Resolution that never existed**:
+
+  - **Class instantiation now links to the constructor.** 107
+    constructors in the audited service had zero inbound edges out of
+    1206 — "who constructs X?" was unanswerable for every Python class.
+  - **Inherited methods resolve through the base chain.** `w.apply()`
+    produced no edge when `apply` came from a base while `w.extra()` on
+    the same receiver resolved, because nothing walked the MRO.
+  - **Calling an instance resolves to `__call__`** (`__invoke`, `call`).
+    In the audited service this was the single most load-bearing edge in
+    the system — the boundary where application code hands control to a
+    model — and it was invisible.
+
+  Measured on the benchmark corpus: **+12% edges on netbox, +15% on
+  flaskbb**, for no wall-clock cost (medians of five paired runs at
+  `--jobs 1` against 0.6.5: dispatch -0.7%, photoprism +0.0%, flaskbb
+  +1.6%, netbox +2.0%).
+
+  **Reasons that were factually wrong.** `no-candidate-in-file` was
+  reported for names cgg had parsed and indexed — in one case with nine
+  candidates — which reads as "this name does not exist". Five specific
+  reasons replace it: `fanout-cap-exceeded`, `candidates-in-other-files`
+  (with a count), `not-in-scope-for-bare-call`,
+  `class-without-explicit-init` and `super-base-out-of-graph`. Where two
+  passes record the same site, the specific reason wins.
+
+  **Reporting**:
+
+  - `metrics` in `-t json` was **all zeros** while the graph was fully
+    populated. `confidence_histogram` and `unresolved_calls` are exactly
+    what a programmatic consumer reads to gauge trust, and zeros suggest
+    a clean, fully-resolved graph.
+  - `--dead-code-format json` with nowhere to write **exited 0** after
+    discarding the report — a silent-failure trap for scripted use. It
+    now fails, and `--no-graph` gives the report stdout.
+  - `--why-live` rendered definition-side liveness and a real call path
+    with the same `LIVE` label. A function only ever *named* in a
+    module-level registry now reads `LIVE (root itself — no call path)`.
+  - **Pydantic validators are roots.** `@model_validator` /
+    `@field_validator` methods are invoked by Pydantic, so a validator
+    that provably runs on every construction was reported as dead — and
+    dead code cascades, taking everything it calls with it.
+  - **`Protocol` / `ABC` stubs are no longer counted as call targets.**
+    A body-less declaration was returned as a third implementation
+    alongside two real ones, inflating any count of write paths.
+
 - **AWS Lambda entry points, across all six runtimes.** Lambda was the
   largest hole in framework coverage and the one that mattered most:
   nothing in a handler's own file calls it, so before this every Lambda

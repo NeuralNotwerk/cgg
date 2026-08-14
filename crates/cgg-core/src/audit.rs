@@ -123,6 +123,31 @@ pub enum UnresolvedReason {
     NoCandidateCrossFile,
     /// Rejected by the stack-graphs resolver.
     StackGraphs,
+    /// Duck-typed dispatch found more candidates than the fan-out cap
+    /// allows, so none were emitted.
+    ///
+    /// This case used to produce no record at all. A dropped call that
+    /// looks identical to "there is no call here" is worse than a
+    /// missing edge: it silently understates the caller set, which is
+    /// the one thing impact analysis must not do.
+    FanoutCapExceeded { candidates: u32 },
+    /// The name resolves somewhere, just not in this file.
+    ///
+    /// Distinct from [`NoCandidateInFile`], which reads as "this name
+    /// does not exist" and was being reported for names cgg had parsed
+    /// and indexed.
+    ///
+    /// [`NoCandidateInFile`]: UnresolvedReason::NoCandidateInFile
+    CandidatesInOtherFiles { candidates: u32 },
+    /// A bare identifier whose only same-name candidates are methods,
+    /// in a language with no implicit-receiver call form. They are not
+    /// in scope for this call, so the target is elsewhere.
+    NotInScopeForBareCall { methods: u32 },
+    /// A class instantiation whose class declares no explicit
+    /// constructor, so there is no callable to point at.
+    ClassWithoutExplicitInit,
+    /// `super().m()` where the base class is outside the analyzed tree.
+    SuperBaseOutOfGraph,
     /// Any other / legacy reason, preserving the original text.
     Other(String),
 }
@@ -146,6 +171,15 @@ impl UnresolvedReason {
             UnresolvedReason::NoEnclosingCallable => "no-enclosing-callable",
             UnresolvedReason::NoCandidateCrossFile => "no-candidate-cross-file",
             UnresolvedReason::StackGraphs => "stack-graphs",
+            UnresolvedReason::FanoutCapExceeded { .. } => "fanout-cap-exceeded",
+            UnresolvedReason::CandidatesInOtherFiles { .. } => {
+                "candidates-in-other-files"
+            }
+            UnresolvedReason::NotInScopeForBareCall { .. } => {
+                "not-in-scope-for-bare-call"
+            }
+            UnresolvedReason::ClassWithoutExplicitInit => "class-without-explicit-init",
+            UnresolvedReason::SuperBaseOutOfGraph => "super-base-out-of-graph",
             UnresolvedReason::Other(s) => s.as_str(),
         }
     }

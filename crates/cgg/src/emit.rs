@@ -174,11 +174,23 @@ fn dead_code_report(
                 deadcode::report::render_text(report, threshold, &mut err)?;
                 err.flush()?;
             }
-            DeadCodeFormatArg::Json if !cli.quiet => {
-                eprintln!(
-                    "note: --dead-code-format json needs somewhere to go — pass \
-                     `-o FILE` (report lands at FILE.deadcode.json) or \
-                     `--dead-code-report FILE`. No report was written."
+            // With the graph suppressed, stdout is free and the report is
+            // what the run is for.
+            DeadCodeFormatArg::Json if cli.no_graph => {
+                let mut sink = io::stdout();
+                deadcode::report::render_json(report, &mut sink)?;
+                sink.flush()?;
+            }
+            // Otherwise stdout belongs to the graph, so there is nowhere
+            // to put it. Exiting 0 after discarding the report is a
+            // silent-failure trap for scripted use — the note was right
+            // and the exit code undermined it.
+            DeadCodeFormatArg::Json => {
+                anyhow::bail!(
+                    "--dead-code-format json has nowhere to go: stdout is \
+                     carrying the graph. Pass `-o FILE` (report lands at \
+                     FILE.deadcode.json), `--dead-code-report FILE`, or \
+                     `--no-graph` to send the report to stdout."
                 );
             }
             _ => {}
@@ -199,7 +211,13 @@ pub fn all(cli: &Cli, outcome: &RunOutcome) -> Result<()> {
                     eprint!("{text}");
                 }
             }
-            Emission::Graph => graph(cli, &outcome.graph)?,
+            // `--no-graph` drops the artifact, not the analysis: every
+            // diagnostic and report still lands, in the same order.
+            Emission::Graph => {
+                if !cli.no_graph {
+                    graph(cli, &outcome.graph)?;
+                }
+            }
             Emission::WhyLive(proofs) => {
                 write_primary(cli, |sink| {
                     deadcode::report::render_why_live(proofs, sink)

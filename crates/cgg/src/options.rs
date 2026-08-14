@@ -50,6 +50,9 @@ pub struct RunOptions {
     pub hops: i32,
     /// Cap on per-match path count in `hops == 0` mode.
     pub max_paths: u32,
+    /// Max same-named candidates before a duck-typed method call's
+    /// fan-out is dropped. The drop is always recorded.
+    pub fanout_cap: u32,
 
     /// Additional gitignore-syntax ignore file.
     pub ignore_file: Option<PathBuf>,
@@ -112,6 +115,7 @@ impl Default for RunOptions {
             // sentinel for "no query" has to be outside the valid range.
             hops: -1,
             max_paths: 1000,
+            fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
             lang: Vec::new(),
             jobs: 0,
@@ -172,6 +176,11 @@ impl From<&crate::cli::Cli> for RunOptions {
             exclude_regex,
             hops,
             max_paths,
+            // Output-shape only: `--no-graph` suppresses the artifact,
+            // it does not change the graph, so `RunOptions` — which is
+            // strictly what changes the graph — must not carry it.
+            no_graph: _,
+            fanout_cap,
             include_tests,
             ignore_file,
             jobs,
@@ -216,6 +225,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             exclude_regex: exclude_regex.clone(),
             hops: *hops,
             max_paths: *max_paths,
+            fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),
             lang: lang.clone(),
             jobs: *jobs,

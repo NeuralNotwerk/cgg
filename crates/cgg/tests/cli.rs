@@ -97,16 +97,35 @@ fn dead_code_without_o_writes_the_report_to_stderr() {
 }
 
 #[test]
-fn dead_code_json_without_a_destination_says_where_to_put_it() {
+fn dead_code_json_without_a_destination_fails_rather_than_discarding_it() {
     // JSON on stderr would interleave with the summary lines and parse
     // as nothing, so this case names the fix instead of half-doing it.
+    //
+    // It exited 0 until 0.6.6 — a silent-failure trap for scripted use,
+    // where the note landed on stderr nobody was reading and the report
+    // was simply dropped.
     let tmp = fixture();
     cgg()
         .arg(tmp.path())
         .args(["--dead-code", "--dead-code-format", "json"])
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::contains("--dead-code-report"));
+}
+
+#[test]
+fn no_graph_gives_the_json_report_stdout() {
+    // The natural destination once the graph is out of the way, and the
+    // reason the failure above is safe to introduce: there is a way to
+    // ask for exactly this.
+    let tmp = fixture();
+    cgg()
+        .arg(tmp.path())
+        .args(["--dead-code", "--dead-code-format", "json", "--no-graph"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("cgg.deadcode.v1"))
+        .stdout(predicate::str::contains("flowchart").not());
 }
 
 #[test]

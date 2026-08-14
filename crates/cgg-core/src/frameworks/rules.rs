@@ -3402,6 +3402,39 @@ pub const SPECS: &[RuleSpec] = &[
         gap: "",
     },
     RuleSpec {
+        id: "pydantic",
+        language: "python",
+        // Not a trust boundary: a validator runs because Pydantic
+        // constructs the model, and whoever constructs it decides
+        // whether the data is attacker-controlled.
+        kind: TrustKind::Lifecycle,
+        detect: &["pydantic"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // Pydantic invokes these; nothing in the source calls them. A
+        // validator that provably runs on *every* object construction
+        // was being reported as dead code, and because dead code
+        // cascades, everything it called went with it.
+        attributes: &[
+            "model_validator",
+            "field_validator",
+            "validator",
+            "root_validator",
+            "field_serializer",
+            "model_serializer",
+            "computed_field",
+            "model_post_init",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        // `model_post_init` is a hook Pydantic calls by name rather than
+        // by decorator.
+        methods: &["model_post_init"],
+        string_targets: false,
+        node: false,
+        gap: "cgg roots Pydantic's decorated validators, serializers and `model_post_init`. It does not model validation *order*, nor `__get_validators__`/`__get_pydantic_core_schema__` custom types, whose callables are invoked by the core schema rather than by any decorator.",
+    },
+    RuleSpec {
         id: "aws-lambda",
         language: "python",
         kind: TrustKind::Network,

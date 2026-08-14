@@ -51,8 +51,86 @@ pub struct CrossFileOutput {
     pub unresolved: Vec<AuditUnresolvedCall>,
 }
 
+/// What a language calls the method a constructor call lands on.
+///
+/// `Widget(3)` names a class; the callable it enters is that class's
+/// initializer. cgg has no node for a type, so without this mapping
+/// "who constructs X?" is unanswerable — in the field report, 107
+/// constructors had zero inbound edges out of 1206.
+fn constructor_names(lang: &str) -> &'static [&'static str] {
+    match lang {
+        "python" => &["__init__"],
+        "javascript" | "typescript" => &["constructor"],
+        "php" => &["__construct"],
+        "ruby" => &["initialize"],
+        _ => &[],
+    }
+}
+
+/// The method an instance-call `x(...)` enters when `x` is an object.
+fn call_operator_names(lang: &str) -> &'static [&'static str] {
+    match lang {
+        "python" => &["__call__"],
+        "php" => &["__invoke"],
+        "ruby" => &["call"],
+        _ => &[],
+    }
+}
+
+/// Walk a type's declared bases looking for one that owns `method`.
+///
+/// Python resolves an inherited call through the MRO; cgg matched only
+/// the instantiated class, so `w.apply()` on a subclass that inherits
+/// `apply` produced no edge while `w.extra()` declared on the subclass
+/// did. Bounded and visited-guarded: a base list read from syntax can be
+/// cyclic, and depth is not evidence.
+fn resolve_via_bases(
+    lang: &str,
+    owner: &str,
+    method: &str,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+) -> Option<Vec<CallableId>> {
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut frontier: Vec<String> = vec![owner.to_string()];
+    for _ in 0..8 {
+        let mut next: Vec<String> = Vec::new();
+        for t in std::mem::take(&mut frontier) {
+            if !seen.insert(t.clone()) {
+                continue;
+            }
+            if t != owner
+                && let Some(cids) = by_owner_method.get(&(
+                    lang.to_string(),
+                    t.clone(),
+                    method.to_string(),
+                ))
+                && !cids.is_empty()
+            {
+                return Some(cids.clone());
+            }
+            if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
+                next.extend(bases.iter().cloned());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    None
+}
+
+/// The default duck-typing fan-out cap.
+///
+/// When a method call's receiver type is unknown, cgg emits an edge to
+/// every same-named method it can see. Past a handful that stops being
+/// informative and starts being noise, so the set is dropped — but the
+/// drop is recorded (`fanout-cap-exceeded`), never silent.
+pub const DEFAULT_FANOUT_CAP: usize = 5;
+
 /// Resolve call-site references across files using import tables.
-pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
+pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFileOutput {
     // Edges already emitted by `intra_file`, keyed for O(1) lookup.
     //
     // The de-duplication test below used to scan every edge in the graph
@@ -87,6 +165,78 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                 .entry((c.language.clone(), owner.to_string(), c.simple_name.clone()))
                 .or_default()
                 .push(c.id);
+        }
+    }
+
+    // Declarations rather than implementations: a `typing.Protocol`
+    // member or an `@abstractmethod`. They carry no body worth entering,
+    // so counting them as call targets inflates "how many things does
+    // this reach" — three implementations where two exist. Dropped from
+    // duck-typed fan-out only when a concrete candidate survives, so a
+    // call whose *only* visible target is the declaration still resolves
+    // rather than vanishing.
+    let stub_ids: std::collections::HashSet<CallableId> = {
+        let mut protocol_owners: std::collections::HashSet<(&str, &str)> =
+            std::collections::HashSet::new();
+        for f in facts {
+            for d in &f.definitions {
+                if let Some(owner) = owner_from_qn(&d.qualified_name)
+                    && d.base_types.iter().any(|b| {
+                        let bare = b.split(['<', '[']).next().unwrap_or(b).trim();
+                        let bare = bare.rsplit(['.', ':']).next().unwrap_or(bare);
+                        matches!(bare, "Protocol" | "ABC" | "ABCMeta")
+                    })
+                {
+                    protocol_owners.insert((f.language.as_str(), owner));
+                }
+            }
+        }
+        graph
+            .callables
+            .values()
+            .filter(|c| {
+                c.attributes.iter().any(|a| a.contains("abstractmethod"))
+                    || owner_from_qn(&c.qualified_name).is_some_and(|o| {
+                        protocol_owners.contains(&(c.language.as_str(), o))
+                    })
+            })
+            .map(|c| c.id)
+            .collect()
+    };
+
+    // Every type cgg has at least one method for. Distinguishes "this
+    // class declares no initializer" from "cgg has never seen this name".
+    let known_owners: std::collections::HashSet<(String, String)> = by_owner_method
+        .keys()
+        .map(|(l, o, _)| (l.clone(), o.clone()))
+        .collect();
+
+    // Owner type -> its declared bases, for walking the inheritance
+    // chain when a method is inherited rather than declared. Recorded on
+    // methods rather than types, because cgg's model has no node for a
+    // type — any method of the class carries the same base list.
+    let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
+    for f in facts {
+        for d in &f.definitions {
+            if d.base_types.is_empty() {
+                continue;
+            }
+            let Some(owner) = owner_from_qn(&d.qualified_name) else {
+                continue;
+            };
+            let slot = bases_by_owner
+                .entry((f.language.clone(), owner.to_string()))
+                .or_default();
+            for b in &d.base_types {
+                // Store the bare type name: the index is keyed that way,
+                // and a base is written as `generic.ObjectListView` or
+                // `Handler<T>` as often as plainly.
+                let bare = b.split(['<', '[']).next().unwrap_or(b).trim();
+                let bare = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
+                if !bare.is_empty() && !slot.iter().any(|x| x == bare) {
+                    slot.push(bare.to_string());
+                }
+            }
         }
     }
 
@@ -162,6 +312,32 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
         .map(|facts| {
             let mut out = CrossFileOutput::default();
             let lang = facts.language.clone();
+
+            // Variable -> its inferred type, for resolving a call *on an
+            // instance* (`agent("prompt")` → `Agent.__call__`). A name
+            // bound to two different types in one file is dropped rather
+            // than guessed at: the whole point of this lookup is that the
+            // receiver is known.
+            let mut var_types: HashMap<String, String> = HashMap::new();
+            {
+                let mut conflicted: std::collections::HashSet<&str> =
+                    std::collections::HashSet::new();
+                for lt in &facts.local_types {
+                    if conflicted.contains(lt.var_name.as_str()) {
+                        continue;
+                    }
+                    match var_types.get(&lt.var_name) {
+                        Some(prev) if prev != &lt.type_name => {
+                            conflicted.insert(lt.var_name.as_str());
+                            var_types.remove(&lt.var_name);
+                        }
+                        Some(_) => {}
+                        None => {
+                            var_types.insert(lt.var_name.clone(), lt.type_name.clone());
+                        }
+                    }
+                }
+            }
 
             // Normalize imports into lookup tables:
             //   imported_simple_name -> candidate qualified_names.
@@ -764,7 +940,10 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     .and_then(|id| graph.callables.get(&id))
                     .map(|c| c.qualified_name.as_str());
 
-                if let Some(cids) = try_resolve_ref(
+                let mut capped = 0u32;
+                let mut no_ctor = false;
+                let super_recv = is_super_receiver(&r.receiver_hint);
+                let resolved = try_resolve_ref(
                     &lang,
                     r,
                     &direct_imports,
@@ -775,8 +954,50 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                     &by_simple,
                     &by_owner_method,
                     &reexports,
+                    &bases_by_owner,
+                    &known_owners,
+                    &stub_ids,
+                    &var_types,
                     caller_qn,
-                ) {
+                    fanout_cap,
+                    &mut capped,
+                    &mut no_ctor,
+                )
+                .and_then(|cids| {
+                    if super_recv {
+                        without_own_class(
+                            &lang,
+                            &r.name,
+                            caller_qn,
+                            &by_owner_method,
+                            cids,
+                        )
+                    } else {
+                        Some(cids)
+                    }
+                });
+                // An unambiguous binding is not a guess. A bare name
+                // bound by `from x import y` in this very file, or a
+                // module alias resolving to exactly one callable, is as
+                // certain as same-file resolution — and while it scored
+                // `medium`, a same-file method with a colliding name
+                // could outrank the correct target at `high`. Anything
+                // with more than one candidate stays `medium`: that is
+                // fan-out, and fan-out is a hypothesis.
+                let confidence = match &resolved {
+                    Some(cids)
+                        if cids.len() == 1
+                            && (r.receiver_hint.is_empty()
+                                && direct_imports.contains_key(&r.name)
+                                || !r.receiver_hint.is_empty()
+                                    && module_aliases
+                                        .contains_key(r.receiver_hint.as_str())) =>
+                    {
+                        Confidence::High
+                    }
+                    _ => Confidence::Medium,
+                };
+                if let Some(cids) = resolved {
                     for cid in cids {
                         // Skip self-edges that coincide with intra-file's
                         // ones (they'd be duplicates with the same resolver).
@@ -797,12 +1018,70 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts]) -> CrossFileOutput {
                                 dst: cid,
                                 site_line: r.site_line,
                                 site_byte: r.site_byte,
-                                confidence: Confidence::Medium,
+                                confidence,
                                 via: Via::Direct,
                                 resolver: resolver_id.clone(),
                             });
                         }
                     }
+                } else if capped > 0 {
+                    // A drop is never silent. Without this the call site
+                    // is indistinguishable from one that calls nothing —
+                    // in the field report a method with 24 grep-visible
+                    // call sites showed 2 inbound edges and no signal
+                    // that 22 were dropped.
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        enclosing,
+                        facts.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::FanoutCapExceeded { candidates: capped },
+                    ));
+                } else if super_recv {
+                    // `super()` with every candidate excluded means the
+                    // base is not in the analyzed tree. Saying so beats
+                    // both a wrong edge and silence.
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        enclosing,
+                        facts.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::SuperBaseOutOfGraph,
+                    ));
+                } else if no_ctor {
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        enclosing,
+                        facts.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::ClassWithoutExplicitInit,
+                    ));
+                } else if let Some(elsewhere) =
+                    by_simple.get(&(lang.clone(), r.name.clone()))
+                    && !elsewhere.is_empty()
+                {
+                    // The name *is* in the graph, just not reachable
+                    // from here. `no-candidate-in-file` reads as "this
+                    // name does not exist", which was being reported for
+                    // names cgg had parsed and indexed — in one case
+                    // with nine candidates.
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        enclosing,
+                        facts.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::CandidatesInOtherFiles {
+                            candidates: elsewhere.len() as u32,
+                        },
+                    ));
                 }
             }
 
@@ -885,6 +1164,40 @@ fn collect_include_defs(
     }
 }
 
+/// Whether a receiver is Python's `super()` / Ruby's bare `super`.
+///
+/// It reaches the resolver verbatim, and `super()` starts with a
+/// lowercase letter — so the duck-typing step read it as a variable name
+/// and fanned out over every callable with that method name, the calling
+/// class's own override included.
+fn is_super_receiver(rh: &str) -> bool {
+    let rh = rh.trim();
+    rh == "super" || rh == "super()" || rh.starts_with("super(")
+}
+
+/// Drop the calling class's own methods from a `super()` candidate set.
+///
+/// `super().m()` means *explicitly not* this class's `m`. Resolving to it
+/// produced a false edge and, where the subclass method also called the
+/// one containing the `super()` call, a phantom cycle that reads as
+/// infinite recursion. When the base is outside the analyzed tree this
+/// leaves nothing, which is the correct answer — §8: never manufacture
+/// an edge.
+fn without_own_class(
+    lang: &str,
+    method: &str,
+    caller_qn: Option<&str>,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    cids: Vec<CallableId>,
+) -> Option<Vec<CallableId>> {
+    let own = caller_qn.and_then(crate::names::owner_from_qn)?;
+    let mine =
+        by_owner_method.get(&(lang.to_string(), own.to_string(), method.to_string()));
+    let Some(mine) = mine else { return Some(cids) };
+    let kept: Vec<CallableId> = cids.into_iter().filter(|c| !mine.contains(c)).collect();
+    if kept.is_empty() { None } else { Some(kept) }
+}
+
 fn try_resolve_ref(
     lang: &str,
     r: &cgg_core::RefRecord,
@@ -896,7 +1209,19 @@ fn try_resolve_ref(
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
     by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+    known_owners: &std::collections::HashSet<(String, String)>,
+    stub_ids: &std::collections::HashSet<CallableId>,
+    var_types: &HashMap<String, String>,
     caller_qn: Option<&str>,
+    fanout_cap: usize,
+    // Set to the candidate count when the fan-out cap rejected a
+    // non-empty set, so the caller can record the drop instead of
+    // leaving the site looking uncalled.
+    capped: &mut u32,
+    // Set when the call names a class cgg knows but that declares no
+    // initializer, so the caller can say that rather than "no candidate".
+    no_ctor: &mut bool,
 ) -> Option<Vec<CallableId>> {
     // Descriptor / interface-definition languages (Smithy, Protobuf,
     // GraphQL). Their references are shape/message/type names that are
@@ -1112,6 +1437,24 @@ fn try_resolve_ref(
                     }
                 }
             }
+            // An inherited method is declared on a base, not on the
+            // class the receiver names. Tried after every direct owner
+            // match below, so a subclass override always wins.
+            for owner in &owners {
+                if by_owner_method
+                    .get(&(lang.to_string(), (*owner).to_string(), r.name.clone()))
+                    .is_none_or(|c| c.is_empty())
+                    && let Some(cids) = resolve_via_bases(
+                        lang,
+                        owner,
+                        &r.name,
+                        by_owner_method,
+                        bases_by_owner,
+                    )
+                {
+                    return Some(cids);
+                }
+            }
             for owner in owners {
                 if let Some(cids) = by_owner_method.get(&(
                     lang.to_string(),
@@ -1145,10 +1488,81 @@ fn try_resolve_ref(
                 .is_some_and(|std| std.contains(r.name.as_str()));
             if !is_stdlib_method
                 && let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone()))
+                && !cids.is_empty()
             {
-                // Only use this if there's a small number of candidates
-                if cids.len() <= 5 && !cids.is_empty() {
+                // Above the cap the fan-out is too speculative to emit.
+                // The caller records *that* it was dropped, with the
+                // count — silence here reads as "no call at this site",
+                // which understates the caller set rather than widening
+                // it, and that is the failure mode impact analysis
+                // cannot tolerate.
+                // Prefer concrete implementations. A Protocol member
+                // or an @abstractmethod is a declaration, not a target.
+                let concrete: Vec<CallableId> = cids
+                    .iter()
+                    .copied()
+                    .filter(|c| !stub_ids.contains(c))
+                    .collect();
+                let cids = if concrete.is_empty() {
+                    cids.clone()
+                } else {
+                    concrete
+                };
+                if cids.len() <= fanout_cap {
+                    return Some(cids);
+                }
+                *capped = cids.len() as u32;
+                return None;
+            }
+        }
+    }
+
+    // Step 6: instantiation — `Widget(3)` enters `Widget.__init__`.
+    // Last, so a function of the same name always wins. When the
+    // class declares no initializer, an inherited one still counts.
+    if r.receiver_hint.is_empty() {
+        for ctor in constructor_names(lang) {
+            if let Some(cids) = by_owner_method.get(&(
+                lang.to_string(),
+                r.name.clone(),
+                (*ctor).to_string(),
+            )) && !cids.is_empty()
+            {
+                return Some(cids.clone());
+            }
+            if let Some(cids) =
+                resolve_via_bases(lang, &r.name, ctor, by_owner_method, bases_by_owner)
+            {
+                return Some(cids);
+            }
+        }
+        // A known class with no initializer of its own: there is no
+        // callable to point at, which is a different fact from "cgg
+        // has never heard of this name".
+        if !constructor_names(lang).is_empty()
+            && known_owners.contains(&(lang.to_string(), r.name.clone()))
+        {
+            *no_ctor = true;
+        }
+
+        // Step 7: calling an instance — `agent("prompt")` where
+        // `agent` is an object enters `type(agent).__call__`. In the
+        // audited service this was the single most load-bearing edge
+        // in the system and it was invisible.
+        if let Some(ty) = var_types.get(&r.name) {
+            for call_op in call_operator_names(lang) {
+                if let Some(cids) = by_owner_method.get(&(
+                    lang.to_string(),
+                    ty.clone(),
+                    (*call_op).to_string(),
+                )) && !cids.is_empty()
+                {
                     return Some(cids.clone());
+                }
+                if let Some(cids) =
+                    resolve_via_bases(lang, ty, call_op, by_owner_method, bases_by_owner)
+                {
+                    return Some(cids);
                 }
             }
         }
@@ -1209,6 +1623,11 @@ fn enclosing_callable_id(
 
 #[cfg(test)]
 mod tests {
+    /// `resolve` at the default fan-out cap.
+    fn resolve_default(g: &Graph, f: &[FileFacts]) -> CrossFileOutput {
+        resolve(g, f, DEFAULT_FANOUT_CAP)
+    }
+
     use super::*;
     use cgg_core::{
         DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord,
@@ -1340,7 +1759,7 @@ mod tests {
             vec![],
         );
 
-        let out = resolve(&g, std::slice::from_ref(&facts));
+        let out = resolve_default(&g, std::slice::from_ref(&facts));
 
         assert!(
             out.edges.is_empty(),
@@ -1420,11 +1839,14 @@ mod tests {
             vec![],
         );
 
-        let out = resolve(&g, &[helpers_facts, main_facts]);
+        let out = resolve_default(&g, &[helpers_facts, main_facts]);
         assert_eq!(out.edges.len(), 1, "expected one cross-file edge");
         assert_eq!(out.edges[0].src, CallableId::new(1));
         assert_eq!(out.edges[0].dst, CallableId::new(0));
-        assert_eq!(out.edges[0].confidence, Confidence::Medium);
+        // An unambiguous `from helpers import greet` binding is not a
+        // guess — it scored `medium` until 0.6.6, which let a same-file
+        // method with a colliding name outrank it at `high`.
+        assert_eq!(out.edges[0].confidence, Confidence::High);
         assert_eq!(out.edges[0].resolver.as_str(), "cross-file:imports");
     }
 
@@ -1482,7 +1904,7 @@ mod tests {
             vec![],
         );
 
-        let out = resolve(&g, &[helpers_facts, main_facts]);
+        let out = resolve_default(&g, &[helpers_facts, main_facts]);
         assert_eq!(out.edges.len(), 1);
         assert_eq!(out.edges[0].dst, CallableId::new(0));
     }
@@ -1541,7 +1963,7 @@ mod tests {
             vec![],
         );
 
-        let out = resolve(&g, &[lib_facts, main_facts]);
+        let out = resolve_default(&g, &[lib_facts, main_facts]);
         assert_eq!(out.edges.len(), 1);
         assert_eq!(out.edges[0].dst, CallableId::new(0));
     }

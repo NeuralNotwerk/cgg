@@ -99,7 +99,7 @@ REPOS=(
 #                          with a variable path). These are the ones to
 #                          fix; the marker is a to-do, not an excuse.
 APPS=(
-    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|click,fastapi,py-signal,~py-context-manager,~py-threading,~py-unittest,~react"
+    "app-fastapi-dispatch|https://github.com/Netflix/dispatch.git|click,fastapi,pydantic,py-signal,~py-context-manager,~py-threading,~py-unittest,~react"
     "app-django-netbox|https://github.com/netbox-community/netbox.git|django,django-admin,py-unittest,rq,~py-argparse,~py-context-manager,~py-threading"
     "app-flaskbb-flask|https://github.com/flaskbb/flaskbb.git|celery,click,flask,~py-context-manager"
     "app-saleor-celery|https://github.com/saleor/saleor.git|celery,django,django-admin,py-context-manager,~py-threading,~py-unittest"

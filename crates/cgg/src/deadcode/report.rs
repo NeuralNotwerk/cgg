@@ -283,10 +283,17 @@ pub fn render_why_live(proofs: &[LivenessProof], out: &mut dyn Write) -> io::Res
         writeln!(out, "{}", p.target_qualified_name)?;
         match p.status.as_str() {
             "live" | "test-live" => {
-                let label = if p.status == "test-live" {
-                    "LIVE ONLY IN TESTS"
-                } else {
-                    "LIVE"
+                // A zero-hop proof is definition-side liveness: the
+                // callable *is* a root, not something a call path
+                // reaches. Rendering both as a bare `LIVE` invited
+                // over-reading — a function only ever *named* in a
+                // module-level registry dict, and invoked reflectively
+                // through it, proved "LIVE — 0 hop(s) from itself" and
+                // read like a verified call path.
+                let label = match (p.status.as_str(), p.hops.is_empty()) {
+                    ("test-live", _) => "LIVE ONLY IN TESTS",
+                    (_, true) => "LIVE (root itself — no call path)",
+                    (_, false) => "LIVE (call path)",
                 };
                 let root = p
                     .root

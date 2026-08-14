@@ -144,6 +144,7 @@ def analyze(
     filter: Sequence[str] | None = ...,
     hops: int = ...,
     max_paths: int = ...,
+    fanout_cap: int = ...,
     exclude_partial: Sequence[str] | None = ...,
     exclude_glob: Sequence[str] | None = ...,
     exclude_regex: Sequence[str] | None = ...,

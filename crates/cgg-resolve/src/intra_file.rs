@@ -19,7 +19,7 @@
 //! normally; no deduplication or cycle-breaking is performed.
 
 use cgg_core::{
-    DefRecord, FileFacts, RefRecord,
+    DefRecord, DefVariant, FileFacts, RefRecord,
     audit::{AuditUnresolvedCall, UnresolvedReason},
     graph::{CallEdge, Confidence, Via},
     ids::{CallableId, FileId, ResolverId},
@@ -37,6 +37,36 @@ pub type DefIdMap = std::collections::HashMap<(FileId, u32), CallableId>;
 pub struct LinkOutcome {
     pub edges: Vec<CallEdge>,
     pub unresolved: Vec<AuditUnresolvedCall>,
+}
+
+/// Languages where a bare `name(...)` can never reach an instance
+/// method — there is no implicit-receiver call form, so the only things
+/// in scope are module-level.
+///
+/// Deliberately an allowlist. Ruby's `foo` inside a class *is*
+/// `self.foo`, and Java and C# resolve a bare name to an instance method
+/// of the enclosing type, so filtering those would lose real edges.
+fn bare_call_is_never_a_method(language: &str) -> bool {
+    matches!(
+        language,
+        "python" | "rust" | "go" | "javascript" | "typescript" | "php"
+    )
+}
+
+/// Whether a definition is a member of a type rather than a free
+/// function.
+fn is_method_variant(v: DefVariant) -> bool {
+    matches!(
+        v,
+        DefVariant::InherentMethod
+            | DefVariant::TraitMethod
+            | DefVariant::TraitDefaultMethod
+            | DefVariant::StaticMethod
+            | DefVariant::ClassMethod
+            | DefVariant::Constructor
+            | DefVariant::Destructor
+            | DefVariant::Property
+    )
 }
 
 /// Run the intra-file linker over a single file.
@@ -97,6 +127,22 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
             .filter(|(_, d)| d.simple_name == rref.name)
             .map(|(i, d)| (i as u32, d))
             .collect();
+
+        // A bare identifier is not a method call in these languages:
+        // `helper(2)` inside a class reaches a module-level `helper`,
+        // never `self.helper`. Without this a same-file method with a
+        // colliding name captured the call — and, because same-file
+        // resolution scores `high` and the cross-file import scores
+        // `medium`, the *wrong* target outranked the right one. Only
+        // languages with no implicit-self call form are listed; Ruby,
+        // Java and C# do resolve a bare name to a method and must not
+        // be filtered.
+        let mut methods_out_of_scope = 0u32;
+        if rref.receiver_hint.is_empty() && bare_call_is_never_a_method(&facts.language) {
+            let before = candidates.len();
+            candidates.retain(|(_, d)| !is_method_variant(d.variant));
+            methods_out_of_scope = (before - candidates.len()) as u32;
+        }
 
         // Receiver-based narrowing (Issue 1). A call of the form
         // `Foo::bar()` or `obj.bar()` carries a receiver_hint that names
@@ -161,6 +207,19 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
 
         match candidates.as_slice() {
             [] => {
+                // Say which kind of "no candidate" this is. A bare call
+                // whose only same-name definitions are methods is not a
+                // name cgg has never seen — it is a name whose target is
+                // somewhere else, and reporting it as though the name
+                // does not exist is what P1-2 of the field report was
+                // about.
+                let reason = if methods_out_of_scope > 0 {
+                    UnresolvedReason::NotInScopeForBareCall {
+                        methods: methods_out_of_scope,
+                    }
+                } else {
+                    UnresolvedReason::NoCandidateInFile
+                };
                 out.unresolved.push(AuditUnresolvedCall::new(
                     src,
                     facts.file,
@@ -168,7 +227,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     rref.site_byte,
                     rref.name.clone(),
                     rref.receiver_hint.clone(),
-                    UnresolvedReason::NoCandidateInFile,
+                    reason,
                 ));
             }
             [(cand_idx, _)] => {
@@ -275,10 +334,18 @@ mod tests {
     }
 
     fn facts_with(defs: Vec<DefRecord>, refs: Vec<RefRecord>) -> FileFacts {
+        facts_with_lang("rust", defs, refs)
+    }
+
+    fn facts_with_lang(
+        lang: &str,
+        defs: Vec<DefRecord>,
+        refs: Vec<RefRecord>,
+    ) -> FileFacts {
         FileFacts {
             file: FileId::new(0),
             path: PathBuf::from("t.rs"),
-            language: "rust".into(),
+            language: lang.into(),
             definitions: defs,
             references: refs,
             imports: Vec::new(),
@@ -336,13 +403,16 @@ mod tests {
     #[test]
     fn ambiguous_name_flags_unresolved() {
         // Two defs named `m` — common in Rust where `impl A { fn m } impl B { fn m }`.
+        // Ruby, where a bare name *is* an implicit-self method call, so
+        // both candidates are genuinely in scope and the ambiguity is
+        // real. In Rust the same source resolves to neither — see
+        // `a_bare_call_does_not_reach_a_method`.
         let defs = vec![
             mk_def("caller", "m::caller", DefVariant::FreeFunction, (0, 50)),
             mk_def("m", "m::A::m", DefVariant::InherentMethod, (50, 80)),
             mk_def("m", "m::B::m", DefVariant::InherentMethod, (80, 110)),
         ];
-        let refs = vec![mk_ref("m", 10)];
-        let facts = facts_with(defs, refs);
+        let facts = facts_with_lang("ruby", defs, vec![mk_ref("m", 10)]);
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 0);
@@ -350,6 +420,39 @@ mod tests {
         assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
         // Evidence is recorded for the regression instrument (Issue 9).
         assert_eq!(out.unresolved[0].candidates.file_local, 2);
+    }
+
+    /// A bare identifier does not reach a method, and says so.
+    ///
+    /// `helper(2)` inside a file that also defines `Holder.helper` was
+    /// resolving to the method — at `high`, because same-file resolution
+    /// outranks the cross-file import that is the real target. The
+    /// reason it now records matters as much as the dropped edge:
+    /// `no-candidate-in-file` reads as "this name does not exist", which
+    /// is the opposite of the truth.
+    #[test]
+    fn a_bare_call_does_not_reach_a_method() {
+        let defs = vec![
+            mk_def("caller", "m::caller", DefVariant::FreeFunction, (0, 50)),
+            mk_def(
+                "helper",
+                "m::Holder::helper",
+                DefVariant::InherentMethod,
+                (50, 80),
+            ),
+        ];
+        let facts = facts_with(defs, vec![mk_ref("helper", 10)]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(
+            out.edges.len(),
+            0,
+            "a method is not in scope for a bare call"
+        );
+        assert_eq!(
+            out.unresolved[0].reason,
+            UnresolvedReason::NotInScopeForBareCall { methods: 1 }
+        );
     }
 
     #[test]

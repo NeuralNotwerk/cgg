@@ -84,8 +84,15 @@ fn python_module_alias_chain_resolves() {
     assert!(g.lines().any(|l| l.contains(" --> ")));
 }
 
+/// An unambiguous `from x import y` binding resolves at `high`.
+///
+/// This asserted `medium` until 0.6.6. That was the wrong calibration
+/// and it had a concrete cost: same-file resolution scores `high`, so a
+/// class method with a name colliding with an imported function
+/// *outranked* the correct target. A single-candidate import binding is
+/// not a guess — fan-out still scores `medium`, because that is one.
 #[test]
-fn audit_records_medium_confidence_for_cross_file() {
+fn audit_records_high_confidence_for_an_unambiguous_import() {
     let tmp = TempDir::new().unwrap();
     write(tmp.path(), "lib.py", b"def work():\n    return 1\n");
     write(
@@ -107,10 +114,9 @@ fn audit_records_medium_confidence_for_cross_file() {
     let arr = parsed.as_array().unwrap();
     let finished = arr.iter().find(|e| e["event"] == "run_finished").unwrap();
     let confidence = &finished["metrics"]["confidence_histogram"];
-    // At least one medium-confidence edge (cross-file).
     assert!(
-        confidence["medium"].as_u64().unwrap_or(0) >= 1,
-        "expected medium-confidence edge: {confidence}"
+        confidence["high"].as_u64().unwrap_or(0) >= 1,
+        "an unambiguous import binding should resolve high: {confidence}"
     );
 }
 
@@ -966,4 +972,170 @@ fn rust_reference_edges_are_opt_in() {
         "expected one reference edge:\n{g}"
     );
     assert!(g.contains("crate::tick"), "{g}");
+}
+
+// ---------------------------------------------------------------------
+// Resolution gaps reported from a large Python service (0.6.5 audit)
+// ---------------------------------------------------------------------
+
+/// `Widget(3)` enters `Widget.__init__`.
+///
+/// 107 constructors in the audited service had zero inbound edges out of
+/// 1206 — "who constructs X?" was unanswerable for every Python class.
+#[test]
+fn instantiation_links_to_the_constructor() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "widget.py",
+        b"class Widget:\n    def __init__(self, a):\n        self.a = a\n",
+    );
+    write(
+        tmp.path(),
+        "driver.py",
+        b"from widget import Widget\ndef main():\n    return Widget(3)\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(
+        g.contains("Widget.__init__"),
+        "expected a constructor edge:\n{g}"
+    );
+}
+
+/// An *inherited* method resolves through the base chain.
+///
+/// The contrast is the bug: same receiver, same syntax, same file —
+/// resolved when declared on the instantiated class, dropped when
+/// inherited.
+#[test]
+fn an_inherited_method_call_resolves_through_the_base() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "base.py",
+        b"class BaseWorker:\n    def apply(self, x):\n        return x\n",
+    );
+    write(tmp.path(), "child.py", b"from base import BaseWorker\nclass ChildWorker(BaseWorker):\n    def extra(self, x):\n        return x\n");
+    write(
+        tmp.path(),
+        "driver.py",
+        b"from child import ChildWorker\ndef main():\n    w = ChildWorker()\n    w.extra(1)\n    w.apply(2)\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(
+        g.contains("ChildWorker.extra"),
+        "declared-on-subclass edge missing:\n{g}"
+    );
+    assert!(
+        g.contains("BaseWorker.apply"),
+        "inherited edge missing:\n{g}"
+    );
+}
+
+/// Calling an instance enters `__call__`.
+#[test]
+fn calling_an_instance_resolves_to_the_call_operator() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "mod.py",
+        b"class Agent:\n    def __call__(self, p):\n        return p\n",
+    );
+    write(
+        tmp.path(),
+        "use.py",
+        b"from mod import Agent\ndef go():\n    a = Agent()\n    a(\"prompt\")\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(
+        g.contains("Agent.__call__"),
+        "expected a __call__ edge:\n{g}"
+    );
+}
+
+/// `super().m()` never targets the calling class's own `m`.
+///
+/// With the base out of graph this produced an edge back to the
+/// subclass, and combined with the real forward edge it formed a
+/// phantom cycle that reads as infinite recursion.
+#[test]
+fn super_does_not_resolve_to_the_calling_class() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "shape.py",
+        b"from third_party_not_in_graph import ExternalBase\nclass Sub(ExternalBase):\n    def __call__(self, p):\n        return self._inner(p)\n    def _inner(self, p):\n        return super().__call__(p)\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(
+        g.contains("Sub.__call__"),
+        "sanity: the class should be in the graph:\n{g}"
+    );
+    // The forward edge is real; the back edge is not.
+    let back = g.lines().filter(|l| l.contains("-->")).any(|l| {
+        l.contains("_inner")
+            && l.split("-->")
+                .nth(1)
+                .is_some_and(|r| r.contains("__call__"))
+    });
+    assert!(
+        !back,
+        "super() must not resolve to the subclass's own override:\n{g}"
+    );
+}
+
+/// A bare identifier bound by `from x import y` resolves only to the
+/// import, and at `high`.
+#[test]
+fn a_bare_name_prefers_its_import_over_a_same_file_method() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "lib.py", b"def helper(x):\n    return x\n");
+    write(
+        tmp.path(),
+        "use.py",
+        b"from lib import helper\nclass Holder:\n    def helper(self, x):\n        return x\ndef go():\n    helper(2)\n",
+    );
+    let g = graph_of(tmp.path());
+    // The method is still a node — it is a real definition. What it must
+    // not be is the *target* of the bare call.
+    let id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            l.starts_with('C')
+                .then(|| {
+                    l.contains(&format!("[\"{qn}\"]"))
+                        .then(|| l.split('[').next())
+                })
+                .flatten()
+                .flatten()
+                .map(str::to_string)
+        })
+    };
+    let lib = id("lib.helper").expect("lib.helper node");
+    let method = id("use.Holder.helper").expect("Holder.helper node");
+    let targets: Vec<&str> = g
+        .lines()
+        .filter_map(|l| l.split("-->").nth(1))
+        .map(str::trim)
+        .collect();
+    assert!(
+        targets.iter().any(|t| *t == lib),
+        "expected an edge to lib.helper:\n{g}"
+    );
+    assert!(
+        !targets.iter().any(|t| *t == method),
+        "a method is not in scope for a bare call:\n{g}"
+    );
+}
+
+/// Render `dir` and return the mermaid graph.
+fn graph_of(dir: &Path) -> String {
+    let out = dir.join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&out)
+        .arg(dir)
+        .assert()
+        .success();
+    fs::read_to_string(&out).unwrap()
 }

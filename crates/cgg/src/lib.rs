@@ -114,6 +114,12 @@ pub fn plugin_ids() -> Vec<&'static str> {
 /// two analyses to fight over. They were process-globals through 0.5.0,
 /// which forced this function to hold a process-wide lock for its whole
 /// duration.
+/// The default duck-typing fan-out cap, re-exported so front ends can
+/// name the same default the CLI does rather than hard-coding 5.
+pub fn cross_file_default_fanout_cap() -> u32 {
+    cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32
+}
+
 pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
     // `jobs: 0` means half the PHYSICAL cores. rayon defaults to one per
     // LOGICAL cpu, which on an SMT machine is double that — and cgg's hot
@@ -648,7 +654,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // --- Phase 3c: cross-file import-chain resolver -----------------------
     let cf_out = {
         let _s = cgg_core::profile::span("resolve::cross-file");
-        cgg_resolve::cross_file::resolve(&graph, &all_facts)
+        cgg_resolve::cross_file::resolve(&graph, &all_facts, opts.fanout_cap as usize)
     };
     for e in &cf_out.edges {
         match e.confidence {
@@ -815,6 +821,35 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .unresolved
         .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
 
+    // Two passes can record the same site — the intra-file linker with
+    // the generic "no candidate in this file", a later pass with the
+    // actual cause. Keep one record per site, preferring the specific
+    // reason: the whole point of the reason field is to say *why*, and
+    // `no-candidate-in-file` on a name cgg has parsed and indexed reads
+    // as "this name does not exist", which is the opposite of the truth.
+    {
+        use cgg_core::audit::UnresolvedReason as UR;
+        let specific = |r: &UR| !matches!(r, UR::NoCandidateInFile | UR::Other(_));
+        let mut best: std::collections::HashMap<(FileId, u32), usize> =
+            std::collections::HashMap::new();
+        for (i, c) in graph.unresolved.iter().enumerate() {
+            match best.get(&(c.file, c.site_byte)) {
+                Some(&j)
+                    if specific(&graph.unresolved[j].reason) || !specific(&c.reason) => {}
+                _ => {
+                    best.insert((c.file, c.site_byte), i);
+                }
+            }
+        }
+        let keep: std::collections::HashSet<usize> = best.into_values().collect();
+        let mut i = 0;
+        graph.unresolved.retain(|_| {
+            let k = keep.contains(&i);
+            i += 1;
+            k
+        });
+    }
+
     // Synthesize external/stdlib exit nodes from the *post-reconciliation*
     // buckets, so calls that a later resolver bound are not surfaced.
     if opts.include_external || opts.include_stdlib {
@@ -943,6 +978,14 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     events.push(AuditEvent::RunFinished {
         metrics: metrics.clone(),
     });
+
+    // The graph carries its own copy, which is what `-t json` serializes.
+    // Nothing assigned it, so every `-t json` run reported zeros — and
+    // `confidence_histogram` and `unresolved_calls` are exactly what a
+    // programmatic consumer reads to decide how far to trust the graph.
+    // Reading zeros suggests a clean, fully-resolved result, which is
+    // the opposite of what an all-zero histogram means.
+    graph.metrics = metrics.clone();
 
     // --- Phase 4: emit ----------------------------------------------------
     let _phase_post_emit = cgg_core::profile::span("post::emit");

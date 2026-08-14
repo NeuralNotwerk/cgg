@@ -89,6 +89,21 @@ pub struct Cli {
     #[arg(long = "max-paths", value_name = "N", default_value_t = 1000)]
     pub max_paths: u32,
 
+    /// Suppress the call-graph output, leaving only the report a run was
+    /// asked for. `--dead-code --no-graph` prints the report and nothing
+    /// else; with `--dead-code-format json` the report takes stdout.
+    #[arg(long = "no-graph")]
+    pub no_graph: bool,
+
+    /// Max same-named candidates for a duck-typed method call before the
+    /// fan-out is dropped. Drops are recorded as `fanout-cap-exceeded`.
+    #[arg(
+        long = "fanout-cap",
+        value_name = "N",
+        default_value_t = cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32
+    )]
+    pub fanout_cap: u32,
+
     /// Show dead-code findings that live in test scope.
     ///
     /// Test files are *always* walked, parsed and resolved, and a call
