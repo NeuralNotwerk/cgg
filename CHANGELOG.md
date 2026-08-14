@@ -19,9 +19,20 @@ did catch it. The root package was then published by hand and the
 workflow fixed to pass `--ignore-scripts`.
 
 That fix cannot be exercised except by tagging, so this release exists
-to tag. If the `publish` job goes green and `npm view
-cgg-callgraphgenerator version` reports 0.6.7 without manual
-intervention, the fix is confirmed.
+to tag.
+
+**Result: the fix works, and the smoke test earned its keep by finding a
+second bug.** `npm publish --ignore-scripts` succeeded
+(`+ cgg-callgraphgenerator@0.6.7`) and all three channels shipped — PyPI
+five wheels and an sdist, npm root plus five platform packages, three
+GitHub release binaries, none of it by hand.
+
+The `publish` job still went red, on the verification check itself: it
+read `npm view` **one second** after the publish and got 0.6.6, because
+`dist-tags` propagation through the registry CDN takes a few seconds.
+A false alarm on the one check whose value is being trustworthy — the
+next real split-brain would be waved through as "just the propagation
+thing". It now polls for up to five minutes instead of reading once.
 
 ## [0.6.6] - 2026-08-14
 

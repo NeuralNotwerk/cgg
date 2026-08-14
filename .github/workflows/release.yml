@@ -311,10 +311,22 @@ jobs:
 
           # Belt and braces: a publish path that can succeed without
           # publishing has to be checked, not trusted.
-          PUBLISHED="$(npm view cgg-callgraphgenerator version)"
+          #
+          # Polled, not read once. The registry is a CDN and `dist-tags`
+          # takes a few seconds to propagate — on v0.6.7 this read 0.6.6
+          # *one second* after a successful `+ cgg-callgraphgenerator@0.6.7`
+          # and failed the job, which is a false alarm on exactly the
+          # check whose job is to be trustworthy. A check that cries wolf
+          # is worse than no check, because the next real split-brain gets
+          # waved through as "just the propagation thing".
           LOCAL="$(node -p "require('./package.json').version")"
-          echo "npm latest=$PUBLISHED local=$LOCAL"
+          for attempt in $(seq 1 20); do
+            PUBLISHED="$(npm view cgg-callgraphgenerator version 2>/dev/null || echo unknown)"
+            echo "attempt $attempt: npm latest=$PUBLISHED local=$LOCAL"
+            [ "$PUBLISHED" = "$LOCAL" ] && break
+            sleep 15
+          done
           [ "$PUBLISHED" = "$LOCAL" ] || {
-            echo "::error::npm still reports $PUBLISHED after publishing $LOCAL"
+            echo "::error::npm still reports $PUBLISHED after publishing $LOCAL (5 minutes)"
             exit 1
           }
