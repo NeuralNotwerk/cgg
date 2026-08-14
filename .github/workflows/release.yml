@@ -298,7 +298,16 @@ jobs:
           # are logged and swallowed, so they cannot be relied on to fail
           # the job either.
           npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
-          npm publish
+          # `--ignore-scripts`: the root package's `prepublishOnly` runs
+          # `napi prepublish` a *second* time, and `napi` is not on PATH
+          # in this step — it was invoked through `npx` above. On v0.6.6
+          # that failed with `sh: 1: napi: not found` and exit 127, after
+          # the five platform packages had already shipped, leaving the
+          # root at the previous version: the exact split-brain the check
+          # below exists to catch. The prepublish work is already done on
+          # the line above, so re-running it is redundant as well as
+          # broken.
+          npm publish --ignore-scripts
 
           # Belt and braces: a publish path that can succeed without
           # publishing has to be checked, not trusted.
