@@ -510,7 +510,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2062 callables, 4866 edges, 1742 cross-file, 138ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2068 callables, 4895 edges, 1754 cross-file, 135ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -544,33 +544,33 @@ flowchart LR
   C79["cgg::query::apply_query"]
   C80["cgg::query::apply_exclusions"]
   C101["cgg::since::resolve_since"]
-  C387["cgg_core::external::FileAliases::from_facts"]
-  C388["cgg_core::external::classify_external"]
-  C391["cgg_core::external::build_known_names"]
-  C452["cgg_core::graph::Graph::new"]
-  C453["cgg_core::graph::Graph::add_callable"]
-  C454["cgg_core::graph::Graph::add_file"]
-  C455["cgg_core::graph::Graph::add_edge"]
-  C473["cgg_core::profile::enable"]
-  C476["cgg_core::profile::span"]
-  C484["cgg_core::testfile::classify_test_file"]
-  C555["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C556["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C578["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  C591["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C596["cgg_lang::notebook::extract_python_source"]
-  C602["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C603["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C604["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1739["cgg_resolve::cross_file::resolve"]
-  C1875["cgg_resolve::descriptor::link_descriptors"]
-  C1882["cgg_resolve::dispatch::fanout"]
-  C1886["cgg_resolve::ffi::link_ffi"]
-  C1902["cgg_resolve::frameworks::detect"]
-  C1965["cgg_resolve::intra_file::link_file"]
-  C2009["cgg_resolve::type_hints::build_return_type_map"]
-  C2010["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C2028["cgg_walk::walk"]
+  C393["cgg_core::external::FileAliases::from_facts"]
+  C394["cgg_core::external::classify_external"]
+  C397["cgg_core::external::build_known_names"]
+  C458["cgg_core::graph::Graph::new"]
+  C459["cgg_core::graph::Graph::add_callable"]
+  C460["cgg_core::graph::Graph::add_file"]
+  C461["cgg_core::graph::Graph::add_edge"]
+  C479["cgg_core::profile::enable"]
+  C482["cgg_core::profile::span"]
+  C490["cgg_core::testfile::classify_test_file"]
+  C561["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C562["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C584["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  C597["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C602["cgg_lang::notebook::extract_python_source"]
+  C608["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C609["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C610["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C1745["cgg_resolve::cross_file::resolve"]
+  C1881["cgg_resolve::descriptor::link_descriptors"]
+  C1888["cgg_resolve::dispatch::fanout"]
+  C1892["cgg_resolve::ffi::link_ffi"]
+  C1908["cgg_resolve::frameworks::detect"]
+  C1971["cgg_resolve::intra_file::link_file"]
+  C2015["cgg_resolve::type_hints::build_return_type_map"]
+  C2016["cgg_resolve::type_hints::propagate_types_with_returns"]
+  C2034["cgg_walk::walk"]
   C48 --> C49
   C49 --> C50
   C49 --> C59
@@ -585,55 +585,55 @@ flowchart LR
   C49 --> C57
   C49 --> C56
   C49 --> C52
-  C603 --> C603
+  C609 --> C609
   C49 --> C73
   C49 --> C9
   C49 --> C7
-  C49 --> C473
-  C49 --> C2028
-  C49 --> C591
-  C49 --> C555
+  C49 --> C479
+  C49 --> C2034
+  C49 --> C597
+  C49 --> C561
+  C49 --> C608
+  C49 --> C458
+  C49 --> C562
   C49 --> C602
-  C49 --> C452
-  C49 --> C556
-  C49 --> C596
-  C49 -->|18x| C476
-  C49 --> C603
-  C49 --> C604
-  C49 --> C578
-  C49 --> C484
-  C49 --> C454
-  C49 --> C453
-  C49 --> C2009
-  C49 --> C2010
-  C49 --> C391
-  C49 --> C1965
-  C49 --> C387
-  C49 --> C388
-  C49 --> C1739
-  C49 --> C1886
-  C49 --> C1875
-  C49 --> C1902
-  C49 --> C1882
-  C49 --> C455
+  C49 -->|18x| C482
+  C49 --> C609
+  C49 --> C610
+  C49 --> C584
+  C49 --> C490
+  C49 --> C460
+  C49 --> C459
+  C49 --> C2015
+  C49 --> C2016
+  C49 --> C397
+  C49 --> C1971
+  C49 --> C393
+  C49 --> C394
+  C49 --> C1745
+  C49 --> C1892
+  C49 --> C1881
+  C49 --> C1908
+  C49 --> C1888
+  C49 --> C461
   C49 -->|5x| C75
   C49 --> C101
   C49 -->|2x| C76
   C49 --> C79
   C49 --> C80
-  C52 --> C591
+  C52 --> C597
   C52 --> C76
   C52 --> C75
   C56 --> C76
-  C62 -->|2x| C454
-  C62 --> C453
-  C62 --> C455
-  C63 --> C454
-  C63 --> C453
-  C63 --> C455
-  C79 --> C452
-  C1739 -->|2x| C476
-  C1902 -->|9x| C476
+  C62 -->|2x| C460
+  C62 --> C459
+  C62 --> C461
+  C63 --> C460
+  C63 --> C459
+  C63 --> C461
+  C79 --> C458
+  C1745 -->|2x| C482
+  C1908 -->|9x| C482
 ```
 <!-- cgg:end:self -->
 
@@ -900,6 +900,24 @@ it in `cgg-deadcode.toml`. Each rule's coverage line states its own
 limit, including the one they all share — the trust boundary depends on
 the event source, and `cgg` reports `network` regardless of whether the
 trigger is an API Gateway or an SQS queue.
+
+### The other clouds
+
+The same problem — nothing in a handler's file calls it — solved
+differently by each platform:
+
+| Platform | Runtimes | How the handler is found |
+| --- | --- | --- |
+| **Google Cloud Functions** | Python, JS, TS, Go, Java, C# | Functions Framework: `@functions_framework.http`, `functions.http('name', h)`, `functions.HTTP`, and the `HttpFunction`/`IHttpFunction` contracts |
+| **Azure Functions** | C#, Java, Python, JS, TS | `[Function]` / `[FunctionName]` / `@FunctionName`, the v2 Python decorators, and v4's `app.http('name', { handler })` |
+| **Firebase Functions** | JS, TS, Python | v2 trigger registrars and `@https_fn.on_request` decorators |
+| **Cloudflare Workers** | JS, TS | `fetch`/`scheduled`/`queue`/`email` on the default export, plus the legacy `addEventListener('fetch', …)` |
+| **Deno** | JS, TS | `Deno.serve` handlers and a default-exported `fetch` |
+
+All of them report `network` regardless of trigger, for the same reason
+Lambda does: the event source is named in a deploy command or a binding
+attribute, not in the code. The coverage line for each says which of its
+decorators are genuinely internet-facing.
 
 ### Coverage is partial, and says so
 

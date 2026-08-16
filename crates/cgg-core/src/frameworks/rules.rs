@@ -1729,16 +1729,33 @@ pub const SPECS: &[RuleSpec] = &[
             "cloudflare:email",
             "cloudflare:workflows",
             "@cloudflare/containers",
+            // The type package is what a TypeScript Worker actually
+            // imports; without it the commonest Worker in existence
+            // was not even detected.
+            "@cloudflare/workers-types",
         ],
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &[
+            // The legacy service-worker form,
+            // `addEventListener("fetch", event => …)`. The event name
+            // is the identity, so the entry reads `fetch` exactly as
+            // the module-worker method does. Gated on the rule's own
+            // detection, so a browser app's listeners are never claimed
+            // — the extraction-time cost of the verb was measured
+            // before adding it.
+            "addEventListener",
+        ],
         base_types: NONE,
-        methods: NONE,
+        // The module-worker contract: the runtime calls these on the
+        // default-exported object. Named by the platform, called by
+        // nothing in the source — and a Durable Object's `fetch` is the
+        // same shape.
+        methods: &["fetch", "scheduled", "queue", "email", "trace", "tail"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Cloudflare Workers; the entry is the fetch/scheduled/queue/email/tail method of the default-exported object literal (`export default { async fetch(request, env, ctx) {} }`), the methods of classes extending WorkerEntrypoint, DurableObject or WorkflowEntrypoint from 'cloudflare:workers', and any addEventListener('fetch'|'scheduled', ...) listener. Start from the module named by `main` in wrangler.toml/wrangler.jsonc and read its exports by hand.",
+        gap: "cgg binds the module-worker handler methods — fetch/scheduled/queue/email/trace/tail on the default-exported object, and the same method names on a Durable Object class. Every entry reports `network`, but only `fetch` is: `scheduled` is a cron trigger and `queue` is queue-driven. The legacy service-worker form, `addEventListener(\"fetch\", …)`, binds too. What does not is a worker that imports *nothing at all* — a bare `addEventListener` script has no marker to detect on, and inventing one would claim every browser event listener in every JavaScript tree. Such a handler is still named, so it is not silently lost; it is simply unlabelled, and will read as unreferenced. Declare it in cgg-deadcode.toml. Routes live in wrangler.toml, which cgg does not read.",
     },
     RuleSpec {
         id: "cloudflare-workers",
@@ -1750,16 +1767,33 @@ pub const SPECS: &[RuleSpec] = &[
             "cloudflare:email",
             "cloudflare:workflows",
             "@cloudflare/containers",
+            // The type package is what a TypeScript Worker actually
+            // imports; without it the commonest Worker in existence
+            // was not even detected.
+            "@cloudflare/workers-types",
         ],
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &[
+            // The legacy service-worker form,
+            // `addEventListener("fetch", event => …)`. The event name
+            // is the identity, so the entry reads `fetch` exactly as
+            // the module-worker method does. Gated on the rule's own
+            // detection, so a browser app's listeners are never claimed
+            // — the extraction-time cost of the verb was measured
+            // before adding it.
+            "addEventListener",
+        ],
         base_types: NONE,
-        methods: NONE,
+        // The module-worker contract: the runtime calls these on the
+        // default-exported object. Named by the platform, called by
+        // nothing in the source — and a Durable Object's `fetch` is the
+        // same shape.
+        methods: &["fetch", "scheduled", "queue", "email", "trace", "tail"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Cloudflare Workers; the entry is the fetch/scheduled/queue/email/tail method of the default-exported object literal (`export default { async fetch(request, env, ctx) {} }`), the methods of classes extending WorkerEntrypoint, DurableObject or WorkflowEntrypoint from 'cloudflare:workers', and any addEventListener('fetch'|'scheduled', ...) listener. Start from the module named by `main` in wrangler.toml/wrangler.jsonc and read its exports by hand.",
+        gap: "cgg binds the module-worker handler methods — fetch/scheduled/queue/email/trace/tail on the default-exported object, and the same method names on a Durable Object class. Every entry reports `network`, but only `fetch` is: `scheduled` is a cron trigger and `queue` is queue-driven. The legacy service-worker form, `addEventListener(\"fetch\", …)`, binds too. What does not is a worker that imports *nothing at all* — a bare `addEventListener` script has no marker to detect on, and inventing one would claim every browser event listener in every JavaScript tree. Such a handler is still named, so it is not silently lost; it is simply unlabelled, and will read as unreferenced. Declare it in cgg-deadcode.toml. Routes live in wrangler.toml, which cgg does not read.",
     },
     RuleSpec {
         id: "deno-http",
@@ -1769,12 +1803,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &["serve"],
         base_types: NONE,
-        methods: NONE,
+        methods: &["fetch"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Deno HTTP servers; the entry is the handler passed to Deno.serve(...), the handler or serveDir call passed to serve() from @std/http, the fetch method of a default-exported object, or the router callbacks of a deno.land/x framework such as Oak (app.use / router.get). Deno.serve is a global that needs no import, so a file can be a complete HTTP server with nothing for cgg to detect — grep for `Deno.serve` and read the module named by deno.json's tasks.start by hand.",
+        gap: "cgg binds a named handler passed to Deno.serve/serve, and the fetch method of a default-exported object. Inline handlers bind as well as named ones — `Deno.serve((req) => …)` mints a handler node even though it carries no route string. What cgg does not read is Deno.serve's options form when the handler is reached through a variable it cannot resolve.",
     },
     RuleSpec {
         id: "deno-http",
@@ -1784,12 +1818,12 @@ pub const SPECS: &[RuleSpec] = &[
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &["serve"],
         base_types: NONE,
-        methods: NONE,
+        methods: &["fetch"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Deno HTTP servers; the entry is the handler passed to Deno.serve(...), the handler or serveDir call passed to serve() from @std/http, the fetch method of a default-exported object, or the router callbacks of a deno.land/x framework such as Oak (app.use / router.get). Deno.serve is a global that needs no import, so a file can be a complete HTTP server with nothing for cgg to detect — grep for `Deno.serve` and read the module named by deno.json's tasks.start by hand.",
+        gap: "cgg binds a named handler passed to Deno.serve/serve, and the fetch method of a default-exported object. Inline handlers bind as well as named ones — `Deno.serve((req) => …)` mints a handler node even though it carries no route string. What cgg does not read is Deno.serve's options form when the handler is reached through a variable it cannot resolve.",
     },
     RuleSpec {
         id: "trpc",
@@ -2090,13 +2124,16 @@ pub const SPECS: &[RuleSpec] = &[
         ],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: NONE,
+        // `[Function("Name")]` is the isolated-worker model,
+        // `[FunctionName("Name")]` the in-process one. Both mark the
+        // method the host invokes, and nothing in the source calls it.
+        attributes: &["Function", "FunctionName"],
         registrars: NONE,
         base_types: NONE,
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Azure Functions; every method carrying [Function(\"Name\")] (isolated-worker model, Microsoft.Azure.Functions.Worker) or [FunctionName(\"Name\")] (in-process model, Microsoft.Azure.WebJobs) is an entry point with no caller anywhere in the source. The trust kind is set by the trigger attribute on the method's FIRST PARAMETER, not by anything on the method itself: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Grep those attribute names, then check host.json and any function.json, because the script-based model declares its bindings there and carries no attributes at all.",
+        gap: "cgg binds every method carrying [Function] or [FunctionName]. What it does NOT read is the trigger, which sits on the method's FIRST PARAMETER rather than on the method: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Every entry is reported `network`, so check the parameter attribute before treating one as internet-facing. The script-based model declares its bindings in function.json and carries no attributes at all — those are invisible.",
     },
     RuleSpec {
         id: "wcf",
@@ -3582,6 +3619,316 @@ pub const SPECS: &[RuleSpec] = &[
         string_targets: true,
         node: true,
         gap: "cgg binds the `handler: \"module.function\"` property on a CDK Function construct to that function when both live in the analyzed tree. It cannot resolve a handler built by concatenation or held in a variable, follow `Code.fromAsset` into an unanalyzed directory, or name the trust boundary, which a separate event-source construct decides. NodejsFunction with only an `entry` path and no `handler` defaults to `index.handler`, which cgg does not infer.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "java",
+        kind: TrustKind::Network,
+        detect: &["com.microsoft.azure.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["FunctionName"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "python",
+        kind: TrustKind::Network,
+        detect: &["azure.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // The v2 programming model decorates handlers on a FunctionApp.
+        // The trigger *is* the decorator here, unlike every other Azure
+        // runtime — but one rule carries one trust kind, so the gap
+        // still has to say which is which.
+        attributes: &[
+            "route",
+            "function_name",
+            "timer_trigger",
+            "blob_trigger",
+            "queue_trigger",
+            "service_bus_queue_trigger",
+            "service_bus_topic_trigger",
+            "event_hub_message_trigger",
+            "event_grid_trigger",
+            "cosmos_db_trigger",
+            "schedule",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the v2 programming model's decorated handlers on a FunctionApp. Every entry reports `network`, but the decorator names the real trigger: only `@app.route` is internet-facing; `timer_trigger` is a schedule and the queue/blob/event ones are queue-driven. The v1 model — a bare `main(req)` with a sibling function.json — carries no decorator and is invisible; declare those in cgg-deadcode.toml.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "javascript",
+        kind: TrustKind::Network,
+        detect: &["@azure/functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // v4: `app.http("name", { handler })` — the handler is a
+        // property of an options object, which is why registrar
+        // capture had to learn to descend into one.
+        registrars: &[
+            "http",
+            "timer",
+            "storageBlob",
+            "storageQueue",
+            "serviceBusQueue",
+            "serviceBusTopic",
+            "eventHub",
+            "eventGrid",
+            "cosmosDB",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the `handler` property passed to the v4 model's app.http/app.timer/etc. Every entry reports `network`, though the registrar names the real trigger. The v3 model — `module.exports = async function (context, req)` with a sibling function.json — carries no registration call and is invisible.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "typescript",
+        kind: TrustKind::Network,
+        detect: &["@azure/functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "http",
+            "timer",
+            "storageBlob",
+            "storageQueue",
+            "serviceBusQueue",
+            "serviceBusTopic",
+            "eventHub",
+            "eventGrid",
+            "cosmosDB",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the `handler` property passed to the v4 model's app.http/app.timer/etc. Every entry reports `network`, though the registrar names the real trigger. The v3 model, with a sibling function.json, is invisible.",
+    },
+    // Firebase Functions. A layer over Cloud Functions with its own
+    // registration vocabulary, and separate rules because the shapes
+    // share nothing: JS chains off a trigger namespace, Python uses
+    // decorators from per-trigger modules.
+    RuleSpec {
+        id: "firebase-functions",
+        language: "javascript",
+        kind: TrustKind::Network,
+        detect: &["firebase-functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // `functions.https.onRequest(handler)` and the event forms,
+        // which chain off a trigger builder before handing the handler
+        // over: `.document("users/{id}").onCreate(handler)`.
+        registrars: &[
+            // v2 only, and deliberately. The v1 vocabulary —
+            // onCreate/onUpdate/onDelete/onWrite/onRun/onFinalize —
+            // collides with ORM lifecycle hooks and event emitters
+            // everywhere, and verb gating happens at extraction time
+            // across the whole language: carrying those cost a measured
+            // 5.3% on Ghost and 1.9% on Immich for a deprecated API.
+            // v1 handlers are named, so they still bind by value
+            // reference; only the synthesized route name is lost.
+            "onRequest",
+            "onCall",
+            "onDocumentCreated",
+            "onDocumentUpdated",
+            "onDocumentDeleted",
+            "onDocumentWritten",
+            "onValueCreated",
+            "onValueUpdated",
+            "onMessagePublished",
+            "onSchedule",
+            "onObjectFinalized",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler passed to a Firebase trigger. Every entry reports `network`, and only `https.onRequest` is: `onCall` is authenticated callable, and the Firestore/Realtime-Database/Storage/Pub-Sub triggers are event-driven. Inline handlers bind as well as named ones. Two things remain: the trigger path (`document(\"users/{id}\")`) sits on an earlier link of the builder chain and is not carried into the entry name, and the deprecated v1 vocabulary (onCreate/onUpdate/onDelete/onWrite/onRun) is deliberately not registered — those names collide with ORM lifecycle hooks across the whole language and cost a measured 5.3% on Ghost. A named v1 handler still binds by value reference; only its entry label is lost.",
+    },
+    RuleSpec {
+        id: "firebase-functions",
+        language: "typescript",
+        kind: TrustKind::Network,
+        detect: &["firebase-functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            // v2 only, and deliberately. The v1 vocabulary —
+            // onCreate/onUpdate/onDelete/onWrite/onRun/onFinalize —
+            // collides with ORM lifecycle hooks and event emitters
+            // everywhere, and verb gating happens at extraction time
+            // across the whole language: carrying those cost a measured
+            // 5.3% on Ghost and 1.9% on Immich for a deprecated API.
+            // v1 handlers are named, so they still bind by value
+            // reference; only the synthesized route name is lost.
+            "onRequest",
+            "onCall",
+            "onDocumentCreated",
+            "onDocumentUpdated",
+            "onDocumentDeleted",
+            "onDocumentWritten",
+            "onValueCreated",
+            "onValueUpdated",
+            "onMessagePublished",
+            "onSchedule",
+            "onObjectFinalized",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler passed to a Firebase trigger. Every entry reports `network`, though only `https.onRequest` is internet-facing; the rest are callable or event-driven. Inline handlers bind as well as named ones. The trigger path from the builder chain is not carried into the entry name, and the deprecated v1 vocabulary is not registered — those names collide with ORM lifecycle hooks language-wide. A named v1 handler still binds by value reference.",
+    },
+    RuleSpec {
+        id: "firebase-functions",
+        language: "python",
+        kind: TrustKind::Network,
+        detect: &["firebase_functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // The Python SDK decorates rather than chaining.
+        attributes: &[
+            "on_request",
+            "on_call",
+            "on_document_created",
+            "on_document_updated",
+            "on_document_deleted",
+            "on_document_written",
+            "on_value_created",
+            "on_value_updated",
+            "on_message_published",
+            "on_schedule",
+            "on_object_finalized",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the decorated handler. Every entry reports `network`, but the decorator names the real trigger: only `@https_fn.on_request` is internet-facing, `on_call` is authenticated, `on_schedule` is a timer and the rest are event-driven.",
+    },
+    // Google Cloud Functions. The Functions Framework is the same
+    // library in every runtime, which is why one rule id covers five
+    // languages: the handler is always registered against the
+    // framework rather than named in a deploy config, so unlike
+    // Lambda there is nothing outside the source to read.
+    RuleSpec {
+        id: "gcp-functions",
+        language: "python",
+        kind: TrustKind::Network,
+        detect: &["functions_framework"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["http", "cloud_event", "typed", "errorhandler"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg reports every Functions Framework entry as `network`. `@functions_framework.http` really is internet-facing, but `@cloud_event` is invoked by Eventarc — Pub/Sub, Cloud Storage, Firestore — and the trigger is named in the deploy command (`gcloud functions deploy --trigger-topic`), not in the source. Check the decorator before treating an entry as reachable from the internet.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "javascript",
+        kind: TrustKind::Network,
+        detect: &["@google-cloud/functions-framework"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // `functions.http("name", handler)` — shape B, with the
+        // deployed function name as the route.
+        registrars: &["http", "cloudEvent", "typed"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler passed to functions.http/cloudEvent. The legacy signature — a bare `exports.helloWorld = (req, res) => …` deployed with `--entry-point helloWorld` — is named only in the deploy command, so it is invisible; declare those in cgg-deadcode.toml. Every entry reports `network` regardless of trigger.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "typescript",
+        kind: TrustKind::Network,
+        detect: &["@google-cloud/functions-framework"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &["http", "cloudEvent", "typed"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler passed to functions.http/cloudEvent. A bare `export const helloWorld` deployed with `--entry-point` is named only in the deploy command and is invisible. Every entry reports `network` regardless of trigger.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "go",
+        kind: TrustKind::Network,
+        detect: &["github.com/GoogleCloudPlatform/functions-framework-go"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &["HTTP", "CloudEvent", "Typed"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler value passed to functions.HTTP/CloudEvent inside init(). Every entry reports `network`; the CloudEvent form is Eventarc-driven and its trigger is named in the deploy command.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "java",
+        kind: TrustKind::Network,
+        detect: &["com.google.cloud.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // Java is the one runtime where this is a declared contract:
+        // the class implements the interface and the framework calls
+        // the single method it declares.
+        registrars: NONE,
+        base_types: &[
+            "HttpFunction",
+            "BackgroundFunction",
+            "CloudEventsFunction",
+            "RawBackgroundFunction",
+            "TypedFunction",
+        ],
+        methods: &["service", "accept", "apply"],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "csharp",
+        kind: TrustKind::Network,
+        detect: &["Google.Cloud.Functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        base_types: &["IHttpFunction", "ICloudEventFunction", "ITypedFunction"],
+        methods: &["HandleAsync"],
+        registrars: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds HandleAsync on a Functions Framework implementation. ICloudEventFunction is Eventarc-driven rather than internet-facing, and cgg reports both as `network` because the trigger is named in the deploy command.",
     },
     // ---------------------------------------------------------------
     // Wave 2: the remaining languages, and in-language entry points.

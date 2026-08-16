@@ -188,14 +188,21 @@ pub(crate) fn arguments_of<'t>(call: Node<'t>) -> Option<Node<'t>> {
 }
 
 /// Whether a call has the shape of a registration that hands off an
-/// inline handler: `verb("identity", ...closure)`.
+/// inline handler: `verb("identity", ...closure)` or `verb(closure)`.
 ///
 /// The gate on synthesizing a name for an anonymous handler. Naming
 /// *every* anonymous callback would mint a node for every `.map(x =>
 /// …)` and every promise chain in the tree — a large cost paid on every
-/// run for a signal only a framework rule can use. Requiring a leading
-/// string literal and a short argument list restricts it to the shape
-/// that actually carries an identity worth naming.
+/// run for a signal only a framework rule can use.
+///
+/// The leading string used to be **required**, which cost three whole
+/// platforms: `Deno.serve((req) => …)`, Firebase's
+/// `onRequest((req, res) => …)` and Express middleware `app.use(fn)`
+/// carry no route, and every one of them enumerated nothing. The string
+/// was never what made this safe — the *caller's* verb gate is, and
+/// `describe`, `it`, `map`, `then` and `setTimeout` are not registrar
+/// verbs in any rule. So a closure alone is now enough, and the route
+/// comes back empty rather than absent.
 pub(crate) fn is_registration_shape(call: Node, source: &[u8]) -> Option<String> {
     let args = arguments_of(call)?;
     let mut cursor = args.walk();
@@ -203,10 +210,26 @@ pub(crate) fn is_registration_shape(call: Node, source: &[u8]) -> Option<String>
     if named.len() > 4 {
         return None;
     }
-    let route = string_within(*named.first()?, source)?;
-    if !named.iter().skip(1).any(|n| is_kind(*n, CLOSURE_KINDS))
-        && trailing_block(call).is_none()
-    {
+    let route = string_within(*named.first()?, source).unwrap_or_default();
+    // A closure sitting in an options object counts as handed off, the
+    // same as one in argument position — `app.http("name", { handler:
+    // async () => … })` is a registration by any reading.
+    // When there is no route string the closure can be argument zero
+    // (`Deno.serve(handler)`), so scan every slot rather than skipping
+    // the first.
+    let scan_from = if route.is_empty() { 0 } else { 1 };
+    let has_closure = named.iter().skip(scan_from).any(|n| {
+        is_kind(*n, CLOSURE_KINDS)
+            || (n.kind() == "object" && {
+                let mut c = n.walk();
+                n.named_children(&mut c).any(|pair| {
+                    let mut v = pair.walk();
+                    pair.named_children(&mut v)
+                        .any(|x| is_kind(x, CLOSURE_KINDS))
+                })
+            })
+    });
+    if !has_closure && trailing_block(call).is_none() {
         return None;
     }
     Some(route)
@@ -224,12 +247,31 @@ pub(crate) fn trailing_block<'t>(call: Node<'t>) -> Option<Node<'t>> {
 }
 
 /// Every inline closure a registration call hands off: argument-position
-/// ones and the trailing block.
+/// ones, ones inside an options object, and the trailing block.
+///
+/// The options-object form is not an edge case. Azure Functions' v4
+/// model writes every handler as
+/// `app.http("name", { handler: async (req, ctx) => … })`, and a whole
+/// runtime enumerating nothing is what looking only at argument
+/// position costs. One level deep: a closure nested further than that
+/// is not the thing being registered.
 pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
     let mut out = Vec::new();
     if let Some(args) = arguments_of(call) {
         let mut cursor = args.walk();
-        out.extend(args.named_children(&mut cursor).filter(|n| is_closure(*n)));
+        for arg in args.named_children(&mut cursor) {
+            if is_closure(arg) {
+                out.push(arg);
+                continue;
+            }
+            if arg.kind() == "object" {
+                let mut pc = arg.walk();
+                for pair in arg.named_children(&mut pc) {
+                    let mut vc = pair.walk();
+                    out.extend(pair.named_children(&mut vc).filter(|n| is_closure(*n)));
+                }
+            }
+        }
     }
     out.extend(trailing_block(call));
     out

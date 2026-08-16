@@ -5,6 +5,69 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [Unreleased]
+
+### Added
+
+- **Google Cloud Functions, Azure Functions, Firebase, Cloudflare
+  Workers and Deno** — 18 enumerating rules across five platforms.
+  Google Cloud Functions had **no rule in any language**; Azure,
+  Cloudflare and Deno detected their framework and enumerated nothing
+  from it.
+
+  | Platform | Runtimes | Mechanism |
+  | --- | --- | --- |
+  | Google Cloud Functions | Python, JS, TS, Go, Java, C# | Functions Framework decorators, `functions.http('name', h)`, and the `HttpFunction`/`IHttpFunction` contracts |
+  | Azure Functions | C#, Java, Python, JS, TS | `[Function]`/`[FunctionName]`/`@FunctionName`, the v2 Python decorators, v4's `app.http('name', { handler })` |
+  | Firebase Functions | JS, TS, Python | v2 trigger registrars, `@https_fn.on_request` |
+  | Cloudflare Workers | JS, TS | module-worker `fetch`/`scheduled`/`queue`/`email`, plus legacy `addEventListener('fetch', …)` |
+  | Deno | JS, TS | `Deno.serve` handlers, default-exported `fetch` |
+
+  Verified on real repositories, each now an APPS entry:
+  `functions-framework-nodejs` (3 entries), `firebase/functions-samples`
+  (17 Python + 2 JS), both Azure quickstarts (2 each),
+  `cloudflare/workers-rs` (3), `denoland/std` (1).
+
+### Fixed
+
+- **A registration needed a route string, and three platforms had
+  none.** `is_registration_shape` required a leading string literal
+  before it would name an inline handler, so `Deno.serve((req) => …)`,
+  Firebase's `onRequest((req, res) => …)` and Express middleware
+  `app.use(fn)` enumerated nothing.
+
+  The string was never what made that gate safe — the caller's
+  *registrar-verb* gate is, and `describe`, `it`, `map`, `then` and
+  `setTimeout` are registrar verbs in no rule. Measured before removing
+  it: **+1.4% nodes on Ghost, +0.1% on cal.com**, and wall clock
+  unchanged to slightly faster.
+
+- **Inline closures inside an options object were invisible.** Azure
+  Functions' v4 model writes every handler as
+  `app.http("name", { handler: async (req, ctx) => … })`, and only
+  argument position was scanned — the whole runtime enumerated nothing.
+  `javascript.rs` also carried its own copy of the closure scan rather
+  than calling the shared helper, so fixing the helper alone was not
+  enough.
+
+- **Cloudflare's detection missed `@cloudflare/workers-types`**, the
+  import a TypeScript Worker actually uses, so the commonest Worker in
+  existence was not detected at all.
+
+### Changed
+
+- **Firebase's deprecated v1 vocabulary is deliberately not
+  registered.** `onCreate`/`onUpdate`/`onDelete`/`onWrite`/`onRun`
+  collide with ORM lifecycle hooks and event emitters across the whole
+  language, and verb gating happens at extraction time — carrying them
+  cost a measured **5.3% on Ghost and 1.9% on Immich** for a deprecated
+  API. Bisected by stripping rule groups one at a time; Azure's verbs,
+  by contrast, cost -0.2%. A named v1 handler still binds by value
+  reference; only its entry label is lost.
+
+  Net effect of the whole change set, nine paired runs at `--jobs 1`
+  against 0.6.7: **-3.1% median, -2.0% min** on Ghost.
+
 ## [0.6.7] - 2026-08-14
 
 **CI smoke test. No functional change** — the graph 0.6.7 produces is

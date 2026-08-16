@@ -885,3 +885,164 @@ fn aws_cdk_typescript_binds_a_handler_from_an_options_object() {
         "TS CDK options-object handler should bind:\n{g}"
     );
 }
+
+// ---------------------------------------------------------------------
+// The other clouds
+// ---------------------------------------------------------------------
+//
+// Same problem as Lambda — nothing in a handler's own file calls it —
+// solved by each platform differently. Before 0.6.8 Google Cloud
+// Functions had no rule in any language, and Azure, Cloudflare and Deno
+// detected their framework while enumerating nothing from it.
+
+#[test]
+fn gcp_functions_binds_every_runtime_shape() {
+    // One library across six runtimes, three registration mechanisms.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.py",
+        "import functions_framework\n\ndef _r(x):\n    return x\n\n\
+         @functions_framework.http\ndef hello_http(request):\n    return _r(request)\n",
+    );
+    write(
+        tmp.path(),
+        "index.js",
+        "const functions = require('@google-cloud/functions-framework');\n\
+         function build(x) { return x; }\n\
+         functions.http('helloJs', (req, res) => build(req));\n",
+    );
+    write(
+        tmp.path(),
+        "Fn.java",
+        "package com.example;\nimport com.google.cloud.functions.HttpFunction;\n\
+         public class Fn implements HttpFunction {\n  private String r(String s){return s;}\n\
+         \x20 public void service(Object req, Object res) { r(\"ok\"); }\n}\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("gcp-functions::main.hello_http"),
+        "python decorator:\n{g}"
+    );
+    assert!(
+        g.contains("gcp-functions::http('helloJs')"),
+        "js registrar:\n{g}"
+    );
+    assert!(
+        g.contains("gcp-functions::com.example.Fn.service"),
+        "java contract:\n{g}"
+    );
+}
+
+#[test]
+fn azure_functions_binds_the_attribute_and_the_options_object() {
+    // The v4 JavaScript model puts the handler in an options object,
+    // which argument-position scanning missed entirely.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Fn.cs",
+        "using Microsoft.Azure.Functions.Worker;\npublic class F {\n  private string R(string s) => s;\n\
+         \x20 [Function(\"HttpTrigger\")]\n  public string Run(object req) => R(\"ok\");\n}\n",
+    );
+    write(
+        tmp.path(),
+        "index.js",
+        "const { app } = require('@azure/functions');\nfunction build(x){return x;}\n\
+         app.http('httpExample', { handler: async (req, ctx) => build(req) });\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("azure-functions::Function('HttpTrigger')"),
+        "C# attribute:\n{g}"
+    );
+    assert!(
+        g.contains("azure-functions::http('httpExample')"),
+        "v4 options object:\n{g}"
+    );
+}
+
+#[test]
+fn cloudflare_worker_module_handlers_are_entries() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "worker.ts",
+        "import type { ExecutionContext } from '@cloudflare/workers-types';\n\
+         function route(p: string) { return p; }\n\
+         export default {\n  async fetch(request: Request): Promise<Response> {\n\
+         \x20   return new Response(route('/'));\n  },\n\
+         \x20 async scheduled(event: unknown) { route('cron'); },\n};\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("cloudflare-workers::fetch"),
+        "module-worker fetch:\n{g}"
+    );
+    assert!(
+        g.contains("cloudflare-workers::scheduled"),
+        "cron handler:\n{g}"
+    );
+}
+
+#[test]
+fn firebase_python_triggers_are_entries() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.py",
+        "from firebase_functions import https_fn\n\ndef _b(x):\n    return x\n\n\
+         @https_fn.on_request()\ndef api(req):\n    return _b(req)\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("firebase-functions::main.api"),
+        "decorated trigger:\n{g}"
+    );
+}
+
+/// An inline handler with no route string still binds.
+///
+/// The registration-shape gate required a leading string literal until
+/// 0.6.8, which cost three platforms outright: `Deno.serve((req) => …)`,
+/// Firebase's `onRequest((req, res) => …)` and Express middleware
+/// `app.use(fn)` all carry a handler and no route. The string was never
+/// what made the gate safe — the caller's verb gate is, and `describe`,
+/// `it`, `map` and `then` are registrar verbs in no rule. Measured on
+/// the corpus, removing it added 1.4% more nodes on Ghost and cost no
+/// wall clock.
+#[test]
+fn a_closure_with_no_route_string_still_registers() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.ts",
+        "import { serveDir } from \"jsr:@std/http/file-server\";\n\
+         function build(p: string) { return p; }\n\
+         Deno.serve((req: Request) => new Response(build(req.url)));\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("deno-http::handler_at_"),
+        "an inline handler is still a registration:\n{g}"
+    );
+}
+
+/// Cloudflare's legacy service-worker form binds when the worker is
+/// detectable at all.
+#[test]
+fn cloudflare_legacy_addeventlistener_binds() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "index.js",
+        "import { WorkerEntrypoint } from 'cloudflare:workers';\n\
+         async function handleRequest(request) { return new Response('hi'); }\n\
+         addEventListener('fetch', event => { event.respondWith(handleRequest(event.request)); });\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(
+        g.contains("cloudflare-workers::addeventlistener('fetch')"),
+        "the event name is the identity:\n{g}"
+    );
+}

@@ -148,6 +148,15 @@ APPS=(
     "app-powertools-lambda|https://github.com/aws-powertools/powertools-lambda-python.git|aws-lambda,aws-lambda-powertools,aws-cdk"
     "app-awslambda-go|https://github.com/aws/aws-lambda-go.git|aws-lambda-go,net-http"
     "app-cdk-examples|https://github.com/aws-samples/aws-cdk-examples.git|aws-cdk,aws-lambda,aws-lambda-go,junit"
+    # The other clouds. Every one of these was detect-only or absent
+    # before 0.6.8, so each entry is the application that proves its
+    # rule enumerates rather than merely disclosing a gap.
+    "app-gcp-functions|https://github.com/GoogleCloudPlatform/functions-framework-nodejs.git|gcp-functions,express"
+    "app-firebase-samples|https://github.com/firebase/functions-samples.git|firebase-functions,express,flask"
+    "app-azure-functions-js|https://github.com/Azure-Samples/functions-quickstart-javascript-azd.git|azure-functions"
+    "app-azure-functions-dotnet|https://github.com/Azure-Samples/functions-quickstart-dotnet-azd.git|azure-functions,~aspnet-minimal"
+    "app-cloudflare-workers|https://github.com/cloudflare/workers-rs.git|cloudflare-workers,axum,ffi-export"
+    "app-deno-std|https://github.com/denoland/std.git|deno-http,node-event-emitter,ffi-export"
 )
 
 # Framework rules with NO application in the APPS manifest above.

@@ -736,14 +736,13 @@ impl<'a> JsWalker<'a> {
         else {
             return;
         };
-        let Some(args) = node.child_by_field_name("arguments") else {
-            return;
-        };
-        let mut cursor = args.walk();
-        let closures: Vec<Node> = args
-            .named_children(&mut cursor)
-            .filter(|n| super::registrar::is_closure(*n))
-            .collect();
+        // The shared helper, not a local re-scan: it also finds a
+        // closure sitting in an options object, which is how Azure
+        // Functions' v4 model writes every handler
+        // (`app.http("name", { handler: async () => … })`). Scanning
+        // argument position alone left that whole runtime enumerating
+        // nothing.
+        let closures = super::registrar::inline_closures(node);
         for closure in closures {
             let line = (closure.start_position().row as u32) + 1;
             let simple = format!("handler_at_{line}");
