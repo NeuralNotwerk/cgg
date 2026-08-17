@@ -51,7 +51,15 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 dist/
+.git/
 EOF
+    # `.git/` is excluded from the *filesystem* scan on purpose, and it
+    # is not a gap: the history sweep below scans the object store
+    # properly, with commit attribution. Reading `.git/logs` as flat
+    # files finds nothing extra and does find false positives — a
+    # 40-hex-character commit SHA matches Cloudflare's API-token
+    # pattern, so four reflog entries failed this gate on a release
+    # whose only sin was having a commit id.
     # `unverified` is NOT optional. trufflehog only marks a finding
     # `verified` if it can authenticate against the live API, so a real
     # credential that has since been rotated — still leaked, still in

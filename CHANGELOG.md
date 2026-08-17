@@ -68,6 +68,165 @@ ever grows in default mode — see *Compatibility* below).
   Net effect of the whole change set, nine paired runs at `--jobs 1`
   against 0.6.7: **-3.1% median, -2.0% min** on Ghost.
 
+## [0.7.0] - 2026-08-17
+
+### Added
+
+- **Cloud entry points across five platforms and sixteen languages.**
+  Google Cloud Functions had no rule in any language; Azure, Cloudflare
+  and Deno detected their framework and enumerated nothing from it.
+  Ruby and PHP — *first-party managed runtimes* on Lambda and Cloud
+  Functions, as officially supported as Python — had no cloud rule at
+  all.
+
+  | Platform | Runtimes |
+  | --- | --- |
+  | AWS Lambda | Go, Java, Python, JS, TS, C#, Rust, **Ruby, PHP, Kotlin, Scala, Groovy, Swift, C++** |
+  | AWS CDK | Python, TS — binds `handler="app.lambda_handler"` across files |
+  | Google Cloud Functions | Python, JS, TS, Go, Java, C#, **Ruby, PHP, Kotlin, Scala, Groovy** |
+  | Azure Functions | C#, Java, Python, JS, TS, **F#, PowerShell, Kotlin, Scala, Groovy** |
+  | Firebase | JS, TS, Python |
+  | Cloudflare Workers | JS, TS, **Rust** |
+  | Deno | JS, TS |
+
+  Verified on real repositories, all now APPS entries:
+  `functions-framework-nodejs`, `firebase/functions-samples` (17 Python
+  and 2 JS entries), both Azure quickstarts, `cloudflare/workers-rs`,
+  `denoland/std`, `powertools-lambda-python` (1,282 entries),
+  `aws-cdk-examples`.
+
+- **`--fanout-cap`, `--no-graph`, `--report-unreferenced`**, an
+  `unresolved_by_module` audit event, and five specific
+  `UnresolvedReason` variants replacing the blanket
+  `no-candidate-in-file`.
+
+- **The span profiler is compiled into every build.** It was
+  `#[cfg]`-compiled out of release, so the one build anyone runs could
+  not answer "where is this dwelling?" — exactly the question a
+  pathological input raises, and one a debug build cannot answer because
+  it distorts the ratios. `--profile` now enables collection at runtime.
+  Four quadratics were found with it within the hour.
+
+### Fixed
+
+> **Four superlinear resolver paths made large inputs unusable.**
+> `erlang-otp` ran for **3 hours 40 minutes** without finishing;
+> `cmake-kitware`, `dart-flutter` and `zig-zig` timed out. Any run that
+> did complete produced a correct graph — no published number was wrong
+> — but four repositories in the benchmark corpus could not be analysed
+> at all, and the corpus scripts had no timeout, so a sweep containing
+> one of them never returned.
+
+- **`enclosing_callable_id` scanned every callable in the graph, per
+  reference.** On Zig's compiler that is 572,840 references against
+  344,808 callables. The reference loop was 449s of CPU while the
+  resolution inside it was 1.8s. Indexed by `(file, start, end)`.
+- **The `#include` closure had no memo**, so a C include diamond was
+  re-walked exponentially — 25 includes at depth 8. Fixed with a *depth
+  map*, not a visited set: `depth` counts down, so a plain set would
+  refuse to re-expand a header first reached by a long path and lose the
+  deeper definitions, order-dependently.
+- **Include resolution scanned every file** per include per file;
+  `HashMap` iteration is unordered, so even the exact-match
+  short-circuit read half the map and a miss read all of it.
+- **The FFI duplicate check scanned the whole edge list** per candidate
+  per reference.
+
+- **Multi-argument generics were dropped from every base-type rule.**
+  `implements RequestHandler<String, String>` was truncated by a
+  `trim_end_matches` that could not tell a generic's `>` from the
+  container's delimiter. Not Lambda-specific: **MediatR** went from
+  `entries NOT enumerated` to enumerating.
+- **Kotlin, Scala and Groovy recorded no base types**, so every
+  `base_types` rule for them was inert — including `android-worker`,
+  `spring-batch` and `gradle-plugin`, which had never fired. F#, Scala
+  and Groovy recorded no attributes.
+- **JS/TS options objects were invisible to registrar capture**, which
+  is how Azure's v4 model writes every handler.
+
+### Changed
+
+- **Corpus scripts are time-bounded.** `CGG_REPO_TIMEOUT` (60s/repo) and
+  `CGG_TOTAL_BUDGET` (1800s/run) now bound `benchmark.sh`,
+  `perf-compare.sh` and `framework-coverage.py` — whose per-repo cap was
+  900s, which across a hundred repos is not a timeout. A repo that trips
+  the cap is named and excluded, never silently averaged in.
+
+- **`perf-compare.sh` now measures the whole corpus.** It measured nine
+  hand-picked repos totalling **1.8 seconds** — 0.7% of the corpus's
+  258s — and it is the same nine that produced the "+4–6.8% corpus-wide
+  regression" this project retracted in 0.6.2. It contained none of the
+  repos where this release's quadratics lived, so it would have reported
+  *flat* for a fix that took `erlang-otp` from 3h40m to 24.5s.
+
+- **A fifth optimisation was reverted.** An inverted
+  `(language, path fragment)` index took `hcl-terraform-aws` to 16.6s;
+  the full-corpus sweep caught it losing **9,331 nodes and edges across
+  34 repositories**. The match is `path.contains(fragment)`, which
+  permits a fragment to begin mid-segment, and no segment-aligned index
+  reproduces that. `hcl` is 49s instead of 17s as a direct result.
+
+### Performance
+
+Machine load at measurement: see below. Comparison is **not**
+like-for-like in one direction — this release enables cloud rules for
+nine more languages that the baseline did not have, so some of the added
+edges are new default work.
+
+`scripts/perf-compare.sh` against `v0.6.7`, 9-repo smoke set, `--jobs 1`:
+
+| repo | 0.6.7 | 0.7.0 | delta |
+| --- | --- | --- | --- |
+| rust-ripgrep | 193 ms | 185 ms | -4.1% |
+| python-flask | 84 ms | 89 ms | +6.0% (noise) |
+| js-express | 66 ms | 72 ms | +9.1% (noise) |
+| go-fzf | 166 ms | 158 ms | -4.8% |
+| c-jq | 99 ms | 94 ms | -5.1% (noise) |
+| cpp-spdlog | 266 ms | 253 ms | -4.9% |
+| csharp-serilog | 94 ms | 98 ms | +4.3% (noise) |
+| swift-alamofire | 193 ms | 194 ms | +0.5% |
+| cpp-nlohmann-json | 628 ms | 611 ms | -2.7% |
+| **TOTAL** | **1789 ms** | **1754 ms** | **-2.0%** |
+
+The script's own noise floor on that total is ~1–1.5%, so **-2.0% is
+flat**, not an improvement. Every per-repo move flagged `(noise)` has a
+baseline under 150 ms.
+
+**The corpus is the real number, and it is not comparable as a total**,
+because 0.6.7 could not finish four of its repositories:
+
+| repo | 0.6.7 | 0.7.0 |
+| --- | --- | --- |
+| erlang-otp | 3h 40m, never finished | **24.5s** |
+| cmake-kitware | timed out | **4.4s** |
+| dart-flutter | timed out | **15.3s** |
+| zig-zig | timed out | **48.2s** |
+| hcl-terraform-aws | 62s | 49.2s |
+
+Whole corpus, 113 repositories, 185,222 files, 1,745,670 callables,
+7.7 GB, `--jobs 8`, one pass each: **258s**, with **89 repos under one
+second**, 6 between 10s and 60s, and **none over two minutes**.
+
+Graph size against a clean `v0.6.7` build, all 113 repositories:
+**nodes 1,000,768 → 1,745,670 (+74.4%)**, **edges 1,904,932 → 2,382,130
+(+25.1%)**, with **zero repositories losing a single node or edge**.
+Most of that gain is the four repositories that previously produced no
+graph at all; excluding them, 49 repositories gain from the new rules
+and the capture fixes, led by `app-rails-mastodon` (+897 nodes),
+`js-express` (+552) and `app-saleor-celery` (+427 edges).
+
+Test suite: **690 tests in 5.1s**. Gates (test + clippy + fmt +
+docs-check) total **6.7s**.
+
+### Compatibility
+
+The default graph remains a superset of 0.6.7's: no repository in the
+corpus lost a node or an edge. Two behaviour changes are worth naming:
+scoping the registrar-verb gate per language moves JS/TS dead-code
+findings (-69 on Ghost, +6 on cal.com), and inline handlers that carry
+no route string now register, which adds synthesized handler nodes
+(+1.4% on Ghost).
+
 ## [0.6.7] - 2026-08-14
 
 **CI smoke test. No functional change** — the graph 0.6.7 produces is

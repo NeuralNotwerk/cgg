@@ -22,7 +22,7 @@ All five produce a byte-identical graph from the same input.
 ```bash
 apt-get install -y --no-install-recommends ca-certificates curl
 curl -fsSL -o cgg.tar.gz \
-  https://github.com/NeuralNotwerk/cgg/releases/download/v0.6.7/cgg-v0.6.7-linux-x86_64.tar.gz
+  https://github.com/NeuralNotwerk/cgg/releases/download/v0.7.0/cgg-v0.7.0-linux-x86_64.tar.gz
 tar xzf cgg.tar.gz -C /opt/cgg
 install -m755 /opt/cgg/cgg /usr/local/bin/cgg
 ```
@@ -90,7 +90,7 @@ Two requirements that are easy to get wrong:
 apt-get install -y --no-install-recommends ca-certificates curl git gcc libc6-dev
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 . "$HOME/.cargo/env"
-git clone --depth 1 --branch v0.6.7 https://github.com/NeuralNotwerk/cgg
+git clone --depth 1 --branch v0.7.0 https://github.com/NeuralNotwerk/cgg
 cd cgg && cargo build --release -p cgg
 ```
 

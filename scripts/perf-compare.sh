@@ -55,8 +55,23 @@ WORKTREE="$(mktemp -d -t cgg-perf-baseline-XXXXXX)"
 
 # Language-diverse and mid-sized: big enough to dominate process
 # startup, small enough that 7 runs each stays under a few minutes.
-REPOS=(rust-ripgrep python-flask js-express go-fzf c-jq cpp-spdlog
-       csharp-serilog swift-alamofire cpp-nlohmann-json)
+# The WHOLE corpus, not a sample.
+#
+# This was nine hand-picked repos totalling 1.8 seconds — 0.7% of the
+# corpus's 258s of work — and it is the same nine that produced the
+# "+4-6.8% corpus-wide regression" claim that a 29-repo re-measurement
+# retracted (median per-repo delta +0.0%, 10 of 29 faster; the effect
+# was one repo's file-size skew). It also contained none of the repos
+# where the 0.6.8 quadratics lived, so it would have reported "flat" for
+# a fix that took erlang-otp from 3h40m to 24.5s.
+#
+# cgg spans 44 languages and several hundred framework rules. A subset
+# is an anecdote with digits in it. CGG_REPO_TIMEOUT and
+# CGG_TOTAL_BUDGET keep the full sweep bounded; override REPOS only for
+# a deliberate one-off.
+if [ -z "${REPOS+x}" ]; then
+  mapfile -t REPOS < <(cd "$REPOS_DIR" 2>/dev/null && ls -d */ 2>/dev/null | sed 's#/$##' | sort)
+fi
 
 BASELINE="${1:-}"
 if [ -z "$BASELINE" ]; then
@@ -120,7 +135,16 @@ for r in "${REPOS[@]}"; do
   fi
   # Probe once under the cap. A repo neither binary can finish inside it
   # is excluded and named, never silently averaged in.
-  if ! timeout "$CGG_REPO_TIMEOUT" "$NEW_BIN" "$REPOS_DIR/$r" -o /dev/null >/dev/null 2>&1; then
+  #
+  # Only exit 124 — timeout(1)'s "I killed it" — counts as too slow.
+  # Testing for *any* nonzero exit skipped all nine repos on the first
+  # run: `-o /dev/null` makes cgg exit 1 trying to write the audit
+  # sidecar to `/dev/null.audit.json`, which has nothing to do with
+  # latency. A guard that silently empties the comparison is worse than
+  # no guard, because the output still looks like a result.
+  timeout "$CGG_REPO_TIMEOUT" "$NEW_BIN" "$REPOS_DIR/$r" \
+    -o "$(mktemp -u /tmp/cgg-probe-XXXXXX.mmd)" >/dev/null 2>&1
+  if [ $? -eq 124 ]; then
     echo "SKIP $r: exceeds ${CGG_REPO_TIMEOUT}s" >&2
     SKIPPED_SLOW+=("$r")
     continue
