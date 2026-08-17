@@ -1046,3 +1046,236 @@ fn cloudflare_legacy_addeventlistener_binds() {
         "the event name is the identity:\n{g}"
     );
 }
+
+// ---------------------------------------------------------------------
+// Every (platform, language) pair that claims to enumerate
+// ---------------------------------------------------------------------
+//
+// Table-driven because the matrix is the point. cgg's claim is
+// *equivalency* — that a Ruby Lambda is as well served as a Python one
+// — and a claim like that is only worth what its worst-covered cell is.
+// Before this table 13 of 45 pairs had a test and the rest had been
+// checked by hand once, which is not the same thing.
+//
+// Each row is the smallest source that carries the platform's real
+// registration shape, plus the substring the entry node must contain.
+struct CloudCase {
+    name: &'static str,
+    file: &'static str,
+    src: &'static str,
+    expect: &'static str,
+}
+
+const CLOUD_CASES: &[CloudCase] = &[
+    // ---- AWS Lambda ----
+    CloudCase {
+        name: "aws-lambda/ruby",
+        file: "handler.rb",
+        src: "require 'aws-sdk-s3'\ndef norm(s)\n  s\nend\ndef lambda_handler(event:, context:)\n  norm(event)\nend\n",
+        expect: "aws-lambda::lambda_handler",
+    },
+    CloudCase {
+        name: "aws-lambda/php",
+        file: "handler.php",
+        src: "<?php\nuse Bref\\Event\\Handler;\nclass MyHandler implements Handler {\n  private function r($s) { return $s; }\n  public function handle($e, $c) { return $this->r($e); }\n}\n",
+        expect: "aws-lambda::MyHandler::handle",
+    },
+    CloudCase {
+        name: "aws-lambda/kotlin",
+        file: "H.kt",
+        src: "package com.example\nimport com.amazonaws.services.lambda.runtime.RequestHandler\nclass H : RequestHandler<String, String> {\n  private fun n(s: String) = s\n  override fun handleRequest(i: String, c: Any): String = n(i)\n}\n",
+        expect: "aws-lambda::com.example.H.handleRequest",
+    },
+    CloudCase {
+        name: "aws-lambda/scala",
+        file: "H.scala",
+        src: "package com.example\nimport com.amazonaws.services.lambda.runtime.RequestHandler\nclass H extends RequestHandler[String, String] {\n  private def n(s: String): String = s\n  def handleRequest(i: String, c: Any): String = n(i)\n}\n",
+        expect: "aws-lambda::",
+    },
+    CloudCase {
+        name: "aws-lambda/groovy",
+        file: "H.groovy",
+        src: "package com.example\nimport com.amazonaws.services.lambda.runtime.RequestHandler\nclass H implements RequestHandler<String, String> {\n  private String n(String s) { s }\n  String handleRequest(String i, Object c) { n(i) }\n}\n",
+        expect: "aws-lambda::",
+    },
+    CloudCase {
+        name: "aws-lambda/swift",
+        file: "H.swift",
+        src: "import AWSLambdaRuntime\nstruct H: LambdaHandler {\n  func r(_ s: String) -> String { return s }\n  func handle(_ e: String, context: LambdaContext) async throws -> String { return r(e) }\n}\n",
+        expect: "aws-lambda::",
+    },
+    CloudCase {
+        name: "aws-lambda/cpp",
+        file: "main.cpp",
+        src: "#include <aws/lambda-runtime/runtime.h>\nusing namespace aws::lambda_runtime;\ninvocation_response r(invocation_request const& q);\ninvocation_response my_handler(invocation_request const& q) { return r(q); }\nint main() { run_handler(my_handler); return 0; }\n",
+        expect: "aws-lambda::my_handler",
+    },
+    CloudCase {
+        name: "aws-lambda/javascript",
+        file: "index.js",
+        src: "const { Logger } = require('@aws-lambda-powertools/logger');\nfunction v(e) { return !!e; }\nexports.handler = async (event) => v(event);\n",
+        expect: "aws-lambda::handler",
+    },
+    CloudCase {
+        name: "aws-lambda/csharp",
+        file: "F.cs",
+        src: "using Amazon.Lambda.Core;\npublic class F {\n  private string R(string s) => s;\n  public string FunctionHandler(string i, ILambdaContext c) => R(i);\n}\n",
+        expect: "aws-lambda::F.FunctionHandler",
+    },
+    CloudCase {
+        name: "lambda-runtime/rust",
+        file: "main.rs",
+        src: "use lambda_runtime::{service_fn, LambdaEvent, Error};\nfn p(v: &str) -> usize { v.len() }\nasync fn handler(e: LambdaEvent<String>) -> Result<usize, Error> { Ok(p(\"x\")) }\n#[tokio::main]\nasync fn main() -> Result<(), Error> { lambda_runtime::run(service_fn(handler)).await }\n",
+        expect: "lambda-runtime::",
+    },
+    // ---- Google Cloud Functions ----
+    CloudCase {
+        name: "gcp-functions/ruby",
+        file: "app.rb",
+        src: "require \"functions_framework\"\ndef b(x)\n  x\nend\nFunctionsFramework.http \"hello\" do |request|\n  b(request)\nend\n",
+        expect: "gcp-functions::http('hello')",
+    },
+    CloudCase {
+        name: "gcp-functions/php",
+        file: "index.php",
+        src: "<?php\nuse Google\\CloudFunctions\\FunctionsFramework;\nfunction b($x) { return $x; }\nfunction helloHttp($r) { return b($r); }\nFunctionsFramework::http('helloHttp', 'helloHttp');\n",
+        expect: "gcp-functions::",
+    },
+    CloudCase {
+        name: "gcp-functions/go",
+        file: "fn.go",
+        src: "package fn\nimport \"github.com/GoogleCloudPlatform/functions-framework-go/functions\"\nfunc render() {}\nfunc HelloHTTP() { render() }\nfunc init() { functions.HTTP(\"HelloHTTP\", HelloHTTP) }\n",
+        expect: "gcp-functions::http('HelloHTTP')",
+    },
+    CloudCase {
+        name: "gcp-functions/csharp",
+        file: "F.cs",
+        src: "using Google.Cloud.Functions.Framework;\npublic class F : IHttpFunction {\n  private string R() => \"x\";\n  public System.Threading.Tasks.Task HandleAsync(object ctx) { R(); return null; }\n}\n",
+        expect: "gcp-functions::F.HandleAsync",
+    },
+    // ---- Azure Functions ----
+    CloudCase {
+        name: "azure-functions/java",
+        file: "F.java",
+        src: "package com.example;\nimport com.microsoft.azure.functions.annotation.FunctionName;\npublic class F {\n  private String r(String s) { return s; }\n  @FunctionName(\"HttpExample\")\n  public String run(String req) { return r(req); }\n}\n",
+        expect: "azure-functions::FunctionName('HttpExample')",
+    },
+    CloudCase {
+        name: "azure-functions/python",
+        file: "function_app.py",
+        src: "import azure.functions as func\napp = func.FunctionApp()\ndef _l(n):\n    return n\n@app.route(route=\"items\")\ndef get_items(req):\n    return _l(req)\n",
+        expect: "azure-functions::route('items')",
+    },
+    CloudCase {
+        name: "azure-functions/typescript",
+        file: "index.ts",
+        src: "import { app } from '@azure/functions';\nfunction b(x: unknown) { return x; }\napp.http('httpExample', { handler: async (req: unknown) => b(req) });\n",
+        expect: "azure-functions::http('httpExample')",
+    },
+    CloudCase {
+        name: "azure-functions/fsharp",
+        file: "Fn.fs",
+        src: "module Fn\nopen Microsoft.Azure.Functions.Worker\nlet render (s: string) = s\n[<Function(\"HttpTrigger\")>]\nlet run (req: string) = render req\n",
+        expect: "azure-functions::Function('HttpTrigger')",
+    },
+    // ---- Firebase ----
+    CloudCase {
+        name: "firebase-functions/javascript",
+        file: "index.js",
+        src: "const functions = require('firebase-functions');\nfunction b(x) { return x; }\nfunction apiHandler(req, res) { res.send(b(req)); }\nexports.api = functions.https.onRequest(apiHandler);\n",
+        expect: "firebase-functions::",
+    },
+    // ---- Cloudflare ----
+    CloudCase {
+        name: "cloudflare-workers/rust",
+        file: "lib.rs",
+        src: "use worker::*;\nfn build(p: &str) -> String { p.to_string() }\n#[event(fetch)]\nasync fn main(req: Request) -> Result<Response> { Response::ok(build(\"/\")) }\n",
+        expect: "cloudflare-workers::",
+    },
+    // ---- Deno ----
+    CloudCase {
+        name: "deno-http/javascript",
+        file: "main.js",
+        src: "import { serveDir } from \"jsr:@std/http/file-server\";\nfunction b(p) { return p; }\nfunction handler(req) { return b(req.url); }\nDeno.serve(handler);\n",
+        expect: "deno-http::handler",
+    },
+    // The JVM clones and the TypeScript variants: same contract as
+    // their Java/JavaScript siblings, different language id.
+    CloudCase {
+        name: "azure-functions/kotlin",
+        file: "F.kt",
+        src: "package com.example\nimport com.microsoft.azure.functions.annotation.FunctionName\nclass F {\n  private fun r(s: String) = s\n  @FunctionName(\"HttpExample\")\n  fun run(req: String): String = r(req)\n}\n",
+        expect: "azure-functions::",
+    },
+    CloudCase {
+        name: "azure-functions/scala",
+        file: "F.scala",
+        src: "package com.example\nimport com.microsoft.azure.functions.annotation.FunctionName\nclass F {\n  private def r(s: String): String = s\n  @FunctionName(\"HttpExample\")\n  def run(req: String): String = r(req)\n}\n",
+        expect: "azure-functions::",
+    },
+    CloudCase {
+        name: "azure-functions/groovy",
+        file: "F.groovy",
+        src: "package com.example\nimport com.microsoft.azure.functions.annotation.FunctionName\nclass F {\n  private String r(String s) { s }\n  @FunctionName(\"HttpExample\")\n  String run(String req) { r(req) }\n}\n",
+        expect: "azure-functions::",
+    },
+    CloudCase {
+        name: "gcp-functions/kotlin",
+        file: "F.kt",
+        src: "package com.example\nimport com.google.cloud.functions.HttpFunction\nclass F : HttpFunction {\n  private fun r(s: String) = s\n  override fun service(req: Any, res: Any) { r(\"ok\") }\n}\n",
+        expect: "gcp-functions::",
+    },
+    CloudCase {
+        name: "gcp-functions/scala",
+        file: "F.scala",
+        src: "package com.example\nimport com.google.cloud.functions.HttpFunction\nclass F extends HttpFunction {\n  private def r(s: String): String = s\n  def service(req: Any, res: Any): Unit = { r(\"ok\") }\n}\n",
+        expect: "gcp-functions::",
+    },
+    CloudCase {
+        name: "gcp-functions/groovy",
+        file: "F.groovy",
+        src: "package com.example\nimport com.google.cloud.functions.HttpFunction\nclass F implements HttpFunction {\n  private String r(String s) { s }\n  void service(Object req, Object res) { r(\"ok\") }\n}\n",
+        expect: "gcp-functions::",
+    },
+    CloudCase {
+        name: "gcp-functions/typescript",
+        file: "index.ts",
+        src: "import * as functions from '@google-cloud/functions-framework';\nfunction build(x: unknown) { return x; }\nfunctions.http('helloTs', (req: unknown, res: unknown) => build(req));\n",
+        expect: "gcp-functions::http('helloTs')",
+    },
+    CloudCase {
+        name: "aws-lambda/typescript",
+        file: "handler.ts",
+        src: "import { APIGatewayProxyHandler } from 'aws-lambda';\nfunction v(e: unknown) { return !!e; }\nexport const handler: APIGatewayProxyHandler = async (event) => { v(event); return { statusCode: 200, body: '' }; };\n",
+        expect: "aws-lambda::handler",
+    },
+    CloudCase {
+        name: "firebase-functions/typescript",
+        file: "index.ts",
+        src: "import * as functions from 'firebase-functions';\nfunction b(x: unknown) { return x; }\nfunction apiHandler(req: unknown, res: any) { res.send(b(req)); }\nexport const api = functions.https.onRequest(apiHandler);\n",
+        expect: "firebase-functions::",
+    },
+];
+
+#[test]
+fn every_cloud_platform_and_language_pair_enumerates() {
+    let mut failures: Vec<String> = Vec::new();
+    for case in CLOUD_CASES {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), case.file, case.src);
+        let (g, _) = run(tmp.path(), &[]);
+        if !g.contains(case.expect) {
+            failures.push(format!(
+                "{}: expected an entry containing {:?}\n{}",
+                case.name, case.expect, g
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} cloud pairs did not enumerate:\n\n{}",
+        failures.len(),
+        CLOUD_CASES.len(),
+        failures.join("\n---\n")
+    );
+}
