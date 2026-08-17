@@ -32,19 +32,28 @@
 //! let _s = profile::span("frameworks::detect");
 //! ```
 
-#[cfg(debug_assertions)]
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-#[cfg(debug_assertions)]
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
-/// Collection is on by default in debug builds and **compiled out** of
-/// release builds — see [`span`]. Debug is what tests and local
-/// debugging run, release is what the published latency numbers are
-/// measured on, and those two want opposite defaults.
+/// Collection is on by default in debug builds and off in release,
+/// where `--profile` turns it on at runtime.
+///
+/// It used to be `#[cfg]`-compiled *out* of release entirely, so the
+/// one build anyone actually runs could not answer "where is this
+/// dwelling?" — the question you have precisely when a real input is
+/// pathological, and the one a debug build cannot answer because it
+/// distorts the ratios you are reading. A capability that needs a
+/// special build is not a capability.
+///
+/// The cost of keeping it is a relaxed atomic load and a
+/// perfectly-predicted branch per span. Spans are coarse — tens of
+/// thousands of entries per run, not per callable — and the difference
+/// is unmeasurable against the corpus, which is the bar that matters
+/// for published latency numbers.
 static ENABLED: AtomicBool = AtomicBool::new(cfg!(debug_assertions));
 
 /// Per-span totals. Atomics rather than a map behind a lock: a span
@@ -70,7 +79,6 @@ fn registry() -> &'static Registry {
 // away in release. Gating them the same way keeps the module's promise
 // literal — the machinery is *absent* from a release build, not merely
 // unreachable — and keeps `cargo build --release` warning-free.
-#[cfg(debug_assertions)]
 thread_local! {
     /// Per-thread cache so the registry lock is taken once per thread
     /// per span name, not once per span *entry*. Keyed on the name's
@@ -80,7 +88,6 @@ thread_local! {
         RefCell::new(HashMap::new());
 }
 
-#[cfg(debug_assertions)]
 fn counters(name: &'static str) -> &'static Counters {
     CACHE.with(|cache| {
         let key = name.as_ptr() as usize;
@@ -139,23 +146,17 @@ impl Drop for Span {
 /// a per-file span would otherwise pay twice per file for nothing.
 #[inline(always)]
 pub fn span(name: &'static str) -> Option<Span> {
-    #[cfg(debug_assertions)]
     {
         enabled().then(|| Span {
             counters: counters(name),
             start: Instant::now(),
         })
     }
-    #[cfg(not(debug_assertions))]
-    {
-        let _ = name;
-        None
-    }
 }
 
 /// Whether this binary can profile at all.
 pub const fn compiled_in() -> bool {
-    cfg!(debug_assertions)
+    true
 }
 
 /// One row of the report.
