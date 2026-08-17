@@ -46,6 +46,7 @@ impl LanguagePlugin for CppPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "cpp");
         let mut w = CppWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -64,6 +65,11 @@ struct CppWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Needed for the registrar-verb gate. Without it C++ captured no
+    /// argument-position handler at all, so `run_handler(my_handler)` —
+    /// the one entry point an aws-lambda-cpp binary has — referenced
+    /// nothing and read as dead.
+    ctx: crate::ExtractCtx<'a>,
 }
 
 impl<'a> CppWalker<'a> {
@@ -135,6 +141,13 @@ impl<'a> CppWalker<'a> {
             }
             "call_expression" => {
                 self.record_call(node);
+                // Shape B: `run_handler(my_handler)`.
+                if let Some(callee) = node.child_by_field_name("function") {
+                    let context = self.text(callee).to_string();
+                    let extra =
+                        super::registrar::capture(&self.ctx, node, self.source, &context);
+                    self.facts.references.extend(extra);
+                }
                 self.walk_children(node);
                 return;
             }

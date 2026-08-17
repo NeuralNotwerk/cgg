@@ -32,6 +32,7 @@ impl LanguagePlugin for ScalaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "scala");
         let mut w = ScalaWalker {
+            bases: Vec::new(),
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -45,6 +46,12 @@ struct ScalaWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Supertypes of the enclosing class, innermost last.
+    ///
+    /// Recorded from 0.6.8. Without it every `base_types` rule for this
+    /// language was inert — the contract is identical to Java's and
+    /// matched nothing.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> ScalaWalker<'a> {
@@ -66,12 +73,17 @@ impl<'a> ScalaWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                let class_bases = super::attrs::base_types(node, self.source);
                 if !name.is_empty() {
                     self.scope.push(name);
+                    self.bases.push(class_bases.clone());
                     self.walk_children(node);
+                    self.bases.pop();
                     self.scope.pop();
                 } else {
+                    self.bases.push(class_bases.clone());
                     self.walk_children(node);
+                    self.bases.pop();
                 }
                 return;
             }
@@ -119,7 +131,9 @@ impl<'a> ScalaWalker<'a> {
             (node.start_position().row as u32) + 1,
             (node.end_position().row as u32) + 1,
         );
+        let bases = self.bases.last().cloned().unwrap_or_default();
         self.facts.definitions.push(DefRecord {
+            base_types: bases,
             simple_name: name.to_string(),
             qualified_name: qn,
             variant,
@@ -129,7 +143,11 @@ impl<'a> ScalaWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            // Annotations are `@FunctionName("X")` here exactly as in
+            // Java, and the shared collector reads them the same way.
+            // Recorded from 0.6.8; before that no attribute rule could
+            // match this language at all.
+            attributes: super::attrs::collect_with_preceding(node, self.source),
             ..Default::default()
         });
     }

@@ -165,7 +165,12 @@ impl<'a> FsharpWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            // F# attributes are `[<FunctionName("X")>]`, which the
+            // shared collector reads like any other. Recorded from
+            // 0.6.8; before that F# could not match an attribute rule
+            // at all, so Azure Functions — a first-party .NET runtime —
+            // had nothing to key on.
+            attributes: super::attrs::collect_with_preceding(node, self.source),
             ..Default::default()
         });
     }
@@ -210,7 +215,12 @@ impl<'a> FsharpWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            // F# attributes are `[<FunctionName("X")>]`, which the
+            // shared collector reads like any other. Recorded from
+            // 0.6.8; before that F# could not match an attribute rule
+            // at all, so Azure Functions — a first-party .NET runtime —
+            // had nothing to key on.
+            attributes: super::attrs::collect_with_preceding(node, self.source),
             ..Default::default()
         });
     }

@@ -37,6 +37,7 @@ impl LanguagePlugin for KotlinPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "kotlin");
         let mut w = KtWalker {
+            bases: Vec::new(),
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -50,6 +51,13 @@ struct KtWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Supertypes of the enclosing class, innermost last.
+    ///
+    /// Kotlin recorded none until 0.6.8, which made every `base_types`
+    /// rule for the language inert — `class Handler : RequestHandler<…>`
+    /// is the *identical* contract Java's rule matches on, and it
+    /// produced nothing.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> KtWalker<'a> {
@@ -92,6 +100,7 @@ impl<'a> KtWalker<'a> {
                     .find(|c| c.kind() == "type_identifier")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                let class_bases = super::attrs::base_types(node, self.source);
                 if !name.is_empty() {
                     // Emit the class as a Constructor callable so that
                     // `Foo()` calls resolve to it.
@@ -114,10 +123,14 @@ impl<'a> KtWalker<'a> {
                         ..Default::default()
                     });
                     self.scope.push(name);
+                    self.bases.push(class_bases);
                     self.walk_children(node);
+                    self.bases.pop();
                     self.scope.pop();
                 } else {
+                    self.bases.push(class_bases);
                     self.walk_children(node);
+                    self.bases.pop();
                 }
                 return;
             }
@@ -202,7 +215,9 @@ impl<'a> KtWalker<'a> {
             (node.start_position().row as u32) + 1,
             (node.end_position().row as u32) + 1,
         );
+        let bases = self.bases.last().cloned().unwrap_or_default();
         self.facts.definitions.push(DefRecord {
+            base_types: bases,
             simple_name: name,
             qualified_name: qn,
             variant,

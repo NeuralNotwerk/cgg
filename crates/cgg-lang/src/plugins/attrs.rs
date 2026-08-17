@@ -289,7 +289,13 @@ fn is_type_name(s: &str) -> bool {
     s.starts_with(|c: char| c.is_alphabetic() || c == '_')
         && s.chars().all(|c| {
             c.is_alphanumeric()
-                || matches!(c, '_' | '.' | ':' | '<' | '>' | ',' | '\\' | ' ')
+                // `[` / `]`: Scala writes generics that way
+                // (`RequestHandler[String, String]`), and omitting them
+                // rejected every generic Scala supertype outright.
+                || matches!(
+                    c,
+                    '_' | '.' | ':' | '<' | '>' | '[' | ']' | ',' | '\\' | ' '
+                )
         })
 }
 

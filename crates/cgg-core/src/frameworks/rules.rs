@@ -2136,6 +2136,29 @@ pub const SPECS: &[RuleSpec] = &[
         gap: "cgg binds every method carrying [Function] or [FunctionName]. What it does NOT read is the trigger, which sits on the method's FIRST PARAMETER rather than on the method: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Every entry is reported `network`, so check the parameter attribute before treating one as internet-facing. The script-based model declares its bindings in function.json and carries no attributes at all — those are invisible.",
     },
     RuleSpec {
+        id: "azure-functions",
+        language: "fsharp",
+        kind: TrustKind::Network,
+        detect: &[
+            "Microsoft.Azure.Functions.Worker",
+            "Microsoft.Azure.WebJobs",
+        ],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // `[Function("Name")]` is the isolated-worker model,
+        // `[FunctionName("Name")]` the in-process one. Both mark the
+        // method the host invokes, and nothing in the source calls it.
+        attributes: &["Function", "FunctionName"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        // F# is the same .NET runtime as C# and carries the same
+        // attributes; only the plugin needed to start recording them.
+        gap: "cgg binds every method carrying [Function] or [FunctionName]. What it does NOT read is the trigger, which sits on the method's FIRST PARAMETER rather than on the method: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Every entry is reported `network`, so check the parameter attribute before treating one as internet-facing. The script-based model declares its bindings in function.json and carries no attributes at all — those are invisible.",
+    },
+    RuleSpec {
         id: "wcf",
         language: "csharp",
         kind: TrustKind::Network,
@@ -3553,6 +3576,66 @@ pub const SPECS: &[RuleSpec] = &[
     },
     RuleSpec {
         id: "aws-lambda",
+        language: "kotlin",
+        kind: TrustKind::Network,
+        detect: &["com.amazonaws.services.lambda", "com.amazonaws.lambda"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        // Java is the one runtime where the handler is a *contract*
+        // rather than a convention: the class implements the interface
+        // and the runtime calls the single method it declares. That
+        // makes this the highest-confidence Lambda rule of the six.
+        base_types: &["RequestHandler", "RequestStreamHandler"],
+        methods: &["handleRequest"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "scala",
+        kind: TrustKind::Network,
+        detect: &["com.amazonaws.services.lambda", "com.amazonaws.lambda"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        // Java is the one runtime where the handler is a *contract*
+        // rather than a convention: the class implements the interface
+        // and the runtime calls the single method it declares. That
+        // makes this the highest-confidence Lambda rule of the six.
+        base_types: &["RequestHandler", "RequestStreamHandler"],
+        methods: &["handleRequest"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "groovy",
+        kind: TrustKind::Network,
+        detect: &["com.amazonaws.services.lambda", "com.amazonaws.lambda"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        // Java is the one runtime where the handler is a *contract*
+        // rather than a convention: the class implements the interface
+        // and the runtime calls the single method it declares. That
+        // makes this the highest-confidence Lambda rule of the six.
+        base_types: &["RequestHandler", "RequestStreamHandler"],
+        methods: &["handleRequest"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
         language: "csharp",
         kind: TrustKind::Network,
         detect: &["Amazon.Lambda"],
@@ -3633,6 +3716,54 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: true,
+        gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "kotlin",
+        kind: TrustKind::Network,
+        detect: &["com.microsoft.azure.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["FunctionName"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "scala",
+        kind: TrustKind::Network,
+        detect: &["com.microsoft.azure.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["FunctionName"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "groovy",
+        kind: TrustKind::Network,
+        detect: &["com.microsoft.azure.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["FunctionName"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
     },
     RuleSpec {
@@ -3824,6 +3955,180 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the decorated handler. Every entry reports `network`, but the decorator names the real trigger: only `@https_fn.on_request` is internet-facing, `on_call` is authenticated, `on_schedule` is a timer and the rest are event-driven.",
     },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "swift",
+        kind: TrustKind::Network,
+        detect: &["AWSLambdaRuntime", "AWSLambdaEvents"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // `Lambda.run { … }` takes the handler as a trailing closure;
+        // the newer API declares `handle` on a LambdaHandler conformer.
+        registrars: &["run"],
+        base_types: NONE,
+        methods: &["handle"],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the `handle` method of a LambdaHandler conformer — the modern API. The older `Lambda.run { … }` trailing-closure form is NOT bound: the Swift plugin captures no argument-position handler, so there is nothing to point at. Swift also records no supertypes, so conformance is matched by method name rather than by the protocol. Every entry reports `network` regardless of event source.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "cpp",
+        kind: TrustKind::Network,
+        detect: &["aws/lambda-runtime/runtime.h"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // `run_handler(my_handler)` in main() — shape B, one per binary.
+        registrars: &["run_handler"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the handler value passed to run_handler. Every entry reports `network`; the event source is decided by the deploy configuration, which cgg does not read.",
+    },
+    RuleSpec {
+        id: "azure-functions",
+        language: "powershell",
+        kind: TrustKind::Network,
+        detect: NONE,
+        // PowerShell is a first-party Azure Functions runtime and its
+        // scripts import nothing — the *file name* is the contract, and
+        // the binding lives in a sibling function.json. `run.ps1` is the
+        // only convention there is.
+        detect_paths: &["run.ps1"],
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "cgg detects an Azure Functions PowerShell app by its `run.ps1` files but enumerates no entry from them: the script has no handler *function* — its top level IS the handler, invoked with a `param($Request, $TriggerMetadata)` block, and cgg has no callable to point at. Treat the top level of every run.ps1 as an entry point, and read the sibling function.json for the trigger.",
+    },
+    RuleSpec {
+        id: "cloudflare-workers",
+        language: "rust",
+        kind: TrustKind::Network,
+        detect: &["worker"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        // workers-rs marks the entry with an attribute macro:
+        // `#[event(fetch)]`, `#[event(scheduled)]`, `#[durable_object]`.
+        attributes: &["event", "durable_object"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds functions carrying #[event(...)]. The event kind — fetch, scheduled, queue — sits inside the attribute's arguments and is not carried into the entry name, so every entry reports `network` even when it is a cron or queue consumer.",
+    },
+    // Ruby and PHP are *first-party managed runtimes* on Lambda and on
+    // Cloud Functions — as officially supported as Python — and had no
+    // rule in any cloud until 0.6.8.
+    RuleSpec {
+        id: "aws-lambda",
+        language: "ruby",
+        kind: TrustKind::Network,
+        // Gem names in full: the prefix index splits on `. / : \\` and
+        // *not* on `-`, so "aws-sdk" would never match "aws-sdk-s3".
+        // Adding `-` as a separator would make "functions-framework-go"
+        // match "functions", so the list is explicit instead.
+        detect: &[
+            "aws_lambda_ric",
+            "aws-xray-sdk",
+            "aws-sdk-core",
+            "aws-sdk-s3",
+            "aws-sdk-dynamodb",
+            "aws-sdk-sqs",
+            "aws-sdk-sns",
+            "aws-sdk-lambda",
+            "aws-sdk-ssm",
+            "aws-sdk-secretsmanager",
+            "aws-sdk-eventbridge",
+        ],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        // `def lambda_handler(event:, context:)` — the name every AWS
+        // template, quickstart and console default writes.
+        methods: &["lambda_handler"],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds handlers named by the `lambda_handler` convention. Detection keys on an AWS SDK require, so a handler in a file that requires nothing AWS-related is invisible, as is one under any other name — that name lives in the deploy config, not the source. Declare those in cgg-deadcode.toml.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "ruby",
+        kind: TrustKind::Network,
+        detect: &["functions_framework"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // `FunctionsFramework.http "name" do |request| … end` — the
+        // handler is a trailing block, which is why `trailing_block`
+        // exists.
+        registrars: &["http", "cloud_event", "typed"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the block passed to FunctionsFramework.http/cloud_event. Every entry reports `network`; the cloud_event form is Eventarc-driven and its trigger is named in the deploy command.",
+    },
+    RuleSpec {
+        id: "aws-lambda",
+        language: "php",
+        kind: TrustKind::Network,
+        detect: &["Bref"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        // Bref is a declared contract, like Java's: the class
+        // implements the interface and the runtime calls the one method
+        // it declares.
+        base_types: &[
+            "Handler",
+            "HttpHandler",
+            "SqsHandler",
+            "S3Handler",
+            "SnsHandler",
+            "EventBridgeHandler",
+            "PsrRequestHandler",
+            "DynamoDbHandler",
+            "KinesisHandler",
+        ],
+        methods: &[
+            "handle",
+            "handleRequest",
+            "handleSqs",
+            "handleS3",
+            "handleSns",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "cgg binds the interface method on a Bref handler. Which trust boundary it is depends on the interface — HttpHandler and PsrRequestHandler are internet-facing, SqsHandler/SnsHandler/DynamoDbHandler/KinesisHandler are queue-driven — and cgg reports all of them `network`. A handler written as a bare function and named in serverless.yml carries no interface and is invisible.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "php",
+        kind: TrustKind::Network,
+        detect: &["Google\\CloudFunctions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &["http", "cloudEvent"],
+        base_types: NONE,
+        methods: NONE,
+        // `FunctionsFramework::http('name', 'phpFunctionName')` names
+        // its target with a *string*, which is shape E.
+        string_targets: true,
+        node: true,
+        gap: "cgg binds the function named by FunctionsFramework::http, including the string form. A handler passed as a closure with no name binds as a synthesized node instead. Every entry reports `network` regardless of trigger.",
+    },
     // Google Cloud Functions. The Functions Framework is the same
     // library in every runtime, which is why one rule id covers five
     // languages: the handler is always registered against the
@@ -3913,6 +4218,81 @@ pub const SPECS: &[RuleSpec] = &[
         methods: &["service", "accept", "apply"],
         string_targets: false,
         node: true,
+        gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "kotlin",
+        kind: TrustKind::Network,
+        detect: &["com.google.cloud.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // Java is the one runtime where this is a declared contract:
+        // the class implements the interface and the framework calls
+        // the single method it declares.
+        registrars: NONE,
+        base_types: &[
+            "HttpFunction",
+            "BackgroundFunction",
+            "CloudEventsFunction",
+            "RawBackgroundFunction",
+            "TypedFunction",
+        ],
+        methods: &["service", "accept", "apply"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "scala",
+        kind: TrustKind::Network,
+        detect: &["com.google.cloud.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // Java is the one runtime where this is a declared contract:
+        // the class implements the interface and the framework calls
+        // the single method it declares.
+        registrars: NONE,
+        base_types: &[
+            "HttpFunction",
+            "BackgroundFunction",
+            "CloudEventsFunction",
+            "RawBackgroundFunction",
+            "TypedFunction",
+        ],
+        methods: &["service", "accept", "apply"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
+        gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
+    },
+    RuleSpec {
+        id: "gcp-functions",
+        language: "groovy",
+        kind: TrustKind::Network,
+        detect: &["com.google.cloud.functions"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        // Java is the one runtime where this is a declared contract:
+        // the class implements the interface and the framework calls
+        // the single method it declares.
+        registrars: NONE,
+        base_types: &[
+            "HttpFunction",
+            "BackgroundFunction",
+            "CloudEventsFunction",
+            "RawBackgroundFunction",
+            "TypedFunction",
+        ],
+        methods: &["service", "accept", "apply"],
+        string_targets: false,
+        node: true,
+        // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
     },
     RuleSpec {
