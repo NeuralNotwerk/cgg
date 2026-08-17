@@ -67,6 +67,16 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
         out
     };
 
+    // Every edge already in the graph, plus everything this pass emits.
+    // Built once so the duplicate check is a hash probe rather than a
+    // scan of the whole edge list per candidate per reference.
+    let mut seen_ffi_edges: std::collections::HashSet<(CallableId, CallableId, u32)> =
+        graph
+            .edges
+            .iter()
+            .map(|e| (e.src, e.dst, e.site_byte))
+            .collect();
+
     for f in facts {
         if f.language == "asm" {
             // For each ref in an asm file, locate the enclosing asm
@@ -83,12 +93,10 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                     if dst == src_id {
                         continue;
                     }
-                    let dup = graph.edges.iter().any(|e| {
-                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
-                    }) || out.edges.iter().any(|e| {
-                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
-                    });
-                    if dup {
+                    // O(references x edges) before this — 24% of the
+                    // whole run on Zig's compiler, where almost every
+                    // boundary is `extern`.
+                    if !seen_ffi_edges.insert((src_id, dst, r.site_byte)) {
                         continue;
                     }
                     out.edges.push(CallEdge {
@@ -125,12 +133,10 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                     if dst == src_id {
                         continue;
                     }
-                    let dup = graph.edges.iter().any(|e| {
-                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
-                    }) || out.edges.iter().any(|e| {
-                        e.src == src_id && e.dst == dst && e.site_byte == r.site_byte
-                    });
-                    if dup {
+                    // O(references x edges) before this — 24% of the
+                    // whole run on Zig's compiler, where almost every
+                    // boundary is `extern`.
+                    if !seen_ffi_edges.insert((src_id, dst, r.site_byte)) {
                         continue;
                     }
                     out.edges.push(CallEdge {

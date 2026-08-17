@@ -91,6 +91,7 @@ fn resolve_via_bases(
     by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
     bases_by_owner: &HashMap<(String, String), Vec<String>>,
 ) -> Option<Vec<CallableId>> {
+    let _sp = cgg_core::profile::span("xfile::via-bases");
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let mut frontier: Vec<String> = vec![owner.to_string()];
     for _ in 0..8 {
@@ -376,24 +377,58 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
         }
     }
 
+    // `(file, start, end) -> callable`, built once. See
+    // `enclosing_callable_id`.
+    let mut callables_by_span: HashMap<(FileId, u32, u32), CallableId> = HashMap::new();
+    for c in graph.callables.values() {
+        callables_by_span
+            .entry((c.file, c.start_byte, c.end_byte))
+            .or_insert(c.id);
+    }
+
     let facts_by_id: HashMap<FileId, &FileFacts> =
         facts.iter().map(|f| (f.file, f)).collect();
 
-    // Build a `(language, file_path_lowercased)` index so we can map
-    // an unqualified import prefix back to the files it covers. Used
-    // by the per-file resolution loop below to scope-narrow the
-    // by-simple-name fallback for languages whose plugins don't include
-    // a module prefix in `qualified_name` (Haskell, OCaml).
-    let files_lower: Vec<(FileId, String, String)> = facts
-        .iter()
-        .map(|f| {
-            (
-                f.file,
-                f.language.clone(),
-                f.path.to_string_lossy().to_ascii_lowercase(),
-            )
-        })
-        .collect();
+    // Paths grouped by language, built once. The scoped-by-simple-name
+    // fallback only ever considers files of the *same* language.
+    //
+    // An inverted `(language, path fragment) -> files` index was tried
+    // here and reverted: the match is `path.contains(fragment)`, which
+    // permits a fragment to begin *mid-segment*, and no segment-aligned
+    // index reproduces that. The corpus caught it as -9,331 nodes and
+    // edges across 34 repos. Any future index has to be proven against
+    // the full corpus before it replaces this scan.
+    let mut files_by_lang: HashMap<&str, Vec<(FileId, String)>> = HashMap::new();
+    for f in facts {
+        files_by_lang
+            .entry(f.language.as_str())
+            .or_default()
+            .push((f.file, f.path.to_string_lossy().to_ascii_lowercase()));
+    }
+
+    // Include resolution used to scan every file in the tree for every
+    // `#include`, of every file — O(files x includes x files). `HashMap`
+    // iteration is unordered, so even the exact-match short-circuit read
+    // half the map on average, and a miss read all of it. On
+    // terraform-provider-aws (12,825 files) that was 82% of the whole
+    // run: 341s of 415s CPU inside the import-table build alone.
+    //
+    // Two indexes built once instead. Exact path is the common case and
+    // is now O(1); the suffix case keeps its old meaning — lowest FileId
+    // among the matches — by bucketing on the last path segment and
+    // verifying the full suffix, which is a handful of candidates rather
+    // than the corpus.
+    let mut include_by_exact: HashMap<&std::path::Path, &FileFacts> = HashMap::new();
+    let mut include_by_last: HashMap<&std::ffi::OsStr, Vec<&FileFacts>> = HashMap::new();
+    for f in facts {
+        include_by_exact.entry(f.path.as_path()).or_insert(f);
+        if let Some(name) = f.path.file_name() {
+            include_by_last.entry(name).or_default().push(f);
+        }
+    }
+    for v in include_by_last.values_mut() {
+        v.sort_by_key(|f| f.file.as_u32());
+    }
 
     // Per-file and independent: the body reads the shared indexes
     // (`by_qn`, `by_simple`, `by_owner_method`, `reexports`) and writes
@@ -405,6 +440,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
     let per_file: Vec<CrossFileOutput> = facts
         .par_iter()
         .map(|facts| {
+            let _sp_file = cgg_core::profile::span("xfile::per-file");
             let mut out = CrossFileOutput::default();
             let lang = facts.language.clone();
 
@@ -441,6 +477,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
             //   `import helpers as h` -> map "h" -> "helpers" (module prefix).
             // Rust: `use a::b::c;` -> map "c" -> "a::b::c".
             let mut direct_imports: HashMap<String, Vec<String>> = HashMap::new();
+            // Scoped to this file: a header is expanded once per
+            // translation unit, which is exactly C's own semantics
+            // under include guards.
+            let mut include_visited: HashMap<FileId, u8> = HashMap::new();
+            let _sp_imports = cgg_core::profile::span("xfile::import-table");
             let mut module_aliases: HashMap<String, String> = HashMap::new();
             // Namespace prefixes that bring symbols into scope unqualified —
             // e.g. Haskell `import Data.Map`, OCaml `open Foo`, Elixir
@@ -584,9 +625,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             collect_include_defs(
                                 included_path,
                                 facts,
-                                &facts_by_id,
+                                &include_by_exact,
+                                &include_by_last,
                                 &mut direct_imports,
                                 8,
+                                &mut include_visited,
                             );
                         }
                     }
@@ -599,9 +642,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             collect_include_defs(
                                 sourced_path,
                                 facts,
-                                &facts_by_id,
+                                &include_by_exact,
+                                &include_by_last,
                                 &mut direct_imports,
                                 4,
+                                &mut include_visited,
                             );
                         }
                     }
@@ -629,9 +674,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             collect_include_defs(
                                 &try_path,
                                 facts,
-                                &facts_by_id,
+                                &include_by_exact,
+                                &include_by_last,
                                 &mut direct_imports,
                                 4,
+                                &mut include_visited,
                             );
                         }
 
@@ -664,9 +711,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             collect_include_defs(
                                 &try_path,
                                 facts,
-                                &facts_by_id,
+                                &include_by_exact,
+                                &include_by_last,
                                 &mut direct_imports,
                                 4,
+                                &mut include_visited,
                             );
                         }
                     }
@@ -776,9 +825,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                                     collect_include_defs(
                                         &try_path,
                                         facts,
-                                        &facts_by_id,
+                                        &include_by_exact,
+                                        &include_by_last,
                                         &mut direct_imports,
                                         4,
+                                        &mut include_visited,
                                     );
                                 }
                                 if !imp.alias.is_empty() {
@@ -838,9 +889,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             collect_include_defs(
                                 &try_path,
                                 facts,
-                                &facts_by_id,
+                                &include_by_exact,
+                                &include_by_last,
                                 &mut direct_imports,
                                 4,
+                                &mut include_visited,
                             );
                         }
                         unqualified_prefixes.push(path.to_string());
@@ -867,9 +920,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                                 collect_include_defs(
                                     &try_path,
                                     facts,
-                                    &facts_by_id,
+                                    &include_by_exact,
+                                    &include_by_last,
                                     &mut direct_imports,
                                     4,
+                                    &mut include_visited,
                                 );
                             }
                         }
@@ -904,13 +959,17 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                 for target in module_aliases.values() {
                     path_fragments.push(target.replace('.', "/").to_ascii_lowercase());
                 }
-                for (fid, flang, fpath) in &files_lower {
-                    if flang != &lang {
-                        continue;
-                    }
+                path_fragments.retain(|f| !f.is_empty());
+                path_fragments.sort();
+                path_fragments.dedup();
+                let candidates = files_by_lang
+                    .get(lang.as_str())
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+                for (fid, fpath) in candidates {
                     if !path_fragments
                         .iter()
-                        .any(|frag| !frag.is_empty() && fpath.contains(frag.as_str()))
+                        .any(|frag| fpath.contains(frag.as_str()))
                     {
                         continue;
                     }
@@ -930,6 +989,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                 }
             }
 
+            drop(_sp_imports);
+            let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
             for r in &facts.references {
                 // A string literal that names a callable is never a call.
                 // §8 is explicit: string routing may lower confidence, it
@@ -943,7 +1004,8 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                 // intra-crate qualified-path retry (e.g., `crawl::foo()`
                 // inside `nkb_research::ResearchRunner::run` should find
                 // `nkb_research::crawl::foo`).
-                let enclosing = enclosing_callable_id(graph, facts, r.site_byte);
+                let enclosing =
+                    enclosing_callable_id(&callables_by_span, facts, r.site_byte);
 
                 // Value references (`register(handler)`) resolve by name,
                 // not through the import tables, and produce a
@@ -1035,6 +1097,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                     .and_then(|id| graph.callables.get(&id))
                     .map(|c| c.qualified_name.as_str());
 
+                let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                 let mut capped = 0u32;
                 let mut no_ctor = false;
                 let super_recv = is_super_receiver(&r.receiver_hint);
@@ -1199,9 +1262,34 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
 fn collect_include_defs(
     include_path: &str,
     includer_facts: &FileFacts,
-    facts_by_id: &HashMap<FileId, &FileFacts>,
+    include_by_exact: &HashMap<&std::path::Path, &FileFacts>,
+    include_by_last: &HashMap<&std::ffi::OsStr, Vec<&FileFacts>>,
     direct_imports: &mut HashMap<String, Vec<String>>,
     depth: u8,
+    // The best remaining depth each header has already been expanded
+    // at, for *this* translation unit.
+    //
+    // Without any memo the walk is exponential: a C include graph is a
+    // diamond, so `a.h` reached by four paths was expanded four times
+    // and each of its own includes four times again. On Erlang/OTP's
+    // `erts/emulator/beam` — 25 includes in `erl_process.h`, depth 8 —
+    // that is 25^8 in the limit, recomputed per file. cgg did not finish
+    // the directory in an hour; memoized it takes under a second.
+    //
+    // Why a depth map and not a plain visited set: `depth` counts down,
+    // so a header first reached by a *long* path has little budget left
+    // and stops early. A plain set would then refuse to re-expand it
+    // when a *short* path arrives with budget to spare, silently losing
+    // the deeper definitions — and which ones would depend on include
+    // order. Re-expanding only on a strictly larger budget keeps the
+    // result identical to the exhaustive walk while bounding the work at
+    // O(headers x depth).
+    //
+    // The dedup is also correct on its own terms: the same definition
+    // pushed N times inflated `direct_imports`, and step 1d rejects a
+    // name with more than three candidates — so a diamond could push a
+    // genuinely unique symbol over the cap and stop it resolving at all.
+    visited: &mut HashMap<FileId, u8>,
 ) {
     if depth == 0 {
         return;
@@ -1226,19 +1314,30 @@ fn collect_include_defs(
     // ambiguous suffix case needs the full scan to find the lowest
     // FileId. Scanning unconditionally costs ~6% on include-heavy C/C++
     // trees, and the exact match is the common case.
-    let mut target: Option<&&FileFacts> = None;
-    for f in facts_by_id.values() {
-        if f.path == resolved {
-            target = Some(f);
-            break;
-        }
-        if f.path.ends_with(include_path)
-            && target.is_none_or(|best| f.file.as_u32() < best.file.as_u32())
-        {
-            target = Some(f);
+    // Exact first, exactly as before. Then the suffix fallback, over the
+    // few files sharing the include's last segment rather than all of
+    // them — pre-sorted by FileId, so `find` yields the same lowest-id
+    // winner the old scan did.
+    let target: Option<&FileFacts> = include_by_exact
+        .get(resolved.as_path())
+        .copied()
+        .or_else(|| {
+            let last = std::path::Path::new(include_path).file_name()?;
+            include_by_last
+                .get(last)?
+                .iter()
+                .find(|f| f.path.ends_with(include_path))
+                .copied()
+        });
+    let Some(target) = target else { return };
+    // Expand a header again only when this path has more budget left
+    // than the one that reached it first.
+    match visited.get(&target.file) {
+        Some(&best) if best >= depth => return,
+        _ => {
+            visited.insert(target.file, depth);
         }
     }
-    let Some(target) = target else { return };
     // Import all definitions from the target.
     for d in &target.definitions {
         direct_imports
@@ -1252,9 +1351,11 @@ fn collect_include_defs(
             collect_include_defs(
                 imp.path.trim(),
                 target,
-                facts_by_id,
+                include_by_exact,
+                include_by_last,
                 direct_imports,
                 depth - 1,
+                visited,
             );
         }
     }
@@ -1581,6 +1682,7 @@ fn try_resolve_ref(
             && rh.chars().next().is_some_and(|c| c.is_lowercase())
         {
             // Skip if the method name is in the stdlib manifest for this language
+            let _sp_fan = cgg_core::profile::span("xfile::fanout");
             let is_stdlib_method = cgg_core::stdlib::stdlib_names(lang)
                 .is_some_and(|std| std.contains(r.name.as_str()));
             if !is_stdlib_method
@@ -1705,8 +1807,17 @@ fn lookup_with_reexports(
     None
 }
 
+/// The innermost callable whose byte range contains `byte`.
+///
+/// `by_span` maps `(file, start_byte, end_byte)` to the callable id and
+/// is built once per run. This used to finish with
+/// `graph.callables.values().find(...)` — a scan of *every callable in
+/// the graph*, per reference. On Zig's compiler that is 572,840
+/// references against 344,808 callables, and it was 449s of a 128s
+/// wall-clock run (the span nests across 8 threads). Nothing else in
+/// the reference loop came close: the actual resolution was 1.8s.
 fn enclosing_callable_id(
-    graph: &Graph,
+    by_span: &HashMap<(FileId, u32, u32), CallableId>,
     facts: &FileFacts,
     byte: u32,
 ) -> Option<CallableId> {
@@ -1722,15 +1833,9 @@ fn enclosing_callable_id(
         }
     }
     let (d, _) = best?;
-    graph
-        .callables
-        .values()
-        .find(|c| {
-            c.file == facts.file
-                && c.start_byte == d.start_byte
-                && c.end_byte == d.end_byte
-        })
-        .map(|c| c.id)
+    by_span
+        .get(&(facts.file, d.start_byte, d.end_byte))
+        .copied()
 }
 
 #[cfg(test)]
