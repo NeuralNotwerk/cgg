@@ -164,7 +164,7 @@ Measure, never estimate. `scripts/perf-compare.sh` does paired A/B against a bas
 
 ### What docs-check.py actually checks
 
-Twelve check functions, called from `main()` in `scripts/docs-check.py`. Its own docstring header still says "Seven checks" and is stale; the numbering in the body runs 0–10, and `check_framework_apps` is unnumbered. Any of them fails the commit:
+Fourteen check functions, called from `main()` in `scripts/docs-check.py`. The numbering in the body runs 0–12; `check_framework_apps` is unnumbered. Any of them fails the commit:
 
 - **Language counts** — `register(` calls in `plugins.rs` must equal README's `## Supported languages (N)` heading, the language-table row count, and `REPOS=( … )` in `scripts/benchmark.sh` (which may carry one extra row for the combined `xv6 (c+asm)` entry).
 - **Benchmark-table coverage** — `REPOS` in `benchmark.sh` and `ENTRIES` in `update-readme-stats.sh` must name the same set of languages.
@@ -176,6 +176,8 @@ Twelve check functions, called from `main()` in `scripts/docs-check.py`. Its own
 - **Attribute-capture count** — prose claiming "N plugins listed in Step 2" must match the plugins declaring `attributes: true`.
 - **Self-analysis showcase (check 7)** — `.githooks/pre-commit`, `scripts/update-readme-stats.sh`, `README.md` and **this file** must all name the same `--filter`; `scripts/patch-readme-stats.py` must contain the bare callable name; and the committed `<!-- cgg:begin:self -->` block must span at least three crates.
 - **Python keyword parity (check 8)** — every `RunOptions` field must be reachable as a `cgg-py` keyword argument or be listed in `PY_DEFERRED_OPTIONS` with a reason. Note this covers Python only: nothing yet checks `cgg-node` or `cgg-ffi` for the same drift.
+- **Skill publish claims (check 11)** — no `SKILL.md` under `skills/`, `.claude/skills/` or `.kiro/skills/` may call a channel unpublished while `.github/workflows/release.yml` publishes it. This is the only check that reads skill *prose*; checks 3 and 4 only count skills and read their language numbers, which is why three skill files kept telling readers npm was unpublished and that the GitHub releases carried no binaries for the whole of 0.7.0.
+- **Skill check-count claims (check 12)** — a skill stating how many checks this file has must match `def check_`. Adding a check means updating the skills that name the number.
 - **Deliberate leaks (check 9)** — `Box::leak`, `.leak()` and `mem::forget` in the pipeline crates must be listed in `ALLOWED_LEAKS` with a reason. `analyze` is called in a loop by four front ends now, so "the process is about to exit" is no longer a justification. This check exists because `type_hints.rs` leaked ~161 bytes per call until 0.6.2.
 
 If you intentionally edit the mermaid blocks or the self-stats line by hand, the hook will overwrite them — edit the generators (`scripts/update-readme-graphs.py`, `scripts/update-readme-stats.py`) or the underlying code instead.

@@ -8,7 +8,10 @@ When this runs:
   - Safe to run by hand from the repo root any time:
     `python3 scripts/docs-check.py`
 
-Eleven checks:
+Fourteen check functions. The numbered discussion below runs 0-12; the
+unnumbered `check_framework_apps` is the fourteenth. Check 12 asserts
+this count against the skills, so adding a check means updating any
+skill that states the number.
 
 0. Benchmark-table coverage. `ENTRIES` in update-readme-stats.sh (which
    writes the README's markdown benchmark table) must cover exactly the
@@ -94,6 +97,19 @@ Eleven checks:
     silently absorbed into the entry above it. Nothing noticed, because
     nothing was checking that the file's own structure held together.
 
+11. Skill publish claims. No file under `skills/`, `.claude/skills/` or
+    `.kiro/skills/` may call a distribution channel unpublished while
+    `.github/workflows/release.yml` has a publish step for it. Nothing
+    gated skill *content* — only the inventory (check 4) and the
+    language count (check 3) — so three skill files told readers that
+    npm was unpublished and that the GitHub releases carried no
+    binaries, for as long after 0.7.0 as it took someone to read them.
+    Both statements steered users away from working install paths.
+
+12. Skill check-count claims. A skill stating how many checks this file
+    has must be right. Same root cause as 11; it is here because the
+    number is trivially derivable and was trivially wrong.
+
 Run from the repo root. Exits non-zero on any mismatch with a
 human-readable message naming the offending file.
 """
@@ -125,6 +141,21 @@ NUMBER_WORDS = {
     "eight": 8,
     "nine": 9,
     "ten": 10,
+    # Past ten because docs-check now has more checks than that, and the
+    # count claim is spelled out in prose. Truncating this map does not
+    # fail a stale claim, it *silently ignores* it — which is how the
+    # push skill's "eleven consistency invariants" survived the first
+    # version of check 11.
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
 }
 WORD_FOR = {v: k for k, v in NUMBER_WORDS.items()}
 
@@ -817,6 +848,100 @@ def check_changelog() -> None:
         )
 
 
+# ---------------------------------------------------------------------
+# Checks 11 and 12: skill claims about publish channels, and about
+# how many checks this file has
+#
+# Nothing gated the *content* of skills/, .claude/skills/ or
+# .kiro/skills/ — only the inventory and the language count — which is
+# exactly where drift accumulated. Three skill files told a reader that
+# npm was unpublished and that docs-check had eleven checks, both false,
+# for as long as it took someone to read them.
+#
+# Only mechanically-decidable claims are gated here. Prose that needs
+# judgement stays the push skill's job.
+# ---------------------------------------------------------------------
+
+SKILL_DIRS = (
+    REPO_ROOT / "skills",
+    REPO_ROOT / ".claude/skills",
+    REPO_ROOT / ".kiro/skills",
+)
+RELEASE_YML = REPO_ROOT / ".github/workflows/release.yml"
+
+# channel -> (regex proving release.yml publishes it, tokens a skill uses
+#             to name it). A skill may only call a channel unpublished if
+#             the workflow has no publish step for it.
+PUBLISH_CHANNELS = {
+    "npm": (r"npm publish", ("npm", "cgg-node")),
+    "PyPI": (r"pypi-publish|twine upload", ("pypi", "pip install")),
+    "crates.io": (r"cargo publish|publish-crates", ("crates.io", "cargo install")),
+    "GitHub binaries": (r"action-gh-release", ("release tarball", "prebuilt binar")),
+}
+UNPUBLISHED_RE = re.compile(
+    r"(?:is |are )?\*{0,2}not\s+published\*{0,2}|carr(?:y|ies) no prebuilt",
+    re.IGNORECASE,
+)
+
+
+def _skill_files() -> list[Path]:
+    return sorted(
+        p for d in SKILL_DIRS if d.is_dir() for p in d.rglob("SKILL.md")
+    )
+
+
+def check_skill_publish_claims() -> None:
+    """No skill may call a channel unpublished that release.yml publishes."""
+    if not RELEASE_YML.is_file():
+        return
+    workflow = RELEASE_YML.read_text()
+    live = {
+        name
+        for name, (proof, _) in PUBLISH_CHANNELS.items()
+        if re.search(proof, workflow)
+    }
+    for path in _skill_files():
+        rel = path.relative_to(REPO_ROOT)
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            if not UNPUBLISHED_RE.search(line):
+                continue
+            for name in live:
+                if any(t in line.lower() for t in PUBLISH_CHANNELS[name][1]):
+                    fail(
+                        f"{rel}:{lineno} calls {name} unpublished, but "
+                        f"release.yml publishes it (check 11): {line.strip()}"
+                    )
+
+
+def check_skill_docs_check_count() -> None:
+    """A skill counting docs-check's checks must match how many exist."""
+    actual = len(re.findall(r"^def check_", Path(__file__).read_text(), re.M))
+    pat = re.compile(
+        r"\b(\w+)\s+(?:consistency invariants|check functions|checks)\b",
+        re.IGNORECASE,
+    )
+    for path in _skill_files():
+        text = path.read_text()
+        if "docs-check" not in text:
+            continue
+        rel = path.relative_to(REPO_ROOT)
+        for lineno, line in enumerate(text.splitlines(), 1):
+            if "docs-check" not in line and "consistency invariant" not in line:
+                continue
+            m = pat.search(line)
+            if not m:
+                continue
+            word = m.group(1).lower()
+            claimed = NUMBER_WORDS.get(word)
+            if claimed is None and word.isdigit():
+                claimed = int(word)
+            if claimed is not None and claimed != actual:
+                fail(
+                    f"{rel}:{lineno} claims {word} docs-check checks; "
+                    f"there are {actual} (check 12)"
+                )
+
+
 def main() -> None:
     check_language_counts()
     check_benchmark_table_languages()
@@ -830,6 +955,8 @@ def main() -> None:
     check_python_option_parity()
     check_deliberate_leaks()
     check_changelog()
+    check_skill_publish_claims()
+    check_skill_docs_check_count()
     print("[docs-check] ok")
 
 

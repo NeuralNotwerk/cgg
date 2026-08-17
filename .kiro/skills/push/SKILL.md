@@ -131,9 +131,10 @@ Symbolic oracles available in this repo — prefer them in this order:
    runs in a given order. Confirm the command actually matched
    something; an empty result is not a proof of absence unless you
    verified the pattern works elsewhere.
-5. **`scripts/docs-check.py`** — eleven consistency invariants
-   (numbered 0–9 in its docstring, plus the framework-rule/`APPS`
-   check). **Must exit 0.**
+5. **`scripts/docs-check.py`** — fourteen consistency invariants
+   (numbered 0–12 in the body, plus the unnumbered
+   framework-rule/`APPS` check). Checks 11 and 12 gate the *content*
+   of the skill files themselves, including this one. **Must exit 0.**
 6. **`scripts/benchmark.sh`** — the only oracle for the benchmark
    numbers. If you didn't run it, you didn't validate them.
 7. **`scripts/determinism-sweep.py`** — for any "identical at any
@@ -154,7 +155,7 @@ Claim classes and their required proof:
 | "resolves X" / "links cross-file" / FFI | a cgg run that produces the edge, or a passing test |
 | Framework rule counts / coverage | `rules.rs` parsed, plus `framework-coverage.py` |
 | Pipeline phase order | matches `cgg::analyze_in_pool` in `crates/cgg/src/lib.rs` (NOT `main.rs` — that is a thin CLI shim whose `run` just calls `cgg::analyze` and emits) |
-| Install commands | actually run them: `cargo install cgg`, `pip install cgg-callgraphgenerator`. The npm package `cgg-callgraphgenerator` is **not published**; do not document it as installable. |
+| Install commands | actually run them: `cargo install cgg`, `pip install cgg-callgraphgenerator`, `npm install cgg-callgraphgenerator`, and the GitHub binary tarball. All four channels are published; verify the version each registry actually serves rather than assuming the tag published it. |
 | A limitation / future gap | the absence proof from §2 |
 
 If a claim has no available oracle, it does not belong in the README as
@@ -222,9 +223,15 @@ It builds the baseline in a **separate git worktree**, so it works with
 a dirty tree and never touches your working copy. Output is a markdown
 table ready to paste.
 
-**`perf-compare.sh` is a 9-repo smoke test, not a corpus.** Its fixed
-set is `rust-ripgrep python-flask js-express go-fzf c-jq cpp-spdlog
-csharp-serilog swift-alamofire cpp-nlohmann-json`. One of those, `c-jq`,
+**`perf-compare.sh` measures the whole corpus** as of 0.7.0. It used to
+be nine hand-picked repos — `rust-ripgrep python-flask js-express go-fzf
+c-jq cpp-spdlog csharp-serilog swift-alamofire cpp-nlohmann-json` —
+totalling 1.8 seconds, or 0.7% of the corpus's 258s of work, and
+containing none of the repositories where 0.7.0's superlinear resolver
+paths lived; it would have reported *flat* for a fix that took
+`erlang-otp` from 3h40m to 24.5s. Set `REPOS=(...)` to override for a
+deliberate one-off. The cautionary history below is why. One of those
+nine, `c-jq`,
 is pathologically sensitive: 69 analyzed files with the largest being
 22% of the bytes, so wall time is the critical path of a single file and
 any scheduling change amplifies. It regresses in every paired trial at
@@ -299,8 +306,17 @@ never be reused — so getting the order wrong burns a version number.
 PyPI rejects plain `linux_x86_64` wheels; the distribution is
 `cgg-callgraphgenerator` and the import is `cgg`.
 
-**There is no npm publish script and `cgg-node` is not published.** Do
-not add an `npm install` line to any doc until it is.
+**npm publishes from CI, not from a script.** `release.yml` runs `napi
+prepublish` for the five platform packages and then `npm publish
+--ignore-scripts` for the root, and polls `npm view` for up to five
+minutes afterwards because `dist-tags` propagation lags a successful
+publish — on v0.6.7 a single read one second later said the old version
+and failed the job after everything had shipped.
+
+The root package needs `--ignore-scripts`: its `prepublishOnly` runs
+`napi prepublish` a second time, and `napi` is not on PATH in that step.
+Without it the five platform packages publish and the root does not,
+leaving `npm install` on the previous release.
 
 ## 4c. Functionality bugs get bold disclosure
 

@@ -3,21 +3,24 @@ name: cgg-install
 description: Install the `cgg` call-graph CLI on the user's machine. Trigger when the user says "install cgg", "set up cgg", "I don't have cgg", "how do I get cgg", or when another skill (like the `cgg` skill) reports `cgg` is not on PATH and the user wants it installed. Handles bootstrapping Rust via rustup if missing, the C toolchain check that tree-sitter grammars need, choosing between `cargo install cgg` from crates.io (end-user), a `--git` install for unreleased commits, and a clone-based dev install, PATH setup for `~/.cargo/bin`, and a post-install verification. Walks the user through each step rather than running long-running installs without confirmation.
 ---
 
-# cgg-install — install cgg from source
+# cgg-install — install the cgg CLI
 
-`cgg` is published on crates.io and distributed as source — the GitHub
-releases carry no prebuilt binaries — so installing it means compiling
-it. This skill is the procedure for doing that on a machine that may
-not have Rust set up.
+**Two of cgg's four channels put a `cgg` executable on PATH: the GitHub
+release tarball (prebuilt, no toolchain) and `cargo install cgg` (builds
+from source).** Check for a matching release asset first — it turns a
+multi-minute compile into a download. The other two channels, PyPI and
+npm, ship *libraries* for embedding cgg in a Python or Node program;
+neither declares a `bin`/`console_scripts` entry, so neither is an
+install path for the CLI. See "Things to NOT do".
 
-The build is 132 crates, 44 of them tree-sitter grammars that compile
+Prebuilt tarballs are published for **linux-x86_64, macos-arm64 and
+windows-x64** only. Anything else — linux arm64, musl, Intel macOS —
+compiles.
+
+Compiling is 132 crates, 44 of them tree-sitter grammars that compile
 C. Wall time is dominated by core count: ~25 s on a 64-core host,
 several minutes on a laptop. Budget up to ~10 minutes and don't let
 the user cancel a build that looks stalled on a `tree-sitter-*` crate.
-
-There is a PyPI package (`cgg-callgraphgenerator`), but it ships the
-Python *library* only — no `cgg` executable. It is not an install path
-for the CLI. See "Things to NOT do".
 
 ## Prerequisites — check before installing
 
@@ -100,6 +103,43 @@ Notes:
 - The binary lands in `~/.cargo/bin/cgg`.
 - Re-running this command upgrades to the latest release.
 - First-time build compiles 44 grammar crates. Don't cancel.
+
+### 3a-prebuilt. The download install — try this before compiling
+
+No Rust, no C toolchain, no build. Confirm the platform has an asset
+first; if `gh` is unavailable, the same list is on the releases page.
+
+```bash
+gh release view v0.7.0 --json assets -q '.assets[].name'   # what exists
+
+curl -fsSL -o /tmp/cgg.tar.gz \
+  https://github.com/NeuralNotwerk/cgg/releases/download/v0.7.0/cgg-v0.7.0-linux-x86_64.tar.gz
+tar xzf /tmp/cgg.tar.gz -C /tmp
+install -m755 /tmp/cgg ~/.local/bin/cgg      # or /usr/local/bin with sudo
+```
+
+The binary links only `libc`, `libgcc_s` and the loader, so there is
+nothing else to install. The tarball also carries `cgg.h`, `libcgg.so`
+and `libcgg.a` for the C ABI. Verify with Step 5 exactly as for a
+`cargo install` — the two channels produce a byte-identical graph.
+
+Fall through to 3a when the platform has no asset, when the user wants
+it built from source, or when they already have Rust and would rather
+not add a download step. `INSTALL.md` lists the exact apt packages every
+channel needs, verified in bare containers.
+
+### 3a-lib. Embedding, not installing
+
+If the user wants cgg *inside* a Python or Node program rather than on
+PATH, the CLI is the wrong artifact:
+
+```bash
+pip install cgg-callgraphgenerator     # import cgg
+npm install cgg-callgraphgenerator     # require("cgg-callgraphgenerator")
+```
+
+Both call the same `cgg::analyze` as the binary and return the same
+graph. Neither installs an executable.
 
 ### 3b. Unreleased commits
 
@@ -219,15 +259,17 @@ what it would do.
   leaves the user's `~/.cargo` perms broken. `cargo install` is meant
   to run as the user.
 - **Don't suggest a system package manager (`apt install cgg`, `brew
-  install cgg`).** No such package exists today.
-- **Don't use `pip` or `npm` to get the CLI.**
-  `pip install cgg-callgraphgenerator` installs a Python library
-  (`import cgg`) and no `cgg` executable. It publishes a manylinux
-  x86_64 wheel plus an sdist, so on macOS, Windows and aarch64 pip
-  falls back to building from source — which needs a Rust toolchain
-  and takes minutes. Offer it only when the user explicitly wants the
-  Python API. The npm package `cgg-callgraphgenerator` is
-  **not published** — do not tell the user to install it.
+  install cgg`).** No such package exists today — the GitHub release
+  tarball (3a-prebuilt) is the no-toolchain path instead.
+- **Don't use `pip` or `npm` to get the CLI.** Both are published and
+  both work — but neither declares an executable, so neither puts `cgg`
+  on PATH. `pip install cgg-callgraphgenerator` gives `import cgg`;
+  `npm install cgg-callgraphgenerator` gives
+  `require("cgg-callgraphgenerator")`. Offer them when the user wants
+  the API, per 3a-lib. Wheels exist for manylinux x86_64 and aarch64,
+  macOS Intel and Apple silicon, and Windows x64; off that list pip
+  takes the sdist and builds from source, which needs a Rust toolchain
+  and takes minutes.
 - **Don't try to half-install** by downloading individual files from
   the repo or `cargo build`-ing a sibling crate like `cgg-lang` on its
   own. Only `crates/cgg` produces the binary, and only cargo can pull
