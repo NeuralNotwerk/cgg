@@ -31,6 +31,9 @@ mod options;
 mod outcome;
 mod query;
 mod since;
+mod stable_ids;
+
+use stable_ids::StableIds;
 
 pub use options::RunOptions;
 pub use outcome::{Emission, RunOutcome};
@@ -257,8 +260,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         |lang: &str| -> bool { lang_filter.is_empty() || lang_filter.contains(&lang) };
 
     let parse_started = Instant::now();
-    let mut next_file_id: u32 = 0;
-    let mut next_callable_id: u32 = 0;
+    let mut stable_ids = StableIds::new();
 
     // Collected facts per file, used by the intra-file linker below.
     let mut all_facts: Vec<FileFacts> = Vec::new();
@@ -419,8 +421,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 });
                 metrics.bytes_processed += fr.size_bytes;
 
-                let file_id = FileId::new(next_file_id);
-                next_file_id += 1;
+                let relative_path = fr.path.to_string_lossy().into_owned();
+                let file_id = stable_ids.file(&relative_path);
 
                 // Classify test code once, from (path, language), and
                 // record it on both the graph and the audit so the
@@ -464,8 +466,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     // Fix the file ID (was placeholder 0 during parallel phase).
                     facts.file = file_id;
                     for (idx, d) in facts.definitions.iter().enumerate() {
-                        let cid = CallableId::new(next_callable_id);
-                        next_callable_id += 1;
+                        let owner = cgg_resolve::names::owner_from_qn(&d.qualified_name);
+                        let cid = stable_ids.callable(
+                            &fr.lang,
+                            &relative_path,
+                            owner,
+                            &d.qualified_name,
+                        );
                         def_ids.insert((file_id, idx as u32), cid);
 
                         graph.add_callable(CallableNode {
@@ -857,8 +864,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         synthesize_exit_nodes(
             &mut graph,
             &file_records,
-            &mut next_file_id,
-            &mut next_callable_id,
+            &mut stable_ids,
             opts.include_external,
             opts.include_stdlib,
         );
@@ -896,12 +902,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .collect();
     if !framework_out.entries.is_empty() {
         let _s = cgg_core::profile::span("post::entry-nodes");
-        synthesize_entry_nodes(
-            &mut graph,
-            &framework_out.entries,
-            &mut next_file_id,
-            &mut next_callable_id,
-        );
+        synthesize_entry_nodes(&mut graph, &framework_out.entries, &mut stable_ids);
     }
     let framework_coverage = framework_out.coverage;
 
@@ -1772,8 +1773,7 @@ fn sentinel_file(id: FileId, path: &str, lang: &str) -> GraphFileRecord {
 fn synthesize_exit_nodes(
     graph: &mut Graph,
     file_records: &[AuditFileRecord],
-    next_file_id: &mut u32,
-    next_callable_id: &mut u32,
+    stable_ids: &mut StableIds,
     include_external: bool,
     include_stdlib: bool,
 ) {
@@ -1820,26 +1820,28 @@ fn synthesize_exit_nodes(
                 let node_id = if let Some(&id) = node_ids.get(&key) {
                     id
                 } else {
+                    let sentinel_path = if is_external {
+                        "<external>"
+                    } else {
+                        "<stdlib>"
+                    };
                     let file_id = if is_external {
                         *external_file.get_or_insert_with(|| {
-                            let fid = FileId::new(*next_file_id);
-                            *next_file_id += 1;
+                            let fid = stable_ids.file(sentinel_path);
                             graph.add_file(sentinel_file(fid, "<external>", "external"))
                         })
                     } else {
                         *stdlib_file.get_or_insert_with(|| {
-                            let fid = FileId::new(*next_file_id);
-                            *next_file_id += 1;
+                            let fid = stable_ids.file(sentinel_path);
                             graph.add_file(sentinel_file(fid, "<stdlib>", "stdlib"))
                         })
                     };
-                    let id = CallableId::new(*next_callable_id);
-                    *next_callable_id += 1;
                     let qn = if call.receiver_hint.is_empty() {
                         format!("<{kind_label}>::{}", call.name)
                     } else {
                         format!("<{kind_label}>::{}::{}", call.receiver_hint, call.name)
                     };
+                    let id = stable_ids.callable(&lang, sentinel_path, None, &qn);
                     graph.add_callable(CallableNode {
                         id,
                         qualified_name: qn,
@@ -1893,8 +1895,7 @@ fn synthesize_exit_nodes(
 fn synthesize_entry_nodes(
     graph: &mut Graph,
     entries: &[cgg_core::frameworks::FrameworkEntry],
-    next_file_id: &mut u32,
-    next_callable_id: &mut u32,
+    stable_ids: &mut StableIds,
 ) {
     use cgg_core::frameworks::FRAMEWORK_ENTRY_SENTINEL;
 
@@ -1912,27 +1913,26 @@ fn synthesize_entry_nodes(
             id
         } else {
             let file_id = *sentinel.get_or_insert_with(|| {
-                let fid = FileId::new(*next_file_id);
-                *next_file_id += 1;
+                let fid = stable_ids.file(FRAMEWORK_ENTRY_SENTINEL);
                 graph.add_file(sentinel_file(
                     fid,
                     FRAMEWORK_ENTRY_SENTINEL,
                     "framework-entry",
                 ))
             });
-            let id = CallableId::new(*next_callable_id);
-            *next_callable_id += 1;
+            let language = graph
+                .callables
+                .get(&entry.target)
+                .map(|c| c.language.clone())
+                .unwrap_or_default();
+            let id = stable_ids.callable(&language, FRAMEWORK_ENTRY_SENTINEL, None, &qn);
             let simple = qn.rsplit("::").next().unwrap_or(&qn).to_string();
             graph.add_callable(CallableNode {
                 id,
                 qualified_name: qn.clone(),
                 simple_name: simple,
                 kind: CallableKind::Function,
-                language: graph
-                    .callables
-                    .get(&entry.target)
-                    .map(|c| c.language.clone())
-                    .unwrap_or_default(),
+                language,
                 file: file_id,
                 start_line: 0,
                 end_line: 0,
@@ -1992,14 +1992,15 @@ fn trait_impl_target_from_qn(qn: &str) -> Option<String> {
 fn dedup_edges(graph: &mut Graph) {
     use cgg_core::graph::Confidence;
     use std::collections::HashMap;
-    let mut best: HashMap<(u32, u32, u32), usize> = HashMap::new();
+    use cgg_core::ids::CallableId;
+    let mut best: HashMap<(CallableId, CallableId, u32), usize> = HashMap::new();
     let conf_rank = |c: Confidence| match c {
         Confidence::High => 2,
         Confidence::Medium => 1,
         Confidence::Low => 0,
     };
     for (i, e) in graph.edges.iter().enumerate() {
-        let key = (e.src.as_u32(), e.dst.as_u32(), e.site_byte);
+        let key = (e.src, e.dst, e.site_byte);
         let entry = best.entry(key).or_insert(i);
         if conf_rank(e.confidence) > conf_rank(graph.edges[*entry].confidence) {
             *entry = i;

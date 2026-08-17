@@ -221,10 +221,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
     // per resolved reference. That is O(references x edges), which stayed
     // invisible while PHP resolved almost nothing and became ~4s of a
     // Laravel run the moment it started resolving properly.
-    let existing_edges: std::collections::HashSet<(u32, u32, u32)> = graph
+    // Keyed by (src, dst, call-site byte offset).
+    let existing_edges: std::collections::HashSet<(CallableId, CallableId, u32)> = graph
         .edges
         .iter()
-        .map(|e| (e.src.as_u32(), e.dst.as_u32(), e.site_byte))
+        .map(|e| (e.src, e.dst, e.site_byte))
         .collect();
     let mut out = CrossFileOutput::default();
     let _sp_idx = cgg_core::profile::span("xfile::index-build");
@@ -427,7 +428,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
         }
     }
     for v in include_by_last.values_mut() {
-        v.sort_by_key(|f| f.file.as_u32());
+        v.sort_by_key(|f| f.file);
     }
 
     // Per-file and independent: the body reads the shared indexes
@@ -1075,11 +1076,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                     if *cid == src {
                         continue;
                     }
-                    let dup = existing_edges.contains(&(
-                        src.as_u32(),
-                        cid.as_u32(),
-                        r.site_byte,
-                    ));
+                    let dup = existing_edges.contains(&(src, *cid, r.site_byte));
                     if !dup {
                         out.edges.push(CallEdge {
                             src,
@@ -1165,11 +1162,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                                 continue;
                             }
                             // Avoid duplicating intra-file-emitted edges.
-                            if existing_edges.contains(&(
-                                src.as_u32(),
-                                cid.as_u32(),
-                                r.site_byte,
-                            )) {
+                            if existing_edges.contains(&(src, cid, r.site_byte)) {
                                 continue;
                             }
                             out.edges.push(CallEdge {

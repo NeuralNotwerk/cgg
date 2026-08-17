@@ -648,8 +648,7 @@ pub(crate) fn discover(
         );
     }
 
-    set.records
-        .sort_by(|a, b| a.id.as_u32().cmp(&b.id.as_u32()));
+    set.records.sort_by_key(|a| a.id);
     set.production.sort_unstable();
     set.test.sort_unstable();
     for v in set.rules_by_language.values_mut() {

@@ -7,6 +7,60 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Changed — BREAKING: node ids are content-derived, not sequential
+
+- **`CallableId`/`FileId` are now stable, content-derived hashes instead
+  of a per-run sequential counter.** Every emitted graph — mermaid,
+  json, dot, graphml — previously numbered nodes `0, 1, 2, …` in
+  file-discovery order, so the same source tree could mint a different
+  id for the same function from one run to the next (a new file
+  appearing earlier in the walk order shifts every id after it), and an
+  id was meaningless outside the run that produced it. An id is now a
+  blake3 hash of the node's own identity — a file's relative path, or a
+  callable's `(language, file path, owner qualified name, qualified
+  name)` — so **the same node gets the same id on every run**, and
+  adding or removing an unrelated node elsewhere in the tree never
+  changes ids that didn't collide with it. Collisions are vanishingly
+  rare (52 bits of hash by default) and, on the rare case, resolved by
+  pulling more bits from the same node's own hash stream — never by
+  comparing to whichever other node it collided with — so the property
+  above holds even across a collision.
+
+  **Wire format changed too.** An id used to be a bare integer
+  (`{"src": 0, "dst": 1}` in JSON; `C0`, `n0` in mermaid/dot/graphml).
+  It is now the type's prefix character followed by lowercase base36
+  digits (`{"src": "C4k2j9qh3xz"}`; `Chco17z7ulm`, `nhco17z7ulm`). This
+  is unconditional — there is no flag and no fallback to the old
+  numeric scheme, because only a handful of consumers depend on raw id
+  values today and every one of them (the CLI's own formatters,
+  `cgg-py`, `cgg-node`) was updated in this same change.
+
+  **If you store or diff raw ids across runs, this changes what you see
+  even though the graph is unchanged**: ids no longer renumber on every
+  run, so a diff against a previous run's ids is now meaningful for the
+  first time — but a diff against pre-upgrade output will show every id
+  as new, once. `cgg-py`'s `Callable.id`/`Edge.src`/`Edge.dst`/
+  `Edge.file`/`File.id` are `u64` now (Python's `int` already covers
+  the range, so nothing on the Python side needed a type change beyond
+  that). `cgg-node`'s equivalents are `bigint` now — a required change
+  since N-API has no native `u64` binding, so `number` was no longer
+  safe. `cgg-node`'s `Graph.files` getter, which used to return
+  `Array<string>` of bare paths indexed by `Callable.file`, now returns
+  `Array<{ id, path }>` — matching by id was already how `cgg-py`
+  worked, and the old "index equals id" invariant depended on the
+  sequential scheme this change removes. `cgg-ffi`'s C ABI is
+  unaffected: it never exposed raw ids, only rendered strings/JSON, by
+  design.
+
+### Performance
+
+- Not yet measured. `scripts/perf-compare.sh` needs to run against a
+  baseline binary before release — content-derived ids trade a
+  sequential counter for a blake3 hash per node plus a `HashSet`
+  membership check for collision detection, so this is expected to
+  have *some* per-node cost, but "measure, never estimate" applies:
+  no number is claimed here until it's been run.
+
 ### Added
 
 - **Google Cloud Functions, Azure Functions, Firebase, Cloudflare

@@ -103,7 +103,7 @@ impl GraphFormatter for MermaidFormatter {
             } else {
                 ""
             };
-            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.as_u32())?;
+            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.token())?;
         }
         if any_unreferenced {
             writeln!(out, "  classDef unreferenced stroke-dasharray: 4 3;")?;
@@ -111,7 +111,7 @@ impl GraphFormatter for MermaidFormatter {
                 .callables
                 .iter()
                 .filter(|(_, n)| n.unreferenced.is_some())
-                .map(|(id, _)| format!("C{}", id.as_u32()))
+                .map(|(id, _)| format!("C{}", id.token()))
                 .collect();
             for chunk in marked.chunks(32) {
                 writeln!(out, "  class {} unreferenced;", chunk.join(","))?;
@@ -128,20 +128,19 @@ impl GraphFormatter for MermaidFormatter {
         // Collapse identical (src, dst, via-kind) triples. Distinct via
         // kinds between the same pair stay separate, labeled rows so a
         // direct call and a dynamic-dispatch fan-out don't merge.
-        let mut order: Vec<(u32, u32, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
+        let mut order: Vec<(String, String, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(String, String, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
-            let key = (edge.src.as_u32(), edge.dst.as_u32(), via_tag(&edge.via));
-            if counts
-                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
-                .is_none()
-            {
+            let key = (edge.src.token(), edge.dst.token(), via_tag(&edge.via));
+            let entry = counts.entry(key.clone()).or_insert(0);
+            *entry += 1;
+            if *entry == 1 {
                 order.push(key);
             }
         }
         for (src, dst, tag) in order {
-            let n = counts[&(src, dst, tag)];
+            let n = counts[&(src.clone(), dst.clone(), tag)];
             let label = match (tag.is_empty(), n > 1) {
                 (true, false) => String::new(),
                 (true, true) => format!("|{n}x|"),

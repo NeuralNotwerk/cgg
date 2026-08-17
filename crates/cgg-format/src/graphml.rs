@@ -67,7 +67,7 @@ impl GraphFormatter for GraphmlFormatter {
         )?;
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
         for (id, node) in &graph.callables {
-            writeln!(out, r#"    <node id="n{}">"#, id.as_u32())?;
+            writeln!(out, r#"    <node id="n{}">"#, id.token())?;
             writeln!(
                 out,
                 r#"      <data key="label">{}</data>"#,
@@ -111,16 +111,16 @@ impl GraphFormatter for GraphmlFormatter {
                     out,
                     r#"    <edge id="e{}" source="n{}" target="n{}"/>"#,
                     i,
-                    edge.src.as_u32(),
-                    edge.dst.as_u32()
+                    edge.src.token(),
+                    edge.dst.token()
                 )?;
             } else {
                 writeln!(
                     out,
                     r#"    <edge id="e{}" source="n{}" target="n{}"><data key="via">{}</data></edge>"#,
                     i,
-                    edge.src.as_u32(),
-                    edge.dst.as_u32(),
+                    edge.src.token(),
+                    edge.dst.token(),
                     via
                 )?;
             }

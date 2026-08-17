@@ -50,7 +50,7 @@ fn to_py_err(e: anyhow::Error) -> PyErr {
 #[derive(Clone)]
 pub struct Callable {
     #[pyo3(get)]
-    id: u32,
+    id: u64,
     #[pyo3(get)]
     qualified_name: String,
     #[pyo3(get)]
@@ -60,7 +60,7 @@ pub struct Callable {
     #[pyo3(get)]
     language: String,
     #[pyo3(get)]
-    file: u32,
+    file: u64,
     #[pyo3(get)]
     start_line: u32,
     #[pyo3(get)]
@@ -111,12 +111,12 @@ impl Callable {
             framework_entry: _,
         } = n;
         Self {
-            id: id.as_u32(),
+            id: id.as_u64(),
             qualified_name: qualified_name.clone(),
             simple_name: simple_name.clone(),
             kind: kind_str(*kind),
             language: language.clone(),
-            file: file.as_u32(),
+            file: file.as_u64(),
             start_line: *start_line,
             end_line: *end_line,
             signature_hint: signature_hint.clone(),
@@ -168,9 +168,9 @@ impl Callable {
 #[derive(Clone)]
 pub struct Edge {
     #[pyo3(get)]
-    src: u32,
+    src: u64,
     #[pyo3(get)]
-    dst: u32,
+    dst: u64,
     #[pyo3(get)]
     site_line: u32,
     #[pyo3(get)]
@@ -200,8 +200,8 @@ impl Edge {
             resolver: _,
         } = e;
         Self {
-            src: src.as_u32(),
-            dst: dst.as_u32(),
+            src: src.as_u64(),
+            dst: dst.as_u64(),
             site_line: *site_line,
             site_byte: *site_byte,
             confidence: confidence_str(*confidence),
@@ -244,7 +244,7 @@ impl Edge {
 #[derive(Clone)]
 pub struct File {
     #[pyo3(get)]
-    id: u32,
+    id: u64,
     #[pyo3(get)]
     path: PathBuf,
     #[pyo3(get)]
@@ -281,7 +281,7 @@ impl File {
             test_role: _,
         } = f;
         Self {
-            id: id.as_u32(),
+            id: id.as_u64(),
             path: path.clone(),
             language: language.clone(),
             detected_via: detected_via.clone(),
@@ -370,15 +370,15 @@ pub struct Graph {
     /// Without them `callers_of`/`callees_of` are O(E) and `callable()` is
     /// O(N), so the obvious `for c in g.callables: g.callers_of(c)` is
     /// O(N*E): 8.6M edge visits on cgg's own graph, ~10^10 on a large one.
-    by_name: OnceLock<HashMap<String, u32>>,
+    by_name: OnceLock<HashMap<String, u64>>,
     adjacency: OnceLock<Adjacency>,
 }
 
 /// Inbound and outbound neighbours per callable id.
 #[derive(Default)]
 struct Adjacency {
-    callers: HashMap<u32, Vec<u32>>,
-    callees: HashMap<u32, Vec<u32>>,
+    callers: HashMap<u64, Vec<u64>>,
+    callees: HashMap<u64, Vec<u64>>,
 }
 
 impl Graph {
@@ -414,12 +414,12 @@ impl Graph {
         }
     }
 
-    fn by_name(&self) -> &HashMap<String, u32> {
+    fn by_name(&self) -> &HashMap<String, u64> {
         self.by_name.get_or_init(|| {
             self.inner
                 .callables
                 .values()
-                .map(|c| (c.qualified_name.clone(), c.id.as_u32()))
+                .map(|c| (c.qualified_name.clone(), c.id.as_u64()))
                 .collect()
         })
     }
@@ -429,13 +429,13 @@ impl Graph {
             let mut a = Adjacency::default();
             for e in &self.inner.edges {
                 a.callees
-                    .entry(e.src.as_u32())
+                    .entry(e.src.as_u64())
                     .or_default()
-                    .push(e.dst.as_u32());
+                    .push(e.dst.as_u64());
                 a.callers
-                    .entry(e.dst.as_u32())
+                    .entry(e.dst.as_u64())
                     .or_default()
-                    .push(e.src.as_u32());
+                    .push(e.src.as_u64());
             }
             a
         })
@@ -443,19 +443,29 @@ impl Graph {
 
     /// Callables for a list of ids.
     ///
-    /// Sorted and deduplicated: ids are assigned in graph order, so sorting
-    /// restores graph order without scanning the graph, and dedup means two
-    /// call sites from one caller yield one entry rather than two.
-    fn nodes_for(&self, ids: Option<&Vec<u32>>) -> Vec<Callable> {
+    /// Sorted by position in the graph and deduplicated. Ids are
+    /// content-derived hashes now, not sequential indices, so sorting by
+    /// *value* would no longer restore graph order — instead we sort by
+    /// each id's position in `self.inner.callables` (an `IndexMap`, so
+    /// that lookup is O(1) and the order it reports is insertion/analysis
+    /// order). Dedup means two call sites from one caller yield one entry
+    /// rather than two.
+    fn nodes_for(&self, ids: Option<&Vec<u64>>) -> Vec<Callable> {
         let Some(ids) = ids else { return Vec::new() };
         let mut ids = ids.clone();
         ids.sort_unstable();
         ids.dedup();
+        ids.sort_unstable_by_key(|id| {
+            self.inner
+                .callables
+                .get_index_of(&cgg_core::ids::CallableId::new_u64(*id))
+                .unwrap_or(usize::MAX)
+        });
         ids.iter()
             .filter_map(|id| {
                 self.inner
                     .callables
-                    .get(&cgg_core::ids::CallableId::new(*id))
+                    .get(&cgg_core::ids::CallableId::new_u64(*id))
             })
             .map(Callable::from_node)
             .collect()
@@ -580,7 +590,7 @@ impl Graph {
         let id = *self.by_name().get(qualified_name)?;
         self.inner
             .callables
-            .get(&cgg_core::ids::CallableId::new(id))
+            .get(&cgg_core::ids::CallableId::new_u64(id))
             .map(Callable::from_node)
     }
 
@@ -602,7 +612,7 @@ impl Graph {
 
 impl Graph {
     /// Accept a `Callable` or a qualified name.
-    fn resolve_id(&self, target: &Bound<'_, PyAny>) -> PyResult<u32> {
+    fn resolve_id(&self, target: &Bound<'_, PyAny>) -> PyResult<u64> {
         // `cast` + `get`, not `extract`: the class is `frozen`, so this
         // reads the id straight out of the cell instead of cloning five
         // `String`s and a `Vec` to throw them away.
@@ -611,9 +621,11 @@ impl Graph {
         }
         if let Ok(name) = target.extract::<String>() {
             // An unmatched name yields an unmatched id, so the caller gets
-            // `[]` rather than an exception. Ids start at 0, so u32::MAX is
-            // never minted.
-            return Ok(self.by_name().get(&name).copied().unwrap_or(u32::MAX));
+            // `[]` rather than an exception. Ids are content hashes now
+            // rather than a sequential counter starting at 0, but they
+            // are drawn from at most 64 bits, so u64::MAX is
+            // vanishingly unlikely ever to be minted for a real node.
+            return Ok(self.by_name().get(&name).copied().unwrap_or(u64::MAX));
         }
         Err(PyValueError::new_err(
             "expected a Callable or a qualified name",

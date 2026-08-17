@@ -218,7 +218,7 @@ fn paths_through(
     // run. Without the cap the result was the same set either way, which
     // is why this stayed invisible: the defect only appears once
     // truncation actually turns work away.
-    entries.sort_unstable_by_key(|id| id.as_u32());
+    entries.sort_unstable();
 
     // DFS from each entry, collecting nodes on paths that hit a seed.
     let mut on_path: HashSet<CallableId> = HashSet::new();

@@ -510,7 +510,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2069 callables, 4914 edges, 1770 cross-file, 127ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2088 callables, 4963 edges, 1785 cross-file, 119ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -521,119 +521,135 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  C7["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C9["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  C48["cgg::analyze"]
-  C49["cgg::analyze_in_pool"]
-  C50["cgg::langs_enabled"]
-  C51["cgg::specific"]
-  C52["cgg::dead_code_analysis"]
-  C56["cgg::why_live_proofs"]
-  C57["cgg::since_seeds"]
-  C58["cgg::count_lines"]
-  C59["cgg::read_file"]
-  C60["cgg::variant_to_kind"]
-  C62["cgg::synthesize_exit_nodes"]
-  C63["cgg::synthesize_entry_nodes"]
-  C64["cgg::trait_impl_target_from_qn"]
-  C65["cgg::dedup_edges"]
-  C67["cgg::group_unresolved_by_module"]
-  C73["cgg::options::RunOptions::dead_mode"]
-  C75["cgg::outcome::Emission::line"]
-  C76["cgg::outcome::Emission::always"]
-  C79["cgg::query::apply_query"]
-  C80["cgg::query::apply_exclusions"]
-  C101["cgg::since::resolve_since"]
-  C394["cgg_core::external::FileAliases::from_facts"]
-  C395["cgg_core::external::classify_external"]
-  C398["cgg_core::external::build_known_names"]
-  C459["cgg_core::graph::Graph::new"]
-  C460["cgg_core::graph::Graph::add_callable"]
-  C461["cgg_core::graph::Graph::add_file"]
-  C462["cgg_core::graph::Graph::add_edge"]
-  C480["cgg_core::profile::enable"]
-  C483["cgg_core::profile::span"]
-  C491["cgg_core::testfile::classify_test_file"]
-  C562["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  C563["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C585["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  C598["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C603["cgg_lang::notebook::extract_python_source"]
-  C609["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C610["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C611["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1746["cgg_resolve::cross_file::resolve"]
-  C1882["cgg_resolve::descriptor::link_descriptors"]
-  C1889["cgg_resolve::dispatch::fanout"]
-  C1893["cgg_resolve::ffi::link_ffi"]
-  C1909["cgg_resolve::frameworks::detect"]
-  C1972["cgg_resolve::intra_file::link_file"]
-  C2016["cgg_resolve::type_hints::build_return_type_map"]
-  C2017["cgg_resolve::type_hints::propagate_types_with_returns"]
-  C2035["cgg_walk::walk"]
-  C48 --> C49
-  C49 --> C50
-  C49 --> C59
-  C49 --> C58
-  C49 --> C60
-  C49 --> C64
-  C49 -->|2x| C51
-  C49 --> C62
-  C49 --> C63
-  C49 --> C67
-  C49 --> C65
-  C49 --> C57
-  C49 --> C56
-  C49 --> C52
-  C610 --> C610
-  C49 --> C73
-  C49 --> C9
-  C49 --> C7
-  C49 --> C480
-  C49 --> C2035
-  C49 --> C598
-  C49 --> C562
-  C49 --> C609
-  C49 --> C459
-  C49 --> C563
-  C49 --> C603
-  C49 -->|18x| C483
-  C49 --> C610
-  C49 --> C611
-  C49 --> C585
-  C49 --> C491
-  C49 --> C461
-  C49 --> C460
-  C49 --> C2016
-  C49 --> C2017
-  C49 --> C398
-  C49 --> C1972
-  C49 --> C394
-  C49 --> C395
-  C49 --> C1746
-  C49 --> C1893
-  C49 --> C1882
-  C49 --> C1909
-  C49 --> C1889
-  C49 --> C462
-  C49 -->|5x| C75
-  C49 --> C101
-  C49 -->|2x| C76
-  C49 --> C79
-  C49 --> C80
-  C52 --> C598
-  C52 --> C76
-  C52 --> C75
-  C56 --> C76
-  C62 -->|2x| C461
-  C62 --> C460
-  C62 --> C462
-  C63 --> C461
-  C63 --> C460
-  C63 --> C462
-  C79 --> C459
-  C1746 -->|6x| C483
-  C1909 -->|9x| C483
+  Ce8btaz0c7d["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  C1fuqoee162["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  Cu8sm37x27i["cgg::analyze"]
+  Ck6rdns31fh["cgg::analyze_in_pool"]
+  Cisqfzflkw2["cgg::langs_enabled"]
+  C7vl7hj6da0["cgg::specific"]
+  Cc6430xzlhv["cgg::dead_code_analysis"]
+  Cyb8lff0cu6["cgg::why_live_proofs"]
+  Crazkm27b4n["cgg::since_seeds"]
+  Ce6100aa7pb["cgg::count_lines"]
+  Cd2jp9c8iji["cgg::read_file"]
+  C4uh9t2boar["cgg::variant_to_kind"]
+  Cyuotlqx8cg["cgg::synthesize_exit_nodes"]
+  C14txnctguqp["cgg::synthesize_entry_nodes"]
+  C110r2j3hgh3["cgg::trait_impl_target_from_qn"]
+  C12cl5iiregd["cgg::dedup_edges"]
+  Coz7jqry0jt["cgg::group_unresolved_by_module"]
+  Civon2m7kiq["cgg::options::RunOptions::dead_mode"]
+  Cpdmf2f970w["cgg::outcome::Emission::line"]
+  Co9lkohbv7["cgg::outcome::Emission::always"]
+  Cikry60zwgd["cgg::query::apply_query"]
+  Cegjh02oqxa["cgg::query::apply_exclusions"]
+  Cjn5qmo68zf["cgg::since::resolve_since"]
+  Cjwpbtnrpq9["cgg::stable_ids::StableIds::new"]
+  Cr37f9vwja4["cgg::stable_ids::StableIds::file"]
+  C7x7z80po60["cgg::stable_ids::StableIds::callable"]
+  C9dybi363du["cgg_core::external::FileAliases::from_facts"]
+  Cr8fsp2a2yv["cgg_core::external::classify_external"]
+  C1763zjuiemp["cgg_core::external::build_known_names"]
+  C7b3b3l1lm6["cgg_core::graph::Graph::new"]
+  Cuqpquw4s0d["cgg_core::graph::Graph::add_callable"]
+  C11hq6v37tdw["cgg_core::graph::Graph::add_file"]
+  Cns9jydj0k1["cgg_core::graph::Graph::add_edge"]
+  Cl392qv0r5a["cgg_core::profile::enable"]
+  Chptg76umzv["cgg_core::profile::span"]
+  C2lsittm2s4["cgg_core::testfile::classify_test_file"]
+  C10q0avqswp9["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  Cp7bq4qiwgz["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  C59pox1dp6q["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  Ctdg6zm99p3["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C184und02q38["cgg_lang::notebook::extract_python_source"]
+  Ckwi21q4n99["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  C26bd5qoaul["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  C6jcyyvmxks["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C14crdads27m["cgg_resolve::cross_file::resolve"]
+  Cf3d62vvukt["cgg_resolve::descriptor::link_descriptors"]
+  Cbuowmgsuna["cgg_resolve::dispatch::fanout"]
+  C92h1zyobno["cgg_resolve::ffi::link_ffi"]
+  Cm7bu22jhwg["cgg_resolve::frameworks::detect"]
+  Ckwpvjofrwg["cgg_resolve::intra_file::link_file"]
+  C92stn8ydvj["cgg_resolve::names::owner_from_qn"]
+  C83eo6qi9sg["cgg_resolve::type_hints::build_return_type_map"]
+  C652z8l1h5w["cgg_resolve::type_hints::propagate_types_with_returns"]
+  Chco17z7ulm["cgg_walk::walk"]
+  Cu8sm37x27i --> Ck6rdns31fh
+  Ck6rdns31fh --> Cisqfzflkw2
+  Ck6rdns31fh --> Cd2jp9c8iji
+  Ck6rdns31fh --> Ce6100aa7pb
+  Ck6rdns31fh --> C4uh9t2boar
+  Ck6rdns31fh --> C110r2j3hgh3
+  Ck6rdns31fh -->|2x| C7vl7hj6da0
+  Ck6rdns31fh --> Cyuotlqx8cg
+  Ck6rdns31fh --> C14txnctguqp
+  Ck6rdns31fh --> Coz7jqry0jt
+  Ck6rdns31fh --> C12cl5iiregd
+  Ck6rdns31fh --> Crazkm27b4n
+  Ck6rdns31fh --> Cyb8lff0cu6
+  Ck6rdns31fh --> Cc6430xzlhv
+  C26bd5qoaul --> C26bd5qoaul
+  Ck6rdns31fh --> Civon2m7kiq
+  Ck6rdns31fh --> C1fuqoee162
+  Ck6rdns31fh --> Ce8btaz0c7d
+  Ck6rdns31fh --> Cl392qv0r5a
+  Ck6rdns31fh --> Chco17z7ulm
+  Ck6rdns31fh --> Ctdg6zm99p3
+  Ck6rdns31fh --> C10q0avqswp9
+  Ck6rdns31fh --> Ckwi21q4n99
+  Ck6rdns31fh --> Cjwpbtnrpq9
+  Ck6rdns31fh --> C7b3b3l1lm6
+  Ck6rdns31fh --> Cp7bq4qiwgz
+  Ck6rdns31fh --> C184und02q38
+  Ck6rdns31fh -->|18x| Chptg76umzv
+  Ck6rdns31fh --> C26bd5qoaul
+  Ck6rdns31fh --> C6jcyyvmxks
+  Ck6rdns31fh --> C59pox1dp6q
+  Ck6rdns31fh --> Cr37f9vwja4
+  Ck6rdns31fh --> C2lsittm2s4
+  Ck6rdns31fh --> C11hq6v37tdw
+  Ck6rdns31fh --> C92stn8ydvj
+  Ck6rdns31fh --> C7x7z80po60
+  Ck6rdns31fh --> Cuqpquw4s0d
+  Ck6rdns31fh --> C83eo6qi9sg
+  Ck6rdns31fh --> C652z8l1h5w
+  Ck6rdns31fh --> C1763zjuiemp
+  Ck6rdns31fh --> Ckwpvjofrwg
+  Ck6rdns31fh --> C9dybi363du
+  Ck6rdns31fh --> Cr8fsp2a2yv
+  Ck6rdns31fh --> C14crdads27m
+  Ck6rdns31fh --> C92h1zyobno
+  Ck6rdns31fh --> Cf3d62vvukt
+  Ck6rdns31fh --> Cm7bu22jhwg
+  Ck6rdns31fh --> Cbuowmgsuna
+  Ck6rdns31fh --> Cns9jydj0k1
+  Ck6rdns31fh -->|5x| Cpdmf2f970w
+  Ck6rdns31fh --> Cjn5qmo68zf
+  Ck6rdns31fh -->|2x| Co9lkohbv7
+  Ck6rdns31fh --> Cikry60zwgd
+  Ck6rdns31fh --> Cegjh02oqxa
+  Cc6430xzlhv --> Ctdg6zm99p3
+  Cc6430xzlhv --> Co9lkohbv7
+  Cc6430xzlhv --> Cpdmf2f970w
+  Cyb8lff0cu6 --> Co9lkohbv7
+  Cyuotlqx8cg -->|2x| Cr37f9vwja4
+  Cyuotlqx8cg -->|2x| C11hq6v37tdw
+  Cyuotlqx8cg --> C7x7z80po60
+  Cyuotlqx8cg --> Cuqpquw4s0d
+  Cyuotlqx8cg --> Cns9jydj0k1
+  C14txnctguqp --> Cr37f9vwja4
+  C14txnctguqp --> C11hq6v37tdw
+  C14txnctguqp --> C7x7z80po60
+  C14txnctguqp --> Cuqpquw4s0d
+  C14txnctguqp --> Cns9jydj0k1
+  Cikry60zwgd --> C7b3b3l1lm6
+  C14crdads27m -->|6x| Chptg76umzv
+  C14crdads27m -->|4x| C92stn8ydvj
+  Cf3d62vvukt -->|2x| C92stn8ydvj
+  Cbuowmgsuna --> C92stn8ydvj
+  Cm7bu22jhwg -->|9x| Chptg76umzv
+  Ckwpvjofrwg -->|3x| C92stn8ydvj
 ```
 <!-- cgg:end:self -->
 
@@ -647,81 +663,81 @@ cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid  # resolution pipeline
 <!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
-  C0["cgg_walk::WalkOutcome::is_empty"]
-  C1["cgg_walk::<WalkConfig as Default>::default"]
-  C2["cgg_walk::walk"]
-  C3["cgg_walk::walk_one"]
-  C4["cgg_walk::push_candidate"]
-  C5["cgg_walk::is_symlink_chain"]
-  C6["cgg_walk::classify_file"]
-  C7["cgg_walk::is_binary"]
-  C8["cgg_walk::builtin_reason"]
-  C9["cgg_walk::extract_err_path"]
-  C2 --> C3
-  C3 -->|2x| C4
-  C3 --> C5
-  C3 -->|2x| C6
-  C3 -->|2x| C8
-  C3 --> C9
-  C6 --> C7
-  C9 -->|2x| C9
+  Cy82uv2i7pt["cgg_walk::WalkOutcome::is_empty"]
+  C580x6lp8ln["cgg_walk::<WalkConfig as Default>::default"]
+  Chco17z7ulm["cgg_walk::walk"]
+  Cbkodel2lnl["cgg_walk::walk_one"]
+  Club8n6rzww["cgg_walk::push_candidate"]
+  Ctqopiot1ae["cgg_walk::is_symlink_chain"]
+  C81nu0l348l["cgg_walk::classify_file"]
+  Cndv7fvb5ip["cgg_walk::is_binary"]
+  C5fpczbb5j6["cgg_walk::builtin_reason"]
+  C1xss5nwfte["cgg_walk::extract_err_path"]
+  C1xss5nwfte -->|2x| C1xss5nwfte
+  C81nu0l348l --> Cndv7fvb5ip
+  Cbkodel2lnl --> C1xss5nwfte
+  Cbkodel2lnl -->|2x| C5fpczbb5j6
+  Cbkodel2lnl -->|2x| C81nu0l348l
+  Cbkodel2lnl -->|2x| Club8n6rzww
+  Cbkodel2lnl --> Ctqopiot1ae
+  Chco17z7ulm --> Cbkodel2lnl
 ```
 <!-- cgg:end:walk -->
 
 <!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
-  C0["cgg_lang::detect::LanguageDetector<'r>::new"]
-  C1["cgg_lang::detect::LanguageDetector<'r>::detect"]
-  C2["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
-  C3["cgg_lang::detect::extension"]
-  C4["cgg_lang::detect::sniff_structured_descriptor"]
-  C5["cgg_lang::detect::read_shebang"]
-  C6["cgg_lang::detect::header_verdict"]
-  C19["cgg_lang::parser::ParserPool<'r>::new"]
-  C20["cgg_lang::parser::ParserPool<'r>::parse"]
-  C21["cgg_lang::parser::ParserPool<'r>::plugin"]
-  C22["cgg_lang::parser::set_language"]
-  C26["cgg_lang::builtin_verbs"]
-  C27["cgg_lang::builtin_verbs_for"]
-  C28["cgg_lang::no_extra_verbs"]
-  C29["cgg_lang::ExtractCtx<'a>::new"]
-  C30["cgg_lang::ExtractCtx<'a>::for_language"]
-  C31["cgg_lang::ExtractCtx<'a>::plain"]
-  C32["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
-  C33["cgg_lang::LanguagePlugin::id"]
-  C34["cgg_lang::LanguagePlugin::extensions"]
-  C35["cgg_lang::LanguagePlugin::shebangs"]
-  C36["cgg_lang::LanguagePlugin::signals"]
-  C37["cgg_lang::LanguagePlugin::ts_language"]
-  C38["cgg_lang::LanguagePlugin::extract"]
-  C39["cgg_lang::PluginRegistry::new"]
-  C40["cgg_lang::PluginRegistry::register"]
-  C41["cgg_lang::PluginRegistry::all"]
-  C42["cgg_lang::PluginRegistry::by_id"]
-  C43["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C1 -->|2x| C2
-  C1 -->|2x| C3
-  C1 --> C33
-  C1 --> C35
-  C1 --> C4
-  C1 --> C41
-  C1 --> C5
-  C1 -->|2x| C6
-  C2 --> C33
-  C2 --> C34
-  C2 --> C41
-  C20 --> C20
-  C20 --> C22
-  C20 --> C37
-  C20 --> C42
-  C21 --> C42
-  C31 --> C28
-  C32 --> C26
-  C32 --> C27
-  C38 --> C33
-  C42 --> C33
-  C43 --> C39
+  C10q0avqswp9["cgg_lang::detect::LanguageDetector<'r>::new"]
+  Cp7bq4qiwgz["cgg_lang::detect::LanguageDetector<'r>::detect"]
+  Cxmrendufgz["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
+  C133lfcajtac["cgg_lang::detect::extension"]
+  Ck8bvt2vgvc["cgg_lang::detect::sniff_structured_descriptor"]
+  Cqwy5q5i448["cgg_lang::detect::read_shebang"]
+  Cofztst3b5["cgg_lang::detect::header_verdict"]
+  Ckwi21q4n99["cgg_lang::parser::ParserPool<'r>::new"]
+  C26bd5qoaul["cgg_lang::parser::ParserPool<'r>::parse"]
+  C6jcyyvmxks["cgg_lang::parser::ParserPool<'r>::plugin"]
+  C18c4rqxkjzb["cgg_lang::parser::set_language"]
+  Cuwydi7mhcp["cgg_lang::builtin_verbs"]
+  C10t72likkpj["cgg_lang::builtin_verbs_for"]
+  Co2908p1emo["cgg_lang::no_extra_verbs"]
+  C17j8jr3c3ba["cgg_lang::ExtractCtx<'a>::new"]
+  C59pox1dp6q["cgg_lang::ExtractCtx<'a>::for_language"]
+  C8ms88ne747["cgg_lang::ExtractCtx<'a>::plain"]
+  Cr288aq0pmb["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
+  C1wt0t8oe0q["cgg_lang::LanguagePlugin::id"]
+  C17aph71rx2h["cgg_lang::LanguagePlugin::extensions"]
+  Cjp14y8sw13["cgg_lang::LanguagePlugin::shebangs"]
+  Ct9706spgvs["cgg_lang::LanguagePlugin::signals"]
+  Cecnnkf40pw["cgg_lang::LanguagePlugin::ts_language"]
+  Ch33tzbtsjg["cgg_lang::LanguagePlugin::extract"]
+  Cjqv59ycq3v["cgg_lang::PluginRegistry::new"]
+  Cj8dfzn4rwo["cgg_lang::PluginRegistry::register"]
+  Cf0ed7vsaic["cgg_lang::PluginRegistry::all"]
+  C8gx7e4r66u["cgg_lang::PluginRegistry::by_id"]
+  Ctdg6zm99p3["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C26bd5qoaul --> C18c4rqxkjzb
+  C26bd5qoaul --> C26bd5qoaul
+  C26bd5qoaul --> C8gx7e4r66u
+  C26bd5qoaul --> Cecnnkf40pw
+  C6jcyyvmxks --> C8gx7e4r66u
+  C8gx7e4r66u --> C1wt0t8oe0q
+  C8ms88ne747 --> Co2908p1emo
+  Ch33tzbtsjg --> C1wt0t8oe0q
+  Cp7bq4qiwgz -->|2x| C133lfcajtac
+  Cp7bq4qiwgz --> C1wt0t8oe0q
+  Cp7bq4qiwgz --> Cf0ed7vsaic
+  Cp7bq4qiwgz --> Cjp14y8sw13
+  Cp7bq4qiwgz --> Ck8bvt2vgvc
+  Cp7bq4qiwgz -->|2x| Cofztst3b5
+  Cp7bq4qiwgz --> Cqwy5q5i448
+  Cp7bq4qiwgz -->|2x| Cxmrendufgz
+  Cr288aq0pmb --> C10t72likkpj
+  Cr288aq0pmb --> Cuwydi7mhcp
+  Ctdg6zm99p3 --> Cjqv59ycq3v
+  Cxmrendufgz --> C17aph71rx2h
+  Cxmrendufgz --> C1wt0t8oe0q
+  Cxmrendufgz --> Cf0ed7vsaic
 ```
 <!-- cgg:end:lang -->
 

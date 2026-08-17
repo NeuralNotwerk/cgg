@@ -41,10 +41,15 @@ fn end() {}
 
     let g = fs::read_to_string(&mmd).unwrap();
     assert!(g.starts_with("flowchart LR\n"));
-    // Three callables -> three C<n> nodes.
-    assert!(g.contains("C0"));
-    assert!(g.contains("C1"));
-    assert!(g.contains("C2"));
+    // Three callables -> three distinct `C<base36-token>` nodes. Ids are
+    // content-derived hashes now, not sequential, so assert on shape
+    // rather than exact values.
+    let node_re = regex::Regex::new(r"(?m)^  C([0-9a-z]+)\[").unwrap();
+    let node_ids: std::collections::HashSet<&str> = node_re
+        .captures_iter(&g)
+        .map(|c| c.get(1).unwrap().as_str())
+        .collect();
+    assert_eq!(node_ids.len(), 3, "want three distinct nodes:\n{g}");
     // Two edges: start -> middle, middle -> end.
     let arrow_count = g.matches(" --> ").count();
     assert_eq!(arrow_count, 2, "mermaid:\n{g}");
@@ -76,14 +81,17 @@ fn fib(n: u32) -> u32 { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } }
     // renderer collapses parallel call sites into a single arrow with
     // a `|Nx|` label when the same caller calls the same callee more
     // than once, so for `fib` (two recursive calls) we expect either
-    // the bare `C0 --> C0` form (one site) or the labelled form
-    // (multiple sites). Either proves the cycle wasn't dropped.
+    // the bare `C<id> --> C<id>` form (one site) or the labelled form
+    // (multiple sites). Either proves the cycle wasn't dropped. Ids are
+    // content-derived hashes now, so match the shape rather than a
+    // literal `C0`.
     assert!(g.contains("fib"));
-    let has_bare = g.contains("C0 --> C0");
-    let has_labelled = g
-        .lines()
-        .any(|l| l.starts_with("  C0 -->|") && l.ends_with("| C0"));
-    assert!(has_bare || has_labelled, "want self-edge:\n{g}");
+    let self_edge_re =
+        regex::Regex::new(r"(?m)^  C([0-9a-z]+) -->(\|[^|]*\|)? C([0-9a-z]+)$").unwrap();
+    let has_self_edge = self_edge_re
+        .captures_iter(&g)
+        .any(|c| c.get(1).unwrap().as_str() == c.get(3).unwrap().as_str());
+    assert!(has_self_edge, "want self-edge:\n{g}");
 }
 
 #[test]

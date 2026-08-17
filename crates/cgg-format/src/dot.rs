@@ -51,7 +51,7 @@ impl GraphFormatter for DotFormatter {
                     "  n{} [label=\"{}\", shape=invhouse, color=\"#aa22cc\", \
                      tooltip=\"framework entry callback ({}) — SYNTHESIZED: no call to \
                      this node exists in your source\"];",
-                    id.as_u32(),
+                    id.token(),
                     label,
                     kind.slug()
                 )?;
@@ -61,11 +61,11 @@ impl GraphFormatter for DotFormatter {
                     "  n{} [label=\"{}\", style=dashed, \
                      tooltip=\"unreferenced (best effort: cgg found no caller, \
                      which is not proof none exists)\"];",
-                    id.as_u32(),
+                    id.token(),
                     label
                 )?;
             } else {
-                writeln!(out, "  n{} [label=\"{}\"];", id.as_u32(), label)?;
+                writeln!(out, "  n{} [label=\"{}\"];", id.token(), label)?;
             }
         }
         // Collapse parallel edges (same src/dst pair, different call
@@ -73,21 +73,20 @@ impl GraphFormatter for DotFormatter {
         // first-occurrence order for deterministic, diff-friendly
         // output. JSON/GraphML still emit one entry per call site —
         // this is purely a render-time concern.
-        let mut order: Vec<(u32, u32, &str, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
+        let mut order: Vec<(String, String, &str, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(String, String, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
-            let key = (edge.src.as_u32(), edge.dst.as_u32(), tag);
-            if counts
-                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
-                .is_none()
-            {
-                order.push((edge.src.as_u32(), edge.dst.as_u32(), tag, style));
+            let key = (edge.src.token(), edge.dst.token(), tag);
+            let entry = counts.entry(key.clone()).or_insert(0);
+            *entry += 1;
+            if *entry == 1 {
+                order.push((key.0, key.1, tag, style));
             }
         }
         for (src, dst, tag, style) in order {
-            let n = counts[&(src, dst, tag)];
+            let n = counts[&(src.clone(), dst.clone(), tag)];
             let label = match (tag.is_empty(), n > 1) {
                 (true, false) => String::new(),
                 (true, true) => format!("{n}x"),

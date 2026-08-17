@@ -26,6 +26,7 @@
 //! otherwise CI inside a small container would spawn 16 workers for 4
 //! CPUs and thrash.
 
+#[cfg(target_os = "linux")]
 use std::collections::HashSet;
 
 /// Physical cores usable by this process.

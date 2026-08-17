@@ -138,7 +138,7 @@ mod tests {
         assert_eq!(edges.len(), 2);
         assert!(edges.iter().all(|e| e.src == CallableId::new(0)));
         assert!(edges.iter().all(|e| matches!(e.via, Via::Dynamic)));
-        let dsts: Vec<u32> = edges.iter().map(|e| e.dst.as_u32()).collect();
+        let dsts: Vec<u64> = edges.iter().map(|e| e.dst.as_u64()).collect();
         assert!(dsts.contains(&1) && dsts.contains(&2));
     }
 

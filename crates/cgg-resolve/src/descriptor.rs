@@ -139,7 +139,7 @@ pub fn link_descriptors(graph: &Graph) -> Vec<CallEdge> {
         }
     }
 
-    out.sort_by_key(|e| (e.src.as_u32(), e.dst.as_u32()));
+    out.sort_by_key(|e| (e.src, e.dst));
     out
 }
 
@@ -177,8 +177,8 @@ mod tests {
         ]);
         let e = link_descriptors(&g);
         assert_eq!(e.len(), 1, "{e:?}");
-        assert_eq!(e[0].src.as_u32(), 0);
-        assert_eq!(e[0].dst.as_u32(), 1);
+        assert_eq!(e[0].src.as_u64(), 0);
+        assert_eq!(e[0].dst.as_u64(), 1);
     }
 
     #[test]

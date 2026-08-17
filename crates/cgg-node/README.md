@@ -57,7 +57,7 @@ g.toGraphml();
 g.callableCount;         // without materializing anything
 g.callables;             // [{ id, qualifiedName, kind, language, file, startLine, … }]
 g.edges;                 // [{ src, dst, siteLine, siteByte, confidence, via }]
-g.files;                 // paths, indexed by `callable.file`
+g.files;                 // [{ id, path }] — match `callable.file` by id, not array offset
 g.metrics;               // whole-run counters
 g.notices;               // what the CLI would print to stderr
 g.jobs;                  // worker threads actually used

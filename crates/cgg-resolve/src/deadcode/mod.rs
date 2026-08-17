@@ -480,7 +480,7 @@ pub fn analyze(
                 .iter()
                 .filter_map(|&i| node_at(i).map(|x| x.file))
                 .collect();
-            files.sort_unstable_by_key(|f| f.as_u32());
+            files.sort_unstable();
             files.dedup();
             let mut languages: Vec<String> =
                 members.iter().map(|&i| lang_at(i)).collect();

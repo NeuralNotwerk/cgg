@@ -14,7 +14,7 @@ export declare class Graph {
   /** Resolved call edges. */
   get edges(): Array<Edge>
   /** Analyzed file paths, indexed by `Callable.file`. */
-  get files(): Array<string>
+  get files(): Array<File>
   /** Whole-run counters. */
   get metrics(): Metrics
   /** The diagnostics the CLI would print to stderr, in order. */
@@ -104,13 +104,14 @@ export declare function analyzeSync(paths: string | Array<string>, options?: Ana
 
 /** One callable in the graph. */
 export interface Callable {
-  id: number
+  /** Content-derived id — stable across runs, not a positional index. */
+  id: bigint
   qualifiedName: string
   simpleName: string
   kind: string
   language: string
-  /** Index into [`Graph::files`], not a path. */
-  file: number
+  /** The owning file's id, not a path. Look it up in `Graph::files`. */
+  file: bigint
   startLine: number
   endLine: number
   signatureHint: string
@@ -123,6 +124,16 @@ export interface Callable {
   unreferenced?: string
 }
 
+/** One analyzed source file. */
+export interface File {
+  /**
+   * Content-derived id — matches `Callable.file`, not a positional
+   * index (ids are content hashes now, not array offsets).
+   */
+  id: bigint
+  path: string
+}
+
 /**
  * One resolved call edge.
  *
@@ -131,8 +142,8 @@ export interface Callable {
  * different words.
  */
 export interface Edge {
-  src: number
-  dst: number
+  src: bigint
+  dst: bigint
   siteLine: number
   siteByte: number
   /** `"high"`, `"medium"` or `"low"`. */

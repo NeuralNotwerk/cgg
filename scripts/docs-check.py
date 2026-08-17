@@ -628,7 +628,9 @@ def check_self_analysis_showcase() -> None:
     block = m.group(1)
     crates = {
         n.split("::")[0]
-        for n in re.findall(r'^\s*C\d+\["([^"]+)"\]', block, re.MULTILINE)
+        # Node ids are content-derived base36 hashes now (e.g. `Ce8btaz0c7d`),
+        # not sequential decimals — match the id shape, not `\d+`.
+        for n in re.findall(r'^\s*C[0-9a-z]+\["([^"]+)"\]', block, re.MULTILINE)
     }
     if len(crates) < 3:
         fail(

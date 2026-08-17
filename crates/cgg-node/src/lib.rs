@@ -65,13 +65,14 @@ pub struct AnalyzeOptions {
 /// One callable in the graph.
 #[napi(object)]
 pub struct Callable {
-    pub id: u32,
+    /// Content-derived id — stable across runs, not a positional index.
+    pub id: i64,
     pub qualified_name: String,
     pub simple_name: String,
     pub kind: String,
     pub language: String,
-    /// Index into [`Graph::files`], not a path.
-    pub file: u32,
+    /// The owning file's id, not a path. Look it up in `Graph::files`.
+    pub file: i64,
     pub start_line: u32,
     pub end_line: u32,
     pub signature_hint: String,
@@ -82,6 +83,15 @@ pub struct Callable {
     pub unreferenced: Option<String>,
 }
 
+/// One analyzed source file.
+#[napi(object)]
+pub struct File {
+    /// Content-derived id — matches `Callable.file`, not a positional
+    /// index (ids are content hashes now, not array offsets).
+    pub id: i64,
+    pub path: String,
+}
+
 /// One resolved call edge.
 ///
 /// Field-for-field the same as the Python module's `Edge`, deliberately:
@@ -89,8 +99,8 @@ pub struct Callable {
 /// different words.
 #[napi(object)]
 pub struct Edge {
-    pub src: u32,
-    pub dst: u32,
+    pub src: i64,
+    pub dst: i64,
     pub site_line: u32,
     pub site_byte: u32,
     /// `"high"`, `"medium"` or `"low"`.
@@ -220,12 +230,12 @@ impl Graph {
             .callables
             .values()
             .map(|c| Callable {
-                id: c.id.as_u32(),
+                id: c.id.as_u64() as i64,
                 qualified_name: c.qualified_name.clone(),
                 simple_name: c.simple_name.clone(),
                 kind: kind_str(c.kind).to_string(),
                 language: c.language.clone(),
-                file: c.file.as_u32(),
+                file: c.file.as_u64() as i64,
                 start_line: c.start_line,
                 end_line: c.end_line,
                 signature_hint: c.signature_hint.clone(),
@@ -245,8 +255,8 @@ impl Graph {
             .edges
             .iter()
             .map(|e| Edge {
-                src: e.src.as_u32(),
-                dst: e.dst.as_u32(),
+                src: e.src.as_u64() as i64,
+                dst: e.dst.as_u64() as i64,
                 site_line: e.site_line,
                 site_byte: e.site_byte,
                 confidence: confidence_str(e.confidence).to_string(),
@@ -255,14 +265,19 @@ impl Graph {
             .collect()
     }
 
-    /// Analyzed file paths, indexed by `Callable.file`.
+    /// Analyzed files. Match a callable to its file via `Callable.file ==
+    /// File.id` — ids are content hashes, not positional indices, so
+    /// this is a lookup by id rather than an array offset.
     #[napi(getter)]
-    pub fn files(&self) -> Vec<String> {
+    pub fn files(&self) -> Vec<File> {
         self.outcome
             .graph
             .files
             .values()
-            .map(|f| f.path.display().to_string())
+            .map(|f| File {
+                id: f.id.as_u64() as i64,
+                path: f.path.display().to_string(),
+            })
             .collect()
     }
 

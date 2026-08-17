@@ -1435,10 +1435,10 @@ fn dedup(entries: &mut Vec<FrameworkEntry>) {
     // (target, framework, route) slot and evict the precise one — a
     // Rails `root to: 'photos#index'` losing to "declares
     // ApplicationController", which is the same entry described worse.
-    let mut best: HashMap<u32, EntryShape> = HashMap::new();
+    let mut best: HashMap<CallableId, EntryShape> = HashMap::new();
     for e in entries.iter() {
         let rank = shape_rank(e.shape);
-        best.entry(e.target.as_u32())
+        best.entry(e.target)
             .and_modify(|s| {
                 if rank < shape_rank(*s) {
                     *s = e.shape;
@@ -1446,20 +1446,17 @@ fn dedup(entries: &mut Vec<FrameworkEntry>) {
             })
             .or_insert(e.shape);
     }
-    entries.retain(|e| best.get(&e.target.as_u32()) == Some(&e.shape));
+    entries.retain(|e| best.get(&e.target) == Some(&e.shape));
 
     // Then one entry per (target, framework, route). Two rules can
     // legitimately match the same handler — a project using both FastAPI
     // and Flask sees `@app.get` under both vocabularies — and two nodes
     // for one handler would double-count the attack surface.
-    let mut seen: BTreeSet<(u32, String, String)> = BTreeSet::new();
-    entries.retain(|e| {
-        seen.insert((e.target.as_u32(), e.framework.clone(), e.route.clone()))
-    });
+    let mut seen: BTreeSet<(CallableId, String, String)> = BTreeSet::new();
+    entries.retain(|e| seen.insert((e.target, e.framework.clone(), e.route.clone())));
     entries.sort_by(|a, b| {
         a.target
-            .as_u32()
-            .cmp(&b.target.as_u32())
+            .cmp(&b.target)
             .then_with(|| a.framework.cmp(&b.framework))
             .then_with(|| a.route.cmp(&b.route))
     });
