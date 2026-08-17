@@ -41,6 +41,14 @@
 set -uo pipefail
 
 REPOS_DIR="${CGG_BENCH_DIR:-/storage/cgg-test_repos}"
+
+# A paired sweep must be bounded. One repo that hangs otherwise costs the
+# whole comparison: `erlang-otp` burned 3h40m in an unguarded run, and the
+# *released* binary hangs on it too, so this is not hypothetical.
+CGG_REPO_TIMEOUT="${CGG_REPO_TIMEOUT:-60}"
+CGG_TOTAL_BUDGET="${CGG_TOTAL_BUDGET:-1800}"
+PERF_STARTED=$(date +%s)
+SKIPPED_SLOW=()
 RUNS="${2:-7}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKTREE="$(mktemp -d -t cgg-perf-baseline-XXXXXX)"
@@ -105,6 +113,18 @@ printf '|---|---|---|---|\n'
 tot_old=0; tot_new=0; flip=0
 for r in "${REPOS[@]}"; do
   [ -d "$REPOS_DIR/$r" ] || continue
+  spent=$(( $(date +%s) - PERF_STARTED ))
+  if [ "$spent" -ge "$CGG_TOTAL_BUDGET" ]; then
+    echo "budget exhausted after ${spent}s — stopping before $r" >&2
+    break
+  fi
+  # Probe once under the cap. A repo neither binary can finish inside it
+  # is excluded and named, never silently averaged in.
+  if ! timeout "$CGG_REPO_TIMEOUT" "$NEW_BIN" "$REPOS_DIR/$r" -o /dev/null >/dev/null 2>&1; then
+    echo "SKIP $r: exceeds ${CGG_REPO_TIMEOUT}s" >&2
+    SKIPPED_SLOW+=("$r")
+    continue
+  fi
   # Warm both, then alternate which is timed first.
   warmup "$OLD_BIN" "$REPOS_DIR/$r"; warmup "$NEW_BIN" "$REPOS_DIR/$r"
   if [ $((flip % 2)) -eq 0 ]; then
@@ -133,3 +153,9 @@ echo "To claim a real change, run this twice and check the spread first."
 echo
 echo "If the new version enables work by default that the baseline lacked,"
 echo "say so in the CHANGELOG — the delta is not pure overhead."
+
+if [ ${#SKIPPED_SLOW[@]} -gt 0 ]; then
+  echo
+  echo "excluded for exceeding ${CGG_REPO_TIMEOUT}s: ${SKIPPED_SLOW[*]}"
+  echo "a repo cgg cannot finish is a bug to chase, not a row to drop quietly"
+fi

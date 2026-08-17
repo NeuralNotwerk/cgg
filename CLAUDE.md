@@ -119,6 +119,29 @@ front ends (all four call cgg::analyze — one copy of the resolver ordering):
 
 A run writes a sidecar audit document **only when it has an output file**: `--metrics FILE` wins, otherwise `-o P` produces `P.audit.json`, and a run whose graph goes to stdout writes no audit at all (`emit.rs::sidecar`). Shape is chosen with `--audit-format json|jsonl` (`json` = one pretty document, `jsonl` = one event per line). It records files discovered/analyzed/skipped with reasons, every extracted callable, every unresolved call site with failure reason, and per-phase timing. This is the primary debugging surface — when a call edge is missing, run with `-o` and the audit log is where you find out why.
 
+### Corpus runs are time-bounded
+
+Every script that iterates the benchmark corpus caps itself, and none of
+them may hang:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `CGG_REPO_TIMEOUT` | `60` | wall seconds per repo |
+| `CGG_TOTAL_BUDGET` | `1800` | wall seconds for the whole run (30 min) |
+
+Applies to `scripts/benchmark.sh`, `scripts/perf-compare.sh` and
+`scripts/framework-coverage.py` (whose per-repo cap was 900s, which over
+a hundred repos is not a timeout).
+
+A repo that trips the cap is **named in the output and excluded**, never
+silently averaged in or waited on. The corpus is ~113 repos and almost
+all finish in seconds, so a timeout means a cgg bug — chase it, do not
+raise the cap.
+
+The rule exists because it was learned expensively: `erlang-otp`
+(177 MB, 3,851 `.erl` files) ran for **3h40m** inside an unguarded sweep
+before anyone noticed, and the *released* binary hangs on it too.
+
 ### Threads and performance
 
 `--jobs 0` (the default) means **half the physical cores**, clamped (`cgg_core::cpu::default_jobs`) — not one thread per logical CPU. Extraction is allocation-heavy, so SMT siblings contend rather than add; the binary uses mimalloc for the same reason.

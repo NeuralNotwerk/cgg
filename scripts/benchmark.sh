@@ -15,6 +15,38 @@
 set -uo pipefail
 
 REPOS_DIR="${CGG_BENCH_DIR:-/storage/cgg-test_repos}"
+
+# --- Time budget -------------------------------------------------------
+#
+# A corpus run must never be able to hang. Most of these repos finish in
+# a few seconds; one pathological input should cost a bounded amount and
+# be *reported*, not silently eat an afternoon. Learned the hard way:
+# `erlang-otp` ran for 3h40m inside an unguarded sweep before anyone
+# noticed, and the released binary hangs on it too.
+#
+#   CGG_REPO_TIMEOUT  per-repo wall cap   (default 60s)
+#   CGG_TOTAL_BUDGET  whole-run wall cap  (default 1800s = 30 min)
+#
+# A repo that trips the per-repo cap is recorded as `TIMEOUT` and the run
+# continues. When the total budget is gone the run stops and says how far
+# it got — a partial corpus that announces itself beats a complete one
+# that never arrives.
+CGG_REPO_TIMEOUT="${CGG_REPO_TIMEOUT:-60}"
+CGG_TOTAL_BUDGET="${CGG_TOTAL_BUDGET:-1800}"
+BENCH_STARTED=$(date +%s)
+TIMED_OUT_REPOS=()
+
+# Wall seconds consumed so far.
+budget_spent() { echo $(( $(date +%s) - BENCH_STARTED )); }
+
+# True while there is budget left to start more work.
+budget_left() {
+    local spent; spent=$(budget_spent)
+    [ "$spent" -lt "$CGG_TOTAL_BUDGET" ]
+}
+
+# Run cgg under the per-repo cap. Returns 124 on timeout, like timeout(1).
+run_cgg() { timeout "$CGG_REPO_TIMEOUT" "$@"; }
 CGG="${CGG_BIN:-$(dirname "$0")/../target/release/cgg}"
 
 # Ensure cgg is built
@@ -303,7 +335,20 @@ run_benchmark() {
 
         # cgg run
         local out
-        out=$("$CGG" "$scan_path" --lang "$lang" -t mermaid -o /dev/null --metrics /tmp/cgg_bench_metrics.json 2>&1 || true)
+        if ! budget_left; then
+            echo "  BUDGET EXHAUSTED after $(budget_spent)s — stopping before $name" >&2
+            break
+        fi
+        out=$(run_cgg "$CGG" "$scan_path" --lang "$lang" -t mermaid -o /dev/null --metrics /tmp/cgg_bench_metrics.json 2>&1 || true)
+        if [ -z "$out" ] || printf '%s' "$out" | grep -q '^$'; then :; fi
+        # `timeout` kills the child at the cap; the metrics file is then
+        # stale or absent, so the repo is recorded as a timeout rather
+        # than silently contributing a wrong number.
+        if ! printf '%s' "$out" | grep -q 'callables'; then
+            echo "  TIMEOUT (>${CGG_REPO_TIMEOUT}s) or no output: $name" >&2
+            TIMED_OUT_REPOS+=("$name")
+            continue
+        fi
         local cg=$(echo "$out" | grep -oP '\d+ callables' | grep -oP '\d+')
         local edges=$(echo "$out" | grep -oP '\d+ edges' | grep -oP '\d+')
         local cf=$(echo "$out" | grep -oP '\d+ cross-file' | grep -oP '\d+')
@@ -341,6 +386,21 @@ run_benchmark() {
     echo "  ⚠ Best Effort (50-74%): $best"
     echo "  ❌ Deficient (<50%): $deficient"
 }
+
+# Anything that timed out is named at the end, where it cannot be missed.
+# Silence here would put us back where we started: a number that looks
+# complete and is not.
+report_timeouts() {
+    local spent; spent=$(budget_spent)
+    echo
+    echo "corpus run finished in ${spent}s of a ${CGG_TOTAL_BUDGET}s budget"
+    if [ ${#TIMED_OUT_REPOS[@]} -gt 0 ]; then
+        echo "TIMED OUT (>${CGG_REPO_TIMEOUT}s each), excluded from the table:"
+        printf '  %s\n' "${TIMED_OUT_REPOS[@]}"
+        echo "These are cgg bugs or genuinely huge inputs — investigate, do not raise the cap and look away."
+    fi
+}
+trap report_timeouts EXIT
 
 # Main
 case "${1:-}" in

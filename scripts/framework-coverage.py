@@ -192,7 +192,11 @@ def analyze(path: Path) -> dict | None:
                 "--no-update-check",
             ],
             capture_output=True,
-            timeout=900,
+            # 60s, not 900s: most repos finish in seconds, and a
+            # 15-minute-per-repo cap over a hundred repos is not a
+            # timeout, it is a way to lose an afternoon. Overridable
+            # for a deliberate deep run.
+            timeout=int(os.environ.get("CGG_REPO_TIMEOUT", "60")),
             check=False,
         )
         elapsed = (time.monotonic() - start) * 1000
