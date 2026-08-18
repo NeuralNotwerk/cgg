@@ -63,6 +63,7 @@ tree-sitter-proto      = { workspace = true }
 tree-sitter-graphql    = { workspace = true }
 tree-sitter-yaml       = { workspace = true }
 tree-sitter-language   = { workspace = true }
+tree-sitter-lean4      = { workspace = true }
 
 [build-dependencies]
 cc = { workspace = true }

@@ -51,4 +51,10 @@ ignore  = []
 unknown-registry = "deny"
 unknown-git      = "deny"
 allow-registry   = ["https://github.com/rust-lang/crates.io-index"]
-allow-git        = []
+# tree-sitter-lean4: the published crate depends directly on the
+# `tree-sitter` core crate (`links = "tree-sitter"`), which cannot
+# coexist with this workspace's `tree-sitter 0.26`. `Cargo.toml`
+# patches it to a fork (still MIT-licensed, unmodified grammar) that
+# rebinds through the `tree-sitter-language` shim instead — see the
+# `[patch.crates-io]` comment there.
+allow-git        = ["https://github.com/NathanHowell/tree-sitter-lean"]

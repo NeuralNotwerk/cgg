@@ -91,6 +91,7 @@ declare -a ENTRIES=(
     "PowerShellGet|powershell-psget|powershell|"
     "openzeppelin-contracts|solidity-openzeppelin|solidity|contracts"
     "Paket|fsharp-paket|fsharp|src"
+    "Batteries|lean-batteries|lean|Batteries"
     "bazel-skylib|starlark-skylib|starlark|lib"
     "CMake/Modules|cmake-kitware|cmake|Modules"
     "home-manager|nix-home-manager|nix|modules"

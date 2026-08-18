@@ -90,6 +90,7 @@ REPOS=(
     "powershell-psget|https://github.com/PowerShell/PowerShellGet.git|powershell|||"
     "solidity-openzeppelin|https://github.com/OpenZeppelin/openzeppelin-contracts.git|solidity|contracts||"
     "fsharp-paket|https://github.com/fsprojects/Paket.git|fsharp|src||"
+    "lean-batteries|https://github.com/leanprover-community/batteries.git|lean|Batteries|Lean|f"
     "starlark-skylib|https://github.com/bazelbuild/bazel-skylib.git|starlark|lib||"
     "cmake-kitware|https://github.com/Kitware/CMake.git|cmake|Modules||"
     "nix-home-manager|https://github.com/nix-community/home-manager.git|nix|modules||"

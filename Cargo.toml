@@ -120,6 +120,7 @@ tree-sitter-nix         = "0.3"
 tree-sitter-verilog     = "1.0"
 tree-sitter-vhdl        = "1.4"
 tree-sitter-asm         = "0.24"
+tree-sitter-lean4       = "0.3"
 
 # --- Descriptor / interface-definition languages ---
 tree-sitter-proto       = "0.4"
@@ -149,3 +150,12 @@ opt-level = 0
 
 [profile.test]
 opt-level = 0
+
+# The only published Lean 4 grammar (`tree-sitter-lean4`) depends directly
+# on the `tree-sitter` core crate (which carries `links = "tree-sitter"`),
+# so it cannot coexist with the workspace's `tree-sitter` runtime. We use a
+# fork of the upstream grammar repo (wvhulle/tree-sitter-lean) that rebinds
+# through the `tree-sitter-language` shim (no `links` key) so it is
+# version-agnostic; the grammar sources are unchanged. Pinned to a rev.
+[patch.crates-io]
+tree-sitter-lean4 = { git = "https://github.com/NathanHowell/tree-sitter-lean", rev = "79a84684a2ceaad707c8cac8dc60b56799836150" }
