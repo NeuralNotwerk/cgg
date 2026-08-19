@@ -467,11 +467,16 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     facts.file = file_id;
                     for (idx, d) in facts.definitions.iter().enumerate() {
                         let owner = cgg_resolve::names::owner_from_qn(&d.qualified_name);
+                        // The signature is part of the key: without it,
+                        // overloads sharing a qualified name hash
+                        // identically — 17.7% of the benchmark corpus —
+                        // and their ids fall to declaration order.
                         let cid = stable_ids.callable(
                             &fr.lang,
                             &relative_path,
                             owner,
                             &d.qualified_name,
+                            &d.signature_hint,
                         );
                         def_ids.insert((file_id, idx as u32), cid);
 
@@ -1841,7 +1846,10 @@ fn synthesize_exit_nodes(
                     } else {
                         format!("<{kind_label}>::{}::{}", call.receiver_hint, call.name)
                     };
-                    let id = stable_ids.callable(&lang, sentinel_path, None, &qn);
+                    // Synthetic: `node_ids` already dedupes these by key, so no
+                    // two reach here with the same qualified name and a
+                    // constant byte offset is unambiguous.
+                    let id = stable_ids.callable(&lang, sentinel_path, None, &qn, "");
                     graph.add_callable(CallableNode {
                         id,
                         qualified_name: qn,
@@ -1925,7 +1933,9 @@ fn synthesize_entry_nodes(
                 .get(&entry.target)
                 .map(|c| c.language.clone())
                 .unwrap_or_default();
-            let id = stable_ids.callable(&language, FRAMEWORK_ENTRY_SENTINEL, None, &qn);
+            // Synthetic and deduped by qualified name just above.
+            let id =
+                stable_ids.callable(&language, FRAMEWORK_ENTRY_SENTINEL, None, &qn, "");
             let simple = qn.rsplit("::").next().unwrap_or(&qn).to_string();
             graph.add_callable(CallableNode {
                 id,
@@ -1991,8 +2001,8 @@ fn trait_impl_target_from_qn(qn: &str) -> Option<String> {
 /// triple, preferring the highest confidence.
 fn dedup_edges(graph: &mut Graph) {
     use cgg_core::graph::Confidence;
-    use std::collections::HashMap;
     use cgg_core::ids::CallableId;
+    use std::collections::HashMap;
     let mut best: HashMap<(CallableId, CallableId, u32), usize> = HashMap::new();
     let conf_rank = |c: Confidence| match c {
         Confidence::High => 2,

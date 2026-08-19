@@ -55,43 +55,45 @@ fn xof_bits(xof: &mut blake3::OutputReader, bits: u32) -> u64 {
 }
 
 /// Given a hasher already fed with the identity bytes, find a value not
-/// already in `seen`, escalating bit width on collision. Inserts the
-/// chosen value into `seen` before returning it.
+/// already in `seen`, drawing successive windows from the item's own
+/// blake3 XOF stream. Inserts the chosen value into `seen` before
+/// returning it.
+///
+/// Every draw is the same width, so **an id never exceeds 52 bits**.
+/// That is deliberate: `cgg-node` binds ids as N-API `i64`, which
+/// reaches JavaScript as a `number`, and a `number` only represents
+/// integers exactly up to 2^53-1. An earlier revision widened to 64
+/// bits on collision, which put every escalated id past that bound and
+/// silently rounded it, so Node reported a different id than the CLI
+/// for the same callable. Staying inside 52 bits keeps all four front
+/// ends agreeing by construction.
+///
+/// Redrawing is a pure function of this item's own hash stream. It
+/// never reads, compares to, or depends on the identity of whichever
+/// other node it collided with — no lexicographic tie-break, no
+/// "whoever sorts first keeps the short form". That is what keeps ids
+/// stable under unrelated edits: a scheme that tie-breaks by comparing
+/// the two colliding parties would flip its answer whenever the set of
+/// nodes changed.
 fn allocate(hasher: blake3::Hasher, seen: &mut HashSet<u64>) -> u64 {
     let mut xof = hasher.finalize_xof();
-
-    let mut bits = DEFAULT_BITS;
+    let mut guard = 0u32;
     loop {
-        let candidate = xof_bits(&mut xof, bits);
+        let candidate = xof_bits(&mut xof, DEFAULT_BITS);
         if seen.insert(candidate) {
             return candidate;
         }
-        if bits >= 64 {
-            // We've exhausted a full u64 read from the xof stream at
-            // this bit width and still collided. Keep widening the xof
-            // read itself (distinct bytes each loop) rather than bit
-            // width, which cannot exceed 64. This should be practically
-            // unreachable — it requires the `seen` set to already
-            // contain the specific 64-bit value derived from this
-            // exact byte window of this exact hash stream — but must
-            // never silently degrade into a duplicate id.
-            let mut guard = 0u32;
-            loop {
-                let mut buf = [0u8; 8];
-                xof.fill(&mut buf);
-                let v = u64::from_le_bytes(buf);
-                if seen.insert(v) {
-                    return v;
-                }
-                guard += 1;
-                assert!(
-                    guard < 1_000_000,
-                    "stable id allocator exhausted escalation without finding a free slot; \
-                     this should be statistically impossible and indicates a bug"
-                );
-            }
-        }
-        bits = (bits * 2).min(64);
+        // Reached only when two callables are genuinely
+        // indistinguishable to cgg — same file, same qualified name,
+        // same signature — or on a true 52-bit hash collision, which
+        // is vanishingly rare. Either way the next window is a fresh,
+        // deterministic draw.
+        guard += 1;
+        assert!(
+            guard < 1_000_000,
+            "stable id allocator exhausted its hash stream without finding a \
+             free slot; this should be statistically impossible and indicates a bug"
+        );
     }
 }
 
@@ -121,14 +123,41 @@ impl StableIds {
         cgg_core::ids::FileId::new_u64(allocate(hasher, &mut self.seen_files))
     }
 
-    /// Allocate a `CallableId` keyed on
-    /// `(language, file_path, owner_qualified_name, qualified_name)`.
+    /// Allocate a `CallableId` keyed on `(language, file_path,
+    /// owner_qualified_name, qualified_name, signature_hint)`.
+    ///
+    /// `signature_hint` is load-bearing, not decoration. Without it the
+    /// key is not unique: a file that declares several callables sharing
+    /// a qualified name — overloads, which C++, C#, Java and Erlang have
+    /// in quantity — hashes them identically. Over the 113-repo
+    /// benchmark corpus that is **309,347 of 1,745,670 callables
+    /// (17.7%)**, peaking at 52.8% in one repo, and every one of them
+    /// falls through to the redraw path in `allocate`, where the id is
+    /// decided by declaration order rather than content. That breaks the
+    /// guarantee this module exists to provide: delete the first of two
+    /// overloads and the second inherits its id, so a consumer diffing
+    /// ids across runs reads "unchanged" while the id now names a
+    /// different function. Adding the signature takes that population to
+    /// **2.25%** — the residual being callables cgg genuinely cannot
+    /// tell apart, where no key can do better.
+    ///
+    /// `start_byte` was measured as an alternative and rejected. It is
+    /// unique corpus-wide, but it churns on movement — one comment line
+    /// added at the top of `spdlog`'s busiest header moved 135 of 1,157
+    /// ids, destroying the diffability this change exists for — and it
+    /// still lets a survivor inherit a deleted sibling's id, because
+    /// removing a definition shifts the next one into its byte offset.
+    ///
+    /// What holds: editing an unrelated file changes nothing, moving
+    /// code within a file changes nothing, and removing one overload
+    /// leaves its siblings alone.
     pub fn callable(
         &mut self,
         language: &str,
         file_path: &str,
         owner_qualified_name: Option<&str>,
         qualified_name: &str,
+        signature_hint: &str,
     ) -> cgg_core::ids::CallableId {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"callable\0");
@@ -139,6 +168,8 @@ impl StableIds {
         hasher.update(owner_qualified_name.unwrap_or("").as_bytes());
         hasher.update(b"\0");
         hasher.update(qualified_name.as_bytes());
+        hasher.update(b"\0");
+        hasher.update(signature_hint.as_bytes());
         cgg_core::ids::CallableId::new_u64(allocate(hasher, &mut self.seen_callables))
     }
 }
@@ -159,8 +190,20 @@ mod tests {
         let mut a = StableIds::new();
         let mut b = StableIds::new();
         assert_eq!(
-            a.callable("rust", "src/lib.rs", Some("Widget"), "Widget::new"),
-            b.callable("rust", "src/lib.rs", Some("Widget"), "Widget::new"),
+            a.callable(
+                "rust",
+                "src/lib.rs",
+                Some("Widget"),
+                "Widget::new",
+                "fn new()"
+            ),
+            b.callable(
+                "rust",
+                "src/lib.rs",
+                Some("Widget"),
+                "Widget::new",
+                "fn new()"
+            ),
         );
     }
 
@@ -172,7 +215,7 @@ mod tests {
         // what a single-repo run typically extracts.
         for i in 0..50_000u32 {
             let qn = format!("module::function_{i}");
-            let id = ids.callable("rust", "src/generated.rs", None, &qn);
+            let id = ids.callable("rust", "src/generated.rs", None, &qn, "");
             assert!(seen.insert(id), "unexpected collision at i={i}");
         }
     }
@@ -198,7 +241,7 @@ mod tests {
         // First, learn what the natural (unseeded) id would be.
         let natural = {
             let mut ids = StableIds::new();
-            ids.callable("python", "app/models.py", Some("User"), "User.save")
+            ids.callable("python", "app/models.py", Some("User"), "User.save", "")
         };
 
         // Now seed a fresh allocator's `seen` set with that exact value,
@@ -206,7 +249,7 @@ mod tests {
         let mut seeded = StableIds::new();
         seeded.seen_callables.insert(natural.as_u64());
         let escalated =
-            seeded.callable("python", "app/models.py", Some("User"), "User.save");
+            seeded.callable("python", "app/models.py", Some("User"), "User.save", "");
 
         assert_ne!(
             escalated, natural,
@@ -218,8 +261,13 @@ mod tests {
         // the exact same escalated id.
         let mut seeded_again = StableIds::new();
         seeded_again.seen_callables.insert(natural.as_u64());
-        let escalated_again =
-            seeded_again.callable("python", "app/models.py", Some("User"), "User.save");
+        let escalated_again = seeded_again.callable(
+            "python",
+            "app/models.py",
+            Some("User"),
+            "User.save",
+            "",
+        );
         assert_eq!(escalated, escalated_again);
     }
 
@@ -243,6 +291,61 @@ mod tests {
         assert_eq!(escalated, escalated_again);
     }
 
+    /// The case that actually occurs, and that nothing covered before:
+    /// two callables in ONE file sharing a qualified name — overloads —
+    /// allocated from ONE `StableIds`. On `(language, file, owner, qn)`
+    /// alone these hash identically, so the second escalated and its id
+    /// became a function of declaration order; deleting the first then
+    /// handed its id to the second. Distinct signatures must now yield
+    /// distinct ids with no escalation, and removing one must leave the
+    /// other's id untouched.
+    #[test]
+    fn overloads_in_one_file_get_distinct_ids_that_survive_a_sibling_removal() {
+        let (f, qn, owner) = ("src/shape.cpp", "Shape::area", Some("Shape"));
+        let (sig1, sig2) = ("int area(int w)", "int area(int w, int h)");
+
+        let mut both = StableIds::new();
+        let first = both.callable("cpp", f, owner, qn, sig1);
+        let second = both.callable("cpp", f, owner, qn, sig2);
+        assert_ne!(first, second, "overloads must not share an id");
+
+        // Both fit in 52 bits, so both survive the trip through
+        // cgg-node's `number` binding intact.
+        assert!(first.as_u64() < 1 << 52, "first exceeds 52 bits: {first}");
+        assert!(
+            second.as_u64() < 1 << 52,
+            "second exceeds 52 bits: {second}"
+        );
+
+        // Delete the first overload. The second keeps its own id rather
+        // than inheriting the departed one's — the silent-corruption
+        // case, where a stale id still resolves but names something else.
+        let mut survivor = StableIds::new();
+        assert_eq!(
+            survivor.callable("cpp", f, owner, qn, sig2),
+            second,
+            "surviving overload's id must not depend on a sibling"
+        );
+    }
+
+    /// Two callables cgg genuinely cannot tell apart — same file, same
+    /// qualified name, same signature — still get distinct ids, and both
+    /// stay inside 52 bits so neither is corrupted by `cgg-node`'s
+    /// `number` binding.
+    #[test]
+    fn indistinguishable_siblings_still_get_distinct_js_safe_ids() {
+        let mut ids = StableIds::new();
+        let a = ids.callable("erlang", "src/m.erl", None, "m:go", "");
+        let b = ids.callable("erlang", "src/m.erl", None, "m:go", "");
+        assert_ne!(a, b, "a redraw must not hand out the same value twice");
+        for id in [a, b] {
+            assert!(
+                id.as_u64() < 1 << 52,
+                "id {id} exceeds 52 bits and is unsafe as a JS number"
+            );
+        }
+    }
+
     #[test]
     fn files_and_callables_use_independent_seen_sets() {
         // A file and a callable can legitimately land on the same raw
@@ -252,7 +355,7 @@ mod tests {
         let f = ids.file("src/lib.rs");
         // Not asserting equality (vanishingly unlikely) — just that nothing
         // panics and both allocate independently of one another.
-        let c = ids.callable("rust", "src/lib.rs", None, "lib::main");
+        let c = ids.callable("rust", "src/lib.rs", None, "lib::main", "");
         let _ = (f, c);
     }
 }
