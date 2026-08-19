@@ -427,9 +427,18 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
             include_by_last.entry(name).or_default().push(f);
         }
     }
-    for v in include_by_last.values_mut() {
-        v.sort_by_key(|f| f.file);
-    }
+    // No sort here on purpose. The comment above promises "lowest FileId
+    // among the matches"; `facts` arrives in walk order and the loop
+    // above pushes in that order, so each bucket already holds it — the
+    // old `sort_by_key(|f| f.file.as_u32())` was a no-op that only
+    // looked load-bearing. It stops being a no-op the moment ids become
+    // content hashes, at which point it actively scrambles the buckets,
+    // and this walk is order-sensitive: it memoizes by remaining depth
+    // and caps candidates per name, so which header expands first
+    // decides what resolves and at what confidence. Re-sorting by path
+    // would restore the order but pay a `PathBuf` comparison per probe
+    // — measured at +30% on erlang-otp. Keeping insertion order is both
+    // correct and free.
 
     // Per-file and independent: the body reads the shared indexes
     // (`by_qn`, `by_simple`, `by_owner_method`, `reexports`) and writes
