@@ -3,6 +3,7 @@
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
 use cgg_core::graph::Via;
+use cgg_core::ids::CallableId;
 use std::io;
 
 /// Per-`via` DOT rendering: a short label tag and extra edge attributes
@@ -51,7 +52,7 @@ impl GraphFormatter for DotFormatter {
                     "  n{} [label=\"{}\", shape=invhouse, color=\"#aa22cc\", \
                      tooltip=\"framework entry callback ({}) — SYNTHESIZED: no call to \
                      this node exists in your source\"];",
-                    id.as_u32(),
+                    id.token(),
                     label,
                     kind.slug()
                 )?;
@@ -61,11 +62,11 @@ impl GraphFormatter for DotFormatter {
                     "  n{} [label=\"{}\", style=dashed, \
                      tooltip=\"unreferenced (best effort: cgg found no caller, \
                      which is not proof none exists)\"];",
-                    id.as_u32(),
+                    id.token(),
                     label
                 )?;
             } else {
-                writeln!(out, "  n{} [label=\"{}\"];", id.as_u32(), label)?;
+                writeln!(out, "  n{} [label=\"{}\"];", id.token(), label)?;
             }
         }
         // Collapse parallel edges (same src/dst pair, different call
@@ -73,17 +74,18 @@ impl GraphFormatter for DotFormatter {
         // first-occurrence order for deterministic, diff-friendly
         // output. JSON/GraphML still emit one entry per call site —
         // this is purely a render-time concern.
-        let mut order: Vec<(u32, u32, &str, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
+        // Keys stay `Copy`; the base36 token is rendered only at write
+        // time. See the matching note in mermaid.rs.
+        let mut order: Vec<(CallableId, CallableId, &str, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
-            let key = (edge.src.as_u32(), edge.dst.as_u32(), tag);
-            if counts
-                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
-                .is_none()
-            {
-                order.push((edge.src.as_u32(), edge.dst.as_u32(), tag, style));
+            let key = (edge.src, edge.dst, tag);
+            let entry = counts.entry(key).or_insert(0);
+            *entry += 1;
+            if *entry == 1 {
+                order.push((key.0, key.1, tag, style));
             }
         }
         for (src, dst, tag, style) in order {
@@ -94,6 +96,7 @@ impl GraphFormatter for DotFormatter {
                 (false, false) => tag.to_string(),
                 (false, true) => format!("{tag} {n}x"),
             };
+            let (src, dst) = (src.token(), dst.token());
             if label.is_empty() && style.is_empty() {
                 writeln!(out, "  n{src} -> n{dst};")?;
             } else if style.is_empty() {

@@ -715,7 +715,7 @@ mod tests {
         assert_eq!(c2.candidates.file_local, 3);
 
         // Legacy free-form string form still parses.
-        let legacy = r#"{"src":null,"file":0,"site_line":1,"site_byte":2,"name":"m","reason":"ambiguous-in-file"}"#;
+        let legacy = r#"{"src":null,"file":"F0","site_line":1,"site_byte":2,"name":"m","reason":"ambiguous-in-file"}"#;
         let c3: AuditUnresolvedCall = serde_json::from_str(legacy).unwrap();
         assert_eq!(c3.reason, UnresolvedReason::AmbiguousInFile);
     }

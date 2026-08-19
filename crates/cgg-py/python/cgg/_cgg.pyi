@@ -39,7 +39,8 @@ class Callable:
     def language(self) -> str: ...
     @property
     def file(self) -> int:
-        """Index into `Graph.files`, not a path."""
+        """The owning file's id (match against `File.id`), not a path
+        and not a positional index — ids are content hashes."""
 
     @property
     def start_line(self) -> int: ...

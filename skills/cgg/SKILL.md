@@ -155,8 +155,9 @@ keys are `callables`, `files`, `edges`, `unresolved`, `file_audits`,
 - **`callables` is an object keyed by stringified id, not an array** —
   `.callables[]` iterates values, but `.callables[0]` is an error. Each
   value has `qualified_name`, `simple_name`, `kind`, `language`, `file`
-  (an index into `files`), `start_line`/`end_line`, `signature_hint`,
-  `visibility`.
+  (the owning file's **id** — look it up as a key of `files`, which is
+  also an object keyed by id; it is not an array offset),
+  `start_line`/`end_line`, `signature_hint`, `visibility`.
 - **Edges use `src`/`dst`, not `from`/`to`**, and carry `site_line`,
   `site_byte`, `confidence`, `via`, `resolver`.
 
@@ -164,8 +165,8 @@ keys are `callables`, `files`, `edges`, `unresolved`, `file_audits`,
 # every callee of a given caller, by name
 jq -r --arg fn 'cgg::analyze_in_pool' '
   (.callables | with_entries({key: .key, value: .value.qualified_name})) as $name
-  | [ $name | to_entries[] | select(.value == $fn) | .key | tonumber ] as $ids
-  | .edges[] | select(.src as $s | $ids | index($s)) | $name[(.dst|tostring)]
+  | [ $name | to_entries[] | select(.value == $fn) | .key ] as $ids
+  | .edges[] | select(.src as $s | $ids | index($s)) | $name[.dst]
 ' /tmp/graph.json | sort -u
 ```
 
@@ -212,11 +213,11 @@ handler would otherwise have in-degree zero — which is a claim
 %% in your source; they represent control entering from a framework.
 %% BEST EFFORT — see the coverage table for what cgg did and did not recognise.
 flowchart LR
-  C0["svc.list_users"]
-  C1["app.list_users"]
-  C2["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
-  C1 --> C0
-  C2 -->|entry| C1
+  Cq3rc7yk1ma["svc.list_users"]
+  C1e0h9zwbxof["app.list_users"]
+  C8tjm5nd42p["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
+  C1e0h9zwbxof --> Cq3rc7yk1ma
+  C8tjm5nd42p -->|entry| C1e0h9zwbxof
 ```
 
 Note the mermaid escaping: the emitted label is `&lt;framework-entry&gt;`,
@@ -345,13 +346,22 @@ A mermaid flowchart from cgg looks like this (real output of
 
 ```text
 flowchart LR
-  C269["cgg::analyze_in_pool"]
-  C278["cgg::read_file"]
-  C269 --> C278
+  Ck6rdns31fh["cgg::analyze_in_pool"]
+  C1a7yv3q0ebt["cgg::read_file"]
+  Ck6rdns31fh --> C1a7yv3q0ebt
 ```
 
-Node ids (`C269`) are positional and have no meaning across runs —
-never quote them back to the user, quote the labels.
+Node ids (`Ck6rdns31fh`) are a type prefix plus lowercase base36 digits,
+derived by hashing the callable's identity — **not** a sequential index.
+The same callable keeps the same id across runs of the same tree, so ids
+are comparable between two runs: editing an unrelated file, or moving
+code within a file, leaves an id alone. Two caveats before you rely on
+that. Ids are not comparable across cgg *versions*. And where cgg
+genuinely cannot tell two callables apart — same file, same qualified
+name, same signature — it separates them by declaration order, so
+removing one can hand its id to the other; that is rare, and overloads
+with distinct signatures are not affected. Still quote the labels to
+the user, not the ids.
 
 Each node is a callable, labeled with its fully-qualified name. Each
 edge is a *resolved* call site — cgg doesn't emit edges it can't
@@ -360,8 +370,9 @@ the graph with guesses.
 
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
-into a single arrow with a multiplicity label — e.g. `C269 -->|18x| C1989`
-in mermaid, or `n269 -> n1989 [label="18x"];` in dot. The bare arrow form
+into a single arrow with a multiplicity label — e.g.
+`Ck6rdns31fh -->|18x| C1a7yv3q0ebt` in mermaid, or
+`nk6rdns31fh -> n1a7yv3q0ebt [label="18x"];` in dot. The bare arrow form
 is used when the count is 1. When an edge also carries a `Via` tag the
 label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.
 JSON and GraphML still emit one edge per call site (with

@@ -221,10 +221,11 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
     // per resolved reference. That is O(references x edges), which stayed
     // invisible while PHP resolved almost nothing and became ~4s of a
     // Laravel run the moment it started resolving properly.
-    let existing_edges: std::collections::HashSet<(u32, u32, u32)> = graph
+    // Keyed by (src, dst, call-site byte offset).
+    let existing_edges: std::collections::HashSet<(CallableId, CallableId, u32)> = graph
         .edges
         .iter()
-        .map(|e| (e.src.as_u32(), e.dst.as_u32(), e.site_byte))
+        .map(|e| (e.src, e.dst, e.site_byte))
         .collect();
     let mut out = CrossFileOutput::default();
     let _sp_idx = cgg_core::profile::span("xfile::index-build");
@@ -426,9 +427,18 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
             include_by_last.entry(name).or_default().push(f);
         }
     }
-    for v in include_by_last.values_mut() {
-        v.sort_by_key(|f| f.file.as_u32());
-    }
+    // No sort here on purpose. The comment above promises "lowest FileId
+    // among the matches"; `facts` arrives in walk order and the loop
+    // above pushes in that order, so each bucket already holds it — the
+    // old `sort_by_key(|f| f.file.as_u32())` was a no-op that only
+    // looked load-bearing. It stops being a no-op the moment ids become
+    // content hashes, at which point it actively scrambles the buckets,
+    // and this walk is order-sensitive: it memoizes by remaining depth
+    // and caps candidates per name, so which header expands first
+    // decides what resolves and at what confidence. Re-sorting by path
+    // would restore the order but pay a `PathBuf` comparison per probe
+    // — measured at +30% on erlang-otp. Keeping insertion order is both
+    // correct and free.
 
     // Per-file and independent: the body reads the shared indexes
     // (`by_qn`, `by_simple`, `by_owner_method`, `reexports`) and writes
@@ -1075,11 +1085,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                     if *cid == src {
                         continue;
                     }
-                    let dup = existing_edges.contains(&(
-                        src.as_u32(),
-                        cid.as_u32(),
-                        r.site_byte,
-                    ));
+                    let dup = existing_edges.contains(&(src, *cid, r.site_byte));
                     if !dup {
                         out.edges.push(CallEdge {
                             src,
@@ -1165,11 +1171,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                                 continue;
                             }
                             // Avoid duplicating intra-file-emitted edges.
-                            if existing_edges.contains(&(
-                                src.as_u32(),
-                                cid.as_u32(),
-                                r.site_byte,
-                            )) {
+                            if existing_edges.contains(&(src, cid, r.site_byte)) {
                                 continue;
                             }
                             out.edges.push(CallEdge {

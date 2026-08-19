@@ -73,7 +73,12 @@ test("callables and edges carry the documented shape", async () => {
     assert.ok(k in e, `edge missing ${k}`);
   }
   assert.ok(["high", "medium", "low"].includes(e.confidence));
-  assert.ok(c.file >= 0 && c.file < g.files.length, "file index out of range");
+  // Ids are content-derived hashes now, not positional indices, so
+  // membership in the file list is what's checkable — not a range.
+  assert.ok(
+    g.files.some((f) => f.id === c.file),
+    "callable's file id does not match any analyzed file",
+  );
   // Not a debug-formatted string: 0.6.2 briefly shipped `"\"pub\""`.
   assert.ok(!c.visibility.includes('"'), `visibility is quoted: ${c.visibility}`);
 });

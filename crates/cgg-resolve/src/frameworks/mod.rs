@@ -147,7 +147,7 @@ pub fn detect(
         })
         .collect();
 
-    dedup(&mut entries);
+    dedup(&mut entries, graph);
     let coverage = evidence.into_coverage(&all, &entries, graph);
     FrameworkOutcome { entries, coverage }
 }
@@ -1429,16 +1429,16 @@ fn owner_is_close(declared: &str, wanted: &str) -> bool {
 }
 
 /// Collapse the matches on one handler to the best description of it.
-fn dedup(entries: &mut Vec<FrameworkEntry>) {
+fn dedup(entries: &mut Vec<FrameworkEntry>, graph: &Graph) {
     // Strongest shape per target FIRST. Doing it the other way round
     // lets a weaker match that merely ran earlier claim the
     // (target, framework, route) slot and evict the precise one — a
     // Rails `root to: 'photos#index'` losing to "declares
     // ApplicationController", which is the same entry described worse.
-    let mut best: HashMap<u32, EntryShape> = HashMap::new();
+    let mut best: HashMap<CallableId, EntryShape> = HashMap::new();
     for e in entries.iter() {
         let rank = shape_rank(e.shape);
-        best.entry(e.target.as_u32())
+        best.entry(e.target)
             .and_modify(|s| {
                 if rank < shape_rank(*s) {
                     *s = e.shape;
@@ -1446,22 +1446,25 @@ fn dedup(entries: &mut Vec<FrameworkEntry>) {
             })
             .or_insert(e.shape);
     }
-    entries.retain(|e| best.get(&e.target.as_u32()) == Some(&e.shape));
+    entries.retain(|e| best.get(&e.target) == Some(&e.shape));
 
     // Then one entry per (target, framework, route). Two rules can
     // legitimately match the same handler — a project using both FastAPI
     // and Flask sees `@app.get` under both vocabularies — and two nodes
     // for one handler would double-count the attack surface.
-    let mut seen: BTreeSet<(u32, String, String)> = BTreeSet::new();
-    entries.retain(|e| {
-        seen.insert((e.target.as_u32(), e.framework.clone(), e.route.clone()))
-    });
-    entries.sort_by(|a, b| {
-        a.target
-            .as_u32()
-            .cmp(&b.target.as_u32())
-            .then_with(|| a.framework.cmp(&b.framework))
-            .then_with(|| a.route.cmp(&b.route))
+    let mut seen: BTreeSet<(CallableId, String, String)> = BTreeSet::new();
+    entries.retain(|e| seen.insert((e.target, e.framework.clone(), e.route.clone())));
+    // Order by the target's position in the graph (discovery order),
+    // not by id value: ids are content hashes now, so ordering by value
+    // is arbitrary — and this order decides which entry wins when two
+    // share a synthesized node name in `synthesize_entry_nodes`, which
+    // is where the entry node's `language` comes from.
+    entries.sort_by_cached_key(|e| {
+        (
+            graph.callables.get_index_of(&e.target),
+            e.framework.clone(),
+            e.route.clone(),
+        )
     });
 }
 
@@ -1900,13 +1903,13 @@ mod tests {
         b.route = "get(\"/x\")".into();
         b.evidence = "precise".into();
         let mut v = vec![a.clone(), b];
-        dedup(&mut v);
+        dedup(&mut v, &Graph::new());
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].shape, EntryShape::Attribute);
         // And an unrelated target survives alongside it.
         a.target = CallableId::new(8);
         let mut v2 = vec![v[0].clone(), a];
-        dedup(&mut v2);
+        dedup(&mut v2, &Graph::new());
         assert_eq!(v2.len(), 2);
     }
 

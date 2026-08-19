@@ -75,7 +75,11 @@ def clean(mmd_text: str) -> str:
         return lbl.replace("crate::", "").replace("&lt;", "<").replace("&gt;", ">")
 
     out = ["flowchart LR"]
-    for nid in sorted(keep, key=lambda x: int(x[1:])):
+    # Node ids are content-derived base36 hashes now, not sequential
+    # integers, so there's no numeric value to sort by — `nodes` already
+    # preserves cgg's own (deterministic) emission order, which is what
+    # we want anyway.
+    for nid in nodes:
         out.append(f'  {nid}["{tidy(nodes[nid])}"]')
     for (s, d), lbl in sorted(edges.items()):
         arrow = f"-->|{lbl}|" if lbl else "-->"

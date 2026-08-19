@@ -208,13 +208,15 @@ printf 'def a():\n    return b()\n\ndef b():\n    return 1\n' > /tmp/cgg-smoke/t
 cgg /tmp/cgg-smoke
 ```
 
-Expected output, exactly:
+Expected output (node ids are content-derived, so they are stable for
+this exact input but are not sequential — the two labels and the one
+arrow are what to check):
 
 ```text
 flowchart LR
-  C0["t.a"]
-  C1["t.b"]
-  C0 --> C1
+  C15ok5bo1gvr["t.a"]
+  Cqvd8tmwlzt["t.b"]
+  C15ok5bo1gvr --> Cqvd8tmwlzt
 ```
 
 If the user *does* have the source tree, run cgg against itself:

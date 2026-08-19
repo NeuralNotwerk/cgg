@@ -9,6 +9,7 @@ use std::io;
 
 use cgg_core::Graph;
 use cgg_core::graph::Via;
+use cgg_core::ids::CallableId;
 
 use crate::{GraphFormatter, OutputFormat};
 
@@ -103,7 +104,7 @@ impl GraphFormatter for MermaidFormatter {
             } else {
                 ""
             };
-            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.as_u32())?;
+            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.token())?;
         }
         if any_unreferenced {
             writeln!(out, "  classDef unreferenced stroke-dasharray: 4 3;")?;
@@ -111,7 +112,7 @@ impl GraphFormatter for MermaidFormatter {
                 .callables
                 .iter()
                 .filter(|(_, n)| n.unreferenced.is_some())
-                .map(|(id, _)| format!("C{}", id.as_u32()))
+                .map(|(id, _)| format!("C{}", id.token()))
                 .collect();
             for chunk in marked.chunks(32) {
                 writeln!(out, "  class {} unreferenced;", chunk.join(","))?;
@@ -128,15 +129,18 @@ impl GraphFormatter for MermaidFormatter {
         // Collapse identical (src, dst, via-kind) triples. Distinct via
         // kinds between the same pair stay separate, labeled rows so a
         // direct call and a dynamic-dispatch fan-out don't merge.
-        let mut order: Vec<(u32, u32, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(u32, u32, &str), u32> =
+        // Keys stay `Copy` (`CallableId` is a newtype over `u64`) and the
+        // base36 token is rendered only at write time. Keying on the
+        // rendered `String` instead costs two allocations per edge plus
+        // two more per lookup, on graphs that reach millions of edges.
+        let mut order: Vec<(CallableId, CallableId, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
-            let key = (edge.src.as_u32(), edge.dst.as_u32(), via_tag(&edge.via));
-            if counts
-                .insert(key, counts.get(&key).copied().unwrap_or(0) + 1)
-                .is_none()
-            {
+            let key = (edge.src, edge.dst, via_tag(&edge.via));
+            let entry = counts.entry(key).or_insert(0);
+            *entry += 1;
+            if *entry == 1 {
                 order.push(key);
             }
         }
@@ -148,6 +152,7 @@ impl GraphFormatter for MermaidFormatter {
                 (false, false) => format!("|{tag}|"),
                 (false, true) => format!("|{tag} {n}x|"),
             };
+            let (src, dst) = (src.token(), dst.token());
             if label.is_empty() {
                 writeln!(out, "  C{src} --> C{dst}")?;
             } else {
