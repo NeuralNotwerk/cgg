@@ -18,13 +18,41 @@ ever grows in default mode — see *Compatibility* below).
   id was meaningless outside the run that produced it. An id is now a
   blake3 hash of the node's own identity — a file's relative path, or a
   callable's `(language, file path, owner qualified name, qualified
-  name)` — so **the same node gets the same id on every run**, and
-  adding or removing an unrelated node elsewhere in the tree never
-  changes ids that didn't collide with it. Collisions are vanishingly
-  rare (52 bits of hash by default) and, on the rare case, resolved by
-  pulling more bits from the same node's own hash stream — never by
-  comparing to whichever other node it collided with — so the property
-  above holds even across a collision.
+  name, signature hint)` — so **the same node gets the
+  same id on every run**, and adding, removing or editing an unrelated
+  file never changes it.
+
+  The signature is part of the key because the first four components are
+  **not unique**. A file that declares several callables sharing a
+  qualified name — overloads, which C++, C#, Java and Erlang have in
+  quantity — hashes them identically. Over the 113-repo benchmark corpus
+  that is **309,347 of 1,745,670 callables (17.7%)**, peaking at 52.8%
+  in one repo, and every one of them falls through to the collision path
+  where the id is decided by declaration order rather than content. That
+  breaks the guarantee this change exists to provide: delete the first
+  of two overloads and the second inherits its id, so a consumer diffing
+  ids across runs reads "unchanged" while the id now names a different
+  function. Including the signature takes that population to **2.25%** —
+  the residual being callables cgg genuinely cannot tell apart, where no
+  key can do better.
+
+  `start_byte` was measured as an alternative and rejected. It is unique
+  corpus-wide, but it churns on movement — one comment line added at the
+  top of `spdlog`'s busiest header moved 135 of 1,157 ids, destroying
+  the diffability this change exists for — and it still lets a survivor
+  inherit a deleted sibling's id, because removing a definition shifts
+  the next one into its byte offset.
+
+  What holds: editing an unrelated file changes nothing, moving code
+  within a file changes nothing (verified by running `cargo fmt --all`
+  over cgg's own tree — 318 callables, 0 ids changed), and removing one
+  overload leaves its siblings alone.
+
+  A collision, if one ever occurs, is resolved by drawing the next
+  window from the same node's own hash stream — never by comparing to
+  whichever other node it collided with. Every draw is 52 bits wide, so
+  **no id ever exceeds 52 bits**; that bound is what keeps `cgg-node`'s
+  `number` binding exact.
 
   **Wire format changed too.** An id used to be a bare integer
   (`{"src": 0, "dst": 1}` in JSON; `C0`, `n0` in mermaid/dot/graphml).
@@ -40,11 +68,14 @@ ever grows in default mode — see *Compatibility* below).
   run, so a diff against a previous run's ids is now meaningful for the
   first time — but a diff against pre-upgrade output will show every id
   as new, once. `cgg-py`'s `Callable.id`/`Edge.src`/`Edge.dst`/
-  `Edge.file`/`File.id` are `u64` now (Python's `int` already covers
-  the range, so nothing on the Python side needed a type change beyond
-  that). `cgg-node`'s equivalents are `bigint` now — a required change
-  since N-API has no native `u64` binding, so `number` was no longer
-  safe. `cgg-node`'s `Graph.files` getter, which used to return
+  `File.id` are `u64` now (Python's `int` already covers the range, so
+  nothing on the Python side needed a type change beyond that).
+  `cgg-node`'s equivalents are `i64` on the Rust side and `number` in
+  the generated `index.d.ts` — N-API has no native `u64` binding, and
+  `number` is exact here only because every id stays inside 52 bits,
+  comfortably under `Number.MAX_SAFE_INTEGER` (2^53-1).
+  Verified: across the corpus no `cgg-node` id is negative, unsafe, or
+  disagrees with the value the CLI reports for the same callable. `cgg-node`'s `Graph.files` getter, which used to return
   `Array<string>` of bare paths indexed by `Callable.file`, now returns
   `Array<{ id, path }>` — matching by id was already how `cgg-py`
   worked, and the old "index equals id" invariant depended on the
@@ -54,12 +85,40 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Performance
 
-- Not yet measured. `scripts/perf-compare.sh` needs to run against a
-  baseline binary before release — content-derived ids trade a
-  sequential counter for a blake3 hash per node plus a `HashSet`
-  membership check for collision detection, so this is expected to
-  have *some* per-node cost, but "measure, never estimate" applies:
-  no number is claimed here until it's been run.
+- Measured with `scripts/perf-compare.sh main 7` — median of 7 runs per
+  repo, alternating which binary goes first. The corpus budget stopped
+  the sweep after **67 of 113 repos** (alphabetical prefix, through
+  `erlang-otp`); that is disclosed rather than presented as full
+  coverage.
+
+  | comparison | median per-repo | total (excl. `erlang-otp`) |
+  | --- | --- | --- |
+  | content-derived ids vs `main` | **+3.5%** | +2.9% |
+
+  So the feature costs roughly **3%**, which is the blake3 hash and
+  `HashSet` probe per callable replacing an integer increment. Against
+  the harness's own stated noise floor of 1–1.5% on a total, the
+  per-repo median is a real cost, not jitter.
+
+  **`erlang-otp` is excluded from the totals above and the exclusion is
+  the point.** The same binary measured 26,651 ms in one sweep and
+  36,280 ms in another — a 36% spread with no code change between them.
+  A direct alternating measurement (5 samples, median) puts it at
+  **26.9 s against `main`'s 28.1 s**, i.e. slightly *faster*, so the
+  large positive deltas that appear for it in some sweeps are machine
+  contention rather than a regression. It is 28% of the corpus total, so
+  leaving it in swings the headline number by ten points in either
+  direction. This is the same trap CLAUDE.md records for 0.6.x: quote
+  the median, not a total one repo can dominate.
+
+  Two changes in this branch were made *because* they were measured, not
+  because they looked cleaner. Keeping the mermaid/dot dedup keys `Copy`
+  avoids two `String` allocations per edge plus two more per lookup. And
+  the redundant `include_by_last` sort in `cross_file.rs` was dropped
+  rather than re-keyed: sorting those buckets by `PathBuf` to restore
+  discovery order cost **+30% on `erlang-otp`** on its own, and the
+  buckets are already built in discovery order, so the sort was never
+  doing anything.
 
 ### Added
 

@@ -13,7 +13,11 @@ export declare class Graph {
   get callables(): Array<Callable>
   /** Resolved call edges. */
   get edges(): Array<Edge>
-  /** Analyzed file paths, indexed by `Callable.file`. */
+  /**
+   * Analyzed files. Match a callable to its file via `Callable.file ==
+   * File.id` — ids are content hashes, not positional indices, so
+   * this is a lookup by id rather than an array offset.
+   */
   get files(): Array<File>
   /** Whole-run counters. */
   get metrics(): Metrics
@@ -105,13 +109,13 @@ export declare function analyzeSync(paths: string | Array<string>, options?: Ana
 /** One callable in the graph. */
 export interface Callable {
   /** Content-derived id — stable across runs, not a positional index. */
-  id: bigint
+  id: number
   qualifiedName: string
   simpleName: string
   kind: string
   language: string
   /** The owning file's id, not a path. Look it up in `Graph::files`. */
-  file: bigint
+  file: number
   startLine: number
   endLine: number
   signatureHint: string
@@ -124,16 +128,6 @@ export interface Callable {
   unreferenced?: string
 }
 
-/** One analyzed source file. */
-export interface File {
-  /**
-   * Content-derived id — matches `Callable.file`, not a positional
-   * index (ids are content hashes now, not array offsets).
-   */
-  id: bigint
-  path: string
-}
-
 /**
  * One resolved call edge.
  *
@@ -142,8 +136,8 @@ export interface File {
  * different words.
  */
 export interface Edge {
-  src: bigint
-  dst: bigint
+  src: number
+  dst: number
   siteLine: number
   siteByte: number
   /** `"high"`, `"medium"` or `"low"`. */
@@ -154,6 +148,16 @@ export interface Edge {
    * or `"framework_entry"`. Filter on this to keep only edges you trust.
    */
   via: string
+}
+
+/** One analyzed source file. */
+export interface File {
+  /**
+   * Content-derived id — matches `Callable.file`, not a positional
+   * index (ids are content hashes now, not array offsets).
+   */
+  id: number
+  path: string
 }
 
 /** Every language id cgg can analyze, in registry order. */
