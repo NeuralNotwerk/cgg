@@ -510,7 +510,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2088 callables, 4963 edges, 1785 cross-file, 119ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2090 callables, 4974 edges, 1788 cross-file, 138ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -521,135 +521,135 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  Ce8btaz0c7d["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  C1fuqoee162["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  Cu8sm37x27i["cgg::analyze"]
-  Ck6rdns31fh["cgg::analyze_in_pool"]
-  Cisqfzflkw2["cgg::langs_enabled"]
-  C7vl7hj6da0["cgg::specific"]
-  Cc6430xzlhv["cgg::dead_code_analysis"]
-  Cyb8lff0cu6["cgg::why_live_proofs"]
-  Crazkm27b4n["cgg::since_seeds"]
-  Ce6100aa7pb["cgg::count_lines"]
-  Cd2jp9c8iji["cgg::read_file"]
-  C4uh9t2boar["cgg::variant_to_kind"]
-  Cyuotlqx8cg["cgg::synthesize_exit_nodes"]
-  C14txnctguqp["cgg::synthesize_entry_nodes"]
-  C110r2j3hgh3["cgg::trait_impl_target_from_qn"]
-  C12cl5iiregd["cgg::dedup_edges"]
-  Coz7jqry0jt["cgg::group_unresolved_by_module"]
-  Civon2m7kiq["cgg::options::RunOptions::dead_mode"]
-  Cpdmf2f970w["cgg::outcome::Emission::line"]
-  Co9lkohbv7["cgg::outcome::Emission::always"]
-  Cikry60zwgd["cgg::query::apply_query"]
-  Cegjh02oqxa["cgg::query::apply_exclusions"]
-  Cjn5qmo68zf["cgg::since::resolve_since"]
-  Cjwpbtnrpq9["cgg::stable_ids::StableIds::new"]
-  Cr37f9vwja4["cgg::stable_ids::StableIds::file"]
-  C7x7z80po60["cgg::stable_ids::StableIds::callable"]
-  C9dybi363du["cgg_core::external::FileAliases::from_facts"]
-  Cr8fsp2a2yv["cgg_core::external::classify_external"]
-  C1763zjuiemp["cgg_core::external::build_known_names"]
-  C7b3b3l1lm6["cgg_core::graph::Graph::new"]
-  Cuqpquw4s0d["cgg_core::graph::Graph::add_callable"]
-  C11hq6v37tdw["cgg_core::graph::Graph::add_file"]
-  Cns9jydj0k1["cgg_core::graph::Graph::add_edge"]
-  Cl392qv0r5a["cgg_core::profile::enable"]
-  Chptg76umzv["cgg_core::profile::span"]
-  C2lsittm2s4["cgg_core::testfile::classify_test_file"]
-  C10q0avqswp9["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  Cp7bq4qiwgz["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  C59pox1dp6q["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  Ctdg6zm99p3["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C184und02q38["cgg_lang::notebook::extract_python_source"]
-  Ckwi21q4n99["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C26bd5qoaul["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  C6jcyyvmxks["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C14crdads27m["cgg_resolve::cross_file::resolve"]
-  Cf3d62vvukt["cgg_resolve::descriptor::link_descriptors"]
-  Cbuowmgsuna["cgg_resolve::dispatch::fanout"]
-  C92h1zyobno["cgg_resolve::ffi::link_ffi"]
-  Cm7bu22jhwg["cgg_resolve::frameworks::detect"]
-  Ckwpvjofrwg["cgg_resolve::intra_file::link_file"]
-  C92stn8ydvj["cgg_resolve::names::owner_from_qn"]
-  C83eo6qi9sg["cgg_resolve::type_hints::build_return_type_map"]
-  C652z8l1h5w["cgg_resolve::type_hints::propagate_types_with_returns"]
-  Chco17z7ulm["cgg_walk::walk"]
-  Cu8sm37x27i --> Ck6rdns31fh
-  Ck6rdns31fh --> Cisqfzflkw2
-  Ck6rdns31fh --> Cd2jp9c8iji
-  Ck6rdns31fh --> Ce6100aa7pb
-  Ck6rdns31fh --> C4uh9t2boar
-  Ck6rdns31fh --> C110r2j3hgh3
-  Ck6rdns31fh -->|2x| C7vl7hj6da0
-  Ck6rdns31fh --> Cyuotlqx8cg
-  Ck6rdns31fh --> C14txnctguqp
-  Ck6rdns31fh --> Coz7jqry0jt
-  Ck6rdns31fh --> C12cl5iiregd
-  Ck6rdns31fh --> Crazkm27b4n
-  Ck6rdns31fh --> Cyb8lff0cu6
-  Ck6rdns31fh --> Cc6430xzlhv
-  C26bd5qoaul --> C26bd5qoaul
-  Ck6rdns31fh --> Civon2m7kiq
-  Ck6rdns31fh --> C1fuqoee162
-  Ck6rdns31fh --> Ce8btaz0c7d
-  Ck6rdns31fh --> Cl392qv0r5a
-  Ck6rdns31fh --> Chco17z7ulm
-  Ck6rdns31fh --> Ctdg6zm99p3
-  Ck6rdns31fh --> C10q0avqswp9
-  Ck6rdns31fh --> Ckwi21q4n99
-  Ck6rdns31fh --> Cjwpbtnrpq9
-  Ck6rdns31fh --> C7b3b3l1lm6
-  Ck6rdns31fh --> Cp7bq4qiwgz
-  Ck6rdns31fh --> C184und02q38
-  Ck6rdns31fh -->|18x| Chptg76umzv
-  Ck6rdns31fh --> C26bd5qoaul
-  Ck6rdns31fh --> C6jcyyvmxks
-  Ck6rdns31fh --> C59pox1dp6q
-  Ck6rdns31fh --> Cr37f9vwja4
-  Ck6rdns31fh --> C2lsittm2s4
-  Ck6rdns31fh --> C11hq6v37tdw
-  Ck6rdns31fh --> C92stn8ydvj
-  Ck6rdns31fh --> C7x7z80po60
-  Ck6rdns31fh --> Cuqpquw4s0d
-  Ck6rdns31fh --> C83eo6qi9sg
-  Ck6rdns31fh --> C652z8l1h5w
-  Ck6rdns31fh --> C1763zjuiemp
-  Ck6rdns31fh --> Ckwpvjofrwg
-  Ck6rdns31fh --> C9dybi363du
-  Ck6rdns31fh --> Cr8fsp2a2yv
-  Ck6rdns31fh --> C14crdads27m
-  Ck6rdns31fh --> C92h1zyobno
-  Ck6rdns31fh --> Cf3d62vvukt
-  Ck6rdns31fh --> Cm7bu22jhwg
-  Ck6rdns31fh --> Cbuowmgsuna
-  Ck6rdns31fh --> Cns9jydj0k1
-  Ck6rdns31fh -->|5x| Cpdmf2f970w
-  Ck6rdns31fh --> Cjn5qmo68zf
-  Ck6rdns31fh -->|2x| Co9lkohbv7
-  Ck6rdns31fh --> Cikry60zwgd
-  Ck6rdns31fh --> Cegjh02oqxa
-  Cc6430xzlhv --> Ctdg6zm99p3
-  Cc6430xzlhv --> Co9lkohbv7
-  Cc6430xzlhv --> Cpdmf2f970w
-  Cyb8lff0cu6 --> Co9lkohbv7
-  Cyuotlqx8cg -->|2x| Cr37f9vwja4
-  Cyuotlqx8cg -->|2x| C11hq6v37tdw
-  Cyuotlqx8cg --> C7x7z80po60
-  Cyuotlqx8cg --> Cuqpquw4s0d
-  Cyuotlqx8cg --> Cns9jydj0k1
-  C14txnctguqp --> Cr37f9vwja4
-  C14txnctguqp --> C11hq6v37tdw
-  C14txnctguqp --> C7x7z80po60
-  C14txnctguqp --> Cuqpquw4s0d
-  C14txnctguqp --> Cns9jydj0k1
-  Cikry60zwgd --> C7b3b3l1lm6
-  C14crdads27m -->|6x| Chptg76umzv
-  C14crdads27m -->|4x| C92stn8ydvj
-  Cf3d62vvukt -->|2x| C92stn8ydvj
-  Cbuowmgsuna --> C92stn8ydvj
-  Cm7bu22jhwg -->|9x| Chptg76umzv
-  Ckwpvjofrwg -->|3x| C92stn8ydvj
+  Cods529o10n["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  Cd1xvlrrdww["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  Ct0c2ixgmx8["cgg::analyze"]
+  C12m1b7egd7a["cgg::analyze_in_pool"]
+  Cgbax03cjph["cgg::langs_enabled"]
+  Cpbf1nw0gl7["cgg::specific"]
+  C1415sed6gsk["cgg::dead_code_analysis"]
+  C405rboiqlv["cgg::why_live_proofs"]
+  Clv6vms0oi1["cgg::since_seeds"]
+  Chj8h5ziozb["cgg::count_lines"]
+  Ci4p2rb43rp["cgg::read_file"]
+  C2f1t66864d["cgg::variant_to_kind"]
+  Ck4ptx27z7x["cgg::synthesize_exit_nodes"]
+  Clwcttx5lpo["cgg::synthesize_entry_nodes"]
+  Ctfmoqi85tg["cgg::trait_impl_target_from_qn"]
+  Cwqkqak75tl["cgg::dedup_edges"]
+  Coix60lhqf7["cgg::group_unresolved_by_module"]
+  Crtsepedphw["cgg::options::RunOptions::dead_mode"]
+  C142sy5bd6bx["cgg::outcome::Emission::line"]
+  Ct77oun8kqo["cgg::outcome::Emission::always"]
+  Cjqock7evo5["cgg::query::apply_query"]
+  C12wdyqabzvp["cgg::query::apply_exclusions"]
+  Ce8lkrr7qkj["cgg::since::resolve_since"]
+  Cbgxp5y3jf4["cgg::stable_ids::StableIds::new"]
+  Cka7z9fgizy["cgg::stable_ids::StableIds::file"]
+  C14uv2ki067t["cgg::stable_ids::StableIds::callable"]
+  Cbs4im1rijt["cgg_core::external::FileAliases::from_facts"]
+  Cuqf7vje4v5["cgg_core::external::classify_external"]
+  Cm5zypciozo["cgg_core::external::build_known_names"]
+  Cf51o5g9qy0["cgg_core::graph::Graph::new"]
+  C1wzvx79ql2["cgg_core::graph::Graph::add_callable"]
+  Cihr3kfyvtu["cgg_core::graph::Graph::add_file"]
+  Ch84iv4wac8["cgg_core::graph::Graph::add_edge"]
+  Ccyvdjxcoox["cgg_core::profile::enable"]
+  Cje1i47p3yv["cgg_core::profile::span"]
+  Cekb0n2g1eg["cgg_core::testfile::classify_test_file"]
+  C17o9pp22qiz["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  C14fkc4o8c6d["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  Co7i2la9csu["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  C12pncd15md4["cgg_lang::PluginRegistry::with_v1_plugins"]
+  Ciutkm7qyvn["cgg_lang::notebook::extract_python_source"]
+  Cak5velg3wv["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  Cj6zpvcbt6p["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  Ctjvv5ons8i["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  C6wrijb2i8i["cgg_resolve::cross_file::resolve"]
+  Cru55mylpb0["cgg_resolve::descriptor::link_descriptors"]
+  C7sdc7dfqq8["cgg_resolve::dispatch::fanout"]
+  C1rtjt0s4z["cgg_resolve::ffi::link_ffi"]
+  Cerzjkk2e4b["cgg_resolve::frameworks::detect"]
+  Cyx4cj1kf97["cgg_resolve::intra_file::link_file"]
+  C30foz0npni["cgg_resolve::names::owner_from_qn"]
+  C13jku0363vc["cgg_resolve::type_hints::build_return_type_map"]
+  Ckhn1ppxbyv["cgg_resolve::type_hints::propagate_types_with_returns"]
+  Ct7g2skj0yq["cgg_walk::walk"]
+  Ct0c2ixgmx8 --> C12m1b7egd7a
+  C12m1b7egd7a --> Cgbax03cjph
+  C12m1b7egd7a --> Ci4p2rb43rp
+  C12m1b7egd7a --> Chj8h5ziozb
+  C12m1b7egd7a --> C2f1t66864d
+  C12m1b7egd7a --> Ctfmoqi85tg
+  C12m1b7egd7a -->|2x| Cpbf1nw0gl7
+  C12m1b7egd7a --> Ck4ptx27z7x
+  C12m1b7egd7a --> Clwcttx5lpo
+  C12m1b7egd7a --> Coix60lhqf7
+  C12m1b7egd7a --> Cwqkqak75tl
+  C12m1b7egd7a --> Clv6vms0oi1
+  C12m1b7egd7a --> C405rboiqlv
+  C12m1b7egd7a --> C1415sed6gsk
+  Cj6zpvcbt6p --> Cj6zpvcbt6p
+  C12m1b7egd7a --> Crtsepedphw
+  C12m1b7egd7a --> Cd1xvlrrdww
+  C12m1b7egd7a --> Cods529o10n
+  C12m1b7egd7a --> Ccyvdjxcoox
+  C12m1b7egd7a --> Ct7g2skj0yq
+  C12m1b7egd7a --> C12pncd15md4
+  C12m1b7egd7a --> C17o9pp22qiz
+  C12m1b7egd7a --> Cak5velg3wv
+  C12m1b7egd7a --> Cbgxp5y3jf4
+  C12m1b7egd7a --> Cf51o5g9qy0
+  C12m1b7egd7a --> C14fkc4o8c6d
+  C12m1b7egd7a --> Ciutkm7qyvn
+  C12m1b7egd7a -->|18x| Cje1i47p3yv
+  C12m1b7egd7a --> Cj6zpvcbt6p
+  C12m1b7egd7a --> Ctjvv5ons8i
+  C12m1b7egd7a --> Co7i2la9csu
+  C12m1b7egd7a --> Cka7z9fgizy
+  C12m1b7egd7a --> Cekb0n2g1eg
+  C12m1b7egd7a --> Cihr3kfyvtu
+  C12m1b7egd7a --> C30foz0npni
+  C12m1b7egd7a --> C14uv2ki067t
+  C12m1b7egd7a --> C1wzvx79ql2
+  C12m1b7egd7a --> C13jku0363vc
+  C12m1b7egd7a --> Ckhn1ppxbyv
+  C12m1b7egd7a --> Cm5zypciozo
+  C12m1b7egd7a --> Cyx4cj1kf97
+  C12m1b7egd7a --> Cbs4im1rijt
+  C12m1b7egd7a --> Cuqf7vje4v5
+  C12m1b7egd7a --> C6wrijb2i8i
+  C12m1b7egd7a --> C1rtjt0s4z
+  C12m1b7egd7a --> Cru55mylpb0
+  C12m1b7egd7a --> Cerzjkk2e4b
+  C12m1b7egd7a --> C7sdc7dfqq8
+  C12m1b7egd7a --> Ch84iv4wac8
+  C12m1b7egd7a -->|5x| C142sy5bd6bx
+  C12m1b7egd7a --> Ce8lkrr7qkj
+  C12m1b7egd7a -->|2x| Ct77oun8kqo
+  C12m1b7egd7a --> Cjqock7evo5
+  C12m1b7egd7a --> C12wdyqabzvp
+  C1415sed6gsk --> C12pncd15md4
+  C1415sed6gsk --> Ct77oun8kqo
+  C1415sed6gsk --> C142sy5bd6bx
+  C405rboiqlv --> Ct77oun8kqo
+  Ck4ptx27z7x -->|2x| Cka7z9fgizy
+  Ck4ptx27z7x -->|2x| Cihr3kfyvtu
+  Ck4ptx27z7x --> C14uv2ki067t
+  Ck4ptx27z7x --> C1wzvx79ql2
+  Ck4ptx27z7x --> Ch84iv4wac8
+  Clwcttx5lpo --> Cka7z9fgizy
+  Clwcttx5lpo --> Cihr3kfyvtu
+  Clwcttx5lpo --> C14uv2ki067t
+  Clwcttx5lpo --> C1wzvx79ql2
+  Clwcttx5lpo --> Ch84iv4wac8
+  Cjqock7evo5 --> Cf51o5g9qy0
+  C6wrijb2i8i -->|6x| Cje1i47p3yv
+  C6wrijb2i8i -->|4x| C30foz0npni
+  Cru55mylpb0 -->|2x| C30foz0npni
+  C7sdc7dfqq8 --> C30foz0npni
+  Cerzjkk2e4b -->|9x| Cje1i47p3yv
+  Cyx4cj1kf97 -->|3x| C30foz0npni
 ```
 <!-- cgg:end:self -->
 
@@ -663,81 +663,81 @@ cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid  # resolution pipeline
 <!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
-  Cy82uv2i7pt["cgg_walk::WalkOutcome::is_empty"]
-  C580x6lp8ln["cgg_walk::<WalkConfig as Default>::default"]
-  Chco17z7ulm["cgg_walk::walk"]
-  Cbkodel2lnl["cgg_walk::walk_one"]
-  Club8n6rzww["cgg_walk::push_candidate"]
-  Ctqopiot1ae["cgg_walk::is_symlink_chain"]
-  C81nu0l348l["cgg_walk::classify_file"]
-  Cndv7fvb5ip["cgg_walk::is_binary"]
-  C5fpczbb5j6["cgg_walk::builtin_reason"]
-  C1xss5nwfte["cgg_walk::extract_err_path"]
-  C1xss5nwfte -->|2x| C1xss5nwfte
-  C81nu0l348l --> Cndv7fvb5ip
-  Cbkodel2lnl --> C1xss5nwfte
-  Cbkodel2lnl -->|2x| C5fpczbb5j6
-  Cbkodel2lnl -->|2x| C81nu0l348l
-  Cbkodel2lnl -->|2x| Club8n6rzww
-  Cbkodel2lnl --> Ctqopiot1ae
-  Chco17z7ulm --> Cbkodel2lnl
+  C15d893y4ggk["cgg_walk::WalkOutcome::is_empty"]
+  Cceyqp4l98e["cgg_walk::<WalkConfig as Default>::default"]
+  Ct7g2skj0yq["cgg_walk::walk"]
+  Cjzicnt94o7["cgg_walk::walk_one"]
+  Ccotmelqbjo["cgg_walk::push_candidate"]
+  C8qg0fse73b["cgg_walk::is_symlink_chain"]
+  Cke21cnod0["cgg_walk::classify_file"]
+  Cm1a2tmtal0["cgg_walk::is_binary"]
+  C161gaoojfoa["cgg_walk::builtin_reason"]
+  Cinxt6zar3w["cgg_walk::extract_err_path"]
+  Cinxt6zar3w -->|2x| Cinxt6zar3w
+  Cjzicnt94o7 -->|2x| C161gaoojfoa
+  Cjzicnt94o7 --> C8qg0fse73b
+  Cjzicnt94o7 -->|2x| Ccotmelqbjo
+  Cjzicnt94o7 --> Cinxt6zar3w
+  Cjzicnt94o7 -->|2x| Cke21cnod0
+  Cke21cnod0 --> Cm1a2tmtal0
+  Ct7g2skj0yq --> Cjzicnt94o7
 ```
 <!-- cgg:end:walk -->
 
 <!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
-  C10q0avqswp9["cgg_lang::detect::LanguageDetector<'r>::new"]
-  Cp7bq4qiwgz["cgg_lang::detect::LanguageDetector<'r>::detect"]
-  Cxmrendufgz["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
-  C133lfcajtac["cgg_lang::detect::extension"]
-  Ck8bvt2vgvc["cgg_lang::detect::sniff_structured_descriptor"]
-  Cqwy5q5i448["cgg_lang::detect::read_shebang"]
-  Cofztst3b5["cgg_lang::detect::header_verdict"]
-  Ckwi21q4n99["cgg_lang::parser::ParserPool<'r>::new"]
-  C26bd5qoaul["cgg_lang::parser::ParserPool<'r>::parse"]
-  C6jcyyvmxks["cgg_lang::parser::ParserPool<'r>::plugin"]
-  C18c4rqxkjzb["cgg_lang::parser::set_language"]
-  Cuwydi7mhcp["cgg_lang::builtin_verbs"]
-  C10t72likkpj["cgg_lang::builtin_verbs_for"]
-  Co2908p1emo["cgg_lang::no_extra_verbs"]
-  C17j8jr3c3ba["cgg_lang::ExtractCtx<'a>::new"]
-  C59pox1dp6q["cgg_lang::ExtractCtx<'a>::for_language"]
-  C8ms88ne747["cgg_lang::ExtractCtx<'a>::plain"]
-  Cr288aq0pmb["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
-  C1wt0t8oe0q["cgg_lang::LanguagePlugin::id"]
-  C17aph71rx2h["cgg_lang::LanguagePlugin::extensions"]
-  Cjp14y8sw13["cgg_lang::LanguagePlugin::shebangs"]
-  Ct9706spgvs["cgg_lang::LanguagePlugin::signals"]
-  Cecnnkf40pw["cgg_lang::LanguagePlugin::ts_language"]
-  Ch33tzbtsjg["cgg_lang::LanguagePlugin::extract"]
-  Cjqv59ycq3v["cgg_lang::PluginRegistry::new"]
-  Cj8dfzn4rwo["cgg_lang::PluginRegistry::register"]
-  Cf0ed7vsaic["cgg_lang::PluginRegistry::all"]
-  C8gx7e4r66u["cgg_lang::PluginRegistry::by_id"]
-  Ctdg6zm99p3["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C26bd5qoaul --> C18c4rqxkjzb
-  C26bd5qoaul --> C26bd5qoaul
-  C26bd5qoaul --> C8gx7e4r66u
-  C26bd5qoaul --> Cecnnkf40pw
-  C6jcyyvmxks --> C8gx7e4r66u
-  C8gx7e4r66u --> C1wt0t8oe0q
-  C8ms88ne747 --> Co2908p1emo
-  Ch33tzbtsjg --> C1wt0t8oe0q
-  Cp7bq4qiwgz -->|2x| C133lfcajtac
-  Cp7bq4qiwgz --> C1wt0t8oe0q
-  Cp7bq4qiwgz --> Cf0ed7vsaic
-  Cp7bq4qiwgz --> Cjp14y8sw13
-  Cp7bq4qiwgz --> Ck8bvt2vgvc
-  Cp7bq4qiwgz -->|2x| Cofztst3b5
-  Cp7bq4qiwgz --> Cqwy5q5i448
-  Cp7bq4qiwgz -->|2x| Cxmrendufgz
-  Cr288aq0pmb --> C10t72likkpj
-  Cr288aq0pmb --> Cuwydi7mhcp
-  Ctdg6zm99p3 --> Cjqv59ycq3v
-  Cxmrendufgz --> C17aph71rx2h
-  Cxmrendufgz --> C1wt0t8oe0q
-  Cxmrendufgz --> Cf0ed7vsaic
+  C17o9pp22qiz["cgg_lang::detect::LanguageDetector<'r>::new"]
+  C14fkc4o8c6d["cgg_lang::detect::LanguageDetector<'r>::detect"]
+  C133fmgqa0ig["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
+  Cyk5n6gky4p["cgg_lang::detect::extension"]
+  Cs3w4t2zzda["cgg_lang::detect::sniff_structured_descriptor"]
+  C4ra9dqqcsj["cgg_lang::detect::read_shebang"]
+  C109i0ymo2bt["cgg_lang::detect::header_verdict"]
+  Cak5velg3wv["cgg_lang::parser::ParserPool<'r>::new"]
+  Cj6zpvcbt6p["cgg_lang::parser::ParserPool<'r>::parse"]
+  Ctjvv5ons8i["cgg_lang::parser::ParserPool<'r>::plugin"]
+  C6hax050sg0["cgg_lang::parser::set_language"]
+  C9i276bxo3n["cgg_lang::builtin_verbs"]
+  Chpw3r2gts9["cgg_lang::builtin_verbs_for"]
+  C30gzof7bc0["cgg_lang::no_extra_verbs"]
+  Cw0jatt8a82["cgg_lang::ExtractCtx<'a>::new"]
+  Co7i2la9csu["cgg_lang::ExtractCtx<'a>::for_language"]
+  C9cyfic4q7s["cgg_lang::ExtractCtx<'a>::plain"]
+  Ccpyfq2jkpd["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
+  Cr6qlg7sre4["cgg_lang::LanguagePlugin::id"]
+  Cpwl90qfu9f["cgg_lang::LanguagePlugin::extensions"]
+  Cs3ropm27dg["cgg_lang::LanguagePlugin::shebangs"]
+  Cwizekxteri["cgg_lang::LanguagePlugin::signals"]
+  Ci8pmp2tu5w["cgg_lang::LanguagePlugin::ts_language"]
+  C11riegp64ff["cgg_lang::LanguagePlugin::extract"]
+  C11d8fa2r1kn["cgg_lang::PluginRegistry::new"]
+  Cad4eijvm3n["cgg_lang::PluginRegistry::register"]
+  Cn0f1wnqwey["cgg_lang::PluginRegistry::all"]
+  C57n6e1aly["cgg_lang::PluginRegistry::by_id"]
+  C12pncd15md4["cgg_lang::PluginRegistry::with_v1_plugins"]
+  C11riegp64ff --> Cr6qlg7sre4
+  C12pncd15md4 --> C11d8fa2r1kn
+  C133fmgqa0ig --> Cn0f1wnqwey
+  C133fmgqa0ig --> Cpwl90qfu9f
+  C133fmgqa0ig --> Cr6qlg7sre4
+  C14fkc4o8c6d -->|2x| C109i0ymo2bt
+  C14fkc4o8c6d -->|2x| C133fmgqa0ig
+  C14fkc4o8c6d --> C4ra9dqqcsj
+  C14fkc4o8c6d --> Cn0f1wnqwey
+  C14fkc4o8c6d --> Cr6qlg7sre4
+  C14fkc4o8c6d --> Cs3ropm27dg
+  C14fkc4o8c6d --> Cs3w4t2zzda
+  C14fkc4o8c6d -->|2x| Cyk5n6gky4p
+  C57n6e1aly --> Cr6qlg7sre4
+  C9cyfic4q7s --> C30gzof7bc0
+  Ccpyfq2jkpd --> C9i276bxo3n
+  Ccpyfq2jkpd --> Chpw3r2gts9
+  Cj6zpvcbt6p --> C57n6e1aly
+  Cj6zpvcbt6p --> C6hax050sg0
+  Cj6zpvcbt6p --> Ci8pmp2tu5w
+  Cj6zpvcbt6p --> Cj6zpvcbt6p
+  Ctjvv5ons8i --> C57n6e1aly
 ```
 <!-- cgg:end:lang -->
 
@@ -821,11 +821,11 @@ entering the tree — the mirror image of the exit nodes
 %% in your source; they represent control entering from a framework.
 %% BEST EFFORT — see the coverage table for what cgg did and did not recognise.
 flowchart LR
-  C0["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
-  C1["svc.list_users"]
-  C2["svc._render"]
-  C0 -->|entry| C1
-  C1 --> C2
+  C8tjm5nd42p["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
+  Cq3rc7yk1ma["svc.list_users"]
+  C1e0h9zwbxof["svc._render"]
+  C8tjm5nd42p -->|entry| Cq3rc7yk1ma
+  Cq3rc7yk1ma --> C1e0h9zwbxof
 ```
 
 **On by default**, unlike the exit-node flags. The asymmetry is
