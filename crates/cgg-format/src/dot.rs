@@ -3,6 +3,7 @@
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
 use cgg_core::graph::Via;
+use cgg_core::ids::CallableId;
 use std::io;
 
 /// Per-`via` DOT rendering: a short label tag and extra edge attributes
@@ -73,26 +74,29 @@ impl GraphFormatter for DotFormatter {
         // first-occurrence order for deterministic, diff-friendly
         // output. JSON/GraphML still emit one entry per call site —
         // this is purely a render-time concern.
-        let mut order: Vec<(String, String, &str, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(String, String, &str), u32> =
+        // Keys stay `Copy`; the base36 token is rendered only at write
+        // time. See the matching note in mermaid.rs.
+        let mut order: Vec<(CallableId, CallableId, &str, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
-            let key = (edge.src.token(), edge.dst.token(), tag);
-            let entry = counts.entry(key.clone()).or_insert(0);
+            let key = (edge.src, edge.dst, tag);
+            let entry = counts.entry(key).or_insert(0);
             *entry += 1;
             if *entry == 1 {
                 order.push((key.0, key.1, tag, style));
             }
         }
         for (src, dst, tag, style) in order {
-            let n = counts[&(src.clone(), dst.clone(), tag)];
+            let n = counts[&(src, dst, tag)];
             let label = match (tag.is_empty(), n > 1) {
                 (true, false) => String::new(),
                 (true, true) => format!("{n}x"),
                 (false, false) => tag.to_string(),
                 (false, true) => format!("{tag} {n}x"),
             };
+            let (src, dst) = (src.token(), dst.token());
             if label.is_empty() && style.is_empty() {
                 writeln!(out, "  n{src} -> n{dst};")?;
             } else if style.is_empty() {

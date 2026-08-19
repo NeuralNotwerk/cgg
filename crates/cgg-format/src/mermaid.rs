@@ -9,6 +9,7 @@ use std::io;
 
 use cgg_core::Graph;
 use cgg_core::graph::Via;
+use cgg_core::ids::CallableId;
 
 use crate::{GraphFormatter, OutputFormat};
 
@@ -128,25 +129,30 @@ impl GraphFormatter for MermaidFormatter {
         // Collapse identical (src, dst, via-kind) triples. Distinct via
         // kinds between the same pair stay separate, labeled rows so a
         // direct call and a dynamic-dispatch fan-out don't merge.
-        let mut order: Vec<(String, String, &str)> = Vec::new();
-        let mut counts: std::collections::HashMap<(String, String, &str), u32> =
+        // Keys stay `Copy` (`CallableId` is a newtype over `u64`) and the
+        // base36 token is rendered only at write time. Keying on the
+        // rendered `String` instead costs two allocations per edge plus
+        // two more per lookup, on graphs that reach millions of edges.
+        let mut order: Vec<(CallableId, CallableId, &str)> = Vec::new();
+        let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
         for edge in &graph.edges {
-            let key = (edge.src.token(), edge.dst.token(), via_tag(&edge.via));
-            let entry = counts.entry(key.clone()).or_insert(0);
+            let key = (edge.src, edge.dst, via_tag(&edge.via));
+            let entry = counts.entry(key).or_insert(0);
             *entry += 1;
             if *entry == 1 {
                 order.push(key);
             }
         }
         for (src, dst, tag) in order {
-            let n = counts[&(src.clone(), dst.clone(), tag)];
+            let n = counts[&(src, dst, tag)];
             let label = match (tag.is_empty(), n > 1) {
                 (true, false) => String::new(),
                 (true, true) => format!("|{n}x|"),
                 (false, false) => format!("|{tag}|"),
                 (false, true) => format!("|{tag} {n}x|"),
             };
+            let (src, dst) = (src.token(), dst.token());
             if label.is_empty() {
                 writeln!(out, "  C{src} --> C{dst}")?;
             } else {
