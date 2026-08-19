@@ -510,7 +510,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2090 callables, 4974 edges, 1788 cross-file, 138ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2090 callables, 4974 edges, 1788 cross-file, 142ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -749,6 +749,28 @@ flowchart LR
 | **json** | Programmatic consumption, custom tooling, CI checks |
 | **dot** | Graphviz rendering for large graphs |
 | **graphml** | Import into yEd, Gephi, or other graph analysis tools |
+
+### Node ids
+
+A node id is a type prefix followed by lowercase base36 digits —
+`C13q43c1922s` for a callable, `Ffk4mcoercy` for a file — derived by
+hashing the node's own identity, not counted off in discovery order.
+In JSON they are **strings**, and they key the `callables` and `files`
+objects:
+
+```json
+{ "callables": { "C13q43c1922s": { "file": "Ffk4mcoercy", … } },
+  "edges":     [ { "src": "C13q43c1922s", "dst": "Cgsllz0chgu", … } ] }
+```
+
+The same callable therefore keeps the same id across runs of the same
+tree, and adding, removing or editing an *unrelated* file no longer
+renumbers it — so two runs are diffable. Two caveats. Ids are **not**
+comparable across cgg versions: 0.7.0 called the function above `C0`.
+And where cgg genuinely cannot tell two callables apart — same file,
+same qualified name, same signature — it separates them by declaration
+order, so removing one can hand its id to the other; overloads with
+distinct signatures are unaffected.
 
 ## Resolution pipeline
 

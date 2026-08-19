@@ -27,6 +27,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import collections
+import concurrent.futures as cf
 import json
 import os
 import random
@@ -155,8 +157,30 @@ def first_diff(a: str, b: str) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", type=int, default=4, help="runs per configuration")
-    ap.add_argument("--repos", type=int, default=14)
+    # 2, not 4. Determinism is a PAIRWISE property: every run is compared
+    # against the first, so run 2 is the one that can detect a difference
+    # at all and every run after it is only a second chance at an
+    # intermittent one. Depth per cell is the wrong place to buy that
+    # confidence — the sweep already runs ~4k cells across the corpus, so
+    # breadth samples intermittent nondeterminism far better than a third
+    # or fourth repeat of the same cell would, and the cost here is
+    # multiplicative across repos x configs x formats.
+    ap.add_argument("--runs", type=int, default=2, help="runs per configuration")
+    # The whole corpus by default. It used to be 14, which made a green
+    # sweep a statement about a random eighth of the corpus while reading
+    # like a statement about all of it. The work is
+    # `repos x configs x formats x runs` cgg invocations — 110 x 9 x 4 x 3
+    # is ~12k — so this is only affordable because the sweep runs them
+    # concurrently; see `--workers`.
+    ap.add_argument("--repos", type=int, default=10_000)
+    # Each cgg run takes half the physical cores (capped), so a handful of
+    # concurrent repos already saturates the box. Oversubscription is
+    # harmless here and arguably useful: determinism must hold under any
+    # scheduling, so varied contention is a stronger test, not a flakier
+    # one.
+    ap.add_argument(
+        "--workers", type=int, default=max(1, (os.cpu_count() or 8) // 4)
+    )
     ap.add_argument("--quick", action="store_true", help="default config only")
     ap.add_argument("--json", default="")
     ap.add_argument("--seed", type=int, default=0)
@@ -166,76 +190,121 @@ def main() -> None:
         sys.exit(f"{CGG} not found - cargo build --release -p cgg")
 
     repos = sorted(d for d in CORPUS.iterdir() if d.is_dir())
-    # Prefer language diversity over size; skip the two that exceed 30
-    # minutes on any build, since a timeout is not a determinism signal.
+    # Three repos are excluded deliberately. Each takes tens of seconds
+    # per invocation, and the sweep runs `configs x formats x runs` of
+    # them, so any one of the three costs more wall time than the other
+    # 110 combined — while a timeout is not a determinism signal anyway.
+    # They are NAMED in the summary rather than silently dropped, because
+    # "the corpus is deterministic" and "110 of 113 repos are
+    # deterministic" are different claims and only one of them is true.
     skip = {"dart-flutter", "erlang-otp", "zig-zig"}
+    skipped_names = sorted(r.name for r in repos if r.name in skip)
     repos = [r for r in repos if r.name not in skip]
     rng = random.Random(args.seed)
     rng.shuffle(repos)
     repos = repos[: args.repos]
 
     configs = CONFIGS[:1] if args.quick else CONFIGS
-    findings, checked = [], 0
+    formats = ["json"] if args.quick else FORMATS
 
-    for repo in repos:
-        for cname, flags in configs:
-            for fmt in ["json"] if args.quick else FORMATS:
-                tmp = Path(tempfile.mkdtemp(prefix="cgg-det-"))
-                try:
-                    base = None
-                    for i in range(args.runs):
-                        # Every run uses the DEFAULT worker count. Thread
-                        # counts are no longer swept: the three defects
-                        # found so far were all reproducible at a fixed
-                        # count (two of them single-threaded), and forcing
-                        # `--jobs 1` on a large repo cost over a hundred
-                        # seconds per run to test a dimension that never
-                        # produced a finding. Determinism across thread
-                        # counts is covered by tests/determinism.rs on a
-                        # small fixture, where it is cheap.
-                        jobs = 0
-                        res = run_once(repo, fmt, flags, jobs, tmp)
-                        checked += 1
-                        if "error" in res:
-                            findings.append(
-                                {
-                                    "repo": repo.name,
-                                    "config": cname,
-                                    "fmt": fmt,
-                                    "kind": "run-failed",
-                                    "detail": res["error"],
-                                }
-                            )
-                            break
-                        if base is None:
-                            base = res
-                            continue
-                        for part in ("main", "audit", "report"):
-                            if part in base and part in res and base[part] != res[part]:
-                                findings.append(
-                                    {
-                                        "repo": repo.name,
-                                        "config": cname,
-                                        "fmt": fmt,
-                                        "kind": f"nondeterministic:{part}",
-                                        "jobs": jobs,
-                                        "detail": first_diff(base[part], res[part]),
-                                    }
-                                )
-                                break
-                finally:
-                    # Best-effort cleanup in a finally block; a failure here must
-                    # not mask the exception being unwound.
-                    subprocess.run(
-                        ["rm", "-rf", str(tmp)], capture_output=True, check=False
+    def one_cell(repo: Path, cname: str, flags: list[str], fmt: str) -> tuple:
+        """One (repo, config, format) cell: N runs, compared pairwise.
+
+        Returns (findings, runs_done). Self-contained — its own tempdir,
+        no shared state — which is what lets the cells run concurrently.
+        """
+        local: list[dict] = []
+        ran = 0
+        tmp = Path(tempfile.mkdtemp(prefix="cgg-det-"))
+        try:
+            base = None
+            for _ in range(args.runs):
+                # Every run uses the DEFAULT worker count. Thread counts
+                # are no longer swept: the three defects found so far were
+                # all reproducible at a fixed count (two of them
+                # single-threaded), and forcing `--jobs 1` on a large repo
+                # cost over a hundred seconds per run to test a dimension
+                # that never produced a finding. Determinism across thread
+                # counts is covered by tests/determinism.rs on a small
+                # fixture, where it is cheap.
+                jobs = 0
+                res = run_once(repo, fmt, flags, jobs, tmp)
+                ran += 1
+                if "error" in res:
+                    local.append(
+                        {
+                            "repo": repo.name,
+                            "config": cname,
+                            "fmt": fmt,
+                            "kind": "run-failed",
+                            "detail": res["error"],
+                        }
                     )
-        print(f"  {repo.name:<30} done ({checked} runs so far)", flush=True)
+                    break
+                if base is None:
+                    base = res
+                    continue
+                for part in ("main", "audit", "report"):
+                    if part in base and part in res and base[part] != res[part]:
+                        local.append(
+                            {
+                                "repo": repo.name,
+                                "config": cname,
+                                "fmt": fmt,
+                                "kind": f"nondeterministic:{part}",
+                                "jobs": jobs,
+                                "detail": first_diff(base[part], res[part]),
+                            }
+                        )
+                        break
+        finally:
+            # Best-effort cleanup in a finally block; a failure here must
+            # not mask the exception being unwound.
+            subprocess.run(["rm", "-rf", str(tmp)], capture_output=True, check=False)
+        return local, ran
+
+    # Cells are independent, so the sweep is embarrassingly parallel. It
+    # was serial until 0.8.0, which is why a full-corpus run was ~95
+    # minutes of a 64-thread machine sitting mostly idle and why the
+    # default had been quietly reduced to 14 repos to compensate.
+    cells = [
+        (repo, cname, flags, fmt)
+        for repo in repos
+        for cname, flags in configs
+        for fmt in formats
+    ]
+    findings, checked, done = [], 0, 0
+    per_repo: dict[str, int] = collections.Counter()
+    with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {pool.submit(one_cell, *c): c for c in cells}
+        for fut in cf.as_completed(futures):
+            repo, cname, _flags, fmt = futures[fut]
+            local, ran = fut.result()
+            findings.extend(local)
+            checked += ran
+            per_repo[repo.name] += 1
+            done += 1
+            if per_repo[repo.name] == len(configs) * len(formats):
+                print(
+                    f"  {repo.name:<30} done "
+                    f"({done}/{len(cells)} cells, {checked} runs)",
+                    flush=True,
+                )
 
     nd = [f for f in findings if f["kind"].startswith("nondeterministic")]
     err = [f for f in findings if f["kind"] == "run-failed"]
-    print(f"\n{checked} runs over {len(repos)} repos x {len(configs)} configs")
+    print(
+        f"\n{checked} runs over {len(repos)} repos x {len(configs)} configs "
+        f"x {len(formats)} formats x {args.runs} runs"
+    )
     print(f"  nondeterministic: {len(nd)}")
     print(f"  failed to run   : {len(err)}")
+    if skipped_names:
+        print(
+            f"  NOT swept       : {len(skipped_names)} repo(s) — "
+            f"{', '.join(skipped_names)} (excluded by cost; this sweep "
+            f"covers {len(repos)} of {len(repos) + len(skipped_names)})"
+        )
     for f in nd[:20]:
         print(
             f"\n  !! {f['repo']} [{f['config']}/{f['fmt']}] {f['kind']} at --jobs {f.get('jobs')}"
