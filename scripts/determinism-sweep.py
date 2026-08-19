@@ -155,6 +155,67 @@ def first_diff(a: str, b: str) -> str:
     return "(identical?)"
 
 
+def _run_cell(task: tuple) -> tuple:
+    """One (repo, config, format) cell: N runs, compared pairwise.
+
+    Module-level and taking a plain tuple because it is submitted to a
+    ProcessPoolExecutor, and a nested closure is not picklable.
+
+    Returns (findings, runs_done). Self-contained — its own tempdir, no
+    shared state — which is what lets cells run concurrently.
+    """
+    repo_s, cname, flags, fmt, runs = task
+    repo = Path(repo_s)
+    local: list[dict] = []
+    ran = 0
+    tmp = Path(tempfile.mkdtemp(prefix="cgg-det-"))
+    try:
+        base = None
+        for _ in range(runs):
+            # Every run uses the DEFAULT worker count. Thread counts are
+            # no longer swept: the three defects found so far were all
+            # reproducible at a fixed count (two of them single-threaded),
+            # and forcing `--jobs 1` on a large repo cost over a hundred
+            # seconds per run to test a dimension that never produced a
+            # finding. Determinism across thread counts is covered by
+            # tests/determinism.rs on a small fixture, where it is cheap.
+            jobs = 0
+            res = run_once(repo, fmt, flags, jobs, tmp)
+            ran += 1
+            if "error" in res:
+                local.append(
+                    {
+                        "repo": repo.name,
+                        "config": cname,
+                        "fmt": fmt,
+                        "kind": "run-failed",
+                        "detail": res["error"],
+                    }
+                )
+                break
+            if base is None:
+                base = res
+                continue
+            for part in ("main", "audit", "report"):
+                if part in base and part in res and base[part] != res[part]:
+                    local.append(
+                        {
+                            "repo": repo.name,
+                            "config": cname,
+                            "fmt": fmt,
+                            "kind": f"nondeterministic:{part}",
+                            "jobs": jobs,
+                            "detail": first_diff(base[part], res[part]),
+                        }
+                    )
+                    break
+    finally:
+        # Best-effort cleanup in a finally block; a failure here must not
+        # mask the exception being unwound.
+        subprocess.run(["rm", "-rf", str(tmp)], capture_output=True, check=False)
+    return local, ran
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     # 2, not 4. Determinism is a PAIRWISE property: every run is compared
@@ -173,13 +234,20 @@ def main() -> None:
     # is ~12k — so this is only affordable because the sweep runs them
     # concurrently; see `--workers`.
     ap.add_argument("--repos", type=int, default=10_000)
-    # Each cgg run takes half the physical cores (capped), so a handful of
-    # concurrent repos already saturates the box. Oversubscription is
-    # harmless here and arguably useful: determinism must hold under any
-    # scheduling, so varied contention is a stronger test, not a flakier
-    # one.
+    # PROCESSES, not threads. The expensive half of a cell is not cgg —
+    # it is this script: `json.loads` -> `strip_timings` -> `json.dumps`
+    # over multi-megabyte graphs, once per run, plus the string compare.
+    # That is pure Python and holds the GIL, so a ThreadPoolExecutor left
+    # the sweep pinned at ~1 core (measured: python at 102% CPU with zero
+    # cgg children) and made worker count irrelevant — 4, 8 and 16 all
+    # timed within 5% of each other. Processes are what actually
+    # parallelize it.
+    #
+    # Oversubscription is harmless here and arguably useful: determinism
+    # must hold under any scheduling, so varied contention is a stronger
+    # test, not a flakier one.
     ap.add_argument(
-        "--workers", type=int, default=max(1, (os.cpu_count() or 8) // 4)
+        "--workers", type=int, default=max(1, (os.cpu_count() or 8) // 2)
     )
     ap.add_argument("--quick", action="store_true", help="default config only")
     ap.add_argument("--json", default="")
@@ -190,6 +258,7 @@ def main() -> None:
         sys.exit(f"{CGG} not found - cargo build --release -p cgg")
 
     repos = sorted(d for d in CORPUS.iterdir() if d.is_dir())
+    corpus_total = len(repos)
     # Three repos are excluded deliberately. Each takes tens of seconds
     # per invocation, and the sweep runs `configs x formats x runs` of
     # them, so any one of the three costs more wall time than the other
@@ -207,78 +276,23 @@ def main() -> None:
     configs = CONFIGS[:1] if args.quick else CONFIGS
     formats = ["json"] if args.quick else FORMATS
 
-    def one_cell(repo: Path, cname: str, flags: list[str], fmt: str) -> tuple:
-        """One (repo, config, format) cell: N runs, compared pairwise.
-
-        Returns (findings, runs_done). Self-contained — its own tempdir,
-        no shared state — which is what lets the cells run concurrently.
-        """
-        local: list[dict] = []
-        ran = 0
-        tmp = Path(tempfile.mkdtemp(prefix="cgg-det-"))
-        try:
-            base = None
-            for _ in range(args.runs):
-                # Every run uses the DEFAULT worker count. Thread counts
-                # are no longer swept: the three defects found so far were
-                # all reproducible at a fixed count (two of them
-                # single-threaded), and forcing `--jobs 1` on a large repo
-                # cost over a hundred seconds per run to test a dimension
-                # that never produced a finding. Determinism across thread
-                # counts is covered by tests/determinism.rs on a small
-                # fixture, where it is cheap.
-                jobs = 0
-                res = run_once(repo, fmt, flags, jobs, tmp)
-                ran += 1
-                if "error" in res:
-                    local.append(
-                        {
-                            "repo": repo.name,
-                            "config": cname,
-                            "fmt": fmt,
-                            "kind": "run-failed",
-                            "detail": res["error"],
-                        }
-                    )
-                    break
-                if base is None:
-                    base = res
-                    continue
-                for part in ("main", "audit", "report"):
-                    if part in base and part in res and base[part] != res[part]:
-                        local.append(
-                            {
-                                "repo": repo.name,
-                                "config": cname,
-                                "fmt": fmt,
-                                "kind": f"nondeterministic:{part}",
-                                "jobs": jobs,
-                                "detail": first_diff(base[part], res[part]),
-                            }
-                        )
-                        break
-        finally:
-            # Best-effort cleanup in a finally block; a failure here must
-            # not mask the exception being unwound.
-            subprocess.run(["rm", "-rf", str(tmp)], capture_output=True, check=False)
-        return local, ran
-
     # Cells are independent, so the sweep is embarrassingly parallel. It
     # was serial until 0.8.0, which is why a full-corpus run was ~95
     # minutes of a 64-thread machine sitting mostly idle and why the
     # default had been quietly reduced to 14 repos to compensate.
     cells = [
-        (repo, cname, flags, fmt)
+        (str(repo), cname, flags, fmt, args.runs)
         for repo in repos
         for cname, flags in configs
         for fmt in formats
     ]
     findings, checked, done = [], 0, 0
     per_repo: dict[str, int] = collections.Counter()
-    with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(one_cell, *c): c for c in cells}
+    with cf.ProcessPoolExecutor(max_workers=args.workers) as pool:
+        futures = {pool.submit(_run_cell, c): c for c in cells}
         for fut in cf.as_completed(futures):
-            repo, cname, _flags, fmt = futures[fut]
+            repo_s, cname, _flags, fmt, _runs = futures[fut]
+            repo = Path(repo_s)
             local, ran = fut.result()
             findings.extend(local)
             checked += ran
@@ -303,7 +317,7 @@ def main() -> None:
         print(
             f"  NOT swept       : {len(skipped_names)} repo(s) — "
             f"{', '.join(skipped_names)} (excluded by cost; this sweep "
-            f"covers {len(repos)} of {len(repos) + len(skipped_names)})"
+            f"covers {len(repos)} of {corpus_total})"
         )
     for f in nd[:20]:
         print(
