@@ -648,7 +648,10 @@ pub(crate) fn discover(
         );
     }
 
-    set.records.sort_by_key(|a| a.id);
+    // Discovery order (IndexMap position), not hash order — this is a
+    // user-facing report and graph order is the readable one.
+    set.records
+        .sort_by_cached_key(|a| graph.callables.get_index_of(&a.id));
     set.production.sort_unstable();
     set.test.sort_unstable();
     for v in set.rules_by_language.values_mut() {

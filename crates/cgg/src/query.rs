@@ -218,7 +218,11 @@ fn paths_through(
     // run. Without the cap the result was the same set either way, which
     // is why this stayed invisible: the defect only appears once
     // truncation actually turns work away.
-    entries.sort_unstable();
+    // Sorted by graph position, not by id value: ids are content
+    // hashes, so sorting by value is an arbitrary order, and this
+    // order decides WHICH entries get walked before `--max-paths`
+    // stops the walk.
+    entries.sort_by_cached_key(|id| graph.callables.get_index_of(id));
 
     // DFS from each entry, collecting nodes on paths that hit a seed.
     let mut on_path: HashSet<CallableId> = HashSet::new();

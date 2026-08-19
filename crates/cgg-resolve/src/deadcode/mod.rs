@@ -480,7 +480,8 @@ pub fn analyze(
                 .iter()
                 .filter_map(|&i| node_at(i).map(|x| x.file))
                 .collect();
-            files.sort_unstable();
+            // Discovery order (IndexMap position), not hash order.
+            files.sort_by_cached_key(|f| graph.files.get_index_of(f));
             files.dedup();
             let mut languages: Vec<String> =
                 members.iter().map(|&i| lang_at(i)).collect();

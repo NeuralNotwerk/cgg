@@ -139,7 +139,13 @@ pub fn link_descriptors(graph: &Graph) -> Vec<CallEdge> {
         }
     }
 
-    out.sort_by_key(|e| (e.src, e.dst));
+    // Discovery order, not hash order.
+    out.sort_by_cached_key(|e| {
+        (
+            graph.callables.get_index_of(&e.src),
+            graph.callables.get_index_of(&e.dst),
+        )
+    });
     out
 }
 
