@@ -7,6 +7,8 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-19
+
 ### Changed — BREAKING: node ids are content-derived, not sequential
 
 - **`CallableId`/`FileId` are now stable, content-derived hashes instead
@@ -85,20 +87,85 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Performance
 
-- Measured with `scripts/perf-compare.sh main 7` — median of 7 runs per
-  repo, alternating which binary goes first. The corpus budget stopped
-  the sweep after **67 of 113 repos** (alphabetical prefix, through
-  `erlang-otp`); that is disclosed rather than presented as full
-  coverage.
+- Measured with `scripts/perf-compare.sh` against `072dbb0`, the commit
+  0.7.0 shipped from plus one docs-only commit (`git diff --name-only
+  ea9fbef 072dbb0` matches no `.rs`/`.toml`/`.lock` file, so it is
+  perf-identical to the 0.7.0 release). Median of 7 runs per repo,
+  alternating which binary goes first. Machine load at measurement time:
+  **2.90, 3.17, 4.32** on a 64-thread host.
+
+  The corpus budget stopped the sweep after **67 of 113 repos**
+  (alphabetical prefix, through `erlang-otp`). That is a partial sweep
+  and is stated as one rather than presented as full coverage.
 
   | comparison | median per-repo | total (excl. `erlang-otp`) |
   | --- | --- | --- |
-  | content-derived ids vs `main` | **+3.5%** | +2.9% |
+  | 0.8.0 vs 0.7.0 | **+3.5%** | +2.9% |
 
-  So the feature costs roughly **3%**, which is the blake3 hash and
+  So content-derived ids cost roughly **3%** — a blake3 hash and a
   `HashSet` probe per callable replacing an integer increment. Against
   the harness's own stated noise floor of 1–1.5% on a total, the
-  per-repo median is a real cost, not jitter.
+  per-repo median is a real cost, not jitter. **The comparison is
+  like-for-like**: this release enables no new work by default, and the
+  resulting graph is byte-identical to 0.7.0's on all 113 corpus repos
+  (nodes and edges by name, including `via` and confidence).
+
+  Regressions over 5% on repos whose baseline exceeds 150 ms:
+  `bash-acme` +12.9% (155→175 ms), `app-spring-mall` +10.6%
+  (406→449 ms), `app-eshop-aspnet` +7.0%, `app-vaultwarden-rocket`
+  +6.8%, `app-flaskbb-flask` +6.1%, `app-thingsboard-concurrent` +5.9%
+  (5732→6072 ms), `elixir-phoenix` +5.5%, `app-druid-jaxrs` +5.4%. All
+  are the same per-callable hashing cost; none is a repo-shape effect,
+  and the move is corpus-wide rather than one repository — 51 of 67
+  slower, 14 faster, 2 flat.
+
+  **`erlang-otp` is excluded from the total and the exclusion is the
+  point.** The same binary measured 26,651 ms in one sweep and 36,280 ms
+  in another — a 36% spread with no code change between them. A direct
+  alternating measurement (5 samples, median, default jobs) puts it at
+  **26.9 s against 0.7.0's 28.1 s**, i.e. slightly faster, so the large
+  positive deltas some sweeps report for it are machine contention, not
+  a regression. It is 28% of the corpus total, so leaving it in swings
+  the headline number by ten points in either direction. This is the
+  trap 0.6.x fell into and CLAUDE.md records: quote the median, not a
+  total one repository can dominate.
+
+  Developer-facing latency, on the same host:
+
+  | | timing |
+  | --- | --- |
+  | `cargo test --workspace` (warm) | 5.9 s / 6.1 s / 14.0 s cold |
+  | `.githooks/pre-commit` end to end | 6.8 s / 6.8 s |
+
+  Two changes in this release were made *because* they were measured.
+  Keeping the mermaid/dot dedup keys `Copy` avoids two `String`
+  allocations per edge plus two more per lookup. And the redundant
+  `include_by_last` sort in `cross_file.rs` was dropped rather than
+  re-keyed: sorting those buckets by `PathBuf` cost **+30% on
+  `erlang-otp`** on its own, and the buckets are already built in
+  discovery order, so the sort never did anything.
+
+### Compatibility / migration
+
+- **The default graph is unchanged.** Verified across all 113 benchmark
+  repositories: nodes and edges compare identical to 0.7.0 by name,
+  including `via` and confidence. Only the *identifiers* changed.
+- **Raw ids are not comparable across versions.** A diff of ids against
+  pre-0.8.0 output shows every node as new, once. From 0.8.0 forward a
+  diff against a previous run is meaningful for the first time.
+- **JSON ids are strings, not numbers.** `{"src": 0}` is now
+  `{"src": "C4k2j9qh3xz"}`, and the `callables`/`files` objects are
+  keyed by the same string. jq expressions calling `tonumber` on an id
+  will fail; drop the coercion.
+- **`cgg-py`**: `Callable.id`, `Edge.src`, `Edge.dst` and `File.id` are
+  `u64`. Python's `int` already covers the range, so no caller change is
+  needed unless it assumed ids were small or sequential.
+- **`cgg-node`**: the same fields are `number`, and `Graph.files` now
+  returns `Array<{ id, path }>` instead of `Array<string>` indexed by
+  `Callable.file` — that indexing only worked while ids were sequential.
+  Match by id.
+- **`cgg-ffi`**: unaffected. The C ABI never exposed raw ids, only
+  rendered strings and JSON, which is why it needed no change.
 
   **`erlang-otp` is excluded from the totals above and the exclusion is
   the point.** The same binary measured 26,651 ms in one sweep and
@@ -119,67 +186,6 @@ ever grows in default mode — see *Compatibility* below).
   discovery order cost **+30% on `erlang-otp`** on its own, and the
   buckets are already built in discovery order, so the sort was never
   doing anything.
-
-### Added
-
-- **Google Cloud Functions, Azure Functions, Firebase, Cloudflare
-  Workers and Deno** — 18 enumerating rules across five platforms.
-  Google Cloud Functions had **no rule in any language**; Azure,
-  Cloudflare and Deno detected their framework and enumerated nothing
-  from it.
-
-  | Platform | Runtimes | Mechanism |
-  | --- | --- | --- |
-  | Google Cloud Functions | Python, JS, TS, Go, Java, C# | Functions Framework decorators, `functions.http('name', h)`, and the `HttpFunction`/`IHttpFunction` contracts |
-  | Azure Functions | C#, Java, Python, JS, TS | `[Function]`/`[FunctionName]`/`@FunctionName`, the v2 Python decorators, v4's `app.http('name', { handler })` |
-  | Firebase Functions | JS, TS, Python | v2 trigger registrars, `@https_fn.on_request` |
-  | Cloudflare Workers | JS, TS | module-worker `fetch`/`scheduled`/`queue`/`email`, plus legacy `addEventListener('fetch', …)` |
-  | Deno | JS, TS | `Deno.serve` handlers, default-exported `fetch` |
-
-  Verified on real repositories, each now an APPS entry:
-  `functions-framework-nodejs` (3 entries), `firebase/functions-samples`
-  (17 Python + 2 JS), both Azure quickstarts (2 each),
-  `cloudflare/workers-rs` (3), `denoland/std` (1).
-
-### Fixed
-
-- **A registration needed a route string, and three platforms had
-  none.** `is_registration_shape` required a leading string literal
-  before it would name an inline handler, so `Deno.serve((req) => …)`,
-  Firebase's `onRequest((req, res) => …)` and Express middleware
-  `app.use(fn)` enumerated nothing.
-
-  The string was never what made that gate safe — the caller's
-  *registrar-verb* gate is, and `describe`, `it`, `map`, `then` and
-  `setTimeout` are registrar verbs in no rule. Measured before removing
-  it: **+1.4% nodes on Ghost, +0.1% on cal.com**, and wall clock
-  unchanged to slightly faster.
-
-- **Inline closures inside an options object were invisible.** Azure
-  Functions' v4 model writes every handler as
-  `app.http("name", { handler: async (req, ctx) => … })`, and only
-  argument position was scanned — the whole runtime enumerated nothing.
-  `javascript.rs` also carried its own copy of the closure scan rather
-  than calling the shared helper, so fixing the helper alone was not
-  enough.
-
-- **Cloudflare's detection missed `@cloudflare/workers-types`**, the
-  import a TypeScript Worker actually uses, so the commonest Worker in
-  existence was not detected at all.
-
-### Changed
-
-- **Firebase's deprecated v1 vocabulary is deliberately not
-  registered.** `onCreate`/`onUpdate`/`onDelete`/`onWrite`/`onRun`
-  collide with ORM lifecycle hooks and event emitters across the whole
-  language, and verb gating happens at extraction time — carrying them
-  cost a measured **5.3% on Ghost and 1.9% on Immich** for a deprecated
-  API. Bisected by stripping rule groups one at a time; Azure's verbs,
-  by contrast, cost -0.2%. A named v1 handler still binds by value
-  reference; only its entry label is lost.
-
-  Net effect of the whole change set, nine paired runs at `--jobs 1`
-  against 0.6.7: **-3.1% median, -2.0% min** on Ghost.
 
 ## [0.7.0] - 2026-08-17
 
@@ -339,6 +345,77 @@ scoping the registrar-verb gate per language moves JS/TS dead-code
 findings (-69 on Ghost, +6 on cal.com), and inline handlers that carry
 no route string now register, which adds synthesized handler nodes
 (+1.4% on Ghost).
+
+### Added / Fixed / Changed — cloud entry points (filed late)
+
+These three subsections describe work that shipped **in 0.7.0** but
+was left under `## [Unreleased]` when that release was cut, so it sat
+unattributed until the 0.8.0 bump found it. Moved here rather than
+rolled into 0.8.0, which would have claimed already-released features
+as new. The summary bullet and language table above cover the same
+work; these add the per-platform detail.
+
+### Added
+
+- **Google Cloud Functions, Azure Functions, Firebase, Cloudflare
+  Workers and Deno** — 18 enumerating rules across five platforms.
+  Google Cloud Functions had **no rule in any language**; Azure,
+  Cloudflare and Deno detected their framework and enumerated nothing
+  from it.
+
+  | Platform | Runtimes | Mechanism |
+  | --- | --- | --- |
+  | Google Cloud Functions | Python, JS, TS, Go, Java, C# | Functions Framework decorators, `functions.http('name', h)`, and the `HttpFunction`/`IHttpFunction` contracts |
+  | Azure Functions | C#, Java, Python, JS, TS | `[Function]`/`[FunctionName]`/`@FunctionName`, the v2 Python decorators, v4's `app.http('name', { handler })` |
+  | Firebase Functions | JS, TS, Python | v2 trigger registrars, `@https_fn.on_request` |
+  | Cloudflare Workers | JS, TS | module-worker `fetch`/`scheduled`/`queue`/`email`, plus legacy `addEventListener('fetch', …)` |
+  | Deno | JS, TS | `Deno.serve` handlers, default-exported `fetch` |
+
+  Verified on real repositories, each now an APPS entry:
+  `functions-framework-nodejs` (3 entries), `firebase/functions-samples`
+  (17 Python + 2 JS), both Azure quickstarts (2 each),
+  `cloudflare/workers-rs` (3), `denoland/std` (1).
+
+### Fixed
+
+- **A registration needed a route string, and three platforms had
+  none.** `is_registration_shape` required a leading string literal
+  before it would name an inline handler, so `Deno.serve((req) => …)`,
+  Firebase's `onRequest((req, res) => …)` and Express middleware
+  `app.use(fn)` enumerated nothing.
+
+  The string was never what made that gate safe — the caller's
+  *registrar-verb* gate is, and `describe`, `it`, `map`, `then` and
+  `setTimeout` are registrar verbs in no rule. Measured before removing
+  it: **+1.4% nodes on Ghost, +0.1% on cal.com**, and wall clock
+  unchanged to slightly faster.
+
+- **Inline closures inside an options object were invisible.** Azure
+  Functions' v4 model writes every handler as
+  `app.http("name", { handler: async (req, ctx) => … })`, and only
+  argument position was scanned — the whole runtime enumerated nothing.
+  `javascript.rs` also carried its own copy of the closure scan rather
+  than calling the shared helper, so fixing the helper alone was not
+  enough.
+
+- **Cloudflare's detection missed `@cloudflare/workers-types`**, the
+  import a TypeScript Worker actually uses, so the commonest Worker in
+  existence was not detected at all.
+
+### Changed
+
+- **Firebase's deprecated v1 vocabulary is deliberately not
+  registered.** `onCreate`/`onUpdate`/`onDelete`/`onWrite`/`onRun`
+  collide with ORM lifecycle hooks and event emitters across the whole
+  language, and verb gating happens at extraction time — carrying them
+  cost a measured **5.3% on Ghost and 1.9% on Immich** for a deprecated
+  API. Bisected by stripping rule groups one at a time; Azure's verbs,
+  by contrast, cost -0.2%. A named v1 handler still binds by value
+  reference; only its entry label is lost.
+
+  Net effect of the whole change set, nine paired runs at `--jobs 1`
+  against 0.6.7: **-3.1% median, -2.0% min** on Ghost.
+
 
 ## [0.6.7] - 2026-08-14
 
