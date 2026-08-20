@@ -346,16 +346,18 @@ A mermaid flowchart from cgg looks like this (real output of
 
 ```text
 flowchart LR
-  Ck6rdns31fh["cgg::analyze_in_pool"]
-  C1a7yv3q0ebt["cgg::read_file"]
-  Ck6rdns31fh --> C1a7yv3q0ebt
+  Cqf3yb5yflr["cgg::analyze_in_pool"]
+  Cykc0uwg6nu["cgg::read_file"]
+  Cqf3yb5yflr --> Cykc0uwg6nu
 ```
 
-Node ids (`Ck6rdns31fh`) are a type prefix plus lowercase base36 digits,
+Node ids (`Cqf3yb5yflr`) are a type prefix plus lowercase base36 digits,
 derived by hashing the callable's identity — **not** a sequential index.
 The same callable keeps the same id across runs of the same tree, so ids
 are comparable between two runs: editing an unrelated file, or moving
-code within a file, leaves an id alone. Two caveats before you rely on
+code within a file, leaves an id alone. The path that feeds the hash is
+relative to the analysis root, so the id does not change with how cgg
+was invoked or where the tree is checked out. Two caveats before you rely on
 that. Ids are not comparable across cgg *versions*. And where cgg
 genuinely cannot tell two callables apart — same file, same qualified
 name, same signature — it separates them by declaration order, so
@@ -371,7 +373,7 @@ the graph with guesses.
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
 into a single arrow with a multiplicity label — e.g.
-`Ck6rdns31fh -->|18x| C1a7yv3q0ebt` in mermaid, or
+`Cqf3yb5yflr -->|18x| Cykc0uwg6nu` in mermaid, or
 `nk6rdns31fh -> n1a7yv3q0ebt [label="18x"];` in dot. The bare arrow form
 is used when the count is 1. When an edge also carries a `Via` tag the
 label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.

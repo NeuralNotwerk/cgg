@@ -261,6 +261,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
 
     let parse_started = Instant::now();
     let mut stable_ids = StableIds::new();
+    let id_roots = stable_ids::id_roots(&opts.paths);
 
     // Collected facts per file, used by the intra-file linker below.
     let mut all_facts: Vec<FileFacts> = Vec::new();
@@ -421,7 +422,10 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 });
                 metrics.bytes_processed += fr.size_bytes;
 
-                let relative_path = fr.path.to_string_lossy().into_owned();
+                // Relative to the analysis root, NOT the path as typed:
+                // hashing the raw display path made an id depend on how
+                // cgg was invoked. See `stable_ids::id_path`.
+                let relative_path = stable_ids::id_path(&fr.path, &id_roots);
                 let file_id = stable_ids.file(&relative_path);
 
                 // Classify test code once, from (path, language), and

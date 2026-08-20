@@ -38,6 +38,28 @@ ever grows in default mode — see *Compatibility* below).
   the residual being callables cgg genuinely cannot tell apart, where no
   key can do better.
 
+  **The path component is relative to the analysis root, not the path
+  you typed.** `cgg-walk` reports each file under the root it was given,
+  so hashing the raw path made an id a function of the invocation rather
+  than of the code — the same file, same content, same name produced
+  four different ids:
+
+  ```text
+  cgg /tmp/smoke2   Ck1v6lk3phz
+  cgg smoke2        Cf83zjoounv
+  cgg .             Cn10c7f0lc7
+  cgg t.py          Cvgb78ftyly
+  ```
+
+  That defeated the point: two checkouts at different paths, or CI and a
+  laptop, would agree on the graph and disagree on every id in it. With
+  one root the root is now stripped entirely, so ids are
+  location-independent; with several roots the root's directory name is
+  kept as a prefix, because `src/m.py` and `tests/m.py` are different
+  files and collapsing both to `m.py` would push them into the
+  order-dependent redraw. Three regression tests cover it — nothing did
+  before.
+
   `start_byte` was measured as an alternative and rejected. It is unique
   corpus-wide, but it churns on movement — one comment line added at the
   top of `spdlog`'s busiest header moved 135 of 1,157 ids, destroying

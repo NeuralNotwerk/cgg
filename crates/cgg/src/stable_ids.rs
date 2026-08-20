@@ -97,6 +97,92 @@ fn allocate(hasher: blake3::Hasher, seen: &mut HashSet<u64>) -> u64 {
     }
 }
 
+/// The path string an id is keyed on: the file's location **relative to
+/// the analysis root**, not the path as it was typed.
+///
+/// This is load-bearing. `cgg-walk` reports each file under the
+/// `display_root` it was given, so the raw path is whatever the caller
+/// wrote — and hashing that made an id depend on the invocation rather
+/// than on the code. The same file, same content, same name produced
+/// four different ids:
+///
+/// ```text
+/// cgg /tmp/smoke2   Ck1v6lk3phz
+/// cgg smoke2        Cf83zjoounv
+/// cgg .             Cn10c7f0lc7
+/// cgg t.py          Cvgb78ftyly
+/// ```
+///
+/// which defeats the point of content-derived ids: two checkouts at
+/// different paths, or CI and a laptop, would agree on the graph and
+/// disagree on every id in it.
+///
+/// With one root — the overwhelmingly common case — the root is stripped
+/// entirely, so the key is location-independent: the same tree gives the
+/// same ids wherever it sits on disk. With several roots the root's
+/// canonical directory name is kept as a prefix, because `src/mod.py`
+/// and `tests/mod.py` are different files and stripping both to `mod.py`
+/// would collide them into the redraw path, which is order-dependent —
+/// the very thing the identity key exists to avoid.
+pub fn id_path(path: &std::path::Path, roots: &[IdRoot]) -> String {
+    for r in roots {
+        if let Ok(rest) = path.strip_prefix(&r.display) {
+            // A file passed directly as a root strips to nothing; its own
+            // name is the whole relative path.
+            let rest = if rest.as_os_str().is_empty() {
+                std::path::Path::new(path.file_name().unwrap_or_default())
+            } else {
+                rest
+            };
+            return format!("{}{}", r.prefix, rest.to_string_lossy());
+        }
+    }
+    // No root matched (defensive: the walker builds these paths from the
+    // roots, so this should not happen). Falling back to the raw path is
+    // wrong-but-stable rather than a panic.
+    path.to_string_lossy().into_owned()
+}
+
+/// One analysis root, prepared for `id_path`.
+#[derive(Debug, Clone)]
+pub struct IdRoot {
+    /// The root exactly as the walker will have prefixed file paths with.
+    pub display: std::path::PathBuf,
+    /// `""` for a single root, `"<dirname>/"` when several roots could
+    /// otherwise contribute colliding relative paths.
+    pub prefix: String,
+}
+
+/// Build the `IdRoot` list for a run. Canonicalisation happens here, once
+/// per root rather than once per file, and only to derive the
+/// disambiguating directory name — the strip itself is textual, because
+/// the walker composes every path from the display root.
+pub fn id_roots(paths: &[std::path::PathBuf]) -> Vec<IdRoot> {
+    let multi = paths.len() > 1;
+    paths
+        .iter()
+        .map(|p| {
+            let prefix = if !multi {
+                String::new()
+            } else {
+                let canon = p.canonicalize().unwrap_or_else(|_| p.clone());
+                let dir = if canon.is_file() {
+                    canon.parent().map(|d| d.to_path_buf()).unwrap_or(canon)
+                } else {
+                    canon
+                };
+                dir.file_name()
+                    .map(|n| format!("{}/", n.to_string_lossy()))
+                    .unwrap_or_default()
+            };
+            IdRoot {
+                display: p.clone(),
+                prefix,
+            }
+        })
+        .collect()
+}
+
 /// Stateful allocator for content-derived `FileId`/`CallableId` values.
 /// One instance is threaded through a whole `analyze_in_pool` run so the
 /// three allocation sites (file/callable merge, exit-node synthesis,
@@ -177,6 +263,71 @@ impl StableIds {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The defect this keyed on: `cgg-walk` reports files under the
+    /// root as typed, so hashing the raw path made an id a function of
+    /// the invocation. `cgg /tmp/x`, `cgg x`, `cgg .` and `cgg t.py` all
+    /// describe the same file and produced four different ids.
+    #[test]
+    fn id_path_is_the_same_however_the_root_was_written() {
+        use std::path::{Path, PathBuf};
+        let forms = [
+            (PathBuf::from("/tmp/smoke2"), "/tmp/smoke2/t.py"),
+            (PathBuf::from("smoke2"), "smoke2/t.py"),
+            (PathBuf::from("."), "./t.py"),
+            (PathBuf::from("t.py"), "t.py"),
+        ];
+        for (root, file) in forms {
+            let roots = vec![IdRoot {
+                display: root.clone(),
+                prefix: String::new(),
+            }];
+            assert_eq!(
+                id_path(Path::new(file), &roots),
+                "t.py",
+                "root {root:?} / file {file}"
+            );
+        }
+    }
+
+    /// With one root the root is stripped entirely, so the same tree
+    /// gives the same ids wherever it is checked out.
+    #[test]
+    fn a_single_root_is_stripped_so_ids_are_location_independent() {
+        use std::path::{Path, PathBuf};
+        let a = id_roots(&[PathBuf::from("/home/alice/repo")]);
+        let b = id_roots(&[PathBuf::from("/srv/ci/build/repo")]);
+        assert_eq!(
+            id_path(Path::new("/home/alice/repo/src/lib.rs"), &a),
+            id_path(Path::new("/srv/ci/build/repo/src/lib.rs"), &b),
+        );
+        assert_eq!(
+            id_path(Path::new("/home/alice/repo/src/lib.rs"), &a),
+            "src/lib.rs"
+        );
+    }
+
+    /// Several roots keep a disambiguating directory name, because
+    /// `src/m.py` and `tests/m.py` are different files and collapsing
+    /// both to `m.py` would push them into the order-dependent redraw.
+    #[test]
+    fn multiple_roots_do_not_collapse_same_named_files() {
+        use std::path::Path;
+        let roots = vec![
+            IdRoot {
+                display: "/mr/src".into(),
+                prefix: "src/".into(),
+            },
+            IdRoot {
+                display: "/mr/tests".into(),
+                prefix: "tests/".into(),
+            },
+        ];
+        let a = id_path(Path::new("/mr/src/m.py"), &roots);
+        let b = id_path(Path::new("/mr/tests/m.py"), &roots);
+        assert_ne!(a, b);
+        assert_eq!((a.as_str(), b.as_str()), ("src/m.py", "tests/m.py"));
+    }
 
     #[test]
     fn same_inputs_produce_the_same_file_id() {

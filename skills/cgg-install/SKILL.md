@@ -208,15 +208,15 @@ printf 'def a():\n    return b()\n\ndef b():\n    return 1\n' > /tmp/cgg-smoke/t
 cgg /tmp/cgg-smoke
 ```
 
-Expected output (node ids are content-derived, so they are stable for
-this exact input but are not sequential — the two labels and the one
-arrow are what to check):
+Expected output, exactly — node ids are derived from the file's path
+relative to the analysis root plus each callable's identity, so this
+input gives these ids wherever you put the directory:
 
 ```text
 flowchart LR
-  C15ok5bo1gvr["t.a"]
-  Cqvd8tmwlzt["t.b"]
-  C15ok5bo1gvr --> Cqvd8tmwlzt
+  Cvgb78ftyly["t.a"]
+  C2o2t4b41od["t.b"]
+  Cvgb78ftyly --> C2o2t4b41od
 ```
 
 If the user *does* have the source tree, run cgg against itself:
