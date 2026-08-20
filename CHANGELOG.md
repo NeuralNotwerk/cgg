@@ -145,6 +145,56 @@ ever grows in default mode — see *Compatibility* below).
   `erlang-otp`** on its own, and the buckets are already built in
   discovery order, so the sort never did anything.
 
+### Testing
+
+- **The determinism sweep now covers the whole corpus, and runs in
+  processes.** Three defaults made it both slower and weaker than it
+  read. `--repos` defaulted to 14 of 113, so a green sweep described a
+  random eighth of the corpus while sounding like it described all of
+  it. `--runs` defaulted to 4, but determinism is a pairwise property —
+  every run is compared against the first, so run 2 is the one that can
+  detect a difference and later runs are only further chances at an
+  intermittent one; with ~5.5k cells across the corpus, breadth samples
+  that far better than depth per cell. And the sweep ran strictly
+  serially.
+
+  Parallelising it with threads changed nothing — 142s / 139s / 146s at
+  4 / 8 / 16 workers over a fixed subset, with python at 102% CPU and
+  zero cgg children. The cost is this script, not cgg: `json.loads` ->
+  `strip_timings` -> `json.dumps` over multi-megabyte graphs, which is
+  GIL-bound. Processes fixed it:
+
+  | executor | 8w | 16w | 32w | 48w |
+  | --- | --- | --- | --- | --- |
+  | ThreadPool | 140s | 139s | 146s | — |
+  | ProcessPool | 80s | 49s | 42s | 37s |
+
+  ~3.8x at the new default of `cores/2`.
+
+- **16 framework rules now have a real application behind them.**
+  `APPS_UNVERIFIED` — rules cgg detects but that nothing proves it can
+  *enumerate* — goes from 45 to 29, and 121 rules now enumerate entry
+  points in a real application. The distinction matters: a rule that
+  detects without enumerating leaves every handler of that framework at
+  in-degree zero, which is not merely incomplete but wrong.
+
+  The applications are projects *built on* each framework, not the
+  framework's own repository. An earlier attempt used the framework
+  repos and they do enumerate — but only because their own test suites
+  exercise their own decorators, which is close to circular. `martini`
+  made the point: `go-martini/martini` does not import itself, so its
+  import-path detect never fired at all.
+
+  Two rules stay unverified with their real reason recorded rather than
+  boilerplate. `martini` is a **cgg gap**: `martini-contrib/render`
+  registers 21 routes as `m.Get("/x", func(...){...})` and cgg records a
+  value reference only for a bare identifier, so an inline closure
+  handler binds to no callable. `symfony-messenger` has no application
+  using the component.
+
+  This also fixed three stale `~` gap markers and eight never-cloned
+  cloud APPS entries, so `scripts/framework-coverage.py` exits 0 again.
+
 ### Compatibility / migration
 
 - **The default graph is unchanged.** Verified across all 113 benchmark
