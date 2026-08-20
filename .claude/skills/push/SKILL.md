@@ -188,6 +188,25 @@ When you bump, change **all** of these in one commit, then validate:
 3. `Cargo.lock` → refresh by running `cargo build` (rewrites the **nine**
    `cgg*` entries — the six above plus `cgg-ffi`, `cgg-node`, `cgg-py`).
    Stage the result; the pre-commit hook does not.
+3a. **The npm metadata, which Cargo does not touch and which nothing
+   else in this list catches.** Six `package.json` files carry their own
+   `version`: `crates/cgg-node/package.json` and the five under
+   `crates/cgg-node/npm/*/`. The root also pins each platform package in
+   `optionalDependencies`, so a partial bump ships a root at the new
+   version depending on platform packages at the old one — the
+   split-brain the release workflow's `--ignore-scripts` comment
+   describes. `crates/cgg-node/index.js` embeds a hardcoded version
+   check too; it is generated, so regenerate it with `napi build` rather
+   than editing it.
+
+   Not hypothetical. v0.8.0 was tagged with all four Cargo items correct
+   and every gate green, and the release job still failed:
+   `npm notice version: 0.7.0`, then `403 You cannot publish over the
+   previously published versions: 0.7.0`. Only the registry rejecting a
+   duplicate stopped a wrong publish. The symbolic check below is why —
+   scoped to `Cargo.toml`, it passed while six files and five dependency
+   pins were stale.
+
 4. `CHANGELOG.md` → add `## [x.y.z] - YYYY-MM-DD` (today's date) at the
    top, with `### Added` / `### Changed` / `### Fixed` / `### Compatibility`
    subsections as applicable. Match the existing entry's voice.
@@ -197,6 +216,11 @@ When you bump, change **all** of these in one commit, then validate:
 Symbolic check after bumping (substitute the version you are leaving):
 
 ```bash
+# Repo-wide, NOT scoped to Cargo.toml — the version also lives in npm
+# metadata, and a Cargo-only check passes while `npm publish` ships the
+# old number. Docs/CHANGELOG legitimately cite old versions, so exclude
+# them rather than narrowing the search.
+git ls-files -z | xargs -0 grep -lE '0\.6\.2' | grep -vE '\.md$'
 rg -n '0\.6\.2' Cargo.toml             # must return nothing for the old version
 cargo build --release -p cgg           # Cargo.lock now consistent
 ./target/release/cgg --version         # prints the new version
