@@ -134,6 +134,15 @@ impl GraphFormatter for MermaidFormatter {
             // box stands for many functions, and a reader who only ever
             // sees the mermaid has no other way to learn how many.
             let rollup_tag = node.rollup.as_ref().map(|r| {
+                // An entry group folds routes, not functions, and saying
+                // "412 fns" of a `<framework-entry>` node would describe
+                // the handlers rather than the entries — the count is of
+                // the boundary crossings, and the reader needs to know
+                // the node is still an inferred one.
+                if node.framework_entry.is_some() {
+                    let noun = if r.members == 1 { "entry" } else { "entries" };
+                    return format!(" ⟨{} framework {noun} — INFERRED⟩", r.members);
+                }
                 let unref = if r.unreferenced_members == r.members && r.members > 0 {
                     ", all unreferenced"
                 } else {

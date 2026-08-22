@@ -627,7 +627,12 @@ pub fn apply(
             synthetic: true,
             trait_impl_target: None,
             unreferenced,
-            framework_entry: None,
+            // Preserved, not dropped: the members of an entry group are
+            // keyed on their trust kind, so it is uniform across them,
+            // and it is the field every formatter reads to decide how to
+            // label the node. A group that silently stopped being a
+            // framework entry would read as ordinary code.
+            framework_entry: first.framework_entry,
             rollup: Some(RollupMeta {
                 level: level_name.clone(),
                 members: ms.len() as u32,
@@ -690,11 +695,13 @@ fn ensure_file(out: &mut Graph, src: &Graph, id: FileId) -> FileId {
 /// Two node populations get their own rules, because the generic ones
 /// produce nonsense for them:
 ///
-/// * **`<framework-entry>` nodes are never grouped.** They all share one
-///   sentinel file, so any path-based level would collapse every entry
-///   in the tree into a single node — destroying exactly the thing an
-///   entry node exists to say. They key on their own name and pass
-///   through.
+/// * **`<framework-entry>` nodes fold by `(trust kind, framework)`.**
+///   They all share one sentinel file, so a path-based level would
+///   collapse every entry in the tree into a single node — destroying
+///   exactly what an entry node exists to say. Keying on the first three
+///   segments of their name keeps the framework and the trust boundary
+///   and folds only the per-route multiplicity. A framework with one
+///   entry passes through whole, since folding it would gain nothing.
 /// * **`<external>` / `<stdlib>` exit nodes group by dependency.**
 ///   They share a sentinel file too, but here collapsing is the *useful*
 ///   answer: `<external>::tree_sitter::Node` is a better summary than a
@@ -708,7 +715,27 @@ fn group_key(
     pkg: &mut PackageProbe,
 ) -> String {
     if node.framework_entry.is_some() {
-        return node.qualified_name.clone();
+        // Folded by `(trust kind, framework)`, which is the first three
+        // segments of the name `FrameworkEntry::node_name` builds:
+        // `<framework-entry>::queue::spring-batch::<route or handler>`.
+        //
+        // Not exempted from rollup, which is what the first cut did. The
+        // reasoning then was that entry nodes all share one sentinel
+        // path, so a path-based level would collapse every entry in the
+        // tree into a single node and destroy the one thing an entry
+        // node exists to say. True — but "never fold" gives the budget a
+        // floor it cannot get under. Spring Batch measured 10,639
+        // callables folding to *two* language groups while 412 entry
+        // nodes passed through untouched and made up 99% of the output,
+        // so `--rollup 40k` could not be met at any granularity.
+        //
+        // Keying on kind and framework keeps both facts an entry node
+        // carries — which framework, and which trust boundary — and
+        // folds only the per-route multiplicity, which the member count
+        // then states outright.
+        let mut it = node.qualified_name.split("::");
+        let key: Vec<&str> = (&mut it).take(3).collect();
+        return key.join("::");
     }
     let path = graph
         .files
@@ -1147,7 +1174,17 @@ mod tests {
     }
 
     #[test]
-    fn framework_entry_nodes_are_never_grouped() {
+    fn entry_nodes_fold_by_framework_and_trust_kind() {
+        // The first cut exempted `<framework-entry>` nodes from rollup
+        // entirely, reasoning that they share one sentinel path so any
+        // path-based level would collapse every entry in the tree into
+        // one node. True, but "never fold" gave the budget a floor it
+        // could not get under: java-spring-batch folded 10,639 callables
+        // to two language groups while 412 entry nodes passed through
+        // untouched and were 99% of the output, so no granularity met a
+        // 40k budget. Keying on `(trust kind, framework)` keeps both
+        // facts an entry node carries and folds only the per-route
+        // multiplicity.
         let mut g = fixture();
         let fid = FileId::new(9);
         g.add_file(FileRecord {
@@ -1156,10 +1193,24 @@ mod tests {
             language: "framework-entry".into(),
             ..Default::default()
         });
-        for (i, name) in ["<framework-entry>flask:/a", "<framework-entry>flask:/b"]
-            .iter()
-            .enumerate()
-        {
+        use cgg_core::frameworks::TrustKind;
+        // The real shape `FrameworkEntry::node_name` emits:
+        // `<framework-entry>::<kind>::<framework>::<route or handler>`.
+        let entries = [
+            (
+                "<framework-entry>::network::flask::route(\"/a\")",
+                TrustKind::Network,
+            ),
+            (
+                "<framework-entry>::network::flask::route(\"/b\")",
+                TrustKind::Network,
+            ),
+            (
+                "<framework-entry>::queue::celery::task(\"send\")",
+                TrustKind::Queue,
+            ),
+        ];
+        for (i, (name, kind)) in entries.iter().enumerate() {
             g.add_callable(CallableNode {
                 id: CallableId::new(20 + i as u32),
                 qualified_name: (*name).into(),
@@ -1167,24 +1218,50 @@ mod tests {
                 language: "python".into(),
                 file: fid,
                 synthetic: true,
-                framework_entry: Some(cgg_core::frameworks::TrustKind::Network),
+                framework_entry: Some(*kind),
                 ..Default::default()
             });
         }
         let mut ids = StableIds::new();
-        // `dir:1` would otherwise put both under the `<framework-entry>`
-        // sentinel path and merge them into one node.
         let out = apply(&g, RollupLevel::Dir(1), &mut ids, &[]);
-        let entries: Vec<&str> = out
+        let names: Vec<&str> = out
             .callables
             .values()
             .filter(|c| c.framework_entry.is_some())
             .map(|c| c.qualified_name.as_str())
             .collect();
         assert_eq!(
-            entries,
-            ["<framework-entry>flask:/a", "<framework-entry>flask:/b"]
+            names,
+            [
+                "<framework-entry>::network::flask",
+                "<framework-entry>::queue::celery::task(\"send\")",
+            ],
+            "the two flask routes fold together; celery keeps its \
+             identity because it had nothing to fold with"
         );
+
+        let flask = out
+            .callables
+            .values()
+            .find(|c| c.qualified_name == "<framework-entry>::network::flask")
+            .expect("flask group");
+        assert_eq!(flask.rollup.as_ref().unwrap().members, 2);
+        assert_eq!(
+            flask.framework_entry,
+            Some(TrustKind::Network),
+            "a folded entry group must still declare its trust boundary"
+        );
+
+        // A framework with one entry has nothing to gain from folding,
+        // so it keeps its full route rather than being renamed after a
+        // key that says less.
+        let celery = out
+            .callables
+            .values()
+            .find(|c| c.qualified_name.contains("celery"))
+            .expect("celery entry");
+        assert!(celery.rollup.is_none(), "a lone entry is not a group");
+        assert_eq!(celery.framework_entry, Some(TrustKind::Queue));
     }
 
     #[test]

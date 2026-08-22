@@ -813,13 +813,13 @@ Measured on `cgg ./crates`:
 
 | `--rollup-by` | Nodes | Edges | Est. tokens |
 | ------------- | ----- | ----- | ----------- |
-| (none) | 2199 | 5223 | 148,781 |
-| `type` | 366 | 742 | 27,116 |
-| `module` | 242 | 651 | 20,890 |
-| `file` | 141 | 530 | 15,527 |
-| `dir:2` | 33 | 52 | 2,815 |
-| `package` | 26 | 42 | 2,424 |
-| `language` | 21 | 20 | 1,826 |
+| (none) | 2199 | 5223 | 148,787 |
+| `type` | 350 | 728 | 25,813 |
+| `module` | 226 | 636 | 19,557 |
+| `file` | 125 | 515 | 14,203 |
+| `dir:2` | 17 | 37 | 1,490 |
+| `package` | 10 | 27 | 1,099 |
+| `language` | 5 | 4 | 478 |
 
 A budget escalates through those rungs in that order and stops at the
 first that fits. `package` is the nearest ancestor directory holding a
@@ -840,9 +840,17 @@ differs:
   referenced member falsifies it for the whole group.
 
 Calls between two members of the same group are not drawn as a self-loop;
-the count rides on the node (`⟨14 fns, 24 internal⟩`). `<framework-entry>`
-nodes are never folded — they all share one sentinel path, so any
-path-based level would collapse every entry in the tree into one node.
+the count rides on the node (`⟨14 fns, 24 internal⟩`).
+
+`<framework-entry>` nodes fold by **`(trust kind, framework)`** rather
+than by path — they all share one sentinel path, so a path-based level
+would collapse every entry in the tree into a single node and destroy
+what an entry node exists to say. Folding on the framework keeps that,
+states the count (`⟨412 framework entries — INFERRED⟩`), and folds only
+the per-route multiplicity. A framework with a single entry passes
+through whole. This matters for the budget: Spring Batch folds 10,639
+callables to two language groups, but has 412 entry nodes, and exempting
+them put ~50,000 tokens under any budget as an unreachable floor.
 
 **The budget is an estimate.** No tokenizer ships in the binary — cgg is
 offline, deterministic and single-binary, and a BPE vocabulary is none of

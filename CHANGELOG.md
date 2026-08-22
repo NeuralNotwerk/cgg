@@ -9,6 +9,27 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Fixed
 
+- **A repo with many framework entry points could not meet any budget.**
+  `<framework-entry>` nodes were exempt from rollup entirely, on the
+  reasoning that they share one sentinel path and a path-based level
+  would collapse every entry in the tree into one node. The reasoning was
+  right and the remedy was too blunt: exempting them gives `--rollup` a
+  floor it cannot get under. Measured on `java-spring-batch`, 10,639
+  callables folded to **two** language groups while **412** entry nodes
+  passed through untouched and made up 99% of the output — about 50,000
+  tokens no granularity could reduce, so `--rollup 40k` failed at every
+  rung.
+
+  Entry nodes now fold by `(trust kind, framework)` — the first three
+  segments of the name `FrameworkEntry::node_name` emits — which keeps
+  both facts an entry node carries and folds only the per-route
+  multiplicity. The count rides on the label
+  (`⟨412 framework entries — INFERRED⟩`), the group keeps its
+  `framework_entry` marker, and a framework with a single entry passes
+  through whole because folding it would gain nothing. On cgg's own
+  tree, `--rollup-by language` goes from 21 nodes / 1,826 tokens to
+  5 nodes / 478.
+
 - **`--rollup`'s token estimate under-counted by about half.** The byte
   term used `bytes / 3.5`, the usual rule of thumb for code, and 0.8.1
   shipped it on the strength of that reasoning rather than a
@@ -151,10 +172,11 @@ gets *emitted* from that graph and how it can be sliced afterwards.
   graph. A document that was itself filtered is detected (its metrics
   outnumber its contents) and warned about, because replaying it can only
   narrow it further.
-- **`<framework-entry>` nodes are never folded.** They share one sentinel
-  path, so any path-based level would collapse every entry in the tree
-  into a single node — destroying the one thing an entry node exists to
-  say.
+- **`<framework-entry>` nodes fold by `(trust kind, framework)`,** not by
+  path. They share one sentinel path, so a path-based level would
+  collapse every entry in the tree into a single node — destroying the
+  one thing an entry node exists to say. Folding on the framework keeps
+  that and the trust boundary, and states the count.
 - **The token count is an estimate and is documented as one.** No
   tokenizer ships in the binary; the count is
   `max(words x 2.5, bytes / 1.8)`. The byte half is not decoration: this
