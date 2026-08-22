@@ -16,17 +16,24 @@ ever grows in default mode — see *Compatibility* below).
   bytes per token** — mermaid is far denser than prose because 40% of it
   is base36 node ids and `::`-dense qualified names:
 
+  Both columns measured, not projected — the first draft of this table
+  computed the new column by hand and put the worst case at 0.99x, i.e.
+  still under-counting. It does not:
+
   | target | real tokens | old estimate | new estimate |
   | --- | --- | --- | --- |
-  | `cgg/crates` full | 123,473 | 76,408 (0.62x) | 148,571 (1.20x) |
-  | `cgg/crates` type | 25,417 | 13,516 (0.53x) | 26,281 (1.03x) |
-  | `cgg/crates` file | 14,600 | 7,803 (0.53x) | 15,172 (1.04x) |
-  | `ripgrep` full | 162,291 | 101,521 (0.63x) | 197,401 (1.22x) |
-  | `redis` full | 789,069 | 429,660 (0.54x) | 835,395 (1.06x) |
-  | `redis` file | 72,666 | 36,950 (0.51x) | 71,847 (0.99x) |
+  | `cgg/crates` full | 123,639 | 76,496 (0.62x) | 148,781 (1.20x) |
+  | `cgg/crates` type | 25,438 | 13,526 (0.53x) | 27,116 (1.07x) |
+  | `cgg/crates` file | 14,648 | 7,823 (0.53x) | 15,527 (1.06x) |
+  | `cgg/crates` package | 1,890 | 1,216 (0.64x) | 2,424 (1.28x) |
+  | `ripgrep` full | 162,291 | 101,521 (0.63x) | 197,402 (1.22x) |
+  | `ripgrep` type | 35,505 | 18,750 (0.53x) | 37,491 (1.06x) |
+  | `redis` full | 789,069 | 429,660 (0.54x) | 835,451 (1.06x) |
+  | `redis` file | 72,666 | 36,950 (0.51x) | 73,615 (1.01x) |
 
-  In practice `--rollup 40k` was returning 65-80k real tokens — the
-  budget was not a bound. The divisor is now 1.8, the bottom of the
+  Old range 0.51-0.64x, new range **1.01-1.28x** — never under. In
+  practice `--rollup 40k` was returning 65-80k real tokens; the budget
+  was not a bound. The divisor is now 1.8, the bottom of the
   measured range, so the estimate runs 10-25% *high*: erring that way
   costs one extra rung of folding, erring the other way hands back an
   artifact over the budget, which is the failure the flag exists to
@@ -62,7 +69,7 @@ gets *emitted* from that graph and how it can be sliced afterwards.
 - **`--rollup BUDGET` folds the graph to a coarser granularity when the
   rendered output would exceed a token budget.** The default graph of a
   real tree does not fit in a context window — this repo's own `crates/`
-  is 2,196 callables and 5,214 edges, about 76,000 tokens of mermaid —
+  is ~2,200 callables and ~5,200 edges, 123,000 tokens of mermaid —
   and the view usually wanted at that size is "which module calls which",
   not "which function calls which". Budgets accept `100k`, `120000`,
   `1.5m`. A graph already under budget is left **byte-identical**, so the

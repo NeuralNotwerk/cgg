@@ -793,10 +793,10 @@ distinct signatures are unaffected.
 ## Rolling up
 
 The default graph of a real tree does not fit in a context window. This
-repo's own `crates/` is 2,196 callables and 5,214 edges — about **76,000
-tokens** of mermaid. `--rollup` folds it to one node per group until the
-rendered output fits a budget you name, and `--rollup-by` cuts it at a
-granularity you name outright.
+repo's own `crates/` is ~2,200 callables and ~5,200 edges — **123,000
+tokens** of mermaid, measured with a real tokenizer. `--rollup` folds it
+to one node per group until the rendered output fits a budget you name,
+and `--rollup-by` cuts it at a granularity you name outright.
 
 ```bash
 # Fold only if the graph would blow a 40k-token budget.
@@ -813,13 +813,13 @@ Measured on `cgg ./crates`:
 
 | `--rollup-by` | Nodes | Edges | Est. tokens |
 | ------------- | ----- | ----- | ----------- |
-| (none) | 2196 | 5214 | 76,422 |
-| `type` | 365 | 741 | 13,926 |
-| `module` | 241 | 650 | 10,724 |
-| `file` | 141 | 528 | 7,966 |
-| `dir:2` | 33 | 51 | 1,437 |
-| `package` | 26 | 42 | 1,246 |
-| `language` | 21 | 20 | 939 |
+| (none) | 2199 | 5223 | 148,781 |
+| `type` | 366 | 742 | 27,116 |
+| `module` | 242 | 651 | 20,890 |
+| `file` | 141 | 530 | 15,527 |
+| `dir:2` | 33 | 52 | 2,815 |
+| `package` | 26 | 42 | 2,424 |
+| `language` | 21 | 20 | 1,826 |
 
 A budget escalates through those rungs in that order and stops at the
 first that fits. `package` is the nearest ancestor directory holding a
