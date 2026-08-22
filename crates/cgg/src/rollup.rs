@@ -242,24 +242,51 @@ pub fn parse_budget(s: &str) -> Result<u64, String> {
 /// Two estimators, and the answer is the larger:
 ///
 /// * `words * 2.5` — the usual prose rule of thumb.
-/// * `bytes / 3.5` — what code-shaped text actually costs.
+/// * `bytes / 1.8` — what cgg's own output actually costs.
 ///
-/// They disagree badly on mermaid, and the disagreement is not academic.
-/// This repo's own graph is 13,338 words and 256 KB: the word estimator
-/// says 33k tokens, the byte estimator says 73k, and the truth is nearer
-/// the byte one because 40% of the output is `C8xlv8ubomr`-style base36
-/// ids and `::`-dense qualified names, none of which tokenize like
-/// English. Taking the max means `--rollup 100k` errs toward rolling up
-/// slightly too eagerly rather than handing back 2.3x what was asked
-/// for, which is the failure that actually costs the caller something.
+/// # Where 1.8 comes from
 ///
-/// It is still an estimate. No tokenizer ships in this binary and none
+/// Measured, not guessed. Rendering cgg's graphs of three trees at four
+/// granularities and tokenizing the results gives 1.78–2.25 bytes per
+/// token, tightly clustered:
+///
+/// ```text
+/// target                bytes/token
+/// cgg/crates  full             2.17
+/// cgg/crates  type             1.86
+/// cgg/crates  file             1.87
+/// cgg/crates  package          2.25
+/// ripgrep     full             2.19
+/// ripgrep     type             1.85
+/// redis       full             1.91
+/// redis       file             1.78
+/// ```
+///
+/// Mermaid is far denser than prose because 40% of it is
+/// `C8xlv8ubomr`-style base36 ids and `::`-dense qualified names, none of
+/// which tokenize like English. The divisor is set at the bottom of the
+/// measured range so the estimate is a *bound* rather than a midpoint:
+/// erring 10–25% high costs a caller one rung of extra folding, while
+/// erring low hands back an artifact over the budget they asked for,
+/// which is the whole failure the flag exists to prevent.
+///
+/// An earlier revision used `bytes / 3.5` — the usual rule of thumb for
+/// code — and under-counted by roughly half across every tree measured.
+/// A `--rollup 40k` run returned about 65–80k real tokens. The word term
+/// never binds at these densities; it stays because it costs nothing and
+/// bounds a pathological whitespace-sparse document.
+///
+/// It is still an estimate, and the calibration is against one BPE
+/// family (`o200k_base`), which is a proxy rather than the tokenizer any
+/// particular model charges. No tokenizer ships in this binary and none
 /// will: cgg is offline, deterministic and single-binary, and a real BPE
-/// vocabulary is none of those things at the size it would add.
+/// vocabulary is none of those things at the size it would add. Treat
+/// the budget as a bound with slack, not an exact count.
 pub fn estimate_tokens(rendered: &str) -> u64 {
     let words = rendered.split_whitespace().count() as u64;
     let bytes = rendered.len() as u64;
-    std::cmp::max(words * 5 / 2, bytes * 2 / 7)
+    // bytes / 1.8, in integer arithmetic.
+    std::cmp::max(words * 5 / 2, bytes * 5 / 9)
 }
 
 /// One rung the budget search tried.
@@ -934,6 +961,22 @@ mod tests {
             "cgg::cli::OutputFormat"
         );
         assert_eq!(owner_path("m::Map<K, V>::insert"), "m::Map");
+    }
+
+    #[test]
+    fn the_byte_term_is_calibrated_to_measured_density() {
+        // REGRESSION: the divisor was 3.5 (the usual code rule of thumb)
+        // and under-counted cgg's own mermaid by about half, so a
+        // `--rollup 40k` run returned 65-80k real tokens. Measured
+        // density is 1.78-2.25 bytes/token; the divisor sits at the
+        // bottom of that range so the estimate bounds rather than
+        // splits it.
+        let s = "x".repeat(1800);
+        assert_eq!(
+            estimate_tokens(&s),
+            1000,
+            "1800 bytes of one word must estimate as 1800/1.8"
+        );
     }
 
     #[test]

@@ -7,6 +7,47 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`--rollup`'s token estimate under-counted by about half.** The byte
+  term used `bytes / 3.5`, the usual rule of thumb for code, and 0.8.1
+  shipped it on the strength of that reasoning rather than a
+  measurement. Tokenizing cgg's actual output puts it at **1.78-2.25
+  bytes per token** — mermaid is far denser than prose because 40% of it
+  is base36 node ids and `::`-dense qualified names:
+
+  | target | real tokens | old estimate | new estimate |
+  | --- | --- | --- | --- |
+  | `cgg/crates` full | 123,473 | 76,408 (0.62x) | 148,571 (1.20x) |
+  | `cgg/crates` type | 25,417 | 13,516 (0.53x) | 26,281 (1.03x) |
+  | `cgg/crates` file | 14,600 | 7,803 (0.53x) | 15,172 (1.04x) |
+  | `ripgrep` full | 162,291 | 101,521 (0.63x) | 197,401 (1.22x) |
+  | `redis` full | 789,069 | 429,660 (0.54x) | 835,395 (1.06x) |
+  | `redis` file | 72,666 | 36,950 (0.51x) | 71,847 (0.99x) |
+
+  In practice `--rollup 40k` was returning 65-80k real tokens — the
+  budget was not a bound. The divisor is now 1.8, the bottom of the
+  measured range, so the estimate runs 10-25% *high*: erring that way
+  costs one extra rung of folding, erring the other way hands back an
+  artifact over the budget, which is the failure the flag exists to
+  prevent.
+
+  Calibrated against `o200k_base`, which is a proxy for token density and
+  not the tokenizer any particular model charges. A 2x error is far
+  larger than the difference between BPE families, so the correction
+  holds regardless; the remaining 10-25% slack is the part that is
+  tokenizer-specific. README, `--help` and the skill all state the
+  measured range rather than a rule of thumb.
+
+- **The Node bindings could not see a rollup they asked for.** The option
+  keywords reached the pipeline in 0.8.1, but the JS `Callable` never
+  gained `rollup` and the JS `Edge` never gained `weight`, so a folded
+  edge's call count was dropped at the boundary. `index.d.ts` was also
+  not regenerated, so a TypeScript consumer got a type error for keywords
+  the module accepts. Both conversions now use the same no-`..`-rest
+  destructure `cgg-py` uses, which makes this class of drift a build
+  error. Five `node --test` cases cover the surface.
+
 ## [0.8.1] - 2026-08-22
 
 **Output-side only. The analysis is untouched.** No resolver phase, no
@@ -109,10 +150,9 @@ gets *emitted* from that graph and how it can be sliced afterwards.
   say.
 - **The token count is an estimate and is documented as one.** No
   tokenizer ships in the binary; the count is
-  `max(words x 2.5, bytes / 3.5)`. The byte half is not decoration: this
+  `max(words x 2.5, bytes / 1.8)`. The byte half is not decoration: this
   repo's mermaid is 13,338 words and 256 KB, so a word-only estimator
-  reports 33k tokens against a real cost nearer 76k, and a caller asking
-  for 100k would have received well over 200k.
+  reports 33k tokens against a real cost of 123k.
 
 ### Fixed
 

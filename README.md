@@ -120,7 +120,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
 | `--max-paths` | 1000 | Cap per-match path count in `-n 0` mode. Hitting the cap prints a note on stderr and records a `paths_truncated` audit event |
-| `--rollup` | (off) | Fold the graph to a coarser granularity if rendering it would exceed this token budget (`100k`, `120000`, `1.5m`). A graph already under budget is left byte-identical. The count is an **estimate** — `max(words × 2.5, bytes ÷ 3.5)`, no tokenizer ships in the binary. Every rollup is announced on stderr, in the graph, and in the audit |
+| `--rollup` | (off) | Fold the graph to a coarser granularity if rendering it would exceed this token budget (`100k`, `120000`, `1.5m`). A graph already under budget is left byte-identical. The count is an **estimate** — `max(words × 2.5, bytes ÷ 1.8)`, no tokenizer ships in the binary. Every rollup is announced on stderr, in the graph, and in the audit |
 | `--rollup-by` | (off) | Granularity to fold to: `callable`, `type`, `module`, `file`, `package`, `dir:N`, `language`. Applied exactly on its own; with `--rollup` it is a floor the budget may coarsen past |
 | `--from-graph` | (none) | Re-query a graph saved by an earlier `-t json` run instead of analyzing source. `--filter`, `-n`, `--exclude-*` and `--rollup` all apply to it |
 | `--fanout-cap` | 5 | Max same-named candidates for a duck-typed method call before the fan-out is dropped. Drops are recorded as `fanout-cap-exceeded` with the candidate count — never silently |
@@ -847,11 +847,27 @@ path-based level would collapse every entry in the tree into one node.
 **The budget is an estimate.** No tokenizer ships in the binary — cgg is
 offline, deterministic and single-binary, and a BPE vocabulary is none of
 those at the size it would add. The count is
-`max(words × 2.5, bytes ÷ 3.5)`. The word half is the usual prose rule of
-thumb; the byte half exists because it is nearer the truth for mermaid,
-where 40% of the output is base36 node ids and `::`-dense qualified names
-that tokenize nothing like English. Taking the larger errs toward folding
-slightly too eagerly rather than handing back twice what you asked for.
+`max(words × 2.5, bytes ÷ 1.8)`.
+
+The divisor is measured rather than a rule of thumb. Mermaid is far
+denser than prose because 40% of it is base36 node ids and `::`-dense
+qualified names; tokenizing cgg's output for three trees at four
+granularities gives **1.78–2.25 bytes per token**:
+
+| target | bytes/token | | target | bytes/token |
+| ------ | ----------- | - | ------ | ----------- |
+| `cgg/crates` full | 2.17 | | `ripgrep` full | 2.19 |
+| `cgg/crates` type | 1.86 | | `ripgrep` type | 1.85 |
+| `cgg/crates` file | 1.87 | | `redis` full | 1.91 |
+| `cgg/crates` package | 2.25 | | `redis` file | 1.78 |
+
+1.8 sits at the bottom of that range on purpose: the estimate should be a
+**bound with 10–25% slack**, not a midpoint. Erring high costs one extra
+rung of folding; erring low hands back an artifact over the budget, which
+is the failure the flag exists to prevent. The calibration is against one
+BPE family (`o200k_base`) and is a proxy, not the tokenizer any given
+model charges — treat the budget as a bound with slack, not an exact
+count.
 
 A rollup is never silent: it is announced on stderr (**not** suppressed by
 `-q`), in a comment header inside the graph itself so it survives

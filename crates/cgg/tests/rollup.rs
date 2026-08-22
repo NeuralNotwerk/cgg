@@ -228,8 +228,29 @@ fn the_budget_is_measured_against_the_selected_format() {
     // reaching the pipeline this passes by accident in mermaid and
     // silently under-rolls every `-t json` run.
     let tmp = fixture();
-    let (_, mermaid) = run(tmp.path(), &["--rollup", "3k"]);
-    let (_, json) = run(tmp.path(), &["--rollup", "3k", "-t", "json"]);
+    // Derive the budget from what each format actually costs rather than
+    // hard-coding one. A literal broke the moment the estimator was
+    // recalibrated, and it broke by silently testing nothing — both
+    // formats rolled up, so the assertion that they differ was the only
+    // thing that noticed.
+    let size = |args: &[&str]| -> u64 {
+        let (_, err) = run(tmp.path(), args);
+        err.split("renders to about ")
+            .nth(1)
+            .and_then(|s| s.split_whitespace().next())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| panic!("no size line in: {err}"))
+    };
+    let mermaid_cost = size(&["--rollup", "999m"]);
+    let json_cost = size(&["--rollup", "999m", "-t", "json"]);
+    assert!(
+        json_cost > mermaid_cost,
+        "the same graph must cost more as JSON ({json_cost}) than as          mermaid ({mermaid_cost}), or this test proves nothing"
+    );
+    // Between the two: mermaid fits, JSON does not.
+    let budget = ((mermaid_cost + json_cost) / 2).to_string();
+    let (_, mermaid) = run(tmp.path(), &["--rollup", &budget]);
+    let (_, json) = run(tmp.path(), &["--rollup", &budget, "-t", "json"]);
     assert!(mermaid.contains("not needed"), "mermaid: {mermaid}");
     assert!(json.contains("ROLLED UP"), "json: {json}");
 }

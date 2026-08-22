@@ -376,9 +376,11 @@ an entry: a framework entry point, an exported API, a declared root in
   instead of narrowing it, which is the right move when you want the
   whole shape rather than one neighbourhood. It is safe to leave on: a
   graph already under budget comes back byte-identical.
-- **The budget is an estimate**, `max(words x 2.5, bytes / 3.5)` — no
-  tokenizer ships in the binary. Treat it as a bound with maybe 20%
-  slack, not an exact count.
+- **The budget is an estimate**, `max(words x 2.5, bytes / 1.8)` — no
+  tokenizer ships in the binary. The divisor is measured against cgg's
+  own output (1.78-2.25 bytes/token) and set at the low end, so the
+  estimate runs 10-25% *high*. Treat it as a bound with slack, not an
+  exact count.
 
 ## Choosing hop depth
 

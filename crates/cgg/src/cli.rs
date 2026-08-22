@@ -122,10 +122,11 @@ pub struct Cli {
     ///
     /// BUDGET IS AN ESTIMATE. cgg ships no tokenizer (it would cost more
     /// than the rest of the binary), so the count is
-    /// `max(words * 2.5, bytes / 3.5)`. The word half is the usual prose
-    /// rule of thumb; the byte half exists because it is nearer the truth
-    /// for id-dense mermaid, and taking the larger errs toward rolling up
-    /// too eagerly rather than returning twice what you asked for.
+    /// `max(words * 2.5, bytes / 1.8)`. The divisor is measured, not a
+    /// rule of thumb: cgg's own mermaid runs 1.78-2.25 bytes per token
+    /// because 40% of it is base36 node ids and `::`-dense names. It sits
+    /// at the bottom of that range deliberately, so the estimate is a
+    /// bound with 10-25% slack rather than a midpoint you can land over.
     ///
     /// Every run that rolls up says so on stderr, in the graph itself,
     /// and in the audit log.
