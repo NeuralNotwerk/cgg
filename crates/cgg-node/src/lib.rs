@@ -95,6 +95,25 @@ pub struct Callable {
     /// Set when cgg found no caller. **Best effort** — a hypothesis, not
     /// a proof.
     pub unreferenced: Option<String>,
+    /// Set when this node is a rolled-up group rather than a callable.
+    /// `undefined` on an ordinary graph.
+    pub rollup: Option<RollupInfo>,
+}
+
+/// What a rolled-up group node stands for. See `Callable.rollup`.
+#[napi(object)]
+pub struct RollupInfo {
+    /// `"file"`, `"module"`, `"dir:2"`, ...
+    pub level: String,
+    /// Callables folded into this node.
+    pub members: u32,
+    /// Distinct source files they came from.
+    pub files: u32,
+    pub languages: Vec<String>,
+    /// Calls between two members, counted rather than drawn as a
+    /// self-loop.
+    pub internal_calls: u32,
+    pub unreferenced_members: u32,
 }
 
 /// One analyzed source file.
@@ -123,6 +142,9 @@ pub struct Edge {
     /// `"reference"`, `"external"`, `"stdlib"`, `"ffi"`, `"descriptor"`
     /// or `"framework_entry"`. Filter on this to keep only edges you trust.
     pub via: String,
+    /// How many call sites this edge stands for. Always `1` unless the
+    /// graph was rolled up, where one group-to-group edge folds many.
+    pub weight: u32,
 }
 
 /// Whole-run counters. Not the post-query subgraph, so these can exceed
@@ -274,20 +296,58 @@ impl Graph {
             .graph
             .callables
             .values()
-            .map(|c| Callable {
-                id: c.id.as_u64() as i64,
-                qualified_name: c.qualified_name.clone(),
-                simple_name: c.simple_name.clone(),
-                kind: kind_str(c.kind).to_string(),
-                language: c.language.clone(),
-                file: c.file.as_u64() as i64,
-                start_line: c.start_line,
-                end_line: c.end_line,
-                signature_hint: c.signature_hint.clone(),
-                // Already a String; `format!("{:?}")` would wrap it in quotes.
-                visibility: c.visibility.clone(),
-                synthetic: c.synthetic,
-                unreferenced: c.unreferenced.map(|u| confidence_str(u).to_string()),
+            .map(|c| {
+                // No `..` rest — the same guard `cgg-py` uses. A new field
+                // on `CallableNode` breaks this until someone decides
+                // whether JavaScript should see it. `rollup` reached
+                // Python and not here precisely because this was a
+                // field-by-field read that compiled happily without it.
+                let cgg::CallableNode {
+                    id,
+                    qualified_name,
+                    simple_name,
+                    kind,
+                    language,
+                    file,
+                    start_line,
+                    end_line,
+                    signature_hint,
+                    visibility,
+                    synthetic,
+                    unreferenced,
+                    rollup,
+                    // Deliberately not exposed to JavaScript.
+                    start_byte: _,
+                    end_byte: _,
+                    attributes: _,
+                    trait_impl_target: _,
+                    vis: _,
+                    test_role: _,
+                    framework_entry: _,
+                } = c;
+                Callable {
+                    id: id.as_u64() as i64,
+                    qualified_name: qualified_name.clone(),
+                    simple_name: simple_name.clone(),
+                    kind: kind_str(*kind).to_string(),
+                    language: language.clone(),
+                    file: file.as_u64() as i64,
+                    start_line: *start_line,
+                    end_line: *end_line,
+                    signature_hint: signature_hint.clone(),
+                    // Already a String; `format!("{:?}")` would quote it.
+                    visibility: visibility.clone(),
+                    synthetic: *synthetic,
+                    unreferenced: unreferenced.map(|u| confidence_str(u).to_string()),
+                    rollup: rollup.as_ref().map(|r| RollupInfo {
+                        level: r.level.clone(),
+                        members: r.members,
+                        files: r.files,
+                        languages: r.languages.clone(),
+                        internal_calls: r.internal_calls,
+                        unreferenced_members: r.unreferenced_members,
+                    }),
+                }
             })
             .collect()
     }
@@ -299,13 +359,29 @@ impl Graph {
             .graph
             .edges
             .iter()
-            .map(|e| Edge {
-                src: e.src.as_u64() as i64,
-                dst: e.dst.as_u64() as i64,
-                site_line: e.site_line,
-                site_byte: e.site_byte,
-                confidence: confidence_str(e.confidence).to_string(),
-                via: via_str(&e.via).to_string(),
+            .map(|e| {
+                // No `..` rest — see `callables` above.
+                let cgg::CallEdge {
+                    src,
+                    dst,
+                    site_line,
+                    site_byte,
+                    confidence,
+                    via,
+                    weight,
+                    // Provenance for debugging a surprising edge; it is in
+                    // `toJson()` but costs an allocation per edge here.
+                    resolver: _,
+                } = e;
+                Edge {
+                    src: src.as_u64() as i64,
+                    dst: dst.as_u64() as i64,
+                    site_line: *site_line,
+                    site_byte: *site_byte,
+                    confidence: confidence_str(*confidence).to_string(),
+                    via: via_str(via).to_string(),
+                    weight: *weight,
+                }
             })
             .collect()
     }

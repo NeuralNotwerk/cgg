@@ -18,6 +18,9 @@ const cgg = require("../index.js");
 
 const REPO = path.resolve(__dirname, "../../..");
 const TREE = path.join(REPO, "crates/cgg-walk");
+// `cgg-walk` is one file, so every level folds it to a single node with
+// no edges left. Rollup assertions need a tree with cross-file calls.
+const MULTI = path.join(REPO, "crates/cgg");
 // Set by CI, and by scripts/publish-node.sh, to the binary built from
 // this same commit. Parity against a *different* build proves nothing.
 const BIN = process.env.CGG_BIN || path.join(REPO, "target/release/cgg");
@@ -81,6 +84,69 @@ test("callables and edges carry the documented shape", async () => {
   );
   // Not a debug-formatted string: 0.6.2 briefly shipped `"\"pub\""`.
   assert.ok(!c.visibility.includes('"'), `visibility is quoted: ${c.visibility}`);
+});
+
+test("a rolled-up graph carries its group metadata", async () => {
+  // REGRESSION: the option keywords reached the pipeline but `rollup`
+  // was never added to the JS `Callable`, so Node could ask for a
+  // rollup and not see that it got one. The `weight` on a folded edge —
+  // the call count the fold exists to preserve — was dropped silently.
+  const g = await cgg.analyze(MULTI, { rollupBy: "file" });
+  const groups = g.callables.filter((c) => c.rollup);
+  assert.ok(groups.length > 0, "no group nodes came back");
+  assert.ok(
+    groups.every((c) => c.kind === "group"),
+    "a group node must not claim to be a function or a method",
+  );
+  const r = groups[0].rollup;
+  for (const k of ["level", "members", "files", "languages",
+                   "internalCalls", "unreferencedMembers"]) {
+    assert.ok(k in r, `rollup missing ${k}`);
+  }
+  assert.strictEqual(r.level, "file");
+  assert.ok(r.members >= 1);
+  assert.ok(
+    Math.max(...g.edges.map((e) => e.weight)) > 1,
+    "a folded edge must report the call count it stands for",
+  );
+});
+
+test("an ordinary graph carries no rollup metadata at all", async () => {
+  const g = await cgg.analyze(MULTI);
+  assert.ok(g.callables.every((c) => !c.rollup), "rollup leaked into a plain graph");
+  assert.ok(g.edges.every((e) => e.weight === 1), "weight leaked into a plain graph");
+});
+
+test("a token budget folds the graph and a met one does not", async () => {
+  const tight = await cgg.analyze(path.join(REPO, "crates"), { rollup: "5k" });
+  assert.ok(tight.callables.some((c) => c.rollup), "5k must force a fold");
+  const loose = await cgg.analyze(MULTI, { rollup: "10m" });
+  assert.ok(loose.callables.every((c) => !c.rollup), "a met budget must fold nothing");
+});
+
+test("fromGraph replays a saved graph identically", async () => {
+  const plain = await cgg.analyze(MULTI);
+  const file = path.join(fs.mkdtempSync(path.join(require("node:os").tmpdir(), "cgg-")), "g.json");
+  fs.writeFileSync(file, plain.toJson());
+  const replay = await cgg.analyze([], { fromGraph: file, rollupBy: "file" });
+  const direct = await cgg.analyze(MULTI, { rollupBy: "file" });
+  const key = (g) => g.callables.map((c) => `${c.qualifiedName}`).join("|");
+  assert.strictEqual(key(replay), key(direct), "replay does not match a direct run");
+  assert.deepStrictEqual(
+    replay.edges.map((e) => e.weight),
+    direct.edges.map((e) => e.weight),
+  );
+});
+
+test("a bad rollup value is rejected by name", async () => {
+  for (const [kw, bad] of [["rollupBy", "modul"], ["rollup", "banana"],
+                           ["rollupFormat", "yaml"]]) {
+    await assert.rejects(
+      () => cgg.analyze(MULTI, { [kw]: bad }),
+      (e) => typeof e.message === "string" && e.message.length > 0,
+      `${kw}="${bad}" was accepted`,
+    );
+  }
 });
 
 test("metrics and notices survive the boundary", async () => {
