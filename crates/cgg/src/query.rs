@@ -421,6 +421,7 @@ mod tests {
                 confidence: Confidence::High,
                 via: Via::Direct,
                 resolver: ResolverId::new("test"),
+                weight: 1,
             });
         }
         g
@@ -497,6 +498,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("test"),
+            weight: 1,
         });
 
         let (_, stats) = apply_query(&g, &["glob:fn_*".into()], 0, 1).unwrap();

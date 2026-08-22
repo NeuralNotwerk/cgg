@@ -60,6 +60,20 @@ pub struct AnalyzeOptions {
     pub ignore_attributes: Option<String>,
     pub roots: Option<String>,
     pub since: Option<String>,
+    /// Token budget for the rendered graph — `"100k"`, `"120000"`,
+    /// `"1.5m"`. The graph is folded to a coarser granularity only if
+    /// rendering it would exceed this; a graph that fits is untouched.
+    pub rollup: Option<String>,
+    /// Granularity to fold to: `"callable"`, `"type"`, `"module"`,
+    /// `"file"`, `"package"`, `"dir:N"`, `"language"`. With `rollup` it
+    /// is a floor the budget may coarsen past.
+    pub rollup_by: Option<String>,
+    /// Which renderer `rollup`'s budget is measured against:
+    /// `"mermaid"` (default), `"json"`, `"dot"`, `"graphml"`.
+    pub rollup_format: Option<String>,
+    /// Replay a graph written by an earlier `toJson()` / `-t json` run
+    /// instead of analyzing source. Pass `[]` for the paths.
+    pub from_graph: Option<String>,
 }
 
 /// One callable in the graph.
@@ -159,6 +173,8 @@ fn kind_str(k: cgg::CallableKind) -> &'static str {
         cgg::CallableKind::Destructor => "destructor",
         cgg::CallableKind::Closure => "closure",
         cgg::CallableKind::Property => "property",
+        // Only ever present on a graph the caller rolled up.
+        cgg::CallableKind::Group => "group",
     }
 }
 
@@ -205,6 +221,35 @@ fn build_options(
         ignore_attributes: o.ignore_attributes.into_iter().collect(),
         roots: o.roots.map(Into::into),
         since: o.since,
+        rollup: match o.rollup.as_deref() {
+            Some(b) => Some(
+                cgg::rollup::parse_budget(b)
+                    .map_err(|e| Error::new(Status::InvalidArg, e))?,
+            ),
+            None => None,
+        },
+        rollup_by: match o.rollup_by.as_deref() {
+            Some(l) => Some(
+                l.parse()
+                    .map_err(|e: String| Error::new(Status::InvalidArg, e))?,
+            ),
+            None => None,
+        },
+        rollup_format: match o.rollup_format.as_deref() {
+            Some("mermaid") | None => cgg::OutputFormat::Mermaid,
+            Some("json") => cgg::OutputFormat::Json,
+            Some("dot") => cgg::OutputFormat::Dot,
+            Some("graphml") => cgg::OutputFormat::Graphml,
+            Some(other) => {
+                return Err(Error::new(
+                    Status::InvalidArg,
+                    format!(
+                        "rollupFormat must be \"mermaid\", \"json\", \"dot\" or \"graphml\", got {other:?}"
+                    ),
+                ));
+            }
+        },
+        from_graph: o.from_graph.map(Into::into),
         ..d
     })
 }

@@ -107,6 +107,7 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                         confidence: Confidence::Medium,
                         via: Via::Ffi("asm-c".into()),
                         resolver: resolver.clone(),
+                        weight: 1,
                     });
                 }
             }
@@ -147,6 +148,7 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                         confidence: Confidence::Medium,
                         via: Via::Ffi("c-asm".into()),
                         resolver: resolver.clone(),
+                        weight: 1,
                     });
                 }
             }
@@ -195,6 +197,7 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
                 confidence: Confidence::Medium,
                 via: Via::Ffi(family.to_string()),
                 resolver: resolver.clone(),
+                weight: 1,
             });
         }
     }

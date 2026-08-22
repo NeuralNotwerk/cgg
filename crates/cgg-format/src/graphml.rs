@@ -65,6 +65,17 @@ impl GraphFormatter for GraphmlFormatter {
             out,
             r#"  <key id="via" for="edge" attr.name="via" attr.type="string"/>"#
         )?;
+        // Declared only when something uses it, so an ordinary graph's
+        // document is byte-for-byte what it was before edge weights
+        // existed. Same reasoning as `skip_serializing_if` on the JSON
+        // side: a rollup is opt-in, and opting out of it should leave no
+        // trace anywhere.
+        if graph.edges.iter().any(|e| e.weight != 1) {
+            writeln!(
+                out,
+                r#"  <key id="weight" for="edge" attr.name="weight" attr.type="int"/>"#
+            )?;
+        }
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
         for (id, node) in &graph.callables {
             writeln!(out, r#"    <node id="n{}">"#, id.token())?;
@@ -106,7 +117,16 @@ impl GraphFormatter for GraphmlFormatter {
             // inferred entry edge from a resolved call — the one
             // distinction every other formatter surfaces.
             let via = via_slug(&edge.via);
-            if via.is_empty() {
+            // A rolled-up edge stands for many call sites. GraphML is
+            // the import format for graph-analysis tools, where an
+            // unweighted aggregate edge silently flattens call frequency
+            // — the one thing this format keeps that mermaid drops.
+            let weight = if edge.weight == 1 {
+                String::new()
+            } else {
+                format!(r#"<data key="weight">{}</data>"#, edge.weight)
+            };
+            if via.is_empty() && weight.is_empty() {
                 writeln!(
                     out,
                     r#"    <edge id="e{}" source="n{}" target="n{}"/>"#,
@@ -115,13 +135,19 @@ impl GraphFormatter for GraphmlFormatter {
                     edge.dst.token()
                 )?;
             } else {
+                let via_data = if via.is_empty() {
+                    String::new()
+                } else {
+                    format!(r#"<data key="via">{via}</data>"#)
+                };
                 writeln!(
                     out,
-                    r#"    <edge id="e{}" source="n{}" target="n{}"><data key="via">{}</data></edge>"#,
+                    r#"    <edge id="e{}" source="n{}" target="n{}">{}{}</edge>"#,
                     i,
                     edge.src.token(),
                     edge.dst.token(),
-                    via
+                    via_data,
+                    weight
                 )?;
             }
         }

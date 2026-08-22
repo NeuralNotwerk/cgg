@@ -6,6 +6,8 @@
 //! cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 //!               [--filter PATTERN]... [-n N]
 //!               [--max-paths N]
+//!               [--rollup BUDGET] [--rollup-by LEVEL]
+//!               [--from-graph FILE]
 //!               [--include-tests] [--ignore-file PATH]
 //!               [--jobs N] [--lang rust,python,...]
 //!               [--audit-format json|jsonl] [--metrics FILE]
@@ -29,7 +31,14 @@ use std::path::PathBuf;
 )]
 pub struct Cli {
     /// One or more source directories or files to analyze.
-    #[arg(value_name = "PATH", required = true, num_args = 1..)]
+    ///
+    /// Optional only with `--from-graph`, which replays a graph that was
+    /// already analyzed instead of reading source.
+    #[arg(
+        value_name = "PATH",
+        required_unless_present = "from_graph",
+        num_args = 1..
+    )]
     pub paths: Vec<PathBuf>,
 
     /// Write output to FILE instead of stdout. Use `-` for stdout.
@@ -102,6 +111,59 @@ pub struct Cli {
     /// else; with `--dead-code-format json` the report takes stdout.
     #[arg(long = "no-graph")]
     pub no_graph: bool,
+
+    /// Roll the graph up to a coarser granularity if rendering it would
+    /// exceed BUDGET tokens. Accepts `100000`, `100k`, `1.5m`.
+    ///
+    /// Nodes are replaced by one node per group — per module, per file,
+    /// per directory — climbing to coarser groupings until the rendered
+    /// output fits. A run that already fits is left completely alone, so
+    /// this is safe to leave on in a wrapper script.
+    ///
+    /// BUDGET IS AN ESTIMATE. cgg ships no tokenizer (it would cost more
+    /// than the rest of the binary), so the count is
+    /// `max(words * 2.5, bytes / 3.5)`. The word half is the usual prose
+    /// rule of thumb; the byte half exists because it is nearer the truth
+    /// for id-dense mermaid, and taking the larger errs toward rolling up
+    /// too eagerly rather than returning twice what you asked for.
+    ///
+    /// Every run that rolls up says so on stderr, in the graph itself,
+    /// and in the audit log.
+    #[arg(long = "rollup", value_name = "BUDGET", value_parser = crate::rollup::parse_budget)]
+    pub rollup: Option<u64>,
+
+    /// Granularity to roll the graph up to:
+    /// `callable` (no rollup), `type`, `module`, `file`, `package`,
+    /// `dir:N`, `language`.
+    ///
+    /// On its own this is applied exactly. Combined with `--rollup` it is
+    /// a floor: the search starts here and coarsens further only if the
+    /// budget demands it.
+    ///
+    /// `package` is the nearest ancestor directory holding a build
+    /// manifest (`Cargo.toml`, `package.json`, `go.mod`, `pyproject.toml`
+    /// and friends), which is the only level that reads the filesystem.
+    /// Where it cannot find one it falls back to `dir:1` and says so.
+    #[arg(
+        long = "rollup-by",
+        value_name = "LEVEL",
+        alias = "rollup-filter",
+        value_parser = clap::value_parser!(crate::rollup::RollupLevel)
+    )]
+    pub rollup_by: Option<crate::rollup::RollupLevel>,
+
+    /// Re-query a graph written by an earlier `-t json` run, instead of
+    /// analyzing source.
+    ///
+    /// `--filter`, `-n`, the `--exclude-*` family and `--rollup` all
+    /// apply to the loaded graph, so a single expensive analysis can be
+    /// sliced many ways without re-parsing anything.
+    ///
+    /// The saved graph is the *post-query* graph of that run: replaying a
+    /// filtered document can only narrow it further, never recover what
+    /// was pruned. cgg detects that case and says so.
+    #[arg(long = "from-graph", value_name = "FILE", alias = "filter-output")]
+    pub from_graph: Option<PathBuf>,
 
     /// Max same-named candidates for a duck-typed method call before the
     /// fan-out is dropped. Drops are recorded as `fanout-cap-exceeded`.

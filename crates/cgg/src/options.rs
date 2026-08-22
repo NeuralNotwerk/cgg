@@ -13,6 +13,8 @@ use std::path::PathBuf;
 
 use cgg_core::graph::Confidence;
 
+use crate::rollup::RollupLevel;
+
 /// Everything [`crate::analyze`] needs to decide what the graph contains.
 ///
 /// `Default` mirrors the clap defaults exactly — `hops: -1`,
@@ -32,7 +34,8 @@ use cgg_core::graph::Confidence;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RunOptions {
-    /// Source directories or files to analyze. Must be non-empty.
+    /// Source directories or files to analyze. Must be non-empty unless
+    /// [`Self::from_graph`] is set, which replays a saved graph instead.
     pub paths: Vec<PathBuf>,
 
     /// Callable-name patterns to keep. Regex, or `glob:` prefixed.
@@ -52,6 +55,37 @@ pub struct RunOptions {
     pub max_paths: u32,
     /// Emit the unreferenced-callable report in place of the graph.
     pub report_unreferenced: bool,
+
+    /// Token budget for the rendered graph. `Some(n)` rolls the graph up
+    /// to a coarser granularity — and only then — if rendering it at the
+    /// current one would exceed `n` estimated tokens. `None` never rolls
+    /// up on its own, so a run without it is byte-identical to one from
+    /// before the flag existed.
+    pub rollup: Option<u64>,
+    /// Granularity to roll up to. With [`Self::rollup`] this is the
+    /// *floor* the budget search starts from and may coarsen past; on
+    /// its own it is applied exactly.
+    pub rollup_by: Option<RollupLevel>,
+    /// The format [`Self::rollup`]'s budget is measured against.
+    ///
+    /// The one output format that belongs here rather than on
+    /// [`crate::cli::Cli`], and only because of what a token budget is:
+    /// a statement about *rendered bytes*. The same graph is 256 KB of
+    /// mermaid and 3.8 MB of JSON, so a budget measured against the
+    /// wrong renderer is not a budget. Read only when `rollup` is set;
+    /// it never decides where output goes or what shape it takes, which
+    /// is still entirely `Cli`'s business.
+    pub rollup_format: crate::OutputFormat,
+
+    /// Re-query a graph saved by an earlier `-t json` run instead of
+    /// walking source.
+    ///
+    /// The one option here that is not a question about analysis, and it
+    /// is here anyway because it decides what the graph *is*. Everything
+    /// downstream — `filter`, `hops`, the `exclude_*` family, `rollup` —
+    /// applies to the loaded graph exactly as it applies to an analyzed
+    /// one. See `crate::replay`.
+    pub from_graph: Option<PathBuf>,
     /// Max same-named candidates before a duck-typed method call's
     /// fan-out is dropped. The drop is always recorded.
     pub fanout_cap: u32,
@@ -118,6 +152,10 @@ impl Default for RunOptions {
             hops: -1,
             max_paths: 1000,
             report_unreferenced: false,
+            rollup: None,
+            rollup_by: None,
+            rollup_format: crate::OutputFormat::Mermaid,
+            from_graph: None,
             fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
             lang: Vec::new(),
@@ -180,6 +218,12 @@ impl From<&crate::cli::Cli> for RunOptions {
             hops,
             max_paths,
             report_unreferenced,
+            rollup,
+            rollup_by,
+            from_graph,
+            // Read below as `rollup_format` — the budget has to be
+            // measured against the renderer that will actually run.
+            format,
             // Output-shape only: `--no-graph` suppresses the artifact,
             // it does not change the graph, so `RunOptions` — which is
             // strictly what changes the graph — must not carry it.
@@ -206,7 +250,6 @@ impl From<&crate::cli::Cli> for RunOptions {
 
             // --- I/O and presentation: consumed by `crate::emit`. ---
             output: _,
-            format: _,
             metrics: _,
             audit_format: _,
             dead_code_format: _,
@@ -230,6 +273,10 @@ impl From<&crate::cli::Cli> for RunOptions {
             hops: *hops,
             max_paths: *max_paths,
             report_unreferenced: *report_unreferenced,
+            rollup: *rollup,
+            rollup_by: *rollup_by,
+            rollup_format: (*format).into(),
+            from_graph: from_graph.clone(),
             fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),
             lang: lang.clone(),

@@ -1095,6 +1095,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                             confidence: Confidence::Medium,
                             via: Via::Reference,
                             resolver: resolver_id.clone(),
+                            weight: 1,
                         });
                     }
                     continue;
@@ -1182,6 +1183,7 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
                                 confidence,
                                 via: Via::Direct,
                                 resolver: resolver_id.clone(),
+                                weight: 1,
                             });
                         }
                     }

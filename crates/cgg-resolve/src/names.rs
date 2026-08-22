@@ -31,7 +31,12 @@ pub fn owner_from_qn(qn: &str) -> Option<&str> {
 
 /// Split a qualified name into `(prefix, last_segment)` at the rightmost
 /// path separator (`::` or `.`, whichever appears later).
-fn split_last_segment(qn: &str) -> Option<(&str, &str)> {
+///
+/// Public because the rollup pass groups by the *path to* the owner
+/// rather than by the owner's bare name — `crate::io::DiskStorage`, not
+/// `DiskStorage` — and two `Parser` types in different modules must not
+/// collapse into one group.
+pub fn split_last_segment(qn: &str) -> Option<(&str, &str)> {
     let colon = qn.rfind("::");
     let dot = qn.rfind('.');
     match (colon, dot) {
@@ -45,7 +50,12 @@ fn split_last_segment(qn: &str) -> Option<(&str, &str)> {
 
 /// Normalize an owner segment to its bare type name:
 /// `<Type as Trait>` → `Type`, `Type<Generic>` → `Type`.
-fn normalize_owner(owner: &str) -> &str {
+///
+/// Public for the same reason as [`split_last_segment`]: a rollup key
+/// built from a raw path prefix would give a Rust trait impl the group
+/// name `crate::io::<DiskStorage as Storage>`, which is both ugly and a
+/// *different* group from the type's inherent methods.
+pub fn normalize_owner(owner: &str) -> &str {
     let owner = owner.strip_prefix('<').unwrap_or(owner);
     // Trait-impl wrapper: `Type as Trait` → `Type`.
     if let Some(idx) = owner.find(" as ") {

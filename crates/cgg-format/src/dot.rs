@@ -82,9 +82,13 @@ impl GraphFormatter for DotFormatter {
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
             let key = (edge.src, edge.dst, tag);
+            // `weight`, not `1` — see the same loop in `mermaid.rs`. An
+            // ordinary edge carries weight 1, so this is a no-op for
+            // every graph that was not rolled up.
             let entry = counts.entry(key).or_insert(0);
-            *entry += 1;
-            if *entry == 1 {
+            let first = *entry == 0;
+            *entry += edge.weight;
+            if first {
                 order.push((key.0, key.1, tag, style));
             }
         }
@@ -175,6 +179,7 @@ mod tests {
                 confidence: Confidence::High,
                 via: Via::Direct,
                 resolver: ResolverId::new("intra-file"),
+                weight: 1,
             });
         }
         g

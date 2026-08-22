@@ -81,6 +81,48 @@ pub struct Callable {
     /// a caller, which is not the same as there being none.
     #[pyo3(get)]
     unreferenced: Option<&'static str>,
+    /// Set when this node is a rolled-up group rather than a callable:
+    /// `{"level", "members", "files", "languages", "internal_calls",
+    /// "unreferenced_members"}`. `None` on an ordinary graph.
+    ///
+    /// A dict rather than a class: it exists only when `rollup=` was
+    /// passed, and a leaf class nothing else references is more surface
+    /// than the four counts justify.
+    #[pyo3(get)]
+    rollup: Option<RollupInfo>,
+}
+
+/// What a rolled-up group node stands for. See `Callable.rollup`.
+#[pyclass(frozen, module = "cgg", skip_from_py_object)]
+#[derive(Clone)]
+pub struct RollupInfo {
+    /// `"file"`, `"module"`, `"dir:2"`, ...
+    #[pyo3(get)]
+    level: String,
+    /// Callables folded into this node.
+    #[pyo3(get)]
+    members: u32,
+    /// Distinct source files they came from.
+    #[pyo3(get)]
+    files: u32,
+    #[pyo3(get)]
+    languages: Vec<String>,
+    /// Calls between two members, dropped rather than drawn as a
+    /// self-loop.
+    #[pyo3(get)]
+    internal_calls: u32,
+    #[pyo3(get)]
+    unreferenced_members: u32,
+}
+
+#[pymethods]
+impl RollupInfo {
+    fn __repr__(&self) -> String {
+        format!(
+            "RollupInfo(level={:?}, members={}, files={})",
+            self.level, self.members, self.files
+        )
+    }
 }
 
 impl Callable {
@@ -109,6 +151,7 @@ impl Callable {
             vis: _,
             test_role: _,
             framework_entry: _,
+            rollup,
         } = n;
         Self {
             id: id.as_u64(),
@@ -124,6 +167,14 @@ impl Callable {
             attributes: attributes.clone(),
             synthetic: *synthetic,
             unreferenced: unreferenced.map(confidence_str),
+            rollup: rollup.as_ref().map(|r| RollupInfo {
+                level: r.level.clone(),
+                members: r.members,
+                files: r.files,
+                languages: r.languages.clone(),
+                internal_calls: r.internal_calls,
+                unreferenced_members: r.unreferenced_members,
+            }),
         }
     }
 }
@@ -141,6 +192,8 @@ fn kind_str(k: CallableKind) -> &'static str {
         CallableKind::Destructor => "destructor",
         CallableKind::Closure => "closure",
         CallableKind::Property => "property",
+        // Only ever present on a graph the caller rolled up.
+        CallableKind::Group => "group",
     }
 }
 
@@ -183,6 +236,10 @@ pub struct Edge {
     /// `"framework_entry"`. Filter on this to keep only edges you trust.
     #[pyo3(get)]
     via: &'static str,
+    /// How many call sites this edge stands for. Always `1` unless the
+    /// graph was rolled up, where one group-to-group edge folds many.
+    #[pyo3(get)]
+    weight: u32,
 }
 
 impl Edge {
@@ -198,6 +255,7 @@ impl Edge {
             // `resolver` is provenance for debugging a surprising edge; it
             // is in `to_json()` but costs an allocation per edge here.
             resolver: _,
+            weight,
         } = e;
         Self {
             src: src.as_u64(),
@@ -206,6 +264,7 @@ impl Edge {
             site_byte: *site_byte,
             confidence: confidence_str(*confidence),
             via: via_kind(via),
+            weight: *weight,
         }
     }
 }
@@ -650,6 +709,31 @@ fn extract_paths(paths: &Bound<'_, PyAny>) -> PyResult<Vec<PathBuf>> {
     ))
 }
 
+/// A `--rollup` budget, from either an int-like string or a suffixed one.
+///
+/// A `str` rather than an `int` keyword so `rollup="100k"` works — the
+/// same spelling as the CLI, which is what someone porting a command line
+/// into a script will reach for first.
+fn rollup_budget_from_str(s: &str) -> PyResult<u64> {
+    cgg::rollup::parse_budget(s).map_err(PyValueError::new_err)
+}
+
+fn rollup_level_from_str(s: &str) -> PyResult<cgg::rollup::RollupLevel> {
+    s.parse().map_err(PyValueError::new_err)
+}
+
+fn format_from_str(s: &str) -> PyResult<OutputFormat> {
+    match s {
+        "mermaid" => Ok(OutputFormat::Mermaid),
+        "json" => Ok(OutputFormat::Json),
+        "dot" => Ok(OutputFormat::Dot),
+        "graphml" => Ok(OutputFormat::Graphml),
+        other => Err(PyValueError::new_err(format!(
+            "rollup_format must be 'mermaid', 'json', 'dot' or 'graphml', got {other:?}"
+        ))),
+    }
+}
+
 fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     match s {
         "high" => Ok(cgg_core::graph::Confidence::High),
@@ -665,6 +749,15 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
 ///
 /// Mirrors the CLI flag-for-flag, with one rename: `entry_nodes=True`
 /// rather than `--no-entry-nodes`. Same default, no double negative.
+///
+/// `rollup` and `rollup_by` take the same strings the CLI does
+/// (`rollup="100k"`, `rollup_by="file"`), and `rollup_format` names the
+/// renderer the budget is measured against — a graph is far larger as
+/// JSON than as mermaid, so a budget without a format is meaningless.
+///
+/// `from_graph` replays a document written by an earlier `-t json` run
+/// instead of analyzing source. It takes no paths, so pass an empty list:
+/// `analyze([], from_graph="graph.json", rollup_by="module")`.
 #[pyfunction]
 #[pyo3(signature = (
     paths,
@@ -692,6 +785,10 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     ignore_attributes = None,
     roots = None,
     since = None,
+    rollup = None,
+    rollup_by = None,
+    rollup_format = "mermaid",
+    from_graph = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 fn analyze(
@@ -720,6 +817,10 @@ fn analyze(
     ignore_attributes: Option<Vec<String>>,
     roots: Option<PathBuf>,
     since: Option<String>,
+    rollup: Option<&str>,
+    rollup_by: Option<&str>,
+    rollup_format: &str,
+    from_graph: Option<PathBuf>,
 ) -> PyResult<Graph> {
     let opts = cgg::RunOptions {
         paths: extract_paths(paths)?,
@@ -757,6 +858,12 @@ fn analyze(
         // Process-global registry: in a long-lived interpreter it would
         // report the sum of every analysis so far.
         profile: false,
+        // A budget is a claim about rendered bytes, so it needs to know
+        // which renderer. Defaults to mermaid, matching the CLI.
+        rollup: rollup.map(rollup_budget_from_str).transpose()?,
+        rollup_by: rollup_by.map(rollup_level_from_str).transpose()?,
+        rollup_format: format_from_str(rollup_format)?,
+        from_graph,
     };
 
     // Pure Rust, touching no Python object: without releasing the GIL a
@@ -781,6 +888,7 @@ fn _cgg(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Graph>()?;
     m.add_class::<Callable>()?;
     m.add_class::<Edge>()?;
+    m.add_class::<RollupInfo>()?;
     m.add_class::<File>()?;
     m.add_class::<Metrics>()?;
     m.add_function(wrap_pyfunction!(analyze, m)?)?;

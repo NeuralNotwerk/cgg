@@ -31,6 +31,14 @@ pub enum CallableKind {
     /// A callable property (e.g. JavaScript getter/setter, Python
     /// `@property` with a callable value, Go interface method defaults).
     Property,
+    /// Not a callable at all: a node minted by the rollup pass standing
+    /// for a whole group of them. Carries a [`RollupMeta`].
+    ///
+    /// A variant rather than borrowing `Function`, because a consumer
+    /// filtering `kind == "method"` must not be handed a directory. It
+    /// can only appear in a graph the caller explicitly asked to roll
+    /// up, so it cannot surprise anyone who did not opt in.
+    Group,
 }
 
 /// Confidence that an edge is real.
@@ -94,6 +102,41 @@ pub enum Via {
     /// an inference rather than an observation — see
     /// [`crate::frameworks::FRAMEWORK_ENTRY_DISCLAIMER`].
     FrameworkEntry(String),
+}
+
+/// What a rolled-up group node stands for.
+///
+/// Present only on nodes minted by the `--rollup` / `--rollup-by` pass,
+/// which replaces a set of callables with one node per group. A typed
+/// field rather than a naming convention the formatters sniff for: the
+/// qualified name of a group is its group key, which is also a perfectly
+/// ordinary module path, so nothing about the string distinguishes it.
+///
+/// Every count here describes the members that were *folded in*, not the
+/// graph the group node lives in — `members` is how many callables
+/// collapsed, and `internal_calls` is how many edges between them were
+/// dropped because they became self-loops.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RollupMeta {
+    /// The level this group was cut at (`"file"`, `"module"`, `"dir:2"`).
+    pub level: String,
+    /// Callables folded into this node. Always >= 1.
+    pub members: u32,
+    /// Distinct source files those members came from.
+    pub files: u32,
+    /// Languages present among the members, sorted and deduplicated.
+    /// One entry is the common case; more means the group spans a
+    /// language boundary.
+    pub languages: Vec<String>,
+    /// Edges between two members of this same group, dropped rather than
+    /// drawn as a self-loop. Kept as a count because "this module calls
+    /// itself 300 times" is real information that an arrow pointing at
+    /// its own box does not convey.
+    pub internal_calls: u32,
+    /// Members carrying an `unreferenced` finding. The group is marked
+    /// `unreferenced` only when this equals `members` — see the note on
+    /// [`CallableNode::unreferenced`].
+    pub unreferenced_members: u32,
 }
 
 /// A callable node in the graph.
@@ -165,6 +208,12 @@ pub struct CallableNode {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unreferenced: Option<Confidence>,
 
+    /// Set on a node minted by the rollup pass, describing the group it
+    /// stands for. `None` — and therefore absent from JSON — on every
+    /// node of an ordinary run, so the default graph is byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rollup: Option<RollupMeta>,
+
     /// Set on a synthesized `<framework-entry>` node, naming the trust
     /// boundary control crosses there.
     ///
@@ -181,13 +230,59 @@ pub struct CallableNode {
 pub struct CallEdge {
     pub src: CallableId,
     pub dst: CallableId,
-    /// 1-based line of the call site inside `src`.
+    /// 1-based line of the call site inside `src`. `0` on an aggregate
+    /// edge, which has no single call site — see [`CallEdge::weight`].
     pub site_line: u32,
     /// Byte offset of the call site inside the source of `src`'s file.
+    /// `0` on an aggregate edge.
     pub site_byte: u32,
     pub confidence: Confidence,
     pub via: Via,
     pub resolver: ResolverId,
+
+    /// How many underlying call sites this one edge stands for.
+    ///
+    /// Always `1` in an ordinary graph — the documented contract is one
+    /// edge per call site, which is what makes JSON and GraphML faithful
+    /// to call frequency while mermaid and dot collapse and label the
+    /// multiplicity. The rollup pass is the only thing that raises it:
+    /// folding N callables into one group node turns many call sites
+    /// into one group-to-group edge, and the count is the part of the
+    /// original graph that would otherwise be lost.
+    ///
+    /// Skipped in JSON when it is `1`, so an ordinary graph serialises
+    /// byte-for-byte as it did before this field existed.
+    #[serde(default = "unit_weight", skip_serializing_if = "is_unit_weight")]
+    pub weight: u32,
+}
+
+/// The weight of an edge that stands for exactly one call site.
+fn unit_weight() -> u32 {
+    1
+}
+
+fn is_unit_weight(w: &u32) -> bool {
+    *w == 1
+}
+
+impl Default for CallEdge {
+    /// `weight` defaults to `1`, not to `u32::default()`.
+    ///
+    /// Every other field is a placeholder that real construction sites
+    /// overwrite; this one is a meaningful default, and zero would mean
+    /// "an edge standing for no calls at all".
+    fn default() -> Self {
+        Self {
+            src: CallableId::default(),
+            dst: CallableId::default(),
+            site_line: 0,
+            site_byte: 0,
+            confidence: Confidence::Low,
+            via: Via::Direct,
+            resolver: ResolverId::new(""),
+            weight: 1,
+        }
+    }
 }
 
 /// Provenance record for a file that entered the analysis.
@@ -315,6 +410,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
+            weight: 1,
         });
         assert_eq!(g.size(), (2, 1));
         assert_eq!(g.files.len(), 1);

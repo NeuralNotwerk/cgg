@@ -33,6 +33,7 @@ pub(crate) fn edge(src: u32, dst: u32) -> CallEdge {
         confidence: Confidence::High,
         via: Via::Direct,
         resolver: ResolverId::new("test"),
+        weight: 1,
     }
 }
 

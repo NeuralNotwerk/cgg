@@ -68,6 +68,38 @@ impl GraphFormatter for MermaidFormatter {
                 "%% BEST EFFORT — see the coverage table for what cgg did and did not recognise."
             )?;
         }
+        // A rolled-up graph is a well-formed graph of something that is
+        // not what was analyzed, and nothing in its shape says so — the
+        // group keys read as perfectly ordinary module paths. The banner
+        // rides in a comment for the same reason the entry-node one does:
+        // this block gets pasted into places its stderr does not follow.
+        if let Some(meta) = graph.callables.values().find_map(|n| n.rollup.as_ref()) {
+            // Counts describe the whole diagram, not only the folded
+            // part: some nodes pass through ungrouped (framework entries
+            // are never folded), and a banner that counted only groups
+            // would disagree with the run summary on stderr for reasons
+            // no reader of the diagram could reconstruct.
+            let nodes = graph.callables.len();
+            let members: usize = graph
+                .callables
+                .values()
+                .map(|n| n.rollup.as_ref().map_or(1, |r| r.members as usize))
+                .sum();
+            writeln!(
+                out,
+                "%% cgg: ROLLED UP to `{}` — {nodes} node(s) standing for {members} \
+                 callable(s).",
+                meta.level
+            )?;
+            writeln!(
+                out,
+                "%% Each arrow means at least one call between the two groups; `Nx` is how"
+            )?;
+            writeln!(
+                out,
+                "%% many call sites it stands for. This is not the full call graph."
+            )?;
+        }
         let any_unreferenced = graph.callables.values().any(|n| n.unreferenced.is_some());
         if any_unreferenced {
             // A mark in a diagram gets pasted into places its evidence
@@ -97,7 +129,25 @@ impl GraphFormatter for MermaidFormatter {
             // `|entry|` edge label; a third independent signal is
             // proportionate to a node minted from an inference rather
             // than from an observed call site.
-            let tag = if node.framework_entry.is_some() {
+            // A group node's member count goes in the label, not only in
+            // the JSON: the whole point of a rolled-up diagram is that one
+            // box stands for many functions, and a reader who only ever
+            // sees the mermaid has no other way to learn how many.
+            let rollup_tag = node.rollup.as_ref().map(|r| {
+                let unref = if r.unreferenced_members == r.members && r.members > 0 {
+                    ", all unreferenced"
+                } else {
+                    ""
+                };
+                let noun = if r.members == 1 { "fn" } else { "fns" };
+                match r.internal_calls {
+                    0 => format!(" ⟨{} {noun}{unref}⟩", r.members),
+                    n => format!(" ⟨{} {noun}, {n} internal{unref}⟩", r.members),
+                }
+            });
+            let tag: &str = if let Some(t) = rollup_tag.as_deref() {
+                t
+            } else if node.framework_entry.is_some() {
                 " ⟨framework entry callback⟩"
             } else if node.unreferenced.is_some() {
                 " ⟨unreferenced⟩"
@@ -138,9 +188,15 @@ impl GraphFormatter for MermaidFormatter {
             std::collections::HashMap::new();
         for edge in &graph.edges {
             let key = (edge.src, edge.dst, via_tag(&edge.via));
+            // `weight`, not `1`: an ordinary edge stands for one call
+            // site and carries weight 1, so this is unchanged for every
+            // graph that was not rolled up — but a folded edge already
+            // knows how many call sites it represents, and counting it as
+            // one would throw that away exactly where it matters most.
             let entry = counts.entry(key).or_insert(0);
-            *entry += 1;
-            if *entry == 1 {
+            let first = *entry == 0;
+            *entry += edge.weight;
+            if first {
                 order.push(key);
             }
         }
@@ -248,6 +304,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
+            weight: 1,
         });
         g
     }
@@ -302,6 +359,7 @@ mod tests {
                 confidence: Confidence::High,
                 via: Via::Direct,
                 resolver: ResolverId::new("intra-file"),
+                weight: 1,
             });
         }
         let mut buf = Vec::new();
@@ -362,6 +420,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
+            weight: 1,
         });
         g.add_edge(CallEdge {
             src: CallableId::new(0),
@@ -371,6 +430,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
+            weight: 1,
         });
         g.add_edge(CallEdge {
             src: CallableId::new(0),
@@ -380,6 +440,7 @@ mod tests {
             confidence: Confidence::High,
             via: Via::Direct,
             resolver: ResolverId::new("intra-file"),
+            weight: 1,
         });
         let mut buf = Vec::new();
         MermaidFormatter.render(&g, &mut buf).unwrap();

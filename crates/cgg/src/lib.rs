@@ -23,6 +23,9 @@
 
 pub mod cli;
 pub mod emit;
+// Public: a library caller naming `--rollup-by` needs to name a
+// `RollupLevel`, and `RunOptions` carries one.
+pub mod rollup;
 
 // Private: consumers reach these types through the re-exports below, and
 // the modules themselves have no out-of-crate callers.
@@ -30,6 +33,7 @@ mod deadcode;
 mod options;
 mod outcome;
 mod query;
+mod replay;
 mod since;
 mod stable_ids;
 
@@ -124,6 +128,12 @@ pub fn cross_file_default_fanout_cap() -> u32 {
 }
 
 pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
+    // A replay reads a finished graph instead of a source tree, so there
+    // is nothing here for a worker pool to do — building one would cost
+    // more than the whole run.
+    if opts.from_graph.is_some() {
+        return replay::replay(opts);
+    }
     // `jobs: 0` means half the PHYSICAL cores. rayon defaults to one per
     // LOGICAL cpu, which on an SMT machine is double that — and cgg's hot
     // loops are allocator-bound, so siblings contend rather than add.
@@ -1240,6 +1250,12 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     )
     .map_err(|e| anyhow::anyhow!(e))?;
 
+    // Last transform on the graph, and deliberately last: it composes
+    // with `--filter`, `-n` and `--exclude-*` rather than competing with
+    // them, and it must not run before dead-code marking or the
+    // `unreferenced` marks it aggregates would not exist yet.
+    let graph = apply_rollup(graph, opts, &id_roots, &mut transcript, &mut events)?;
+
     // Here, before the run summary: without `-o` the graph goes to stdout
     // and the summary to stderr, so the position is visible to anyone piping
     // both. See `Emission`.
@@ -1365,6 +1381,127 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         cross_file_edges: cross_file,
         jobs,
     })
+}
+
+/// Fold the graph to a coarser granularity, if this run asked for one.
+///
+/// A no-op — not even a render — unless `--rollup` or `--rollup-by` is
+/// set, so the default graph and its cost are untouched.
+///
+/// Shared with `crate::replay`, which is why it takes a transcript and an
+/// event list rather than returning diagnostics: both callers have to
+/// interleave these into their own stream in their own order.
+pub(crate) fn apply_rollup(
+    graph: Graph,
+    opts: &RunOptions,
+    id_roots: &[stable_ids::IdRoot],
+    transcript: &mut Vec<Emission>,
+    events: &mut Vec<AuditEvent>,
+) -> Result<Graph> {
+    if opts.rollup.is_none() && opts.rollup_by.is_none() {
+        return Ok(graph);
+    }
+    let _s = cgg_core::profile::span("post::rollup");
+
+    let format = opts.rollup_format;
+    let render = move |g: &Graph| emit::graph_to_string(g, format);
+    // A fresh allocator, not the pipeline's: `replay` has no pipeline and
+    // must take the identical path, and group ids draw from their own
+    // hash domain either way.
+    let mut ids = StableIds::new();
+    let before = (graph.callables.len() as u64, graph.edges.len() as u64);
+
+    let fitted = rollup::fit(
+        &graph,
+        &render,
+        opts.rollup,
+        opts.rollup_by,
+        &mut ids,
+        id_roots,
+    );
+
+    if !fitted.level.is_rollup() {
+        if let Some(budget) = opts.rollup {
+            if fitted.over_budget {
+                // The budget was needed and could not be met, and every
+                // grouping cgg tried came out *larger* than doing nothing
+                // — so the un-rolled graph is what got emitted. Saying
+                // "not needed" here would be the exact opposite of true.
+                transcript.push(Emission::always(format!(
+                    "warning: --rollup {budget} could not be met. No grouping \
+                     cgg has renders smaller than the un-rolled graph here, so \
+                     the output is the full graph at about {} token(s) — OVER \
+                     the budget. Narrow it with --filter or --exclude-*.\n",
+                    fitted.chosen().tokens
+                )));
+            } else {
+                // Under budget already. Say so — a caller who leaves
+                // `--rollup` in a wrapper script wants to know whether it
+                // engaged, and silence is ambiguous between "fit" and
+                // "ignored".
+                transcript.push(Emission::line(format!(
+                    "cgg: --rollup {budget} not needed — the graph renders to \
+                     about {} token(s)\n",
+                    fitted.chosen().tokens
+                )));
+            }
+        }
+        return Ok(fitted.graph);
+    }
+
+    let chosen = fitted.chosen().clone();
+    events.push(AuditEvent::RolledUp {
+        level: chosen.level.as_str(),
+        budget: opts.rollup,
+        estimated_tokens: chosen.tokens,
+        nodes_before: before.0,
+        edges_before: before.1,
+        nodes_after: chosen.nodes as u64,
+        edges_after: chosen.edges as u64,
+        attempts: fitted
+            .attempts
+            .iter()
+            .map(|a| cgg_core::audit::RollupAttempt {
+                level: a.level.as_str(),
+                nodes: a.nodes as u64,
+                edges: a.edges as u64,
+                estimated_tokens: a.tokens,
+            })
+            .collect(),
+        over_budget: fitted.over_budget,
+    });
+
+    // `always`, not `line`. Every other advisory here is suppressible
+    // because the artifact still says what it is; this one is the only
+    // thing distinguishing a graph of your code from a graph of your
+    // directory layout, and `-q` must not be able to hide that.
+    transcript.push(Emission::always(format!(
+        "cgg: ROLLED UP to `{}` — {} callable(s) -> {} group node(s), \
+         {} edge(s) -> {} ({} est. tokens{})\n",
+        chosen.level,
+        before.0,
+        chosen.nodes,
+        before.1,
+        chosen.edges,
+        chosen.tokens,
+        match opts.rollup {
+            Some(b) => format!(", budget {b}"),
+            None => String::new(),
+        },
+    )));
+    if fitted.over_budget {
+        transcript.push(Emission::always(format!(
+            "warning: --rollup {} could not be met. `{}` is the smallest \
+             grouping cgg could produce and it still renders to about {} token(s); the \
+             output is OVER the budget you asked for. Narrow it with --filter \
+             or --exclude-* — no further rollup is available.\n",
+            opts.rollup.unwrap_or(0),
+            chosen.level,
+            chosen.tokens,
+        )));
+    }
+
+    Ok(fitted.graph)
 }
 
 /// What the dead-code pass produced.
@@ -1883,6 +2020,7 @@ fn synthesize_exit_nodes(
                     confidence: Confidence::Low,
                     via: via.clone(),
                     resolver: resolver.clone(),
+                    weight: 1,
                 });
             }
         }
@@ -1973,6 +2111,7 @@ fn synthesize_entry_nodes(
             confidence: Confidence::Low,
             via: Via::FrameworkEntry(entry.framework.clone()),
             resolver: resolver.clone(),
+            weight: 1,
         });
     }
     for e in edges {

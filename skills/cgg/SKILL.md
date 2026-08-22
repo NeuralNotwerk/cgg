@@ -118,6 +118,55 @@ Use this to orient before reading source. The graph reveals which
 functions are entry points (no internal callers) versus internal
 helpers — saving you from reading the whole module top-to-bottom.
 
+### Whole-project shape without blowing your context
+
+```bash
+cgg . --rollup 40k                   # fold only if it would exceed 40k tokens
+cgg . --rollup-by module             # always cut at module level
+cgg . --rollup-by file --rollup 20k  # file level at least, coarser if needed
+```
+
+`--filter` answers "what touches X?". `--rollup` answers the other
+question — "what is the shape of this codebase?" — which a filter
+cannot, because you do not yet know what to filter for. It replaces
+each group of callables with one node: `type`, `module`, `file`,
+`package`, `dir:N` or `language`.
+
+Reach for it as the **first** command in an unfamiliar repository,
+before you know any names to filter on. `cgg . --rollup-by package`
+on a large monorepo is a handful of nodes and tells you which
+components talk to which.
+
+An arrow between two group nodes means *at least one* call exists
+between them; the `Nx` label is how many call sites it stands for. A
+count like `⟨14 fns, 24 internal⟩` on a node means 14 callables were
+folded in and 24 calls between them were dropped rather than drawn as
+a self-loop. **A rolled-up graph is not the call graph** — the diagram
+says so in a comment header, and you cannot reason about an individual
+function from it. Re-run with `--filter` on a group that looks
+interesting.
+
+### Slice one analysis many ways
+
+```bash
+cgg ./src -t json -o /tmp/graph.json          # analyze once (the slow part)
+cgg --from-graph /tmp/graph.json --rollup-by module
+cgg --from-graph /tmp/graph.json --filter 'submit' -n 2
+```
+
+Parsing dominates the wall clock and there is no cache, so a saved
+`-t json` graph is how you ask five questions for the price of one.
+On this repo: ~360 ms to analyze, ~70 ms per replay. `--filter`,
+`-n`, `--exclude-*` and `--rollup` all apply to the loaded document
+and give byte-identical output to running them against the tree.
+
+Two things it cannot do, both of which cgg tells you rather than
+leaving you to find out: a saved graph is the *post-query* graph, so
+replaying a filtered document only narrows it further; and options
+needing analysis facts the document lacks (`--dead-code`,
+`--include-external`, `--dynamic-dispatch`, `--since`, `--lang`) are
+refused with a reason, not ignored.
+
 ### Trim noise with exclusions
 
 ```bash
@@ -323,6 +372,13 @@ an entry: a framework entry point, an exported API, a declared root in
   neighborhoods in a single run — cheaper than two runs.
 - **Glob when escaping is annoying.** `--filter 'glob:OrderService::*'`
   beats wrestling with regex special chars.
+- **When you cannot filter, roll up.** `--rollup 40k` caps the output
+  instead of narrowing it, which is the right move when you want the
+  whole shape rather than one neighbourhood. It is safe to leave on: a
+  graph already under budget comes back byte-identical.
+- **The budget is an estimate**, `max(words x 2.5, bytes / 3.5)` — no
+  tokenizer ships in the binary. Treat it as a bound with maybe 20%
+  slack, not an exact count.
 
 ## Choosing hop depth
 
@@ -333,6 +389,7 @@ an entry: a framework entry point, an exported API, a declared root in
 | All entry-to-exit paths through a function | `0` |
 | Whole module structure (with broad filter) | `1` |
 | Whole project graph | omit `-n` (full graph) — only for small projects |
+| Whole project *shape*, any size | omit `-n`, add `--rollup 40k` or `--rollup-by module` |
 
 Start at `-n 1`. If the result is too sparse, go to `2`. If too
 dense, add `--exclude-*` rather than dropping back to `0` or `1` —

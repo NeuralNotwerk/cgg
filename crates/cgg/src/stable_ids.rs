@@ -258,6 +258,26 @@ impl StableIds {
         hasher.update(signature_hint.as_bytes());
         cgg_core::ids::CallableId::new_u64(allocate(hasher, &mut self.seen_callables))
     }
+
+    /// Allocate a `CallableId` for a rolled-up group node, keyed on the
+    /// level and the group key.
+    ///
+    /// Its own `b"rollup\0"` domain, so a group named `crate::query` does
+    /// not hash to the value a *callable* of that name would get, and it
+    /// escalates against `seen_callables` exactly as [`Self::callable`]
+    /// does — which is what makes two group ids in one rolled-up graph
+    /// distinct. That matters beyond tidiness: a rolled-up graph is a
+    /// valid input to `--from-graph`, and two nodes sharing an id in a
+    /// document someone re-queries later is a defect with no local
+    /// symptom.
+    pub fn rollup_group(&mut self, level: &str, key: &str) -> cgg_core::ids::CallableId {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"rollup\0");
+        hasher.update(level.as_bytes());
+        hasher.update(b"\0");
+        hasher.update(key.as_bytes());
+        cgg_core::ids::CallableId::new_u64(allocate(hasher, &mut self.seen_callables))
+    }
 }
 
 #[cfg(test)]

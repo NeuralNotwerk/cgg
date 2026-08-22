@@ -135,6 +135,7 @@ pub fn link_descriptors(graph: &Graph) -> Vec<CallEdge> {
                 confidence: Confidence::Low,
                 via: Via::Descriptor(family_of(&op.language).to_string()),
                 resolver: resolver.clone(),
+                weight: 1,
             });
         }
     }

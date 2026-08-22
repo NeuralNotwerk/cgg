@@ -90,6 +90,8 @@ files) are listed in the audit log under `since_resolved`.
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--filter PATTERN]... [--since REVSPEC]
               [-n N] [--max-paths N] [--fanout-cap N]
+              [--rollup BUDGET] [--rollup-by LEVEL]
+              [--from-graph FILE]
               [--include-tests] [--ignore-file PATH]
               [--exclude-partial SUBSTRING]...
               [--exclude-glob PATTERN]...
@@ -118,6 +120,9 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
 | `--max-paths` | 1000 | Cap per-match path count in `-n 0` mode. Hitting the cap prints a note on stderr and records a `paths_truncated` audit event |
+| `--rollup` | (off) | Fold the graph to a coarser granularity if rendering it would exceed this token budget (`100k`, `120000`, `1.5m`). A graph already under budget is left byte-identical. The count is an **estimate** — `max(words × 2.5, bytes ÷ 3.5)`, no tokenizer ships in the binary. Every rollup is announced on stderr, in the graph, and in the audit |
+| `--rollup-by` | (off) | Granularity to fold to: `callable`, `type`, `module`, `file`, `package`, `dir:N`, `language`. Applied exactly on its own; with `--rollup` it is a floor the budget may coarsen past |
+| `--from-graph` | (none) | Re-query a graph saved by an earlier `-t json` run instead of analyzing source. `--filter`, `-n`, `--exclude-*` and `--rollup` all apply to it |
 | `--fanout-cap` | 5 | Max same-named candidates for a duck-typed method call before the fan-out is dropped. Drops are recorded as `fanout-cap-exceeded` with the candidate count — never silently |
 | `--include-tests` | off | Show dead-code findings that live in test scope. Test code is always analyzed and always counts as a caller |
 | `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
@@ -510,7 +515,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2095 callables, 4982 edges, 1788 cross-file, 164ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2196 callables, 5214 edges, 1842 cross-file, 335ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -527,6 +532,8 @@ flowchart LR
   Cqf3yb5yflr["cgg::analyze_in_pool"]
   Cw7ql96bk4s["cgg::langs_enabled"]
   Cpqtewxfrbq["cgg::specific"]
+  Cnqqmiuv8hs["cgg::apply_rollup"]
+  Cf5x5dxc2es["cgg::render"]
   C17hqdlhbu9f["cgg::dead_code_analysis"]
   Cqourmywlr0["cgg::why_live_proofs"]
   C1263o8qvvx1["cgg::since_seeds"]
@@ -589,6 +596,8 @@ flowchart LR
   Cqf3yb5yflr --> C1263o8qvvx1
   Cqf3yb5yflr --> Cqourmywlr0
   Cqf3yb5yflr --> C17hqdlhbu9f
+  Cqf3yb5yflr --> Cnqqmiuv8hs
+  Cqf3yb5yflr --> Cf5x5dxc2es
   C1nljxkp92o --> C1nljxkp92o
   Cqf3yb5yflr --> C8b2vmlwi5t
   Cqf3yb5yflr --> Conerhz0ciy
@@ -629,6 +638,10 @@ flowchart LR
   Cqf3yb5yflr -->|2x| Cw9znk2tj67
   Cqf3yb5yflr --> C14b5cln9j8o
   Cqf3yb5yflr --> Cv0jm0wne8n
+  Cnqqmiuv8hs --> C15ginzh7zk1
+  Cnqqmiuv8hs --> Ca6hvkecq8h
+  Cnqqmiuv8hs -->|3x| Cw9znk2tj67
+  Cnqqmiuv8hs --> C11vqmheapvn
   C17hqdlhbu9f --> Cog6dt6joc4
   C17hqdlhbu9f --> Cw9znk2tj67
   C17hqdlhbu9f --> C11vqmheapvn
@@ -776,6 +789,102 @@ And where cgg genuinely cannot tell two callables apart — same file,
 same qualified name, same signature — it separates them by declaration
 order, so removing one can hand its id to the other; overloads with
 distinct signatures are unaffected.
+
+## Rolling up
+
+The default graph of a real tree does not fit in a context window. This
+repo's own `crates/` is 2,196 callables and 5,214 edges — about **76,000
+tokens** of mermaid. `--rollup` folds it to one node per group until the
+rendered output fits a budget you name, and `--rollup-by` cuts it at a
+granularity you name outright.
+
+```bash
+# Fold only if the graph would blow a 40k-token budget.
+cgg ./src --rollup 40k
+
+# Always cut at module level, whatever the size.
+cgg ./src --rollup-by module
+
+# At least file level, coarser if 20k demands it.
+cgg ./src --rollup-by file --rollup 20k
+```
+
+Measured on `cgg ./crates`:
+
+| `--rollup-by` | Nodes | Edges | Est. tokens |
+| ------------- | ----- | ----- | ----------- |
+| (none) | 2196 | 5214 | 76,422 |
+| `type` | 365 | 741 | 13,926 |
+| `module` | 241 | 650 | 10,724 |
+| `file` | 141 | 528 | 7,966 |
+| `dir:2` | 33 | 51 | 1,437 |
+| `package` | 26 | 42 | 1,246 |
+| `language` | 21 | 20 | 939 |
+
+A budget escalates through those rungs in that order and stops at the
+first that fits. `package` is the nearest ancestor directory holding a
+build manifest (`Cargo.toml`, `package.json`, `go.mod`, `pyproject.toml`
+and friends) — the only level that reads the filesystem, falling back to
+`dir:1` where it finds none.
+
+**What a group node claims.** A group edge means *at least one* call
+exists between the two groups, and carries how many call sites it stands
+for — `|47x|` in mermaid and dot, `"weight": 47` in JSON and GraphML.
+Two aggregation rules differ on purpose, because the honest answer
+differs:
+
+- **Edge confidence is the maximum** over the folded edges. "At least one
+  call exists" is a disjunction — as strong as the best evidence for it.
+- **`unreferenced` is the minimum, and only when every member carries
+  it.** "Nothing calls anything in here" is a conjunction, so one
+  referenced member falsifies it for the whole group.
+
+Calls between two members of the same group are not drawn as a self-loop;
+the count rides on the node (`⟨14 fns, 24 internal⟩`). `<framework-entry>`
+nodes are never folded — they all share one sentinel path, so any
+path-based level would collapse every entry in the tree into one node.
+
+**The budget is an estimate.** No tokenizer ships in the binary — cgg is
+offline, deterministic and single-binary, and a BPE vocabulary is none of
+those at the size it would add. The count is
+`max(words × 2.5, bytes ÷ 3.5)`. The word half is the usual prose rule of
+thumb; the byte half exists because it is nearer the truth for mermaid,
+where 40% of the output is base36 node ids and `::`-dense qualified names
+that tokenize nothing like English. Taking the larger errs toward folding
+slightly too eagerly rather than handing back twice what you asked for.
+
+A rollup is never silent: it is announced on stderr (**not** suppressed by
+`-q`), in a comment header inside the graph itself so it survives
+copy-paste, and as a `rolled_up` audit event listing every granularity
+measured. A budget that cannot be met at any granularity says so rather
+than quietly returning something over it.
+
+### Re-querying a saved graph
+
+`-t json` writes the whole graph, and `--from-graph` reads one back —
+so one expensive analysis can be sliced many ways without re-parsing
+anything. `--filter`, `-n`, the `--exclude-*` family and `--rollup` all
+apply to the loaded document, and produce **byte-identical** output to
+running the same flags against the source tree.
+
+```bash
+cgg ./src -t json -o graph.json          # analyze once
+cgg --from-graph graph.json --rollup-by module
+cgg --from-graph graph.json --filter 'submit' -n 2
+```
+
+Two limits, both stated by the tool rather than left to be discovered:
+
+- A saved graph is the **post-query** graph of the run that wrote it.
+  Replaying a filtered document can only narrow it further; cgg detects
+  that case (its metrics outnumber its contents) and warns.
+- Options needing analysis-time facts the document does not carry —
+  `--dead-code`, `--include-external`, `--dynamic-dispatch`, `--since`,
+  `--lang` — are **refused with a reason**, not silently ignored.
+
+The document carries `"schema": "cgg.graph.v1"` and the writing version.
+Node ids are not comparable across cgg versions, so a mismatch warns and a
+different schema is refused.
 
 ## Resolution pipeline
 

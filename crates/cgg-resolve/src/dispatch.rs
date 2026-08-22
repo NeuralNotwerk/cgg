@@ -87,6 +87,7 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
                 confidence: Confidence::Low,
                 via: Via::Dynamic,
                 resolver: resolver.clone(),
+                weight: 1,
             });
         }
     }

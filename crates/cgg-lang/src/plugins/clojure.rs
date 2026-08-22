@@ -362,10 +362,8 @@ impl<'a> ClojureWalker<'a> {
                         kwargs: Vec::new(),
                     });
                 }
-                "list_lit" | "anon_fn_lit" => {
-                    if Some(i) != binding_pos {
-                        body.push(*el);
-                    }
+                "list_lit" | "anon_fn_lit" if Some(i) != binding_pos => {
+                    body.push(*el);
                 }
                 // A vector or map in a route form is data — the binding
                 // vector, a middleware stack, a Reitit route table. None

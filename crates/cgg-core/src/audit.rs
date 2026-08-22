@@ -410,6 +410,59 @@ pub enum AuditEvent {
         max_paths: u32,
         paths_emitted: u32,
     },
+    /// The graph was folded to a coarser granularity before rendering.
+    ///
+    /// Emitted whenever a rollup actually happened, which is the only
+    /// event here that describes a *view* of the graph rather than the
+    /// analysis. It is recorded anyway for the same reason
+    /// [`AuditEvent::PathsTruncated`] is: a rolled-up graph is a
+    /// perfectly well-formed graph of something that is not what was
+    /// analyzed, and nothing in the artifact's shape says which. The
+    /// `attempts` list carries every granularity that was measured and
+    /// rejected, so the choice can be second-guessed after the fact.
+    RolledUp {
+        /// The level the output was cut at (`"file"`, `"dir:2"`).
+        level: String,
+        /// Token budget that forced it, if any. `None` means
+        /// `--rollup-by` asked for this level outright.
+        budget: Option<u64>,
+        /// Estimated tokens of the emitted artifact, by the same formula
+        /// the budget is compared against.
+        estimated_tokens: u64,
+        /// Callables and edges before folding.
+        nodes_before: u64,
+        edges_before: u64,
+        /// Group nodes and folded edges after.
+        nodes_after: u64,
+        edges_after: u64,
+        /// Every granularity measured, finest first.
+        attempts: Vec<RollupAttempt>,
+        /// The budget could not be met even at the coarsest granularity,
+        /// so the artifact is over it.
+        over_budget: bool,
+    },
+    /// A graph was loaded from a previous run's JSON instead of analyzed.
+    ///
+    /// `source_filtered` is set when the loaded document's own metrics
+    /// say the analysis found more callables than the document contains
+    /// — i.e. it was already narrowed by `--filter`, and this replay can
+    /// only narrow it further.
+    GraphReplayed {
+        path: PathBuf,
+        callables: u64,
+        edges: u64,
+        source_filtered: bool,
+    },
+}
+
+/// One granularity [`AuditEvent::RolledUp`] measured on its way to a
+/// decision.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RollupAttempt {
+    pub level: String,
+    pub nodes: u64,
+    pub edges: u64,
+    pub estimated_tokens: u64,
 }
 
 /// Run-level metrics rolled up once, after the last file is done.

@@ -114,6 +114,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     confidence: Confidence::Medium,
                     via: Via::Reference,
                     resolver: resolver_id.clone(),
+                    weight: 1,
                 });
             }
             continue;
@@ -256,6 +257,7 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     confidence: Confidence::High,
                     via: Via::Direct,
                     resolver: resolver_id.clone(),
+                    weight: 1,
                 });
             }
             _ => {
