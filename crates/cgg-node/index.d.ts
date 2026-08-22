@@ -96,6 +96,28 @@ export interface AnalyzeOptions {
   ignoreAttributes?: string
   roots?: string
   since?: string
+  /**
+   * Token budget for the rendered graph — `"100k"`, `"120000"`,
+   * `"1.5m"`. The graph is folded to a coarser granularity only if
+   * rendering it would exceed this; a graph that fits is untouched.
+   */
+  rollup?: string
+  /**
+   * Granularity to fold to: `"callable"`, `"type"`, `"module"`,
+   * `"file"`, `"package"`, `"dir:N"`, `"language"`. With `rollup` it
+   * is a floor the budget may coarsen past.
+   */
+  rollupBy?: string
+  /**
+   * Which renderer `rollup`'s budget is measured against:
+   * `"mermaid"` (default), `"json"`, `"dot"`, `"graphml"`.
+   */
+  rollupFormat?: string
+  /**
+   * Replay a graph written by an earlier `toJson()` / `-t json` run
+   * instead of analyzing source. Pass `[]` for the paths.
+   */
+  fromGraph?: string
 }
 
 /**
@@ -126,6 +148,11 @@ export interface Callable {
    * a proof.
    */
   unreferenced?: string
+  /**
+   * Set when this node is a rolled-up group rather than a callable.
+   * `undefined` on an ordinary graph.
+   */
+  rollup?: RollupInfo
 }
 
 /**
@@ -148,6 +175,11 @@ export interface Edge {
    * or `"framework_entry"`. Filter on this to keep only edges you trust.
    */
   via: string
+  /**
+   * How many call sites this edge stands for. Always `1` unless the
+   * graph was rolled up, where one group-to-group edge folds many.
+   */
+  weight: number
 }
 
 /** One analyzed source file. */
@@ -177,6 +209,23 @@ export interface Metrics {
   stdlibCalls: number
   externalCalls: number
   wallMs: number
+}
+
+/** What a rolled-up group node stands for. See `Callable.rollup`. */
+export interface RollupInfo {
+  /** `"file"`, `"module"`, `"dir:2"`, ... */
+  level: string
+  /** Callables folded into this node. */
+  members: number
+  /** Distinct source files they came from. */
+  files: number
+  languages: Array<string>
+  /**
+   * Calls between two members, counted rather than drawn as a
+   * self-loop.
+   */
+  internalCalls: number
+  unreferencedMembers: number
 }
 
 /** The cgg version this module was built from. */
