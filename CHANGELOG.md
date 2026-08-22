@@ -7,6 +7,166 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-08-22
+
+**Output-side only. The analysis is untouched.** No resolver phase, no
+plugin, no framework rule and no id derivation changed, and the graph
+this release builds for a given tree is the same graph 0.8.0 built —
+verified by running both binaries over one fixed tree: `mermaid`, `dot`
+and `graphml` come back byte-identical. Everything below is about what
+gets *emitted* from that graph and how it can be sliced afterwards.
+
+### Added — `--rollup`, `--rollup-by`, `--from-graph`
+
+- **`--rollup BUDGET` folds the graph to a coarser granularity when the
+  rendered output would exceed a token budget.** The default graph of a
+  real tree does not fit in a context window — this repo's own `crates/`
+  is 2,196 callables and 5,214 edges, about 76,000 tokens of mermaid —
+  and the view usually wanted at that size is "which module calls which",
+  not "which function calls which". Budgets accept `100k`, `120000`,
+  `1.5m`. A graph already under budget is left **byte-identical**, so the
+  flag is safe to leave in a wrapper script.
+
+- **`--rollup-by LEVEL` names the granularity outright:** `callable`,
+  `type`, `module`, `file`, `package`, `dir:N`, `language`. With
+  `--rollup` it is a floor the budget may coarsen past. `package` is the
+  nearest ancestor directory holding a build manifest (`Cargo.toml`,
+  `package.json`, `go.mod`, `pyproject.toml` and friends) — the only
+  level that reads the filesystem, falling back to `dir:1` where it finds
+  none. Measured on `cgg ./crates`: 2196 nodes at `callable`, 365 at
+  `type`, 241 at `module`, 141 at `file`, 26 at `package`, 21 at
+  `language`.
+
+  Rollup is a `Graph` -> `Graph` transform in the pipeline, not a
+  formatter mode, so all four output formats and all four front ends get
+  it from one implementation. It runs last — after `--filter`/`-n`, after
+  `--exclude-*`, after dead-code marking — and composes with all of them.
+
+- **`--from-graph FILE` re-queries a graph saved by an earlier `-t json`
+  run** instead of walking source. `-t json` already wrote a document
+  `serde` could read back; this is the reader plus the guardrails one
+  needs. `--filter`, `-n`, `--exclude-*` and `--rollup` all apply to the
+  loaded graph and produce byte-identical output to the same flags run
+  against the tree.
+
+- `-t json` now carries `"schema": "cgg.graph.v1"` and the writing cgg
+  version, as two wrapper keys. Node ids are explicitly not comparable
+  across versions, so an unlabelled or mismatched document is a warning
+  and a different schema is an error rather than a silent misread.
+
+- New `weight` field on an edge: how many call sites it stands for.
+  Always `1` in an ordinary graph, and only a fold raises it. `mermaid`
+  and `dot` fold it into their existing `Nx` label; `graphml` gains a
+  `weight` edge attribute, whose `<key>` is declared only when some edge
+  uses it; JSON skips the field entirely when it is `1`.
+
+  **Default output is unchanged.** Verified by running this build and a
+  pristine 0.8.0 build over the same fixed tree: `mermaid`, `dot` and
+  `graphml` are byte-identical. `-t json` differs by exactly the two new
+  wrapper keys (`schema`, `cgg_version`) plus the per-file parse timings
+  that already differ between any two runs.
+
+- New `CallableKind::Group` and a `rollup` field on a callable, carrying
+  the member/file/language/internal-call counts a group node stands for.
+  A distinct kind rather than borrowing `Function`, because a consumer
+  filtering `kind == "method"` must not be handed a directory — and it
+  can only appear in a graph the caller explicitly asked to roll up.
+
+- New audit events: `rolled_up` (the level chosen, the budget, every
+  granularity measured and rejected, and whether the budget was met) and
+  `graph_replayed`.
+
+### Honesty properties
+
+- **A rollup is never silent.** It is announced on stderr — and unlike
+  every other advisory, **`-q` does not suppress it**, because it is the
+  only thing distinguishing a graph of your code from a graph of your
+  directory layout. It is also stated in a comment header inside the
+  mermaid itself, so it survives copy-paste of the block, and recorded in
+  the audit.
+- **A budget that cannot be met says so** rather than returning something
+  over it quietly. If no granularity renders smaller than the un-rolled
+  graph — which happens on trees small enough for the banner and the
+  per-node member tags to dominate — the un-rolled graph is returned,
+  because a "budgeted" artifact larger than the unbudgeted one is
+  strictly worse than not having the flag.
+- **Aggregation follows the logic, not convenience.** A group edge's
+  confidence is the **maximum** over the edges it folds ("at least one
+  call exists" is a disjunction — as strong as its best evidence);
+  `unreferenced` is the **minimum** and is set only when *every* member
+  carries it ("nothing calls anything in here" is a conjunction, which
+  one referenced member falsifies).
+- **`--from-graph` refuses what it cannot honour.** `--dead-code`,
+  `--include-external`, `--dynamic-dispatch`, `--since` and `--lang` all
+  need analysis-time facts a saved graph does not contain; each is
+  rejected with the reason rather than silently producing an ordinary
+  graph. A document that was itself filtered is detected (its metrics
+  outnumber its contents) and warned about, because replaying it can only
+  narrow it further.
+- **`<framework-entry>` nodes are never folded.** They share one sentinel
+  path, so any path-based level would collapse every entry in the tree
+  into a single node — destroying the one thing an entry node exists to
+  say.
+- **The token count is an estimate and is documented as one.** No
+  tokenizer ships in the binary; the count is
+  `max(words x 2.5, bytes / 3.5)`. The byte half is not decoration: this
+  repo's mermaid is 13,338 words and 256 KB, so a word-only estimator
+  reports 33k tokens against a real cost nearer 76k, and a caller asking
+  for 100k would have received well over 200k.
+
+### Fixed
+
+- Qualified-name splitting in the rollup keys is bracket-aware. A plain
+  `rfind` lands inside a Rust trait-impl wrapper and produced the group
+  name `cgg::cli::<cgg_format::OutputFormat` — a dangling bracket, and a
+  type nobody wrote.
+- `clippy::collapsible_match` in `cgg-lang/src/plugins/clojure.rs`, which
+  failed `cargo clippy --workspace --all-targets -- -D warnings` on
+  current clippy before any of this work. Unrelated to the feature;
+  fixed because it blocked the gate.
+
+### Performance
+
+Paired A/B against the 0.8.0 baseline, both binaries built from this
+machine's cache and run alternately over the same tree — `cgg ./crates`
+(2,196 callables, 5,214 edges) at `--jobs 1`, 7 pairs, wall clock from
+each run's own summary line:
+
+| | median | min | max |
+| --- | --- | --- | --- |
+| 0.8.0 baseline | 973.5 ms | 952.0 | 1038.2 |
+| 0.8.1 | 965.7 ms | 939.9 | 1028.7 |
+
+Median delta **-0.8%**. Per-pair deltas run +5.1%, -0.9%, -1.6%, +2.0%,
++0.9%, -6.0%, -4.9% — a spread wider than the median difference in both
+directions, which is noise, not a move. That is the expected result:
+`apply_rollup` returns before rendering anything when neither flag is
+set, so the default path gains one branch.
+
+Cost of the new paths, same tree, wall clock per run:
+
+| Run | Times |
+| --- | ----- |
+| default (no rollup) | 467 / 346 / 356 ms |
+| `--rollup 40k` (folds at `type`) | 422 / 437 / 373 ms |
+| `--rollup 1k` (walks every rung) | 364 / 374 / 435 ms |
+| `--rollup-by module` | 410 / 438 ms |
+| `--from-graph` + `--rollup-by module` | 108 / 63 / 74 ms |
+
+Folding is one O(V+E) pass per rung and every render after the first is
+of a dramatically smaller graph, so even a budget that walks the whole
+ladder stays inside run-to-run variance.
+
+`--from-graph` is the number that matters: ~70 ms against ~360 ms,
+because it skips walking, parsing and resolving entirely.
+
+**Not run: `scripts/perf-compare.sh` over the benchmark corpus.** The
+corpus is not present on this machine (`$CGG_BENCH_DIR` is empty), so
+the numbers above are a paired A/B on a single repository. Per this
+project's own rule — never promote a narrow sample to a corpus-wide
+claim — they are stated as what they are: evidence of no regression on
+one tree, not a corpus measurement. Run the corpus A/B before tagging.
+
 ## [0.8.0] - 2026-08-19
 
 ### Changed — BREAKING: node ids are content-derived, not sequential
