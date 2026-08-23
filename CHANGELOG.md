@@ -7,75 +7,6 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
-### Fixed
-
-- **A repo with many framework entry points could not meet any budget.**
-  `<framework-entry>` nodes were exempt from rollup entirely, on the
-  reasoning that they share one sentinel path and a path-based level
-  would collapse every entry in the tree into one node. The reasoning was
-  right and the remedy was too blunt: exempting them gives `--rollup` a
-  floor it cannot get under. Measured on `java-spring-batch`, 10,639
-  callables folded to **two** language groups while **412** entry nodes
-  passed through untouched and made up 99% of the output — about 50,000
-  tokens no granularity could reduce, so `--rollup 40k` failed at every
-  rung.
-
-  Entry nodes now fold by `(trust kind, framework)` — the first three
-  segments of the name `FrameworkEntry::node_name` emits — which keeps
-  both facts an entry node carries and folds only the per-route
-  multiplicity. The count rides on the label
-  (`⟨412 framework entries — INFERRED⟩`), the group keeps its
-  `framework_entry` marker, and a framework with a single entry passes
-  through whole because folding it would gain nothing. On cgg's own
-  tree, `--rollup-by language` goes from 21 nodes / 1,826 tokens to
-  5 nodes / 478.
-
-- **`--rollup`'s token estimate under-counted by about half.** The byte
-  term used `bytes / 3.5`, the usual rule of thumb for code, and 0.8.1
-  shipped it on the strength of that reasoning rather than a
-  measurement. Tokenizing cgg's actual output puts it at **1.78-2.25
-  bytes per token** — mermaid is far denser than prose because 40% of it
-  is base36 node ids and `::`-dense qualified names:
-
-  Both columns measured, not projected — the first draft of this table
-  computed the new column by hand and put the worst case at 0.99x, i.e.
-  still under-counting. It does not:
-
-  | target | real tokens | old estimate | new estimate |
-  | --- | --- | --- | --- |
-  | `cgg/crates` full | 123,639 | 76,496 (0.62x) | 148,781 (1.20x) |
-  | `cgg/crates` type | 25,438 | 13,526 (0.53x) | 27,116 (1.07x) |
-  | `cgg/crates` file | 14,648 | 7,823 (0.53x) | 15,527 (1.06x) |
-  | `cgg/crates` package | 1,890 | 1,216 (0.64x) | 2,424 (1.28x) |
-  | `ripgrep` full | 162,291 | 101,521 (0.63x) | 197,402 (1.22x) |
-  | `ripgrep` type | 35,505 | 18,750 (0.53x) | 37,491 (1.06x) |
-  | `redis` full | 789,069 | 429,660 (0.54x) | 835,451 (1.06x) |
-  | `redis` file | 72,666 | 36,950 (0.51x) | 73,615 (1.01x) |
-
-  Old range 0.51-0.64x, new range **1.01-1.28x** — never under. In
-  practice `--rollup 40k` was returning 65-80k real tokens; the budget
-  was not a bound. The divisor is now 1.8, the bottom of the
-  measured range, so the estimate runs 10-25% *high*: erring that way
-  costs one extra rung of folding, erring the other way hands back an
-  artifact over the budget, which is the failure the flag exists to
-  prevent.
-
-  Calibrated against `o200k_base`, which is a proxy for token density and
-  not the tokenizer any particular model charges. A 2x error is far
-  larger than the difference between BPE families, so the correction
-  holds regardless; the remaining 10-25% slack is the part that is
-  tokenizer-specific. README, `--help` and the skill all state the
-  measured range rather than a rule of thumb.
-
-- **The Node bindings could not see a rollup they asked for.** The option
-  keywords reached the pipeline in 0.8.1, but the JS `Callable` never
-  gained `rollup` and the JS `Edge` never gained `weight`, so a folded
-  edge's call count was dropped at the boundary. `index.d.ts` was also
-  not regenerated, so a TypeScript consumer got a type error for keywords
-  the module accepts. Both conversions now use the same no-`..`-rest
-  destructure `cgg-py` uses, which makes this class of drift a build
-  error. Five `node --test` cases cover the surface.
-
 ## [0.8.1] - 2026-08-22
 
 **Output-side only. The analysis is untouched.** No resolver phase, no
@@ -145,6 +76,22 @@ gets *emitted* from that graph and how it can be sliced afterwards.
   granularity measured and rejected, and whether the budget was met) and
   `graph_replayed`.
 
+- **All four front ends carry the whole surface.** The CLI, `cgg-py`
+  (`rollup=`, `rollup_by=`, `rollup_format=`, `from_graph=`, plus
+  `Callable.rollup` and `Edge.weight`), `cgg-node` (the same in
+  camelCase, with `RollupInfo` and regenerated `index.d.ts`), and
+  `cgg-ffi` — which needed **no ABI change at all**: options cross as a
+  JSON document precisely so a new feature does not add an entry point,
+  and that held. Verified from C, Python and JavaScript against the same
+  trees the CLI was run on.
+
+  `cgg-node`'s graph-type conversions now destructure with no `..` rest,
+  the guard `cgg-py` already used. Without it the option keywords reached
+  the pipeline while `Callable.rollup` and `Edge.weight` did not, so
+  JavaScript could ask for a fold and be unable to observe it, and a
+  folded edge's call count was dropped at the boundary. That is a build
+  error now.
+
 ### Honesty properties
 
 - **A rollup is never silent.** It is announced on stderr — and unlike
@@ -176,12 +123,53 @@ gets *emitted* from that graph and how it can be sliced afterwards.
   path. They share one sentinel path, so a path-based level would
   collapse every entry in the tree into a single node — destroying the
   one thing an entry node exists to say. Folding on the framework keeps
-  that and the trust boundary, and states the count.
-- **The token count is an estimate and is documented as one.** No
-  tokenizer ships in the binary; the count is
-  `max(words x 2.5, bytes / 1.8)`. The byte half is not decoration: this
-  repo's mermaid is 13,338 words and 256 KB, so a word-only estimator
-  reports 33k tokens against a real cost of 123k.
+  that and the trust boundary, and states the count
+  (`⟨412 framework entries — INFERRED⟩`). A framework with a single entry
+  passes through whole, because folding it would gain nothing and cost
+  its route.
+
+  Exempting them from rollup entirely was tried first and is wrong: it
+  gives `--rollup` a floor it cannot get under. On `java-spring-batch`,
+  10,639 callables fold to **two** language groups while **412** entry
+  nodes pass through untouched and are 99% of the output — about 50,000
+  tokens no granularity could reduce, so `--rollup 40k` failed at every
+  rung and could only warn. Folding on the framework, that repo fits at
+  `package` in 1,122 tokens.
+- **The token count is an estimate, is documented as one, and is
+  calibrated against a measurement.** No tokenizer ships in the binary —
+  cgg is offline, deterministic and single-binary, and a BPE vocabulary
+  is none of those at the size it would add. The count is
+  `max(words x 2.5, bytes / 1.8)`.
+
+  The divisor is measured, not a rule of thumb. `bytes / 3.5` — the usual
+  figure for code — was tried first and under-counts cgg's own output by
+  about half, which makes the budget not a bound at all: `--rollup 40k`
+  returned 65-80k real tokens. Mermaid is far denser than prose because
+  40% of it is base36 node ids and `::`-dense qualified names. Both
+  columns below are measured, not projected:
+
+  | target | real tokens | `bytes/3.5` | `bytes/1.8` |
+  | --- | --- | --- | --- |
+  | `cgg/crates` full | 123,639 | 76,496 (0.62x) | 148,781 (1.20x) |
+  | `cgg/crates` type | 25,438 | 13,526 (0.53x) | 27,116 (1.07x) |
+  | `cgg/crates` file | 14,648 | 7,823 (0.53x) | 15,527 (1.06x) |
+  | `cgg/crates` package | 1,890 | 1,216 (0.64x) | 2,424 (1.28x) |
+  | `ripgrep` full | 162,291 | 101,521 (0.63x) | 197,402 (1.22x) |
+  | `ripgrep` type | 35,505 | 18,750 (0.53x) | 37,491 (1.06x) |
+  | `redis` full | 789,069 | 429,660 (0.54x) | 835,451 (1.06x) |
+  | `redis` file | 72,666 | 36,950 (0.51x) | 73,615 (1.01x) |
+
+  1.8 is the bottom of the measured 1.78-2.25 range on purpose: the
+  estimate should **bound** the real count, not split it. Erring high
+  costs one extra rung of folding; erring low hands back an artifact over
+  the budget, which is the failure the flag exists to prevent. Range is
+  now 1.01-1.28x — never under.
+
+  Calibrated against `o200k_base`, a proxy for token density rather than
+  the tokenizer any particular model charges. A 2x error is much larger
+  than the spread between BPE families, so the correction holds either
+  way; the residual 10-25% slack is the tokenizer-specific part. README,
+  `--help` and the skill state the measured range.
 
 ### Fixed
 
@@ -193,6 +181,18 @@ gets *emitted* from that graph and how it can be sliced afterwards.
   failed `cargo clippy --workspace --all-targets -- -D warnings` on
   current clippy before any of this work. Unrelated to the feature;
   fixed because it blocked the gate.
+- **`CallableNode` no longer carries `RollupMeta` inline.** The struct is
+  held one-per-callable for a whole run, and the 64-byte field grew it
+  208 -> 272 bytes: a 31% widening of the hottest structure in the
+  pipeline, paid by every analysis to carry something that is `None`
+  unless someone passed `--rollup`. A corpus-wide paired A/B put the cost
+  at +2.9%. Boxed, the field costs 8 bytes and the struct is 216; the
+  allocation is paid only by group nodes, which are by construction few,
+  and `Box<T>` is serde-transparent so the wire format does not move.
+  `CallEdge` was measured too and is unchanged at 88 bytes — `weight`
+  landed in padding that already existed. `crates/cgg-core/tests/sizes.rs`
+  pins both numbers, because the growth happened and nothing noticed
+  until a timing run went looking.
 
 ### Performance
 
