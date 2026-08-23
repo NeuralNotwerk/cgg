@@ -229,10 +229,15 @@ jobs:
   # Deliberately not part of `crates`. Checking there would be correct and
   # useless — by then the irreversible ordering has already released the
   # recoverable channels.
+  # Runs on `workflow_dispatch` too, not just on a tag. It publishes
+  # nothing, so there is no reason to gate it — and gating it would have
+  # made the one job whose entire purpose is "find out before the release
+  # whether the release can finish" impossible to exercise before a
+  # release. `publish` is still tag-only, so a dispatch run checks the
+  # credentials and stops there.
   preflight:
     name: preflight
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     environment: release
     steps:
       - name: Every publish credential is present
