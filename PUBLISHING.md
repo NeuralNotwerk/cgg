@@ -157,8 +157,13 @@ not a crate.
 
 The `crates` job in `.github/workflows/release.yml` publishes this, gated
 on `needs: publish` so it cannot run unless PyPI, npm and the GitHub
-release all succeeded. It needs a `CARGO_REGISTRY_TOKEN` repository
-secret; without one the job fails and nothing is uploaded.
+release all succeeded.
+
+It needs a **`CARGO_REGISTRY_TOKEN`** repository secret (Settings >
+Secrets and variables > Actions). A `preflight` job asserts that secret
+and the other two exist *before* anything publishes — a credential that
+is knowable up front should not surface as a failure after three of four
+registries have already shipped.
 
 The script is still the manual path and is unchanged for human use — it
 asks you to type the version. `--yes` skips that prompt and exists for

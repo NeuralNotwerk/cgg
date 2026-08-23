@@ -217,9 +217,44 @@ jobs:
           name: binaries-${{ matrix.name }}
           path: cgg-*.tar.gz
 
+  # Everything a release needs, checked before anything is published.
+  #
+  # A missing CARGO_REGISTRY_TOKEN would otherwise surface at the very
+  # end: GitHub, PyPI and npm all publish, then `crates` dies on an auth
+  # error and three of four registries sit at the new version while the
+  # fourth needs a manual run. The credential is knowable up front, so a
+  # release that cannot finish should stop before it starts rather than
+  # after it is half done.
+  #
+  # Deliberately not part of `crates`. Checking there would be correct and
+  # useless — by then the irreversible ordering has already released the
+  # recoverable channels.
+  preflight:
+    name: preflight
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: release
+    steps:
+      - name: Every publish credential is present
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          missing=""
+          [ -n "$CARGO_REGISTRY_TOKEN" ] || missing="$missing CARGO_REGISTRY_TOKEN"
+          [ -n "$PYPI_API_TOKEN" ]       || missing="$missing PYPI_API_TOKEN"
+          [ -n "$NPM_TOKEN" ]            || missing="$missing NPM_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secret(s):$missing — add them at"
+            echo "::error::Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          echo "all publish credentials present"
+
   publish:
     name: publish
-    needs: [wheels, sdist, binaries, node]
+    needs: [preflight, wheels, sdist, binaries, node]
     runs-on: ubuntu-latest
     # Only on a tag. A manual run builds and tests everything but
     # publishes nothing, so the matrix is safe to exercise any time.

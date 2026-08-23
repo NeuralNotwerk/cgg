@@ -24,6 +24,13 @@ ever grows in default mode — see *Compatibility* below).
   `environment: release`, so an approval gate can be put in front of it
   in repo settings.
 
+  A `preflight` job checks all three publish credentials before anything
+  is published. Without it a missing crates.io token surfaces at the very
+  end — GitHub, PyPI and npm ship, then `crates` dies on auth and three
+  of four registries sit at the new version. Checking inside `crates`
+  would be correct and useless: by then the irreversible ordering has
+  already released the recoverable channels.
+
   Three supporting changes in `scripts/publish-crates.sh`, which the job
   runs rather than reimplementing:
 
