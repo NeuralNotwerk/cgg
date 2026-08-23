@@ -115,7 +115,15 @@ wait_for_index() {
 publish_with_retry() {
     local c="$1" out rc until_str wait_s
     for attempt in 1 2 3; do
-        out="$(cargo publish -p "$c" 2>&1)"; rc=$?
+        # `|| rc=$?`, not `; rc=$?`. Under `set -e` a bare assignment
+        # whose command substitution fails aborts the script *at that
+        # line* — `rc` is never read, and neither is anything below.
+        # Every failure path in this function was therefore dead code:
+        # the 429 rate-limit retry it was written for could not fire, and
+        # neither could the already-published skip. The script exited 101
+        # on the first non-zero cargo publish instead.
+        rc=0
+        out="$(cargo publish -p "$c" 2>&1)" || rc=$?
         printf '%s\n' "$out"
         [ "$rc" -eq 0 ] && return 0
 
@@ -125,6 +133,9 @@ publish_with_retry() {
         # to skip what landed and continue with what did not. Treating
         # this as an error strands the workspace half-published with no
         # way forward, because the version number is spent.
+        # Verified against cargo 1.91: "error: crate cgg-core@0.8.1
+        # already exists on crates.io index". `uploaded` is kept because
+        # older cargo phrased it that way.
         if grep -qE 'already (uploaded|exists)' <<<"$out"; then
             echo "  already on crates.io at $VERSION — skipping"
             return 0
