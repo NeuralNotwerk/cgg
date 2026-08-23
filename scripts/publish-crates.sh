@@ -41,6 +41,10 @@ CRATES=(cgg-core cgg-walk cgg-format cgg-lang cgg-resolve cgg)
 
 DRY=0
 ASSUME_YES=0
+# How many crates were already up there. A resumed run can legitimately
+# publish nothing, and saying "published" when nothing was uploaded is
+# the same class of lie the npm check in release.yml exists to prevent.
+SKIPPED=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY=1; shift ;;
@@ -138,6 +142,7 @@ publish_with_retry() {
         # older cargo phrased it that way.
         if grep -qE 'already (uploaded|exists)' <<<"$out"; then
             echo "  already on crates.io at $VERSION — skipping"
+            SKIPPED=$((SKIPPED + 1))
             return 0
         fi
 
@@ -193,6 +198,11 @@ done
 
 if [ "$DRY" = "1" ]; then
     echo "dry run OK — nothing was uploaded"
+elif [ "$SKIPPED" -eq "${#CRATES[@]}" ]; then
+    echo "nothing to do — all ${#CRATES[@]} crates were already on crates.io at $VERSION"
+elif [ "$SKIPPED" -gt 0 ]; then
+    echo "published $VERSION ($((${#CRATES[@]} - SKIPPED)) uploaded, $SKIPPED already present)."
+    echo "Verify: cargo install cgg --version $VERSION"
 else
     echo "published $VERSION. Verify: cargo install cgg --version $VERSION"
 fi
