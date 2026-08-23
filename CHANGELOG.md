@@ -229,12 +229,40 @@ ladder stays inside run-to-run variance.
 `--from-graph` is the number that matters: ~70 ms against ~360 ms,
 because it skips walking, parsing and resolving entirely.
 
-**Not run: `scripts/perf-compare.sh` over the benchmark corpus.** The
-corpus is not present on this machine (`$CGG_BENCH_DIR` is empty), so
-the numbers above are a paired A/B on a single repository. Per this
-project's own rule — never promote a narrow sample to a corpus-wide
-claim — they are stated as what they are: evidence of no regression on
-one tree, not a corpus measurement. Run the corpus A/B before tagging.
+#### Corpus A/B against 0.8.0
+
+`scripts/perf-compare.sh` against `affee30`, median of 5 per repo, on a
+64-core Linux host with the 164-repo corpus.
+
+The first run — before the `CallableNode` boxing above — came back
+**+2.9%** over 97 repos (142,965 ms -> 147,135 ms) before its 30-minute
+budget stopped it. That is above the script's own ~1-1.5% noise floor and
+was the signal that found the struct growth; nothing in the rollup pass
+explains it, because `apply_rollup` returns before rendering when neither
+flag is set.
+
+After boxing, over 14 repos chosen for callable density (258,885
+callables — the population the regression scales with, deliberately
+excluding `erlang-otp` and `zig-zig`, which add ten minutes and no
+signal):
+
+| | 0.8.0 | 0.8.1 | delta |
+| --- | --- | --- | --- |
+| **total** | 33,745 ms | 33,618 ms | **-0.4%** |
+| median per repo | | | **+1.05%** |
+
+Per-repo range -2.1% to +6.6%, with sub-150ms repos flagged noisy by the
+script. Both readings sit inside the noise floor, so this is **flat** —
+not an improvement. Two caveats, stated rather than buried: `scala-spark`
+is 24s of the 33.7s total, so the total is weighted heavily toward one
+repo, which is why the median is quoted beside it; and this is a single
+run, not the repeated pair the script asks for before *claiming* a
+change. Claiming flat needs less evidence than claiming a win, which is
+the direction this errs.
+
+Timings are from an x86_64 host; the single-tree numbers above were taken
+on aarch64. They are not comparable to each other and are not presented
+as such.
 
 ## [0.8.0] - 2026-08-19
 
