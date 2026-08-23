@@ -633,14 +633,14 @@ pub fn apply(
             // label the node. A group that silently stopped being a
             // framework entry would read as ordinary code.
             framework_entry: first.framework_entry,
-            rollup: Some(RollupMeta {
+            rollup: Some(Box::new(RollupMeta {
                 level: level_name.clone(),
                 members: ms.len() as u32,
                 files: files.len() as u32,
                 languages: langs,
                 internal_calls: internal[g],
                 unreferenced_members: unref.len() as u32,
-            }),
+            })),
             ..Default::default()
         });
         group_ids.push(id);

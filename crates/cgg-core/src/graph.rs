@@ -211,8 +211,17 @@ pub struct CallableNode {
     /// Set on a node minted by the rollup pass, describing the group it
     /// stands for. `None` — and therefore absent from JSON — on every
     /// node of an ordinary run, so the default graph is byte-identical.
+    ///
+    /// **Boxed on purpose.** [`RollupMeta`] is 64 bytes, and inline it
+    /// grew `CallableNode` from 208 to 272 — a 31% widening of the
+    /// hottest struct in the pipeline, paid by every callable of every
+    /// run to carry a field that is `None` in almost all of them. A
+    /// paired A/B over the benchmark corpus put the cost at about +2.9%
+    /// wall clock. The box is 8 bytes, and the allocation it adds is
+    /// paid only by group nodes, which are by construction few.
+    /// `Box<T>` is serde-transparent, so the wire format is unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rollup: Option<RollupMeta>,
+    pub rollup: Option<Box<RollupMeta>>,
 
     /// Set on a synthesized `<framework-entry>` node, naming the trust
     /// boundary control crosses there.
