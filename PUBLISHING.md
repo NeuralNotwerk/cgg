@@ -45,6 +45,31 @@ The asset split is the history, not a bug: the release matrix landed in
 
 ---
 
+## 0aa. Provisioning a machine: `scripts/setup-release-host.sh`
+
+Releases and full testing run from a dedicated host, because
+`scripts/release.sh` gates on things a laptop does not have: the 164-repo
+benchmark corpus (`$CGG_BENCH_DIR`, default `/storage/cgg-test_repos`)
+behind the corpus A/B and the framework-coverage table, plus `uv` and
+`node` for the `cgg-py` and `cgg-node` suites that `cargo test` does not
+run at all.
+
+```bash
+scripts/setup-release-host.sh              # check only, changes nothing
+scripts/setup-release-host.sh --install    # install what needs no root
+scripts/setup-release-host.sh --corpus     # also clone the corpus (many GB)
+```
+
+It contains no secrets. It reports which publish credentials are present
+and where each goes, and never reads, prints or transmits a value —
+provisioning a host and authorising it to publish are separate acts.
+
+Read the **optional gates** section carefully. Those gates *skip* when
+their tool is missing rather than failing, so a host without them
+produces a **greener** release than one with them. The script therefore
+also reports a tool that is installed but not on `PATH`, which is the
+form this actually takes in practice.
+
 ## 0a. Before any of it: `scripts/security-check.sh`
 
 ```bash
