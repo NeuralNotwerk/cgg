@@ -18,9 +18,20 @@ Only four channels exist: crates.io, PyPI, npm and GitHub Releases. See
 | GitHub Releases (binaries) | CLI + `libcgg` + `cgg.h` | **published** | nothing |
 | npm | `cgg-callgraphgenerator` + 5 platform packages | **published** | nothing |
 
-All four ship from one `v*` tag, except crates.io, which stays manual on
-purpose — it is the one registry where a bad upload cannot be corrected by
-re-running.
+All four ship from one `v*` tag. crates.io ships from the same tag but in
+its own job, which runs **only after the other three have succeeded**.
+
+That ordering is not stylistic. A crates.io version can never be
+re-uploaded — only yanked — while every other channel here is
+recoverable: PyPI takes `skip-existing`, npm can be re-run, a GitHub
+release can be recreated. So the recoverable channels prove themselves
+first, and the one irreversible act happens last. If the wheels, the npm
+packages or the release binaries fail, no crate is uploaded and the
+version number is still free.
+
+`scripts/publish-crates.sh` remains the way to do it by hand, and is what
+the job runs. Run it locally if the job is disabled or the token is
+missing.
 
 ```bash
 git tag --list 'v*'                                    # newest: v0.7.0
@@ -144,8 +155,19 @@ not a crate.
 > **Publishing is forever.** A version can be yanked but never deleted,
 > and the name is claimed permanently. Dry run first.
 
-No workflow publishes crates.io. It is the one registry where a bad upload
-cannot be corrected by re-running, so it stays a deliberate local act.
+The `crates` job in `.github/workflows/release.yml` publishes this, gated
+on `needs: publish` so it cannot run unless PyPI, npm and the GitHub
+release all succeeded. It needs a `CARGO_REGISTRY_TOKEN` repository
+secret; without one the job fails and nothing is uploaded.
+
+The script is still the manual path and is unchanged for human use — it
+asks you to type the version. `--yes` skips that prompt and exists for
+CI, which has no tty.
+
+Because a version can never be re-uploaded, the script is **resumable**:
+`already uploaded` counts as success, so a run that dies after three of
+six crates can be re-run to finish the rest instead of stranding the
+workspace half-published against a spent version number.
 
 ---
 
@@ -293,7 +315,8 @@ gh run view 31554017653 --json jobs -q '.jobs[] | "\(.name) \(.conclusion)"'
 
 Two things the tag path does **not** cover:
 
-* **crates.io.** No workflow publishes it; run `scripts/publish-crates.sh`
+* **crates.io.** The `crates` job publishes it after the others succeed;
+  run `scripts/publish-crates.sh`
   by hand. See §1.
 * **Re-running a tag.** PyPI's step sets `skip-existing: true`, so an
   already-uploaded file is skipped rather than failing. npm has no

@@ -330,3 +330,69 @@ jobs:
             echo "::error::npm still reports $PUBLISHED after publishing $LOCAL (5 minutes)"
             exit 1
           }
+
+  # crates.io goes LAST, and only if every other registry already
+  # succeeded.
+  #
+  # The ordering is forced by what crates.io is: a version can never be
+  # re-uploaded, only yanked. Every other channel here is recoverable —
+  # PyPI takes `skip-existing`, npm can be re-run, a GitHub release can be
+  # recreated — so they all get to prove themselves first, and the one
+  # irreversible act happens only after they have. `needs: publish` is
+  # the whole safety argument: if the wheels, the npm packages or the
+  # release binaries failed, no crate is uploaded and the version number
+  # is still free.
+  crates:
+    name: crates.io
+    needs: publish
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    # Same gate as `publish`; require an approval here in repo settings
+    # if you want a human in front of the irreversible step.
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The tag and the manifest must agree. `publish-crates.sh` checks
+      # that the internal pins match each other, but nothing checks them
+      # against the tag being released — and the retry path treats "already
+      # uploaded" as success so a half-finished run can be resumed. Those
+      # two together would let a `v0.8.2` tag whose manifest still said
+      # 0.8.1 report success while publishing nothing, which is the exact
+      # silent-failure shape this file already guards against for npm.
+      - name: Tag and manifest must agree
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST="$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)"
+          echo "tag=$TAG manifest=$MANIFEST"
+          [ "$TAG" = "$MANIFEST" ] || {
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml $MANIFEST"
+            exit 1
+          }
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        # --yes: no tty in CI. The typed-version confirmation exists for a
+        # human who can still change their mind; here the safety is
+        # `needs: publish` plus the tag check above.
+        run: scripts/publish-crates.sh --yes
+
+      # Same belt-and-braces as npm: a publish path that can exit 0
+      # without publishing has to be checked, not trusted. The script
+      # waits for each crate on the sparse index, so this is the
+      # independent read.
+      - name: Verify every crate is live
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          fail=0
+          for c in cgg-core cgg-walk cgg-format cgg-lang cgg-resolve cgg; do
+            got="$(curl -sA "cgg-release-verify" \
+                   "https://crates.io/api/v1/crates/$c" \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin)["crate"]["max_version"])' \
+                   2>/dev/null || echo unknown)"
+            echo "$c: $got"
+            [ "$got" = "$VERSION" ] || { echo "::error::$c reports $got, expected $VERSION"; fail=1; }
+          done
+          exit $fail

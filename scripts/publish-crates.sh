@@ -40,7 +40,18 @@ cd "$ROOT"
 CRATES=(cgg-core cgg-walk cgg-format cgg-lang cgg-resolve cgg)
 
 DRY=0
-[ "${1:-}" = "--dry-run" ] && DRY=1
+ASSUME_YES=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dry-run) DRY=1; shift ;;
+        # For CI only. A human gets the typed-version confirmation,
+        # because a human can still stop. The workflow cannot type, and
+        # its safety comes from somewhere better: it runs only after
+        # every other registry has already published successfully.
+        --yes|-y)  ASSUME_YES=1; shift ;;
+        *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+done
 
 VERSION="$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)"
 echo "cgg $VERSION -> crates.io"
@@ -61,7 +72,7 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-if [ "$DRY" = "0" ]; then
+if [ "$DRY" = "0" ] && [ "$ASSUME_YES" = "0" ]; then
     echo "This uploads $VERSION permanently. Versions can be yanked, never deleted."
     printf 'Type the version to continue: '
     read -r CONFIRM
@@ -107,6 +118,18 @@ publish_with_retry() {
         out="$(cargo publish -p "$c" 2>&1)"; rc=$?
         printf '%s\n' "$out"
         [ "$rc" -eq 0 ] && return 0
+
+        # Already up there is success, not failure. A crates.io version
+        # can never be re-uploaded — only yanked — so a run that dies
+        # after three of six crates must be *finishable*: re-running has
+        # to skip what landed and continue with what did not. Treating
+        # this as an error strands the workspace half-published with no
+        # way forward, because the version number is spent.
+        if grep -qE 'already (uploaded|exists)' <<<"$out"; then
+            echo "  already on crates.io at $VERSION — skipping"
+            return 0
+        fi
+
         grep -q '429 Too Many Requests' <<<"$out" || return "$rc"
 
         until_str="$(grep -oE 'try again after [^ ]+, [0-9]{2} [A-Za-z]{3} [0-9]{4} [0-9:]{8} GMT' <<<"$out" \
@@ -147,7 +170,13 @@ for c in "${CRATES[@]}"; do
         continue
     fi
     publish_with_retry "$c"
-    [ "$c" = "${CRATES[-1]}" ] || wait_for_index "$c" "$VERSION"
+    # Every crate, including the last. For the others this is an ordering
+    # requirement — the next one cannot resolve until this is on the
+    # index. For the last it is verification: a publish path that can
+    # exit 0 without publishing has to be checked, not trusted, which is
+    # the same lesson the npm step in release.yml carries a comment
+    # about.
+    wait_for_index "$c" "$VERSION"
     echo
 done
 

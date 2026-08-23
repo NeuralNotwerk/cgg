@@ -7,6 +7,43 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Changed
+
+- **crates.io is published by the release workflow, gated on every other
+  registry succeeding first.** It was manual by design, and the design
+  was half right: crates.io *is* the one channel where a mistake cannot
+  be undone, because a version can never be re-uploaded — only yanked.
+  But the answer to that is ordering, not a human. Every other channel is
+  recoverable (PyPI takes `skip-existing`, npm can be re-run, a GitHub
+  release can be recreated), so they now all prove themselves first and
+  the irreversible act happens last, in a `crates` job with
+  `needs: publish`. If wheels, npm or the release binaries fail, no crate
+  is uploaded and the version number is still free.
+
+  Requires a `CARGO_REGISTRY_TOKEN` repository secret. It keeps
+  `environment: release`, so an approval gate can be put in front of it
+  in repo settings.
+
+  Three supporting changes in `scripts/publish-crates.sh`, which the job
+  runs rather than reimplementing:
+
+  * `--yes` skips the typed-version confirmation. CI has no tty; the
+    prompt stays the default for humans, who can still change their mind.
+  * **Resumable.** `already uploaded` now counts as success. Because the
+    version is spent either way, a run that dies after three of six
+    crates has to be *finishable* — previously a re-run failed on the
+    first crate that had landed, leaving the workspace half-published
+    with no way forward.
+  * The last crate is verified on the index like every other. It was
+    skipped because nothing depends on it, which is true for *ordering*
+    and wrong for *verification*.
+
+  Resumability creates a hole on its own — a tag whose manifest disagreed
+  with it could report success while publishing nothing, since every
+  crate would read as already uploaded. The job therefore asserts the tag
+  matches `Cargo.toml` before it runs, and independently reads back all
+  six crates from the registry afterwards.
+
 ## [0.8.1] - 2026-08-22
 
 **Output-side only. The analysis is untouched.** No resolver phase, no
