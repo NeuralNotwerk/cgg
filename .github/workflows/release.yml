@@ -169,6 +169,14 @@ jobs:
       matrix:
         include:
           - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          # Cross-compiled on the x86 runner, the same way the node job
+          # builds linux-arm64-gnu. Wheels have shipped for this target
+          # while the CLI did not, so `cargo install` was the only route
+          # on ARM Linux — a gap in the matrix, not a limitation.
+          # Verified before adding: cross-built on x86 and run on real
+          # aarch64 hardware, where its mermaid, dot and graphml output
+          # is byte-identical to a natively-built binary.
+          - { name: linux-aarch64, os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
           - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
           - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
     steps:
@@ -176,6 +184,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      # cgg compiles C — mimalloc, blake3 and 44 tree-sitter grammars —
+      # so an ARM build needs a cross-compiler the x86 runner does not
+      # ship. Same reason and same packages as the node job; the Python
+      # ARM wheel avoids it only because maturin's manylinux container
+      # brings its own.
+      - name: Install ARM cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       # The CLI and the C ABI together: someone linking libcgg needs the
       # header, and someone using the CLI needs neither. Shipping them in
@@ -185,9 +204,26 @@ jobs:
       # of LNK2019 unresolved-symbol errors out of clap and alloc; built
       # separately, each links cleanly.
       - name: Build
+        env:
+          # Ignored by every target that does not need them.
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: |
           cargo build --release --target ${{ matrix.target }} -p cgg
           cargo build --release --target ${{ matrix.target }} -p cgg-ffi
+
+      # An x86 runner cannot execute an ARM binary, so the most this can
+      # check is that the artifact is for the architecture it claims. A
+      # cross-build that silently produced an x86 binary would otherwise
+      # ship under an ARM name and fail on a user's first run.
+      - name: Confirm the artifact is actually ARM
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          f="target/${{ matrix.target }}/release/cgg"
+          readelf -h "$f" | grep -E "Class|Machine"
+          readelf -h "$f" | grep -q "Machine:.*AArch64" || {
+            echo "::error::$f is not an AArch64 binary"; exit 1; }
 
       - name: Package
         shell: bash

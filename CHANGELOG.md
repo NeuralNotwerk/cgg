@@ -7,6 +7,26 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Added
+
+- **A prebuilt `linux-aarch64` CLI binary.** Wheels have shipped for that
+  target for several releases while the CLI did not, so `cargo install`
+  — a from-source compile — was the only route on ARM Linux. That was a
+  gap in the release matrix, not a limitation: the node job already
+  cross-compiles the identical Rust and the identical 44 tree-sitter C
+  grammars for `linux-arm64-gnu` on an x86 runner, and the CLI now uses
+  the same toolchain and environment.
+
+  Verified before it was added, on hardware rather than by symmetry:
+  cross-built on x86_64 and executed on a real aarch64 machine, where
+  its mermaid, dot and graphml output over the same tree is
+  **byte-identical** to a natively-built binary, and the `--from-graph`
+  and `--dead-code` paths both run. CI cannot make that check — an x86
+  runner cannot execute an ARM binary, and its ARM smoke tests are
+  skipped for exactly that reason — so the job asserts the weaker thing
+  it can: that `readelf` reports AArch64, which catches a cross-build
+  that silently produced an x86 binary under an ARM name.
+
 ### Changed
 
 - **crates.io is published by the release workflow, gated on every other
