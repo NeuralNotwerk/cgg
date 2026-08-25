@@ -191,7 +191,7 @@ edition = "2021"
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -275,7 +275,7 @@ edition = "2021"
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -321,7 +321,7 @@ fn go_cross_package_call_resolves() {
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -362,7 +362,7 @@ fn go_aliased_import_resolves() {
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -405,7 +405,7 @@ fn csharp_cross_file_namespace_call_resolves() {
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -450,7 +450,7 @@ fn c_include_header_resolves() {
         g.lines()
             .filter_map(|l| {
                 let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                     Some(l.split('[').next()?.trim().to_string())
                 } else {
                     None
@@ -507,7 +507,7 @@ fn cpp_namespace_cross_file_resolves() {
     let node_id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                 Some(l.split('[').next()?.trim().to_string())
             } else {
                 None
@@ -552,7 +552,7 @@ fn js_esm_import_resolves() {
         g.lines()
             .filter_map(|l| {
                 let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                     Some(l.split('[').next()?.trim().to_string())
                 } else {
                     None
@@ -599,7 +599,7 @@ fn ts_namespace_import_resolves() {
         g.lines()
             .filter_map(|l| {
                 let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                     Some(l.split('[').next()?.trim().to_string())
                 } else {
                     None
@@ -637,7 +637,7 @@ fn java_cross_file_import_resolves() {
         g.lines()
             .filter_map(|l| {
                 let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                     Some(l.split('[').next()?.trim().to_string())
                 } else {
                     None
@@ -709,7 +709,7 @@ fn bash_source_resolves() {
         g.lines()
             .filter_map(|l| {
                 let l = l.trim();
-                if l.starts_with('C') && l.contains(&format!("[\"{qn}\"]")) {
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
                     Some(l.split('[').next()?.trim().to_string())
                 } else {
                     None
@@ -1101,7 +1101,7 @@ fn a_bare_name_prefers_its_import_over_a_same_file_method() {
     let id = |qn: &str| {
         g.lines().find_map(|l| {
             let l = l.trim();
-            l.starts_with('C')
+            l.starts_with(['C', 'N'])
                 .then(|| {
                     l.contains(&format!("[\"{qn}\"]"))
                         .then(|| l.split('[').next())

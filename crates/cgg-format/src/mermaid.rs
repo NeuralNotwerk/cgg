@@ -11,6 +11,7 @@ use cgg_core::Graph;
 use cgg_core::graph::Via;
 use cgg_core::ids::CallableId;
 
+use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 
 /// Short label prefix distinguishing an edge's `via` kind in the
@@ -32,12 +33,32 @@ fn via_tag(via: &Via) -> &'static str {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct MermaidFormatter;
+/// Mermaid node ids are numbered (`N0`, `N1`, …) rather than carrying
+/// the graph's base36 content hash, because the id is repeated on every
+/// edge and this format is read by agents in a context window. See
+/// [`crate::node_ids`] for the measurement and for why the qualified
+/// name is not the alternative it looks like. `--node-ids hash` restores
+/// the hashed form for anyone correlating a diagram against the JSON.
+#[derive(Debug)]
+pub struct MermaidFormatter {
+    node_ids: NodeIds,
+}
+
+impl Default for MermaidFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl MermaidFormatter {
     pub fn new() -> Self {
-        Self
+        Self {
+            node_ids: OutputFormat::Mermaid.default_node_ids(),
+        }
+    }
+
+    pub fn with_node_ids(node_ids: NodeIds) -> Self {
+        Self { node_ids }
     }
 }
 
@@ -116,9 +137,11 @@ impl GraphFormatter for MermaidFormatter {
         }
         writeln!(out, "flowchart LR")?;
 
-        // Nodes. Mermaid ids need to be word-safe; we use `C<n>` where
-        // `n` is the callable id's numeric value, and place the
-        // qualified name as the display label.
+        // Nodes. Mermaid ids need to be word-safe, so the id is never
+        // the qualified name — it is `N<ordinal>` by default, or
+        // `C<base36 hash>` under `--node-ids hash`. Either way the
+        // qualified name is the display label.
+        let namer = NodeNamer::new(graph, self.node_ids, "C", "N");
         for (id, node) in &graph.callables {
             let label = mermaid_escape(&node.qualified_name);
             // The tag is part of the label rather than only a style, so
@@ -163,7 +186,7 @@ impl GraphFormatter for MermaidFormatter {
             } else {
                 ""
             };
-            writeln!(out, "  C{id_n}[\"{label}{tag}\"]", id_n = id.token())?;
+            writeln!(out, "  {}[\"{label}{tag}\"]", namer.name(*id))?;
         }
         if any_unreferenced {
             writeln!(out, "  classDef unreferenced stroke-dasharray: 4 3;")?;
@@ -171,7 +194,7 @@ impl GraphFormatter for MermaidFormatter {
                 .callables
                 .iter()
                 .filter(|(_, n)| n.unreferenced.is_some())
-                .map(|(id, _)| format!("C{}", id.token()))
+                .map(|(id, _)| namer.name(*id))
                 .collect();
             for chunk in marked.chunks(32) {
                 writeln!(out, "  class {} unreferenced;", chunk.join(","))?;
@@ -217,11 +240,11 @@ impl GraphFormatter for MermaidFormatter {
                 (false, false) => format!("|{tag}|"),
                 (false, true) => format!("|{tag} {n}x|"),
             };
-            let (src, dst) = (src.token(), dst.token());
+            let (src, dst) = (namer.name(src), namer.name(dst));
             if label.is_empty() {
-                writeln!(out, "  C{src} --> C{dst}")?;
+                writeln!(out, "  {src} --> {dst}")?;
             } else {
-                writeln!(out, "  C{src} -->{label} C{dst}")?;
+                writeln!(out, "  {src} -->{label} {dst}")?;
             }
         }
 
@@ -321,19 +344,87 @@ mod tests {
     #[test]
     fn renders_nodes_and_edge() {
         let mut buf = Vec::new();
-        MermaidFormatter.render(&mk_graph(), &mut buf).unwrap();
+        MermaidFormatter::new()
+            .render(&mk_graph(), &mut buf)
+            .unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.starts_with("flowchart LR\n"));
-        assert!(s.contains("C0[\"crate::a\"]"));
-        assert!(s.contains("C1[\"crate::b\"]"));
-        assert!(s.contains("C0 --> C1"));
+        assert!(s.contains("N0[\"crate::a\"]"));
+        assert!(s.contains("N1[\"crate::b\"]"));
+        assert!(s.contains("N0 --> N1"));
+    }
+
+    #[test]
+    fn hash_scheme_restores_the_base36_ids() {
+        let mut buf = Vec::new();
+        MermaidFormatter::with_node_ids(NodeIds::Hash)
+            .render(&mk_graph(), &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("C0[\"crate::a\"]"), "got:\n{s}");
+        assert!(s.contains("C1[\"crate::b\"]"), "got:\n{s}");
+        assert!(s.contains("C0 --> C1"), "got:\n{s}");
+        assert!(!s.contains("N0"), "got:\n{s}");
+    }
+
+    /// The reason node ids are numbered rather than replaced by the
+    /// qualified name. Two callables can share a qualified name —
+    /// overloads, same-named helpers in different files — and on cgg's
+    /// own tree 41 of 2,202 callables do. Numbering keeps them apart;
+    /// naming would merge them and silently reroute their edges.
+    #[test]
+    fn callables_sharing_a_qualified_name_get_distinct_ids() {
+        let mut g = mk_graph();
+        // Give `b` the same qualified name as `a`, then add an edge that
+        // only the second one receives.
+        g.callables
+            .get_mut(&CallableId::new(1))
+            .unwrap()
+            .qualified_name = "crate::a".into();
+        let mut buf = Vec::new();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("N0[\"crate::a\"]"), "got:\n{s}");
+        assert!(s.contains("N1[\"crate::a\"]"), "got:\n{s}");
+        // Two nodes, and the edge still runs between them rather than
+        // becoming a self-loop on a merged node.
+        assert_eq!(s.matches("[\"crate::a\"]").count(), 2, "got:\n{s}");
+        assert!(s.contains("N0 --> N1"), "got:\n{s}");
+    }
+
+    /// Numbering is by position in the graph, which is the order the
+    /// nodes are declared in — so the id of the n-th declaration is `n`,
+    /// with no gaps, whatever the underlying hashes are.
+    #[test]
+    fn numbering_follows_declaration_order() {
+        let mut g = Graph::new();
+        for i in 0..4u32 {
+            // Non-sequential hashes, to prove the ordinal is positional
+            // and not just the raw id in disguise.
+            let id = CallableId::new_u64(9_000_000 + u64::from(i) * 7_919);
+            g.add_callable(CallableNode {
+                id,
+                qualified_name: format!("crate::f{i}"),
+                simple_name: format!("f{i}"),
+                kind: CallableKind::Function,
+                language: "rust".into(),
+                file: FileId::new(0),
+                ..Default::default()
+            });
+        }
+        let mut buf = Vec::new();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        for i in 0..4 {
+            assert!(s.contains(&format!("N{i}[\"crate::f{i}\"]")), "got:\n{s}");
+        }
     }
 
     #[test]
     fn empty_graph_is_still_valid() {
         let g = Graph::new();
         let mut buf = Vec::new();
-        MermaidFormatter.render(&g, &mut buf).unwrap();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("flowchart LR"));
         assert!(s.contains("no callables"));
@@ -347,7 +438,7 @@ mod tests {
             .unwrap()
             .qualified_name = "crate::<A as B>::m".into();
         let mut buf = Vec::new();
-        MermaidFormatter.render(&g, &mut buf).unwrap();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("&lt;A as B&gt;"));
         assert!(!s.contains("<A"));
@@ -372,10 +463,10 @@ mod tests {
             });
         }
         let mut buf = Vec::new();
-        MermaidFormatter.render(&g, &mut buf).unwrap();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         // The original edge from mk_graph + 3 new ones = 4 total.
-        assert!(s.contains("C0 -->|4x| C1"), "got:\n{s}");
+        assert!(s.contains("N0 -->|4x| N1"), "got:\n{s}");
         // Exactly one rendered arrow line for this pair.
         let arrows = s
             .lines()
@@ -383,16 +474,18 @@ mod tests {
             .count();
         assert_eq!(arrows, 1, "got:\n{s}");
         // The bare-arrow form must not appear when a label is required.
-        assert!(!s.contains("C0 --> C1"), "got:\n{s}");
+        assert!(!s.contains("N0 --> N1"), "got:\n{s}");
     }
 
     #[test]
     fn single_edge_renders_without_label() {
         // mk_graph emits one a->b edge — must NOT carry a count label.
         let mut buf = Vec::new();
-        MermaidFormatter.render(&mk_graph(), &mut buf).unwrap();
+        MermaidFormatter::new()
+            .render(&mk_graph(), &mut buf)
+            .unwrap();
         let s = String::from_utf8(buf).unwrap();
-        assert!(s.contains("C0 --> C1"), "got:\n{s}");
+        assert!(s.contains("N0 --> N1"), "got:\n{s}");
         assert!(!s.contains("|1x|"), "got:\n{s}");
     }
 
@@ -452,13 +545,13 @@ mod tests {
             weight: 1,
         });
         let mut buf = Vec::new();
-        MermaidFormatter.render(&g, &mut buf).unwrap();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         // a->b was the very first edge from mk_graph(), so it must
         // render before a->c despite a->c being added before the second
         // a->b.
-        let ab = s.find("C0 -->|2x| C1").expect("a->b arrow");
-        let ac = s.find("C0 -->|2x| C2").expect("a->c arrow");
+        let ab = s.find("N0 -->|2x| N1").expect("a->b arrow");
+        let ac = s.find("N0 -->|2x| N2").expect("a->c arrow");
         assert!(ab < ac, "expected a->b before a->c in output:\n{s}");
     }
 }

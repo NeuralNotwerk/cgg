@@ -1,5 +1,6 @@
 //! DOT (Graphviz) formatter.
 
+use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
 use cgg_core::graph::Via;
@@ -26,12 +27,26 @@ fn via_dot(via: &Via) -> (&'static str, &'static str) {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct DotFormatter;
+#[derive(Debug)]
+pub struct DotFormatter {
+    node_ids: NodeIds,
+}
+
+impl Default for DotFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl DotFormatter {
     pub fn new() -> Self {
-        Self
+        Self {
+            node_ids: OutputFormat::Dot.default_node_ids(),
+        }
+    }
+
+    pub fn with_node_ids(node_ids: NodeIds) -> Self {
+        Self { node_ids }
     }
 }
 
@@ -44,29 +59,30 @@ impl GraphFormatter for DotFormatter {
         writeln!(out, "digraph cgg {{")?;
         writeln!(out, "  rankdir=LR;")?;
         writeln!(out, "  node [shape=box, style=rounded];")?;
+        let namer = NodeNamer::new(graph, self.node_ids, "n", "n");
         for (id, node) in &graph.callables {
             let label = dot_escape(&node.qualified_name);
             if let Some(kind) = node.framework_entry {
                 writeln!(
                     out,
-                    "  n{} [label=\"{}\", shape=invhouse, color=\"#aa22cc\", \
+                    "  {} [label=\"{}\", shape=invhouse, color=\"#aa22cc\", \
                      tooltip=\"framework entry callback ({}) — SYNTHESIZED: no call to \
                      this node exists in your source\"];",
-                    id.token(),
+                    namer.name(*id),
                     label,
                     kind.slug()
                 )?;
             } else if node.unreferenced.is_some() {
                 writeln!(
                     out,
-                    "  n{} [label=\"{}\", style=dashed, \
+                    "  {} [label=\"{}\", style=dashed, \
                      tooltip=\"unreferenced (best effort: cgg found no caller, \
                      which is not proof none exists)\"];",
-                    id.token(),
+                    namer.name(*id),
                     label
                 )?;
             } else {
-                writeln!(out, "  n{} [label=\"{}\"];", id.token(), label)?;
+                writeln!(out, "  {} [label=\"{}\"];", namer.name(*id), label)?;
             }
         }
         // Collapse parallel edges (same src/dst pair, different call
@@ -100,19 +116,19 @@ impl GraphFormatter for DotFormatter {
                 (false, false) => tag.to_string(),
                 (false, true) => format!("{tag} {n}x"),
             };
-            let (src, dst) = (src.token(), dst.token());
+            let (src, dst) = (namer.name(src), namer.name(dst));
             if label.is_empty() && style.is_empty() {
-                writeln!(out, "  n{src} -> n{dst};")?;
+                writeln!(out, "  {src} -> {dst};")?;
             } else if style.is_empty() {
-                writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"];")?;
+                writeln!(out, "  {src} -> {dst} [label=\"{label}\"];")?;
             } else if label.is_empty() {
                 writeln!(
                     out,
-                    "  n{src} -> n{dst} [{}];",
+                    "  {src} -> {dst} [{}];",
                     style.trim_start_matches(", ")
                 )?;
             } else {
-                writeln!(out, "  n{src} -> n{dst} [label=\"{label}\"{style}];")?;
+                writeln!(out, "  {src} -> {dst} [label=\"{label}\"{style}];")?;
             }
         }
         if graph.callables.is_empty() {
@@ -189,7 +205,7 @@ mod tests {
     fn renders_dot() {
         let g = mk_graph_with_edges(&[(0, 1, 5)]);
         let mut buf = Vec::new();
-        DotFormatter.render(&g, &mut buf).unwrap();
+        DotFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.starts_with("digraph cgg {"));
         assert!(s.contains("n0 [label=\"c0\"]"));
@@ -203,7 +219,7 @@ mod tests {
         // Same caller/callee at three distinct byte positions.
         let g = mk_graph_with_edges(&[(0, 1, 5), (0, 1, 50), (0, 1, 500)]);
         let mut buf = Vec::new();
-        DotFormatter.render(&g, &mut buf).unwrap();
+        DotFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("n0 -> n1 [label=\"3x\"];"), "got:\n{s}");
         let edge_lines = s.lines().filter(|l| l.contains(" -> ")).count();
@@ -218,7 +234,7 @@ mod tests {
         // before a->c despite the interleaving.
         let g = mk_graph_with_edges(&[(0, 1, 10), (0, 2, 20), (0, 1, 30)]);
         let mut buf = Vec::new();
-        DotFormatter.render(&g, &mut buf).unwrap();
+        DotFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         let ab = s.find("n0 -> n1 [label=\"2x\"]").expect("a->b edge");
         let ac = s.find("n0 -> n2;").expect("a->c edge");

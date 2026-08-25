@@ -4,6 +4,7 @@
 //!
 //! ```text
 //! cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
+//!               [--node-ids short|hash]
 //!               [--filter PATTERN]... [-n N]
 //!               [--max-paths N]
 //!               [--rollup BUDGET] [--rollup-by LEVEL]
@@ -48,6 +49,25 @@ pub struct Cli {
     /// Output format.
     #[arg(short = 't', long = "type", value_enum, default_value_t = OutputFormatArg::Mermaid)]
     pub format: OutputFormatArg,
+
+    /// How node ids are named in the output.
+    ///
+    /// Defaults to `short` for mermaid and `hash` everywhere else. A
+    /// mermaid id is repeated on every edge that touches its node, and
+    /// mermaid's reader is usually an agent's context window, so
+    /// numbering the nodes costs about a quarter fewer bytes — and more
+    /// than that in tokens, since `N7` is one token where the base36
+    /// hash `Cu7kwiat260` is several.
+    ///
+    /// `hash` is the graph's content-derived id: stable across runs, so
+    /// two renderings of different revisions diff meaningfully, and
+    /// comparable against `-t json`. `short` is positional — inserting a
+    /// callable renumbers everything after it.
+    ///
+    /// Ignored for `-t json`, whose ids are the identity `--from-graph`
+    /// reads back rather than a rendering choice.
+    #[arg(long = "node-ids", value_enum, value_name = "SCHEME")]
+    pub node_ids: Option<NodeIdsArg>,
 
     /// Filter callables by pattern. Repeatable. Regex by default; prefix
     /// with `glob:` to use glob syntax. Matched against fully-qualified
@@ -396,6 +416,25 @@ impl From<OutputFormatArg> for cgg_format::OutputFormat {
             OutputFormatArg::Json => cgg_format::OutputFormat::Json,
             OutputFormatArg::Dot => cgg_format::OutputFormat::Dot,
             OutputFormatArg::Graphml => cgg_format::OutputFormat::Graphml,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum NodeIdsArg {
+    /// Number the nodes `N0`, `N1`, … in graph order. Compact; unique
+    /// within the document; not comparable across runs.
+    Short,
+    /// The graph's base36 content hash, `Cu7kwiat260`. Stable across
+    /// runs and comparable against `-t json`.
+    Hash,
+}
+
+impl From<NodeIdsArg> for cgg_format::NodeIds {
+    fn from(v: NodeIdsArg) -> Self {
+        match v {
+            NodeIdsArg::Short => cgg_format::NodeIds::Short,
+            NodeIdsArg::Hash => cgg_format::NodeIds::Hash,
         }
     }
 }

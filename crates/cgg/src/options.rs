@@ -77,6 +77,22 @@ pub struct RunOptions {
     /// is still entirely `Cli`'s business.
     pub rollup_format: crate::OutputFormat,
 
+    /// How nodes are named in the rendered graph, or `None` for whatever
+    /// the format being rendered defaults to (`short` for mermaid).
+    ///
+    /// This is presentation, and it would live on `Cli` alone but for
+    /// `--rollup`: the budget is measured against the *rendered* size, so
+    /// the scheme decides how much of the graph survives folding. A run
+    /// that measured numbered ids and emitted hashed ones would blow its
+    /// own budget by about a third. Same reason `rollup_format` is here.
+    ///
+    /// It holds the *choice*, not the resolved scheme, because one
+    /// analysis can be rendered in several formats — `cgg-ffi` and
+    /// `cgg-py` both do — and each of those resolves `None` against its
+    /// own format. Storing the resolved value would freeze one format's
+    /// default onto every later rendering.
+    pub node_ids: Option<cgg_format::NodeIds>,
+
     /// Re-query a graph saved by an earlier `-t json` run instead of
     /// walking source.
     ///
@@ -155,6 +171,7 @@ impl Default for RunOptions {
             rollup: None,
             rollup_by: None,
             rollup_format: crate::OutputFormat::Mermaid,
+            node_ids: None,
             from_graph: None,
             fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
@@ -248,6 +265,10 @@ impl From<&crate::cli::Cli> for RunOptions {
             why_live,
             profile,
 
+            // Read below as `node_ids` — presentation, except that the
+            // `--rollup` budget is measured against the rendering.
+            node_ids,
+
             // --- I/O and presentation: consumed by `crate::emit`. ---
             output: _,
             metrics: _,
@@ -276,6 +297,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             rollup: *rollup,
             rollup_by: *rollup_by,
             rollup_format: (*format).into(),
+            node_ids: node_ids.map(Into::into),
             from_graph: from_graph.clone(),
             fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),

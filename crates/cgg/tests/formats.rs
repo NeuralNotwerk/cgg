@@ -395,3 +395,141 @@ fn stdout_is_the_default_sink_and_dash_means_stdout() {
     assert!(sa.contains("flowchart LR"));
     assert_eq!(sa, sb, "`-o -` must be identical to the default sink");
 }
+
+// ---------------------------------------------------------------------
+// Node-id scheme (`--node-ids`)
+
+/// Mermaid numbers its nodes by default. The id appears once per node
+/// and again on every edge that touches it, and this format's reader is
+/// usually an agent's context window, where a ten-character base36 hash
+/// costs several tokens for what is semantically one opaque handle.
+#[test]
+fn mermaid_numbers_its_nodes_by_default() {
+    let tmp = fixture();
+    let g = render(tmp.path(), &["-t", "mermaid"]);
+    let numbered = regex::Regex::new(r"(?m)^  N\d+\[").unwrap();
+    assert!(numbered.is_match(&g), "want numbered node ids:\n{g}");
+    let hashed = regex::Regex::new(r"(?m)^  C[0-9a-z]{4,}\[").unwrap();
+    assert!(!hashed.is_match(&g), "want no hashed node ids:\n{g}");
+}
+
+/// ...and `--node-ids hash` gives back the content-derived form, for
+/// anyone correlating a diagram against `-t json` or diffing two
+/// revisions' diagrams.
+#[test]
+fn node_ids_hash_restores_the_content_derived_form() {
+    let tmp = fixture();
+    let g = render(tmp.path(), &["-t", "mermaid", "--node-ids", "hash"]);
+    let hashed = regex::Regex::new(r"(?m)^  C[0-9a-z]+\[").unwrap();
+    assert!(hashed.is_match(&g), "want hashed node ids:\n{g}");
+    assert!(!g.contains("\n  N"), "want no numbered node ids:\n{g}");
+
+    // The ids must be the ones the JSON document carries — that is the
+    // whole reason to ask for them.
+    let json: serde_json::Value =
+        serde_json::from_str(&render(tmp.path(), &["-t", "json"])).unwrap();
+    for id in json["callables"].as_object().unwrap().keys() {
+        assert!(
+            g.contains(&format!("  {id}[")),
+            "mermaid is missing {id}:\n{g}"
+        );
+    }
+}
+
+/// Numbering changes how nodes are named, never which nodes or edges
+/// exist. Same graph, same arrows, same labels — both ways.
+#[test]
+fn the_scheme_changes_only_the_names() {
+    let tmp = fixture();
+    let short = render(tmp.path(), &["-t", "mermaid", "--node-ids", "short"]);
+    let hash = render(tmp.path(), &["-t", "mermaid", "--node-ids", "hash"]);
+    assert_eq!(
+        short.lines().count(),
+        hash.lines().count(),
+        "{short}\n--\n{hash}"
+    );
+    assert_eq!(
+        short.matches(" --> ").count(),
+        hash.matches(" --> ").count()
+    );
+    // Every label survives verbatim; only the id in front of it moves.
+    let labels = |s: &str| {
+        let re = regex::Regex::new(r#"\["([^"]*)"\]"#).unwrap();
+        re.captures_iter(s)
+            .map(|c| c[1].to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(labels(&short), labels(&hash));
+}
+
+/// The default is per-format, not global: dot and graphml go to layout
+/// tools that neither read the ids nor pay for them, so they keep the
+/// hashed form unless asked.
+#[test]
+fn only_mermaid_numbers_by_default() {
+    let tmp = fixture();
+    let hashed = regex::Regex::new(r"n[0-9a-z]{4,}").unwrap();
+    for fmt in ["dot", "graphml"] {
+        let g = render(tmp.path(), &["-t", fmt]);
+        assert!(
+            hashed.is_match(&g),
+            "{fmt} should default to hashed ids:\n{g}"
+        );
+    }
+    // ...but they honour the flag when it is given.
+    let d = render(tmp.path(), &["-t", "dot", "--node-ids", "short"]);
+    assert!(
+        regex::Regex::new(r"(?m)^  n\d+ \[label=")
+            .unwrap()
+            .is_match(&d),
+        "dot should number when asked:\n{d}"
+    );
+}
+
+/// JSON ids are the content-derived identity `--from-graph` reads back
+/// and consumers diff across runs, not a rendering choice. The flag says
+/// so on stderr rather than obeying it or dropping it in silence — a
+/// flag that quietly does nothing is worse than one that is not
+/// accepted, because the person diffing the output believes it worked.
+#[test]
+fn node_ids_warns_for_json_instead_of_silently_doing_nothing() {
+    let tmp = fixture();
+    let out = tmp.path().join("g.json");
+    let assert = cgg()
+        .arg(tmp.path())
+        .args(["-t", "json", "--node-ids", "short", "-o"])
+        .arg(&out)
+        .assert()
+        .success();
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
+    assert!(
+        stderr.contains("--node-ids does not apply to -t json"),
+        "want a warning, got:\n{stderr}"
+    );
+    // ...and the ids are untouched: the same content-derived hashes the
+    // flagless run produces, not ordinals. (Whole-document equality
+    // would be the stronger check but cannot be used — the first run
+    // wrote its output inside the tree the second one walks, and wall
+    // timings never repeat.)
+    let with_flag: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&out).unwrap()).unwrap();
+    let ids = |v: &serde_json::Value| {
+        v["callables"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let plain: serde_json::Value =
+        serde_json::from_str(&render(tmp.path(), &["-t", "json"])).unwrap();
+    assert_eq!(
+        ids(&with_flag),
+        ids(&plain),
+        "--node-ids renumbered the JSON"
+    );
+    assert_eq!(
+        with_flag["edges"], plain["edges"],
+        "--node-ids moved the JSON edges"
+    );
+}

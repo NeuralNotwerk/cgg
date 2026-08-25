@@ -13,6 +13,8 @@ from typing import Any, Literal, Sequence
 __version__: str
 
 Confidence = Literal["high", "medium", "low"]
+NodeIds = Literal["short", "hash"]
+OutputFormat = Literal["mermaid", "json", "dot", "graphml"]
 Via = Literal[
     "direct",
     "dynamic",
@@ -130,7 +132,7 @@ class Graph:
     @property
     def jobs(self) -> int: ...
     def __len__(self) -> int: ...
-    def to_mermaid(self) -> str: ...
+    def to_mermaid(self, node_ids: NodeIds | None = ...) -> str: ...
     def to_json(self) -> str: ...
     def to_dot(self) -> str: ...
     def to_graphml(self) -> str: ...
@@ -165,6 +167,11 @@ def analyze(
     ignore_attributes: Sequence[str] | None = ...,
     roots: str | os.PathLike[str] | None = ...,
     since: str | None = ...,
+    rollup: str | None = ...,
+    rollup_by: str | None = ...,
+    rollup_format: OutputFormat = ...,
+    node_ids: NodeIds | None = ...,
+    from_graph: str | os.PathLike[str] | None = ...,
 ) -> Graph:
     """Raises CggError if the analysis fails, ValueError on a bad argument."""
 

@@ -208,16 +208,19 @@ printf 'def a():\n    return b()\n\ndef b():\n    return 1\n' > /tmp/cgg-smoke/t
 cgg /tmp/cgg-smoke
 ```
 
-Expected output, exactly — node ids are derived from the file's path
-relative to the analysis root plus each callable's identity, so this
-input gives these ids wherever you put the directory:
+Expected output, exactly — mermaid numbers its nodes in graph order, so
+this input gives these ids wherever you put the directory:
 
 ```text
 flowchart LR
-  Cvgb78ftyly["t.a"]
-  C2o2t4b41od["t.b"]
-  Cvgb78ftyly --> C2o2t4b41od
+  N0["t.a"]
+  N1["t.b"]
+  N0 --> N1
 ```
+
+(`cgg /tmp/cgg-smoke --node-ids hash` prints the same graph with each
+node's content-derived id instead — `Cvgb78ftyly`, `C2o2t4b41od` — which
+is what `-t json` carries.)
 
 If the user *does* have the source tree, run cgg against itself:
 

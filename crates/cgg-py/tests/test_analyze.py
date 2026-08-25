@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 from pathlib import Path
@@ -212,6 +213,49 @@ def test_all_four_renderers(tree: Path) -> None:
     assert g.to_graphml().lstrip().startswith("<?xml") or "<graphml" in g.to_graphml()
     doc = json.loads(g.to_json())
     assert set(doc) >= {"callables", "edges", "files"}
+
+
+def test_mermaid_numbers_its_nodes_by_default(tree: Path) -> None:
+    """The module must emit the same mermaid ids the CLI does.
+
+    The default is per-format and lives on `OutputFormat`, precisely so
+    the four front ends cannot drift on it — but nothing enforces that
+    from Python's side except this.
+    """
+    g = cgg.analyze(tree)
+    text = g.to_mermaid()
+    assert re.search(r"(?m)^  N\d+\[", text), text[:400]
+    assert not re.search(r"(?m)^  C[0-9a-z]{4,}\[", text), text[:400]
+
+
+def test_mermaid_node_ids_hash_matches_the_json_ids(tree: Path) -> None:
+    g = cgg.analyze(tree)
+    text = g.to_mermaid(node_ids="hash")
+    ids = set(json.loads(g.to_json())["callables"])
+    assert ids, "fixture produced no callables"
+    for cid in ids:
+        assert f"  {cid}[" in text, f"{cid} missing from hashed mermaid"
+
+
+def test_mermaid_node_ids_short_is_the_explicit_default(tree: Path) -> None:
+    g = cgg.analyze(tree)
+    assert g.to_mermaid(node_ids="short") == g.to_mermaid()
+
+
+def test_mermaid_node_ids_rejects_anything_else(tree: Path) -> None:
+    g = cgg.analyze(tree)
+    with pytest.raises(ValueError, match="short"):
+        g.to_mermaid(node_ids="sequential")
+
+
+def test_mermaid_scheme_changes_only_the_names(tree: Path) -> None:
+    """Same graph either way — same node count, same arrows, same labels."""
+    g = cgg.analyze(tree)
+    short, hashed = g.to_mermaid(), g.to_mermaid(node_ids="hash")
+    labels = lambda s: re.findall(r'\["([^"]*)"\]', s)  # noqa: E731
+    assert labels(short) == labels(hashed)
+    assert short.count(" --> ") == hashed.count(" --> ")
+    assert len(short.splitlines()) == len(hashed.splitlines())
 
 
 def test_to_dict_agrees_with_to_json(tree: Path) -> None:

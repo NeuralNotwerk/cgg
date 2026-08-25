@@ -262,11 +262,11 @@ handler would otherwise have in-degree zero — which is a claim
 %% in your source; they represent control entering from a framework.
 %% BEST EFFORT — see the coverage table for what cgg did and did not recognise.
 flowchart LR
-  Cq3rc7yk1ma["svc.list_users"]
-  C1e0h9zwbxof["app.list_users"]
-  C8tjm5nd42p["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
-  C1e0h9zwbxof --> Cq3rc7yk1ma
-  C8tjm5nd42p -->|entry| C1e0h9zwbxof
+  N0["svc.list_users"]
+  N1["app.list_users"]
+  N2["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
+  N1 --> N0
+  N2 -->|entry| N1
 ```
 
 Note the mermaid escaping: the emitted label is `&lt;framework-entry&gt;`,
@@ -405,24 +405,40 @@ A mermaid flowchart from cgg looks like this (real output of
 
 ```text
 flowchart LR
-  Cqf3yb5yflr["cgg::analyze_in_pool"]
-  Cykc0uwg6nu["cgg::read_file"]
-  Cqf3yb5yflr --> Cykc0uwg6nu
+  N0["cgg::analyze_in_pool"]
+  N1["cgg::read_file"]
+  N0 --> N1
 ```
 
-Node ids (`Cqf3yb5yflr`) are a type prefix plus lowercase base36 digits,
-derived by hashing the callable's identity — **not** a sequential index.
-The same callable keeps the same id across runs of the same tree, so ids
-are comparable between two runs: editing an unrelated file, or moving
-code within a file, leaves an id alone. The path that feeds the hash is
-relative to the analysis root, so the id does not change with how cgg
-was invoked or where the tree is checked out. Two caveats before you rely on
-that. Ids are not comparable across cgg *versions*. And where cgg
-genuinely cannot tell two callables apart — same file, same qualified
-name, same signature — it separates them by declaration order, so
-removing one can hand its id to the other; that is rare, and overloads
-with distinct signatures are not affected. Still quote the labels to
-the user, not the ids.
+Mermaid node ids (`N0`) are ordinals — the node's position in the graph,
+numbered from zero. They are unique within one document and mean nothing
+outside it: the id is a handle for reading the arrows, and inserting a
+callable renumbers everything after it. Quote the **labels** to the
+user, never the ids. Numbering is the mermaid default because the id
+repeats on every edge that touches its node, and a ten-character hash
+there costs context-window tokens for nothing — dropping it takes cgg's
+own tree from 127,536 to 80,360 tokens, **37% fewer**.
+
+`--node-ids hash` swaps them for the graph's real ids
+(`Cqf3yb5yflr`) — a type prefix plus lowercase base36 digits, derived by
+hashing the callable's identity. Reach for it when you need ids that
+mean something: they are what `-t json` carries, and the same callable
+keeps the same id across runs of the same tree, so two runs are
+comparable — editing an unrelated file, or moving code within a file,
+leaves an id alone. The path that feeds the hash is relative to the
+analysis root, so the id does not change with how cgg was invoked or
+where the tree is checked out. Two caveats before you rely on that. Ids
+are not comparable across cgg *versions*. And where cgg genuinely cannot
+tell two callables apart — same file, same qualified name, same
+signature — it separates them by declaration order, so removing one can
+hand its id to the other; that is rare, and overloads with distinct
+signatures are not affected.
+
+Note that only the *hash* form has that ambiguity. Numbered ids are
+unique by construction, so two callables that share a qualified name —
+overloads, or same-named helpers in different files, 41 of them on cgg's
+own tree — always get separate nodes. That is why the qualified name is
+never itself the id.
 
 Each node is a callable, labeled with its fully-qualified name. Each
 edge is a *resolved* call site — cgg doesn't emit edges it can't
@@ -432,7 +448,7 @@ the graph with guesses.
 When the same caller calls the same callee at multiple distinct call
 sites in the source, the mermaid and dot renderers collapse those
 into a single arrow with a multiplicity label — e.g.
-`Cqf3yb5yflr -->|18x| Cykc0uwg6nu` in mermaid, or
+`N0 -->|18x| N1` in mermaid, or
 `nk6rdns31fh -> n1a7yv3q0ebt [label="18x"];` in dot. The bare arrow form
 is used when the count is 1. When an edge also carries a `Via` tag the
 label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.

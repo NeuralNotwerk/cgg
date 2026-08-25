@@ -5,9 +5,58 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
-## [Unreleased]
+## [0.8.2] - 2026-08-25
 
 ### Added
+
+- **`--node-ids short|hash`, and mermaid now numbers its nodes by
+  default.** A mermaid node id is written once in the node's declaration
+  and again on both ends of every edge that touches it — on cgg's own
+  tree, 2,232 nodes against 3,792 edge pairs — and it was a
+  ten-character base36 content hash. That is the worst possible string
+  for a BPE tokenizer to carry three times per node, and the primary
+  consumer of this format is a coding agent reading it in a context
+  window, where those tokens are the whole budget.
+
+  Nodes are now numbered `N0`, `N1`, … in graph order. Across the
+  164-repo benchmark corpus that takes the mermaid output from
+  **217,119,809 to 172,590,073 bytes — 20.5% smaller** (24.1% on cgg's
+  own tree, which is denser in `::`-qualified names than the corpus
+  average). The token saving is larger than the byte saving, because
+  `N7` is one token where `Cu7kwiat260` is several. `--node-ids hash`
+  restores the previous output, which is what you want to diff two
+  revisions' diagrams or line one up against `-t json`. Only mermaid's
+  default changed; dot and graphml still hash unless asked, and `-t json`
+  cannot be renumbered at all — its ids are the identity `--from-graph`
+  reads back — so asking there prints a warning rather than quietly
+  doing nothing.
+
+  **Verified corpus-wide that no node or edge moved.** Over all 164
+  repositories, none excluded: `-t json` from the old and new binaries is
+  identical once per-run timings are normalised — every callable, edge,
+  id, confidence and resolver provenance — and `--node-ids hash` is
+  byte-identical to the old default output. The numbered rendering
+  declares exactly the same nodes and draws exactly the same arrows as
+  the hashed one: **2,148,745 nodes and 2,433,611 arrows checked, zero
+  differences.**
+
+  **The qualified name is deliberately not the id.** It looks like the
+  obvious answer and is wrong twice over. Qualified names are not
+  unique — 41 of cgg's own 2,232 callables share one with another
+  callable, and corpus-wide 17.7% of callables share
+  `(language, file, owner, qualified_name)` because C++, C#, Java and
+  Erlang have overloads in quantity — so using the name as the id merges
+  distinct functions and silently reroutes their edges. And it is
+  *bigger*: a name repeated on every edge renders the same graph at
+  379,524 bytes, 39% worse than the hash it would have replaced.
+  Numbering is the only scheme that is both smaller and collision-free,
+  and it is collision-free by construction.
+
+  Reachable from all four front ends: `--node-ids` on the CLI,
+  `node_ids=` on `cgg.analyze()` and `Graph.to_mermaid()` in Python,
+  `nodeIds` in the Node options and `toMermaid("hash")`, and
+  `"node_ids"` in the C ABI's options JSON — no new exported symbol,
+  which is what passing options as a document is for.
 
 - **A prebuilt `linux-aarch64` CLI binary.** Wheels have shipped for that
   target for several releases while the CLI did not, so `cargo install`
@@ -26,6 +75,30 @@ ever grows in default mode — see *Compatibility* below).
   skipped for exactly that reason — so the job asserts the weaker thing
   it can: that `readelf` reports AArch64, which catches a cross-build
   that silently produced an x86 binary under an ARM name.
+
+### Fixed
+
+- **`--rollup` measured its budget against the wrong renderer once the
+  node-id scheme became selectable.** The budget is a claim about the
+  *rendered* size, and the rendering is a third larger under
+  `--node-ids hash` than under numbering. Measuring the numbered form
+  while emitting the hashed one would have let a run sail past the budget
+  it was given — silently, because the stderr line reports the figure it
+  measured, not the document it wrote. The scheme is resolved once
+  (`NodeIds::resolve`) and both the budget and the artifact read that one
+  answer; a regression test picks a budget strictly between the two
+  renderings of one graph and asserts the schemes disagree about whether
+  it fits.
+
+  Caught before release, so no shipped version is affected — the flag and
+  the defect arrived in the same unreleased change.
+
+- **`scripts/docs-check.py` check 8 read the wrong `#[pyo3(signature)]`.**
+  It searched for the first one in `crates/cgg-py/src/lib.rs`, which was
+  `fn analyze`'s only for as long as no other function had one. The first
+  renderer to take a keyword argument shifted it, and the check reported
+  all 28 of `analyze`'s keywords as missing. It is anchored on
+  `fn analyze` now.
 
 ### Changed
 
@@ -54,14 +127,14 @@ ever grows in default mode — see *Compatibility* below).
   Three supporting changes in `scripts/publish-crates.sh`, which the job
   runs rather than reimplementing:
 
-  * `--yes` skips the typed-version confirmation. CI has no tty; the
+  - `--yes` skips the typed-version confirmation. CI has no tty; the
     prompt stays the default for humans, who can still change their mind.
-  * **Resumable.** `already uploaded` now counts as success. Because the
+  - **Resumable.** `already uploaded` now counts as success. Because the
     version is spent either way, a run that dies after three of six
     crates has to be *finishable* — previously a re-run failed on the
     first crate that had landed, leaving the workspace half-published
     with no way forward.
-  * The last crate is verified on the index like every other. It was
+  - The last crate is verified on the index like every other. It was
     skipped because nothing depends on it, which is true for *ordering*
     and wrong for *verification*.
 
@@ -70,6 +143,106 @@ ever grows in default mode — see *Compatibility* below).
   crate would read as already uploaded. The job therefore asserts the tag
   matches `Cargo.toml` before it runs, and independently reads back all
   six crates from the registry afterwards.
+
+### Compatibility
+
+**Mermaid node ids changed shape, and this ships as a patch release.**
+`cgg -t mermaid` now writes `N0`, `N1`, … where 0.8.1 wrote
+`Cu7kwiat260`. Anything that parses cgg's mermaid ids — rather than its
+labels — needs `--node-ids hash` to keep the old form. Nothing else
+changed: dot, graphml and json are byte-identical to 0.8.1's, and the
+hashed mermaid rendering is byte-identical too.
+
+By this project's own versioning policy a new flag is a MINOR bump, and
+a changed default output arguably more so. It ships as 0.8.2 by explicit
+decision, on the grounds that the **graph** is provably untouched — see
+the verification below — and only the rendering moved. Calling that out
+here rather than letting a patch number imply nothing happened.
+
+**Numbered ids make graph order observable, so order was verified too.**
+A content hash is a pure function of a callable's identity: before this
+release, if a parallel phase had ever emitted callables in a different
+order, every id stayed put and the diagram was unchanged. An ordinal has
+no such protection — a reorder would shift every id and every edge line
+with it. `scripts/determinism-sweep.py` deliberately stopped varying
+`--jobs`, and `tests/determinism.rs` covered thread counts only on a
+small fixture, so this combination had no coverage on real input.
+
+It does now, three ways. A new test,
+`mermaid_is_byte_identical_at_every_thread_count`, pins the rendering at
+`--jobs 1/2/3/8/32` with the hashed form as a control. Across the corpus,
+**157 repositories were rendered at multiple worker counts and every one
+was byte-identical** — 152 at `--jobs 1,2,8,32` and the five largest at
+`--jobs 1,2,3,8,32,64`, none excluded. And the corpus A/B below settles
+the root question: the JSON is byte-identical to 0.8.1's, and JSON
+serialises callables in graph order, so the order these ordinals read is
+the order 0.8.1 already shipped.
+
+**The graph is unchanged, and that was checked rather than assumed.**
+Across all 164 repositories of the benchmark corpus, none excluded:
+`-t json` from 0.8.1 and 0.8.2 is identical once per-run timings are
+normalised — every callable, edge, id, confidence level and resolver
+provenance — and `--node-ids hash` output is byte-identical to 0.8.1's
+default. The numbered rendering declares exactly the same nodes and
+draws exactly the same arrows as the hashed one: **2,148,745 nodes and
+2,433,611 arrows compared, zero differences.**
+
+### Performance
+
+**The project's own perf gate cannot measure this change, and saying so
+is the honest headline.** `scripts/perf-compare.sh` benchmarks with
+`-t json -o /dev/null` (`bench_one`). This release touches the *mermaid*
+writer; the JSON path it times is byte-identical to 0.8.1's. So the table
+below is a regression check on the shared pipeline — walk, parse,
+resolve — and nothing in it can be an effect of the change.
+
+Paired A/B, `146bb7b` (post-0.8.1) against this commit, both built on the
+same 64-core host, median of 3 runs per repo at `--jobs 1`, 153 of 164
+repos (the sweep was stopped at its time budget), load average 2.08 at
+start:
+
+| | total | median per-repo | faster / slower |
+| --- | --- | --- | --- |
+| repos ≥150 ms (90 of them) | — | **+0.0%** | 43 / 40 |
+| all 153 repos | 240,095 → 250,373 ms (+4.3%) | | |
+| all 153 **excluding `erlang-otp`** | **+0.1%** | | |
+
+**That +4.3% is one repository.** `erlang-otp` went 26,181 → 36,277 ms,
+which is **98% of the entire delta** while being 10.9% of the baseline
+total. It is the corpus's known pathological case — 177 MB, 3,851 `.erl`
+files, the repo CLAUDE.md records as having run for 3h40m in an
+unguarded sweep. A formatter change cannot cause it: the timed command
+never renders mermaid. Reported here rather than smoothed into the total,
+because promoting exactly this shape to a corpus-wide claim is the
+mistake 0.6.2 had to retract.
+
+Corroborating that the deltas are noise: `rust-salvo` read **-20.3%** in
+one sweep and **-0.4%** in a clean repeat of the same two commits.
+
+**What did change, measured directly** — the rendered artifact, which is
+what mermaid's cost actually is for its consumer:
+
+| `cgg ./crates -t mermaid` | bytes | `o200k_base` tokens |
+| --- | --- | --- |
+| 0.8.1 (hashed ids) | 275,772 | 127,536 |
+| 0.8.2 (numbered ids) | 209,237 | 80,360 |
+| delta | **-24.1%** | **-37.0%** |
+
+Corpus-wide, all 164 repos: 217,119,809 → 172,590,073 bytes, **-20.5%**.
+The token saving outruns the byte saving because a random base36 string
+costs roughly one token per two characters while `N7` is one token.
+
+**Recall under `--rollup` improves, and that is the practical effect.**
+The budget is a claim about *rendered* size, so a smaller rendering means
+a finer granularity fits. At `--rollup 100k` across all 164 repos:
+135 repos fold to the same granularity, **29 fold finer, none fold
+coarser**, and total nodes emitted go 109,558 → 149,413 — **+36.4% more
+of the graph retained for the same budget**. `scala-play` goes from
+`package` (11 nodes) to `module` (2,058); `graphql-github` from 3 nodes
+to the full 1,625-node graph.
+
+Test suite: 778 tests, unchanged in runtime. The pre-commit hook is
+unaffected; its `cgg` invocations now write ~24% less to `target/`.
 
 ## [0.8.1] - 2026-08-22
 
@@ -420,7 +593,8 @@ as such.
   `number` is exact here only because every id stays inside 52 bits,
   comfortably under `Number.MAX_SAFE_INTEGER` (2^53-1).
   Verified: across the corpus no `cgg-node` id is negative, unsafe, or
-  disagrees with the value the CLI reports for the same callable. `cgg-node`'s `Graph.files` getter, which used to return
+  disagrees with the value the CLI reports for the same callable.
+  `cgg-node`'s `Graph.files` getter, which used to return
   `Array<string>` of bare paths indexed by `Callable.file`, now returns
   `Array<{ id, path }>` — matching by id was already how `cgg-py`
   worked, and the old "index equals id" invariant depended on the
@@ -748,7 +922,7 @@ rolled into 0.8.0, which would have claimed already-released features
 as new. The summary bullet and language table above cover the same
 work; these add the per-platform detail.
 
-### Added
+### Added — cloud entry points
 
 - **Google Cloud Functions, Azure Functions, Firebase, Cloudflare
   Workers and Deno** — 18 enumerating rules across five platforms.
@@ -769,7 +943,7 @@ work; these add the per-platform detail.
   (17 Python + 2 JS), both Azure quickstarts (2 each),
   `cloudflare/workers-rs` (3), `denoland/std` (1).
 
-### Fixed
+### Fixed — cloud entry points
 
 - **A registration needed a route string, and three platforms had
   none.** `is_registration_shape` required a leading string literal
@@ -795,7 +969,7 @@ work; these add the per-platform detail.
   import a TypeScript Worker actually uses, so the commonest Worker in
   existence was not detected at all.
 
-### Changed
+### Changed — cloud entry points
 
 - **Firebase's deprecated v1 vocabulary is deliberately not
   registered.** `onCreate`/`onUpdate`/`onDelete`/`onWrite`/`onRun`
@@ -808,7 +982,6 @@ work; these add the per-platform detail.
 
   Net effect of the whole change set, nine paired runs at `--jobs 1`
   against 0.6.7: **-3.1% median, -2.0% min** on Ghost.
-
 
 ## [0.6.7] - 2026-08-14
 

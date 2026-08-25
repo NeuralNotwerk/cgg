@@ -88,6 +88,7 @@ files) are listed in the audit log under `since_resolved`.
 
 ```text
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
+              [--node-ids short|hash]
               [--filter PATTERN]... [--since REVSPEC]
               [-n N] [--max-paths N] [--fanout-cap N]
               [--rollup BUDGET] [--rollup-by LEVEL]
@@ -116,6 +117,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | ---- | ------- | ----------- |
 | `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
 | `-o` | stdout | Output file (use `-` for stdout) |
+| `--node-ids` | `short` for mermaid, `hash` elsewhere | How nodes are named: `short` numbers them `N0`, `N1`, … in graph order; `hash` uses the content-derived base36 id (`Cu7kwiat260`). A mermaid id repeats on every edge that touches its node, so numbering cuts **20.5% of the bytes** across the 164-repo benchmark corpus, and more of the tokens — on this repo's own tree, 275,772 -> 209,237 bytes but 127,536 -> 80,360 tokens, **-37.0%** measured with `o200k_base`. Use `hash` to diff two revisions' diagrams or line one up against `-t json`. Does not apply to `-t json`, whose ids are the identity `--from-graph` reads back; asking for it there warns rather than silently doing nothing |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |
@@ -515,7 +517,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2196 callables, 5214 edges, 1842 cross-file, 335ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2250 callables, 5422 edges, 1976 cross-file, 387ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -526,143 +528,144 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 <!-- cgg:begin:self -->
 ```mermaid
 flowchart LR
-  C11h815808rq["cgg::deadcode::config::DeadCodeConfigFile::load"]
-  Conerhz0ciy["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  Cabwowaj4k8["cgg::analyze"]
-  Cqf3yb5yflr["cgg::analyze_in_pool"]
-  Cw7ql96bk4s["cgg::langs_enabled"]
-  Cpqtewxfrbq["cgg::specific"]
-  Cnqqmiuv8hs["cgg::apply_rollup"]
-  Cf5x5dxc2es["cgg::render"]
-  C17hqdlhbu9f["cgg::dead_code_analysis"]
-  Cqourmywlr0["cgg::why_live_proofs"]
-  C1263o8qvvx1["cgg::since_seeds"]
-  Clpe3mcsgmr["cgg::count_lines"]
-  Cykc0uwg6nu["cgg::read_file"]
-  Cxnjj30qv2m["cgg::variant_to_kind"]
-  C31yv0xfus8["cgg::synthesize_exit_nodes"]
-  Cpucqi45q3b["cgg::synthesize_entry_nodes"]
-  C2nx7e9m0zz["cgg::trait_impl_target_from_qn"]
-  C17462kdf2nf["cgg::dedup_edges"]
-  C9q2amfjcou["cgg::group_unresolved_by_module"]
-  C8b2vmlwi5t["cgg::options::RunOptions::dead_mode"]
-  C11vqmheapvn["cgg::outcome::Emission::line"]
-  Cw9znk2tj67["cgg::outcome::Emission::always"]
-  C14b5cln9j8o["cgg::query::apply_query"]
-  Cv0jm0wne8n["cgg::query::apply_exclusions"]
-  Cpowmrl2e1x["cgg::since::resolve_since"]
-  Ca6hvkecq8h["cgg::stable_ids::StableIds::new"]
-  Cmzvlz4katg["cgg::stable_ids::StableIds::file"]
-  Cy4ezc0kp00["cgg::stable_ids::StableIds::callable"]
-  Cp8msntzldl["cgg_core::external::FileAliases::from_facts"]
-  C17vem57hsyp["cgg_core::external::classify_external"]
-  Cblrsvpj1kc["cgg_core::external::build_known_names"]
-  C17fm41dqox3["cgg_core::graph::Graph::new"]
-  C65u5x91t2l["cgg_core::graph::Graph::add_callable"]
-  C7iupg7fvcn["cgg_core::graph::Graph::add_file"]
-  Cx6tn38b660["cgg_core::graph::Graph::add_edge"]
-  Csepa8jc1xt["cgg_core::profile::enable"]
-  C15ginzh7zk1["cgg_core::profile::span"]
-  C6qlyfko7rj["cgg_core::testfile::classify_test_file"]
-  Cm31kvwm95e["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  Cbpgefv4f4e["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  Cv011y85uye["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  Cog6dt6joc4["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C7wbq9qpio8["cgg_lang::notebook::extract_python_source"]
-  C15al5osu87k["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  C1nljxkp92o["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  Cavdzmch8x["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  C1hwz9tfoev["cgg_resolve::cross_file::resolve"]
-  C138k7v2qtfg["cgg_resolve::descriptor::link_descriptors"]
-  Cazr6zuyjv6["cgg_resolve::dispatch::fanout"]
-  C17a4co0ags3["cgg_resolve::ffi::link_ffi"]
-  C16tkyvf87vx["cgg_resolve::frameworks::detect"]
-  Cyol1ch8l9b["cgg_resolve::intra_file::link_file"]
-  Cur5xvlgpq["cgg_resolve::names::owner_from_qn"]
-  Coeqizgcgqd["cgg_resolve::type_hints::build_return_type_map"]
-  Cra9oz73m55["cgg_resolve::type_hints::propagate_types_with_returns"]
-  Cxjcemfkoef["cgg_walk::walk"]
-  Cabwowaj4k8 --> Cqf3yb5yflr
-  Cqf3yb5yflr --> Cw7ql96bk4s
-  Cqf3yb5yflr --> Cykc0uwg6nu
-  Cqf3yb5yflr --> Clpe3mcsgmr
-  Cqf3yb5yflr --> Cxnjj30qv2m
-  Cqf3yb5yflr --> C2nx7e9m0zz
-  Cqf3yb5yflr -->|2x| Cpqtewxfrbq
-  Cqf3yb5yflr --> C31yv0xfus8
-  Cqf3yb5yflr --> Cpucqi45q3b
-  Cqf3yb5yflr --> C9q2amfjcou
-  Cqf3yb5yflr --> C17462kdf2nf
-  Cqf3yb5yflr --> C1263o8qvvx1
-  Cqf3yb5yflr --> Cqourmywlr0
-  Cqf3yb5yflr --> C17hqdlhbu9f
-  Cqf3yb5yflr --> Cnqqmiuv8hs
-  Cqf3yb5yflr --> Cf5x5dxc2es
-  C1nljxkp92o --> C1nljxkp92o
-  Cqf3yb5yflr --> C8b2vmlwi5t
-  Cqf3yb5yflr --> Conerhz0ciy
-  Cqf3yb5yflr --> C11h815808rq
-  Cqf3yb5yflr --> Csepa8jc1xt
-  Cqf3yb5yflr --> Cxjcemfkoef
-  Cqf3yb5yflr --> Cog6dt6joc4
-  Cqf3yb5yflr --> Cm31kvwm95e
-  Cqf3yb5yflr --> C15al5osu87k
-  Cqf3yb5yflr --> Ca6hvkecq8h
-  Cqf3yb5yflr --> C17fm41dqox3
-  Cqf3yb5yflr --> Cbpgefv4f4e
-  Cqf3yb5yflr --> C7wbq9qpio8
-  Cqf3yb5yflr -->|18x| C15ginzh7zk1
-  Cqf3yb5yflr --> C1nljxkp92o
-  Cqf3yb5yflr --> Cavdzmch8x
-  Cqf3yb5yflr --> Cv011y85uye
-  Cqf3yb5yflr --> Cmzvlz4katg
-  Cqf3yb5yflr --> C6qlyfko7rj
-  Cqf3yb5yflr --> C7iupg7fvcn
-  Cqf3yb5yflr --> Cur5xvlgpq
-  Cqf3yb5yflr --> Cy4ezc0kp00
-  Cqf3yb5yflr --> C65u5x91t2l
-  Cqf3yb5yflr --> Coeqizgcgqd
-  Cqf3yb5yflr --> Cra9oz73m55
-  Cqf3yb5yflr --> Cblrsvpj1kc
-  Cqf3yb5yflr --> Cyol1ch8l9b
-  Cqf3yb5yflr --> Cp8msntzldl
-  Cqf3yb5yflr --> C17vem57hsyp
-  Cqf3yb5yflr --> C1hwz9tfoev
-  Cqf3yb5yflr --> C17a4co0ags3
-  Cqf3yb5yflr --> C138k7v2qtfg
-  Cqf3yb5yflr --> C16tkyvf87vx
-  Cqf3yb5yflr --> Cazr6zuyjv6
-  Cqf3yb5yflr --> Cx6tn38b660
-  Cqf3yb5yflr -->|5x| C11vqmheapvn
-  Cqf3yb5yflr --> Cpowmrl2e1x
-  Cqf3yb5yflr -->|2x| Cw9znk2tj67
-  Cqf3yb5yflr --> C14b5cln9j8o
-  Cqf3yb5yflr --> Cv0jm0wne8n
-  Cnqqmiuv8hs --> C15ginzh7zk1
-  Cnqqmiuv8hs --> Ca6hvkecq8h
-  Cnqqmiuv8hs -->|3x| Cw9znk2tj67
-  Cnqqmiuv8hs --> C11vqmheapvn
-  C17hqdlhbu9f --> Cog6dt6joc4
-  C17hqdlhbu9f --> Cw9znk2tj67
-  C17hqdlhbu9f --> C11vqmheapvn
-  Cqourmywlr0 --> Cw9znk2tj67
-  C31yv0xfus8 -->|2x| Cmzvlz4katg
-  C31yv0xfus8 -->|2x| C7iupg7fvcn
-  C31yv0xfus8 --> Cy4ezc0kp00
-  C31yv0xfus8 --> C65u5x91t2l
-  C31yv0xfus8 --> Cx6tn38b660
-  Cpucqi45q3b --> Cmzvlz4katg
-  Cpucqi45q3b --> C7iupg7fvcn
-  Cpucqi45q3b --> Cy4ezc0kp00
-  Cpucqi45q3b --> C65u5x91t2l
-  Cpucqi45q3b --> Cx6tn38b660
-  C14b5cln9j8o --> C17fm41dqox3
-  C1hwz9tfoev -->|6x| C15ginzh7zk1
-  C1hwz9tfoev -->|4x| Cur5xvlgpq
-  C138k7v2qtfg -->|2x| Cur5xvlgpq
-  Cazr6zuyjv6 --> Cur5xvlgpq
-  C16tkyvf87vx -->|9x| C15ginzh7zk1
-  Cyol1ch8l9b -->|3x| Cur5xvlgpq
+  N0["cgg::deadcode::config::DeadCodeConfigFile::load"]
+  N1["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
+  N2["cgg::analyze"]
+  N3["cgg::analyze_in_pool"]
+  N4["cgg::langs_enabled"]
+  N5["cgg::specific"]
+  N6["cgg::apply_rollup"]
+  N7["cgg::render"]
+  N8["cgg::dead_code_analysis"]
+  N9["cgg::why_live_proofs"]
+  N10["cgg::since_seeds"]
+  N11["cgg::count_lines"]
+  N12["cgg::read_file"]
+  N13["cgg::variant_to_kind"]
+  N14["cgg::synthesize_exit_nodes"]
+  N15["cgg::synthesize_entry_nodes"]
+  N16["cgg::trait_impl_target_from_qn"]
+  N17["cgg::dedup_edges"]
+  N18["cgg::group_unresolved_by_module"]
+  N19["cgg::options::RunOptions::dead_mode"]
+  N20["cgg::outcome::Emission::line"]
+  N21["cgg::outcome::Emission::always"]
+  N22["cgg::query::apply_query"]
+  N23["cgg::query::apply_exclusions"]
+  N24["cgg::since::resolve_since"]
+  N25["cgg::stable_ids::StableIds::new"]
+  N26["cgg::stable_ids::StableIds::file"]
+  N27["cgg::stable_ids::StableIds::callable"]
+  N28["cgg_core::external::FileAliases::from_facts"]
+  N29["cgg_core::external::classify_external"]
+  N30["cgg_core::external::build_known_names"]
+  N31["cgg_core::graph::Graph::new"]
+  N32["cgg_core::graph::Graph::add_callable"]
+  N33["cgg_core::graph::Graph::add_file"]
+  N34["cgg_core::graph::Graph::add_edge"]
+  N35["cgg_core::profile::enable"]
+  N36["cgg_core::profile::span"]
+  N37["cgg_core::testfile::classify_test_file"]
+  N38["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  N39["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N40["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  N41["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N42["cgg_lang::notebook::extract_python_source"]
+  N43["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N44["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  N45["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N46["cgg_resolve::cross_file::resolve"]
+  N47["cgg_resolve::descriptor::link_descriptors"]
+  N48["cgg_resolve::dispatch::fanout"]
+  N49["cgg_resolve::ffi::link_ffi"]
+  N50["cgg_resolve::frameworks::detect"]
+  N51["cgg_resolve::intra_file::link_file"]
+  N52["cgg_resolve::names::owner_from_qn"]
+  N53["cgg_resolve::type_hints::build_return_type_map"]
+  N54["cgg_resolve::type_hints::propagate_types_with_returns"]
+  N55["cgg_walk::walk"]
+  N2 --> N3
+  N3 --> N4
+  N3 --> N12
+  N3 --> N11
+  N3 --> N13
+  N3 --> N16
+  N3 -->|2x| N5
+  N3 --> N14
+  N3 --> N15
+  N3 --> N18
+  N3 --> N17
+  N3 --> N10
+  N3 --> N9
+  N3 --> N8
+  N3 --> N6
+  N3 --> N7
+  N44 --> N44
+  N3 --> N19
+  N3 --> N1
+  N3 --> N0
+  N3 --> N35
+  N3 --> N55
+  N3 --> N41
+  N3 --> N38
+  N3 --> N43
+  N3 --> N25
+  N3 --> N31
+  N3 --> N39
+  N3 --> N42
+  N3 -->|18x| N36
+  N3 --> N44
+  N3 --> N45
+  N3 --> N40
+  N3 --> N26
+  N3 --> N37
+  N3 --> N33
+  N3 --> N52
+  N3 --> N27
+  N3 --> N32
+  N3 --> N53
+  N3 --> N54
+  N3 --> N30
+  N3 --> N51
+  N3 --> N28
+  N3 --> N29
+  N3 --> N46
+  N3 --> N49
+  N3 --> N47
+  N3 --> N50
+  N3 --> N48
+  N3 --> N34
+  N3 -->|5x| N20
+  N3 --> N24
+  N3 -->|2x| N21
+  N3 --> N22
+  N3 --> N23
+  N6 --> N36
+  N6 --> N46
+  N6 --> N25
+  N6 -->|3x| N21
+  N6 --> N20
+  N8 --> N41
+  N8 --> N21
+  N8 --> N20
+  N9 --> N21
+  N14 -->|2x| N26
+  N14 -->|2x| N33
+  N14 --> N27
+  N14 --> N32
+  N14 --> N34
+  N15 --> N26
+  N15 --> N33
+  N15 --> N27
+  N15 --> N32
+  N15 --> N34
+  N22 --> N31
+  N46 -->|6x| N36
+  N46 -->|4x| N52
+  N47 -->|2x| N52
+  N48 --> N52
+  N50 -->|9x| N36
+  N51 -->|3x| N52
 ```
 <!-- cgg:end:self -->
 
@@ -676,81 +679,12 @@ cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid  # resolution pipeline
 <!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
-  Cu7kwiat260["cgg_walk::WalkOutcome::is_empty"]
-  Ce4ddjmy6a9["cgg_walk::<WalkConfig as Default>::default"]
-  C31bdoqn4za["cgg_walk::walk"]
-  Cll8mpexfef["cgg_walk::walk_one"]
-  Cs8wy7hsuxx["cgg_walk::push_candidate"]
-  C75pmf8fto["cgg_walk::is_symlink_chain"]
-  Cskdptu8g6i["cgg_walk::classify_file"]
-  C2n4efbd7wn["cgg_walk::is_binary"]
-  C7vw2dovntu["cgg_walk::builtin_reason"]
-  C11ua4ewjj4k["cgg_walk::extract_err_path"]
-  C11ua4ewjj4k -->|2x| C11ua4ewjj4k
-  C31bdoqn4za --> Cll8mpexfef
-  Cll8mpexfef --> C11ua4ewjj4k
-  Cll8mpexfef --> C75pmf8fto
-  Cll8mpexfef -->|2x| C7vw2dovntu
-  Cll8mpexfef -->|2x| Cs8wy7hsuxx
-  Cll8mpexfef -->|2x| Cskdptu8g6i
-  Cskdptu8g6i --> C2n4efbd7wn
 ```
 <!-- cgg:end:walk -->
 
 <!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
-  Cv36jlifpdc["cgg_lang::detect::LanguageDetector<'r>::new"]
-  Cwlml0xrogd["cgg_lang::detect::LanguageDetector<'r>::detect"]
-  C3jisdvbepi["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
-  Crtritvaaoz["cgg_lang::detect::extension"]
-  C11slgkpl37n["cgg_lang::detect::sniff_structured_descriptor"]
-  Cj6vrh8l0bj["cgg_lang::detect::read_shebang"]
-  Cyfctxdszx1["cgg_lang::detect::header_verdict"]
-  C4u5g6d28yw["cgg_lang::parser::ParserPool<'r>::new"]
-  Cd3hzknuqac["cgg_lang::parser::ParserPool<'r>::parse"]
-  C12nrfh3chwm["cgg_lang::parser::ParserPool<'r>::plugin"]
-  Cjykfe75rz4["cgg_lang::parser::set_language"]
-  Ceyt8dij58u["cgg_lang::builtin_verbs"]
-  Cca8apaa9un["cgg_lang::builtin_verbs_for"]
-  Coc836k6u9k["cgg_lang::no_extra_verbs"]
-  C9la8k1m14l["cgg_lang::ExtractCtx<'a>::new"]
-  C17jx53p4lr4["cgg_lang::ExtractCtx<'a>::for_language"]
-  C11uju92cjin["cgg_lang::ExtractCtx<'a>::plain"]
-  C12weqcrmdxn["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
-  C179u8egdmpr["cgg_lang::LanguagePlugin::id"]
-  C15enwtclvz2["cgg_lang::LanguagePlugin::extensions"]
-  Cg01trff8nb["cgg_lang::LanguagePlugin::shebangs"]
-  Cabgrhhns1o["cgg_lang::LanguagePlugin::signals"]
-  C1swc0yz9r["cgg_lang::LanguagePlugin::ts_language"]
-  Cu9jiklhynn["cgg_lang::LanguagePlugin::extract"]
-  Cnf9vm2uv90["cgg_lang::PluginRegistry::new"]
-  Cwa4dulcqhs["cgg_lang::PluginRegistry::register"]
-  Col4fmqpbym["cgg_lang::PluginRegistry::all"]
-  C138p7ip77vd["cgg_lang::PluginRegistry::by_id"]
-  C12ve9tylm1r["cgg_lang::PluginRegistry::with_v1_plugins"]
-  C11uju92cjin --> Coc836k6u9k
-  C12nrfh3chwm --> C138p7ip77vd
-  C12ve9tylm1r --> Cnf9vm2uv90
-  C12weqcrmdxn --> Cca8apaa9un
-  C12weqcrmdxn --> Ceyt8dij58u
-  C138p7ip77vd --> C179u8egdmpr
-  C3jisdvbepi --> C15enwtclvz2
-  C3jisdvbepi --> C179u8egdmpr
-  C3jisdvbepi --> Col4fmqpbym
-  Cd3hzknuqac --> C138p7ip77vd
-  Cd3hzknuqac --> C1swc0yz9r
-  Cd3hzknuqac --> Cd3hzknuqac
-  Cd3hzknuqac --> Cjykfe75rz4
-  Cu9jiklhynn --> C179u8egdmpr
-  Cwlml0xrogd --> C11slgkpl37n
-  Cwlml0xrogd --> C179u8egdmpr
-  Cwlml0xrogd -->|2x| C3jisdvbepi
-  Cwlml0xrogd --> Cg01trff8nb
-  Cwlml0xrogd --> Cj6vrh8l0bj
-  Cwlml0xrogd --> Col4fmqpbym
-  Cwlml0xrogd -->|2x| Crtritvaaoz
-  Cwlml0xrogd -->|2x| Cyfctxdszx1
 ```
 <!-- cgg:end:lang -->
 
@@ -764,6 +698,30 @@ flowchart LR
 | **graphml** | Import into yEd, Gephi, or other graph analysis tools |
 
 ### Node ids
+
+**Mermaid numbers its nodes** — `N0`, `N1`, … in graph order — because a
+mermaid id is written once in the node's declaration and again on both
+ends of every edge that touches it, and that output is usually being
+read in an agent's context window where the id's token cost is the
+binding constraint. Numbering is unique within one document and means
+nothing outside it; it is positional, so inserting a callable renumbers
+everything after it. Quote the labels, not the ids. `--node-ids hash`
+gives back the content-derived form described below, which is what you
+want to diff two revisions' diagrams or line one up against `-t json`.
+
+The qualified name is deliberately *not* the id, tempting as it looks.
+Qualified names are not unique — 41 of this repo's own 2,232 callables
+share one with another callable, and 17.7% of callables corpus-wide
+share `(language, file, owner, qualified name)` because C++, C#, Java
+and Erlang have overloads in quantity — so naming the nodes would merge
+distinct functions and silently reroute their edges. It is also *larger*:
+the same graph rendered that way is 379,524 bytes against 275,772 for
+the hashed form it would replace, because a name repeated on every edge
+costs more than a short handle plus one label line.
+
+Everything below describes the **hashed** form: what `-t json`, `-t dot`
+and `-t graphml` use by default, and what `--node-ids hash` restores for
+mermaid.
 
 A node id is a type prefix followed by lowercase base36 digits —
 `Cvgb78ftyly` for a callable, `Fvx474fajsm` for a file — derived by
@@ -788,13 +746,22 @@ comparable across cgg versions: 0.7.0 called the function above `C0`.
 And where cgg genuinely cannot tell two callables apart — same file,
 same qualified name, same signature — it separates them by declaration
 order, so removing one can hand its id to the other; overloads with
-distinct signatures are unaffected.
+distinct signatures are unaffected. Note that this last ambiguity is a
+property of the *hash* only — numbered ids are unique by construction,
+so two callables cgg cannot otherwise tell apart still get separate
+nodes in a mermaid diagram.
+
+`-t json` cannot be renumbered at all: its ids are the identity
+`--from-graph` reads back and consumers diff across runs, so
+`--node-ids` does not apply there and says so on stderr rather than
+quietly doing nothing.
 
 ## Rolling up
 
 The default graph of a real tree does not fit in a context window. This
-repo's own `crates/` is ~2,200 callables and ~5,200 edges — **123,000
-tokens** of mermaid, measured with a real tokenizer. `--rollup` folds it
+repo's own `crates/` is ~2,200 callables and ~5,300 edges — **80,360
+tokens** of mermaid, measured with a real tokenizer (`o200k_base`); it
+was 127,536 before 0.8.2 numbered the node ids. `--rollup` folds it
 to one node per group until the rendered output fits a budget you name,
 and `--rollup-by` cuts it at a granularity you name outright.
 
@@ -858,9 +825,10 @@ those at the size it would add. The count is
 `max(words × 2.5, bytes ÷ 1.8)`.
 
 The divisor is measured rather than a rule of thumb. Mermaid is far
-denser than prose because 40% of it is base36 node ids and `::`-dense
-qualified names; tokenizing cgg's output for three trees at four
-granularities gives **1.78–2.25 bytes per token**:
+denser than prose because of its `::`-dense qualified names; tokenizing
+cgg's **hashed** output — what `-t json`, `-t dot`, `-t graphml` and
+`--node-ids hash` produce — for three trees at four granularities gives
+**1.78–2.25 bytes per token**:
 
 | target | bytes/token | | target | bytes/token |
 | ------ | ----------- | - | ------ | ----------- |
@@ -869,8 +837,19 @@ granularities gives **1.78–2.25 bytes per token**:
 | `cgg/crates` file | 1.87 | | `redis` full | 1.91 |
 | `cgg/crates` package | 2.25 | | `redis` file | 1.78 |
 
-1.8 sits at the bottom of that range on purpose: the estimate should be a
-**bound with 10–25% slack**, not a midpoint. Erring high costs one extra
+Numbering the nodes, mermaid's default since 0.8.2, raises that ratio:
+the same four granularities on `cgg/crates` give **2.09–2.60** bytes per
+token, because a base36 hash tokenizes at roughly one token per two
+characters while `N7` is one token outright. The divisor is unchanged, so
+default mermaid output now carries *more* slack than the figure below
+describes — the estimate errs further in the safe direction, at the cost
+of occasionally folding one rung earlier than it needs to. Retuning it
+per-scheme is deferred: one divisor serves every renderer, and lowering
+it to suit numbering would push the hashed formats toward under-counting,
+which is the failure that matters.
+
+1.8 sits at the bottom of the hashed range on purpose: the estimate
+should be a **bound with 10–25% slack**, not a midpoint. Erring high costs one extra
 rung of folding; erring low hands back an artifact over the budget, which
 is the failure the flag exists to prevent. The calibration is against one
 BPE family (`o200k_base`) and is a proxy, not the tokenizer any given
@@ -981,11 +960,11 @@ entering the tree — the mirror image of the exit nodes
 %% in your source; they represent control entering from a framework.
 %% BEST EFFORT — see the coverage table for what cgg did and did not recognise.
 flowchart LR
-  C8tjm5nd42p["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
-  Cq3rc7yk1ma["svc.list_users"]
-  C1e0h9zwbxof["svc._render"]
-  C8tjm5nd42p -->|entry| Cq3rc7yk1ma
-  Cq3rc7yk1ma --> C1e0h9zwbxof
+  N0["&lt;framework-entry&gt;::network::flask::route('/users') ⟨framework entry callback⟩"]
+  N1["svc.list_users"]
+  N2["svc._render"]
+  N0 -->|entry| N1
+  N1 --> N2
 ```
 
 **On by default**, unlike the exit-node flags. The asymmetry is

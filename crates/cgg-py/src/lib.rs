@@ -21,7 +21,7 @@ use pyo3::{create_exception, wrap_pyfunction};
 use cgg_core::graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Via,
 };
-use cgg_format::OutputFormat;
+use cgg_format::{NodeIds, OutputFormat};
 
 /// Mirrors the binary's allocator; see Cargo.toml for the measurement.
 #[global_allocator]
@@ -616,8 +616,19 @@ impl Graph {
     }
 
     /// Mermaid `flowchart`. The default, and what agents read.
-    fn to_mermaid(&self, py: Python<'_>) -> String {
-        py.detach(|| cgg::emit::graph_to_string(&self.inner, OutputFormat::Mermaid))
+    ///
+    /// Nodes are numbered `N0`, `N1`, … — the same default the CLI
+    /// applies, because a mermaid id repeats on every edge that touches
+    /// its node and this output is usually paying for context-window
+    /// tokens. Pass `node_ids="hash"` for the content-derived base36 ids
+    /// that `to_json()` carries, which is what you want if you are
+    /// correlating the two or diffing diagrams across revisions.
+    #[pyo3(signature = (node_ids = None))]
+    fn to_mermaid(&self, py: Python<'_>, node_ids: Option<&str>) -> PyResult<String> {
+        let ids = parse_node_ids(node_ids, OutputFormat::Mermaid)?;
+        Ok(py.detach(|| {
+            cgg::emit::graph_to_string_with(&self.inner, OutputFormat::Mermaid, ids)
+        }))
     }
 
     /// The full graph as JSON — byte-identical to `cgg -t json`.
@@ -734,6 +745,15 @@ fn format_from_str(s: &str) -> PyResult<OutputFormat> {
     }
 }
 
+/// `node_ids=` on a renderer: `None` means the format's own default, so
+/// a caller that passes nothing gets exactly what the CLI emits.
+fn parse_node_ids(s: Option<&str>, format: OutputFormat) -> PyResult<NodeIds> {
+    match s {
+        None => Ok(format.default_node_ids()),
+        Some(v) => v.parse().map_err(PyValueError::new_err),
+    }
+}
+
 fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     match s {
         "high" => Ok(cgg_core::graph::Confidence::High),
@@ -788,6 +808,7 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     rollup = None,
     rollup_by = None,
     rollup_format = "mermaid",
+    node_ids = None,
     from_graph = None,
 ))]
 #[allow(clippy::too_many_arguments)]
@@ -820,6 +841,7 @@ fn analyze(
     rollup: Option<&str>,
     rollup_by: Option<&str>,
     rollup_format: &str,
+    node_ids: Option<&str>,
     from_graph: Option<PathBuf>,
 ) -> PyResult<Graph> {
     let opts = cgg::RunOptions {
@@ -863,6 +885,15 @@ fn analyze(
         rollup: rollup.map(rollup_budget_from_str).transpose()?,
         rollup_by: rollup_by.map(rollup_level_from_str).transpose()?,
         rollup_format: format_from_str(rollup_format)?,
+        // Presentation everywhere except here: `rollup` measures its
+        // budget against the rendered document, and numbered ids make
+        // that document about a third smaller. `None` resolves to
+        // `rollup_format`'s own default, so a caller who never mentions
+        // it gets the same folding the CLI would do.
+        node_ids: node_ids
+            .map(str::parse)
+            .transpose()
+            .map_err(PyValueError::new_err)?,
         from_graph,
     };
 

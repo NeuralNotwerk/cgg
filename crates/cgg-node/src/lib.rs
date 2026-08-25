@@ -18,7 +18,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use cgg_format::OutputFormat;
+use cgg_format::{NodeIds, OutputFormat};
 
 /// See `crates/cgg/src/main.rs` — extraction is allocation-heavy and the
 /// system allocator serialises under it.
@@ -71,6 +71,16 @@ pub struct AnalyzeOptions {
     /// Which renderer `rollup`'s budget is measured against:
     /// `"mermaid"` (default), `"json"`, `"dot"`, `"graphml"`.
     pub rollup_format: Option<String>,
+    /// How nodes are named when the graph is rendered: `"short"` numbers
+    /// them `N0`, `N1`, …; `"hash"` uses the content-derived base36 id.
+    /// Defaults to `rollupFormat`'s own default — `short` for mermaid.
+    ///
+    /// Only `rollup` reads this during analysis, and it must: the budget
+    /// is measured against the rendered document, and numbered ids make
+    /// that document about a third smaller. Pick the rendering here too
+    /// (`toMermaid("hash")`) or the budget describes a document you never
+    /// asked for.
+    pub node_ids: Option<String>,
     /// Replay a graph written by an earlier `toJson()` / `-t json` run
     /// instead of analyzing source. Pass `[]` for the paths.
     pub from_graph: Option<String>,
@@ -205,6 +215,24 @@ fn build_options(
     o: Option<AnalyzeOptions>,
 ) -> Result<cgg::RunOptions> {
     let o = o.unwrap_or_default();
+    // Hoisted out of the literal: `node_ids` resolves against it, so the
+    // rendering the budget is measured with and the format it is
+    // measured for cannot disagree.
+    let rollup_format = match o.rollup_format.as_deref() {
+        Some("mermaid") | None => cgg::OutputFormat::Mermaid,
+        Some("json") => cgg::OutputFormat::Json,
+        Some("dot") => cgg::OutputFormat::Dot,
+        Some("graphml") => cgg::OutputFormat::Graphml,
+        Some(other) => {
+            return Err(Error::new(
+                Status::InvalidArg,
+                format!(
+                    "rollupFormat must be \"mermaid\", \"json\", \"dot\" or \"graphml\", got {other:?}"
+                ),
+            ));
+        }
+    };
+
     let confidence = match o.dead_code_confidence.as_deref() {
         None | Some("high") => cgg::Confidence::High,
         Some("medium") => cgg::Confidence::Medium,
@@ -257,19 +285,13 @@ fn build_options(
             ),
             None => None,
         },
-        rollup_format: match o.rollup_format.as_deref() {
-            Some("mermaid") | None => cgg::OutputFormat::Mermaid,
-            Some("json") => cgg::OutputFormat::Json,
-            Some("dot") => cgg::OutputFormat::Dot,
-            Some("graphml") => cgg::OutputFormat::Graphml,
-            Some(other) => {
-                return Err(Error::new(
-                    Status::InvalidArg,
-                    format!(
-                        "rollupFormat must be \"mermaid\", \"json\", \"dot\" or \"graphml\", got {other:?}"
-                    ),
-                ));
-            }
+        rollup_format,
+        node_ids: match o.node_ids.as_deref() {
+            None => None,
+            Some(v) => Some(
+                v.parse()
+                    .map_err(|e: String| Error::new(Status::InvalidArg, e))?,
+            ),
         },
         from_graph: o.from_graph.map(Into::into),
         ..d
@@ -285,6 +307,17 @@ fn build_options(
 #[napi]
 pub struct Graph {
     outcome: Arc<cgg::RunOutcome>,
+}
+
+/// `nodeIds` on a renderer: `undefined` means the format's own default,
+/// so a caller that passes nothing gets exactly what the CLI emits.
+fn parse_node_ids(s: Option<&str>, format: OutputFormat) -> Result<NodeIds> {
+    match s {
+        None => Ok(format.default_node_ids()),
+        Some(v) => v
+            .parse()
+            .map_err(|e: String| Error::new(Status::InvalidArg, e)),
+    }
 }
 
 #[napi]
@@ -438,9 +471,21 @@ impl Graph {
     }
 
     /// Render as a mermaid flowchart — what the CLI emits by default.
+    ///
+    /// Nodes are numbered `N0`, `N1`, … for the same reason the CLI
+    /// numbers them: a mermaid id repeats on every edge that touches its
+    /// node, and this output is usually being paid for in context-window
+    /// tokens. Pass `"hash"` for the content-derived base36 ids that
+    /// `toJson()` carries, if you are correlating the two or diffing
+    /// diagrams across revisions.
     #[napi]
-    pub fn to_mermaid(&self) -> String {
-        cgg::emit::graph_to_string(&self.outcome.graph, OutputFormat::Mermaid)
+    pub fn to_mermaid(&self, node_ids: Option<String>) -> Result<String> {
+        let ids = parse_node_ids(node_ids.as_deref(), OutputFormat::Mermaid)?;
+        Ok(cgg::emit::graph_to_string_with(
+            &self.outcome.graph,
+            OutputFormat::Mermaid,
+            ids,
+        ))
     }
 
     /// Render as `cgg.graph.v1` JSON.

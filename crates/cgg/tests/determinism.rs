@@ -85,6 +85,62 @@ fn run_with_jobs(dir: &std::path::Path, jobs: &str) -> Vec<String> {
     structure(&fs::read_to_string(&out).unwrap())
 }
 
+/// Render mermaid at `jobs`, verbatim.
+fn mermaid_with_jobs(dir: &std::path::Path, jobs: &str, extra: &[&str]) -> String {
+    let out = dir.join(format!("m{jobs}{}.mmd", extra.join("")));
+    Command::cargo_bin("cgg")
+        .unwrap()
+        .arg(dir)
+        .args(["-t", "mermaid", "-o"])
+        .arg(&out)
+        .args(["--jobs", jobs, "--no-update-check"])
+        .args(extra)
+        .assert()
+        .success();
+    fs::read_to_string(&out).unwrap()
+}
+
+/// Mermaid numbers its nodes by position, so **graph order is directly
+/// observable in the output** — and that is new.
+///
+/// A content-hash id is a pure function of the callable's identity, so
+/// before 0.8.2 a reordering of `graph.callables` was invisible in a
+/// diagram: every node kept its id and every edge kept its endpoints.
+/// An ordinal has no such protection. If any parallel phase can emit
+/// callables in a different order at a different worker count, every id
+/// shifts and every edge line shifts with it.
+///
+/// `the_graph_is_identical_at_every_thread_count` pins the JSON order
+/// this depends on, which is the root property; this pins the rendering
+/// that now reads it, so a future change to how nodes are numbered
+/// cannot quietly reintroduce an order dependence. `scripts/
+/// determinism-sweep.py` deliberately does not vary `--jobs`, so this is
+/// the only place the combination is checked.
+#[test]
+fn mermaid_is_byte_identical_at_every_thread_count() {
+    let tmp = TempDir::new().unwrap();
+    fixture(tmp.path());
+
+    let one = mermaid_with_jobs(tmp.path(), "1", &[]);
+    assert!(one.contains("N0["), "expected numbered ids:\n{one}");
+    for jobs in ["2", "3", "8", "32"] {
+        let many = mermaid_with_jobs(tmp.path(), jobs, &[]);
+        assert_eq!(
+            one, many,
+            "--jobs {jobs} changed the mermaid rendering; node ids are \
+             ordinals, so this means the graph order moved"
+        );
+    }
+
+    // The hashed form is the control: it was order-independent before
+    // this change, so a failure here would be a different (older) bug.
+    let hash_one = mermaid_with_jobs(tmp.path(), "1", &["--node-ids", "hash"]);
+    for jobs in ["2", "8", "32"] {
+        let many = mermaid_with_jobs(tmp.path(), jobs, &["--node-ids", "hash"]);
+        assert_eq!(hash_one, many, "--jobs {jobs} moved the hashed rendering");
+    }
+}
+
 #[test]
 fn the_graph_is_identical_at_every_thread_count() {
     let tmp = TempDir::new().unwrap();

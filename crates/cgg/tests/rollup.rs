@@ -431,3 +431,63 @@ fn replaying_an_already_filtered_document_warns() {
     let stderr = String::from_utf8(out.stderr).unwrap();
     assert!(stderr.contains("already filtered"), "{stderr}");
 }
+
+// ---------------------------------------------------------------------
+// --rollup x --node-ids
+// ---------------------------------------------------------------------
+
+/// The budget must be measured against the renderer that will actually
+/// run, node-id scheme included.
+///
+/// `--node-ids hash` puts a ten-character base36 id in place of an
+/// ordinal, on every node and again on both ends of every edge, which is
+/// about a third more document. A budget measured against the numbered
+/// form while the hashed form is emitted lets the artifact sail past the
+/// budget the user set — silently, because the stderr line reports the
+/// figure it measured. So: pick a budget that sits strictly between the
+/// two renderings of the same graph, and the schemes must disagree about
+/// whether it fits.
+#[test]
+fn the_rollup_budget_follows_the_node_id_scheme() {
+    let tmp = fixture();
+    let opts = cgg::RunOptions {
+        paths: vec![tmp.path().to_path_buf()],
+        ..Default::default()
+    };
+    let graph = cgg::analyze(&opts).expect("analysis").graph;
+
+    let tokens = |ids| {
+        cgg::rollup::estimate_tokens(&cgg::emit::graph_to_string_with(
+            &graph,
+            cgg::OutputFormat::Mermaid,
+            ids,
+        ))
+    };
+    let short = tokens(cgg_format::NodeIds::Short);
+    let hash = tokens(cgg_format::NodeIds::Hash);
+    assert!(
+        short < hash,
+        "numbering must be the smaller rendering: {short} vs {hash}"
+    );
+
+    // Strictly between the two: the numbered graph fits, the hashed one
+    // does not.
+    let budget = (short + hash) / 2;
+    assert!(
+        short < budget && budget < hash,
+        "{short} < {budget} < {hash}"
+    );
+    let budget = budget.to_string();
+
+    let (_, short_err) = run(tmp.path(), &["--rollup", &budget, "--node-ids", "short"]);
+    assert!(
+        !short_err.contains("ROLLED UP"),
+        "the numbered graph fits in {budget} and must not fold:\n{short_err}"
+    );
+
+    let (_, hash_err) = run(tmp.path(), &["--rollup", &budget, "--node-ids", "hash"]);
+    assert!(
+        hash_err.contains("ROLLED UP"),
+        "the hashed graph exceeds {budget} and must fold:\n{hash_err}"
+    );
+}

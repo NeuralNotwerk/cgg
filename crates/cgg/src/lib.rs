@@ -1404,7 +1404,12 @@ pub(crate) fn apply_rollup(
     let _s = cgg_core::profile::span("post::rollup");
 
     let format = opts.rollup_format;
-    let render = move |g: &Graph| emit::graph_to_string(g, format);
+    // The scheme the artifact will actually be rendered with, not the
+    // format's default: `--node-ids hash` makes a mermaid document about
+    // a third larger, and a budget measured against the numbered form
+    // would let the emitted one sail past it.
+    let ids = cgg_format::NodeIds::resolve(opts.node_ids, format);
+    let render = move |g: &Graph| emit::graph_to_string_with(g, format, ids);
     // A fresh allocator, not the pipeline's: `replay` has no pipeline and
     // must take the identical path, and group ids draw from their own
     // hash domain either way.

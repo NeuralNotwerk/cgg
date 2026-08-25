@@ -242,3 +242,48 @@ test("options match the equivalent CLI flags", { skip: !haveBin && `no binary at
   // keyword it was given.
   assert.ok(changedAny, "no option changed the graph — parity was vacuous");
 });
+
+test("mermaid numbers its nodes by default", async () => {
+  const g = await cgg.analyze(TREE);
+  const text = g.toMermaid();
+  assert.match(text, /^ {2}N\d+\[/m, "want numbered node ids");
+  assert.doesNotMatch(text, /^ {2}C[0-9a-z]{4,}\[/m, "want no hashed ids");
+});
+
+test("nodeIds 'hash' gives back the ids toJson carries", async () => {
+  const g = await cgg.analyze(TREE);
+  const text = g.toMermaid("hash");
+  const ids = Object.keys(JSON.parse(g.toJson()).callables);
+  assert.ok(ids.length > 0, "fixture produced no callables");
+  for (const id of ids) {
+    assert.ok(text.includes(`  ${id}[`), `${id} missing from hashed mermaid`);
+  }
+});
+
+test("nodeIds 'short' is the explicit spelling of the default", async () => {
+  const g = await cgg.analyze(TREE);
+  assert.strictEqual(g.toMermaid("short"), g.toMermaid());
+});
+
+test("a bad nodeIds value is rejected by name", async () => {
+  const g = await cgg.analyze(TREE);
+  assert.throws(() => g.toMermaid("sequential"), /sequential|short/);
+});
+
+test("the node-id scheme changes only the names", async () => {
+  const g = await cgg.analyze(MULTI);
+  const short = g.toMermaid();
+  const hashed = g.toMermaid("hash");
+  const labels = (s) => [...s.matchAll(/\["([^"]*)"\]/g)].map((m) => m[1]);
+  assert.deepStrictEqual(labels(short), labels(hashed));
+  assert.strictEqual(short.split("\n").length, hashed.split("\n").length);
+});
+
+test("toMermaid matches the CLI, both schemes", { skip: !haveBin }, async () => {
+  const g = await cgg.analyze(TREE);
+  assert.strictEqual(g.toMermaid(), cli([TREE, "-t", "mermaid"]));
+  assert.strictEqual(
+    g.toMermaid("hash"),
+    cli([TREE, "-t", "mermaid", "--node-ids", "hash"]),
+  );
+});

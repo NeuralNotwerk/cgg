@@ -628,9 +628,12 @@ def check_self_analysis_showcase() -> None:
     block = m.group(1)
     crates = {
         n.split("::")[0]
-        # Node ids are content-derived base36 hashes now (e.g. `Ce8btaz0c7d`),
-        # not sequential decimals — match the id shape, not `\d+`.
-        for n in re.findall(r'^\s*C[0-9a-z]+\["([^"]+)"\]', block, re.MULTILINE)
+        # Mermaid numbers its nodes `N0`, `N1`, … by default and carries
+        # the content-derived base36 hash (`Ce8btaz0c7d`) under
+        # `--node-ids hash`. Accept either; this check is about the
+        # labels, and pinning the id shape only makes it fail whenever the
+        # default moves.
+        for n in re.findall(r'^\s*[CN][0-9a-z]+\["([^"]+)"\]', block, re.MULTILINE)
     }
     if len(crates) < 3:
         fail(
@@ -668,9 +671,20 @@ def check_python_option_parity() -> None:
         fail("crates/cgg/src/options.rs: parsed RunOptions but found no fields")
 
     py_rs = (REPO_ROOT / "crates/cgg-py/src/lib.rs").read_text()
-    sig = re.search(r"#\[pyo3\(signature = \((.*?)\)\)\]", py_rs, re.DOTALL)
+    # Anchored on `fn analyze` rather than "the first signature in the
+    # file". Renderers carry their own `#[pyo3(signature = ...)]` now, and
+    # an unanchored search silently read one of those instead — which
+    # reported every keyword on `analyze` as missing.
+    sig = re.search(
+        r"#\[pyo3\(signature = \((.*?)\)\)\](?:\s*#\[[^\]]*\])*\s*fn analyze\b",
+        py_rs,
+        re.DOTALL,
+    )
     if not sig:
-        fail("crates/cgg-py/src/lib.rs: could not find the #[pyo3(signature = …)]")
+        fail(
+            "crates/cgg-py/src/lib.rs: could not find the "
+            "#[pyo3(signature = …)] on `fn analyze`"
+        )
     kwargs = set(re.findall(r"^\s*\*?\s*([a-z_0-9]+)", sig.group(1), re.MULTILINE))
     # `--no-entry-nodes` is deliberately un-negated as `entry_nodes`.
     if "entry_nodes" in kwargs:

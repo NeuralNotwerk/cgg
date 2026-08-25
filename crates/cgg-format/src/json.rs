@@ -99,7 +99,7 @@ mod tests {
             ..Default::default()
         });
         let mut buf = Vec::new();
-        JsonFormatter.render(&g, &mut buf).unwrap();
+        JsonFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
         assert!(v["callables"].is_object());
@@ -136,7 +136,7 @@ mod tests {
             ..Default::default()
         });
         let mut buf = Vec::new();
-        JsonFormatter.render(&g, &mut buf).unwrap();
+        JsonFormatter::new().render(&g, &mut buf).unwrap();
         let back: Graph = serde_json::from_slice(&buf).expect("round-trips");
         assert_eq!(back.callables.len(), 1);
         assert_eq!(back.callables[&CallableId::new(7)].qualified_name, "foo");

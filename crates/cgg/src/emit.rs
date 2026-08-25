@@ -13,22 +13,35 @@ use cgg_core::audit::{AuditEvent, JsonAuditWriter, JsonlAuditWriter};
 use cgg_core::graph::{Confidence, Graph};
 use cgg_format::{
     DotFormatter, GraphFormatter, GraphmlFormatter, JsonFormatter, MermaidFormatter,
-    OutputFormat,
+    NodeIds, OutputFormat,
 };
 
 use crate::cli::{AuditFormatArg, Cli, DeadCodeFormatArg};
 use crate::deadcode;
 use crate::outcome::{Emission, RunOutcome};
 
-/// The formatter for `f`. One factory, so a fifth output format is one
-/// edit rather than two.
-fn formatter(f: OutputFormat) -> Box<dyn GraphFormatter> {
+/// The formatter for `f`, naming its nodes under `ids`. One factory, so
+/// a fifth output format is one edit rather than two.
+fn formatter(f: OutputFormat, ids: NodeIds) -> Box<dyn GraphFormatter> {
     match f {
-        OutputFormat::Mermaid => Box::new(MermaidFormatter::new()),
+        OutputFormat::Mermaid => Box::new(MermaidFormatter::with_node_ids(ids)),
+        // JSON takes no scheme: its ids are the content-derived identity
+        // `--from-graph` replays, not a rendering choice. See
+        // `OutputFormat::node_ids_are_identity`.
         OutputFormat::Json => Box::new(JsonFormatter::new()),
-        OutputFormat::Dot => Box::new(DotFormatter::new()),
-        OutputFormat::Graphml => Box::new(GraphmlFormatter::new()),
+        OutputFormat::Dot => Box::new(DotFormatter::with_node_ids(ids)),
+        OutputFormat::Graphml => Box::new(GraphmlFormatter::with_node_ids(ids)),
     }
+}
+
+/// The node-id scheme for this run.
+///
+/// Delegates to [`NodeIds::resolve`] rather than re-deriving it, because
+/// `RunOptions` resolves the same choice to measure the `--rollup`
+/// budget — and a budget measured against one document while another is
+/// emitted is exactly the bug that shape prevents.
+fn node_ids(cli: &Cli, format: OutputFormat) -> NodeIds {
+    NodeIds::resolve(cli.node_ids.map(NodeIds::from), format)
 }
 
 /// Open the primary sink, or a named file. `-` means stdout.
@@ -50,22 +63,41 @@ fn primary_sink(cli: &Cli) -> PathBuf {
 /// Render `graph` in the format `-t` selected.
 fn graph(cli: &Cli, graph: &Graph) -> Result<()> {
     let format: OutputFormat = cli.format.into();
+    let ids = node_ids(cli, format);
+    // A flag that quietly does nothing is worse than one that is not
+    // accepted at all: say so rather than letting someone believe the
+    // JSON they are diffing carries renumbered ids.
+    if cli.node_ids.is_some() && format.node_ids_are_identity() && !cli.quiet {
+        eprintln!(
+            "warning: --node-ids does not apply to -t {format}; its ids are the \
+             content-derived identity that --from-graph reads back, not a \
+             rendering choice. Emitting hashed ids."
+        );
+    }
     let dest = primary_sink(cli);
     let mut sink = open_sink(&dest)?;
     // Streams into the sink rather than going through `graph_to_string`,
     // which would buffer the whole rendering first.
-    formatter(format).render(graph, &mut sink)?;
+    formatter(format, ids).render(graph, &mut sink)?;
     Ok(())
 }
 
-/// Render a graph to a `String`, for callers with no file descriptor.
-/// Used by `crates/cgg-py`.
+/// Render a graph to a `String` under `format`'s default node-id
+/// scheme. Used by `cgg-py`, `cgg-ffi` and `cgg-node`, which is why the
+/// default lives on [`OutputFormat`] rather than here — all four front
+/// ends have to agree on what a mermaid id looks like, and they do by
+/// construction if none of them owns the choice.
 pub fn graph_to_string(g: &Graph, format: OutputFormat) -> String {
+    graph_to_string_with(g, format, format.default_node_ids())
+}
+
+/// Render a graph to a `String` under an explicit node-id scheme.
+pub fn graph_to_string_with(g: &Graph, format: OutputFormat, ids: NodeIds) -> String {
     // Seeded so a large graph does not walk up through ~22 doubling
     // reallocations. Rough: mermaid averages a few dozen bytes per node.
     let mut buf = Vec::with_capacity((g.callables.len() + g.edges.len()) * 48);
     // Formatters only fail on a failing writer, and `Vec` cannot fail.
-    formatter(format)
+    formatter(format, ids)
         .render(g, &mut buf)
         .expect("formatters cannot fail writing to a Vec");
     String::from_utf8(buf).expect("formatters emit UTF-8")

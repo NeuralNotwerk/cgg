@@ -67,6 +67,14 @@ pub const CGG_ERR_PANIC: i32 = 4;
 #[allow(non_camel_case_types)]
 pub struct cgg_graph {
     outcome: cgg::RunOutcome,
+    /// The run's `node_ids` choice, carried so every later
+    /// [`cgg_graph_render`] names nodes the way the analysis was asked
+    /// to. `None` means each format's own default.
+    ///
+    /// It has to be the choice rather than a resolved scheme: one handle
+    /// renders all four formats, and `short` is only the default for
+    /// mermaid.
+    node_ids: Option<cgg_format::NodeIds>,
 }
 
 /// Hand a `String` to C as an owned NUL-terminated buffer.
@@ -177,7 +185,10 @@ pub unsafe extern "C" fn cgg_analyze(
                 unsafe { set_err(err, format!("{e:#}")) };
                 ptr::null_mut()
             }
-            Ok(outcome) => Box::into_raw(Box::new(cgg_graph { outcome })),
+            Ok(outcome) => Box::into_raw(Box::new(cgg_graph {
+                outcome,
+                node_ids: opts.node_ids,
+            })),
         }
     })
 }
@@ -233,7 +244,11 @@ pub unsafe extern "C" fn cgg_graph_render(
                 return ptr::null_mut();
             }
         };
-        into_c_string(cgg::emit::graph_to_string(&g.outcome.graph, fmt))
+        into_c_string(cgg::emit::graph_to_string_with(
+            &g.outcome.graph,
+            fmt,
+            cgg_format::NodeIds::resolve(g.node_ids, fmt),
+        ))
     })
 }
 
@@ -450,6 +465,45 @@ mod tests {
             "run summary should be among the notices"
         );
         unsafe { cgg_graph_free(g) };
+    }
+
+    /// `node_ids` reaches the ABI through the options JSON — no new
+    /// symbol, which is the point of passing options as a document. And
+    /// the handle carries the *choice*, so one analysis rendered in two
+    /// formats resolves it separately for each.
+    #[test]
+    fn node_ids_crosses_as_an_option_and_survives_to_render() {
+        let mermaid = |json: &str| {
+            let (g, _) = analyze(json);
+            assert!(!g.is_null());
+            let mut err = ptr::null_mut();
+            let f = CString::new("mermaid").unwrap();
+            let s = take(unsafe { cgg_graph_render(g, f.as_ptr(), &mut err) });
+            unsafe { cgg_graph_free(g) };
+            s
+        };
+        // Default: numbered, exactly as the CLI emits.
+        let d = mermaid(r#"{"paths":["../cgg-walk"]}"#);
+        assert!(
+            d.contains("\n  N0["),
+            "want numbered ids:\n{}",
+            &d[..400.min(d.len())]
+        );
+
+        // Asked for hashes: hashes, and the same node count.
+        let h = mermaid(r#"{"paths":["../cgg-walk"],"node_ids":"hash"}"#);
+        assert!(!h.contains("\n  N0["), "want no numbered ids");
+        assert_eq!(
+            d.matches(" --> ").count(),
+            h.matches(" --> ").count(),
+            "the scheme must not change the graph"
+        );
+
+        // A bad value is an options error, not a silent default.
+        let (g, err) = analyze(r#"{"paths":["../cgg-walk"],"node_ids":"ordinal"}"#);
+        assert!(g.is_null());
+        let err = err.expect("a bad option must report an error");
+        assert!(err.contains("node_ids") || err.contains("ordinal"), "{err}");
     }
 
     /// `jobs` is observable, so it is testable — the same reason

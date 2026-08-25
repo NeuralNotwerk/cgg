@@ -1,5 +1,6 @@
 //! GraphML formatter.
 
+use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
 use cgg_core::graph::Via;
@@ -20,12 +21,26 @@ fn via_slug(via: &Via) -> &'static str {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct GraphmlFormatter;
+#[derive(Debug)]
+pub struct GraphmlFormatter {
+    node_ids: NodeIds,
+}
+
+impl Default for GraphmlFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl GraphmlFormatter {
     pub fn new() -> Self {
-        Self
+        Self {
+            node_ids: OutputFormat::Graphml.default_node_ids(),
+        }
+    }
+
+    pub fn with_node_ids(node_ids: NodeIds) -> Self {
+        Self { node_ids }
     }
 }
 
@@ -77,8 +92,9 @@ impl GraphFormatter for GraphmlFormatter {
             )?;
         }
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
+        let namer = NodeNamer::new(graph, self.node_ids, "n", "n");
         for (id, node) in &graph.callables {
-            writeln!(out, r#"    <node id="n{}">"#, id.token())?;
+            writeln!(out, r#"    <node id="{}">"#, namer.name(*id))?;
             writeln!(
                 out,
                 r#"      <data key="label">{}</data>"#,
@@ -129,10 +145,10 @@ impl GraphFormatter for GraphmlFormatter {
             if via.is_empty() && weight.is_empty() {
                 writeln!(
                     out,
-                    r#"    <edge id="e{}" source="n{}" target="n{}"/>"#,
+                    r#"    <edge id="e{}" source="{}" target="{}"/>"#,
                     i,
-                    edge.src.token(),
-                    edge.dst.token()
+                    namer.name(edge.src),
+                    namer.name(edge.dst)
                 )?;
             } else {
                 let via_data = if via.is_empty() {
@@ -142,10 +158,10 @@ impl GraphFormatter for GraphmlFormatter {
                 };
                 writeln!(
                     out,
-                    r#"    <edge id="e{}" source="n{}" target="n{}">{}{}</edge>"#,
+                    r#"    <edge id="e{}" source="{}" target="{}">{}{}</edge>"#,
                     i,
-                    edge.src.token(),
-                    edge.dst.token(),
+                    namer.name(edge.src),
+                    namer.name(edge.dst),
                     via_data,
                     weight
                 )?;
@@ -205,7 +221,7 @@ mod tests {
             ..Default::default()
         });
         let mut buf = Vec::new();
-        GraphmlFormatter.render(&g, &mut buf).unwrap();
+        GraphmlFormatter::new().render(&g, &mut buf).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("<graphml"));
         assert!(s.contains("foo&lt;T&gt;"));
