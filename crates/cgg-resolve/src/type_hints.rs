@@ -236,7 +236,8 @@ pub fn propagate_types_with_returns(
         }
     }
 
-    // Pass 2c: earliest bare call site per function name.
+    // Pass 2c: earliest bare call site per function name — built on
+    // first use, not up front.
     //
     // Strategy 4 needs "is `fn_name` called, with no receiver, before
     // this site". That was `facts.references.iter().any(...)` per
@@ -245,15 +246,29 @@ pub fn propagate_types_with_returns(
     // 171 vendored C++ files. The predicate only ever asks whether the
     // *earliest* such call precedes the site, so one pass over the
     // references answers every later question in O(1).
-    let mut called_before: HashMap<&str, u32> = HashMap::new();
-    for r in &facts.references {
-        if r.receiver_hint.is_empty() {
-            called_before
-                .entry(r.name.as_str())
-                .and_modify(|b| *b = (*b).min(r.site_byte))
-                .or_insert(r.site_byte);
+    //
+    // `OnceCell`, because most files never reach Strategy 4 at all: it
+    // needs a non-empty return-type map, a receiver that survives every
+    // filter above, and strategies 1 and 3 to have missed. Building this
+    // unconditionally charged an O(references) pass plus a map
+    // allocation to every file in every language to fix a cost that only
+    // some of them pay. Measured: it made `asyncapi-spec` **+82.6%**,
+    // `firebase-samples` +59.9% and `cpp-nlohmann-json` +21.5% while the
+    // corpus total still read -8.9%, which is how a real regression
+    // hides inside a good average.
+    let called_before: std::cell::OnceCell<HashMap<&str, u32>> =
+        std::cell::OnceCell::new();
+    let build_called_before = || {
+        let mut m: HashMap<&str, u32> = HashMap::new();
+        for r in &facts.references {
+            if r.receiver_hint.is_empty() {
+                m.entry(r.name.as_str())
+                    .and_modify(|b| *b = (*b).min(r.site_byte))
+                    .or_insert(r.site_byte);
+            }
         }
-    }
+        m
+    };
 
     // Pass 3: Rewrite receiver_hints.
     let t = lang_tallies(&facts.language);
@@ -341,6 +356,7 @@ pub fn propagate_types_with_returns(
                 cgg_core::profile::count(t.s4_inner_scan, 1);
                 // Verify this function is actually called in this scope.
                 let called = called_before
+                    .get_or_init(build_called_before)
                     .get(fn_name)
                     .is_some_and(|&b| b < rref.site_byte);
                 if called {
