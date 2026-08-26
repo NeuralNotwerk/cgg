@@ -152,7 +152,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
 | `--no-graph` | off | Suppress the graph output, leaving only the report. With `--dead-code-format json` the report takes stdout |
 | `--report-unreferenced` | off | List callables nothing points at, in place of the graph. A reference check, not reachability — no cascade, and framework roots are bucketed separately |
-| `--profile` | off | Per-phase timing breakdown. Compiled out of release builds; use a debug build |
+| `--profile` | off | Per-phase span timings and counters, on the **release** binary. A capability that needs a special build is not a capability: a debug build distorts the very ratios you are reading, and a pathological input is exactly when you need the truth. Costs one relaxed atomic load and a predicted branch per span when off |
 | `--metrics` | sidecar | Force audit output to a specific file |
 | `--audit-format` | json | `json` (batched) or `jsonl` (streaming) |
 | `--no-update-check` | off | No effect — accepted for compatibility; cgg makes no network calls |
