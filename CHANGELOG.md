@@ -5,6 +5,119 @@ All notable changes to `cgg` are documented here. Format loosely follows
 pre-1.0, so the resolver's edge set may grow between releases (it only
 ever grows in default mode — see *Compatibility* below).
 
+## [0.8.3] - 2026-08-26
+
+### Fixed
+
+- **`--rollup` and every large tree got dramatically faster: two
+  accidental quadratics removed from type propagation.** Strategy 4 of
+  the receiver-type propagator asks, per receiver, "which functions
+  return a type named like this receiver, and is one of them called
+  earlier in this file". It answered both halves by brute force. For the
+  first it walked the **corpus-wide** `return_types` map once per
+  receiver, allocating a `to_lowercase()` and a `format!()` per entry.
+  For the second it scanned every reference in the file, once per
+  surviving candidate.
+
+  On `erlang-otp` that measured **817,607,605 map iterations** and
+  **1,864,725,063 reference-scan steps**, costing 60.2s of a 91s run —
+  66% of wall.
+
+  Both inputs are loop-invariant. The lowercasing depends only on the
+  map, so `ReturnTypeIndex` hoists it to once per run. The "called
+  earlier" predicate only ever needs the *earliest* bare call per name,
+  so it is answered by scanning for the first few lookups and by a
+  per-file map after that — whichever is cheaper for the file in hand.
+
+  **`erlang-otp`: 19,819 -> 10,834 ms (-45.3%)**, median of 9 alternated
+  pairs on an idle host, and 95,851 -> 33,857 ms (**-64.7%**) at
+  `--jobs 1`.
+
+  The variance matters more than the median. 0.8.2's nine runs of that
+  repo ranged **19,116-36,222 ms** — a 90% spread on identical input.
+  0.8.3's range is 10,271-11,120 ms, an 8% spread. The quadratic's cost
+  scaled with allocator and scheduling pressure, so removing it removed
+  the unpredictability too. That is why this one repository has poisoned
+  every corpus perf sweep it appeared in: the +38.6% attributed to it
+  during the 0.8.2 measurements was this variance, not a real delta.
+
+- **`--profile` works on release builds; the README said it did not.**
+  `profile.rs` moved from `#[cfg]`-compiling spans out of release to a
+  runtime flag, for the reason its own doc comment gives — a debug build
+  distorts the ratios you are reading, and a pathological input is
+  exactly when you need the truth. The flag table was never updated.
+  This mattered: the investigation above depended on profiling a release
+  build of a 177 MB tree, which the README described as impossible.
+
+### Added
+
+- **`profile::count` — count-only tallies, reported beside the span
+  table.** A span answers "how long"; a tally answers "how many", which
+  is the question when the suspicion is an accidentally-quadratic loop.
+  Time alone cannot distinguish one slow iteration from ten million fast
+  ones, and that distinction was the whole diagnosis here. Same
+  `ENABLED` gate as spans, so a run without `--profile` pays one relaxed
+  atomic load and a predicted branch.
+
+- Per-language instrumentation of the type propagator, behind
+  `--profile`. The attribution is load-bearing rather than decorative:
+  `erlang-otp` was assumed to be an Erlang problem, and the first
+  measurement put 1.86 billion inner-scan steps in an unnamed catch-all
+  bucket. Naming C and C++ showed **`cpp` alone accounts for 93% of
+  them, from 171 vendored files**, while Erlang's 4,106 files and
+  731,928 references contribute essentially none. The repository is slow
+  because it vendors the BEAM VM's C++ sources.
+
+### Compatibility
+
+**No graph changes.** Verified against 0.8.2 across all 164 benchmark
+repositories, none excluded: `-t json` byte-identical once timings are
+normalised, `-t mermaid` byte-identical, and the ordered callable-id
+list identical element-wise. Order was checked as strictly as identity
+because 0.8.2 numbers mermaid ids by graph position, so a reordering
+that preserved both sets would still rewrite every id and every arrow.
+
+Per-language totals were compared separately, because "no repo changed"
+is not the same claim as "no language changed": **47 languages
+exercised, 0 changed** — files, callables and edges identical for every
+one.
+
+The comparison normalises `cgg_version` out of the JSON document. It
+embeds the version, so a released binary and a bumped one differ on
+every repo for a reason that has nothing to do with the graph — and an
+earlier run of this check passed only because it compared 0.8.2 against
+an unreleased branch still calling itself 0.8.2. Mermaid carries no
+version string, which is what exposed it.
+
+### Performance
+
+Paired and alternated, median of 3 runs per repo at `--jobs 16`, 164
+repos, against the 0.8.2 release binary:
+
+| | 0.8.2 | 0.8.3 |
+| --- | --- | --- |
+| corpus total | 294.8s | 266.2s (**-9.7%**) |
+| median per-repo | — | **-4.3%** |
+| repos >5% faster | — | 60 |
+
+Largest wins: `aws-lambda-go` -71.1%, `go-fzf` -67.0%,
+`csharp-mediatr` -63.5%, `erlang-otp` -43.2%, `c-redis` -29.2%.
+
+**On regressions, and on a measurement mistake worth recording.** An
+earlier revision of this change built the per-file map unconditionally,
+which charged an O(references) pass to every file in every language to
+fix a cost only some of them pay. That is the failure mode this entry
+exists to avoid, and it was caught by per-repo timing rather than by the
+total — which read a healthy -8.9% throughout.
+
+The regression list it produced was itself misleading. Filtered at a
+150 ms floor it named 15 repos; **14 of those had sub-second baselines
+and are not measurable on this host**, where identical runs of the same
+two commits gave `fsharp-paket` +49.4% and then -34.3%. Timing here is
+now reported only for repos with a baseline of **1 second or more**, and
+a regression is not treated as real unless it reproduces across runs. By
+that standard no reproducible regression was found at any point.
+
 ## [0.8.2] - 2026-08-25
 
 ### Added

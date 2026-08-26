@@ -23,7 +23,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.2"
+version = "0.8.3"
 edition = "2024"
 rust-version = "1.85"
 license = "Apache-2.0 OR MIT"
@@ -37,12 +37,12 @@ categories = ["development-tools"]
 
 [workspace.dependencies]
 # --- Internal crates ---
-cgg         = { path = "crates/cgg",         version = "0.8.2" }
-cgg-core    = { path = "crates/cgg-core",    version = "0.8.2" }
-cgg-lang    = { path = "crates/cgg-lang",    version = "0.8.2" }
-cgg-resolve = { path = "crates/cgg-resolve", version = "0.8.2" }
-cgg-format  = { path = "crates/cgg-format",  version = "0.8.2" }
-cgg-walk    = { path = "crates/cgg-walk",    version = "0.8.2" }
+cgg         = { path = "crates/cgg",         version = "0.8.3" }
+cgg-core    = { path = "crates/cgg-core",    version = "0.8.3" }
+cgg-lang    = { path = "crates/cgg-lang",    version = "0.8.3" }
+cgg-resolve = { path = "crates/cgg-resolve", version = "0.8.3" }
+cgg-format  = { path = "crates/cgg-format",  version = "0.8.3" }
+cgg-walk    = { path = "crates/cgg-walk",    version = "0.8.3" }
 
 # --- Core libs (all MIT / Apache-2.0 / permissive) ---
 anyhow             = "1.0"
