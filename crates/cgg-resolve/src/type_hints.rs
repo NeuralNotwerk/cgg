@@ -42,6 +42,62 @@ pub fn build_return_type_map<'a>(
 
 /// Rewrite receiver hints using both local type info and a global
 /// return-type map built from all files' definitions.
+
+/// Per-language tally names for the type propagator.
+///
+/// `profile::count` takes a `&'static str`, so attributing a count to a
+/// language needs a fixed table rather than a formatted name — the
+/// alternative is leaking a string per language, which `docs-check.py`
+/// check 9 exists to prevent.
+///
+/// The list is the languages that actually appear in the corpus repos
+/// under investigation plus the common ones; anything else shares
+/// `other::`. A catch-all is fine for "is this one language's problem"
+/// right up until the catch-all *is* the answer, which is what happened
+/// on the first pass here: `erlang-otp` put 1.86 billion inner-scan
+/// steps in `types::`, and only naming C and C++ showed they were the
+/// ones spending it, not Erlang.
+struct LangTallies {
+    refs: &'static str,
+    defs: &'static str,
+    enclosing_scans: &'static str,
+    s4_entered: &'static str,
+    s4_map_iter: &'static str,
+    s4_inner_scan: &'static str,
+}
+
+macro_rules! lang_tallies_table {
+    ($($lang:literal),* $(,)?) => {
+        fn lang_tallies(lang: &str) -> LangTallies {
+            match lang {
+                $(
+                    $lang => LangTallies {
+                        refs: concat!($lang, "::refs"),
+                        defs: concat!($lang, "::defs"),
+                        enclosing_scans: concat!($lang, "::enclosing-def-steps"),
+                        s4_entered: concat!($lang, "::s4-entered"),
+                        s4_map_iter: concat!($lang, "::s4-map-iterations"),
+                        s4_inner_scan: concat!($lang, "::s4-inner-scan-steps"),
+                    },
+                )*
+                _ => LangTallies {
+                    refs: "other::refs",
+                    defs: "other::defs",
+                    enclosing_scans: "other::enclosing-def-steps",
+                    s4_entered: "other::s4-entered",
+                    s4_map_iter: "other::s4-map-iterations",
+                    s4_inner_scan: "other::s4-inner-scan-steps",
+                },
+            }
+        }
+    };
+}
+
+lang_tallies_table!(
+    "erlang", "c", "cpp", "rust", "python", "java", "javascript", "typescript",
+    "go", "perl", "elixir", "bash", "ruby", "php", "csharp", "kotlin", "swift",
+);
+
 pub fn propagate_types_with_returns(
     facts: &mut FileFacts,
     return_types: &HashMap<&str, &str>,
@@ -102,6 +158,10 @@ pub fn propagate_types_with_returns(
     }
 
     // Pass 3: Rewrite receiver_hints.
+    let t = lang_tallies(&facts.language);
+    cgg_core::profile::count(t.refs, facts.references.len() as u64);
+    cgg_core::profile::count(t.defs, facts.definitions.len() as u64);
+    let _s3 = cgg_core::profile::span("types::pass3");
     let mut rewrites: Vec<(usize, String)> = Vec::new();
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
@@ -134,7 +194,14 @@ pub fn propagate_types_with_returns(
             continue;
         }
 
-        let enclosing = enclosing_def(facts, rref.site_byte);
+        cgg_core::profile::count(
+            t.enclosing_scans,
+            facts.definitions.len() as u64,
+        );
+        let enclosing = {
+            let _s = cgg_core::profile::span("types::enclosing-def");
+            enclosing_def(facts, rref.site_byte)
+        };
 
         // Strategy 1: parameter type annotations
         if let Some(enc) = enclosing
@@ -158,6 +225,9 @@ pub fn propagate_types_with_returns(
         // Simplified: just check if receiver_hint matches a known
         // function name's return type (covers `let x = getService(); x.run()`)
         if !return_types.is_empty() {
+            let _s4 = cgg_core::profile::span("types::strategy4");
+            cgg_core::profile::count(t.s4_entered, 1);
+            cgg_core::profile::count(t.s4_map_iter, return_types.len() as u64);
             // Check if there's a ref earlier in this file that calls
             // a function whose return type matches. We use a heuristic:
             // if the variable name is a common derivative of the return
@@ -188,6 +258,11 @@ pub fn propagate_types_with_returns(
             });
             for (fn_name, ret_type) in candidates {
                 // Verify this function is actually called in this scope.
+                cgg_core::profile::count(
+                    t.s4_inner_scan,
+                    facts.references.len() as u64,
+                );
+                let _si = cgg_core::profile::span("types::s4-inner-scan");
                 let called = facts.references.iter().any(|r| {
                     r.name == fn_name
                         && r.receiver_hint.is_empty()

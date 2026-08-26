@@ -75,6 +75,21 @@ fn registry() -> &'static Registry {
     R.get_or_init(|| Mutex::new(BTreeMap::new()))
 }
 
+/// Count-only tallies, reported separately from spans.
+///
+/// A span answers "how long"; these answer "how many", which is the
+/// question when the suspicion is an accidentally-quadratic loop. Time
+/// alone cannot distinguish "one slow iteration" from "ten million fast
+/// ones", and that distinction is the whole diagnosis.
+///
+/// Kept in their own registry so they never appear in the span table
+/// sorted by milliseconds, where a count-only row would read as 0.0 ms
+/// and look like a span that never fired.
+fn tallies() -> &'static Registry {
+    static T: OnceLock<Registry> = OnceLock::new();
+    T.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
 // Both of these exist only to serve `span`, which is `#[cfg]`-compiled
 // away in release. Gating them the same way keeps the module's promise
 // literal — the machinery is *absent* from a release build, not merely
@@ -86,21 +101,64 @@ thread_local! {
     /// literals.
     static CACHE: RefCell<HashMap<usize, &'static Counters>> =
         RefCell::new(HashMap::new());
+
+    /// The same per-thread cache for tallies. Separate map so a tally
+    /// and a span may share a name without colliding on the pointer key.
+    static TALLY_CACHE: RefCell<HashMap<usize, &'static Counters>> =
+        RefCell::new(HashMap::new());
 }
 
 fn counters(name: &'static str) -> &'static Counters {
-    CACHE.with(|cache| {
+    lookup(&CACHE, registry(), name)
+}
+
+fn tally_counters(name: &'static str) -> &'static Counters {
+    lookup(&TALLY_CACHE, tallies(), name)
+}
+
+fn lookup(
+    cache: &'static std::thread::LocalKey<RefCell<HashMap<usize, &'static Counters>>>,
+    reg: &'static Registry,
+    name: &'static str,
+) -> &'static Counters {
+    cache.with(|cache| {
         let key = name.as_ptr() as usize;
         if let Some(c) = cache.borrow().get(&key) {
             return *c;
         }
-        let mut reg = registry().lock().unwrap_or_else(|e| e.into_inner());
-        let c: &'static Counters = reg
+        let mut r = reg.lock().unwrap_or_else(|e| e.into_inner());
+        let c: &'static Counters = r
             .entry(name)
             .or_insert_with(|| Box::leak(Box::new(Counters::default())));
         cache.borrow_mut().insert(key, c);
         c
     })
+}
+
+/// Add `n` to the tally `name`. No clock read, no timing.
+///
+/// Same `ENABLED` gate as [`span`]: one relaxed atomic load and a
+/// perfectly-predicted branch when profiling is off, which is every run
+/// that is not `--profile`. That matters here more than it does for
+/// spans, because the call sites this exists for are *inside* the hot
+/// loops being diagnosed.
+#[inline]
+pub fn count(name: &'static str, n: u64) {
+    if !ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
+    tally_counters(name).calls.fetch_add(n, Ordering::Relaxed);
+}
+
+/// Every tally recorded so far, largest first.
+pub fn tally_report() -> Vec<(&'static str, u64)> {
+    let reg = tallies().lock().unwrap_or_else(|e| e.into_inner());
+    let mut rows: Vec<(&'static str, u64)> = reg
+        .iter()
+        .map(|(name, c)| (*name, c.calls.load(Ordering::Relaxed)))
+        .collect();
+    rows.sort_by(|a, b| b.1.cmp(&a.1));
+    rows
 }
 
 /// Turn profiling on for the rest of the process.
@@ -215,6 +273,14 @@ re-run with --profile.\n"
             r.name, r.total_ms, pct, r.calls
         ));
     }
+    let tallies = tally_report();
+    if !tallies.is_empty() {
+        s.push_str("\ncounters (how many, not how long)\n");
+        s.push_str(&format!("  {:<44} {:>18}\n", "counter", "count"));
+        for (name, n) in &tallies {
+            s.push_str(&format!("  {name:<44} {n:>18}\n"));
+        }
+    }
     s
 }
 
@@ -232,6 +298,22 @@ mod tests {
             assert!(_s.is_none());
             assert!(!report().iter().any(|r| r.name == "test::release"));
         }
+    }
+
+    #[test]
+    fn tallies_accumulate_and_stay_out_of_the_span_table() {
+        enable();
+        count("test::tally", 3);
+        count("test::tally", 4);
+        let t = tally_report();
+        assert_eq!(
+            t.iter().find(|(n, _)| *n == "test::tally").map(|(_, n)| *n),
+            Some(7)
+        );
+        // A count-only tally must never surface as a 0.0 ms span row —
+        // that reads as "this span never fired", which is the opposite
+        // of what it means.
+        assert!(!report().iter().any(|r| r.name == "test::tally"));
     }
 
     #[test]
