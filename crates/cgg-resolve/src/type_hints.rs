@@ -236,38 +236,58 @@ pub fn propagate_types_with_returns(
         }
     }
 
-    // Pass 2c: earliest bare call site per function name — built on
-    // first use, not up front.
+    // Pass 2c: "is `fn_name` called bare, before this site?" — answered
+    // by scanning at first, by a map once scanning stops being cheaper.
     //
-    // Strategy 4 needs "is `fn_name` called, with no receiver, before
-    // this site". That was `facts.references.iter().any(...)` per
-    // candidate, so the cost was O(receivers x candidates x references)
-    // — **1,864,725,063 steps** on `erlang-otp`, 93% of them from its
-    // 171 vendored C++ files. The predicate only ever asks whether the
-    // *earliest* such call precedes the site, so one pass over the
-    // references answers every later question in O(1).
+    // The original asked this with `facts.references.iter().any(...)`
+    // per candidate, so the cost was O(receivers x candidates x
+    // references) — **1,864,725,063 steps** on `erlang-otp`, 93% of them
+    // from its 171 vendored C++ files.
     //
-    // `OnceCell`, because most files never reach Strategy 4 at all: it
-    // needs a non-empty return-type map, a receiver that survives every
-    // filter above, and strategies 1 and 3 to have missed. Building this
-    // unconditionally charged an O(references) pass plus a map
-    // allocation to every file in every language to fix a cost that only
-    // some of them pay. Measured: it made `asyncapi-spec` **+82.6%**,
-    // `firebase-samples` +59.9% and `cpp-nlohmann-json` +21.5% while the
-    // corpus total still read -8.9%, which is how a real regression
-    // hides inside a good average.
-    let called_before: std::cell::OnceCell<HashMap<&str, u32>> =
-        std::cell::OnceCell::new();
-    let build_called_before = || {
-        let mut m: HashMap<&str, u32> = HashMap::new();
-        for r in &facts.references {
-            if r.receiver_hint.is_empty() {
-                m.entry(r.name.as_str())
-                    .and_modify(|b| *b = (*b).min(r.site_byte))
-                    .or_insert(r.site_byte);
-            }
+    // A map answers it in O(1), but building one is O(references) *with
+    // hashing*, where a scan is O(references) with an integer compare
+    // and a string compare that usually fails on the first byte. So the
+    // map only wins once there are enough lookups to amortise it, and
+    // choosing either strategy up front loses somewhere:
+    //
+    //   * always scan   -> the erlang-otp blowup above
+    //   * always build  -> every file in every language pays for a map
+    //                      most of them never use. Measured: 15 repos
+    //                      >5% slower, `asyncapi-spec` +82.6%.
+    //   * build lazily  -> better, but a file making one or two lookups
+    //                      still pays more than the scans it replaced.
+    //                      Measured: 4 repos slower in both runs,
+    //                      `gcp-functions-samples` +83.4%.
+    //
+    // So: scan for the first `SCAN_BUDGET` lookups, then build. A file
+    // that asks once pays one scan; a file that asks a million times
+    // pays eight scans and a map. Both answer the identical predicate,
+    // so the graph is unchanged either way.
+    const SCAN_BUDGET: u32 = 8;
+    let lookups = std::cell::Cell::new(0u32);
+    let called_map: std::cell::OnceCell<HashMap<&str, u32>> = std::cell::OnceCell::new();
+    let called_before = |fn_name: &str, before: u32| -> bool {
+        let n = lookups.get();
+        lookups.set(n.saturating_add(1));
+        if n < SCAN_BUDGET && called_map.get().is_none() {
+            return facts.references.iter().any(|r| {
+                r.name == fn_name && r.receiver_hint.is_empty() && r.site_byte < before
+            });
         }
-        m
+        called_map
+            .get_or_init(|| {
+                let mut m: HashMap<&str, u32> = HashMap::new();
+                for r in &facts.references {
+                    if r.receiver_hint.is_empty() {
+                        m.entry(r.name.as_str())
+                            .and_modify(|b| *b = (*b).min(r.site_byte))
+                            .or_insert(r.site_byte);
+                    }
+                }
+                m
+            })
+            .get(fn_name)
+            .is_some_and(|&b| b < before)
     };
 
     // Pass 3: Rewrite receiver_hints.
@@ -355,10 +375,7 @@ pub fn propagate_types_with_returns(
             for (fn_name, ret_type) in return_types.candidates(&rh_lower) {
                 cgg_core::profile::count(t.s4_inner_scan, 1);
                 // Verify this function is actually called in this scope.
-                let called = called_before
-                    .get_or_init(build_called_before)
-                    .get(fn_name)
-                    .is_some_and(|&b| b < rref.site_byte);
+                let called = called_before(fn_name, rref.site_byte);
                 if called {
                     rewrites.push((i, ret_type.to_string()));
                     break;
