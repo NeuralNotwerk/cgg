@@ -16,9 +16,77 @@
 use cgg_core::{DefRecord, FileFacts};
 use std::collections::HashMap;
 
+/// `return_types`, pre-indexed by the lowercased return type.
+///
+/// Strategy 4 asks, for one receiver name, "which functions return a
+/// type whose lowercased name equals this receiver, or equals it minus
+/// a trailing `s`". Answering that by walking the whole map is
+/// O(receivers x map), and the map is corpus-wide: on `erlang-otp` that
+/// was **817,607,605 iterations**, each allocating a `to_lowercase()`
+/// and a `format!`. The lowercasing depends only on the map, so it is
+/// hoisted here and done once per run instead of once per receiver.
+///
+/// Keys are the lowercased return type. A receiver `configs` finds
+/// exact matches under `configs` and plural matches under `config`,
+/// which is the same two-way test the filter did inline.
+#[derive(Debug, Default)]
+pub struct ReturnTypeIndex<'a> {
+    by_lower_ret: HashMap<String, Vec<(&'a str, &'a str)>>,
+    empty: bool,
+}
+
+impl<'a> ReturnTypeIndex<'a> {
+    pub fn build(return_types: &HashMap<&'a str, &'a str>) -> Self {
+        let mut by_lower_ret: HashMap<String, Vec<(&'a str, &'a str)>> = HashMap::new();
+        for (&f, &r) in return_types {
+            by_lower_ret
+                .entry(r.to_lowercase())
+                .or_default()
+                .push((f, r));
+        }
+        // Sorted once, here, rather than per lookup. The old code sorted
+        // each candidate list by function name after filtering; function
+        // names are unique in the map, so sorting each bucket once gives
+        // every lookup the same order it used to compute.
+        for v in by_lower_ret.values_mut() {
+            v.sort_unstable_by(|a, b| a.0.cmp(b.0));
+        }
+        Self {
+            empty: return_types.is_empty(),
+            by_lower_ret,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.empty
+    }
+
+    /// Candidates for `rh_lower`, in the exact order the old inline
+    /// filter-then-sort produced: exact matches first (sorted by
+    /// function name), then plural matches (likewise).
+    ///
+    /// The old comparator was `exact(a).cmp(&exact(b)).then(a.0.cmp(b.0))`
+    /// where `exact` is false for an exact match, so exact sorted before
+    /// plural and ties broke on the function name. Two pre-sorted buckets
+    /// concatenated in that order reproduce it exactly, and a candidate
+    /// cannot land in both: that would need `rl == rh_lower` and
+    /// `rl + "s" == rh_lower` simultaneously.
+    fn candidates(&self, rh_lower: &str) -> impl Iterator<Item = (&'a str, &'a str)> {
+        let exact = self.by_lower_ret.get(rh_lower);
+        let plural = rh_lower
+            .strip_suffix('s')
+            .and_then(|stem| self.by_lower_ret.get(stem));
+        exact
+            .into_iter()
+            .flatten()
+            .chain(plural.into_iter().flatten())
+            .copied()
+    }
+}
+
 /// Rewrite receiver hints in-place using inferred type information.
 pub fn propagate_types(facts: &mut FileFacts) {
-    propagate_types_with_returns(facts, &HashMap::new());
+    propagate_types_with_returns(facts, &ReturnTypeIndex::default());
 }
 
 /// Build a map of function_simple_name -> return_type from all
@@ -40,9 +108,6 @@ pub fn build_return_type_map<'a>(
     map
 }
 
-/// Rewrite receiver hints using both local type info and a global
-/// return-type map built from all files' definitions.
-
 /// Per-language tally names for the type propagator.
 ///
 /// `profile::count` takes a `&'static str`, so attributing a count to a
@@ -62,7 +127,6 @@ struct LangTallies {
     defs: &'static str,
     enclosing_scans: &'static str,
     s4_entered: &'static str,
-    s4_map_iter: &'static str,
     s4_inner_scan: &'static str,
 }
 
@@ -76,7 +140,6 @@ macro_rules! lang_tallies_table {
                         defs: concat!($lang, "::defs"),
                         enclosing_scans: concat!($lang, "::enclosing-def-steps"),
                         s4_entered: concat!($lang, "::s4-entered"),
-                        s4_map_iter: concat!($lang, "::s4-map-iterations"),
                         s4_inner_scan: concat!($lang, "::s4-inner-scan-steps"),
                     },
                 )*
@@ -85,7 +148,6 @@ macro_rules! lang_tallies_table {
                     defs: "other::defs",
                     enclosing_scans: "other::enclosing-def-steps",
                     s4_entered: "other::s4-entered",
-                    s4_map_iter: "other::s4-map-iterations",
                     s4_inner_scan: "other::s4-inner-scan-steps",
                 },
             }
@@ -94,13 +156,30 @@ macro_rules! lang_tallies_table {
 }
 
 lang_tallies_table!(
-    "erlang", "c", "cpp", "rust", "python", "java", "javascript", "typescript",
-    "go", "perl", "elixir", "bash", "ruby", "php", "csharp", "kotlin", "swift",
+    "erlang",
+    "c",
+    "cpp",
+    "rust",
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "go",
+    "perl",
+    "elixir",
+    "bash",
+    "ruby",
+    "php",
+    "csharp",
+    "kotlin",
+    "swift",
 );
 
+/// Rewrite receiver hints using both local type info and a global
+/// return-type map built from all files' definitions.
 pub fn propagate_types_with_returns(
     facts: &mut FileFacts,
-    return_types: &HashMap<&str, &str>,
+    return_types: &ReturnTypeIndex<'_>,
 ) {
     // Pass 1: Extract type hints from definition signatures.
     //
@@ -157,6 +236,25 @@ pub fn propagate_types_with_returns(
         }
     }
 
+    // Pass 2c: earliest bare call site per function name.
+    //
+    // Strategy 4 needs "is `fn_name` called, with no receiver, before
+    // this site". That was `facts.references.iter().any(...)` per
+    // candidate, so the cost was O(receivers x candidates x references)
+    // — **1,864,725,063 steps** on `erlang-otp`, 93% of them from its
+    // 171 vendored C++ files. The predicate only ever asks whether the
+    // *earliest* such call precedes the site, so one pass over the
+    // references answers every later question in O(1).
+    let mut called_before: HashMap<&str, u32> = HashMap::new();
+    for r in &facts.references {
+        if r.receiver_hint.is_empty() {
+            called_before
+                .entry(r.name.as_str())
+                .and_modify(|b| *b = (*b).min(r.site_byte))
+                .or_insert(r.site_byte);
+        }
+    }
+
     // Pass 3: Rewrite receiver_hints.
     let t = lang_tallies(&facts.language);
     cgg_core::profile::count(t.refs, facts.references.len() as u64);
@@ -194,10 +292,7 @@ pub fn propagate_types_with_returns(
             continue;
         }
 
-        cgg_core::profile::count(
-            t.enclosing_scans,
-            facts.definitions.len() as u64,
-        );
+        cgg_core::profile::count(t.enclosing_scans, facts.definitions.len() as u64);
         let enclosing = {
             let _s = cgg_core::profile::span("types::enclosing-def");
             enclosing_def(facts, rref.site_byte)
@@ -227,47 +322,27 @@ pub fn propagate_types_with_returns(
         if !return_types.is_empty() {
             let _s4 = cgg_core::profile::span("types::strategy4");
             cgg_core::profile::count(t.s4_entered, 1);
-            cgg_core::profile::count(t.s4_map_iter, return_types.len() as u64);
             // Check if there's a ref earlier in this file that calls
             // a function whose return type matches. We use a heuristic:
             // if the variable name is a common derivative of the return
             // type (e.g., "service" from "Service", "config" from "Config")
             // OR if we find a bare call to a function returning that type.
             let rh_lower = rh.to_lowercase();
-            // Sorted, and the tie-break is total. `return_types` is a
-            // HashMap, and the match below is deliberately loose — it
-            // accepts an exact name match OR a plural, so `Config` and
-            // `Configs` BOTH claim a receiver called `configs`. Taking
-            // whichever came first out of hash order meant a 20-line
-            // file produced two different graphs across 25 identical
-            // single-threaded runs with default flags.
-            //
-            // Exact matches win over plural ones; ties beyond that break
-            // on the function name, which is unique in the map.
-            let mut candidates: Vec<(&str, &str)> = return_types
-                .iter()
-                .map(|(&f, &r)| (f, r))
-                .filter(|(_, ret)| {
-                    let rl = ret.to_lowercase();
-                    rh_lower == rl || rh_lower == format!("{rl}s")
-                })
-                .collect();
-            candidates.sort_unstable_by(|a, b| {
-                let exact = |r: &str| rh_lower != r.to_lowercase();
-                exact(a.1).cmp(&exact(b.1)).then_with(|| a.0.cmp(b.0))
-            });
-            for (fn_name, ret_type) in candidates {
+            // The order here is load-bearing, not tidiness. The match is
+            // deliberately loose — it accepts an exact name match OR a
+            // plural, so `Config` and `Configs` BOTH claim a receiver
+            // called `configs`. Taking whichever came first out of hash
+            // order meant a 20-line file produced two different graphs
+            // across 25 identical single-threaded runs with default
+            // flags. `ReturnTypeIndex::candidates` yields exact matches
+            // before plural ones, each bucket sorted by function name,
+            // which is the order the old filter-then-sort computed.
+            for (fn_name, ret_type) in return_types.candidates(&rh_lower) {
+                cgg_core::profile::count(t.s4_inner_scan, 1);
                 // Verify this function is actually called in this scope.
-                cgg_core::profile::count(
-                    t.s4_inner_scan,
-                    facts.references.len() as u64,
-                );
-                let _si = cgg_core::profile::span("types::s4-inner-scan");
-                let called = facts.references.iter().any(|r| {
-                    r.name == fn_name
-                        && r.receiver_hint.is_empty()
-                        && r.site_byte < rref.site_byte
-                });
+                let called = called_before
+                    .get(fn_name)
+                    .is_some_and(|&b| b < rref.site_byte);
                 if called {
                     rewrites.push((i, ret_type.to_string()));
                     break;

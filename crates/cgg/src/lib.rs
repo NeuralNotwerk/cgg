@@ -569,6 +569,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
+    // Indexed once for the whole run, not once per receiver. The
+    // lowercasing Strategy 4 needs depends only on this map, and doing
+    // it inline cost 817,607,605 iterations with two allocations each on
+    // `erlang-otp`.
+    let return_types = cgg_resolve::type_hints::ReturnTypeIndex::build(&return_types);
     {
         // Per-file and independent: each call only mutates its own facts.
         let _s = cgg_core::profile::span("resolve::type-propagate");

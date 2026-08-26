@@ -157,7 +157,7 @@ pub fn tally_report() -> Vec<(&'static str, u64)> {
         .iter()
         .map(|(name, c)| (*name, c.calls.load(Ordering::Relaxed)))
         .collect();
-    rows.sort_by(|a, b| b.1.cmp(&a.1));
+    rows.sort_by_key(|r| std::cmp::Reverse(r.1));
     rows
 }
 
