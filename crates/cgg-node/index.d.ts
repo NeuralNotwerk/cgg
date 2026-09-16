@@ -82,6 +82,11 @@ export interface AnalyzeOptions {
   lang?: Array<string>
   jobs?: number
   ignoreFile?: string
+  /**
+   * Skip minified JS/CSS at walk time. `false` (the default) analyzes
+   * bundles like any other source.
+   */
+  skipMinified?: boolean
   includeExternal?: boolean
   includeStdlib?: boolean
   dynamicDispatch?: boolean

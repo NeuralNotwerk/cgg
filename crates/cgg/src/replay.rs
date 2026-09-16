@@ -84,6 +84,13 @@ fn unsupported(opts: &RunOptions) -> Vec<(&'static str, &'static str)> {
             "adds edges during resolution; re-run the analysis with them on",
         ));
     }
+    if opts.skip_minified {
+        out.push((
+            "--skip-minified",
+            "decides which files are walked; the saved graph already \
+             holds whatever the original run analyzed",
+        ));
+    }
     if opts.no_entry_nodes {
         out.push((
             "--no-entry-nodes",

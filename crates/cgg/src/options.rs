@@ -108,6 +108,10 @@ pub struct RunOptions {
 
     /// Additional gitignore-syntax ignore file.
     pub ignore_file: Option<PathBuf>,
+    /// Skip minified JS/CSS at walk time. Off by default: a bundle is
+    /// real source that parses, so removing it from the graph is the
+    /// caller's call. See [`cgg_walk::WalkConfig::skip_minified`].
+    pub skip_minified: bool,
     /// Restrict analysis to these language ids.
     pub lang: Vec<String>,
     /// Worker threads. `0` means auto (half the physical cores).
@@ -175,6 +179,7 @@ impl Default for RunOptions {
             from_graph: None,
             fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
+            skip_minified: false,
             lang: Vec::new(),
             jobs: 0,
             include_external: false,
@@ -248,6 +253,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             fanout_cap,
             include_tests,
             ignore_file,
+            skip_minified,
             jobs,
             lang,
             include_external,
@@ -301,6 +307,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             from_graph: from_graph.clone(),
             fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),
+            skip_minified: *skip_minified,
             lang: lang.clone(),
             jobs: *jobs,
             include_external: *include_external,

@@ -46,6 +46,9 @@ pub struct AnalyzeOptions {
     pub lang: Option<Vec<String>>,
     pub jobs: Option<u32>,
     pub ignore_file: Option<String>,
+    /// Skip minified JS/CSS at walk time. `false` (the default)
+    /// analyzes bundles like any other source.
+    pub skip_minified: Option<bool>,
     pub include_external: Option<bool>,
     pub include_stdlib: Option<bool>,
     pub dynamic_dispatch: Option<bool>,
@@ -258,6 +261,7 @@ fn build_options(
         lang: o.lang.unwrap_or_default(),
         jobs: o.jobs.unwrap_or(0) as usize,
         ignore_file: o.ignore_file.map(Into::into),
+        skip_minified: o.skip_minified.unwrap_or(false),
         include_external: o.include_external.unwrap_or(false),
         include_stdlib: o.include_stdlib.unwrap_or(false),
         dynamic_dispatch: o.dynamic_dispatch.unwrap_or(false),

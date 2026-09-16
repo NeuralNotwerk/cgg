@@ -15,11 +15,16 @@
 //!    (gitignore-syntax).
 //! 4. Symlink-out-of-root detection.
 //! 5. Binary-content heuristic (first 8KB: NUL byte present).
-//! 6. Minified-source heuristic, for `.js`/`.mjs`/`.cjs`/`.css` only:
-//!    a `name.min.<ext>` filename, or an average line length over
-//!    2,000 bytes on the same 8KB probe used for the binary check.
-//!    Bundled/minified files carry no useful callable structure and
-//!    dominate wall time on a mixed-language tree.
+//! 6. Minified-source heuristic, **only when
+//!    [`WalkConfig::skip_minified`] is set**, and then for
+//!    `.js`/`.mjs`/`.cjs`/`.css` only: a `name.min.<ext>` filename, or
+//!    an average line length over 2,000 bytes on the same 8KB probe
+//!    used for the binary check. Bundled/minified files carry no
+//!    useful callable structure and dominate wall time on a
+//!    mixed-language tree — but they are still real, parseable source,
+//!    so dropping them is the caller's decision and never the
+//!    walker's. Off by default; every other layer above is
+//!    unconditional.
 //!
 //! Unrecognized extensions are *not* filtered here — the walker emits
 //! them with `language=None` and later stages (language detector)
@@ -116,6 +121,16 @@ pub struct WalkConfig {
     /// Byte threshold; files larger than this are skipped with
     /// `SkipReason::TooLarge`. `None` disables the check.
     pub max_file_size: Option<u64>,
+    /// Apply the minified-source heuristic (`SkipReason::Minified`).
+    ///
+    /// **Default `false`**, unlike every other check here. The others
+    /// reject files cgg cannot usefully analyze at all — too large to
+    /// hold, binary, ignored by the user's own rules. A minified
+    /// bundle is none of those: it is real source that parses, and
+    /// skipping it removes callables the caller never asked to lose.
+    /// So this one is opt-in, matching the rest of cgg's
+    /// graph-content switches.
+    pub skip_minified: bool,
 }
 
 impl Default for WalkConfig {
@@ -126,6 +141,8 @@ impl Default for WalkConfig {
             follow_symlinks: false,
             // 25 MiB — anything bigger is almost certainly generated.
             max_file_size: Some(25 * 1024 * 1024),
+            // Opt-in: the default walk analyzes every file it can parse.
+            skip_minified: false,
         }
     }
 }
@@ -289,6 +306,9 @@ fn is_symlink_chain(p: &Path) -> bool {
 /// Return a skip reason if the file fails a per-file check
 /// (size, minified-filename, binary sniffing, minified-line-length).
 /// Returns `None` if the file is acceptable.
+///
+/// Both minified checks are gated on [`WalkConfig::skip_minified`];
+/// the rest are unconditional.
 fn classify_file(path: &Path, cfg: &WalkConfig) -> Result<Option<Skip>> {
     let md = fs::metadata(path).with_context(|| format!("stat {}", path.display()))?;
     if let Some(max) = cfg.max_file_size
@@ -300,7 +320,13 @@ fn classify_file(path: &Path, cfg: &WalkConfig) -> Result<Option<Skip>> {
         }));
     }
 
-    let minifiable_ext = minifiable_extension(path);
+    // `None` when the caller did not ask for the heuristic, so both
+    // branches below fall through and nothing pays for the check.
+    let minifiable_ext = if cfg.skip_minified {
+        minifiable_extension(path)
+    } else {
+        None
+    };
 
     // The filename convention is decided from the path alone, before
     // any read — cheapest check first.
@@ -535,11 +561,10 @@ mod tests {
         );
     }
 
-    /// VERIFIED §1k / §3.11 (change c9): a `.min.js` filename and an
-    /// extreme-average-line-length `.js` file are both skipped as
-    /// `Minified`, while an ordinary `.js` file is analyzed normally.
-    #[test]
-    fn minified_js_is_skipped_by_name_and_by_line_length() {
+    /// Write the three-file minified fixture: a `.min.js` by name, a
+    /// `.js` whose single 3,000-byte line trips the average-line-length
+    /// rule, and an ordinary multi-line `.js` that must survive both.
+    fn minified_fixture() -> TempDir {
         let tmp = TempDir::new().unwrap();
         // Filename convention: `name.min.<ext>`.
         write(tmp.path(), "a.min.js", b"function f(){return 1}\n");
@@ -547,15 +572,63 @@ mod tests {
         // the 2,000-byte average-line-length threshold on the probe.
         let long_line: Vec<u8> = vec![b'x'; 3000];
         write(tmp.path(), "b.js", &long_line);
-        // Ordinary multi-line source: must NOT be skipped.
+        // Ordinary multi-line source: must NOT be skipped either way.
         write(
             tmp.path(),
             "c.js",
             b"function add(a, b) {\n  return a + b;\n}\n",
         );
+        tmp
+    }
+
+    /// The default walk analyzes minified files like any other source.
+    ///
+    /// The heuristic is accurate, and that is exactly why this test
+    /// exists: an accurate filter that nobody switched on still removes
+    /// callables the caller never agreed to lose. Every other cgg
+    /// switch that changes what lands in the graph is opt-in, and this
+    /// is the only one that *removes*.
+    #[test]
+    fn minified_files_are_analyzed_by_default() {
+        let tmp = minified_fixture();
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+
+        assert!(
+            !out.skips
+                .iter()
+                .any(|s| matches!(s.reason, SkipReason::Minified)),
+            "no file may be skipped as Minified without --skip-minified; \
+             skips: {:?}",
+            out.skips
+        );
+        let analyzed: Vec<String> = out
+            .candidates
+            .iter()
+            .map(|c| c.path.file_name().unwrap().to_string_lossy().to_string())
+            .collect();
+        for want in ["a.min.js", "b.js", "c.js"] {
+            assert!(
+                analyzed.contains(&want.to_string()),
+                "{want} must be analyzed at the default; analyzed: {analyzed:?}"
+            );
+        }
+    }
+
+    /// VERIFIED §1k / §3.11 (change c9): with `skip_minified` set, a
+    /// `.min.js` filename and an extreme-average-line-length `.js` file
+    /// are both skipped as `Minified`, while an ordinary `.js` file is
+    /// analyzed normally.
+    #[test]
+    fn minified_js_is_skipped_by_name_and_by_line_length() {
+        let tmp = minified_fixture();
 
         let cfg = WalkConfig {
             roots: vec![tmp.path().to_path_buf()],
+            skip_minified: true,
             ..Default::default()
         };
         let out = walk(&cfg).unwrap();

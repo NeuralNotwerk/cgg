@@ -84,7 +84,7 @@ negative.
   filter, hops, maxPaths,
   excludePartial, excludeGlob, excludeRegex,
   lang, jobs, ignoreFile, since, roots,
-  includeExternal, includeStdlib, dynamicDispatch, referenceEdges,
+  skipMinified, includeExternal, includeStdlib, dynamicDispatch, referenceEdges,
   entryNodes, includeTests,
   deadCode, deadCodeConfidence, ignoreNames, ignoreAttributes,
 }

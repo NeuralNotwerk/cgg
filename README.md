@@ -93,7 +93,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [-n N] [--max-paths N] [--fanout-cap N]
               [--rollup BUDGET] [--rollup-by LEVEL]
               [--from-graph FILE]
-              [--include-tests] [--ignore-file PATH]
+              [--include-tests] [--ignore-file PATH] [--skip-minified]
               [--exclude-partial SUBSTRING]...
               [--exclude-glob PATTERN]...
               [--exclude-regex PATTERN]...
@@ -128,6 +128,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--fanout-cap` | 5 | Max same-named candidates for a duck-typed method call before the fan-out is dropped. Drops are recorded as `fanout-cap-exceeded` with the candidate count — never silently |
 | `--include-tests` | off | Show dead-code findings that live in test scope. Test code is always analyzed and always counts as a caller |
 | `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
+| `--skip-minified` | off | Skip minified JS/CSS: `name.min.{js,mjs,cjs,css}`, or any file with one of those extensions averaging over 2,000 B/line on the first 8 KB. Bundled output has no callable structure worth graphing and dominates wall time on a mixed-language tree — but it is real source that parses, so the default walk analyzes it and dropping it is your call, not cgg's. Skips are audited as `skip_reason: minified` and counted in the run summary |
 | `--exclude-partial` | (none) | Exclude nodes containing substring |
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
 | `--exclude-regex` | (none) | Exclude nodes matching regex |
@@ -884,7 +885,8 @@ Two limits, both stated by the tool rather than left to be discovered:
   that case (its metrics outnumber its contents) and warns.
 - Options needing analysis-time facts the document does not carry —
   `--dead-code`, `--include-external`, `--dynamic-dispatch`, `--since`,
-  `--lang` — are **refused with a reason**, not silently ignored.
+  `--lang`, `--skip-minified` — are **refused with a reason**, not
+  silently ignored.
 
 The document carries `"schema": "cgg.graph.v1"` and the writing version.
 Node ids are not comparable across cgg versions, so a mismatch warns and a

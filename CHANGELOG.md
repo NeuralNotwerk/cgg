@@ -50,16 +50,31 @@ ever grows in default mode — see *Compatibility* below).
   They now carry `value-ref-ambiguous` / `value-ref-no-enclosing`; the
   dead-code roots and evidence passes accept both alongside the old
   reasons, so a function passed as a value at module scope keeps its
-  `toplevel:invocation` root (flask: 1,024 roots, 113 findings, identical
-  to 0.8.3). A `Via::Reference` edge is emitted for any target except a
+  `toplevel:invocation` root — on flask, 1,024 roots and 127 findings,
+  **identical to 0.8.3** (re-measured 2026-09-16 against a fresh clone;
+  earlier drafts of this entry and the PR description quoted 113 and 126,
+  two different runs against two different flask revisions, and the
+  count moves with upstream flask — the identity is the claim, not the
+  number). A `Via::Reference` edge is emitted for any target except a
   closure bound to the same name.
 
 ### Added
 
-- **`SkipReason::Minified`.** The walker skips `.min.{js,mjs,cjs,css}`
-  and any file averaging more than 2,000 bytes per line, with an audit
-  row and a summary count. `workbook_still_waters`: 1,005 -> 81 ms; four
-  vendored bundles held 4,490 callables.
+- **`--skip-minified`, off by default.** With it, the walker skips
+  `.min.{js,mjs,cjs,css}` and any file with one of those extensions
+  averaging more than 2,000 bytes per line, recording each as
+  `skip_reason: minified` with a summary count. Without it — the
+  default — those files are analyzed like any other source.
+
+  Opt-in because a bundle is *real, parseable source*: the filter is
+  accurate, but an accurate filter nobody switched on still removes
+  callables the caller never agreed to lose, and this is the only
+  graph-content switch in cgg that removes rather than adds. Measured
+  on `app-wordpress`: 2,313 analyzed / 27,361 callables at the default,
+  2,117 / 19,051 with the flag, 612 files skipped; 1,681 -> 990 ms,
+  minimum of three at `--jobs 8` after a warm-up.
+  `walk::minified_files_are_analyzed_by_default` locks the default and
+  fails if the gate is ever removed.
 - **The auto `--jobs` cap rises to 32 once a host has 32 physical cores**
   (was fixed at 8). Graph byte-identical at any job count.
 
@@ -72,13 +87,64 @@ the removals break down as 550 into another file's private `mod tests`
 helper, 188 at sites that keep a surviving edge (a fan-out narrowed to
 one target), 14 FFI edges from a Python stub into the Node binding, and
 20 sites left with no edge, every one read by an independent reader
-(3 were real calls). On `llmitm-v5`: 2,191 removed (1,040 narrowed, 446
+(3 were real calls). On the firecracker sources in `llmitm-v5`
+(`vercel_sandbox/src/firecracker`): 2,180 removed (1,040 narrowed, 446
 external-head or std-impl, 268 tests-helper, 426 sites left dark: of
 357 read individually 25 were real calls, the rest are the
-macro-argument width rule, roughly 36 real by the sampled rate), 874
-added. Two audit `UnresolvedReason` variants are new, so a 0.8.3 binary
-refuses `--from-graph` on a graph this version writes
-(`unknown variant value-ref-ambiguous`); it fails loudly, not wrongly.
+macro-argument width rule, roughly 36 real by the sampled rate), 867
+added. **A 0.8.3 binary cannot read a graph this version writes, and says so
+badly.** Two `UnresolvedReason` variants are new, and 0.8.3's derived
+`Deserialize` has no fallback for a tag it does not know, so
+`--from-graph` fails with
+`unknown variant value-ref-ambiguous ... at line 98994 column 38`
+rather than a version message. The document still declares
+`"schema": "cgg.graph.v1"`, which 0.8.3 accepts, so nothing in it
+announces the break.
+
+The reader is fixed here rather than the tag: an unrecognised `stage`
+now deserializes into the existing `UnresolvedReason::Other(String)`
+variant — documented as "any other / legacy reason, preserving the
+original text" — keeping the original text so `slug()` and metrics
+bucketing still name it. Verified by rewriting 935 `value-ref-ambiguous`
+tags in a real graph to an invented one: 0.8.3 refuses it, this version
+replays it to a byte-identical mermaid graph. The fallback is narrow on
+purpose — it fires only for a tag outside `KNOWN_UNRESOLVED_STAGES`, so
+a *known* tag with a malformed `detail` is still a hard error rather
+than being quietly reclassified.
+
+`cgg.graph.v1` therefore stays honest from 0.8.4 on: a future reason is
+an additive change, not a break. What it does **not** do is help a
+0.8.3 binary already installed — that one-time cost stands. A schema
+bump is the only change that would reach an installed 0.8.3 (which
+already reports a declared mismatch for a schema string it does not
+know), at the cost of a second accepted tag; it is left as the
+maintainer's decision.
+
+**Dead-code baselines over Rust integration tests must be
+regenerated.** Qualifying integration-test callables
+`<crate>::tests::<file>::<name>` instead of the crate root fixes a real
+collision (`cgg::fixture` was defined in three different test files),
+but `--write-roots` writes each accepted finding as an anchored regex
+over the qualified name, so every existing entry for a Rust
+integration-test callable stops matching and those findings return.
+
+Reproduced on cgg's own tree: 0.8.3 writes a 1,004-entry baseline
+with `--write-roots --include-tests`; read back against the same
+source with `--dead-code --include-tests`, 0.8.3 reports 0 findings
+and this version reports 79 — 68 of them the requalified `::tests::`
+names, with 36 more baseline entries stale. It bites
+only under `--include-tests`, since test-scope findings are withheld by
+default, so the blast radius is anyone running `--include-tests` with
+`--fail-on-dead` in CI: **re-run `--write-roots` on upgrade.** Node ids
+are content hashes of the qualified name, so id-keyed tooling shifts
+for the same callables.
+
+The rename is not reverted: the collision it fixes is worse than the
+one-time regeneration. Keying baselines on `path:line` instead of the
+qualified name would make them immune to this class of change and is
+worth its own discussion — it trades immunity to renames for
+sensitivity to every edit that moves a line, which is the more frequent
+event.
 
 Not covered, and still wrong: a single-segment external receiver
 (`serde_json::from_str(..)` arrives as receiver `serde_json`,
@@ -87,23 +153,50 @@ on cgg's tree.
 
 ### Performance
 
-`scripts/compare-release.py`, 0.8.3 release binary against this change,
-110 corpus repositories, timing the minimum of two alternating runs
-with eight repos measured concurrently:
+**Per configuration, because the three changes here have nothing to do
+with each other and only one of them is on by default.**
 
-| | 0.8.3 | this change |
+`scripts/compare-release.py`, 0.8.3 release binary (`e86b6be`) against
+this change, over the 110 repositories `scripts/benchmark.sh` lists,
+re-cloned 2026-09-16. Minimum of two alternating runs, **one repo at a
+time** — the script's `--jobs 1`, which its own help calls the setting
+for published numbers. The identical comparison measured eight
+repos concurrently reads −3.0% where the serial one reads +1.3%: the
+two arms did not slow equally under load (0.8.3 +13.5%, this change
++8.7%) and the cause was not isolated, so the serial figure is the
+one quoted. The pinned-jobs arm is one replicate. Run-to-run spread on
+the 0.8.3 arm across the three configurations below is 99.6-100.2 s,
+so ~0.6%.
+
+| configuration | wall | graph |
 | --- | --- | --- |
-| corpus total | 160.3s | 93.9s (**-41.4%**) |
-| edges | 2,623,507 | 2,386,150 (**-9.0%**) |
-| unresolved sites | 4,518,823 | 4,141,367 (**-8.4%**) |
-| repos gaining edges | — | 0 of 110 |
-| 87 repos with identical callables: edges | 1,299,845 | 1,217,505 (**-6.3%**) |
-| same 87: wall | 72.1s | 50.9s (**-29.4%**) |
+| **default, host under 32 physical cores** — the resolver changes alone, both binaries pinned `--jobs 8` | 100.0s -> 101.3s (**+1.3%**) | edges 2,641,237 -> 2,491,103 (-5.7%); callables +9 |
+| **default, host at 32+ physical cores** — the same graph, plus `MAX_AUTO_JOBS_WIDE_HOST` | 100.2s -> 70.4s (**-29.7%**) | same counts as the row above: 1,202,660 callables, 2,491,103 edges |
+| **`--skip-minified`** (opt-in), both pinned `--jobs 8` | 99.6s -> 88.5s (**-11.1%**) | callables 1,202,651 -> 1,150,838 (-4.3%); edges -9.0%; unresolved sites -8.3% |
 
-The wall-clock delta belongs to the walker skip and the job cap; the
-resolver changes are wall-neutral (cgg's own tree 119 -> 104 ms with
-the cap). Repos under 150 ms are noise by this script's own note.
-`determinism-sweep.py`: 25 repos x 3 runs, 0 nondeterministic.
+Read together: **on an ordinary host with default flags this release
+costs about 1% of wall and returns a 5.7% smaller, more precisely
+resolved edge set.** The speedups are real and both are available on
+request — one by passing a flag, one by having the cores.
+
+Within the same run, the 108 repos whose callable count is unchanged
+read +1.2%; in the separate `--skip-minified` run, the 87 repos the
+skip never touches read +1.0%. Repos under 150 ms are noise by this
+script's own note; restricting to the 63 above it moves nothing
+(+1.3% / -30.6% / -11.5%).
+
+**Edges do not fall everywhere.** Across these 110 repos no repo gains,
+but that is a fact about this corpus and not about the change — two
+repos outside it do gain, measured directly: `rust-ntex`
+17,650 -> 19,173 (**+1,523**) and `csharp-mediatr` 418 -> 420 (+2).
+Both were reported by a reviewer running a larger corpus, and neither
+is in `benchmark.sh`: `compare-release.py` iterates the corpus
+*directory*, not the manifest, so two people on the same commit can be
+measuring different repo sets with nothing saying so.
+
+`determinism-sweep.py`: 25 repos x 3 runs, 0 nondeterministic. Graph
+byte-identical (mermaid) at `--jobs 1/4/8/16/32` on `rust-ripgrep`,
+`app-wordpress` and `ts-zod`, with and without `--skip-minified`.
 
 ## [0.8.3] - 2026-08-26
 

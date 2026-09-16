@@ -154,6 +154,7 @@ def test_parity_with_cli_under_options(tree: Path) -> None:
         (["--filter", "caller_1", "-n", "1"], {"filter": ["caller_1"], "hops": 1}),
         (["--exclude-partial", "orphan"], {"exclude_partial": ["orphan"]}),
         (["--jobs", "3"], {"jobs": 3}),
+        (["--skip-minified"], {"skip_minified": True}),
     ]
     baseline = structure(json.loads(cgg.analyze(tree).to_json()))
     changed_something = False

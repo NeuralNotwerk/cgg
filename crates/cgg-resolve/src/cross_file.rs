@@ -293,6 +293,17 @@ pub const DEFAULT_FANOUT_CAP: usize = 5;
 /// block, the type) that `self`/`super` are relative to. A file with no
 /// definitions of its own (a re-export-only `lib.rs`) falls back to the
 /// crate root, same as `self::x` meaning `crate::x` there.
+///
+/// **Known limitation, stated so it is not mistaken for a bug later.**
+/// The single-`impl` case yields `module::Type` where the module alone
+/// was wanted, so a `self::`-relative `use` in such a file rewrites to
+/// a path that matches nothing. It fails *closed* — the import simply
+/// does not resolve and no edge is invented — which is why it is not
+/// fixed here: a fix (drop a trailing UpperCamelCase segment — reliable
+/// in Rust because `non_camel_case_types` keeps types that shape and
+/// `non_snake_case` keeps modules lowercase) changes the
+/// resolved edge set, and that belongs in a change measured on its
+/// own rather than folded into this one.
 fn rust_own_module(facts: &FileFacts, crate_root: &str) -> String {
     let mut prefix: Option<Vec<&str>> = None;
     for d in &facts.definitions {

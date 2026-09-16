@@ -193,6 +193,34 @@ pub enum UnresolvedReason {
     Other(String),
 }
 
+/// Every `stage` tag the structured form writes, `Other`'s included.
+///
+/// This is the deserializer's *recognizer*: a tag in this list is
+/// decoded by the derive and a malformed `detail` under it is a hard
+/// error, because that is a corrupt document. A tag **not** in this
+/// list is a reason written by a newer cgg, and degrades to
+/// [`UnresolvedReason::Other`] rather than failing the whole graph.
+///
+/// Kept in sync by `every_variant_tag_is_a_known_stage`, which walks
+/// one instance of every variant and fails if its serialized tag is
+/// missing here — so adding a variant and forgetting this list is a
+/// test failure, not a silent reclassification.
+pub const KNOWN_UNRESOLVED_STAGES: &[&str] = &[
+    "no-candidate-in-file",
+    "ambiguous-in-file",
+    "no-enclosing-callable",
+    "no-candidate-cross-file",
+    "stack-graphs",
+    "fanout-cap-exceeded",
+    "candidates-in-other-files",
+    "not-in-scope-for-bare-call",
+    "class-without-explicit-init",
+    "super-base-out-of-graph",
+    "value-ref-ambiguous",
+    "value-ref-no-enclosing",
+    "other",
+];
+
 impl UnresolvedReason {
     /// Map a legacy free-form reason slug onto the structured form.
     pub fn from_legacy(s: &str) -> Self {
@@ -249,7 +277,31 @@ where
             self,
             map: A,
         ) -> Result<UnresolvedReason, A::Error> {
-            UnresolvedReason::deserialize(de::value::MapAccessDeserializer::new(map))
+            // Buffered rather than decoded straight through, so an
+            // unrecognised `stage` can fall back to `Other` instead of
+            // failing the document.
+            //
+            // A reader that refuses a whole graph because one reason
+            // tag is newer than it is turns an additive change into a
+            // hard break — `cgg 0.8.3` does exactly that on the two
+            // `value-ref-*` reasons, reporting `unknown variant` at a
+            // byte offset rather than a version mismatch. `Other` is
+            // documented as "any other / legacy reason, preserving the
+            // original text" and this is the forward half of that job.
+            //
+            // The fallback is *narrow on purpose*: it fires only for a
+            // tag outside `KNOWN_UNRESOLVED_STAGES`. A known tag whose
+            // `detail` will not decode is a corrupt document, and still
+            // fails loudly.
+            let v = serde_json::Value::deserialize(
+                de::value::MapAccessDeserializer::new(map),
+            )?;
+            if let Some(stage) = v.get("stage").and_then(serde_json::Value::as_str)
+                && !crate::audit::KNOWN_UNRESOLVED_STAGES.contains(&stage)
+            {
+                return Ok(UnresolvedReason::Other(stage.to_string()));
+            }
+            UnresolvedReason::deserialize(&v).map_err(de::Error::custom)
         }
     }
     d.deserialize_any(R)
@@ -724,6 +776,136 @@ mod tests {
         assert_eq!(SkipReason::Builtin("node_modules".into()).slug(), "builtin");
         assert_eq!(SkipReason::Binary.slug(), "binary");
         assert_eq!(SkipReason::Minified.slug(), "minified");
+    }
+
+    /// Number of `UnresolvedReason` variants. Lives next to the
+    /// no-wildcard `match` below, which is what forces this to be
+    /// revisited: a new variant fails to compile until it has an arm,
+    /// and the arm's index must then be admitted here or the length
+    /// assertion fails. Two checks, because the arm alone only proves
+    /// the *match* is exhaustive — not that the vec holds an instance.
+    const UNRESOLVED_REASON_VARIANTS: usize = 13;
+
+    /// One instance of every `UnresolvedReason` variant.
+    fn every_unresolved_reason() -> Vec<UnresolvedReason> {
+        let all = vec![
+            UnresolvedReason::NoCandidateInFile,
+            UnresolvedReason::AmbiguousInFile,
+            UnresolvedReason::NoEnclosingCallable,
+            UnresolvedReason::NoCandidateCrossFile,
+            UnresolvedReason::StackGraphs,
+            UnresolvedReason::FanoutCapExceeded { candidates: 7 },
+            UnresolvedReason::CandidatesInOtherFiles { candidates: 3 },
+            UnresolvedReason::NotInScopeForBareCall { methods: 2 },
+            UnresolvedReason::ClassWithoutExplicitInit,
+            UnresolvedReason::SuperBaseOutOfGraph,
+            UnresolvedReason::ValueRefAmbiguous { candidates: 2 },
+            UnresolvedReason::ValueRefNoEnclosing,
+            UnresolvedReason::Other("legacy-thing".into()),
+        ];
+        // Compile-time exhaustiveness check, then a runtime one: every
+        // arm index must appear, so a variant with an arm but no
+        // instance above is caught rather than silently untested.
+        let mut seen = std::collections::BTreeSet::new();
+        for r in &all {
+            let idx: usize = match r {
+                UnresolvedReason::NoCandidateInFile => 0,
+                UnresolvedReason::AmbiguousInFile => 1,
+                UnresolvedReason::NoEnclosingCallable => 2,
+                UnresolvedReason::NoCandidateCrossFile => 3,
+                UnresolvedReason::StackGraphs => 4,
+                UnresolvedReason::FanoutCapExceeded { .. } => 5,
+                UnresolvedReason::CandidatesInOtherFiles { .. } => 6,
+                UnresolvedReason::NotInScopeForBareCall { .. } => 7,
+                UnresolvedReason::ClassWithoutExplicitInit => 8,
+                UnresolvedReason::SuperBaseOutOfGraph => 9,
+                UnresolvedReason::ValueRefAmbiguous { .. } => 10,
+                UnresolvedReason::ValueRefNoEnclosing => 11,
+                UnresolvedReason::Other(_) => 12,
+            };
+            seen.insert(idx);
+        }
+        assert_eq!(
+            seen.len(),
+            UNRESOLVED_REASON_VARIANTS,
+            "every_unresolved_reason() is missing an instance for some variant"
+        );
+        assert_eq!(all.len(), UNRESOLVED_REASON_VARIANTS);
+        all
+    }
+
+    /// `KNOWN_UNRESOLVED_STAGES` is the deserializer's recognizer, so a
+    /// variant missing from it would be decoded as a *newer cgg's*
+    /// reason and silently flattened to `Other` — losing its detail
+    /// with nothing reported. Adding a variant and forgetting the list
+    /// must be a test failure, not a downgrade.
+    #[test]
+    fn every_variant_tag_is_a_known_stage() {
+        for r in every_unresolved_reason() {
+            let v = serde_json::to_value(&r).unwrap();
+            let stage = v["stage"].as_str().unwrap().to_string();
+            assert!(
+                KNOWN_UNRESOLVED_STAGES.contains(&stage.as_str()),
+                "{stage:?} is written by {r:?} but is not in \
+                 KNOWN_UNRESOLVED_STAGES"
+            );
+        }
+    }
+
+    /// Round-trip through the `de_reason` path every variant takes on
+    /// the wire, so the buffered fallback cannot have changed what a
+    /// *recognised* tag decodes to.
+    #[test]
+    fn known_stages_round_trip_through_de_reason() {
+        for r in every_unresolved_reason() {
+            let doc = serde_json::json!({
+                "file": "F0", "site_line": 1, "site_byte": 2, "name": "f",
+                "reason": serde_json::to_value(&r).unwrap(),
+            });
+            let back: AuditUnresolvedCall = serde_json::from_value(doc).unwrap();
+            assert_eq!(back.reason, r, "round trip changed {r:?}");
+        }
+    }
+
+    /// A reason tag this binary has never heard of degrades to `Other`
+    /// carrying the original text, instead of failing the document.
+    ///
+    /// This is the defect 0.8.3 has: it refuses a graph written by this
+    /// version with `unknown variant value-ref-ambiguous` at a byte
+    /// offset. We cannot fix 0.8.3, but from here on an additive reason
+    /// is an additive change.
+    #[test]
+    fn an_unknown_stage_degrades_to_other_rather_than_failing() {
+        let doc = serde_json::json!({
+            "file": "F0", "site_line": 1, "site_byte": 2, "name": "f",
+            "reason": {"stage": "reason-from-the-future", "detail": {"n": 4}},
+        });
+        let back: AuditUnresolvedCall = serde_json::from_value(doc).unwrap();
+        assert_eq!(
+            back.reason,
+            UnresolvedReason::Other("reason-from-the-future".into())
+        );
+        // `slug()` reports the original text, so metrics bucketing is
+        // still meaningful rather than collapsing to a literal "other".
+        assert_eq!(back.reason.slug(), "reason-from-the-future");
+    }
+
+    /// The fallback is narrow: a *recognised* tag whose detail will not
+    /// decode is a corrupt document and must still be refused, not
+    /// quietly reclassified as `Other`.
+    #[test]
+    fn a_known_stage_with_a_broken_detail_is_still_an_error() {
+        let doc = serde_json::json!({
+            "file": "F0", "site_line": 1, "site_byte": 2, "name": "f",
+            "reason": {"stage": "fanout-cap-exceeded",
+                       "detail": {"candidates": "not-a-number"}},
+        });
+        let err = serde_json::from_value::<AuditUnresolvedCall>(doc).unwrap_err();
+        assert!(
+            format!("{err}").contains("u32"),
+            "the detail's type error must survive, not be swallowed \
+             into Other: {err}"
+        );
     }
 
     #[test]
