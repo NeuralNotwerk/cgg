@@ -156,14 +156,62 @@ pub fn render_baseline(report: &cgg_core::deadcode::DeadCodeReport) -> String {
     for f in &report.findings {
         out.push_str(&format!(
             "\n# {}:{}\n[[allow]]\nname   = \"^{}$\"\nreason = \"baseline — {} {}\"\n",
-            f.path.display(),
+            one_line(&f.path.display().to_string()),
             f.start_line,
-            regex::escape(&f.qualified_name),
+            toml_basic_escape(&regex::escape(&f.qualified_name)),
             f.category.code(),
             f.category.slug(),
         ));
     }
     out
+}
+
+/// Escape `s` for embedding in a TOML **basic** (double-quoted) string.
+///
+/// [`render_baseline`] writes each finding's pattern as
+/// `name   = "^<regex>$"`, and `regex::escape` emits a backslash before
+/// every metacharacter — so a qualified name carrying a `.`, which is
+/// every Python, Ruby, or otherwise dot-joined name, produced `\.` inside
+/// a basic string. TOML only recognises a fixed set of escapes there
+/// (`b f n r t u U \ "`), so `\.` is a hard parse error and the generated
+/// baseline could not be loaded back:
+///
+/// ```text
+/// name   = "^cgg\._cgg\.Graph\.callable$"
+///                 ^ invalid escape sequence
+/// ```
+///
+/// A TOML *literal* string (`'…'`) would sidestep escaping entirely but
+/// cannot represent a name containing an apostrophe, and Rust qualified
+/// names carry them routinely in lifetimes (`ExtractCtx<'a>::new`). So the
+/// basic string stays and its own escapes are applied on top of the regex
+/// escaping, innermost first.
+fn toml_basic_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            // Remaining C0 controls have no literal form in a basic
+            // string and must go out as `\u00XX`.
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\u{:04X}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Collapse anything that would end the line early, for text going into a
+/// generated `#` comment. A TOML comment runs to the end of the line, so a
+/// path containing a newline would push the rest of the comment out into
+/// the document as if it were syntax.
+fn one_line(s: &str) -> String {
+    s.replace(['\n', '\r'], " ")
 }
 
 #[cfg(test)]
@@ -209,14 +257,14 @@ mod tests {
         assert!(c.all_patterns().is_empty());
     }
 
-    #[test]
-    fn baseline_uses_allow_never_roots() {
-        // Accepting a finding must not confer liveness on its callees.
-        let mut r = cgg_core::deadcode::DeadCodeReport::default();
-        r.findings.push(cgg_core::deadcode::DeadCodeFinding {
+    /// A finding with `qn` as its qualified name; every other field is
+    /// filler, since `render_baseline` only reads the name, path, line
+    /// and category.
+    fn finding(qn: &str) -> cgg_core::deadcode::DeadCodeFinding {
+        cgg_core::deadcode::DeadCodeFinding {
             id: cgg_core::ids::CallableId::new(0),
-            qualified_name: "a::b".into(),
-            simple_name: "b".into(),
+            qualified_name: qn.into(),
+            simple_name: qn.into(),
             language: "rust".into(),
             kind: cgg_core::graph::CallableKind::Function,
             def_variant: String::new(),
@@ -235,19 +283,116 @@ mod tests {
             evidence: vec![],
             dead_callers: vec![],
             out_degree: 0,
-        });
+        }
+    }
+
+    /// Render one finding and read its single pattern back out.
+    fn round_trip(qn: &str) -> String {
+        let mut r = cgg_core::deadcode::DeadCodeReport::default();
+        r.findings.push(finding(qn));
+        let text = render_baseline(&r);
+        let cfg = DeadCodeConfigFile::parse(&text)
+            .unwrap_or_else(|e| panic!("baseline naming `{qn}` must parse: {e}"));
+        let mut pats = cfg.all_patterns();
+        assert_eq!(pats.len(), 1, "exactly one allow entry");
+        pats.pop().unwrap()
+    }
+
+    #[test]
+    fn baseline_uses_allow_never_roots() {
+        // Accepting a finding must not confer liveness on its callees.
+        let mut r = cgg_core::deadcode::DeadCodeReport::default();
+        r.findings.push(finding("a::b"));
         let text = render_baseline(&r);
         assert!(text.contains("[[allow]]"));
         assert!(text.contains(r#"name   = "^a::b$""#));
         assert_eq!(text.matches("roots = [\n]").count(), 1, "roots stays empty");
     }
 
+    /// `regex::escape` puts a backslash before every metacharacter, and a
+    /// TOML basic string accepts only a fixed escape set — so a DOTTED
+    /// qualified name rendered `\.`, which is not one of them, and the
+    /// generated file could not be loaded back at all:
+    ///
+    /// ```text
+    /// name   = "^cgg\._cgg\.Graph\.callable$"
+    ///                 ^ invalid escape sequence
+    /// ```
+    ///
+    /// That is every Python callable, so `--write-roots` produced an
+    /// unusable baseline for any tree containing Python.
+    #[test]
+    fn a_dotted_name_round_trips_and_its_dots_stay_literal() {
+        let pat = round_trip("cgg._cgg.Graph.callable");
+        let re = regex::Regex::new(&pat).expect("pattern must compile");
+        assert!(
+            re.is_match("cgg._cgg.Graph.callable"),
+            "pattern {pat} should match the name it was generated from"
+        );
+        assert!(
+            !re.is_match("cggX_cggXGraphXcallable"),
+            "the `.` must stay a literal dot, not decay into a wildcard"
+        );
+    }
+
+    /// An apostrophe is why this cannot simply switch to a TOML *literal*
+    /// string: Rust lifetimes put one straight into the qualified name.
+    #[test]
+    fn a_name_carrying_a_lifetime_round_trips() {
+        let qn = "cgg_lang::ExtractCtx<'a>::new";
+        let pat = round_trip(qn);
+        assert!(
+            regex::Regex::new(&pat).expect("must compile").is_match(qn),
+            "pattern {pat} should match {qn}"
+        );
+    }
+
+    /// A backslash or a quote in the name must survive both escaping
+    /// layers rather than closing the string early.
+    #[test]
+    fn a_name_with_a_quote_or_backslash_round_trips() {
+        for qn in [r#"weird::says"hi""#, r"weird::back\slash"] {
+            let pat = round_trip(qn);
+            assert!(
+                regex::Regex::new(&pat).expect("must compile").is_match(qn),
+                "pattern {pat} should match {qn}"
+            );
+        }
+    }
+
     #[test]
     fn baseline_round_trips_and_has_no_timestamp() {
-        let r = cgg_core::deadcode::DeadCodeReport::default();
+        // Deliberately NOT the default (empty) report. An empty one emits
+        // no `[[allow]]` line at all, so this test passed for the whole
+        // time `--write-roots` was writing files that could not be read
+        // back — the findings are what exercise the escaping.
+        let mut r = cgg_core::deadcode::DeadCodeReport::default();
+        r.findings.push(finding("cgg._cgg.Graph.callable"));
+        r.findings.push(finding("a::b"));
         let a = render_baseline(&r);
         let b = render_baseline(&r);
         assert_eq!(a, b, "determinism: no generated date");
         DeadCodeConfigFile::parse(&a).expect("generated baseline must parse");
+    }
+
+    #[test]
+    fn toml_basic_escape_covers_the_basic_string_escape_set() {
+        assert_eq!(toml_basic_escape(r"a\.b"), r"a\\.b");
+        assert_eq!(toml_basic_escape("say \"hi\""), r#"say \"hi\""#);
+        assert_eq!(toml_basic_escape("a\nb"), r"a\nb");
+        assert_eq!(toml_basic_escape("a\tb"), r"a\tb");
+        assert_eq!(toml_basic_escape("a\u{1}b"), "a\\u0001b");
+        assert_eq!(toml_basic_escape("plain"), "plain");
+    }
+
+    #[test]
+    fn a_newline_in_a_path_cannot_break_out_of_its_comment() {
+        let mut r = cgg_core::deadcode::DeadCodeReport::default();
+        let mut f = finding("a::b");
+        f.path = PathBuf::from("weird\nroots = [\"*\"]\n.rs");
+        r.findings.push(f);
+        let text = render_baseline(&r);
+        let cfg = DeadCodeConfigFile::parse(&text).expect("must still parse");
+        assert!(cfg.roots.is_empty(), "the path must not inject a root");
     }
 }
