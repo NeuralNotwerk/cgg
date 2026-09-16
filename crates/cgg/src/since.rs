@@ -33,6 +33,37 @@ use anyhow::{Context, Result, anyhow, bail};
 /// of the diff. Ranges are inclusive `[start, end]`, 1-based.
 pub type ChangedRanges = BTreeMap<PathBuf, Vec<(u32, u32)>>;
 
+/// Environment variables through which git scopes itself to a *particular*
+/// repository. Git exports these to any process it spawns — every hook
+/// runs with `GIT_DIR` and `GIT_INDEX_FILE` set — and they take precedence
+/// over `-C <path>`. Left in place, `--since` run from inside a hook (or
+/// from any git-spawned process) would resolve the revspec against
+/// whatever repository invoked the hook instead of the tree being
+/// analyzed, silently returning that repository's changed ranges.
+///
+/// `--since` is documented as anchored on the tree being analyzed rather
+/// than on the process environment, so they are cleared.
+const GIT_SCOPING_VARS: &[&str] = &[
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_NAMESPACE",
+    "GIT_PREFIX",
+];
+
+/// `git`, with [`GIT_SCOPING_VARS`] stripped so `-C <path>` is what
+/// actually decides which repository is read.
+fn git_command() -> Command {
+    let mut c = Command::new("git");
+    for v in GIT_SCOPING_VARS {
+        c.env_remove(v);
+    }
+    c
+}
+
 /// Run `git diff <revspec> --unified=0 --no-color -M` and parse the
 /// output. Paths in the returned map are absolute (canonicalised
 /// against the git toplevel) so they can be matched against cgg's
@@ -42,7 +73,7 @@ pub fn resolve_since(revspec: &str, cwd: &Path) -> Result<ChangedRanges> {
         "`--since` requires a git repository — `git rev-parse --show-toplevel` failed",
     )?;
 
-    let out = Command::new("git")
+    let out = git_command()
         .arg("-C")
         .arg(&toplevel)
         .arg("diff")
@@ -68,7 +99,7 @@ pub fn resolve_since(revspec: &str, cwd: &Path) -> Result<ChangedRanges> {
 }
 
 fn git_toplevel(cwd: &Path) -> Result<PathBuf> {
-    let out = Command::new("git")
+    let out = git_command()
         .arg("-C")
         .arg(cwd)
         .arg("rev-parse")

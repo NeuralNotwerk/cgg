@@ -620,14 +620,30 @@ fn no_entry_nodes_restores_the_plain_call_graph() {
 // --since
 // ---------------------------------------------------------------------
 
+/// Run git in `dir` with the ambient git environment stripped.
+///
+/// `GIT_DIR`, `GIT_INDEX_FILE` and friends are exported by git to every
+/// process it spawns, and they outrank `current_dir`. The repo's own
+/// pre-commit hook runs `cargo test --workspace`, so without this these
+/// fixtures ran `git init` and `git add -A` against the REAL repository
+/// that was mid-commit — observed setting `core.bare=true` on it and
+/// staging the entire working tree.
 fn git(dir: &Path, args: &[&str]) {
-    let ok = std::process::Command::new("git")
-        .current_dir(dir)
-        .args(args)
-        .output()
-        .expect("git runs")
-        .status
-        .success();
+    let mut c = std::process::Command::new("git");
+    c.current_dir(dir);
+    for v in [
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_COMMON_DIR",
+        "GIT_NAMESPACE",
+        "GIT_PREFIX",
+    ] {
+        c.env_remove(v);
+    }
+    let ok = c.args(args).output().expect("git runs").status.success();
     assert!(ok, "git {args:?} failed");
 }
 
