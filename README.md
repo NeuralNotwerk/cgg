@@ -518,7 +518,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2272 callables, 5472 edges, 1986 cross-file, 179ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2351 callables, 5326 edges, 1457 cross-file, 130ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -536,39 +536,39 @@ flowchart LR
   N4["cgg::langs_enabled"]
   N5["cgg::specific"]
   N6["cgg::apply_rollup"]
-  N7["cgg::render"]
-  N8["cgg::dead_code_analysis"]
-  N9["cgg::why_live_proofs"]
-  N10["cgg::since_seeds"]
-  N11["cgg::count_lines"]
-  N12["cgg::read_file"]
-  N13["cgg::variant_to_kind"]
-  N14["cgg::synthesize_exit_nodes"]
-  N15["cgg::synthesize_entry_nodes"]
-  N16["cgg::trait_impl_target_from_qn"]
-  N17["cgg::dedup_edges"]
-  N18["cgg::group_unresolved_by_module"]
-  N19["cgg::options::RunOptions::dead_mode"]
-  N20["cgg::outcome::Emission::line"]
-  N21["cgg::outcome::Emission::always"]
-  N22["cgg::query::apply_query"]
-  N23["cgg::query::apply_exclusions"]
-  N24["cgg::since::resolve_since"]
-  N25["cgg::stable_ids::StableIds::new"]
-  N26["cgg::stable_ids::StableIds::file"]
-  N27["cgg::stable_ids::StableIds::callable"]
-  N28["cgg_core::external::FileAliases::from_facts"]
-  N29["cgg_core::external::classify_external"]
-  N30["cgg_core::external::build_known_names"]
-  N31["cgg_core::graph::Graph::new"]
-  N32["cgg_core::graph::Graph::add_callable"]
-  N33["cgg_core::graph::Graph::add_file"]
-  N34["cgg_core::graph::Graph::add_edge"]
-  N35["cgg_core::profile::enable"]
-  N36["cgg_core::profile::span"]
-  N37["cgg_core::testfile::classify_test_file"]
-  N38["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  N39["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N7["cgg::dead_code_analysis"]
+  N8["cgg::why_live_proofs"]
+  N9["cgg::since_seeds"]
+  N10["cgg::count_lines"]
+  N11["cgg::read_file"]
+  N12["cgg::variant_to_kind"]
+  N13["cgg::synthesize_exit_nodes"]
+  N14["cgg::synthesize_entry_nodes"]
+  N15["cgg::trait_impl_target_from_qn"]
+  N16["cgg::dedup_edges"]
+  N17["cgg::group_unresolved_by_module"]
+  N18["cgg::options::RunOptions::dead_mode"]
+  N19["cgg::outcome::Emission::line"]
+  N20["cgg::outcome::Emission::always"]
+  N21["cgg::query::apply_query"]
+  N22["cgg::query::apply_exclusions"]
+  N23["cgg::since::resolve_since"]
+  N24["cgg::stable_ids::StableIds::new"]
+  N25["cgg::stable_ids::StableIds::file"]
+  N26["cgg::stable_ids::StableIds::callable"]
+  N27["cgg_core::external::FileAliases::from_facts"]
+  N28["cgg_core::external::classify_external"]
+  N29["cgg_core::external::build_known_names"]
+  N30["cgg_core::graph::Graph::new"]
+  N31["cgg_core::graph::Graph::add_callable"]
+  N32["cgg_core::graph::Graph::add_file"]
+  N33["cgg_core::graph::Graph::add_edge"]
+  N34["cgg_core::profile::enable"]
+  N35["cgg_core::profile::span"]
+  N36["cgg_core::testfile::classify_test_file"]
+  N37["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  N38["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N39["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
   N40["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
   N41["cgg_lang::PluginRegistry::with_v1_plugins"]
   N42["cgg_lang::notebook::extract_python_source"]
@@ -582,92 +582,93 @@ flowchart LR
   N50["cgg_resolve::frameworks::detect"]
   N51["cgg_resolve::intra_file::link_file"]
   N52["cgg_resolve::names::owner_from_qn"]
-  N53["cgg_resolve::type_hints::build_return_type_map"]
-  N54["cgg_resolve::type_hints::propagate_types_with_returns"]
-  N55["cgg_walk::walk"]
+  N53["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N54["cgg_resolve::type_hints::build_return_type_map"]
+  N55["cgg_resolve::type_hints::propagate_types_with_returns"]
+  N56["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
-  N3 --> N12
   N3 --> N11
-  N3 --> N13
-  N3 --> N16
-  N3 -->|2x| N5
-  N3 --> N14
-  N3 --> N15
-  N3 --> N18
-  N3 --> N17
   N3 --> N10
+  N3 --> N12
+  N3 --> N15
+  N3 -->|2x| N5
+  N3 --> N13
+  N3 --> N14
+  N3 --> N17
+  N3 --> N16
   N3 --> N9
   N3 --> N8
-  N3 --> N6
   N3 --> N7
+  N3 --> N6
   N44 --> N44
-  N3 --> N19
+  N3 --> N18
   N3 --> N1
   N3 --> N0
-  N3 --> N35
-  N3 --> N55
-  N3 --> N41
-  N3 --> N38
-  N3 --> N43
-  N3 --> N25
-  N3 --> N31
   N3 --> N39
+  N3 --> N34
+  N3 --> N56
+  N3 --> N41
+  N3 --> N37
+  N3 --> N43
+  N3 --> N24
+  N3 --> N30
+  N3 --> N38
   N3 --> N42
-  N3 -->|18x| N36
+  N3 -->|18x| N35
   N3 --> N44
   N3 --> N45
   N3 --> N40
-  N3 --> N26
-  N3 --> N37
-  N3 --> N33
-  N3 --> N52
-  N3 --> N27
+  N3 --> N25
+  N3 --> N36
   N3 --> N32
-  N3 --> N53
+  N3 --> N52
+  N3 --> N26
+  N3 --> N31
   N3 --> N54
-  N3 --> N30
-  N3 --> N51
-  N3 --> N28
+  N3 --> N53
+  N3 --> N55
   N3 --> N29
+  N3 --> N51
+  N3 --> N27
+  N3 --> N28
   N3 --> N46
   N3 --> N49
   N3 --> N47
   N3 --> N50
   N3 --> N48
-  N3 --> N34
-  N3 -->|5x| N20
-  N3 --> N24
-  N3 -->|2x| N21
-  N3 --> N22
+  N3 --> N33
+  N3 -->|5x| N19
   N3 --> N23
-  N6 --> N36
-  N6 --> N46
-  N6 --> N25
-  N6 -->|3x| N21
-  N6 --> N20
-  N8 --> N41
-  N8 --> N21
+  N3 -->|2x| N20
+  N3 --> N21
+  N3 --> N22
+  N6 --> N35
+  N6 --> N24
+  N6 -->|3x| N20
+  N6 --> N19
+  N7 --> N41
+  N7 --> N20
+  N7 --> N19
   N8 --> N20
-  N9 --> N21
-  N14 -->|2x| N26
-  N14 -->|2x| N33
-  N14 --> N27
+  N13 -->|2x| N25
+  N13 -->|2x| N32
+  N13 --> N26
+  N13 --> N31
+  N13 --> N33
+  N14 --> N25
   N14 --> N32
-  N14 --> N34
-  N15 --> N26
-  N15 --> N33
-  N15 --> N27
-  N15 --> N32
-  N15 --> N34
-  N22 --> N31
-  N46 -->|6x| N36
-  N46 -->|4x| N52
+  N14 --> N26
+  N14 --> N31
+  N14 --> N33
+  N21 --> N30
+  N46 -->|6x| N35
+  N46 -->|5x| N52
   N47 -->|2x| N52
   N48 --> N52
-  N50 -->|9x| N36
+  N50 -->|9x| N35
   N51 -->|3x| N52
-  N54 -->|3x| N36
+  N55 -->|3x| N35
 ```
 <!-- cgg:end:self -->
 
@@ -888,7 +889,8 @@ Two limits, both stated by the tool rather than left to be discovered:
   `--lang`, `--skip-minified` — are **refused with a reason**, not
   silently ignored.
 
-The document carries `"schema": "cgg.graph.v1"` and the writing version.
+The document carries `"schema": "cgg.graph.v2"` and the writing version.
+`--from-graph` also reads `cgg.graph.v1`, written by 0.8.3 and earlier.
 Node ids are not comparable across cgg versions, so a mismatch warns and a
 different schema is refused.
 

@@ -7,6 +7,8 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-09-17
+
 ### Fixed
 
 - **The Rust cross-file resolver emitted guessed edges at sites it had
@@ -57,6 +59,48 @@ ever grows in default mode — see *Compatibility* below).
   count moves with upstream flask — the identity is the claim, not the
   number). A `Via::Reference` edge is emitted for any target except a
   closure bound to the same name.
+
+- **`--write-roots` wrote a baseline that could not be read back.**
+  `render_baseline` interpolated `regex::escape`'s output straight into a
+  TOML *basic* string, so any qualified name carrying a regex
+  metacharacter emitted `\.` — not one of the escapes TOML recognises
+  there. Every dot-joined name hit it, so the command produced an
+  unloadable file for any tree containing Python. Escaping now happens
+  for the basic string on top of the regex escaping, innermost first; a
+  TOML *literal* string would avoid the second layer but cannot hold an
+  apostrophe, and Rust lifetimes put those in qualified names
+  (`ExtractCtx<'a>::new`). `baseline_round_trips_and_has_no_timestamp`
+  missed it because it rendered a *default* report — no findings, so no
+  `[[allow]]` line, so the escaping never ran.
+
+- **git invocations inherited the ambient git environment.** Git exports
+  `GIT_DIR` and `GIT_INDEX_FILE` to every process it spawns, and they
+  outrank both `-C <path>` and `current_dir`. The pre-commit hook runs
+  `cargo test --workspace`, so the `--since` fixtures ran `git init` and
+  `git add -A` against the real repository that was mid-commit —
+  observed setting `core.bare=true` on it and staging the entire working
+  tree. `since.rs` had the same hole with a quieter failure: `--since` is
+  documented as anchored on the tree being analyzed, but a leaked
+  `GIT_DIR` overrode the `-C <toplevel>` meant to enforce that, so a run
+  from inside any hook resolved the revspec against whichever repository
+  invoked the hook. Both call sites now strip the eight repo-scoping
+  variables.
+
+### Changed
+
+- **The graph document schema is `cgg.graph.v2`.** No field changed
+  meaning; two `UnresolvedReason` tags were added, which is additive by
+  the rule in `cgg_format::json::GRAPH_SCHEMA`. The readers already
+  shipped do not treat it that way — through 0.8.3 an unrecognised
+  `stage` is a hard serde error, so a 0.8.3 binary rejected the whole
+  document at a byte offset (``unknown variant `value-ref-ambiguous` ...
+  at line 14346 column 38``) rather than reporting a version it was too
+  old to read. The tag makes that failure legible:
+  `declares schema "cgg.graph.v2", but this cgg reads "cgg.graph.v1"`.
+  `--from-graph` still reads `cgg.graph.v1`, so no document written by an
+  earlier release is orphaned, and 0.8.4's own reader no longer has the
+  flaw — an unknown `stage` degrades to `UnresolvedReason::Other` — so a
+  genuinely additive change after this one will not need a bump.
 
 ### Added
 
@@ -197,6 +241,41 @@ measuring different repo sets with nothing saying so.
 `determinism-sweep.py`: 25 repos x 3 runs, 0 nondeterministic. Graph
 byte-identical (mermaid) at `--jobs 1/4/8/16/32` on `rust-ripgrep`,
 `app-wordpress` and `ts-zod`, with and without `--skip-minified`.
+
+**Independently replicated on a second corpus.** The same three
+configurations, measured by a reviewer against the 0.8.3 release binary
+over a different and larger corpus — 164 repository directories rather
+than the 110 `benchmark.sh` names — on a 32-physical-core host, serial,
+minimum of two alternating runs after a discarded warm-up:
+
+| configuration | wall | graph |
+| --- | --- | --- |
+| resolver alone, both pinned `--jobs 8` | 287.5s -> 286.1s (**-0.5%**) | edges 5,109,423 -> 4,812,000 (-5.8%); callables +12 |
+| default `--jobs`, 32 physical cores | 285.6s -> 213.7s (**-25.2%**) | same counts as the row above |
+| `--skip-minified`, both pinned `--jobs 8` | 284.8s -> 270.0s (**-5.2%**) | callables -3.6%; edges -8.4%; unresolved -7.4% |
+
+The 0.8.3 arm was re-measured in each of the three sweeps and spread
+287.5 / 285.6 / 284.8 s — about 0.9%, which is this harness's noise
+floor and wider than the -0.5% pinned result. **The resolver changes are
+therefore indistinguishable from wall-neutral on this corpus**, against
++1.3% on the smaller one; the two runs agree that the cost is at most
+about a percent, and disagree on its sign, which is what a sub-noise
+effect looks like. Edge and callable deltas, being deterministic, agree
+closely across both corpora (-5.8% vs -5.7% edges).
+
+The `+12` callables in the pinned row are not analyzed source: they are
+`<framework-entry>` nodes. Integration-test handlers in different
+`tests/*.rs` files previously collided under one bare crate-root name
+and deduplicated into a single entry node; the `tests::` requalification
+makes them distinct, which is the collision that change exists to fix.
+Real file-backed callables are byte-identical — checked on `rust-salvo`,
+17,678 before and after, zero added and zero removed.
+
+Four repos in this corpus gain edges — `rust-ntex`, `csharp-mediatr`,
+`rust-bat`, `rust-ripgrep` — where the 110-repo corpus has none. The
+last two are the same repositories at different revisions and move in
+opposite directions on the two clone dates, so a per-repo edge delta is
+a fact about a revision, not about the release.
 
 ## [0.8.3] - 2026-08-26
 

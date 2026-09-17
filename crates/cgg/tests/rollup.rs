@@ -397,7 +397,7 @@ fn the_json_document_carries_its_schema_and_version() {
     let tmp = fixture();
     let (stdout, _) = run(tmp.path(), &["-t", "json"]);
     let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    assert_eq!(v["schema"], "cgg.graph.v1");
+    assert_eq!(v["schema"], "cgg.graph.v2");
     assert_eq!(v["cgg_version"], env!("CARGO_PKG_VERSION"));
 }
 

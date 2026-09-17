@@ -50,7 +50,7 @@ const near = await cgg.analyze("./src", { filter: ["handleRequest$"], hops: 2 })
 const both = await cgg.analyze(["./api", "./worker"], { lang: ["typescript", "go"] });
 
 g.toMermaid();   // -> string, byte-identical to `cgg -t mermaid`
-g.toJson();      // -> string, `cgg.graph.v1`
+g.toJson();      // -> string, `cgg.graph.v2`
 g.toDot();
 g.toGraphml();
 

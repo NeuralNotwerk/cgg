@@ -30,7 +30,7 @@ export declare class Graph {
   /** Render as a mermaid flowchart — what the CLI emits by default. */
   toMermaid(): string
   /**
-   * Render as `cgg.graph.v1` JSON.
+   * Render as `cgg.graph.v2` JSON.
    *
    * Matches `cgg -t json` except for the per-run parse timings it
    * embeds (`parse_ms`, `wall_ms`), which differ between any two runs

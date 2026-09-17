@@ -250,11 +250,14 @@ fn load(
         )
     })?;
     match peek.get("schema").and_then(|v| v.as_str()) {
-        Some(cgg_format::json::GRAPH_SCHEMA) => {}
+        // Any schema this cgg knows how to read, not only the one it
+        // writes — a document from the previous release is still a
+        // document this binary understands.
+        Some(s) if cgg_format::json::ACCEPTED_GRAPH_SCHEMAS.contains(&s) => {}
         Some(other) => bail!(
             "{} declares schema {other:?}, but this cgg reads {:?}",
             path.display(),
-            cgg_format::json::GRAPH_SCHEMA
+            cgg_format::json::ACCEPTED_GRAPH_SCHEMAS
         ),
         // Written before the schema key existed, or by something else
         // entirely. Readable, but node ids are explicitly not comparable

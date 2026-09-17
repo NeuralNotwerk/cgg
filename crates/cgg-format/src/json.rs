@@ -5,13 +5,34 @@ use cgg_core::Graph;
 use serde::Serialize;
 use std::io;
 
-/// The document schema `-t json` writes, and `--from-graph` reads back.
+/// The document schema `-t json` writes.
 ///
-/// Bumped only when an existing field changes meaning or disappears.
-/// Adding a field does not bump it: every field on `Graph` is
-/// `skip_serializing_if`-guarded or plainly additive, and the reader
-/// ignores keys it does not know.
-pub const GRAPH_SCHEMA: &str = "cgg.graph.v1";
+/// Bumped only when an existing field changes meaning or disappears, or
+/// when a shipped reader cannot read the new document. Adding a field
+/// does not bump it: every field on `Graph` is `skip_serializing_if`-
+/// guarded or plainly additive, and the reader ignores keys it does not
+/// know.
+///
+/// `v2` (0.8.4) is the second case, not the first. No field changed
+/// meaning; two `UnresolvedReason` tags were added. That is additive by
+/// the rule above, but the readers already shipped do not treat it that
+/// way — through 0.8.3 an unrecognised `stage` is a hard serde error, so
+/// a 0.8.3 binary rejects the whole document at a byte offset
+/// (`unknown variant `value-ref-ambiguous` ... at line 14346 column 38`)
+/// rather than reporting a version it is too old to read. The tag is
+/// what makes that failure legible. 0.8.4's own reader no longer has the
+/// flaw — an unknown `stage` degrades to `UnresolvedReason::Other` (see
+/// `KNOWN_UNRESOLVED_STAGES`) — so a genuinely additive change after
+/// this one will not need a bump.
+pub const GRAPH_SCHEMA: &str = "cgg.graph.v2";
+
+/// Every schema `--from-graph` accepts, newest first.
+///
+/// Writing a new tag must not orphan documents written by the previous
+/// release: a v1 document contains nothing 0.8.4 cannot read, so it is
+/// still read, and only the reverse direction (old binary, new document)
+/// is refused — which is the entire point of the bump.
+pub const ACCEPTED_GRAPH_SCHEMAS: &[&str] = &["cgg.graph.v2", "cgg.graph.v1"];
 
 /// `Graph`, plus the two keys that make it safe to read back later.
 ///
