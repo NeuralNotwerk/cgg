@@ -280,6 +280,19 @@ pub struct RefRecord {
     /// passes none, or when the plugin does not capture them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub kwargs: Vec<String>,
+
+    /// Set when this reference was extracted from inside a macro's raw
+    /// token tree (Rust `refs_from_token_tree`), where any `receiver_hint`
+    /// was inferred from bare token adjacency rather than a typed
+    /// expression, and can therefore name a type alias's bare name or a
+    /// file-wide `var_types` guess that turns out wrong in a way an
+    /// ordinary expression's receiver cannot. `context` already carries
+    /// registrar/route metadata for Rust (`refs_from_args`), so this is a
+    /// separate field rather than an overload: the resolver uses it as
+    /// permission to retry a failed qualified lookup with the receiver
+    /// dropped, once, and only on a crate-wide-unique simple name.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub from_macro_arg: bool,
 }
 
 /// The two-phase AST pass output for a single file.

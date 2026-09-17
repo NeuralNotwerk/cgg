@@ -117,7 +117,11 @@ impl<'a> UnresolvedIndex<'a> {
             .iter()
             .filter(|u| {
                 u.file == node.file
-                    && matches!(u.reason, UnresolvedReason::AmbiguousInFile)
+                    && matches!(
+                        u.reason,
+                        UnresolvedReason::AmbiguousInFile
+                            | UnresolvedReason::ValueRefAmbiguous { .. }
+                    )
             })
             .collect();
         if let Some(first) = same_file_ambiguous.first() {

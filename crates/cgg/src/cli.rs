@@ -209,14 +209,28 @@ pub struct Cli {
     #[arg(long = "ignore-file", value_name = "PATH")]
     pub ignore_file: Option<PathBuf>,
 
+    /// Skip minified JS/CSS: `name.min.{js,mjs,cjs,css}`, or any file
+    /// with one of those extensions averaging over 2,000 bytes per
+    /// line. Off by default.
+    ///
+    /// Bundled output carries no callable structure worth graphing and
+    /// dominates wall time on a mixed-language tree, but it is still
+    /// real source that parses — so the default walk analyzes it, and
+    /// dropping it is a decision you make rather than one cgg makes
+    /// for you. Skipped files are reported in the audit with
+    /// `skip_reason: minified` and counted in the run summary.
+    #[arg(long = "skip-minified", action = ArgAction::SetTrue)]
+    pub skip_minified: bool,
+
     /// Number of parallel worker threads.
     ///
     /// `0` (the default) means auto: half the machine's **physical**
-    /// cores, detected at runtime, capped at 8 and bounded by any cgroup
-    /// quota. The cap keeps cgg a good guest on a large shared host —
-    /// it is not a claim that more threads stop helping. On a big tree
-    /// they do help: pass `--jobs 32` and expect roughly a 2x speedup
-    /// over the default.
+    /// cores, detected at runtime, capped at 8 (32 once physical cores
+    /// reach 32) and bounded by any cgroup quota. The cap keeps cgg a
+    /// good guest on a large shared host — it is not a claim that more
+    /// threads stop helping. On a big tree they do help: pass
+    /// `--jobs 32` and expect roughly a 2x speedup over the small-host
+    /// default.
     #[arg(long = "jobs", value_name = "N", default_value_t = 0)]
     pub jobs: usize,
 

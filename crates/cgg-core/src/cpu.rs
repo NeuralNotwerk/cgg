@@ -43,28 +43,72 @@ pub fn physical_cores() -> usize {
     detected.min(logical).max(1)
 }
 
-/// Upper bound on the automatic worker count.
+/// Upper bound on the automatic worker count on a machine with fewer
+/// than [`WIDE_HOST_THRESHOLD`] physical cores.
 ///
-/// Most machines running cgg have 4-8 physical cores, so above this the
-/// default stops tracking the hardware and behaves like a common
-/// desktop. That is a deliberate choice to be a well-behaved guest on a
-/// big shared box rather than to win a benchmark: a 64-thread server
-/// gets 8 workers by default and leaves the rest for whatever else is
-/// running. `--jobs N` overrides it, and on a large tree that is worth
-/// doing — see the note on cost below.
+/// Most machines running cgg have 4-8 physical cores, so below the wide-
+/// host threshold the default stops tracking the hardware and behaves
+/// like a common desktop. `--jobs N` overrides it, and on a large tree
+/// that is worth doing — see the note on cost below.
 const MAX_AUTO_JOBS: usize = 8;
+
+/// Physical-core count at and above which the cap widens from
+/// [`MAX_AUTO_JOBS`] to [`MAX_AUTO_JOBS_WIDE_HOST`].
+///
+/// Measured (`l/MY-FINDINGS.md`, this repo's own AB harness): on a
+/// 64-physical / 128-logical EPYC host, llmitm-v5 analysed in ~275ms at
+/// the old fixed auto-default of 8 workers and ~175ms at 32 workers —
+/// 8 was leaving over a third of the wall clock on the table on exactly
+/// the kind of big shared box the low cap was written to protect.
+/// Below 32 physical cores the machine is small enough that
+/// `MAX_AUTO_JOBS` was already the binding constraint only rarely (it
+/// only bites once `physical_cores()/2` exceeds 8, i.e. >=16 physical
+/// cores), so this only changes behaviour on genuinely wide hosts.
+const WIDE_HOST_THRESHOLD: usize = 32;
+
+/// Upper bound on the automatic worker count once
+/// [`WIDE_HOST_THRESHOLD`] is met or exceeded.
+const MAX_AUTO_JOBS_WIDE_HOST: usize = 32;
+
+/// Pure core: maps a (physical core count, parallelism quota) pair to a
+/// worker count. Kept free of any I/O so it can be tested for every
+/// core count without needing a matching real host.
+///
+/// `quota` is `std::thread::available_parallelism()` — logical
+/// parallelism, which already reflects any cgroup CPU quota — and always
+/// wins over the topology-detected `physical` count when it is smaller,
+/// so a container pinned below its host's physical core count still
+/// gets a jobs count sized to what it may actually use.
+fn jobs_for(physical: usize, quota: usize) -> usize {
+    let usable = physical.min(quota).max(1);
+    let cap = if usable >= WIDE_HOST_THRESHOLD {
+        MAX_AUTO_JOBS_WIDE_HOST
+    } else {
+        MAX_AUTO_JOBS
+    };
+    (usable / 2).clamp(1, cap)
+}
 
 /// Default worker count: half the physical cores, capped, never zero.
 ///
-/// **This is tuned for politeness, not for throughput, and the
-/// difference is measurable.** On a 32-physical-core machine the default
-/// is 8 rather than 16 or 32, and on a large repository more workers are
-/// genuinely faster — Druid measured 18.9s at 8 threads against 8.9s at
-/// 32. Anyone analysing a large tree, or on a machine they own, should
-/// pass `--jobs`. The default optimises for not monopolising a host that
-/// may be shared.
+/// **This is tuned for politeness on small-to-mid machines, not for
+/// throughput, and the difference is measurable.** On a machine under
+/// [`WIDE_HOST_THRESHOLD`] physical cores the default stays capped at
+/// [`MAX_AUTO_JOBS`] rather than chasing every core — Druid measured
+/// 18.9s at 8 threads against 8.9s at 32 on one large repository, and
+/// anyone analysing a large tree, or on a machine they own, should still
+/// pass `--jobs` explicitly. Once physical cores clears
+/// [`WIDE_HOST_THRESHOLD`] the cap widens to
+/// [`MAX_AUTO_JOBS_WIDE_HOST`], because at that host size 8 stops being
+/// "a well-behaved guest" and starts being most of the machine sitting
+/// idle — see [`WIDE_HOST_THRESHOLD`]'s doc comment for the measurement.
+/// Bounded throughout by whatever cgroup quota
+/// `std::thread::available_parallelism()` already reflects.
 pub fn default_jobs() -> usize {
-    (physical_cores() / 2).clamp(1, MAX_AUTO_JOBS)
+    let quota = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    jobs_for(physical_cores(), quota)
 }
 
 #[cfg(target_os = "linux")]
@@ -157,5 +201,53 @@ mod tests {
         // still get a usable worker count rather than a pool of zero.
         assert!(default_jobs() >= 1);
         assert!(default_jobs() <= physical_cores().max(1));
+    }
+
+    /// SPECS.md c10: "the pure function that maps (physical_cores, quota)
+    /// -> jobs, for 4, 8, 16, 32, 64, 128 cores." Quota == physical in
+    /// this table, i.e. an unconstrained host at each size.
+    #[test]
+    fn jobs_for_caps_at_8_below_32_cores_and_32_at_or_above() {
+        let cases = [
+            // (physical, quota, expected jobs)
+            (4, 4, 2),
+            (8, 8, 4),
+            (16, 16, 8),
+            // 24/2=12 would exceed the old cap were it not for the
+            // clamp; still below the wide-host threshold so it stays
+            // capped at MAX_AUTO_JOBS, not widened.
+            (24, 24, 8),
+            (32, 32, 16),
+            (64, 64, 32),
+            // 128/2=64 must still clamp to the wide-host cap of 32, not
+            // grow unbounded.
+            (128, 128, 32),
+        ];
+        for (physical, quota, expected) in cases {
+            assert_eq!(
+                jobs_for(physical, quota),
+                expected,
+                "jobs_for({physical}, {quota}) should be {expected}"
+            );
+        }
+    }
+
+    /// A cgroup quota below the detected physical count MUST still win:
+    /// a container pinned to 4 CPUs on a 64-physical-core host gets a
+    /// jobs count sized to its 4, not the host's topology.
+    #[test]
+    fn jobs_for_is_bounded_by_the_quota_not_just_physical_cores() {
+        assert_eq!(
+            jobs_for(64, 4),
+            2,
+            "a 4-CPU quota on a 64-physical-core host must bound usable \
+             cores to 4, giving 4/2=2 workers — not 32"
+        );
+    }
+
+    #[test]
+    fn jobs_for_never_zero_even_on_a_single_core() {
+        assert_eq!(jobs_for(1, 1), 1);
+        assert_eq!(jobs_for(0, 0), 1);
     }
 }

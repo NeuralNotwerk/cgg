@@ -365,6 +365,7 @@ impl<'a> PerlWalker<'a> {
                     continue;
                 }
                 out.push(RefRecord {
+                    from_macro_arg: false,
                     name: s,
                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
                     site_line: line,
@@ -378,6 +379,7 @@ impl<'a> PerlWalker<'a> {
 
             if let Some(name) = self.value_ref_name(*arg, i, &items) {
                 out.push(RefRecord {
+                    from_macro_arg: false,
                     name,
                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                     site_line: line,
@@ -459,6 +461,7 @@ impl<'a> PerlWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                from_macro_arg: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

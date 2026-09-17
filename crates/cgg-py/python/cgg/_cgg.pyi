@@ -155,6 +155,7 @@ def analyze(
     lang: Sequence[str] | None = ...,
     jobs: int = ...,
     ignore_file: str | os.PathLike[str] | None = ...,
+    skip_minified: bool = ...,
     include_external: bool = ...,
     include_stdlib: bool = ...,
     dynamic_dispatch: bool = ...,

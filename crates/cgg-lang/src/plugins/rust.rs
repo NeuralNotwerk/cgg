@@ -132,7 +132,9 @@ impl LanguagePlugin for RustPlugin {
 /// * `src/foo/mod.rs`                   -> `foo`.
 /// * `src/foo/bar.rs`                   -> `foo::bar`.
 /// * `src/bin/name.rs`                  -> `` (binary roots; no segments).
-/// * `tests/name.rs`                    -> `` (integration test root).
+/// * `tests/name.rs`                    -> `tests::name`.
+/// * `tests/dir/main.rs`                -> `tests::dir`.
+/// * `benches/name.rs`, `examples/name.rs` -> `` (own roots; no segments).
 fn rust_module_path(path: &Path) -> (String, Vec<String>) {
     let (crate_root, crate_dir) = match crate_dir_for(path) {
         Some((name, dir)) => (name.replace('-', "_"), dir),
@@ -153,9 +155,39 @@ fn rust_module_path(path: &Path) -> (String, Vec<String>) {
     // Drop the leading `src` or `tests`/`benches`/etc. container.
     let segs: Vec<String> = match components.first().map(|s| s.as_str()) {
         Some("src") => components[1..].to_vec(),
-        Some("tests") | Some("benches") | Some("examples") => {
-            // Each test/bench/example is its own compilation unit —
-            // treat them as separate roots with no shared module path.
+        Some("tests") => {
+            // Each integration test file is its own compilation unit,
+            // but (unlike benches/examples) it still lives in the same
+            // workspace target graph as the library and is a common
+            // place for a helper to share a name with something in
+            // `src/` (`run`, `fixture`, `write`, …). Leaving these
+            // unqualified at the bare crate root made `by_qn.insert`
+            // last-write-wins onto whichever definition was walked
+            // last, producing false edges from `src/` into test-file
+            // helpers. Qualify under `<crate>::tests::` instead:
+            //   `tests/<name>.rs`         -> tests::<name>
+            //   `tests/<dir>/main.rs`     -> tests::<dir>  (cargo's own
+            //                                convention: a directory
+            //                                target's entry point)
+            let rest = &components[1..];
+            if rest.is_empty() {
+                return (crate_root, Vec::new());
+            }
+            let mut mods: Vec<String> = vec!["tests".to_string()];
+            let last = rest.last().map(|s| s.as_str()).unwrap_or("");
+            if rest.len() > 1 && last == "main.rs" {
+                mods.push(rest[rest.len() - 2].clone());
+            } else if let Some(stem) = std::path::Path::new(last)
+                .file_stem()
+                .and_then(|s| s.to_str())
+            {
+                mods.push(stem.to_string());
+            }
+            return (crate_root, mods);
+        }
+        Some("benches") | Some("examples") => {
+            // Each bench/example is its own compilation unit — treat
+            // them as separate roots with no shared module path.
             return (crate_root, Vec::new());
         }
         _ => components,
@@ -599,15 +631,167 @@ impl<'a> Walker<'a> {
             let text = self.text(func);
             if let Some(pos) = text.find("::") {
                 let type_part = &text[..pos];
+                let assoc_fn = &text[pos + 2..];
                 if type_part.starts_with(char::is_uppercase) && !type_part.contains('<') {
+                    // `Arc::new(<inner>)` / `Rc::from(<inner>)` etc. forward every
+                    // method call to <inner> via Deref, so typing the local as the
+                    // wrapper hides <inner>'s own methods from step 4's owner
+                    // lookup and the call site is screened as stdlib. See through
+                    // it when <inner>'s own constructor syntax names a type.
+                    if matches!(assoc_fn, "new" | "from")
+                        && is_deref_transparent_wrapper(type_part)
+                    {
+                        if let Some(inner_type) = self.inner_wrapped_type(call) {
+                            self.facts.local_types.push(cgg_core::LocalType {
+                                var_name,
+                                type_name: inner_type,
+                                scope_byte: node.start_byte() as u32,
+                            });
+                            return;
+                        }
+                        // <inner> isn't a `Type::assoc_fn()` call we can read —
+                        // fall through to the old behaviour (type as the wrapper).
+                    } else if assoc_fn == "clone"
+                        && is_deref_transparent_wrapper(type_part)
+                    {
+                        // `Arc::clone(&x)` / `Rc::clone(&x)` — same value as `x`,
+                        // so it carries `x`'s already-known type, if any.
+                        if let Some(arg_name) = self.first_call_arg_ident(call) {
+                            if let Some(known) = self.known_local_type(&arg_name, node) {
+                                self.facts.local_types.push(cgg_core::LocalType {
+                                    var_name,
+                                    type_name: known,
+                                    scope_byte: node.start_byte() as u32,
+                                });
+                            }
+                        }
+                        return;
+                    }
                     self.facts.local_types.push(cgg_core::LocalType {
                         var_name,
                         type_name: type_part.to_string(),
                         scope_byte: node.start_byte() as u32,
                     });
+                    return;
                 }
             }
         }
+        // `let c = x.clone();` — method-call form. `x.clone` is a
+        // `field_expression` whose text has no `::`, so it never reaches the
+        // branch above. Same rule: `c` carries `x`'s already-known type.
+        if func.kind() == "field_expression" {
+            let field = func.child_by_field_name("field");
+            let recv = func.child_by_field_name("value");
+            if let (Some(field), Some(recv)) = (field, recv) {
+                if self.text(field) == "clone" && recv.kind() == "identifier" {
+                    let recv_name = self.text(recv).to_string();
+                    if let Some(known) = self.known_local_type(&recv_name, node) {
+                        self.facts.local_types.push(cgg_core::LocalType {
+                            var_name,
+                            type_name: known,
+                            scope_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    /// Peel `?`, `.await`, `.unwrap()`, `.expect(..)` off an expression so a
+    /// call wrapped in one of these can still be read. Loops so chained forms
+    /// (`foo()?.unwrap()`, rare but cheap to handle) unwrap fully.
+    fn peel_result_wrapper<'b>(&self, node: Node<'b>) -> Node<'b> {
+        let mut cur = node;
+        loop {
+            match cur.kind() {
+                "try_expression" | "await_expression" => {
+                    if let Some(inner) = cur.child(0) {
+                        cur = inner;
+                        continue;
+                    }
+                }
+                "call_expression" => {
+                    if let Some(func) = cur.child_by_field_name("function") {
+                        if func.kind() == "field_expression" {
+                            let field_name = func
+                                .child_by_field_name("field")
+                                .map(|f| self.text(f))
+                                .unwrap_or("");
+                            if matches!(field_name, "unwrap" | "expect") {
+                                if let Some(recv) = func.child_by_field_name("value") {
+                                    cur = recv;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            break;
+        }
+        cur
+    }
+
+    /// `call` is `W::new(..)` / `W::from(..)`; read the type named by its
+    /// first argument's own `Type::assoc_fn()` constructor syntax, if any.
+    fn inner_wrapped_type(&self, call: Node) -> Option<String> {
+        let args = call.child_by_field_name("arguments")?;
+        let mut cursor = args.walk();
+        let first_arg = args.named_children(&mut cursor).next()?;
+        let inner = self.peel_result_wrapper(first_arg);
+        if inner.kind() != "call_expression" {
+            return None;
+        }
+        let func = inner.child_by_field_name("function")?;
+        if func.kind() != "scoped_identifier" && func.kind() != "field_expression" {
+            return None;
+        }
+        let text = self.text(func);
+        let pos = text.find("::")?;
+        let type_part = &text[..pos];
+        if type_part.starts_with(char::is_uppercase) && !type_part.contains('<') {
+            Some(type_part.to_string())
+        } else {
+            None
+        }
+    }
+
+    /// `call` is `W::clone(<arg>)`; read `<arg>`'s bare identifier name, so
+    /// the caller can look up whether that identifier already has a known
+    /// local type (`Arc::clone(&x)` — the argument is `&x`).
+    fn first_call_arg_ident(&self, call: Node) -> Option<String> {
+        let args = call.child_by_field_name("arguments")?;
+        let mut cursor = args.walk();
+        let first_arg = args.named_children(&mut cursor).next()?;
+        let ident = match first_arg.kind() {
+            "identifier" => first_arg,
+            "reference_expression" => first_arg
+                .named_child(0)
+                .filter(|c| c.kind() == "identifier")?,
+            _ => return None,
+        };
+        Some(self.text(ident).to_string())
+    }
+
+    /// Find `name`'s most recently recorded `LocalType`, bounded to the
+    /// function/closure enclosing `site` — a plain backward scan of
+    /// `self.facts.local_types` without that bound would happily match a
+    /// same-named local in an unrelated function elsewhere in the file.
+    fn known_local_type(&self, name: &str, site: Node) -> Option<String> {
+        let bounds = enclosing_fn_range(site);
+        self.facts
+            .local_types
+            .iter()
+            .rev()
+            .find(|lt| {
+                lt.var_name == name
+                    && (lt.scope_byte as usize) < site.start_byte()
+                    && bounds.is_none_or(|(s, e)| {
+                        (lt.scope_byte as usize) >= s && (lt.scope_byte as usize) < e
+                    })
+            })
+            .map(|lt| lt.type_name.clone())
     }
 
     fn named_closure(&mut self, node: Node) -> Option<DefRecord> {
@@ -818,11 +1002,11 @@ impl<'a> Walker<'a> {
                     continue;
                 }
                 // `foo!(...)` is a nested macro, already handled above.
-                if self.text(*k).ends_with('!') {
+                let full_text = self.text(*k).to_string();
+                if full_text.ends_with('!') {
                     continue;
                 }
-                let name = self
-                    .text(*k)
+                let name = full_text
                     .rsplit("::")
                     .next()
                     .unwrap_or("")
@@ -837,11 +1021,71 @@ impl<'a> Walker<'a> {
                 if name.starts_with(char::is_uppercase) {
                     continue;
                 }
+                // Recover the receiver a token tree's flat lexing otherwise
+                // discards, mirroring `ref_from_call`. Two shapes matter:
+                // `recv . method (` — `.` and both identifiers are plain
+                // token-tree siblings — and `A :: B :: f (` — tree-sitter
+                // does NOT fold this into one `scoped_identifier` node
+                // inside a token tree (verified: `A::new` lexes as three
+                // flat siblings `identifier "A"`, `"::"`, `identifier
+                // "new"`), so it is walked back segment by segment. The
+                // `k.kind() == "scoped_identifier"` branch below is kept
+                // for defensiveness in case some macro shape ever yields
+                // one, mirroring `ref_from_call`'s handling of that node.
+                //
+                // The dot case is itself path-headed as often as not —
+                // `TrustKind::Network.untrusted_input()`,
+                // `OutputFormat::Mermaid.default_extension()` — so the
+                // identifier immediately before `.` is only the LAST
+                // segment of the receiver. Stopping there (as a first cut
+                // did) handed the resolver `Network` instead of
+                // `TrustKind::Network`; it cannot find that owner and the
+                // edge is lost outright — worse than the pre-c3 bare name,
+                // which at least fanned out and sometimes got lucky.
+                // `path_back_from` is shared by both the dot and the `::`
+                // branches so a path before `.` is walked exactly like a
+                // path before a direct `::`-call.
+                let receiver_hint = if k.kind() == "scoped_identifier" {
+                    match full_text.rfind("::") {
+                        Some(idx) => full_text[..idx].to_string(),
+                        None => String::new(),
+                    }
+                } else if i >= 2
+                    && ((kids[i - 1].kind() == "." && kids[i - 2].kind() == "identifier")
+                        || kids[i - 1].kind() == "::")
+                {
+                    path_back_from(&kids, i - 2, self.source)
+                } else {
+                    String::new()
+                };
+                // A receiver is only ever an identifier path here — never
+                // a type argument list. Turbofish leaks through when the
+                // walked-back token immediately before `::`/`.` is a
+                // generic-argument delimiter rather than a path segment
+                // (`Snapshot::<()>::load(..)`: the token before the final
+                // `::` is `>`, not an identifier), which `path_back_from`
+                // otherwise still stringifies verbatim. A receiver like
+                // that resolves nowhere and is worse than none, so it is
+                // dropped back to bare — exactly base's behaviour — rather
+                // than emitted and left to mislead the resolver.
+                let receiver_hint =
+                    if receiver_hint.contains('<') || receiver_hint.contains('>') {
+                        String::new()
+                    } else {
+                        receiver_hint
+                    };
                 self.facts.references.push(RefRecord {
                     name,
                     site_line: k.start_position().row as u32 + 1,
                     site_byte: k.start_byte() as u32,
-                    receiver_hint: String::new(),
+                    receiver_hint,
+                    // The receiver above — when non-empty — was inferred
+                    // from raw token adjacency (a type alias, a file-wide
+                    // `var_types` guess), which can be wrong in ways a
+                    // normal expression's receiver cannot. Lets the
+                    // resolver retry name-only, once, if the qualified
+                    // lookup fails outright.
+                    from_macro_arg: true,
                     ..Default::default()
                 });
             }
@@ -1054,6 +1298,7 @@ impl<'a> Walker<'a> {
             // would win, which on axum was the context-less one — every
             // real route lost its path.
             self.facts.references.push(RefRecord {
+                from_macro_arg: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,
@@ -1184,6 +1429,34 @@ fn matching_angle(s: &str) -> Option<usize> {
     None
 }
 
+/// Reconstruct a `::`-joined path ending at `kids[idx]` (an `identifier`,
+/// or a `crate`/`self`/`super`/`Self` keyword token) by walking the flat
+/// token-tree siblings backwards while the token immediately before is
+/// `::` and the one before THAT is itself a path segment. Used by
+/// `refs_from_token_tree` for both `A :: B :: f (` and `A :: B . f (` —
+/// in a token tree these are the same shape up to what follows the last
+/// segment, since tree-sitter never folds a multi-segment path into one
+/// `scoped_identifier` node here (see that function's comment).
+fn path_back_from(kids: &[Node], idx: usize, source: &[u8]) -> String {
+    let text_of = |n: Node| n.utf8_text(source).unwrap_or("");
+    let mut segs: Vec<&str> = vec![text_of(kids[idx])];
+    let mut j = idx;
+    while j >= 2 && kids[j - 1].kind() == "::" {
+        let seg = kids[j - 2];
+        if matches!(
+            seg.kind(),
+            "identifier" | "crate" | "self" | "super" | "Self"
+        ) {
+            segs.push(text_of(seg));
+            j -= 2;
+        } else {
+            break;
+        }
+    }
+    segs.reverse();
+    segs.join("::")
+}
+
 /// Macros whose expansion produces no user-callable target and which
 /// therefore add only noise to a call graph. Names are matched after
 /// stripping any leading path — both `format!` and `std::format!` map
@@ -1246,6 +1519,37 @@ fn line_range(node: Node) -> (u32, u32) {
     let start = (node.start_position().row as u32) + 1;
     let end = (node.end_position().row as u32) + 1;
     (start, end)
+}
+
+/// `W::new(x)` / `W::from(x)` / `W::clone(&x)` all hand back the SAME value
+/// `x` wraps, forwarded through `Deref` for every method call — so typing a
+/// `let` binding as `W` rather than as whatever `x` is hides `x`'s own
+/// methods from resolution. Deliberately excludes `Vec`/`Option`/`HashMap`/
+/// `String`: an earlier change that unwrapped those broke push/iter/clone
+/// classification, because those constructors do NOT forward through Deref
+/// to a single wrapped value the way this list does.
+fn is_deref_transparent_wrapper(name: &str) -> bool {
+    matches!(
+        name,
+        "Arc" | "Rc" | "Box" | "RefCell" | "Cell" | "Mutex" | "RwLock" | "Pin" | "Cow"
+    )
+}
+
+/// The byte range of the nearest enclosing function/closure body around
+/// `node`, if any. Used to bound a same-name local-type lookup to the
+/// function it was actually declared in.
+fn enclosing_fn_range(node: Node) -> Option<(usize, usize)> {
+    let mut cur = node.parent();
+    while let Some(n) = cur {
+        if matches!(
+            n.kind(),
+            "function_item" | "function_signature_item" | "closure_expression"
+        ) {
+            return Some((n.start_byte(), n.end_byte()));
+        }
+        cur = n.parent();
+    }
+    None
 }
 
 fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
@@ -1501,6 +1805,97 @@ impl T {
     }
 
     #[test]
+    fn let_type_sees_through_deref_transparent_wrapper() {
+        // Mirrors discord_safety_bot's src/main.rs:96 —
+        // `let classifier = Arc::new(Classifier::from_env(assembled, grammar.to_string())?);`
+        // then `classifier.model()` etc. Base (buggy) behaviour types
+        // `classifier` as `Arc` — the OUTER constructor — so step 4's owner
+        // lookup finds no `Arc::model` and the site is screened as stdlib.
+        let src = r#"
+struct Classifier;
+impl Classifier {
+    fn from_env(a: i32) -> Classifier { Classifier }
+    fn model(&self) -> &str { "" }
+}
+fn boot() {
+    let classifier = Arc::new(Classifier::from_env(1)?);
+    let m = classifier.model();
+}
+"#;
+        let f = extract(src);
+        let got = f
+            .local_types
+            .iter()
+            .find(|l| l.var_name == "classifier")
+            .map(|l| l.type_name.as_str());
+        assert_eq!(
+            got,
+            Some("Classifier"),
+            "`classifier` must be typed as the DEREF target `Classifier`, not the \
+             wrapper `Arc` — got local_types: {:?}",
+            f.local_types
+        );
+    }
+
+    #[test]
+    fn let_type_clone_inherits_known_type() {
+        // `Arc::clone(&x)` and `x.clone()` both hand back the same value as
+        // `x`, so the new local should carry `x`'s already-known type.
+        let src = r#"
+struct Classifier;
+impl Classifier {
+    fn from_env(a: i32) -> Classifier { Classifier }
+}
+fn boot() {
+    let classifier = Arc::new(Classifier::from_env(1)?);
+    let c1 = Arc::clone(&classifier);
+    let c2 = classifier.clone();
+}
+"#;
+        let f = extract(src);
+        let ty = |name: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == name)
+                .map(|l| l.type_name.as_str())
+        };
+        assert_eq!(
+            ty("c1"),
+            Some("Classifier"),
+            "local_types: {:?}",
+            f.local_types
+        );
+        assert_eq!(
+            ty("c2"),
+            Some("Classifier"),
+            "local_types: {:?}",
+            f.local_types
+        );
+    }
+
+    #[test]
+    fn let_type_does_not_unwrap_collection_constructors() {
+        // Vec/Option/HashMap/String are NOT deref-transparent wrappers over a
+        // single inner value the way Arc/Rc/Box/... are — an earlier A/B
+        // showed unwrapping them breaks push/iter/clone classification.
+        // `Vec::new()` takes no inner-typed argument at all, so this is
+        // mostly a guard against `is_deref_transparent_wrapper` growing to
+        // include them by accident.
+        let src = r#"
+fn boot() {
+    let v = Vec::new();
+}
+"#;
+        let f = extract(src);
+        let got = f
+            .local_types
+            .iter()
+            .find(|l| l.var_name == "v")
+            .map(|l| l.type_name.as_str());
+        assert_eq!(got, Some("Vec"), "local_types: {:?}", f.local_types);
+    }
+
+    #[test]
     fn trait_impl_method() {
         let src = r#"
 trait R { fn r(&self); }
@@ -1565,6 +1960,53 @@ fn free() {}
             .map(|d| d.qualified_name.as_str())
             .collect();
         assert_eq!(names, vec!["crate::a::b::c"]);
+    }
+
+    #[test]
+    fn integration_test_file_qualified_under_crate_tests_module() {
+        // VERIFIED.md (h): `tests/<name>.rs` files used to map to a bare
+        // `(crate_root, [])`, so `fn cgg()` in `crates/cgg/tests/rollup.rs`
+        // collided (by qualified name) with any same-named item in the
+        // library crate itself, producing false cross-file edges.
+        let tmp = tempfile::TempDir::new().unwrap();
+        std::fs::write(
+            tmp.path().join("Cargo.toml"),
+            "[package]\nname = \"cgg\"\nversion = \"0.1.0\"\n",
+        )
+        .unwrap();
+        let tests_dir = tmp.path().join("tests");
+        std::fs::create_dir_all(&tests_dir).unwrap();
+        let file = tests_dir.join("rollup.rs");
+        std::fs::write(&file, b"").unwrap();
+
+        let (crate_root, mods) = rust_module_path(&file);
+        assert_eq!(crate_root, "cgg");
+        assert_eq!(
+            mods,
+            vec!["tests".to_string(), "rollup".to_string()],
+            "tests/<name>.rs must be qualified under <crate>::tests::<name>, not the bare crate root"
+        );
+    }
+
+    #[test]
+    fn integration_test_main_rs_under_subdir_qualified_by_dir_name() {
+        // `tests/<dir>/main.rs` is its own compilation unit named after
+        // `<dir>` (cargo convention), so it must be qualified as
+        // `<crate>::tests::<dir>`, not `<crate>::tests::main`.
+        let tmp = tempfile::TempDir::new().unwrap();
+        std::fs::write(
+            tmp.path().join("Cargo.toml"),
+            "[package]\nname = \"cgg\"\nversion = \"0.1.0\"\n",
+        )
+        .unwrap();
+        let sub_dir = tmp.path().join("tests").join("harness");
+        std::fs::create_dir_all(&sub_dir).unwrap();
+        let file = sub_dir.join("main.rs");
+        std::fs::write(&file, b"").unwrap();
+
+        let (crate_root, mods) = rust_module_path(&file);
+        assert_eq!(crate_root, "cgg");
+        assert_eq!(mods, vec!["tests".to_string(), "harness".to_string()]);
     }
 
     #[test]
@@ -1769,6 +2211,130 @@ fn worker() {}
                 .iter()
                 .any(|n| n.starts_with("crate::outer::closure_at_")),
             "expected std::thread::spawn closure to be extracted; got {names:?}"
+        );
+    }
+
+    // c3 (VERIFIED.md §1b, §3.3): a call inside a macro's token tree loses
+    // its receiver — `refs_from_token_tree` records only the last path
+    // segment with `receiver_hint: String::new()`. `p.id()` inside
+    // `assert_eq!` becomes a bare `id` reference and `A::new(2)` becomes a
+    // bare `new`, so cross-file resolution fans out by simple name instead
+    // of following the receiver, exactly like `node_ids.rs:177`'s
+    // `assert_eq!(NodeIds::resolve(..))`.
+    #[test]
+    fn macro_token_tree_call_keeps_receiver() {
+        let src = "fn t(){ assert_eq!(p.id(), 1); assert!(A::new(2).ok()); }";
+        let f = extract(src);
+        let id_ref = f
+            .references
+            .iter()
+            .find(|r| r.name == "id")
+            .unwrap_or_else(|| panic!("no reference named `id`; got {:?}", f.references));
+        assert_eq!(
+            id_ref.receiver_hint, "p",
+            "p.id() inside assert_eq! must keep receiver `p`, got {:?}",
+            f.references
+        );
+        let new_ref = f
+            .references
+            .iter()
+            .find(|r| r.name == "new")
+            .unwrap_or_else(|| {
+                panic!("no reference named `new`; got {:?}", f.references)
+            });
+        assert_eq!(
+            new_ref.receiver_hint, "A",
+            "A::new(2) inside assert! must keep receiver `A`, got {:?}",
+            f.references
+        );
+    }
+
+    // Multi-segment scoped path inside a macro's token tree: tree-sitter
+    // never produces a `scoped_identifier` node here (verified with a
+    // probe dump — `A::new` lexes as flat `identifier "A"`, `"::"`,
+    // `identifier "new"` siblings, not one typed node), so the fix must
+    // walk the flat `identifier "::" identifier "::" ...` run backwards,
+    // not just branch on `k.kind() == "scoped_identifier"`.
+    #[test]
+    fn macro_token_tree_call_keeps_multi_segment_receiver() {
+        let src = "fn t(){ assert_eq!(NodeIds::resolve(1), crate::a::b::helper(2)); }";
+        let f = extract(src);
+        let resolve_ref = f
+            .references
+            .iter()
+            .find(|r| r.name == "resolve")
+            .unwrap_or_else(|| {
+                panic!("no reference named `resolve`; got {:?}", f.references)
+            });
+        assert_eq!(
+            resolve_ref.receiver_hint, "NodeIds",
+            "got {:?}",
+            f.references
+        );
+        let helper_ref = f
+            .references
+            .iter()
+            .find(|r| r.name == "helper")
+            .unwrap_or_else(|| {
+                panic!("no reference named `helper`; got {:?}", f.references)
+            });
+        assert_eq!(
+            helper_ref.receiver_hint, "crate::a::b",
+            "got {:?}",
+            f.references
+        );
+    }
+
+    // Amendment: the dot branch must walk the FULL path before `.`, not
+    // just the identifier immediately preceding it. `assert!(TrustKind::
+    // Network.untrusted_input())` (a real cgg-core call site) first cut
+    // this to receiver_hint `Network`, which sent the resolver looking for
+    // an owner named `Network` instead of `TrustKind::Network` — no such
+    // owner exists, so the edge was LOST outright (worse than the pre-c3
+    // bare name, which at least fanned out and sometimes got lucky).
+    #[test]
+    fn macro_token_tree_dot_call_keeps_full_path_receiver() {
+        let src = "fn t(){ assert!(TrustKind::Network.untrusted_input()); }";
+        let f = extract(src);
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "untrusted_input")
+            .unwrap_or_else(|| {
+                panic!(
+                    "no reference named `untrusted_input`; got {:?}",
+                    f.references
+                )
+            });
+        assert_eq!(
+            r.receiver_hint, "TrustKind::Network",
+            "got {:?}",
+            f.references
+        );
+    }
+
+    // Second amendment, part (a): turbofish inside a macro token tree
+    // (`Snapshot::<()>::load(..)` in `matches!`) leaks a bare `>` as
+    // receiver_hint — verified by probe: the token immediately before
+    // the final `::` is the closing angle bracket `>`, not a path
+    // segment, and `path_back_from` otherwise stringifies it verbatim.
+    // A receiver that is not an identifier path resolves nowhere and is
+    // worse than none, so it must be dropped back to bare.
+    #[test]
+    fn macro_token_tree_turbofish_receiver_is_dropped_not_emitted() {
+        let src = "fn t(){ matches!(Snapshot::<()>::load(x), Ok(_)); }";
+        let f = extract(src);
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "load")
+            .unwrap_or_else(|| {
+                panic!("no reference named `load`; got {:?}", f.references)
+            });
+        assert_eq!(
+            r.receiver_hint, "",
+            "a turbofish-mangled receiver must be dropped to bare, not emitted; got {:?}",
+            f.references
         );
     }
 }

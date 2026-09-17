@@ -411,7 +411,10 @@ pub(crate) fn discover(
     // Ruby, Lua and shell entry point reads as dead.
     let mut toplevel: HashSet<(String, String)> = HashSet::new();
     for u in &graph.unresolved {
-        if matches!(u.reason, UnresolvedReason::NoEnclosingCallable) {
+        if matches!(
+            u.reason,
+            UnresolvedReason::NoEnclosingCallable | UnresolvedReason::ValueRefNoEnclosing
+        ) {
             let lang = graph
                 .files
                 .get(&u.file)
@@ -424,7 +427,13 @@ pub(crate) fn discover(
         let by_site: HashMap<(String, String), &AuditUnresolvedCall> = graph
             .unresolved
             .iter()
-            .filter(|u| matches!(u.reason, UnresolvedReason::NoEnclosingCallable))
+            .filter(|u| {
+                matches!(
+                    u.reason,
+                    UnresolvedReason::NoEnclosingCallable
+                        | UnresolvedReason::ValueRefNoEnclosing
+                )
+            })
             .map(|u| {
                 let lang = graph
                     .files
@@ -839,5 +848,27 @@ mod tests {
             discover(&graph_with(vec![n]), &[], &[], &[]).records.len(),
             1
         );
+    }
+
+    // A function passed as a value at module scope (`callback=_set_app`,
+    // an Express middleware in a route list) is recorded as a value ref
+    // with no enclosing callable. Relabelling that record must not cost
+    // the callee its top-level root — measured on flask, it did: roots
+    // fell 1024 -> 995 and 23 real uses became findings.
+    #[test]
+    fn a_module_scope_value_ref_is_a_toplevel_root() {
+        let mut g = graph_with(vec![node(0, "app._set_app", "_set_app", "python")]);
+        g.unresolved.push(cgg_core::AuditUnresolvedCall::new(
+            None,
+            cgg_core::FileId::new(0),
+            7,
+            70,
+            "_set_app".into(),
+            String::new(),
+            cgg_core::UnresolvedReason::ValueRefNoEnclosing,
+        ));
+        let set = discover(&g, &[], &[], &[]);
+        assert_eq!(set.production.len(), 1, "{:?}", set.records);
+        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
     }
 }

@@ -228,6 +228,7 @@ test("options match the equivalent CLI flags", { skip: !haveBin && `no binary at
     [{ entryNodes: false }, ["--no-entry-nodes"]],
     [{ lang: ["rust"] }, ["--lang", "rust"]],
     [{ includeTests: true }, ["--include-tests"]],
+    [{ skipMinified: true }, ["--skip-minified"]],
     [{ filter: ["walk$"], hops: 1 }, ["--filter", "walk$", "-n", "1"]],
   ];
   let changedAny = false;

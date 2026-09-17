@@ -241,6 +241,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     let cfg = WalkConfig {
         roots: opts.paths.clone(),
         extra_ignore_file: opts.ignore_file.clone(),
+        skip_minified: opts.skip_minified,
         ..Default::default()
     };
     let walk_started = Instant::now();

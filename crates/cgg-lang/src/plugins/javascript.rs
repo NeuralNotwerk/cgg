@@ -762,6 +762,7 @@ impl<'a> JsWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                from_macro_arg: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

@@ -425,6 +425,7 @@ impl<'a> ElixirWalker<'a> {
         route: &str,
     ) {
         self.facts.references.push(RefRecord {
+            from_macro_arg: false,
             name,
             receiver_hint: hint.to_string(),
             site_line: line,

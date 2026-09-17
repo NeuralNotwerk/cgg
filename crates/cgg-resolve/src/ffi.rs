@@ -15,8 +15,10 @@
 use std::collections::HashMap;
 
 use cgg_core::FileFacts;
-use cgg_core::graph::{CallEdge, Confidence, Graph, Via};
+use cgg_core::graph::{CallEdge, CallableKind, CallableNode, Confidence, Graph, Via};
 use cgg_core::ids::{CallableId, ResolverId};
+
+use crate::names::owner_from_qn;
 
 #[derive(Debug, Default)]
 pub struct FfiOutput {
@@ -173,8 +175,34 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
         // Look for unresolved references in other languages that
         // match this callable's simple name. We emit edges from
         // callers in other languages to this FFI-exported callable.
+        let own_owner = ffi_owner(c);
         for &(other_id, other_lang) in candidates {
             if other_lang == c.language.as_str() || other_id == c.id {
+                continue;
+            }
+            // The binding technology dictates which language can be on
+            // the other side of the boundary: a `napi` export is only
+            // ever called from the JS/TS glue `napi` itself generates,
+            // a `pyo3` export only from Python, a `c-abi` export only
+            // from C/C++/Obj-C. Without this, a Python `.pyi` stub with
+            // the same method name as an unrelated napi struct produces
+            // a phantom edge (confirmed: 14 of 19 Pass-B edges on
+            // cgg-self were exactly this — a `.pyi` stub linked to
+            // `cgg_node::Graph::*`).
+            if let Some(allowed) = allowed_source_languages(family)
+                && !allowed.contains(&other_lang)
+            {
+                continue;
+            }
+            // When both the export and the candidate caller are a
+            // method/property/constructor/destructor bound to a type,
+            // the owning types must match: `Graph.callables` must not
+            // bind to `Metrics.callables` just because the method name
+            // collides. A free function has no owner and is exempt.
+            if let Some(other_c) = graph.callables.get(&other_id)
+                && let (Some(a), Some(b)) = (own_owner, ffi_owner(other_c))
+                && a != b
+            {
                 continue;
             }
             // Check if there's already an edge from other_id to c.id.
@@ -285,6 +313,39 @@ fn detect_ffi_family(c: &cgg_core::graph::CallableNode) -> &'static str {
     match classify_ffi(&c.attributes) {
         Some((family, FfiDirection::Export)) => family,
         _ => "",
+    }
+}
+
+/// Which source languages can plausibly call an export of this family.
+///
+/// `None` means the family is not restricted here (unchanged behaviour):
+/// only the three families with a concrete, unambiguous binding
+/// generator are narrowed, per the verified defect (14 of 19 Pass-B
+/// edges on cgg-self were a `.pyi` stub linked to a `napi` export).
+fn allowed_source_languages(family: &str) -> Option<&'static [&'static str]> {
+    match family {
+        "napi" => Some(&["javascript", "typescript"]),
+        "pyo3" => Some(&["python"]),
+        "c-abi" => Some(&["c", "cpp", "objc"]),
+        _ => None,
+    }
+}
+
+/// The owning type for a method/property/constructor/destructor, or
+/// `None` for a free function (which has no owner to disagree about).
+///
+/// Deliberately narrower than [`owner_from_qn`] alone: that helper
+/// returns the enclosing *module* segment even for a free function
+/// (`names.rs` documents this — "callers that only want type owners can
+/// compare and discard"), which would wrongly reject same-name free
+/// functions in differently-named modules/crates across languages.
+fn ffi_owner(c: &CallableNode) -> Option<&str> {
+    match c.kind {
+        CallableKind::Method
+        | CallableKind::Constructor
+        | CallableKind::Destructor
+        | CallableKind::Property => owner_from_qn(&c.qualified_name),
+        _ => None,
     }
 }
 
@@ -555,5 +616,168 @@ mod tests {
         assert_eq!(detect_ffi_family(&n), "", "an import has no in-tree callee");
         n.attributes = vec!["#[no_mangle]".into()];
         assert_eq!(detect_ffi_family(&n), "c-abi");
+    }
+
+    /// A Python `.pyi` stub with the same method name AND the same
+    /// owning-type name as a `napi`-exported Rust method must not be
+    /// linked: `napi` glue is JS/TS, never Python, and a Python stub
+    /// with a same-named class is (at best) mirroring an unrelated
+    /// `pyo3` binding, not calling into this one.
+    ///
+    /// This is the confirmed defect (VERIFIED §1j / SPECS c7): before
+    /// the language-family + owner checks, Pass B linked every
+    /// other-language callable sharing a simple name, so this exact
+    /// shape (owners equal, languages incompatible) produced a false
+    /// edge.
+    #[test]
+    fn napi_export_does_not_link_a_python_stub_of_the_same_name() {
+        let mut g = Graph::new();
+        g.add_file(FileRecord {
+            id: FileId::new(0),
+            path: PathBuf::from("graph.rs"),
+            language: "rust".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_file(FileRecord {
+            id: FileId::new(1),
+            path: PathBuf::from("cgg_node.pyi"),
+            language: "python".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        // napi-exported Rust method: Graph::callables
+        g.add_callable(CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "cgg_node::Graph::callables".into(),
+            simple_name: "callables".into(),
+            kind: CallableKind::Method,
+            language: "rust".into(),
+            file: FileId::new(0),
+            start_line: 1,
+            end_line: 3,
+            start_byte: 0,
+            end_byte: 50,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec!["#[napi]".into()],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+        // Python stub with the SAME owner name ("Graph") and method
+        // name — the case the owner check alone would let through.
+        g.add_callable(CallableNode {
+            id: CallableId::new(1),
+            qualified_name: "cgg._cgg.Graph.callables".into(),
+            simple_name: "callables".into(),
+            kind: CallableKind::Method,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 1,
+            end_line: 2,
+            start_byte: 0,
+            end_byte: 30,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+
+        let out = link_ffi(&g, &[]);
+        assert!(
+            out.edges.is_empty(),
+            "a napi export must not link a Python stub, even with a matching owner name: {:?}",
+            out.edges
+        );
+    }
+
+    /// A `pyo3`-exported free function must still link to a Python
+    /// caller of the same name — the language-family and owner checks
+    /// must not reject the case they exist to keep working.
+    #[test]
+    fn pyo3_export_links_a_python_caller_of_the_same_name() {
+        let mut g = Graph::new();
+        g.add_file(FileRecord {
+            id: FileId::new(0),
+            path: PathBuf::from("lib.rs"),
+            language: "rust".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_file(FileRecord {
+            id: FileId::new(1),
+            path: PathBuf::from("app.py"),
+            language: "python".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "mylib::analyze".into(),
+            simple_name: "analyze".into(),
+            kind: CallableKind::Function,
+            language: "rust".into(),
+            file: FileId::new(0),
+            start_line: 1,
+            end_line: 3,
+            start_byte: 0,
+            end_byte: 50,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec!["#[pyfunction]".into()],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(1),
+            qualified_name: "app.analyze".into(),
+            simple_name: "analyze".into(),
+            kind: CallableKind::Function,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 1,
+            end_line: 2,
+            start_byte: 0,
+            end_byte: 30,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+
+        let out = link_ffi(&g, &[]);
+        assert_eq!(
+            out.edges.len(),
+            1,
+            "a python caller of a pyo3 export must still link"
+        );
+        assert_eq!(out.edges[0].src, CallableId::new(1));
+        assert_eq!(out.edges[0].dst, CallableId::new(0));
     }
 }

@@ -21,7 +21,7 @@
 use cgg_core::{
     DefRecord, DefVariant, FileFacts, RefRecord,
     audit::{AuditUnresolvedCall, UnresolvedReason},
-    graph::{CallEdge, Confidence, Via},
+    graph::{CallEdge, CallableKind, Confidence, Via},
     ids::{CallableId, FileId, ResolverId},
 };
 
@@ -105,17 +105,24 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                 .map(|(i, _)| i as u32)
                 .collect();
             if let [cand_idx] = matches.as_slice() {
-                let dst_id = def_ids[&(facts.file, *cand_idx)];
-                out.edges.push(CallEdge {
-                    src: src_id,
-                    dst: dst_id,
-                    site_line: rref.site_line,
-                    site_byte: rref.site_byte,
-                    confidence: Confidence::Medium,
-                    via: Via::Reference,
-                    resolver: resolver_id.clone(),
-                    weight: 1,
-                });
+                let dst_def = &facts.definitions[*cand_idx as usize];
+                // Anything but a closure bound to the same simple name is
+                // a real target for a value-reference edge — a function,
+                // a method, a constructor, a property. See the matching
+                // check in `cross_file::resolve`.
+                if dst_def.variant.to_callable_kind() != CallableKind::Closure {
+                    let dst_id = def_ids[&(facts.file, *cand_idx)];
+                    out.edges.push(CallEdge {
+                        src: src_id,
+                        dst: dst_id,
+                        site_line: rref.site_line,
+                        site_byte: rref.site_byte,
+                        confidence: Confidence::Medium,
+                        via: Via::Reference,
+                        resolver: resolver_id.clone(),
+                        weight: 1,
+                    });
+                }
             }
             continue;
         }
@@ -567,6 +574,43 @@ mod tests {
         assert_eq!(
             out.unresolved[0].reason,
             UnresolvedReason::NoEnclosingCallable
+        );
+    }
+
+    /// A value ref (`VALUE_REF_HINT`) that uniquely names a same-file
+    /// *closure* must not become a `Via::Reference` edge — only a free
+    /// function or method is a real target. Mirrors
+    /// `cross_file::tests::value_ref_to_a_closure_emits_no_edge`.
+    #[test]
+    fn value_ref_to_a_same_file_closure_emits_no_edge() {
+        let defs = vec![
+            mk_def("caller", "m::caller", DefVariant::FreeFunction, (0, 100)),
+            mk_def(
+                "on_click",
+                "m::on_click",
+                DefVariant::NamedClosure,
+                (100, 200),
+            ),
+        ];
+        let refs = vec![RefRecord {
+            name: "on_click".into(),
+            receiver_hint: cgg_core::VALUE_REF_HINT.into(),
+            site_line: 1,
+            site_byte: 50,
+            ..Default::default()
+        }];
+        let facts = facts_with(defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(
+            out.edges.len(),
+            0,
+            "a value ref uniquely naming a closure must not become an edge"
+        );
+        assert_eq!(
+            out.unresolved.len(),
+            0,
+            "value refs must never reach the unresolved bucket"
         );
     }
 }
