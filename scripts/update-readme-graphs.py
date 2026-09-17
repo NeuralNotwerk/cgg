@@ -79,8 +79,8 @@ def clean(mmd_text: str) -> str:
     # integers, so there's no numeric value to sort by — `nodes` already
     # preserves cgg's own (deterministic) emission order, which is what
     # we want anyway.
-    for nid in nodes:
-        out.append(f'  {nid}["{tidy(nodes[nid])}"]')
+    for nid, label in nodes.items():
+        out.append(f'  {nid}["{tidy(label)}"]')
     for (s, d), lbl in sorted(edges.items()):
         arrow = f"-->|{lbl}|" if lbl else "-->"
         out.append(f"  {s} {arrow} {d}")

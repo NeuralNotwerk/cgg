@@ -253,7 +253,7 @@ def test_mermaid_scheme_changes_only_the_names(tree: Path) -> None:
     """Same graph either way — same node count, same arrows, same labels."""
     g = cgg.analyze(tree)
     short, hashed = g.to_mermaid(), g.to_mermaid(node_ids="hash")
-    labels = lambda s: re.findall(r'\["([^"]*)"\]', s)  # noqa: E731
+    labels = lambda s: re.findall(r'\["([^"]*)"\]', s)
     assert labels(short) == labels(hashed)
     assert short.count(" --> ") == hashed.count(" --> ")
     assert len(short.splitlines()) == len(hashed.splitlines())

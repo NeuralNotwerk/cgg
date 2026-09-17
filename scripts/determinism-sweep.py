@@ -246,9 +246,7 @@ def main() -> None:
     # Oversubscription is harmless here and arguably useful: determinism
     # must hold under any scheduling, so varied contention is a stronger
     # test, not a flakier one.
-    ap.add_argument(
-        "--workers", type=int, default=max(1, (os.cpu_count() or 8) // 2)
-    )
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 8) // 2))
     ap.add_argument("--quick", action="store_true", help="default config only")
     ap.add_argument("--json", default="")
     ap.add_argument("--seed", type=int, default=0)
@@ -291,7 +289,7 @@ def main() -> None:
     with cf.ProcessPoolExecutor(max_workers=args.workers) as pool:
         futures = {pool.submit(_run_cell, c): c for c in cells}
         for fut in cf.as_completed(futures):
-            repo_s, cname, _flags, fmt, _runs = futures[fut]
+            repo_s, _cname, _flags, _fmt, _runs = futures[fut]
             repo = Path(repo_s)
             local, ran = fut.result()
             findings.extend(local)

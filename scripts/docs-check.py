@@ -901,9 +901,7 @@ UNPUBLISHED_RE = re.compile(
 
 
 def _skill_files() -> list[Path]:
-    return sorted(
-        p for d in SKILL_DIRS if d.is_dir() for p in d.rglob("SKILL.md")
-    )
+    return sorted(p for d in SKILL_DIRS if d.is_dir() for p in d.rglob("SKILL.md"))
 
 
 def check_skill_publish_claims() -> None:
@@ -931,7 +929,7 @@ def check_skill_publish_claims() -> None:
 
 def check_skill_docs_check_count() -> None:
     """A skill counting docs-check's checks must match how many exist."""
-    actual = len(re.findall(r"^def check_", Path(__file__).read_text(), re.M))
+    actual = len(re.findall(r"^def check_", Path(__file__).read_text(), re.MULTILINE))
     pat = re.compile(
         r"\b(\w+)\s+(?:consistency invariants|check functions|checks)\b",
         re.IGNORECASE,
