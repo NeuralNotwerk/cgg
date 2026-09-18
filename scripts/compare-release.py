@@ -181,6 +181,13 @@ def main() -> None:
         tb2, _ = run(new, repo, [])
         _, da = run(old, repo, ["--dead-code"])
         _, db = run(new, repo, ["--dead-code"])
+        # `--skip-minified` on the new binary only: the flag does not exist
+        # on every baseline, and the point is to watch what it costs and
+        # saves relative to this same build's default — not to compare two
+        # releases' skips to each other. Untimed, because one sample under
+        # whatever concurrency `--jobs` picked is not a latency number;
+        # counts are deterministic and are.
+        _, ds = run(new, repo, ["--skip-minified"])
         ga, gb = parse(sa1), parse(sb1)
         ma, mb = DEAD.search(da), DEAD.search(db)
         row = {
@@ -191,6 +198,7 @@ def main() -> None:
             "new": gb,
             "old_dead": (int(ma.group(1)) + int(ma.group(2))) if ma else 0,
             "new_dead": (int(mb.group(1)) + int(mb.group(2))) if mb else 0,
+            "new_skipmin": parse(ds),
         }
         if name in tags:
             lang, kinds, sub = tags[name]
@@ -222,6 +230,52 @@ def main() -> None:
     if args.out:
         Path(args.out).write_text(json.dumps(rows, indent=1))
     print(f"\ndone: {len(rows)} repos", flush=True)
+
+    # --- what `--skip-minified` did on THIS build ----------------------
+    #
+    # Tracked every release because the flag is the one switch that
+    # removes real, parseable source from the default graph. Two numbers
+    # matter and they pull against each other: how much it drops, and how
+    # many repositories it touches at all. A sudden jump in either means
+    # the heuristic widened — most likely the average-line-length probe
+    # catching hand-written source — and that is a correctness question,
+    # not a performance one.
+    #
+    # Callables are the honest denominator here. Edges are reported too but
+    # read less cleanly: the whole-graph count falls simply because skipped
+    # files take their own edges with them. The subtler effect is confined
+    # to the files that SURVIVE, where dropping a file also drops fan-out
+    # candidates, so a call site that previously exceeded `--fanout-cap`
+    # and emitted nothing can fall under the cap and resolve — measured at
+    # 0.8.4, app-wordpress gains 55 edges among surviving files while its
+    # whole-graph total still falls. The `gained` line below is whole-graph
+    # and so will not show that; it is here to catch the louder case where
+    # skipping files somehow grows the graph outright.
+    touched = [
+        r for r in rows if r["new_skipmin"]["callables"] != r["new"]["callables"]
+    ]
+    cal = sum(r["new"]["callables"] for r in rows)
+    cal_s = sum(r["new_skipmin"]["callables"] for r in rows)
+    edg = sum(r["new"]["edges"] for r in rows)
+    edg_s = sum(r["new_skipmin"]["edges"] for r in rows)
+    print("\n--skip-minified, new build against its own default:")
+    print(f"  repos affected : {len(touched)} of {len(rows)}")
+    if cal:
+        print(
+            f"  callables      : {cal:,} -> {cal_s:,} ({(cal_s - cal) / cal * 100:+.1f}%)"
+        )
+    if edg:
+        print(
+            f"  edges          : {edg:,} -> {edg_s:,} ({(edg_s - edg) / edg * 100:+.1f}%)"
+        )
+    gained = [r["repo"] for r in rows if r["new_skipmin"]["edges"] > r["new"]["edges"]]
+    if gained:
+        print(f"  repos where the skip ADDED edges: {len(gained)} {gained[:6]}")
+    for r in sorted(
+        touched, key=lambda r: r["new_skipmin"]["callables"] - r["new"]["callables"]
+    )[:8]:
+        d = r["new_skipmin"]["callables"] - r["new"]["callables"]
+        print(f"     {r['repo']:<28} callables {d:+,}")
 
 
 if __name__ == "__main__":
