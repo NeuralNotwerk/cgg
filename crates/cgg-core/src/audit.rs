@@ -50,6 +50,13 @@ pub enum SkipReason {
     /// threshold on a minifiable extension. Parsing it burns wall time
     /// for a graph with no useful callable structure.
     Minified,
+    /// The parsed syntax tree nests deeper than the extractor's depth
+    /// cap. The per-language extractors are recursive descent, so a tree
+    /// deeper than the worker stack can hold would overflow and **abort
+    /// the process** — uncatchable, since a stack overflow is not a
+    /// panic. Such a file is skipped rather than walked. Payload carries
+    /// the observed cap so the audit says why.
+    TooDeep(usize),
 }
 
 impl SkipReason {
@@ -66,6 +73,7 @@ impl SkipReason {
             SkipReason::ParseError(_) => "parse-error",
             SkipReason::TooLarge => "too-large",
             SkipReason::Minified => "minified",
+            SkipReason::TooDeep(_) => "too-deep",
         }
     }
 }

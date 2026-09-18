@@ -54,10 +54,27 @@ const GIT_SCOPING_VARS: &[&str] = &[
     "GIT_PREFIX",
 ];
 
-/// `git`, with [`GIT_SCOPING_VARS`] stripped so `-C <path>` is what
-/// actually decides which repository is read.
+/// `git`, hardened for running against a repository whose contents are
+/// not trusted.
+///
+/// Two independent dangers, because `--since` points git at whatever
+/// tree is being analyzed:
+///
+/// * **Environment scoping.** [`GIT_SCOPING_VARS`] are stripped so
+///   `-C <path>` is what decides which repository is read, not the
+///   environment of whatever invoked cgg (e.g. a git hook).
+/// * **Repo-controlled command execution.** A checked-out repository can
+///   carry a `.git/config` that names commands git will run — most
+///   directly `core.fsmonitor`, verified to execute during a plain
+///   `git diff`. `-c core.fsmonitor=false` on the command line overrides
+///   the repo's value (command-line `-c` wins over repo config), closing
+///   that arbitrary-code-execution path. The diff-driver and textconv
+///   paths are closed at the call site with `--no-ext-diff --no-textconv`.
 fn git_command() -> Command {
     let mut c = Command::new("git");
+    // Overrides any `core.fsmonitor` set in the analyzed repo's config,
+    // which git would otherwise execute as a command.
+    c.arg("-c").arg("core.fsmonitor=false");
     for v in GIT_SCOPING_VARS {
         c.env_remove(v);
     }
@@ -80,6 +97,15 @@ pub fn resolve_since(revspec: &str, cwd: &Path) -> Result<ChangedRanges> {
         .arg("--unified=0")
         .arg("--no-color")
         .arg("-M") // follow renames; new path appears in `+++ b/...`
+        // Repo-controlled command execution via a per-path diff driver
+        // or textconv filter (both nameable in `.gitattributes` +
+        // config) — disabled for the same reason as `core.fsmonitor`.
+        .arg("--no-ext-diff")
+        .arg("--no-textconv")
+        // Everything after this is a positional argument, never an
+        // option, so a revspec beginning with `-` (e.g.
+        // `--output=/etc/cron.d/x`) cannot smuggle in a git flag.
+        .arg("--end-of-options")
         .arg(revspec)
         .output()
         .context("failed to invoke `git diff`")?;

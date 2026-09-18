@@ -84,6 +84,12 @@ whose body overlaps a changed line range into a `--filter` seed. It
 but produced no seeds (deletions, comment-only edits, non-source
 files) are listed in the audit log under `since_resolved`.
 
+Git is invoked with `--end-of-options` before the revspec, so a value
+beginning with `-` can never be read as a git flag, and with the analyzed
+repository's own command-execution hooks disabled (`core.fsmonitor`,
+external diff drivers, textconv): a checkout's `.git/config` cannot make
+`--since` run code.
+
 ## CLI
 
 ```text
@@ -518,7 +524,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2362 callables, 5349 edges, 1459 cross-file, 154ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2377 callables, 5376 edges, 1462 cross-file, 147ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -531,7 +537,7 @@ cgg ./crates -t mermaid --filter 'cgg::analyze_in_pool$' -n 1
 flowchart LR
   N0["cgg::deadcode::config::DeadCodeConfigFile::load"]
   N1["cgg::deadcode::config::DeadCodeConfigFile::discover_for"]
-  N2["cgg::analyze"]
+  N2["cgg::analyze_hosted"]
   N3["cgg::analyze_in_pool"]
   N4["cgg::langs_enabled"]
   N5["cgg::specific"]
@@ -575,17 +581,18 @@ flowchart LR
   N43["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
   N44["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
   N45["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N46["cgg_resolve::cross_file::resolve"]
-  N47["cgg_resolve::descriptor::link_descriptors"]
-  N48["cgg_resolve::dispatch::fanout"]
-  N49["cgg_resolve::ffi::link_ffi"]
-  N50["cgg_resolve::frameworks::detect"]
-  N51["cgg_resolve::intra_file::link_file"]
-  N52["cgg_resolve::names::owner_from_qn"]
-  N53["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N54["cgg_resolve::type_hints::build_return_type_map"]
-  N55["cgg_resolve::type_hints::propagate_types_with_returns"]
-  N56["cgg_walk::walk"]
+  N46["cgg_lang::parser::exceeds_depth"]
+  N47["cgg_resolve::cross_file::resolve"]
+  N48["cgg_resolve::descriptor::link_descriptors"]
+  N49["cgg_resolve::dispatch::fanout"]
+  N50["cgg_resolve::ffi::link_ffi"]
+  N51["cgg_resolve::frameworks::detect"]
+  N52["cgg_resolve::intra_file::link_file"]
+  N53["cgg_resolve::names::owner_from_qn"]
+  N54["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N55["cgg_resolve::type_hints::build_return_type_map"]
+  N56["cgg_resolve::type_hints::propagate_types_with_returns"]
+  N57["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N11
@@ -607,7 +614,7 @@ flowchart LR
   N3 --> N0
   N3 --> N39
   N3 --> N34
-  N3 --> N56
+  N3 --> N57
   N3 --> N41
   N3 --> N37
   N3 --> N43
@@ -617,26 +624,27 @@ flowchart LR
   N3 --> N42
   N3 -->|18x| N35
   N3 --> N44
+  N3 --> N46
   N3 --> N45
   N3 --> N40
   N3 --> N25
   N3 --> N36
   N3 --> N32
-  N3 --> N52
+  N3 --> N53
   N3 --> N26
   N3 --> N31
-  N3 --> N54
-  N3 --> N53
   N3 --> N55
+  N3 --> N54
+  N3 --> N56
   N3 --> N29
-  N3 --> N51
+  N3 --> N52
   N3 --> N27
   N3 --> N28
-  N3 --> N46
-  N3 --> N49
   N3 --> N47
   N3 --> N50
   N3 --> N48
+  N3 --> N51
+  N3 --> N49
   N3 --> N33
   N3 -->|5x| N19
   N3 --> N23
@@ -662,13 +670,13 @@ flowchart LR
   N14 --> N31
   N14 --> N33
   N21 --> N30
-  N46 -->|6x| N35
-  N46 -->|5x| N52
-  N47 -->|2x| N52
-  N48 --> N52
-  N50 -->|9x| N35
-  N51 -->|3x| N52
-  N55 -->|3x| N35
+  N47 -->|6x| N35
+  N47 -->|5x| N53
+  N48 -->|2x| N53
+  N49 --> N53
+  N51 -->|9x| N35
+  N52 -->|3x| N53
+  N56 -->|3x| N35
 ```
 <!-- cgg:end:self -->
 
@@ -1346,6 +1354,12 @@ know](#adding-a-framework-cgg-does-not-know).
 
 ## Limitations
 
+- Syntax trees deeper than 4,000 levels are not walked. The per-language
+  extractors are recursive descent, so a file that nests deeper (roughly
+  2,000 nested calls, or 4,000 nested brackets or operators —
+  machine-generated data, never hand-written code) is skipped and audited
+  as `skip_reason: too-deep` instead of overflowing the stack and aborting
+  the process, which is what 0.8.4 and earlier did.
 - C/C++ macros are extracted as callables but not expanded (no preprocessor simulation)
 - Type inference is partial — handles parameters, constructors, return types,
   and (opt-in, Rust) interface/trait dispatch to known implementors via

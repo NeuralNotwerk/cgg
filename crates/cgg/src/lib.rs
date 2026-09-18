@@ -127,10 +127,57 @@ pub fn cross_file_default_fanout_cap() -> u32 {
     cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32
 }
 
+/// Stack size for every thread that runs analysis work — the pool
+/// workers and the thread that hosts the run.
+///
+/// The per-language extractors and the `-n 0` path DFS are recursive, so
+/// a deeply nested file or a very long call chain descends deep. The
+/// default 2 MiB thread stack overflows at roughly 2,000 levels, which
+/// **aborts the process** on input as ordinary as a long `a + b + c …`
+/// expression — and a stack overflow is not a panic, so the `catch_unwind`
+/// in the C/Python/Node front ends cannot save the host. This gives every
+/// analysis thread generous headroom; [`MAX_TREE_DEPTH`] and the path DFS
+/// cap are the actual bound, this is the margin under them.
+const ANALYZE_STACK_SIZE: usize = 128 * 1024 * 1024;
+
+/// Deepest syntax tree the extractors will walk. A file whose tree nests
+/// deeper is skipped with [`cgg_core::audit::SkipReason::TooDeep`] rather
+/// than walked, so recursion depth is bounded regardless of how hostile
+/// or machine-generated the input is.
+///
+/// Measured in *tree* levels, which is not source nesting one-for-one: a
+/// nested call costs two (`call` → `argument_list` → `call`), a nested
+/// list or a chained `+` costs one. So this admits roughly 2,000 nested
+/// calls or 4,000 nested operators — far beyond hand-written code and
+/// about double the depth that used to abort the process — while
+/// [`ANALYZE_STACK_SIZE`] leaves even a debug build's larger frames a
+/// wide margin under it.
+const MAX_TREE_DEPTH: usize = 4000;
+
 pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
+    // Host the whole run on a thread with a large stack. Extraction and
+    // the `-n 0` path DFS recurse, and rayon lets the calling thread join
+    // the pool's work — so both the pool workers (sized below) and this
+    // hosting thread must have the headroom, or a deep input could still
+    // overflow whichever thread happened to touch it. `scope` lets the
+    // thread borrow `opts` without a `'static` bound.
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .name("cgg-analyze".into())
+            .stack_size(ANALYZE_STACK_SIZE)
+            .spawn_scoped(scope, || analyze_hosted(opts))
+            .expect("spawning the analysis host thread")
+            .join()
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("analysis thread panicked")))
+    })
+}
+
+/// The body of [`analyze`], always running on the large-stack host thread.
+fn analyze_hosted(opts: &RunOptions) -> Result<RunOutcome> {
     // A replay reads a finished graph instead of a source tree, so there
     // is nothing here for a worker pool to do — building one would cost
-    // more than the whole run.
+    // more than the whole run. It still runs on the host thread, because
+    // `--from-graph … -n 0` runs the same recursive path DFS.
     if opts.from_graph.is_some() {
         return replay::replay(opts);
     }
@@ -144,6 +191,7 @@ pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
     };
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(jobs)
+        .stack_size(ANALYZE_STACK_SIZE)
         .build()
         .context("building the worker thread pool")?;
     pool.install(|| analyze_in_pool(opts))
@@ -373,6 +421,16 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             let _sp = cgg_core::profile::span("parse::tree-sitter+extract");
             let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
                 Ok(out) => {
+                    // The extractors recurse over the tree. A tree deeper
+                    // than the stack can hold would abort the process, so
+                    // a file that nests past the cap is skipped rather
+                    // than walked — reported, never silently dropped.
+                    if cgg_lang::exceeds_depth(&out.tree, MAX_TREE_DEPTH) {
+                        return FileOutcome::Skipped {
+                            path: cand.path.clone(),
+                            reason: SkipReason::TooDeep(MAX_TREE_DEPTH),
+                        };
+                    }
                     let status = if out.tree.root_node().has_error() {
                         "error"
                     } else {

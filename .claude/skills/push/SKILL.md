@@ -131,8 +131,8 @@ Symbolic oracles available in this repo — prefer them in this order:
    runs in a given order. Confirm the command actually matched
    something; an empty result is not a proof of absence unless you
    verified the pattern works elsewhere.
-5. **`scripts/docs-check.py`** — fourteen consistency invariants
-   (numbered 0–12 in the body, plus the unnumbered
+5. **`scripts/docs-check.py`** — fifteen consistency invariants
+   (numbered 0–13 in the body, plus the unnumbered
    framework-rule/`APPS` check). Checks 11 and 12 gate the *content*
    of the skill files themselves, including this one. **Must exit 0.**
 6. **`scripts/benchmark.sh`** — the only oracle for the benchmark

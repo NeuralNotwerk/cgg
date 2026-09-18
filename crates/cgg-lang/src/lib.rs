@@ -202,7 +202,7 @@ impl<'a> ExtractCtx<'a> {
 
 pub use cgg_core as core;
 pub use detect::{DetectResult, DetectVerdict, LanguageDetector};
-pub use parser::{ParseOutcome, ParserPool};
+pub use parser::{ParseOutcome, ParserPool, exceeds_depth};
 
 /// Which optional extraction signals a plugin actually produces.
 ///

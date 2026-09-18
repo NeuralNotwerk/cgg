@@ -17,6 +17,14 @@ use cgg_core::graph::Graph;
 use cgg_core::ids::CallableId;
 use regex::Regex;
 
+/// Deepest path `-n 0` enumeration will follow before treating the walk
+/// as truncated. `dfs_paths` recurses one frame per edge on a path, so a
+/// pathological call chain (each function calling the next, tens of
+/// thousands deep) would otherwise overflow the stack and abort. This is
+/// far above any real call depth and well within the analysis thread's
+/// stack; hitting it sets the same `truncated` signal `--max-paths` does.
+const MAX_PATH_DEPTH: u32 = 100_000;
+
 /// What `-n 0` path enumeration did, beyond the graph it returned.
 ///
 /// Truncation is the only interesting field and it exists because a
@@ -251,6 +259,7 @@ fn paths_through(
             &mut path_count,
             max_paths,
             &mut truncated,
+            0,
         );
     }
 
@@ -274,9 +283,17 @@ fn dfs_paths(
     count: &mut u32,
     max: u32,
     truncated: &mut bool,
+    depth: u32,
 ) {
     if *count >= max {
         // This node was reached and the cap refused to explore it.
+        *truncated = true;
+        return;
+    }
+    if depth > MAX_PATH_DEPTH {
+        // A call chain deeper than any real program — stop before the
+        // recursion overflows the stack, and report it like any other
+        // truncation rather than descending further.
         *truncated = true;
         return;
     }
@@ -296,8 +313,17 @@ fn dfs_paths(
     } else if let Some(nexts) = fwd.get(&node) {
         for &next in nexts {
             dfs_paths(
-                next, fwd, out_degree, seeds, stack, visited, on_path, count, max,
+                next,
+                fwd,
+                out_degree,
+                seeds,
+                stack,
+                visited,
+                on_path,
+                count,
+                max,
                 truncated,
+                depth + 1,
             );
         }
     }

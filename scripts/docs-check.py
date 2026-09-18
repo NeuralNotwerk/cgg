@@ -110,6 +110,14 @@ skill that states the number.
     has must be right. Same root cause as 11; it is here because the
     number is trivially derivable and was trivially wrong.
 
+13. npm binding-version parity. `crates/cgg-node/index.js` is generated
+    by `napi build` and hardcodes the platform-package version it will
+    accept; `package.json` carries the version that ships. They must be
+    equal, or `require()` throws a version mismatch on every platform.
+    0.8.4 shipped exactly that: every Cargo item bumped, every gate
+    green, and the published root package demanding 0.8.3 bindings the
+    registry no longer served at that version.
+
 Run from the repo root. Exits non-zero on any mismatch with a
 human-readable message naming the offending file.
 """
@@ -117,6 +125,7 @@ human-readable message naming the offending file.
 from __future__ import annotations
 
 import itertools
+import json
 import re
 import subprocess
 import sys
@@ -927,6 +936,23 @@ def check_skill_publish_claims() -> None:
                     )
 
 
+def check_node_index_version() -> None:
+    """Check 13 — the generated index.js accepts the version package.json ships."""
+    node = REPO_ROOT / "crates/cgg-node"
+    shipped = json.loads((node / "package.json").read_text())["version"]
+    expected = set(
+        re.findall(r"expected (\d+\.\d+\.\d+) but", (node / "index.js").read_text())
+    )
+    if expected != {shipped}:
+        fail(
+            f"crates/cgg-node/index.js accepts native binding version "
+            f"{sorted(expected) or '(none)'} but package.json ships {shipped} "
+            "(check 13) — `require()` would throw a version mismatch on every "
+            "platform. Regenerate it: cd crates/cgg-node && npx --yes "
+            "--package=@napi-rs/cli@3.8.5 -- napi build --platform --release"
+        )
+
+
 def check_skill_docs_check_count() -> None:
     """A skill counting docs-check's checks must match how many exist."""
     actual = len(re.findall(r"^def check_", Path(__file__).read_text(), re.MULTILINE))
@@ -970,6 +996,7 @@ def main() -> None:
     check_deliberate_leaks()
     check_changelog()
     check_skill_publish_claims()
+    check_node_index_version()
     check_skill_docs_check_count()
     print("[docs-check] ok")
 
