@@ -134,6 +134,41 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
+      # MUST run BEFORE the build. `napi build` REGENERATES index.js, so
+      # every step after it sees a freshly-correct file — while `publish`
+      # ships the COMMITTED one from the tag. That gap is not theoretical:
+      # 0.8.4 went out with every job green and a root package nobody could
+      # `require()`, because the committed index.js demanded 0.8.3 bindings
+      # while the platform packages shipped 0.8.4. The smoke test below
+      # cannot see it, by construction. This is the check that can.
+      #
+      # Same assertion as scripts/docs-check.py check 13, repeated here
+      # because docs-check only runs in the pre-commit hook: a --no-verify
+      # commit, a clone that never ran scripts/install-hooks.sh, or an edit
+      # made in the GitHub web UI reaches this workflow unchecked.
+      - name: The committed loader accepts the version we ship
+        shell: bash
+        working-directory: crates/cgg-node
+        run: |
+          want=$(node -p "require('./package.json').version")
+          got=$(grep -oE 'expected [0-9]+\.[0-9]+\.[0-9]+ but' index.js \
+                | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          n=$(grep -c 'expected .* but' index.js || true)
+          echo "package.json ships $want; committed index.js accepts '$got' ($n sites)"
+          if [ -z "$got" ]; then
+            echo "::error::no binding-version assertions found in the committed" \
+                 "crates/cgg-node/index.js — it is not a napi-generated loader"
+            exit 1
+          fi
+          if [ "$got" != "$want" ]; then
+            echo "::error::committed crates/cgg-node/index.js accepts native binding" \
+                 "version '$got' but package.json ships $want — require() would throw" \
+                 "'Native binding package version mismatch' on every platform." \
+                 "Regenerate and commit it: cd crates/cgg-node &&" \
+                 "npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release"
+            exit 1
+          fi
+
       - name: Build
         working-directory: crates/cgg-node
         env:
@@ -142,18 +177,51 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release --target ${{ matrix.target }}
 
+      # The build just rewrote index.js. If that changed anything, the file
+      # in git is not the file napi would produce for this commit — publish
+      # would ship the stale one. Reported as a diff, not just a version.
+      - name: The build did not change the committed loader
+        shell: bash
+        working-directory: crates/cgg-node
+        run: |
+          if ! git diff --quiet -- index.js index.d.ts; then
+            echo "::error::napi build regenerated crates/cgg-node/index.js or" \
+                 "index.d.ts differently from what is committed. publish ships the" \
+                 "COMMITTED file, so the difference below is what users would get." \
+                 "Commit the regenerated files."
+            git --no-pager diff --stat -- index.js index.d.ts
+            git --no-pager diff -- index.js index.d.ts | head -60
+            exit 1
+          fi
+          echo "committed index.js/index.d.ts match what napi generates here"
+
       # Load the module and make it analyse a real tree. A .node that
       # builds and does not load is the failure a build-only matrix ships.
       - name: Smoke test
         if: matrix.name != 'linux-arm64-gnu' && matrix.name != 'darwin-x64' # host cannot execute the target
+        shell: bash
         working-directory: crates/cgg-node
         run: |
           node -e "
           const cgg = require('./index.js');
+          const pkg = require('./package.json');
+
+          // The version is ASSERTED, not printed. It used to be logged only,
+          // so a loader/native/package disagreement scrolled past in green.
+          // This reads the version out of the compiled .node — the one thing
+          // here that cannot be satisfied by a stale or hand-edited file.
+          const v = cgg.version();
+          if (v !== pkg.version) {
+            throw new Error(
+              'version mismatch: native binding reports ' + v +
+              ' but package.json ships ' + pkg.version +
+              ' — the .node was built from a different tree than the manifest');
+          }
+
           const g = cgg.analyzeSync('../cgg-walk');
           if (g.callableCount < 1) { throw new Error('no callables'); }
           if (!g.toMermaid().startsWith('flowchart')) { throw new Error('bad mermaid'); }
-          console.log('ok', cgg.version(), g.callableCount, 'callables');
+          console.log('ok', v, g.callableCount, 'callables');
           "
 
       - uses: actions/upload-artifact@v4
@@ -353,6 +421,24 @@ jobs:
           #   with bypass 2fa enabled is required to publish packages.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          # Last gate before an irreversible act. This job publishes the
+          # index.js that is COMMITTED at the tag — no step here regenerates
+          # it — so this is the file users get, and npm will not let the
+          # version be republished once it is wrong. 0.8.4 is the precedent.
+          # The node matrix checks this too; it is repeated here because
+          # this is the only place that is provably looking at the bytes
+          # about to be uploaded.
+          want=$(node -p "require('./package.json').version")
+          got=$(grep -oE 'expected [0-9]+\.[0-9]+\.[0-9]+ but' index.js \
+                | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          if [ "$got" != "$want" ]; then
+            echo "::error::refusing to publish: index.js accepts '$got'," \
+                 "package.json ships $want. Regenerate crates/cgg-node/index.js" \
+                 "with @napi-rs/cli@3.8.5 and re-tag."
+            exit 1
+          fi
+          echo "npm root: index.js and package.json agree on $want"
+
           # `napi artifacts` is not optional: `prepublish` validates that
           # every npm/<triple>/ package already CONTAINS its .node, and
           # aborts with "Release package … is incomplete" otherwise.
