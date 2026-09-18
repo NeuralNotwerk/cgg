@@ -53,6 +53,12 @@ CONFIGS = [
     ("paths-truncated", ["-n", "0", "--max-paths", "7", "--filter", "e"]),
     ("neighborhood", ["-n", "2", "--filter", "e"]),
     ("no-entry-nodes", ["--no-entry-nodes"]),
+    # Changes which FILES are walked rather than how the graph is
+    # resolved, so it exercises a different half of the pipeline than
+    # every config above — and the skip decision reads a file's first
+    # 8KB, which is exactly the kind of work that could go
+    # order-dependent under threads without anyone noticing.
+    ("skip-minified", ["--skip-minified"]),
 ]
 
 FORMATS = ["json", "mermaid", "dot", "graphml"]
