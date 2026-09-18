@@ -514,6 +514,11 @@ than emitting low-confidence edges.
   machine has the cores; it helps on parse-bound trees and does
   roughly nothing on resolve-bound ones, so measure rather than
   assume. The graph is byte-identical at any thread count.
+- A file whose syntax tree nests deeper than 4,000 levels is skipped,
+  audited as `skip_reason: too-deep`, and counted in the run summary.
+  That is roughly 2,000 nested calls or 4,000 nested brackets/operators
+  — machine-generated data, never hand-written code. Before 0.8.5 such a
+  file overflowed the stack and aborted the whole run.
 - There is **no cache**, and no flag to control one. Every run
   re-parses from source, which is why a run is reproducible from the
   tree alone — and why a re-run costs the same as the first. If you

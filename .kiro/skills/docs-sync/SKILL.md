@@ -122,6 +122,13 @@ pre-commit hook, and it enforces:
 9. Every deliberate leak in the pipeline crates is in `ALLOWED_LEAKS`
    with a reason.
 
+10. The newest CHANGELOG entry matches the workspace version, headers
+    strictly decrease, and every `v*` tag has an entry.
+11. No skill calls a channel unpublished that `release.yml` publishes.
+12. A skill stating how many checks this file has is right.
+13. `crates/cgg-node/index.js`'s hardcoded binding version equals
+    `package.json`'s — regenerate with `napi build`, never by hand.
+
 Plus one unnumbered check: every enumerating framework rule id in
 `rules.rs` is named by a `benchmark.sh` `APPS` entry or declared in
 `APPS_UNVERIFIED`.

@@ -82,6 +82,45 @@ fn set_language(parser: &mut Parser, lang: &Language) -> Result<()> {
         .map_err(|e| anyhow!("set_language failed: {e}"))
 }
 
+/// Whether `tree` nests deeper than `cap` levels.
+///
+/// Every language plugin's `extract` is a recursive descent over this
+/// tree, so a tree deeper than the thread stack can hold overflows and
+/// **aborts the process** — and because a stack overflow is not a Rust
+/// panic, no `catch_unwind` at an FFI/Python/Node boundary can turn it
+/// into a recoverable error. The pipeline calls this before walking and
+/// skips a file that exceeds the cap, so extraction depth is bounded no
+/// matter how a hostile or machine-generated file is nested.
+///
+/// The check itself is iterative — an explicit [`tree_sitter::TreeCursor`],
+/// never recursion — so it cannot overflow, and it short-circuits the
+/// instant the cap is passed rather than measuring the whole tree.
+pub fn exceeds_depth(tree: &Tree, cap: usize) -> bool {
+    let mut cursor = tree.walk();
+    let mut depth: usize = 0;
+    loop {
+        // Descend as deep as the current branch allows.
+        if cursor.goto_first_child() {
+            depth += 1;
+            if depth > cap {
+                return true;
+            }
+            continue;
+        }
+        // Leaf: move to the next sibling, climbing until one exists.
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                // Back at the root with nothing left to visit.
+                return false;
+            }
+            depth -= 1;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,5 +167,42 @@ mod tests {
         let pool = ParserPool::new(&reg);
         let err = pool.parse("klingon", b"qapla").unwrap_err().to_string();
         assert!(err.contains("unknown plugin"));
+    }
+}
+
+#[cfg(test)]
+mod depth_tests {
+    use super::*;
+
+    fn parse_python(src: &str) -> Tree {
+        let reg = PluginRegistry::with_v1_plugins();
+        ParserPool::new(&reg)
+            .parse("python", src.as_bytes())
+            .unwrap()
+            .tree
+    }
+
+    #[test]
+    fn shallow_tree_is_within_any_reasonable_cap() {
+        let tree = parse_python("def f():\n    pass\n");
+        assert!(!exceeds_depth(&tree, 50));
+    }
+
+    #[test]
+    fn nested_tree_exceeds_a_cap_below_its_depth_and_not_one_above() {
+        // ~200 nested lists plus a few wrapper nodes above them.
+        let src = format!("y = {}1{}\n", "[".repeat(200), "]".repeat(200));
+        let tree = parse_python(&src);
+        assert!(exceeds_depth(&tree, 150), "cap under the depth must trip");
+        assert!(!exceeds_depth(&tree, 250), "cap over the depth must not");
+    }
+
+    /// The check is what makes a hostile depth safe, so it must not
+    /// itself recurse: a tree far deeper than any stack must return.
+    #[test]
+    fn check_is_iterative_on_a_very_deep_tree() {
+        let src = format!("y = {}1{}\n", "[".repeat(100_000), "]".repeat(100_000));
+        let tree = parse_python(&src);
+        assert!(exceeds_depth(&tree, 4_000));
     }
 }
