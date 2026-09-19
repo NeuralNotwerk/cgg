@@ -321,6 +321,32 @@ pub struct FileFacts {
     /// Statements that control flow cannot reach.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unreachable: Vec<UnreachableRegion>,
+    /// Class-level field declarations: `name = Type(...)`.
+    ///
+    /// Framework-agnostic: the Python plugin records every class-level
+    /// assignment whose RHS is a call, without interpreting what the
+    /// type means.  Framework rules consume these — e.g. Kivy's rule
+    /// uses them to recognise `on_<field>` methods as property observers.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_fields: Vec<ClassFieldDecl>,
+}
+
+/// A class-level `name = Type(...)` assignment.
+///
+/// Extracted generically by the Python plugin (and potentially others);
+/// interpreted by framework rules.  Useful for Kivy (`StringProperty`),
+/// Django (`models.CharField`), SQLAlchemy (`Column`), Pydantic
+/// (`Field`), attrs (`attrib`) — any library that uses descriptors or
+/// metaclass-driven class fields.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ClassFieldDecl {
+    /// Qualified name of the owning class (`module.ClassName`).
+    pub class_qn: String,
+    /// Field name as written (`text`, `name`, `created_at`).
+    pub field_name: String,
+    /// Type / constructor name as written (`StringProperty`, `Column`).
+    pub type_name: String,
+    pub line: u32,
 }
 
 /// A top-level import / use / include descriptor — not yet interpreted.
@@ -360,6 +386,7 @@ impl FileFacts {
             exports: Vec::new(),
             dyn_uses: Vec::new(),
             unreachable: Vec::new(),
+            class_fields: Vec::new(),
         }
     }
 

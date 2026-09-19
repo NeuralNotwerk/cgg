@@ -613,6 +613,10 @@ fn collect_value_refs(
             // `new lambda.Function(this, "Api", { handler: "app.handler" })`
             // is how CDK names every Lambda in a TypeScript stack.
             | "object"
+            | "boolean_operator"
+            | "conditional_expression"
+            | "parenthesized_expression"
+            | "not_operator"
     ) {
         // `[C::class, 'method']` is one target, not two loose names.
         if let Some((owner, method)) = class_method_pair(arg, source) {
