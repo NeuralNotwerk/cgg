@@ -327,7 +327,7 @@ source files
 │  cgg-walk      file discovery (.gitignore, deny-list)     │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-lang      tree-sitter parse → extract callables      │
-│                44 language plugins (+ .ipynb notebooks)   │
+│                45 language plugins (+ .ipynb notebooks)   │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-resolve   link calls to definitions                  │
 │                ├── type propagation (params, locals,      │
@@ -359,7 +359,7 @@ the vendored Smithy grammar, so this adds no new build requirement, and
 it pulls in nothing at runtime. Two details worth stating outright: the
 build takes **mimalloc v3.3.2** (upstream's recommended line — selected
 by leaving the `v2` feature off), and the `override` feature is **off**,
-so mimalloc serves only Rust's `Global` and the 44 tree-sitter C parsers
+so mimalloc serves only Rust's `Global` and the 45 tree-sitter C parsers
 that handle untrusted input keep glibc's hardened allocator.
 
 The full dependency tree is **211 packages** (`cargo metadata` over the
@@ -463,7 +463,7 @@ confirm caller/callee impact. Grep finds string matches; `cgg` finds
 resolved calls — including method dispatch and cross-file edges that
 grep will miss or over-match.
 
-## Supported languages (44)
+## Supported languages (45)
 
 The last five are interface/descriptor languages: cgg maps their shape
 graphs onto the call-graph model, so an API model renders as a topology of
@@ -516,6 +516,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 | Verilog / SV | — | — | Modules, tasks, functions; module instantiation as edges. Task/function *calls* are not captured, so `` `include `` yields no edges |
 | VHDL | library, use clauses | — | Entities, architectures, procedures/functions |
 | Assembly | — | — | x86 / ARM / RISC-V / MIPS: labels + `call`/`jmp`/`bl`/`jal` |
+| Kivy KV | KV → Python methods | — | `.kv` event bindings (`on_release: root.foo()`, indented suites, `app.root`) resolve into Python; indent-sensitive, vendored grammar |
 | Smithy | namespace shapes (global) | — | API models: `service`→`operation`→`structure`→shape-member edges; traits & prelude primitives skipped |
 | Protobuf | message/enum by name | — | message field types + gRPC `service` rpc → request/response message edges |
 | GraphQL | type names (global) | — | SDL: `type`→field-type, `implements`, and `union` member edges; built-in scalars skipped |
@@ -1394,7 +1395,7 @@ know](#adding-a-framework-cgg-does-not-know).
   sanitizer awareness, and no branch-condition analysis. Use it to bound
   where to look, never to conclude something is exploitable.
 - Dead-code signal coverage is very uneven across languages. `visibility` is
-  extracted for 7 of 44 plugins, real attributes for 9, and value-reference
+  extracted for 7 of 45 plugins, real attributes for 9, and value-reference
   capture for 11. Every report prints a per-language capability table so a "no"
   column is visible before the findings are.
 

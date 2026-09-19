@@ -97,6 +97,7 @@ REPOS=(
     "vhdl-uvvm|https://github.com/UVVM/UVVM.git|vhdl|uvvm_util/src||"
     "asm-xv6|https://github.com/mit-pdos/xv6-public.git|asm|||"
     "asm-xv6-mixed|https://github.com/mit-pdos/xv6-public.git|c,asm|||"
+    "kivy-kivy|https://github.com/kivy/kivy.git|kivy|kivy||"
     "smithy-protocol-tests|https://github.com/smithy-lang/smithy.git|smithy|smithy-aws-protocol-tests/model||"
     "proto-grpc|https://github.com/grpc/grpc-proto.git|proto|||"
     "graphql-github|https://github.com/octokit/graphql-schema.git|graphql|||"

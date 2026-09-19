@@ -11,8 +11,9 @@
 //! * `napi` — `#[napi]`, `#[module_exports]`
 //! * `jni` — `@JNI`, `native` keyword in Java
 //! * `pinvoke` — `[DllImport]` in C#
+//! * `kv-python` — Kivy `.kv` `on_release: root.foo()` → Python methods
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use cgg_core::FileFacts;
 use cgg_core::graph::{CallEdge, CallableKind, CallableNode, Confidence, Graph, Via};
@@ -156,6 +157,16 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
             }
         }
     }
+
+    link_kivy_python(
+        graph,
+        facts,
+        &by_name,
+        &mut seen_ffi_edges,
+        &resolver,
+        &mut out,
+    );
+
     // --- Pass B: existing attribute-driven FFI ---------------------
 
     // For each callable with FFI attributes, find matching call sites
@@ -231,6 +242,207 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
     }
 
     out
+}
+
+/// Kivy `.kv` event bindings call Python methods (`root.foo()`,
+/// `app.root.controller.estop()`). Same-language resolve cannot see
+/// across the markup/host boundary; this is the asm↔C equivalent.
+const KIVY_PYTHON_FANOUT: usize = 5;
+
+fn link_kivy_python(
+    graph: &Graph,
+    facts: &[FileFacts],
+    by_name: &HashMap<&str, Vec<(CallableId, &str)>>,
+    seen: &mut std::collections::HashSet<(CallableId, CallableId, u32)>,
+    resolver: &ResolverId,
+    out: &mut FfiOutput,
+) {
+    let (app_classes, app_roots) = kivy_app_context(graph, facts);
+    for f in facts {
+        if f.language != "kivy" {
+            continue;
+        }
+        for r in &f.references {
+            if r.name.is_empty() {
+                continue;
+            }
+            let Some(rows) = by_name.get(r.name.as_str()) else {
+                continue;
+            };
+            let python: Vec<CallableId> = rows
+                .iter()
+                .filter(|(_, lang)| *lang == "python")
+                .map(|(id, _)| *id)
+                .collect();
+            if python.is_empty() {
+                continue;
+            }
+            let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else {
+                continue;
+            };
+            let preferred = r.context.as_str();
+            let mut scored: Vec<(i32, CallableId)> = Vec::new();
+            for dst in &python {
+                if *dst == src_id {
+                    continue;
+                }
+                let Some(node) = graph.callables.get(dst) else {
+                    continue;
+                };
+                let owner = owner_from_qn(&node.qualified_name).unwrap_or("");
+                let score = kivy_owner_score(preferred, owner, &app_classes, &app_roots);
+                if score > 0 {
+                    scored.push((score, *dst));
+                }
+            }
+            let (confidence, chosen) = if scored.is_empty() {
+                if python.len() == 1 && python[0] != src_id {
+                    (Confidence::Medium, vec![python[0]])
+                } else {
+                    continue;
+                }
+            } else {
+                let max = scored.iter().map(|(s, _)| *s).max().unwrap_or(0);
+                let best: Vec<CallableId> = scored
+                    .into_iter()
+                    .filter(|(s, _)| *s == max)
+                    .map(|(_, id)| id)
+                    .collect();
+                if best.len() > KIVY_PYTHON_FANOUT {
+                    continue;
+                }
+                let conf = if best.len() == 1 && max >= 3 {
+                    Confidence::High
+                } else {
+                    Confidence::Medium
+                };
+                (conf, best)
+            };
+            for dst in chosen {
+                if !seen.insert((src_id, dst, r.site_byte)) {
+                    continue;
+                }
+                out.edges.push(CallEdge {
+                    src: src_id,
+                    dst,
+                    site_line: r.site_line,
+                    site_byte: r.site_byte,
+                    confidence,
+                    via: Via::Ffi("kv-python".into()),
+                    resolver: resolver.clone(),
+                    weight: 1,
+                });
+            }
+        }
+    }
+}
+
+fn kivy_owner_score(
+    preferred: &str,
+    owner: &str,
+    app_classes: &HashSet<String>,
+    app_roots: &HashSet<String>,
+) -> i32 {
+    if preferred.is_empty() || owner.is_empty() {
+        return 0;
+    }
+    if preferred == "app.root" {
+        return if set_has(app_roots, owner) { 4 } else { 0 };
+    }
+    if preferred == "App" {
+        if set_has(app_classes, owner) {
+            return 4;
+        }
+        if owner.ends_with("App") {
+            return 2;
+        }
+        return 0;
+    }
+    if owner == preferred {
+        return 4;
+    }
+    if owner.eq_ignore_ascii_case(preferred) {
+        return 3;
+    }
+    0
+}
+
+fn set_has(set: &HashSet<String>, owner: &str) -> bool {
+    set.contains(owner) || set.iter().any(|s| s.eq_ignore_ascii_case(owner))
+}
+
+/// `App` subclasses and the widget class each `build()` returns.
+///
+/// `app.root.foo()` in KV is a call on that returned widget. The Python
+/// plugin already records `return Makera(...)` as a constructor ref
+/// inside `build`; we harvest those, and fall back to edges from `build`
+/// onto `__init__` if the facts pass saw none.
+fn kivy_app_context(
+    graph: &Graph,
+    facts: &[FileFacts],
+) -> (HashSet<String>, HashSet<String>) {
+    let mut apps = HashSet::new();
+    let mut roots = HashSet::new();
+    for f in facts {
+        if f.language != "python" {
+            continue;
+        }
+        for d in &f.definitions {
+            if d.simple_name != "build"
+                || !d.base_types.iter().any(|b| is_kivy_app_base(b))
+            {
+                continue;
+            }
+            if let Some(owner) = owner_from_qn(&d.qualified_name) {
+                apps.insert(owner.to_string());
+            }
+            for r in &f.references {
+                if r.site_byte < d.start_byte || r.site_byte >= d.end_byte {
+                    continue;
+                }
+                if r.receiver_hint.is_empty()
+                    && r.name.starts_with(|c: char| c.is_ascii_uppercase())
+                {
+                    roots.insert(r.name.clone());
+                }
+            }
+        }
+    }
+    if roots.is_empty() && !apps.is_empty() {
+        for c in graph.callables.values() {
+            if c.language != "python" || c.simple_name != "build" {
+                continue;
+            }
+            let Some(owner) = owner_from_qn(&c.qualified_name) else {
+                continue;
+            };
+            if !set_has(&apps, owner) {
+                continue;
+            }
+            for e in &graph.edges {
+                if e.src != c.id {
+                    continue;
+                }
+                let Some(dst) = graph.callables.get(&e.dst) else {
+                    continue;
+                };
+                if dst.simple_name == "__init__" || dst.kind == CallableKind::Constructor
+                {
+                    if let Some(o) = owner_from_qn(&dst.qualified_name) {
+                        roots.insert(o.to_string());
+                    }
+                }
+            }
+        }
+    }
+    (apps, roots)
+}
+
+fn is_kivy_app_base(b: &str) -> bool {
+    b.rsplit('.')
+        .next()
+        .unwrap_or(b)
+        .eq_ignore_ascii_case("App")
 }
 
 /// Smallest-enclosing-range callable for `(file, byte)`.
@@ -779,5 +991,226 @@ mod tests {
         );
         assert_eq!(out.edges[0].src, CallableId::new(1));
         assert_eq!(out.edges[0].dst, CallableId::new(0));
+    }
+
+    #[test]
+    fn kivy_binding_links_the_matching_python_method() {
+        use cgg_core::RefRecord;
+
+        let mut g = Graph::new();
+        g.add_file(FileRecord {
+            id: FileId::new(0),
+            path: PathBuf::from("ui.kv"),
+            language: "kivy".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_file(FileRecord {
+            id: FileId::new(1),
+            path: PathBuf::from("popup.py"),
+            language: "python".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "FacingWizardPopup.on_release:3".into(),
+            simple_name: "on_release".into(),
+            kind: CallableKind::Method,
+            language: "kivy".into(),
+            file: FileId::new(0),
+            start_line: 3,
+            end_line: 3,
+            start_byte: 0,
+            end_byte: 80,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec!["kv-binding".into()],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(1),
+            qualified_name: "popup.FacingWizardPopup.generate_program".into(),
+            simple_name: "generate_program".into(),
+            kind: CallableKind::Method,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 10,
+            end_line: 20,
+            start_byte: 0,
+            end_byte: 40,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(2),
+            qualified_name: "other.Other.generate_program".into(),
+            simple_name: "generate_program".into(),
+            kind: CallableKind::Method,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 40,
+            end_line: 50,
+            start_byte: 100,
+            end_byte: 140,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: vec![],
+            synthetic: false,
+            trait_impl_target: None,
+            ..Default::default()
+        });
+
+        let mut facts = FileFacts::new(FileId::new(0), PathBuf::from("ui.kv"), "kivy");
+        facts.references.push(RefRecord {
+            name: "generate_program".into(),
+            receiver_hint: "root".into(),
+            site_line: 3,
+            site_byte: 40,
+            context: "FacingWizardPopup".into(),
+            ..Default::default()
+        });
+
+        let out = link_ffi(&g, &[facts]);
+        let kv: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| matches!(&e.via, Via::Ffi(s) if s == "kv-python"))
+            .collect();
+        assert_eq!(
+            kv.len(),
+            1,
+            "expected one kv-python edge, got {:?}",
+            out.edges
+        );
+        assert_eq!(kv[0].src, CallableId::new(0));
+        assert_eq!(kv[0].dst, CallableId::new(1));
+        assert_eq!(kv[0].confidence, Confidence::High);
+    }
+
+    #[test]
+    fn app_root_links_to_the_widget_app_build_returns() {
+        use cgg_core::{DefRecord, RefRecord};
+
+        let mut g = Graph::new();
+        g.add_file(FileRecord {
+            id: FileId::new(0),
+            path: PathBuf::from("ui.kv"),
+            language: "kivy".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_file(FileRecord {
+            id: FileId::new(1),
+            path: PathBuf::from("app.py"),
+            language: "python".into(),
+            detected_via: "ext".into(),
+            blake3: "0".repeat(64),
+            size_bytes: 10,
+            lines: 1,
+            parse_ms: 0.0,
+            parse_status: "ok".into(),
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "kv.on_release:4".into(),
+            simple_name: "on_release".into(),
+            kind: CallableKind::Method,
+            language: "kivy".into(),
+            file: FileId::new(0),
+            start_line: 4,
+            end_line: 4,
+            start_byte: 0,
+            end_byte: 80,
+            attributes: vec!["kv-binding".into()],
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(1),
+            qualified_name: "app.Makera.run_macro".into(),
+            simple_name: "run_macro".into(),
+            kind: CallableKind::Method,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 20,
+            end_line: 25,
+            start_byte: 200,
+            end_byte: 260,
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(2),
+            qualified_name: "other.Other.run_macro".into(),
+            simple_name: "run_macro".into(),
+            kind: CallableKind::Method,
+            language: "python".into(),
+            file: FileId::new(1),
+            start_line: 40,
+            end_line: 45,
+            start_byte: 400,
+            end_byte: 460,
+            ..Default::default()
+        });
+
+        let mut kv = FileFacts::new(FileId::new(0), PathBuf::from("ui.kv"), "kivy");
+        kv.references.push(RefRecord {
+            name: "run_macro".into(),
+            receiver_hint: "app.root".into(),
+            site_line: 4,
+            site_byte: 40,
+            context: "app.root".into(),
+            ..Default::default()
+        });
+        let mut py = FileFacts::new(FileId::new(1), PathBuf::from("app.py"), "python");
+        py.definitions.push(DefRecord {
+            simple_name: "build".into(),
+            qualified_name: "app.MakeraApp.build".into(),
+            start_byte: 10,
+            end_byte: 80,
+            base_types: vec!["App".into()],
+            ..Default::default()
+        });
+        py.references.push(RefRecord {
+            name: "Makera".into(),
+            site_line: 12,
+            site_byte: 40,
+            ..Default::default()
+        });
+
+        let out = link_ffi(&g, &[kv, py]);
+        let kv_edges: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| matches!(&e.via, Via::Ffi(s) if s == "kv-python"))
+            .collect();
+        assert_eq!(
+            kv_edges.len(),
+            1,
+            "app.root should pick Makera.run_macro, got {:?}",
+            out.edges
+        );
+        assert_eq!(kv_edges[0].dst, CallableId::new(1));
     }
 }

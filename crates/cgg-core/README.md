@@ -1,7 +1,7 @@
 # cgg-core — Core types for cgg
 
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
-offline, deterministic call-graph generator for 44 languages.
+offline, deterministic call-graph generator for 45 languages.
 
 The substrate: `Graph`, the `CallableId` / `FileId` / `ResolverId` newtypes,
 the audit schema, facts, framework rules, and stdlib lookup tables. Every

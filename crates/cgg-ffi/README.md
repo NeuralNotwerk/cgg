@@ -101,7 +101,7 @@ should not be the thing that changes it.
 ## Size
 
 `libcgg.so` is 99 MiB on disk, of which 91 MiB is `.rodata` — the parse
-tables for 44 tree-sitter grammars. `.text` is 6.4 MiB. It is already
+tables for 45 tree-sitter grammars. `.text` is 6.4 MiB. It is already
 stripped, so that floor is the grammars, not the code. It compresses about
 11:1 (9.3 MiB gzip -9, 5.5 MiB xz -9), so the download a package registry
 serves is roughly 10 MB. `libcgg.a` is larger — 125 MiB — because a static

@@ -1,10 +1,10 @@
 # cgg-lang — Language plugins for cgg
 
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
-offline, deterministic call-graph generator for 44 languages.
+offline, deterministic call-graph generator for 45 languages.
 
 The language layer: detection by shebang, content sniff, extension and `.h`
-header heuristic; a tree-sitter parser pool; and 44 `LanguagePlugin`
+header heuristic; a tree-sitter parser pool; and 45 `LanguagePlugin`
 implementations that pull callables and raw call sites out of a syntax tree.
 
 ## You probably want `cgg` instead

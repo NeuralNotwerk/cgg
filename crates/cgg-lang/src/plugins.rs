@@ -22,6 +22,7 @@ pub mod hcl;
 pub mod java;
 pub mod javascript;
 pub mod julia;
+pub mod kivy;
 pub mod kotlin;
 pub mod lua;
 pub mod nix;
@@ -107,6 +108,7 @@ pub fn extract_signature(full_text: &str) -> String {
 pub fn register_all(reg: &mut PluginRegistry) {
     reg.register(Box::new(rust::RustPlugin));
     reg.register(Box::new(python::PythonPlugin));
+    reg.register(Box::new(kivy::KivyPlugin));
     reg.register(Box::new(javascript::JavaScriptPlugin));
     reg.register(Box::new(typescript::TypeScriptPlugin));
     reg.register(Box::new(go::GoPlugin));

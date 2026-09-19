@@ -788,6 +788,42 @@ fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEnt
     }
 }
 
+/// Prefer a value-ref handler on the same type as the registrar call.
+///
+/// `self.bind(on_x=self.handler)` is looked up by bare name first, and
+/// that lookup gives up (or picks the first same-file hit) when several
+/// widgets define `on_mouse_pos`. The bind site sits inside `__init__`
+/// (or another method of the widget), so the enclosing callable's owner
+/// is the class that meant this handler.
+fn handler_on_enclosing_owner(
+    graph: &Graph,
+    index: &NameIndex,
+    file: FileId,
+    byte: u32,
+    name: &str,
+) -> Option<CallableId> {
+    let owner = enclosing_owner_name(graph, file, byte)?;
+    index.by_owner_method(Some(owner), name, file)
+}
+
+fn enclosing_owner_name(graph: &Graph, file: FileId, byte: u32) -> Option<&str> {
+    let mut best: Option<(&cgg_core::graph::CallableNode, u32)> = None;
+    for c in graph.callables.values() {
+        if c.file != file || c.synthetic || c.qualified_name.starts_with('<') {
+            continue;
+        }
+        if c.start_byte > byte || c.end_byte < byte {
+            continue;
+        }
+        let span = c.end_byte.saturating_sub(c.start_byte);
+        match best {
+            Some((_, sp)) if sp <= span => {}
+            _ => best = Some((c, span)),
+        }
+    }
+    crate::names::owner_from_qn(&best?.0.qualified_name)
+}
+
 /// **Shapes B, C and E** — the handler sits in argument position.
 ///
 /// All three arrive as `RefRecord`s carrying a `context` (the registrar
@@ -915,7 +951,18 @@ fn match_registrars(
             }
 
             let (candidates, shape) = if is_value {
-                let id = index.by_simple(&r.name, f.file);
+                // `self.bind(on_x=self.handler)`: prefer the handler on
+                // the same class as the bind() call. Bare-name lookup
+                // gives up (or picks the wrong one) when several
+                // widgets define `on_mouse_pos`.
+                let id = handler_on_enclosing_owner(
+                    graph,
+                    index,
+                    f.file,
+                    r.site_byte,
+                    &r.name,
+                )
+                .or_else(|| index.by_simple(&r.name, f.file));
                 // A handler written in place is shape C, not B: the
                 // graph already reaches its body, and the node exists
                 // only to name the route.
@@ -1092,11 +1139,7 @@ fn match_observer_callbacks(
     if rule.observer_types.is_empty() {
         return;
     }
-    let types: HashSet<&str> = rule
-        .observer_types
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
+    let types: HashSet<&str> = rule.observer_types.iter().map(|s| s.as_str()).collect();
 
     // Build class_qn → {field_name} from the matching class_fields.
     let mut observers: HashMap<&str, HashSet<String>> = HashMap::new();
@@ -1910,6 +1953,46 @@ mod tests {
     }
 
     #[test]
+    fn value_ref_registrar_prefers_handler_on_enclosing_class() {
+        // Two widgets both define `on_mouse_pos`. Bare-name lookup in
+        // the same file would pick whichever was inserted first (B);
+        // the bind site is inside A's `__init__`, so A must win.
+        let mut a_init = node(0, "ui.A.__init__", "__init__", "python");
+        a_init.start_byte = 0;
+        a_init.end_byte = 50;
+        let mut b_handler = node(1, "ui.B.on_mouse_pos", "on_mouse_pos", "python");
+        b_handler.start_byte = 100;
+        b_handler.end_byte = 130;
+        let mut a_handler = node(2, "ui.A.on_mouse_pos", "on_mouse_pos", "python");
+        a_handler.start_byte = 60;
+        a_handler.end_byte = 90;
+        let g = graph_with(vec![a_init, b_handler, a_handler]);
+
+        let mut f = facts_with_import("python", "ui.py", "kivy");
+        f.references.push(RefRecord {
+            from_macro_arg: false,
+            name: "on_mouse_pos".into(),
+            receiver_hint: VALUE_REF_HINT.to_string(),
+            site_line: 4,
+            site_byte: 20,
+            context: "self.bind".into(),
+            route: String::new(),
+            kwargs: Vec::new(),
+        });
+        let out = detect(&g, &f_vec(f), &[]);
+        let names: Vec<&str> =
+            out.entries.iter().map(|e| e.target_name.as_str()).collect();
+        assert!(
+            names.contains(&"ui.A.on_mouse_pos"),
+            "bind inside A should resolve to A.on_mouse_pos, got {names:?}"
+        );
+        assert!(
+            !names.contains(&"ui.B.on_mouse_pos"),
+            "must not steal B.on_mouse_pos: {names:?}"
+        );
+    }
+
+    #[test]
     fn rails_string_routing_decodes_to_a_controller_action() {
         assert_eq!(
             decode_string_target("photos#index", "ruby"),
@@ -2159,7 +2242,8 @@ mod tests {
         });
 
         let out = detect(&g, &f_vec(f), &[]);
-        let names: Vec<&str> = out.entries.iter().map(|e| e.target_name.as_str()).collect();
+        let names: Vec<&str> =
+            out.entries.iter().map(|e| e.target_name.as_str()).collect();
         assert!(
             names.contains(&"label.L.on_text"),
             "on_text should match the StringProperty field: {names:?}"
