@@ -4,7 +4,7 @@
 //! analysis. The analysis itself lives in `cgg-resolve::deadcode`; it is
 //! split out here because `cgg-format` depends on `cgg-core` alone, and
 //! must not be dragged through `cgg-resolve` (and therefore `cgg-lang`,
-//! and therefore 44 linked tree-sitter grammars) just to render a
+//! and therefore 45 linked tree-sitter grammars) just to render a
 //! report.
 //!
 //! Two design commitments run through every type below.
@@ -16,7 +16,7 @@
 //! [`DEAD_CODE_DISCLAIMER`] an honest statement rather than boilerplate.
 //!
 //! **Absence of signal is reported, not hidden.** Extraction coverage is
-//! very uneven across the 44 language plugins, so every report states
+//! very uneven across the 45 language plugins, so every report states
 //! per language what cgg could and could not see
 //! ([`LanguageCapabilityReport`]) and how many findings it withheld and
 //! why ([`SuppressedCategory`]). A report that ranks a Rust finding and

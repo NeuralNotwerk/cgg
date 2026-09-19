@@ -1,13 +1,13 @@
 //! Per-language capability disclosure.
 //!
-//! Extraction coverage is very uneven: most of the 44 plugins declare no
+//! Extraction coverage is very uneven: most of the 45 plugins declare no
 //! `visibility` and no real `attributes`, and dispatch modelling only
 //! produces edges for Rust. A report that presented a Rust finding and a
 //! Fortran finding with equal authority would be lying, so every report
 //! states per language what cgg could see.
 //!
 //! Deliberately no counts in this comment. The last version said "2 of
-//! 44 plugins" and stayed wrong for seven more plugins; the numbers live
+//! 45 plugins" and stayed wrong for seven more plugins; the numbers live
 //! in each plugin's `signals()` and are measured at runtime by
 //! [`measure`] below.
 //!
@@ -55,6 +55,14 @@ const BLIND_SPOTS: &[(&str, &[&str])] = &[
     ),
     ("javascript", &["obj[expr] dynamic property access"]),
     ("typescript", &["obj[expr] dynamic property access"]),
+    (
+        "kivy",
+        &[
+            "ids.foo lookups",
+            "canvas instruction properties",
+            "#:include files are not followed",
+        ],
+    ),
 ];
 
 /// What cgg measured about one language in this run.

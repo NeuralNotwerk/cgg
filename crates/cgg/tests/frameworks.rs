@@ -221,6 +221,25 @@ fn shape_d_torch_module_marks_a_root_without_minting_a_node() {
 }
 
 #[test]
+fn shape_d_kivy_app_build_marks_a_root_without_minting_a_node() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app.py",
+        "from kivy.app import App\n\nclass MakeraApp(App):\n\
+         \x20   def build(self):\n        return self._root()\n\n\
+         \x20   def _root(self):\n        return None\n",
+    );
+    let (g, err) = run(tmp.path(), &[]);
+    assert!(err.contains("kivy (lifecycle"), "{err}");
+    assert!(
+        !g.contains("<framework-entry>") && !g.contains("&lt;framework-entry&gt;"),
+        "a lifecycle base type must not mint a node:\n{g}"
+    );
+    assert!(err.contains("root-marked only"), "{err}");
+}
+
+#[test]
 fn shape_d_quartz_ijob_does_mint_a_node_because_the_entry_has_identity() {
     let tmp = TempDir::new().unwrap();
     write(

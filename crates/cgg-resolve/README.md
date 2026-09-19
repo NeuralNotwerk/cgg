@@ -1,7 +1,7 @@
 # cgg-resolve — Call-site resolution for cgg
 
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
-offline, deterministic call-graph generator for 44 languages.
+offline, deterministic call-graph generator for 45 languages.
 
 Links call sites to definitions: type propagation, intra-file scoping,
 cross-file import chains, FFI edges, descriptor `$ref` edges, framework entry

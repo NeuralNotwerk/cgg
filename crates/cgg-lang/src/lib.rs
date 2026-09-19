@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn v1_registry_has_all_languages() {
         let reg = PluginRegistry::with_v1_plugins();
-        assert_eq!(reg.all().len(), 44);
+        assert_eq!(reg.all().len(), 45);
     }
 
     /// A verb belongs to its own language's rules and no other's.

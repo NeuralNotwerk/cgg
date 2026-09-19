@@ -7,6 +7,25 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Added
+
+- **Generic class-field extraction.** The Python plugin now records every
+  class-level `name = Type(...)` assignment in `FileFacts::class_fields`,
+  framework-agnostically. Useful for any descriptor-driven library (Kivy,
+  Django, SQLAlchemy, Pydantic, attrs).
+- **Observer callback matching in framework rules.** `RuleSpec` gains an
+  `observer_types` field; when a rule lists type names and a class declares
+  a matching field, the corresponding `on_<field>` method is recognised as
+  a framework-invoked callback.
+- **Value references through `or` / `and` / ternary.** `handler = x or
+  _default` and `f = a if c else b` now record the callable as a
+  reference, reducing false-positive dead-code reports.
+- **Kivy KV (`.kv`) language plugin.** Event bindings become callables
+  and a kv→python linker resolves them onto Python methods of the matching
+  widget class. Multi-statement suites, `app.root` and a built-in `kivy`
+  framework rule (`App.build`, `on_start`/`on_stop`, `on_touch_*`,
+  `.bind()`, `Clock.schedule_*`, `on_<prop>` observers) are included.
+
 ## [0.8.4] - 2026-09-17
 
 ### Fixed

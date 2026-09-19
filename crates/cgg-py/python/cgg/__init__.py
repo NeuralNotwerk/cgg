@@ -1,4 +1,4 @@
-"""cgg — offline, deterministic call graphs for 44 languages.
+"""cgg — offline, deterministic call graphs for 45 languages.
 
 Point it at a source tree, get a graph back::
 

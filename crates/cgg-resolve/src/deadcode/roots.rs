@@ -402,7 +402,7 @@ pub(crate) fn discover(
         );
     }
 
-    // --- Rule: top-level invocation (all 44 languages) -------------------
+    // --- Rule: top-level invocation (all 45 languages) -------------------
     //
     // `intra_file` narrows a call to exactly one definition and then
     // discards the edge when there is no enclosing callable to hang it
@@ -472,6 +472,21 @@ pub(crate) fn discover(
             continue;
         }
         let lang = node.language.as_str();
+
+        // KV event bindings are invoked by the Kivy runtime, not by
+        // anything in the analyzed Python. Treat every kivy callable as
+        // a lifecycle root so the Python methods they call stay live.
+        if lang == "kivy" {
+            set.push(
+                graph,
+                *id,
+                RootKind::LifecycleCallback,
+                "kivy:kv-binding",
+                "KV event binding invoked by the Kivy runtime".into(),
+                &mut seen,
+            );
+            continue;
+        }
 
         // Program entry points.
         let lang_entries = LANG_ENTRY
