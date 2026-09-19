@@ -45,8 +45,9 @@ pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
-    DefRecord, DefVariant, DynUse, ExportRecord, FileFacts, ImportRecord, LocalType,
-    RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT, Vis,
+    ClassFieldDecl, DefRecord, DefVariant, DynUse, ExportRecord, FileFacts, ImportRecord,
+    LocalType, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT,
+    Vis,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

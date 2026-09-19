@@ -142,6 +142,7 @@ impl<'a> Walker<'a> {
                 // the runtime calls `forward`; nothing else in the file
                 // does.
                 self.bases.push(super::attrs::base_types(node, self.source));
+                collect_class_fields(node, self.source, &self.scope, self.facts);
                 self.walk_children(node);
                 self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
@@ -276,6 +277,12 @@ impl<'a> Walker<'a> {
                     // `a = b = _fail` nests the second assignment on
                     // the right of the first.
                     | "assignment"
+                    // `handler = x or _default_request` and
+                    // `handler = a if c else b` name a callable without
+                    // a call or a literal container.
+                    | "boolean_operator"
+                    | "conditional_expression"
+                    | "parenthesized_expression"
             ) {
                 continue;
             }
@@ -563,6 +570,74 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
 
 fn starts_uppercase(s: &str) -> bool {
     s.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+}
+
+/// Generic class-level `name = Type(...)` extraction.
+///
+/// Records every assignment at class body level whose RHS is a call.
+/// Framework-agnostic: the Python plugin records what it sees, and
+/// framework rules interpret it (e.g. Kivy's rule uses these to
+/// recognise `on_<field>` methods as property observers).
+fn collect_class_fields(
+    class: tree_sitter::Node,
+    source: &[u8],
+    scope: &[String],
+    facts: &mut FileFacts,
+) {
+    let Some(body) = class.child_by_field_name("body") else {
+        return;
+    };
+    let class_qn = scope.join(".");
+    let mut c = body.walk();
+    for child in body.named_children(&mut c) {
+        if child.kind() != "expression_statement" {
+            continue;
+        }
+        let Some(assign) = child.named_child(0) else {
+            continue;
+        };
+        if assign.kind() != "assignment" {
+            continue;
+        }
+        let Some(left) = assign.child_by_field_name("left") else {
+            continue;
+        };
+        if left.kind() != "identifier" {
+            continue;
+        }
+        let Some(right) = assign.child_by_field_name("right") else {
+            continue;
+        };
+        if right.kind() != "call" {
+            continue;
+        }
+        let Some(func) = right.child_by_field_name("function") else {
+            continue;
+        };
+        let type_name = match func.kind() {
+            "identifier" => func.utf8_text(source).unwrap_or(""),
+            "attribute" => func
+                .child_by_field_name("attribute")
+                .and_then(|a| a.utf8_text(source).ok())
+                .unwrap_or(""),
+            _ => "",
+        };
+        if type_name.is_empty() {
+            continue;
+        }
+        let Ok(field_name) = left.utf8_text(source) else {
+            continue;
+        };
+        if field_name.is_empty() {
+            continue;
+        }
+        facts.class_fields.push(cgg_core::ClassFieldDecl {
+            class_qn: class_qn.clone(),
+            field_name: field_name.to_string(),
+            type_name: type_name.to_string(),
+            line: (assign.start_position().row as u32) + 1,
+        });
+    }
 }
 
 /// Python has no visibility keyword; the underscore convention is the
@@ -919,5 +994,55 @@ class C:
             .map(|d| d.qualified_name.as_str())
             .collect();
         assert!(names.contains(&"m.outer.inner"), "got: {names:?}");
+    }
+
+    #[test]
+    fn class_field_declarations_are_extracted() {
+        let f = extract(
+            "class Label:\n\
+             \x20   text = StringProperty('')\n\
+             \x20   size = NumericProperty(0)\n\
+             \x20   plain = 42\n\
+             \x20   def on_text(self, instance, value):\n\
+             \x20       pass\n",
+        );
+        assert_eq!(
+            f.class_fields.len(),
+            2,
+            "only RHS-is-call assignments: {:?}",
+            f.class_fields
+        );
+        assert!(
+            f.class_fields
+                .iter()
+                .any(|cf| cf.field_name == "text" && cf.type_name == "StringProperty"),
+            "text field: {:?}",
+            f.class_fields
+        );
+        assert!(
+            f.class_fields
+                .iter()
+                .any(|cf| cf.field_name == "size" && cf.type_name == "NumericProperty"),
+            "size field: {:?}",
+            f.class_fields
+        );
+        assert!(
+            f.class_fields.iter().all(|cf| cf.class_qn.contains("Label")),
+            "class_qn must name the class: {:?}",
+            f.class_fields
+        );
+    }
+
+    #[test]
+    fn value_ref_on_the_right_of_or_is_captured() {
+        let f = extract(
+            "def _default_request():\n    return 1\n\n\
+             handler = x or _default_request\n",
+        );
+        assert!(
+            value_refs(&f).contains(&"_default_request"),
+            "`x or _default_request` is a reference; got {:?}",
+            value_refs(&f)
+        );
     }
 }

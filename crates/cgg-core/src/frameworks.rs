@@ -269,6 +269,11 @@ pub struct FrameworkRule {
     /// where the entry has *identity* — a route, a queue, a command.
     #[serde(default = "default_true")]
     pub node: bool,
+
+    /// Class-field type names whose assignment creates `on_<field>`
+    /// observer callbacks (e.g. Kivy's `StringProperty`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub observer_types: Vec<String>,
 }
 
 fn default_true() -> bool {
@@ -295,6 +300,7 @@ impl FrameworkRule {
             // "seen, no rules" — claiming a gap that does not exist.
             || !rules::visibility_entries_for(&self.id, &self.language).is_empty()
             || !rules::self_module_markers_for(&self.id, &self.language).is_empty()
+            || !self.observer_types.is_empty()
     }
 }
 

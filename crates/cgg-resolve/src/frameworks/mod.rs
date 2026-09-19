@@ -143,6 +143,10 @@ pub fn detect(
                 let _s = cgg_core::profile::span("frameworks::match-visibility");
                 match_visibility(graph, rule, &mut entries);
             }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-observers");
+                match_observer_callbacks(graph, facts, rule, &mut entries);
+            }
             entries.into_iter()
         })
         .collect();
@@ -1063,6 +1067,87 @@ fn match_visibility(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<Framework
             target: *id,
             target_name: node.qualified_name.clone(),
             evidence: format!("`{}` visibility", node.visibility),
+            file: node.file,
+            site_line: node.start_line,
+            node: rule.node,
+        });
+    }
+}
+
+/// **Observer callbacks** — `on_<field>` methods matching a class-level
+/// `field = Type(...)` declaration.
+///
+/// Driven by `FrameworkRule::observer_types`: when a rule lists type
+/// names (e.g. Kivy's `StringProperty`), and the Python plugin recorded
+/// a class-level assignment `text = StringProperty(...)` in
+/// `FileFacts::class_fields`, the method `on_text` in that class is a
+/// framework-invoked callback.  The Python plugin extracts the data
+/// generically; interpretation belongs here.
+fn match_observer_callbacks(
+    graph: &Graph,
+    facts: &[FileFacts],
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    if rule.observer_types.is_empty() {
+        return;
+    }
+    let types: HashSet<&str> = rule
+        .observer_types
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
+
+    // Build class_qn → {field_name} from the matching class_fields.
+    let mut observers: HashMap<&str, HashSet<String>> = HashMap::new();
+    for f in facts {
+        if f.language != rule.language {
+            continue;
+        }
+        for cf in &f.class_fields {
+            if types.contains(cf.type_name.as_str()) {
+                observers
+                    .entry(cf.class_qn.as_str())
+                    .or_default()
+                    .insert(format!("on_{}", cf.field_name));
+            }
+        }
+    }
+    if observers.is_empty() {
+        return;
+    }
+
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        if !node.simple_name.starts_with("on_") {
+            continue;
+        }
+        let owner = crate::names::owner_from_qn(&node.qualified_name).unwrap_or("");
+        // Check every class in the observer map: the method's owner may
+        // be the full qualified name or just the last segment.
+        let matched = observers.iter().any(|(class_qn, methods)| {
+            if !methods.contains(&node.simple_name) {
+                return false;
+            }
+            let class_last = class_qn.rsplit('.').next().unwrap_or(class_qn);
+            owner == *class_qn || owner == class_last
+        });
+        if !matched {
+            continue;
+        }
+        out.push(FrameworkEntry {
+            framework: rule.id.clone(),
+            kind: rule.kind,
+            shape: EntryShape::Attribute,
+            route: String::new(),
+            target: *id,
+            target_name: node.qualified_name.clone(),
+            evidence: format!(
+                "`{}` is an observer callback for a declared property",
+                node.simple_name,
+            ),
             file: node.file,
             site_line: node.start_line,
             node: rule.node,
@@ -2049,5 +2134,56 @@ mod tests {
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
         assert_eq!(out.entries[0].framework, "net-http");
         assert_eq!(out.entries[0].kind, TrustKind::Network);
+    }
+
+    #[test]
+    fn observer_callback_matches_a_declared_property_field() {
+        // `text = StringProperty('')` at class level → `on_text` is a
+        // framework-invoked observer. The Python plugin records the
+        // field generically; the Kivy rule's `observer_types` is what
+        // interprets it.
+        let mut n = node(0, "label.L.on_text", "on_text", "python");
+        n.file = FileId::new(0);
+        n.start_byte = 100;
+        let mut unrelated = node(1, "label.L.on_size", "on_size", "python");
+        unrelated.file = FileId::new(0);
+        unrelated.start_byte = 200;
+        let g = graph_with(vec![n, unrelated]);
+
+        let mut f = facts_with_import("python", "label.py", "kivy");
+        f.class_fields.push(cgg_core::ClassFieldDecl {
+            class_qn: "label.L".into(),
+            field_name: "text".into(),
+            type_name: "StringProperty".into(),
+            line: 3,
+        });
+
+        let out = detect(&g, &f_vec(f), &[]);
+        let names: Vec<&str> = out.entries.iter().map(|e| e.target_name.as_str()).collect();
+        assert!(
+            names.contains(&"label.L.on_text"),
+            "on_text should match the StringProperty field: {names:?}"
+        );
+        assert!(
+            !names.contains(&"label.L.on_size"),
+            "on_size has no matching field declaration: {names:?}"
+        );
+    }
+
+    #[test]
+    fn observer_callback_does_not_fire_without_a_matching_field() {
+        // An `on_*` method without a corresponding class-level property
+        // declaration must not be claimed.
+        let mut n = node(0, "label.L.on_phantom", "on_phantom", "python");
+        n.file = FileId::new(0);
+        let g = graph_with(vec![n]);
+
+        let f = facts_with_import("python", "label.py", "kivy");
+        let out = detect(&g, &f_vec(f), &[]);
+        assert!(
+            out.entries.is_empty(),
+            "no field declaration, no observer entry: {:?}",
+            out.entries
+        );
     }
 }
