@@ -101,7 +101,7 @@ module.exports = grammar({
             "<",
             commaSep1($.selector),
             ">",
-            ":",
+            optional(":"),
             field("body", $.block),
         ),
 

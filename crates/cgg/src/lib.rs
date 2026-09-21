@@ -419,6 +419,19 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             let line_count = count_lines(&bytes);
 
             let _sp = cgg_core::profile::span("parse::tree-sitter+extract");
+            // Some grammars (Kivy KV) parse in time quadratic in
+            // line length. Check the per-plugin cap before parsing.
+            if let Some(plugin) = pool.plugin(lang)
+                && let Some(cap) = plugin.max_line_bytes()
+            {
+                let longest = cgg_lang::longest_line_bytes(&bytes);
+                if longest > cap {
+                    return FileOutcome::Skipped {
+                        path: cand.path.clone(),
+                        reason: SkipReason::LongLine(cap, longest),
+                    };
+                }
+            }
             let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
                 Ok(out) => {
                     // The extractors recurse over the tree. A tree deeper

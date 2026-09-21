@@ -5,6 +5,12 @@
 v0.1.0 (grammar ABI 15, `tree-sitter-cli` 0.26.13), MIT licensed.
 See `LICENSE`.
 
+**Local patches** (applied to `grammar.js`, regenerated with
+`tree-sitter generate`):
+
+* The `rule` production accepts colon-less headers (`<BaseChipIcon>`
+  without a trailing `:`), the style KivyMD uses.
+
 There is no crates.io package. Compiling the generated C here and binding
 `tree_sitter_kivy()` through `tree_sitter_language::LanguageFn` matches the
 Smithy vendor path, with an extra `scanner.c` for KV's indent/dedent tokens.

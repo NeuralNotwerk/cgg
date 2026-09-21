@@ -467,3 +467,45 @@ class D(DropDown):\n    def on_dismiss(self):\n        return 1\n",
         "unused should still be reported, findings: {names:?}"
     );
 }
+
+/// A KV file whose longest line exceeds the grammar's `max_line_bytes`
+/// threshold is skipped (not hung on for seconds) and reported in the
+/// audit.  The Kivy grammar's `expression` production is quadratic in
+/// line length; this guard prevents a multi-second stall.
+#[test]
+fn kv_file_with_very_long_line_is_skipped_not_hung() {
+    let tmp = TempDir::new().unwrap();
+
+    // Build a single-line expression that far exceeds 32 KB.
+    // `on_release: a.b() or c.d() or …` repeated thousands of times.
+    let chunk = "app.root.foo()";
+    let count = 4_000;
+    let long_line: String = std::iter::repeat_n(chunk, count)
+        .collect::<Vec<_>>()
+        .join(" or ");
+    let src = format!("<Adversarial>:\n    Button:\n        on_release: {long_line}\n");
+    assert!(
+        src.lines().map(|l| l.len()).max().unwrap_or(0) > 32_768,
+        "test fixture must exceed the 32 KB threshold"
+    );
+    write(tmp.path(), "adversarial.kv", src.as_bytes());
+
+    let out = tmp.path().join("g.json");
+    let start = std::time::Instant::now();
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let elapsed = start.elapsed();
+
+    // The parse alone took 4.3 s at 4,000 calls on the old grammar.
+    // With the guard, the whole run should complete in well under a
+    // second — assert < 3 s for CI headroom.
+    assert!(
+        elapsed.as_secs() < 3,
+        "analysis took {elapsed:?}; should be near-instant because the \
+         file is skipped, not parsed"
+    );
+}

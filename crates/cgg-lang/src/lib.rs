@@ -204,6 +204,20 @@ pub use cgg_core as core;
 pub use detect::{DetectResult, DetectVerdict, LanguageDetector};
 pub use parser::{ParseOutcome, ParserPool, exceeds_depth};
 
+/// Byte length of the longest line in `source`.
+///
+/// A "line" is the span between consecutive `\n` bytes (or start/end of
+/// the slice).  The `\n` delimiter itself is not counted.  Used by the
+/// pipeline to skip files whose longest line exceeds a grammar's
+/// [`LanguagePlugin::max_line_bytes`] threshold.
+pub fn longest_line_bytes(source: &[u8]) -> usize {
+    source
+        .split(|&b| b == b'\n')
+        .map(|l| l.len())
+        .max()
+        .unwrap_or(0)
+}
+
 /// Which optional extraction signals a plugin actually produces.
 ///
 /// This is a *manifest*, not a behaviour switch. It lets a consumer
@@ -253,6 +267,15 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
     /// Cheap and constant; never called per file.
     fn signals(&self) -> PluginSignals {
         PluginSignals::default()
+    }
+
+    /// Per-language cap on the longest source line (in bytes) that the
+    /// tree-sitter grammar can parse in reasonable time.  `None` means
+    /// no limit (the default for all grammars whose parse time is
+    /// linear in line length).  A file whose longest line exceeds this
+    /// is skipped with [`cgg_core::audit::SkipReason::LongLine`].
+    fn max_line_bytes(&self) -> Option<usize> {
+        None
     }
 
     fn ts_language(&self) -> tree_sitter::Language;

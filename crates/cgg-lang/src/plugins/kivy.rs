@@ -82,6 +82,9 @@ impl LanguagePlugin for KivyPlugin {
     fn ts_language(&self) -> tree_sitter::Language {
         KIVY_LANGUAGE.into()
     }
+    fn max_line_bytes(&self) -> Option<usize> {
+        Some(32_768)
+    }
 
     fn extract(
         &self,
@@ -1091,6 +1094,47 @@ Button:\n    on_release:\n        if root.mode == 'Run': app.root.play(1)\n     
             def.start_byte,
             def.end_byte,
             f.references
+        );
+    }
+
+    #[test]
+    fn colonless_rule_header_parses() {
+        let src = "\
+<BaseChipIcon>
+    adaptive_height: True
+    on_release: root.handle_click()
+";
+        let f = extract(src, "/tmp/chip.kv");
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name.contains("BaseChipIcon.on_release")),
+            "colonless rule should still extract defs: {:?}",
+            f.definitions
+        );
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "handle_click")
+            .expect("handle_click ref from colonless rule");
+        assert_eq!(r.receiver_hint, "root");
+        assert_eq!(r.context, "BaseChipIcon");
+    }
+
+    #[test]
+    fn colonless_rule_with_inheritance_parses() {
+        let src = "\
+<MyCoolButton@Button>
+    text: \"Go\"
+    on_press: root.do_thing()
+";
+        let f = extract(src, "/tmp/cool.kv");
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name.contains("MyCoolButton.on_press")),
+            "colonless rule+inheritance: {:?}",
+            f.definitions
         );
     }
 }

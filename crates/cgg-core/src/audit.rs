@@ -57,6 +57,11 @@ pub enum SkipReason {
     /// panic. Such a file is skipped rather than walked. Payload carries
     /// the observed cap so the audit says why.
     TooDeep(usize),
+    /// A source line exceeds the parser's per-language line-length
+    /// threshold.  Some tree-sitter grammars (Kivy KV in particular)
+    /// parse in time quadratic in line length; skipping the file avoids
+    /// a multi-second hang.  Payload: `(threshold_bytes, actual_bytes)`.
+    LongLine(usize, usize),
 }
 
 impl SkipReason {
@@ -74,6 +79,7 @@ impl SkipReason {
             SkipReason::TooLarge => "too-large",
             SkipReason::Minified => "minified",
             SkipReason::TooDeep(_) => "too-deep",
+            SkipReason::LongLine(_, _) => "long-line",
         }
     }
 }
