@@ -105,6 +105,7 @@ impl LanguagePlugin for KivyPlugin {
             widget_stack: Vec::new(),
             file_class,
             root_widget: String::new(),
+            last_event_def: None,
         };
         w.walk(tree.root_node());
         facts
@@ -121,6 +122,10 @@ struct KivyWalker<'a> {
     file_class: String,
     /// First top-level widget, used when there is no `<Rule>`.
     root_widget: String,
+    /// Index of the last `on_*` event definition in the same widget.
+    /// Non-event property refs are enclosed by this def so the FFI
+    /// linker sees them as part of the event binding.
+    last_event_def: Option<usize>,
 }
 
 impl<'a> KivyWalker<'a> {
@@ -225,7 +230,7 @@ impl<'a> KivyWalker<'a> {
         // too and attach them to this binding. The def span has to cover
         // the leftover so the kv→python linker still sees the refs as
         // enclosed by this binding.
-        let (start, end) = property_scan_span(node);
+        let (start, end) = property_scan_span(node, self.source);
         for extra in scan_text_calls(self.source, start, end) {
             if !calls
                 .iter()
@@ -244,24 +249,60 @@ impl<'a> KivyWalker<'a> {
         } else {
             owner
         };
+
+        // Only `on_*` bindings become definitions (callable nodes).
+        // Other property expressions (text: tr._('Ok'), size: dp(12))
+        // emit their references attributed to the enclosing rule but
+        // do not mint a node — they bloat the graph without adding
+        // reachability information.  Their refs must still be enclosed
+        // by a callable so the FFI linker can create edges; we extend
+        // the last event binding's span to cover them.
+        let is_event = prop.starts_with("on_");
         let sl = (node.start_position().row as u32) + 1;
-        let end_line = line_at(self.source, end.saturating_sub(1).max(start));
-        let el = end_line.max((node.end_position().row as u32) + 1);
-        let qn = format!("{owner}.{prop}:{sl}");
-        self.facts.definitions.push(DefRecord {
-            simple_name: prop.clone(),
-            qualified_name: qn,
-            variant: DefVariant::InherentMethod,
-            start_line: sl,
-            end_line: el,
-            start_byte: node.start_byte() as u32,
-            end_byte: end as u32,
-            signature_hint: format!("{prop}: …"),
-            visibility: String::new(),
-            vis: Vis::Public,
-            attributes: vec!["kv-binding".into()],
-            ..Default::default()
-        });
+
+        if is_event {
+            let max_ref_byte = calls
+                .iter()
+                .map(|c| c.byte as usize + c.name.len() + 2)
+                .max()
+                .unwrap_or(end);
+            let span_end = end.max(max_ref_byte);
+            let end_line = line_at(self.source, span_end.saturating_sub(1).max(start));
+            let el = end_line.max((node.end_position().row as u32) + 1);
+            let qn = format!("{owner}.{prop}:{sl}");
+            self.facts.definitions.push(DefRecord {
+                simple_name: prop.clone(),
+                qualified_name: qn,
+                variant: DefVariant::InherentMethod,
+                start_line: sl,
+                end_line: el,
+                start_byte: node.start_byte() as u32,
+                end_byte: span_end as u32,
+                signature_hint: format!("{prop}: …"),
+                visibility: String::new(),
+                vis: Vis::Public,
+                attributes: vec!["kv-binding".into()],
+                ..Default::default()
+            });
+            self.last_event_def = Some(self.facts.definitions.len() - 1);
+        } else if let Some(idx) = self.last_event_def {
+            // Non-event property with calls (e.g. `else: app.root.apply()`
+            // parsed as a property after `on_release:`).  Extend the
+            // preceding event binding's span to enclose these refs.
+            let max_byte = calls
+                .iter()
+                .map(|c| c.byte as usize + c.name.len() + 2)
+                .max()
+                .unwrap_or(node.end_byte());
+            let def = &mut self.facts.definitions[idx];
+            if max_byte as u32 > def.end_byte {
+                def.end_byte = max_byte as u32;
+            }
+            let el = line_at(self.source, max_byte.saturating_sub(1));
+            if el > def.end_line {
+                def.end_line = el;
+            }
+        }
 
         for call in calls {
             let preferred =
@@ -346,9 +387,9 @@ fn preferred_owner(receiver: &str, rule: &str, widget: Option<&String>) -> Strin
     if recv == "app" {
         return "App".to_string();
     }
-    // `app.root.controller.estopCommand` → Controller (last real segment).
-    // `app.root.foo()` has no such segment; the linker maps the `app.root`
-    // sentinel onto the widget class `App.build()` returns.
+    // `app.root.controller.estopCommand` → Controller (last real segment,
+    // capitalised as a heuristic). The kv→python linker may refine this
+    // through class_fields when a declared type is available.
     recv.rsplit('.')
         .find(|s| !matches!(*s, "app" | "root" | "self" | "ids" | "parent"))
         .map(|s| {
@@ -564,7 +605,7 @@ fn scan_text_calls(source: &[u8], start: usize, end: usize) -> Vec<KvCall> {
 /// `:` ends the property node before `foo()`. Only ERROR / expression
 /// leftovers are included; the next real widget or property stops the
 /// span so an earlier `text:` cannot swallow later event bindings.
-fn property_scan_span(node: Node) -> (usize, usize) {
+fn property_scan_span(node: Node, source: &[u8]) -> (usize, usize) {
     let start = node.start_byte();
     let mut end = node.end_byte();
     let Some(parent) = node.parent() else {
@@ -583,7 +624,7 @@ fn property_scan_span(node: Node) -> (usize, usize) {
         {
             past = true;
         } else if past {
-            if !is_property_continuation(n) {
+            if !is_property_continuation(n, source) {
                 break;
             }
             if n.end_byte() > end {
@@ -597,7 +638,7 @@ fn property_scan_span(node: Node) -> (usize, usize) {
     (start, end)
 }
 
-fn is_property_continuation(n: Node) -> bool {
+fn is_property_continuation(n: Node, source: &[u8]) -> bool {
     match n.kind() {
         "ERROR"
         | "expression"
@@ -607,6 +648,13 @@ fn is_property_continuation(n: Node) -> bool {
         | "parenthesized_expression"
         | "list_expression"
         | "dictionary_expression" => true,
+        // `else:` / `elif:` are Python keywords the grammar parses as
+        // widget nodes. They continue an `if:` inside the preceding
+        // `on_*` property and should be covered by its span.
+        "widget" => n
+            .child_by_field_name("name")
+            .and_then(|c| c.utf8_text(source).ok())
+            .is_some_and(is_python_keyword),
         _ => !n.is_named(),
     }
 }
@@ -1002,6 +1050,47 @@ BoxLayout:
                 .any(|d| d.qualified_name.starts_with("SettingSnippet.on_release")),
             "defs: {:?}",
             f.definitions
+        );
+    }
+
+    #[test]
+    fn if_else_apply_captured_by_on_release() {
+        let src = "\
+Button:\n    on_release:\n        if root.mode == 'Run': app.root.play(1)\n        else: app.root.apply()\n";
+        let f = extract(src, "/tmp/makera.kv");
+        let ref_names: Vec<_> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(
+            ref_names.contains(&"play"),
+            "play should be a ref: {:?}",
+            f.references
+        );
+        assert!(
+            ref_names.contains(&"apply"),
+            "apply should be a ref: {:?}",
+            f.references
+        );
+        assert_eq!(
+            f.definitions.len(),
+            1,
+            "only one on_* def: {:?}",
+            f.definitions
+        );
+        assert!(
+            f.definitions[0]
+                .qualified_name
+                .starts_with("Button.on_release"),
+            "the def is on_release: {:?}",
+            f.definitions
+        );
+        let def = &f.definitions[0];
+        let apply_ref = f.references.iter().find(|r| r.name == "apply").unwrap();
+        assert!(
+            apply_ref.site_byte >= def.start_byte && apply_ref.site_byte < def.end_byte,
+            "apply ref byte {} should be within on_release def {}..{}: refs={:?}",
+            apply_ref.site_byte,
+            def.start_byte,
+            def.end_byte,
+            f.references
         );
     }
 }

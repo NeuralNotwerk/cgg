@@ -952,16 +952,16 @@ fn match_registrars(
 
             let (candidates, shape) = if is_value {
                 // `self.bind(on_x=self.handler)`: prefer the handler on
-                // the same class as the bind() call. Bare-name lookup
-                // gives up (or picks the wrong one) when several
-                // widgets define `on_mouse_pos`.
-                let id = handler_on_enclosing_owner(
-                    graph,
-                    index,
-                    f.file,
-                    r.site_byte,
-                    &r.name,
-                )
+                // the same class as the bind() call, but only when the
+                // rule opts in — the lookup leaks into every language
+                // otherwise (in Clojure the "enclosing owner" is the
+                // namespace, so `(get m id)` inside a defn would bind
+                // to the namespace's `id`).
+                let id = if rule.handler_on_enclosing_owner {
+                    handler_on_enclosing_owner(graph, index, f.file, r.site_byte, &r.name)
+                } else {
+                    None
+                }
                 .or_else(|| index.by_simple(&r.name, f.file));
                 // A handler written in place is shape C, not B: the
                 // graph already reaches its body, and the node exists

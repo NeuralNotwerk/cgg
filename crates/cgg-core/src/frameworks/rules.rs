@@ -50,6 +50,20 @@ pub struct RuleSpec {
     /// for a matching type and tags the corresponding `on_<field>`
     /// method as a lifecycle root.
     pub observer_types: &'static [&'static str],
+    /// Use the enclosing-owner lookup for value-ref handler resolution.
+    ///
+    /// When true, `self.bind(on_x=self.handler)` prefers the handler
+    /// on the same class as the bind() call.  Off by default because
+    /// the lookup leaks into every language — in Clojure the enclosing
+    /// "owner" is the namespace, so any `(get m id)` inside a defn
+    /// would bind to the namespace's `id`.
+    ///
+    /// Currently only the `kivy` rule sets this.  Instead of adding the
+    /// field to all 432 rules, `frameworks/mod.rs` gates on
+    /// `!observer_types.is_empty()` as an implicit opt-in — the only
+    /// rule with observer types today is Kivy, and it is the rule this
+    /// lookup was built for.
+    pub handler_on_enclosing_owner: bool,
 }
 
 const NONE: &[&str] = &[];
@@ -92,6 +106,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flask",
@@ -120,6 +135,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "django",
@@ -171,6 +187,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "django-admin",
@@ -187,6 +204,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "celery",
@@ -203,6 +221,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "click",
@@ -219,6 +238,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "torch",
@@ -252,6 +272,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kivy",
@@ -320,6 +341,30 @@ pub const SPECS: &[RuleSpec] = &[
             "on_value",
             "on_scroll_stop",
             "on_keyboard_down",
+            // Inherited property observers — built-in properties from
+            // Kivy base widgets that subclasses commonly override.
+            "on_text",
+            "on_state",
+            "on_active",
+            "on_press",
+            "on_release",
+            "on_color",
+            "on_opacity",
+            "on_disabled",
+            "on_focus",
+            "on_source",
+            "on_selection",
+            "on_current",
+            "on_index",
+            "on_data",
+            "on_children",
+            "on_enter",
+            "on_leave",
+            "on_pre_enter",
+            "on_pre_leave",
+            "on_complete",
+            "on_progress",
+            "on_error",
         ],
         string_targets: false,
         node: false,
@@ -340,6 +385,7 @@ pub const SPECS: &[RuleSpec] = &[
             "VariableListProperty",
             "ConfigParserProperty",
         ],
+        handler_on_enclosing_owner: true,
     },
     // ---------------------------------------------------------------
     // JavaScript / TypeScript
@@ -362,6 +408,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "express",
@@ -381,6 +428,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nestjs",
@@ -410,6 +458,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nestjs-schedule",
@@ -426,6 +475,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bullmq",
@@ -442,6 +492,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bullmq",
@@ -458,6 +509,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "worker-threads",
@@ -477,6 +529,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "worker-threads",
@@ -493,6 +546,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nextjs",
@@ -509,6 +563,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "routes come from file-system layout, not from anything written in source",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nextjs",
@@ -525,6 +580,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "routes come from file-system layout, not from anything written in source",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Java / Kotlin
@@ -555,6 +611,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-jobs",
@@ -571,6 +628,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-messaging",
@@ -603,6 +661,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jakarta-rs",
@@ -623,6 +682,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "micronaut",
@@ -648,6 +708,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "akka",
@@ -671,6 +732,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "java-concurrent",
@@ -689,6 +751,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring",
@@ -712,6 +775,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Go — one `receiver.VERB(string, callable)` matcher, four routers.
@@ -734,6 +798,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "echo",
@@ -753,6 +818,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fiber",
@@ -772,6 +838,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "chi",
@@ -800,6 +867,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "net-http",
@@ -822,6 +890,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "temporal",
@@ -843,6 +912,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Ruby
@@ -884,6 +954,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sinatra",
@@ -900,6 +971,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grape",
@@ -916,6 +988,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sidekiq",
@@ -941,6 +1014,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // PHP
@@ -978,6 +1052,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "symfony",
@@ -1008,6 +1083,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "wordpress",
@@ -1038,6 +1114,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "codeigniter",
@@ -1054,6 +1131,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // C#
@@ -1082,6 +1160,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aspnet-minimal",
@@ -1107,6 +1186,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dotnet-hosting",
@@ -1123,6 +1203,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "quartz",
@@ -1139,6 +1220,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "masstransit",
@@ -1155,6 +1237,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "blazor",
@@ -1171,6 +1254,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "`.razor` components carry their `@page` route in markup cgg does not parse",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Rust
@@ -1199,6 +1283,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "actix-web",
@@ -1226,6 +1311,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rocket",
@@ -1253,6 +1339,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "actix-actor",
@@ -1269,6 +1356,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // C / C++ — compute
@@ -1292,6 +1380,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cuda",
@@ -1308,6 +1397,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Solidity — the language *is* the framework
@@ -1333,6 +1423,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // FFI exports — the caller is in another language, or another process
@@ -1365,6 +1456,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // The long tail.
@@ -1391,6 +1483,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Tornado. Its entry points are the HTTP verb methods (get/post/put/patch/delete/head/options) plus prepare/on_finish defined on tornado.web.RequestHandler subclasses, and the open/on_message/on_close methods of tornado.websocket.WebSocketHandler subclasses. Those classes are bound to URLs in the (regex, HandlerClass) tuple list passed to tornado.web.Application([...]) or to app.add_handlers(). Nothing in the source calls those methods - the IOLoop does - so read the Application route list and each RequestHandler subclass by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aiohttp",
@@ -1407,6 +1500,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for aiohttp, and aiohttp is a client library as well as a server, so first decide which this is: aiohttp.ClientSession means client and there are no entry points at all; aiohttp.web.Application means server. For a server the entry points are the coroutines named in app.add_routes([web.get('/x', handler)]) and app.router.add_get/add_post/add_route(...), the handlers decorated @routes.get/@routes.post on an aiohttp.web.RouteTableDef, the HTTP verb methods of aiohttp.web.View subclasses, and coroutines marked @web.middleware. Read the web.Application setup by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sanic",
@@ -1423,6 +1517,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Sanic. Its entry points are handlers decorated @app.route/@app.get/@app.post/@app.put/@app.delete (or the same decorators on a Blueprint), @app.websocket handlers, the HTTP verb methods of sanic.views.HTTPMethodView subclasses, handlers registered by app.add_route(handler, '/x') or blueprint.add_route(...), and the @app.middleware/@app.listener/@app.signal/@app.exception callbacks. Read the Sanic app and every Blueprint definition by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "starlette",
@@ -1439,6 +1534,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for bare Starlette (FastAPI, which is built on Starlette, has its own rule and is already enumerated). Starlette's entry points are the endpoint callables named inside the Route('/x', endpoint)/WebSocketRoute(...)/Mount(...) entries of the routes=[] list passed to Starlette(), the HTTP verb methods of starlette.endpoints.HTTPEndpoint subclasses, the on_connect/on_receive/on_disconnect methods of WebSocketEndpoint subclasses, handlers added via app.add_route/app.add_websocket_route, and the dispatch() method of BaseHTTPMiddleware subclasses. Read the routes list by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bottle",
@@ -1455,6 +1551,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Bottle. Its entry points are functions decorated @route/@get/@post/@put/@delete/@error/@hook - either the module-level decorators imported straight from bottle, or the same names on a Bottle() app instance - plus handlers passed as app.route(path, callback=handler). Read every decorated function and every explicit app.route call by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "pyramid",
@@ -1471,6 +1568,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Pyramid. Its entry points are view callables marked @view_config/@view_defaults (bound at runtime by config.scan(), so no call in the source reaches them), views registered explicitly by config.add_view(view, route_name=...), the routes wired by config.add_route(...) on the Configurator, and any @subscriber event handlers. Read the Configurator setup and every @view_config-decorated function or class method by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "airflow",
@@ -1487,6 +1585,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Airflow; the scheduler invokes user code, so nothing in the DAG file calls it. The entry points are the task callables: the function passed as python_callable= to PythonOperator/BranchPythonOperator/ShortCircuitOperator, functions decorated @task/@dag/@task_group (from airflow.decorators, or airflow.sdk on Airflow 3), and the execute(self, context) method of custom BaseOperator subclasses. Read each DAG module by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "prefect",
@@ -1503,6 +1602,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Prefect. Its entry points are the functions decorated @flow and @task, invoked by the Prefect worker rather than by any call in source, plus the deployment entrypoints written as 'path/to/file.py:flow_function' strings in prefect.yaml or passed to flow.serve()/flow.deploy()/flow.from_source(...).deploy(). Read the @flow definitions and prefect.yaml by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dagster",
@@ -1519,6 +1619,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Dagster. Its entry points are the functions decorated @asset/@multi_asset/@op/@job/@graph/@schedule/@sensor, invoked by the Dagster daemon rather than by any call in source, and collected into Definitions(assets=[...], jobs=[...], schedules=[...], sensors=[...]). Read the Definitions module and each decorated function by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "streamlit",
@@ -1535,6 +1636,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Streamlit, and Streamlit has no handler construct: the runtime re-executes the whole script top to bottom on every browser interaction, so the module-level code of the script named in `streamlit run <script.py>` (and of every file under pages/) is itself the entry point - including its `if __name__ == \"__main__\"` block. Also runtime-invoked are the callbacks passed as on_click=/on_change= to widgets (st.button, st.selectbox, st.form_submit_button) and functions wrapped in @st.cache_data/@st.cache_resource/@st.fragment/@st.dialog. Read the script's top level by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gradio",
@@ -1551,6 +1653,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Gradio. Its entry points are the functions passed as fn= to gr.Interface(fn=...) and gr.ChatInterface(fn=...), and the handlers passed to event bindings inside a gr.Blocks() context - btn.click(handler, inputs, outputs), .change(...), .submit(...), .select(...), demo.load(...). Read the Blocks/Interface construction by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda-powertools",
@@ -1595,6 +1698,7 @@ pub const SPECS: &[RuleSpec] = &[
         // states and cgg does not read.
         gap: "cgg binds Powertools resolver routes and the decorated handler, but reports every entry as `network`. Which boundary it really is depends on the resolver class (APIGatewayRestResolver and ALBResolver are internet-facing; AppSyncResolver sits behind AppSync auth; BedrockAgentResolver is model-invoked) and, for batch handlers, on the event source. cgg does not read the constructor, so check the resolver type before treating an entry as internet-facing.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "koa",
@@ -1611,6 +1715,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Koa; every entry is either a middleware function passed to app.use(fn) or a handler passed to router.get/post/put/patch/del/delete/all/use on a @koa/router or koa-router instance, and those handlers are usually inline `async (ctx, next) =>` arrows with no name to anchor. Read the bootstrap file that calls `new Koa()` and every module that calls `new Router()` to enumerate the routes.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "koa",
@@ -1627,6 +1732,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Koa; every entry is either a middleware function passed to app.use(fn) or a handler passed to router.get/post/put/patch/del/delete/all/use on a @koa/router or koa-router instance, and those handlers are usually inline `async (ctx, next) =>` arrows with no name to anchor. Read the bootstrap file that calls `new Koa()` and every module that calls `new Router()` to enumerate the routes.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hapi",
@@ -1643,6 +1749,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for hapi; routes are plain objects passed to server.route({ method, path, handler }) or arrays of them, so the handler is an object field rather than a call argument cgg can see. Grep for `server.route(` and read each object's handler and options.handler, plus every server.ext(...) lifecycle hook and the register() function of each plugin.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hapi",
@@ -1659,6 +1766,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for hapi; routes are plain objects passed to server.route({ method, path, handler }) or arrays of them, so the handler is an object field rather than a call argument cgg can see. Grep for `server.route(` and read each object's handler and options.handler, plus every server.ext(...) lifecycle hook and the register() function of each plugin.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fastify",
@@ -1675,6 +1783,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Fastify; entries are the handlers passed to fastify.get/post/put/patch/delete/head/options/all, the handler field of fastify.route({ method, url, handler }), and the callbacks passed to fastify.addHook('onRequest'|'preHandler'|...). They are almost always declared inside plugin functions of the form `async function (fastify, opts)` that are wired up by fastify.register — read each registered plugin module by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fastify",
@@ -1691,6 +1800,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Fastify; entries are the handlers passed to fastify.get/post/put/patch/delete/head/options/all, the handler field of fastify.route({ method, url, handler }), and the callbacks passed to fastify.addHook('onRequest'|'preHandler'|...). They are almost always declared inside plugin functions of the form `async function (fastify, opts)` that are wired up by fastify.register — read each registered plugin module by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "remix",
@@ -1707,6 +1817,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Remix; entries are the module-level exports of every file under app/routes — loader, action, default (the route component), headers, meta, links, ErrorBoundary — plus app/root.jsx and app/entry.server.jsx / app/entry.client.jsx. The route-to-file mapping is filesystem convention, not source, so list app/routes/** and read each file's exports by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "remix",
@@ -1723,6 +1834,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Remix; entries are the module-level exports of every file under app/routes — loader, action, default (the route component), headers, meta, links, ErrorBoundary — plus app/root.tsx and app/entry.server.tsx / app/entry.client.tsx. The route-to-file mapping is filesystem convention, not source, so list app/routes/** and read each file's exports by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sveltekit",
@@ -1739,6 +1851,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for SvelteKit; entries are the exports of +page.js/+page.server.js/+layout.server.js (load, actions), of +server.js (GET/POST/PUT/PATCH/DELETE/OPTIONS), and of src/hooks.server.js (handle, handleFetch, handleError). Routes come from the src/routes directory layout rather than anything written in source, and .svelte components are not parsed at all — enumerate src/routes/** by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sveltekit",
@@ -1755,6 +1868,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for SvelteKit; entries are the exports of +page.ts/+page.server.ts/+layout.server.ts (load, actions), of +server.ts (GET/POST/PUT/PATCH/DELETE/OPTIONS), and of src/hooks.server.ts (handle, handleFetch, handleError). Routes come from the src/routes directory layout rather than anything written in source, and .svelte components are not parsed at all — enumerate src/routes/** by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nuxt",
@@ -1771,6 +1885,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Nuxt; server entries are the defineEventHandler(...) default exports of files under server/api, server/routes and server/middleware, and defineEventHandler is auto-imported so no import statement names it. Routes come from directory layout, and .vue single-file components are not parsed at all — enumerate server/api/**, server/routes/**, server/middleware/** and pages/** by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nuxt",
@@ -1787,6 +1902,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Nuxt; server entries are the defineEventHandler(...) default exports of files under server/api, server/routes and server/middleware, and defineEventHandler is auto-imported so no import statement names it. Routes come from directory layout, and .vue single-file components are not parsed at all — enumerate server/api/**, server/routes/**, server/middleware/** and pages/** by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "astro",
@@ -1809,6 +1925,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Astro; entries are the GET/POST/PUT/PATCH/DELETE/ALL exports of API routes under src/pages, the onRequest export of src/middleware.js, and the frontmatter script of each .astro page. There is no Astro grammar, so .astro files are not parsed at all — enumerate src/pages/** and src/middleware.* by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "astro",
@@ -1831,6 +1948,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Astro; entries are the GET/POST/PUT/PATCH/DELETE/ALL exports of API routes under src/pages, the onRequest export of src/middleware.ts, and the frontmatter script of each .astro page. There is no Astro grammar, so .astro files are not parsed at all — enumerate src/pages/** and src/middleware.* by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "electron",
@@ -1847,6 +1965,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Electron IPC; entries are the handlers passed to ipcMain.handle/handleOnce/on/once in the main process, the ipcRenderer.on/once handlers in the renderer, the functions published by contextBridge.exposeInMainWorld in the preload script, and the app.on('ready'|'window-all-closed'|...) lifecycle callbacks. The channel name is a string literal — grep for `ipcMain.` and `exposeInMainWorld` and read the channel-to-handler mapping by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "electron",
@@ -1863,6 +1982,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Electron IPC; entries are the handlers passed to ipcMain.handle/handleOnce/on/once in the main process, the ipcRenderer.on/once handlers in the renderer, the functions published by contextBridge.exposeInMainWorld in the preload script, and the app.on('ready'|'window-all-closed'|...) lifecycle callbacks. The channel name is a string literal — grep for `ipcMain.` and `exposeInMainWorld` and read the channel-to-handler mapping by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "socket-io",
@@ -1879,6 +1999,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for bare Socket.IO; entries are the callback passed to io.on('connection', ...), every socket.on('<event>', ...) handler registered inside it, the same handlers on namespaces from io.of('/ns'), the middleware passed to io.use(...), and the mirror socket.on handlers on the socket.io-client side. The event name lives in a string literal — grep for `.on(` on io/socket objects and read the handlers by hand. (When Socket.IO is wrapped by NestJS, @WebSocketGateway/@SubscribeMessage methods are already covered by the nestjs rule.)",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "socket-io",
@@ -1895,6 +2016,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for bare Socket.IO; entries are the callback passed to io.on('connection', ...), every socket.on('<event>', ...) handler registered inside it, the same handlers on namespaces from io.of('/ns'), the middleware passed to io.use(...), and the mirror socket.on handlers on the socket.io-client side. The event name lives in a string literal — grep for `.on(` on io/socket objects and read the handlers by hand. (When Socket.IO is wrapped by NestJS, @WebSocketGateway/@SubscribeMessage methods are already covered by the nestjs rule.)",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cloudflare-workers",
@@ -1934,6 +2056,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the module-worker handler methods — fetch/scheduled/queue/email/trace/tail on the default-exported object, and the same method names on a Durable Object class. Every entry reports `network`, but only `fetch` is: `scheduled` is a cron trigger and `queue` is queue-driven. The legacy service-worker form, `addEventListener(\"fetch\", …)`, binds too. What does not is a worker that imports *nothing at all* — a bare `addEventListener` script has no marker to detect on, and inventing one would claim every browser event listener in every JavaScript tree. Such a handler is still named, so it is not silently lost; it is simply unlabelled, and will read as unreferenced. Declare it in cgg-deadcode.toml. Routes live in wrangler.toml, which cgg does not read.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cloudflare-workers",
@@ -1973,6 +2096,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the module-worker handler methods — fetch/scheduled/queue/email/trace/tail on the default-exported object, and the same method names on a Durable Object class. Every entry reports `network`, but only `fetch` is: `scheduled` is a cron trigger and `queue` is queue-driven. The legacy service-worker form, `addEventListener(\"fetch\", …)`, binds too. What does not is a worker that imports *nothing at all* — a bare `addEventListener` script has no marker to detect on, and inventing one would claim every browser event listener in every JavaScript tree. Such a handler is still named, so it is not silently lost; it is simply unlabelled, and will read as unreferenced. Declare it in cgg-deadcode.toml. Routes live in wrangler.toml, which cgg does not read.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "deno-http",
@@ -1989,6 +2113,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds a named handler passed to Deno.serve/serve, and the fetch method of a default-exported object. Inline handlers bind as well as named ones — `Deno.serve((req) => …)` mints a handler node even though it carries no route string. What cgg does not read is Deno.serve's options form when the handler is reached through a variable it cannot resolve.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "deno-http",
@@ -2005,6 +2130,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds a named handler passed to Deno.serve/serve, and the fetch method of a default-exported object. Inline handlers bind as well as named ones — `Deno.serve((req) => …)` mints a handler node even though it carries no route string. What cgg does not read is Deno.serve's options form when the handler is reached through a variable it cannot resolve.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "trpc",
@@ -2021,6 +2147,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for tRPC; every procedure is an inline function passed to .query(...) / .mutation(...) / .subscription(...) on a procedure builder, named only by its key in the object literal handed to router({ ... }), so neither the procedure path nor the handler has a name cgg can anchor to. Read the appRouter definition and each *_router.ts / *.procedure.ts file, then the adapter that mounts it (createNextApiHandler, fetchRequestHandler, createHTTPHandler, createExpressMiddleware).",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hono",
@@ -2040,6 +2167,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hono",
@@ -2059,6 +2187,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "servlet",
@@ -2101,6 +2230,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vertx",
@@ -2117,6 +2247,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Vert.x. The deployable units are classes extending AbstractVerticle (Vert.x 3/4) or VerticleBase (Vert.x 5), whose start(Promise<Void>) and stop() methods the runtime invokes via vertx.deployVerticle(...) — inspect those first. The HTTP surface itself is built inside start() as a Router chain (router.route/get/post(...).handler(...)), and those handlers are almost always anonymous lambdas, so there is no named callable for a route to anchor to. Note that io.vertx.core and io.vertx.ext.web.client are also imported by pure HTTP-client code, so this framework being detected does not by itself prove a server exists in the tree.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dropwizard",
@@ -2133,6 +2264,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Dropwizard. Its HTTP resources are plain JAX-RS classes, so the existing jakarta-rs rule already covers any resource that imports jakarta.ws.rs or javax.ws.rs; everything else is invisible. Inspect the Application<T> subclass's run(T configuration, Environment environment) method — that method is the registration list — and then Managed.start/stop, Task.execute, HealthCheck.check, and Command/ConfiguredCommand.run. Every argument handed to environment.jersey().register(...), environment.lifecycle().manage(...) and environment.servlets().addServlet(...) inside run() is an entry point.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "struts",
@@ -2153,6 +2285,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Struts. The entry points are Action classes: execute(ActionMapping, ActionForm, HttpServletRequest, HttpServletResponse) on a Struts 1 org.apache.struts.action.Action subclass, and an arbitrarily-named no-argument method returning String on a Struts 2 class extending com.opensymphony.xwork2.ActionSupport. Inspect struts.xml / struts-*.xml and any @Action, @Namespace or @Result annotations — the method that actually runs is chosen by that configuration, not by anything in the Java source cgg parses, so the class alone does not tell you which of its methods is reachable.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grpc-java",
@@ -2169,6 +2302,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for grpc-java. A service's entry points are the methods overriding the protoc-generated <Service>Grpc.<Service>ImplBase abstract class (e.g. `class QueryService extends QueryGrpc.QueryImplBase`), and that base class exists only in build-time generated sources cgg never sees — cgg's base-type matcher compares names exactly, so a rule naming `ImplBase` cannot match a declaration reading `QueryGrpc.QueryImplBase`. Inspect classes whose extends clause ends in ImplBase, plus every addService(...) argument on ServerBuilder / NettyServerBuilder, to enumerate the RPC surface. io.grpc is also imported by pure clients, so its presence alone does not prove a server exists.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "ktor",
@@ -2185,6 +2319,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Ktor. Routes are trailing lambdas inside a `routing { get(\"/x\") { ... } }` DSL block, so there is no named callable for a route to attach to. Inspect the Application.module() extension functions named in application.conf (or passed to embeddedServer(...)) and walk every routing / route / get / post / put / delete / webSocket / install block reachable from them; each lambda body is an entry point. Detect covers Ktor 1.x (io.ktor.routing, io.ktor.application) and 2.x/3.x (io.ktor.server.application, io.ktor.server.routing, io.ktor.server.engine), and deliberately excludes io.ktor.client so client-only usage does not trip it.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cobra",
@@ -2201,6 +2336,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Cobra. A command's body is the Run/RunE function-typed *field* of a cobra.Command struct literal, or an assignment to that field (`cmd.RunE = WrapCommandFuncForCobra(cmdStart)`) — never an argument to a registrar call, so cgg's registrar matcher, which only captures arguments of calls, cannot reach it and command bodies read as dead code. Inspect every `cobra.Command{...}` / `&cobra.Command{...}` literal for its Run, RunE, PreRun, PreRunE, PersistentPreRun, PersistentPreRunE, PostRun and PostRunE fields, grep for `.RunE =` / `.Run =` assignments, and follow rootCmd.AddCommand(...) to reconstruct the command tree.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "urfave-cli",
@@ -2217,6 +2353,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for urfave/cli. A command's body is the Action field — a function-typed *field* of a cli.Command struct literal (also Before, After and OnUsageError) — not an argument to a registrar call, so cgg's registrar matcher cannot reach it and every action function reads as dead code. Inspect each `cli.Command{...}` / `&cli.Command{...}` literal for its Action field and follow the Subcommands / Commands slices to rebuild the command tree; the root is the cli.App value (v2) or the top-level cli.Command (v3) whose Run(os.Args) main() calls.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grpc-go",
@@ -2233,6 +2370,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for grpc-go. Service methods are the exported methods of a struct that embeds the protoc-generated Unimplemented<Service>Server, handed to a generated Register<Service>Server(grpcServer, impl) function; Go interfaces are structural, so nothing in the hand-written source declares the contract. Inspect the *_grpc.pb.go files for the Register*Server functions, then grep for the impl struct passed to each — its exported methods are the RPC entry points. google.golang.org/grpc is also imported by pure clients, so its presence alone does not prove a server exists.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "beego",
@@ -2249,6 +2387,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Beego. Controllers embed web.Controller (beego.Controller in v1) and expose Get/Post/Put/Delete/Head/Options/Patch methods that the runtime dispatches to by name via reflection — no call in the source names the method, so nothing links a URL to it. Inspect routers/router.go for web.Router / AutoRouter / AutoPrefix / Include / RouterMethod calls and the controller structs they name, then read each of those structs' HTTP-verb methods. Detect covers v2 (github.com/beego/beego/v2/server/web) and v1 (github.com/astaxie/beego).",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "iris",
@@ -2265,6 +2404,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Iris. Routes come from app.Get/Post/Put/Delete/Handle/Any/Party/Use calls on an iris.Application — the same receiver.VERB(path, handler) shape cgg already reads for Gin and Echo, so a named handler there is recoverable by hand — and from MVC controllers registered as mvc.New(party).Handle(new(Controller)), whose Get/Post/BeforeActivation methods are bound by reflection and are not named by any call. Inspect the main/bootstrap file for those registration calls and read every controller type they name. The detect prefix matches the versioned module path github.com/kataras/iris/v12.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "buffalo",
@@ -2281,6 +2421,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Buffalo. Routes are registered inside the App() constructor in actions/app.go as app.GET/POST/PUT/DELETE/Middleware calls taking a buffalo.Handler (`func(c buffalo.Context) error`). Inspect actions/app.go for that registration block and follow each named handler into the sibling actions/*.go files; also read every app.Resource(...) registration, whose List/Show/New/Create/Edit/Update/Destroy methods on the registered resource struct are entry points named by convention rather than by the call.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda-go",
@@ -2310,6 +2451,7 @@ pub const SPECS: &[RuleSpec] = &[
         // network, queue or timer, and cgg does not read parameter types.
         gap: "cgg binds the handler value passed to lambda.Start and its variants, but reports every aws-lambda-go entry as `network` regardless of trigger. The event struct the handler receives (github.com/aws/aws-lambda-go/events — APIGatewayProxyRequest, SQSEvent, S3Event, CloudWatchEvent) is what actually names the trust boundary, and cgg does not read parameter types. Read the handler signature before treating an entry as internet-facing.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -2332,6 +2474,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds every method carrying [Function] or [FunctionName]. What it does NOT read is the trigger, which sits on the method's FIRST PARAMETER rather than on the method: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Every entry is reported `network`, so check the parameter attribute before treating one as internet-facing. The script-based model declares its bindings in function.json and carries no attributes at all — those are invisible.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -2356,6 +2499,7 @@ pub const SPECS: &[RuleSpec] = &[
         // attributes; only the plugin needed to start recording them.
         gap: "cgg binds every method carrying [Function] or [FunctionName]. What it does NOT read is the trigger, which sits on the method's FIRST PARAMETER rather than on the method: [HttpTrigger] is network, [QueueTrigger]/[ServiceBusTrigger]/[EventHubTrigger]/[BlobTrigger]/[CosmosDBTrigger]/[EventGridTrigger] are queue, [TimerTrigger] is schedule. Every entry is reported `network`, so check the parameter attribute before treating one as internet-facing. The script-based model declares its bindings in function.json and carries no attributes at all — those are invisible.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "wcf",
@@ -2372,6 +2516,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for WCF/CoreWCF; the entry points are the [OperationContract] methods of an interface marked [ServiceContract], reached through the class that implements that interface. Nothing in the source calls them — the ServiceHost dispatcher does. Start from every [ServiceContract] interface, find its implementing class, and treat each [OperationContract] method on that class as an entry. Which endpoints are actually exposed lives in Web.config/App.config <system.serviceModel> or in AddServiceEndpoint calls, neither of which cgg parses. Note that a System.ServiceModel import also appears on the CLIENT side — generated proxies deriving from ClientBase<T> — which contributes no entries at all.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grpc-dotnet",
@@ -2388,6 +2533,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for gRPC on .NET; a service implementation derives from the protoc-generated <Service>.<Service>Base class, which cgg never sees because it is generated at build time from the .proto file, so the base type is unresolvable and every `public override` method on such a class looks unreferenced. Find the registrations — `app.MapGrpcService<T>()` in Program.cs — then read the `public override` methods on each T; those are the RPC entry points. A Grpc.Net.Client / Grpc.Net.ClientFactory import is the CLIENT side only and contributes no entries.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "xunit",
@@ -2404,6 +2550,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for xUnit; the runner — not any code in the tree — constructs the test class and invokes it. [Fact] and [Theory] methods are already root-marked by cgg's dead-code root pass, but the surrounding harness is not: the test class CONSTRUCTOR runs once per test, IClassFixture<T>/ICollectionFixture<T> fixture types are instantiated by the runner, and IAsyncLifetime.InitializeAsync/DisposeAsync plus IDisposable.Dispose are called around every test. [MemberData]/[ClassData] name their data source by STRING or by typeof, so those provider members have no caller either. Treat all of them as roots, not as dead code.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nunit",
@@ -2420,6 +2567,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for NUnit; the runner invokes the members of a [TestFixture] class directly. [Test] is already root-marked by cgg's dead-code root pass, but these are not: [TestCase], [TestCaseSource], [ValueSource], [Theory], and the fixture hooks [SetUp], [TearDown], [OneTimeSetUp], [OneTimeTearDown] and the whole [SetUpFixture] class. [TestCaseSource]/[ValueSource] additionally name a static member by STRING, so the data provider itself has no caller. Treat all of them as roots, not as dead code.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "warp",
@@ -2436,6 +2584,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for warp; handlers are reached through a composed Filter chain, not through a registration call with a recognisable method name — `warp::path(\"x\").and(warp::post()).and(warp::body::json()).and_then(handler)`. Start at `warp::serve(...)` in main, follow the routes value it is handed through every `.or(...)` combinator, and read the function passed to each `.and_then(...)` / `.map(...)` in that chain; each one is an HTTP entry point. Filters are usually returned from `fn routes() -> impl Filter<...>` helpers, so a single route chain spans several functions.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "tide",
@@ -2452,6 +2601,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for tide; routes are registered as `app.at(\"/path\").get(handler)` — also .post/.put/.delete/.patch/.all — nested with `app.at(\"/x\").nest(sub_app)` and wrapped with `app.with(middleware)`. Find the `tide::new()` / `tide::with_state(...)` server value in main, grep for every `.at(` applied to it, and read the handler passed to the verb call that immediately follows; each is an HTTP entry point.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "poem",
@@ -2468,6 +2618,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for poem; plain handlers carry #[handler] and are mounted with `Route::new().at(\"/path\", get(handler).post(other))`, while poem-openapi services declare their routes as methods of an `#[OpenApi] impl` block, each method carrying #[oai(path = \"/x\", method = \"get\")]. Grep for `#[handler]` and `#[oai(`, then read the Route::new() chain handed to `Server::new(TcpListener::bind(..)).run(..)` to see which of them are actually mounted.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "tonic",
@@ -2484,6 +2635,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for tonic; a service impl block carries #[tonic::async_trait] and implements a trait that tonic-build generated from a .proto file at compile time, so cgg never sees the trait and every method in that impl looks unreferenced. Find `Server::builder().add_service(FooServer::new(MyFoo))` in main, then treat every method of each impl it names as a gRPC entry point. A bare tonic import does NOT imply a server — tonic is also the transport for OTLP exporters and for generated clients, neither of which contributes entries.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "tauri",
@@ -2500,6 +2652,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Tauri; every function marked #[tauri::command] is invoked over IPC from the webview frontend (JavaScript `invoke(\"name\")`), a real trust boundary whose Rust side has no caller anywhere in the source. Grep for `#[tauri::command]`, then cross-check `.invoke_handler(tauri::generate_handler![a, b, c])` in the Builder chain — only the commands named inside that macro are actually reachable. Also read the `.setup(...)`, `.on_window_event(...)` and `.on_menu_event(...)` closures on the same chain; those are lifecycle entries.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "clap",
@@ -2516,6 +2669,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for clap; with the derive API the entry is `Cli::parse()` on a #[derive(Parser)] struct, after which the per-subcommand handlers are dispatched by a `match` on the #[command(subcommand)] enum — read those match arms to enumerate the CLI entry points. With the builder API it is `Command::new(..).subcommand(..)` followed by `matches.subcommand_matches(\"name\")` or a match on `subcommand()`, where the subcommand is named by STRING and so links to nothing. Either way, start at main and follow the value returned by parse()/get_matches().",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hanami",
@@ -2532,6 +2686,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Hanami. The HTTP entry point is the #handle(request, response) method of each Hanami::Action subclass (Hanami 2, under app/actions/) or the #call(params) method of each Hanami::Action (Hanami 1, under apps/*/controllers/), selected by the get/post/put/patch/delete calls in config/routes.rb which name their action as a symbol string. Note Hanami 2 autoloads via Zeitwerk, so action files carry no require line and detection usually fires only from `require \"hanami\"` in config/app.rb — read config/routes.rb and app/actions/ by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "roda",
@@ -2548,6 +2703,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Roda. Every route lives inside the `route do |r| ... end` block of the Roda subclass and is dispatched by r.get / r.post / r.on / r.is / r.root against the request object, so each handler is an anonymous nested block with no name for cgg to link. Named surfaces exist only if the app loads the multi_route or hash_branches plugins (`route(\"name\") do |r|`, `hash_branch(\"prefix\")`) — read the route block, and any hash_branch/route definitions, by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "padrino",
@@ -2571,6 +2727,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Padrino. Entry points are the get/post/put/delete blocks nested inside `controllers :name do ... end` in app/controllers/*.rb — Sinatra-style, but two blocks deep, so the handler bodies are anonymous. Detection is also unreliable: Padrino apps boot through `Bundler.require` in config/boot.rb, and cgg only records a receiver-less `require`, so a literal `require \"padrino-core\"` may be absent everywhere. Read app/controllers/ and config/apps.rb by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rake",
@@ -2587,6 +2744,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Rake. Every `task :name do ... end` and `namespace :ns do ... end` block in Rakefile and lib/tasks/*.rake is a CLI entry point invoked as `rake ns:name`, and the bodies are anonymous blocks with no name to link. Two things also blunt detection: cgg skips a bare `Rakefile` outright (no extension, no shebang — audited as unknown-extension), and `.rake` files, though analyzed as Ruby, conventionally carry no `require \"rake\"` line, so the rule fires only off some other .rb that requires rake. Enumerate Rakefile and lib/tasks/*.rake by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "slim",
@@ -2603,6 +2761,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Slim. Routes are registered with $app->get('/path', $handler) / ->post / ->put / ->delete / ->map / ->group on the Slim\\App returned by AppFactory::create(), and each handler is either a closure (anonymous) or a 'Class:method' / [Class::class, 'method'] callable string that only the DI container resolves. Middleware added with ->add() is an entry surface too. Read public/index.php and routes/*.php by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cakephp",
@@ -2619,6 +2778,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for CakePHP. Entry points are the public action methods (index/view/add/edit/delete and any other public method) of App\\Controller\\*Controller classes extending Cake\\Controller\\Controller, plus the execute() method of Cake\\Console\\Command subclasses and the implementedEvents() handlers on listeners. Dispatch runs through $routes->connect()/$builder->fallbacks() in config/routes.php, which name controller and action only as strings. Read config/routes.php, src/Controller/ and src/Command/ by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "yii",
@@ -2635,6 +2795,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Yii. In Yii 2 the entry points are the actionXxx() methods of yii\\base\\Controller / yii\\web\\Controller / yii\\console\\Controller subclasses plus the run() method of standalone yii\\base\\Action classes, reached by a 'controller/action' string through the urlManager rules in config/web.php — cgg has no matcher for a method-name prefix like action*, so none of them are enumerable. In Yii 3 (Yiisoft\\ namespace) the handler is a Yiisoft\\Router\\Route::get('/path', [Handler::class, 'method']) array in config/routes.php. Read the controllers and config/web.php or config/routes.php by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "drupal",
@@ -2651,6 +2812,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Drupal, and two separate entry surfaces are invisible. (1) The free hook_<name>() functions in *.module and *.install files: the module handler builds the function name from the module prefix at runtime, so no call site to them exists anywhere in source. (2) The _controller: and _form: callbacks named as strings in *.routing.yml, plus the methods returned from a subscriber's static getSubscribedEvents(). Read every *.module and *.install file and every *.routing.yml by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "magento",
@@ -2667,6 +2829,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Magento. Three entry surfaces are bound only in XML that cgg does not parse: execute() on the Magento\\Framework\\App\\ActionInterface controllers under Controller/ (routed by frontName in etc/routes.xml), execute() on the observers bound in etc/events.xml, and the before<Method>/after<Method>/around<Method> interceptor methods bound in etc/di.xml. Read etc/routes.xml, etc/events.xml and etc/di.xml by hand and follow each class reference.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "otp",
@@ -2693,6 +2856,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "otp-application",
@@ -2709,6 +2873,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "mix-task",
@@ -2725,6 +2890,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "phoenix-channel",
@@ -2741,6 +2907,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "phoenix-socket",
@@ -2757,6 +2924,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "phoenix-liveview",
@@ -2773,6 +2941,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "plug",
@@ -2789,6 +2958,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "phoenix",
@@ -2820,6 +2990,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "plug-router",
@@ -2836,6 +3007,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kong",
@@ -2852,6 +3024,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Kong plugins. A plugin's entry points are the phase methods on its handler table in kong/plugins/<name>/handler.lua - `function XHandler:init_worker/configure/certificate/rewrite/access/header_filter/body_filter/log/preread(conf)` - which the Kong runtime calls and which no Lua code in the tree calls. cgg's Lua plugin records each of these as ONE callable whose simple name is the whole `XHandler:access`, and the method matcher compares the whole simple name, so a `methods = [\"access\", ...]` rule cannot fire. The Admin API is invisible for a different reason: kong/api/routes/*.lua returns a table of `[\"/path\"] = { GET = function(self, db, helpers) ... end }`, and anonymous functions in table fields are not recorded as callables at all. Read handler.lua and kong/api/routes/ by hand - every phase method and every HTTP-verb field in those route tables is an entry point.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "openresty",
@@ -2868,6 +3041,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for OpenResty. Its entry points are declared in nginx configuration rather than in Lua: init_by_lua*, init_worker_by_lua_block, rewrite_by_lua_block, access_by_lua_block, content_by_lua_block/content_by_lua_file, header_filter_by_lua*, body_filter_by_lua*, log_by_lua* and ssl_certificate_by_lua*. cgg does not parse nginx.conf, so every Lua function those directives invoke has no visible caller and reads as unreferenced. Grep your nginx templates for `_by_lua` - in Kong they are kong/templates/nginx_kong.lua and nginx_kong_stream.lua, e.g. `init_worker_by_lua_block { Kong.init_worker() }` - and treat every function named inside those blocks as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "mojolicious",
@@ -2895,6 +3069,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dancer2",
@@ -2911,6 +3086,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "catalyst",
@@ -2927,6 +3103,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Catalyst. Actions are ordinary named subs in `lib/MyApp/Controller/*.pm` distinguished only by Perl subroutine attributes -- `:Local`, `:Global`, `:Path('/x')`, `:Chained('/')`, `:PathPart`, `:Args(0)`, `:Private`, `:Regex`, `:ActionClass` -- and cgg's Perl plugin does not extract subroutine attributes at all (it hardcodes an empty attribute list), so those subs sit in the graph as ordinary callables with nothing marking them reachable from the web. Detection is also thin: only the app class that writes `use Catalyst` or `use Catalyst::Runtime` is seen, because a controller's `use base 'Catalyst::Controller'` records the import as `base` and `use parent -norequire, 'Catalyst::Controller'` records no import at all. Read every `sub` in lib/*/Controller/ together with its attribute list by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "plack",
@@ -2943,6 +3120,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for PSGI/Plack. The application is the anonymous `sub { my $env = shift; ... }` that an `app.psgi` file evaluates to as its last expression -- it has no name, so cgg mints no callable and the whole request path is rootless. `Plack::Builder` wraps it in `builder { ... }` with `enable 'Middleware::Name'` and `mount '/path' => $app` blocks, none of which is a named callable either. Read `app.psgi` end to end, and every `mount '/path' => ...` line, to see which app serves which prefix.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "test-more",
@@ -2959,6 +3137,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Perl's Test::More / Test::Mojo. A `.t` file's entry point is its top-level statement sequence, which belongs to no `sub` and therefore to no callable -- so the functions the test exercises receive no incoming edge, and the test file itself is invisible as a root. `subtest 'name' => sub {...}` bodies are anonymous subs cgg mints no callable for either. Treat every `.t` file as a root and read its top-level body to see what it drives.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "compojure",
@@ -2986,6 +3165,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "ring",
@@ -3002,6 +3182,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Ring. A Ring handler is an ordinary `(defn handler [request] {:status 200 ...})` with nothing on the definition marking it as an entry -- it becomes one only by being handed to an adapter, `(run-jetty app {:port 3000})` from ring.adapter.jetty, usually after being threaded through a stack of `wrap-*` middleware from ring.middleware.*. cgg records that `run-jetty` call as a bare reference with no argument capture, so the handler is never linked to it and reads as unreachable. Find the `run-jetty` (or `run-undertow`/`run-server`) call and follow its first argument back through the `wrap-*` chain to the real handler.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "http-kit",
@@ -3018,6 +3199,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for http-kit. The server entry is a plain Ring-style `(defn app [req] ...)` handed to `(run-server app {:port 8080})` from org.httpkit.server; WebSocket and long-poll entries are the `on-receive`/`on-close`/`on-ping` callbacks registered against a channel inside that handler, all anonymous fns. cgg records `run-server` as a bare reference with no argument capture, so nothing links the handler to it. Read the `run-server` call's first argument and every `on-receive`/`on-close` callback by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "pedestal",
@@ -3034,6 +3216,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Pedestal: its routes are data, not calls. The terse form is a set of route vectors like [\"/todo\" :get list-todos :route-name ::todo-list], expanded by io.pedestal.http.route/expand-routes; the table and map forms are the same idea in different literals. Interceptors name their handlers as :enter/:leave/:error values inside map literals such as {:name ::db-inject :enter (fn [ctx] ...)}. Every handler is therefore a symbol or fn sitting inside a literal, unreachable by any registrar or attribute matcher. Read the ::http/routes value in the service map and each interceptor map by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "reitit",
@@ -3050,6 +3233,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for reitit: routes are nested data literals -- [\"/api\" [\"/users\" {:get {:handler list-users}}]] -- handed to reitit.ring/router (or reitit.http/router). Each handler is a value under a :handler key inside a vector-of-maps, never an argument of a call cgg can name, and coercion/middleware entries under :parameters and :middleware are literals too. Read the route data passed to the router and collect every :handler value by hand; those are the entry points.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "clojure-test",
@@ -3066,6 +3250,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for clojure.test. `(deftest name ...)` forms are the test entry points, and the Clojure plugin does not treat `deftest` as a definition at all -- it recognises only defn/defn-/def/defmacro/defmacro-/defonce/defprotocol/definterface/deftype/defrecord/defstruct/defmulti/defmethod -- so a test body belongs to no callable, the functions it exercises get no incoming edge, and the tests are invisible as roots. `(testing \"...\" ...)` blocks and `defspec` are equally invisible. Grep for `deftest` and `defspec` to enumerate test roots by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-activity",
@@ -3112,6 +3297,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-fragment",
@@ -3153,6 +3339,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service",
@@ -3193,6 +3380,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service-bind",
@@ -3226,6 +3414,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service-start",
@@ -3264,6 +3453,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-broadcastreceiver",
@@ -3298,6 +3488,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-contentprovider",
@@ -3343,6 +3534,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-worker",
@@ -3366,6 +3558,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-jobservice",
@@ -3382,6 +3575,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-application",
@@ -3405,6 +3599,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-worker",
@@ -3421,6 +3616,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-broadcastreceiver",
@@ -3442,6 +3638,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-jobservice",
@@ -3458,6 +3655,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service-bind",
@@ -3482,6 +3680,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service-start",
@@ -3506,6 +3705,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-activity",
@@ -3528,6 +3728,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg's Kotlin plugin does not record class supertypes, so Activity subclasses cannot be matched by base type, and the lifecycle method names are shared with Service, Fragment and Application so they cannot be matched by name either. Inspect by hand every `class X : AppCompatActivity()`, `ComponentActivity()`, `FragmentActivity()` or `FlutterActivity()` and treat its onCreate/onStart/onResume/onNewIntent/onActivityResult/onRequestPermissionsResult overrides as entry points; onCreate and onNewIntent receive the launching Intent, which comes from outside the process whenever the activity is android:exported in AndroidManifest.xml.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-fragment",
@@ -3548,6 +3749,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg's Kotlin plugin does not record class supertypes, so Fragment subclasses cannot be matched by base type. Inspect by hand every `class X : Fragment()`, `DialogFragment()`, `BottomSheetDialogFragment()` or `PreferenceFragmentCompat()`: onAttach/onCreate/onCreateView/onViewCreated/onResume/onDestroyView are invoked by the FragmentManager and have no caller anywhere in source, so they will otherwise read as unreferenced.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-service",
@@ -3572,6 +3774,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg's Kotlin plugin does not record class supertypes, so the lifetime callbacks of a `class X : Service()` - onCreate, onDestroy, onTaskRemoved, onTrimMemory - are NOT enumerated; their names are shared with Activity and Application so they cannot be matched by name either. The externally reachable methods of the same classes ARE enumerated by name under android-service-bind (onBind) and android-service-start (onStartCommand/onHandleIntent/onHandleWork), so read this row as 'the service's private lifetime is missing, its remote surface is not'. Cross-check AndroidManifest.xml `<service>` entries for android:exported.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-contentprovider",
@@ -3593,6 +3796,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg's Kotlin plugin does not record class supertypes, and a ContentProvider's entry methods are named query/insert/update/delete/call/getType/openFile - far too common to match by name alone in Kotlin, so nothing is enumerated here. Inspect by hand every `class X : ContentProvider()`, `FileProvider()` or `DocumentsProvider()`: each of those overrides is reachable over Binder from any app that can resolve the provider's content:// authority, the selection string and Uri are remote input, and openFile/openAssetFile are the classic file-disclosure surface. Cross-check the AndroidManifest `<provider>` android:exported and android:grantUriPermissions.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-application",
@@ -3609,6 +3813,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg's Kotlin plugin does not record class supertypes, so `class X : Application()` cannot be matched by base type, and onCreate is shared with Activity, Service and ContentProvider so it cannot be matched by name. Inspect the single class named by AndroidManifest.xml `<application android:name>`: its onCreate and attachBaseContext run before any other application code in the process and are the true program start of an Android app, so everything they touch is live.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "unity",
@@ -3721,6 +3926,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "pydantic",
@@ -3755,6 +3961,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg roots Pydantic's decorated validators, serializers and `model_post_init`. It does not model validation *order*, nor `__get_validators__`/`__get_pydantic_core_schema__` custom types, whose callables are invoked by the core schema rather than by any decorator.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3776,6 +3983,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds handlers named by the `lambda_handler` convention. A handler under any other name is invisible: the real name lives in configuration cgg does not read - the `handler:` key in serverless.yml, `Handler:`/`ImageConfig` in a SAM or CloudFormation template, or the console setting - as a path like `src/handlers/user.create`. If your handlers are named otherwise, read the deployment config and treat each named path as an entry point, or declare them in cgg-deadcode.toml. A CDK stack in the same tree IS read - see the aws-cdk rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3803,6 +4011,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds handlers named `handler`/`lambdaHandler`, middy-wrapped handlers, and Powertools-decorated methods. Two limits. A handler under any other name is invisible - the real name lives in the `handler:` key of serverless.yml, `Handler:` in a SAM template, or the CDK stack (see the aws-cdk rule, which cgg does read). And detection is per-language across the whole run, not per-file: in a mixed repository where one file imports aws-lambda, any function named `handler` anywhere - an event handler in a React component, for instance - is claimed as an entry. Check the file each entry points at before trusting it.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3819,6 +4028,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds handlers named `handler`/`lambdaHandler` and middy-wrapped handlers. Two limits. A handler under any other name is invisible - the real name lives in the `handler:` key of serverless.yml, `Handler:` in a SAM template, or the CDK stack (see the aws-cdk rule, which cgg does read). And detection is per-language across the whole run, not per-file: in a mixed repository where one file imports aws-lambda, any function named `handler` anywhere is claimed as an entry. Check the file each entry points at before trusting it.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3839,6 +4049,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3860,6 +4071,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3881,6 +4093,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3902,6 +4115,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds `handleRequest` on RequestHandler/RequestStreamHandler implementations. A Lambda written as a bare method with no interface - legal, and named as `pkg.Class::method` in the deployment config - is invisible, as is the trust boundary, which depends on the event type parameter rather than anything cgg reads.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -3922,6 +4136,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds [LambdaFunction]-annotated methods and the `FunctionHandler` convention. A handler under any other name is named only in the `Handler` field of aws-lambda-tools-defaults.json or the SAM template, as `Assembly::Namespace.Class::Method`, which cgg does not read.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // CDK is infrastructure code, and the thing that makes it worth a
     // rule is that it is the one place the handler string lives *in
@@ -3952,6 +4167,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the `handler=\"module.function\"` string on a CDK Function construct to that function when both live in the analyzed tree. Three things it cannot do: resolve a handler built by string concatenation or held in a variable, follow `Code.from_asset` into a directory that was not analyzed, or name the trust boundary — the event source is wired by a separate `add_event_source`/API-Gateway construct, so an entry reported as `network` may in fact be queue- or timer-driven.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-cdk",
@@ -3974,6 +4190,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the `handler: \"module.function\"` property on a CDK Function construct to that function when both live in the analyzed tree. It cannot resolve a handler built by concatenation or held in a variable, follow `Code.fromAsset` into an unanalyzed directory, or name the trust boundary, which a separate event-source construct decides. NodejsFunction with only an `entry` path and no `handler` defaults to `index.handler`, which cgg does not infer.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -3990,6 +4207,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4007,6 +4225,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4024,6 +4243,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4041,6 +4261,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds every method carrying @FunctionName. The trigger is a separate annotation on a *parameter* (@HttpTrigger, @QueueTrigger, @TimerTrigger, @BlobTrigger), which cgg does not read, so every entry is reported `network`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4073,6 +4294,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the v2 programming model's decorated handlers on a FunctionApp. Every entry reports `network`, but the decorator names the real trigger: only `@app.route` is internet-facing; `timer_trigger` is a schedule and the queue/blob/event ones are queue-driven. The v1 model — a bare `main(req)` with a sibling function.json — carries no decorator and is invisible; declare those in cgg-deadcode.toml.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4102,6 +4324,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the `handler` property passed to the v4 model's app.http/app.timer/etc. Every entry reports `network`, though the registrar names the real trigger. The v3 model — `module.exports = async function (context, req)` with a sibling function.json — carries no registration call and is invisible.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4128,6 +4351,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the `handler` property passed to the v4 model's app.http/app.timer/etc. Every entry reports `network`, though the registrar names the real trigger. The v3 model, with a sibling function.json, is invisible.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // Firebase Functions. A layer over Cloud Functions with its own
     // registration vocabulary, and separate rules because the shapes
@@ -4171,6 +4395,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler passed to a Firebase trigger. Every entry reports `network`, and only `https.onRequest` is: `onCall` is authenticated callable, and the Firestore/Realtime-Database/Storage/Pub-Sub triggers are event-driven. Inline handlers bind as well as named ones. Two things remain: the trigger path (`document(\"users/{id}\")`) sits on an earlier link of the builder chain and is not carried into the entry name, and the deprecated v1 vocabulary (onCreate/onUpdate/onDelete/onWrite/onRun) is deliberately not registered — those names collide with ORM lifecycle hooks across the whole language and cost a measured 5.3% on Ghost. A named v1 handler still binds by value reference; only its entry label is lost.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "firebase-functions",
@@ -4207,6 +4432,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler passed to a Firebase trigger. Every entry reports `network`, though only `https.onRequest` is internet-facing; the rest are callable or event-driven. Inline handlers bind as well as named ones. The trigger path from the builder chain is not carried into the entry name, and the deprecated v1 vocabulary is not registered — those names collide with ORM lifecycle hooks language-wide. A named v1 handler still binds by value reference.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "firebase-functions",
@@ -4236,6 +4462,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the decorated handler. Every entry reports `network`, but the decorator names the real trigger: only `@https_fn.on_request` is internet-facing, `on_call` is authenticated, `on_schedule` is a timer and the rest are event-driven.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -4254,6 +4481,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the `handle` method of a LambdaHandler conformer — the modern API. The older `Lambda.run { … }` trailing-closure form is NOT bound: the Swift plugin captures no argument-position handler, so there is nothing to point at. Swift also records no supertypes, so conformance is matched by method name rather than by the protocol. Every entry reports `network` regardless of event source.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -4271,6 +4499,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler value passed to run_handler. Every entry reports `network`; the event source is decided by the deploy configuration, which cgg does not read.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "azure-functions",
@@ -4291,6 +4520,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg detects an Azure Functions PowerShell app by its `run.ps1` files but enumerates no entry from them: the script has no handler *function* — its top level IS the handler, invoked with a `param($Request, $TriggerMetadata)` block, and cgg has no callable to point at. Treat the top level of every run.ps1 as an entry point, and read the sibling function.json for the trigger.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cloudflare-workers",
@@ -4309,6 +4539,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds functions carrying #[event(...)]. The event kind — fetch, scheduled, queue — sits inside the attribute's arguments and is not carried into the entry name, so every entry reports `network` even when it is a cron or queue consumer.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // Ruby and PHP are *first-party managed runtimes* on Lambda and on
     // Cloud Functions — as officially supported as Python — and had no
@@ -4346,6 +4577,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds handlers named by the `lambda_handler` convention. Detection keys on an AWS SDK require, so a handler in a file that requires nothing AWS-related is invisible, as is one under any other name — that name lives in the deploy config, not the source. Declare those in cgg-deadcode.toml.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4365,6 +4597,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the block passed to FunctionsFramework.http/cloud_event. Every entry reports `network`; the cloud_event form is Eventarc-driven and its trigger is named in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "aws-lambda",
@@ -4400,6 +4633,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the interface method on a Bref handler. Which trust boundary it is depends on the interface — HttpHandler and PsrRequestHandler are internet-facing, SqsHandler/SnsHandler/DynamoDbHandler/KinesisHandler are queue-driven — and cgg reports all of them `network`. A handler written as a bare function and named in serverless.yml carries no interface and is invisible.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4418,6 +4652,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the function named by FunctionsFramework::http, including the string form. A handler passed as a closure with no name binds as a synthesized node instead. Every entry reports `network` regardless of trigger.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // Google Cloud Functions. The Functions Framework is the same
     // library in every runtime, which is why one rule id covers five
@@ -4439,6 +4674,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg reports every Functions Framework entry as `network`. `@functions_framework.http` really is internet-facing, but `@cloud_event` is invoked by Eventarc — Pub/Sub, Cloud Storage, Firestore — and the trigger is named in the deploy command (`gcloud functions deploy --trigger-topic`), not in the source. Check the decorator before treating an entry as reachable from the internet.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4457,6 +4693,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler passed to functions.http/cloudEvent. The legacy signature — a bare `exports.helloWorld = (req, res) => …` deployed with `--entry-point helloWorld` — is named only in the deploy command, so it is invisible; declare those in cgg-deadcode.toml. Every entry reports `network` regardless of trigger.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4473,6 +4710,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler passed to functions.http/cloudEvent. A bare `export const helloWorld` deployed with `--entry-point` is named only in the deploy command and is invisible. Every entry reports `network` regardless of trigger.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4489,6 +4727,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the handler value passed to functions.HTTP/CloudEvent inside init(). Every entry reports `network`; the CloudEvent form is Eventarc-driven and its trigger is named in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4514,6 +4753,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4540,6 +4780,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4566,6 +4807,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4592,6 +4834,7 @@ pub const SPECS: &[RuleSpec] = &[
         // Same contract as Java, different language id: rules are keyed on (id, language), so a JVM language calling the identical SDK needs its own row.
         gap: "cgg binds the interface method on a Functions Framework implementation. `service` on an HttpFunction is internet-facing; `accept` on a BackgroundFunction or CloudEventsFunction is Eventarc-driven, and cgg reports both as `network` because the trigger lives in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gcp-functions",
@@ -4608,6 +4851,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg binds HandleAsync on a Functions Framework implementation. ICloudEventFunction is Eventarc-driven rather than internet-facing, and cgg reports both as `network` because the trigger is named in the deploy command.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     // ---------------------------------------------------------------
     // Wave 2: the remaining languages, and in-language entry points.
@@ -4660,6 +4904,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "uikit-appdelegate",
@@ -4696,6 +4941,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cocoa-delegate",
@@ -4742,6 +4988,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "swiftui",
@@ -4758,6 +5005,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for SwiftUI, and cannot get one without a plugin change. The runtime entry of every View, App and Scene is the computed property `var body: some View` — a PROPERTY, not a func — and cgg's Swift plugin records only `function_declaration` and `init_declaration`, so no callable exists for a body at all and nothing it calls is reachable. Read every `struct X: View`, `: App` and `: Scene` and treat its `body`, its `@ViewBuilder` helper properties, `PreviewProvider.previews`, and the closures passed to `.onAppear`, `.task`, `.onChange`, `.onReceive`, `.refreshable` and `Button(action:)` as entry points. The `@main` attribute on the App struct is also invisible to cgg.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "xctest",
@@ -4774,6 +5022,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for XCTest. The runner discovers tests by NAME at runtime and invokes every `func test…()` on an XCTestCase subclass with no call site anywhere in the tree; cgg matches method names by exact equality and has no prefix matcher, so those cannot be enumerated without flooding on the word `test`. Treat as roots: every `func test…()` in an `XCTestCase` subclass, plus the harness the runner drives around them — `setUp`, `setUpWithError`, `setUp() async throws`, `tearDown`, `tearDownWithError`, the class-level `override class func setUp/tearDown`, `invokeTest`, `record(_:)`, and the closures passed to `measure { }`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "swift-testing",
@@ -4790,6 +5039,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for swift-testing (the `Testing` module, Xcode 16+). Its entries are marked by the `@Test` and `@Suite` ATTRIBUTES, and cgg's Swift plugin records no attributes at all (DefRecord::attributes is always empty for Swift), so the marker is invisible; the functions also carry arbitrary names, so no name rule can stand in either. Grep for `@Test` and `@Suite` and treat each annotated function, the `init` of each annotated suite type, and any static member named by `@Test(arguments:)` as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "combine",
@@ -4806,6 +5056,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Combine. A subscriber's work lives in the CLOSURES handed to `.sink(receiveCompletion:receiveValue:)`, `.handleEvents(...)` and the operator chain, and in `.assign(to:on:)` which names a KEY PATH rather than a function; cgg's Swift plugin records no closure arguments and no key paths, so anything reached only from one of them has no caller. Also treat a custom `Publisher`'s `receive<S: Subscriber>(subscriber:)` and a custom `Subscription`'s `request(_:)` / `cancel()` as runtime-invoked, and follow every `store(in: &cancellables)` chain back to its `.sink`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vapor",
@@ -4822,6 +5073,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Vapor, and this is the whole HTTP attack surface of the app. Routes are registered by passing a trailing CLOSURE to `app.get(\"path\") { req in … }` / `routes.post(...)`, or by a `RouteCollection`'s `func boot(routes: RoutesBuilder) throws`; cgg's Swift plugin records no value- or closure-argument references, so the registrar matcher — which only reads arguments of calls — cannot see any of them and every route body reads as unreferenced. Enumerate the surface by reading `configure(_ app: Application)`, every `app.register(collection:)` / `try app.routes.register(collection:)`, each `boot(routes:)`, every `.grouped(...)` chain, and every `Middleware.respond(to:chainingTo:)`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "uikit-lifecycle",
@@ -4877,6 +5129,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "uikit-appdelegate",
@@ -4916,6 +5169,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cocoa-delegate",
@@ -4967,6 +5221,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "objc-main",
@@ -4990,6 +5245,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for objc-main. Its runtime-invoked methods (main) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and objc carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "xctest",
@@ -5006,6 +5262,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for XCTest in Objective-C. The runner discovers tests by NAME and invokes every `- (void)test…` on an XCTestCase subclass with no call site in the tree; cgg matches method names by exact equality and has no prefix matcher, so they cannot be enumerated. Treat as roots: every `- (void)test…` method in an `@interface X : XCTestCase`, plus `- (void)setUp`, `- (void)tearDown`, `+ (void)setUp`, `+ (void)tearDown`, `-invokeTest`, and the blocks passed to `measureBlock:` and `waitForExpectationsWithTimeout:handler:`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "objc-selector",
@@ -5022,6 +5279,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg records no reference for an `@selector(...)` expression, so any Objective-C method reached only by selector has no caller anywhere in the graph and reads as dead. The concrete constructs to inspect: `[center addObserver:self selector:@selector(handleNote:) name:… object:nil]`, `[button addTarget:self action:@selector(tap:) forControlEvents:…]`, `[NSTimer scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:]`, `[obj performSelector:@selector(x) withObject:nil]`, `-respondsToSelector:` dispatch, `NSInvocation`, and every `IBAction` wired only in a .xib/.storyboard. Grep for `@selector(` and `IBAction` and treat each named method as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flutter",
@@ -5038,6 +5296,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for flutter. Its runtime-invoked methods (build, createState, initState, didChangeDependencies, didUpdateWidget, deactivate, dispose, reassemble) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and dart carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flame",
@@ -5054,6 +5313,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for flame. Its runtime-invoked methods (onLoad, onMount, onRemove, onGameResize, onParentResize, onChildrenChanged, update, render) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and dart carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dart-main",
@@ -5070,6 +5330,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for dart-main. Its runtime-invoked methods (main) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and dart carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flutter-test",
@@ -5092,6 +5353,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Dart's test harness. Every test body is a CLOSURE passed as an argument — `test('name', () { … })`, `testWidgets('name', (tester) async { … })`, `group('…', () { … })`, `setUp`/`setUpAll`/`tearDown`/`tearDownAll`, and `testWithGame`/`testGolden` from flame_test — and cgg's Dart plugin records no value or closure arguments (no VALUE_REF_HINT references), so the registrar matcher cannot see them and nothing reached only from a test body is linked. The file's own `main()` is the runner entry; read the `test(...)` / `testWidgets(...)` calls inside it to enumerate the cases, and remember that a helper called only from a test closure will be reported as dead.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "shelf",
@@ -5113,6 +5375,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for shelf, and this is the whole HTTP surface of the server. A shelf handler is a `Response Function(Request)` VALUE — passed to `Router()..get('/path', handler)`, `Cascade().add(handler)`, `Pipeline().addMiddleware(mw).addHandler(handler)`, or `shelf_io.serve(handler, address, port)` — and cgg's Dart plugin records no value-argument references, so no registrar match is possible and every handler reads as unreferenced. Enumerate the routes by reading each `Router()` construction and its `..get/..post/..put/..delete/..mount` cascade, then the `Pipeline()` chain handed to `serve(...)`; `shelf_router`'s `@Route.get('/x')` generated router is in a `.g.dart` part file that may not even be in the tree.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "play-mvc",
@@ -5129,6 +5392,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Play controllers. Routes live in `conf/routes`, a non-Scala DSL of lines like `GET  /  controllers.HomeController.index`, which the sbt routes-compiler turns into generated Scala at build time -- so the only reference to an action sits in a file cgg never parses plus generated sources that are not in the tree. In Scala source an action is just `def index = Action { ... }` (or `Action.async`, `cc.actionBuilder`) on a class extending AbstractController / BaseController / InjectedController / ControllerHelpers, and it is indistinguishable from a private helper because the Scala plugin records no base types and no annotations. Actions written `val index = Action {...}` rather than `def` are not recorded as callables at all -- the plugin mints callables only from `function_definition`. Read `conf/routes` end to end, including every `->` sub-router include, and treat each controller method it names as a root; add `EssentialFilter`/`Filter.apply` implementations and `HttpErrorHandler.onClientError`/`onServerError` to that list.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "play-module",
@@ -5149,6 +5413,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Play's dependency-injection and startup surface. `play.api.inject.Module.bindings(environment, configuration)` is called by the runtime, never by project code, and every `bind[X].to[Y]` it returns wires a type the container instantiates. Eager singletons -- `bind(classOf[X]).asEagerSingleton()`, or an `@Singleton` class constructed at boot -- run their CONSTRUCTOR as the entry point, and cgg mints no callable for a Scala class or constructor at all, so the constructor body and everything it calls are invisible. `ApplicationLoader.load(context)`, `BuiltInComponentsFromContext` wirings, `GuiceApplicationBuilder.overrides(...)` in tests, and `CoordinatedShutdown.addTask(...)` hooks are the remaining startup entries. Grep for `extends Module`, `asEagerSingleton`, and `extends ApplicationLoader` and treat each as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "akka-http",
@@ -5170,6 +5435,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Akka HTTP / Pekko HTTP. A `Route` is a value assembled from nested directives -- `path(\"orders\" / Segment) { id => get { complete(lookup(id)) } }` -- so the request handler is an anonymous block buried inside directive calls, never an argument cgg can name, and the Scala plugin skips anonymous function bodies entirely, leaving everything the handler calls unreachable. `Http().newServerAt(host, port).bind(routes)` names only the root of the tree. Start at every `bind`, `bindAndHandle`, `bindAndHandleSync` and `bindAndHandleAsync` call, follow the `Route` value it receives through each `~` alternative and `pathPrefix`, and read the body of each innermost `complete(...)` / `onSuccess(...)`; route sets are conventionally split across `trait XRoutes { val routes: Route = ... }` files, so one endpoint spans several vals -- and a `val`-defined route is not recorded as a callable either. WebSocket entries are the `Flow`s handed to `handleWebSocketMessages`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "akka-scala",
@@ -5186,6 +5452,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for akka-scala. Its runtime-invoked methods (receive, createReceive, preStart, postStop, preRestart, postRestart, receiveRecover, receiveCommand) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and scala carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "akka-typed",
@@ -5207,6 +5474,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Akka/Pekko Typed behaviors. A typed actor is a `Behavior[T]` value built by a factory -- `Behaviors.setup { ctx => ... }`, `Behaviors.receive { (ctx, msg) => ... }`, `Behaviors.receiveMessage { msg => ... }` -- so the message handler is an anonymous lambda passed as an argument; cgg mints no callable for it, and the enclosing `def apply(): Behavior[T]` therefore looks like a one-line function with its real body missing. `EventSourcedBehavior(persistenceId, emptyState, commandHandler, eventHandler)` names its two handlers as VALUES, usually `private def handleCommand(...)` / `private def handleEvent(...)`, which then read as dead code with no caller. `Behaviors.supervise(...).onFailure`, `receiveSignal { case PostStop => ... }` and `ClusterSharding.init(Entity(TypeKey)(ctx => ...))` are the same shape. Read each `def apply(): Behavior[...]` and treat every function its factory arguments name as a message entry point.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "http4s",
@@ -5223,6 +5491,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for http4s. Routes are a `PartialFunction` literal -- `HttpRoutes.of[IO] { case GET -> Root / \"users\" / id => getUser(id) }` -- so every endpoint is a `case` clause inside an anonymous partial function, with no named handler and no registration call whose argument cgg could read. Path extractors (`object UserIdVar { def unapply(s: String) = ... }`) are invoked by the pattern matcher itself, so `unapply` has no caller, and middleware (`Logger.httpApps`, `CORS`, `AuthMiddleware`, `GZip`) is applied to the route value rather than calling into it. Read every `HttpRoutes.of` / `AuthedRoutes.of` block and treat the right-hand side of each `case` as a root, then follow `.orNotFound` / `.combineK` into the `EmberServerBuilder` or `BlazeServerBuilder` to see which route set is actually mounted at which prefix.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spark",
@@ -5239,6 +5508,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Spark jobs. The driver entry is `def main(args: Array[String])` on an `object`, which cgg's dead-code pass already root-marks via its UNIVERSAL_ENTRY list but never labels as a Spark job. Everything below it that actually runs on executors is anonymous: the closures handed to `rdd.map` / `filter` / `mapPartitions` / `foreachPartition` and to `Dataset.map` / `flatMap` are lambdas cgg mints no callable for, so the transformation logic belongs to no node. UDFs are worse -- `spark.udf.register(\"scoreRow\", scoreRow _)` binds a function to a STRING name that is thereafter referenced only from inside opaque SQL text, so the registered function has no caller at all; `functions.udf(...)` assigned to a `val` is invisible for the same reason vals are not recorded as callables. `SparkListener` / `StreamingQueryListener` / `QueryExecutionListener` subclasses have their `onJobEnd`-style methods called by the scheduler, and `Aggregator` / `Encoder` implementations by the SQL engine. Grep for `udf.register`, `udf(`, `extends SparkListener` and `extends Aggregator` and treat each as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "scalatest",
@@ -5255,6 +5525,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for ScalaTest. A test body is an anonymous block registered by a string-named call evaluated in the CLASS BODY -- `test(\"parses empty input\") { ... }` in AnyFunSuite, `\"a Stack\" should \"pop values\" in { ... }` in AnyFlatSpec, `it should ... in { ... }`, `describe(...) { it(...) { ... } }` in AnyFunSpec. The Scala plugin mints no callable for a class or object and none for a closure, so those statements belong to no callable whatsoever: cgg drops the call sites, the production functions the suite exercises lose their only incoming edge, and genuinely covered code reads as dead. The fixture hooks `beforeAll` / `afterAll` / `beforeEach` / `afterEach` (BeforeAndAfterAll, BeforeAndAfterEach) and `withFixture(test)` are runner-invoked, and shared-behaviour traits mixed in with `with` contribute tests defined in another file entirely. Treat every `*Suite` / `*Spec` class as a root and read its class body -- that is where the tests live.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "specs2",
@@ -5271,6 +5542,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for specs2. In a `mutable.Specification` the tests are `\"description\" >> { ... }` / `\"description\" in { ... }` fragments evaluated directly in the class body; in an acceptance `Specification` they are a `def is = s2\"\"\"...\"\"\"` interpolated string that names `def e1 = ok` methods by INTERPOLATION, which is not a call cgg can read, so those methods have no caller. Because the Scala plugin mints no callable for a class or object, a fragment written in the class body belongs to no callable at all, and every production function the spec drives loses its only incoming edge. `WithApplication { ... }`, `WithServer`, `WithBrowser`, the `AfterAll` / `BeforeAll` hooks, and `override def map(fs: => Fragments)` are all runner-invoked. Treat every `*Spec` class as a root and read its body.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gradle-task",
@@ -5287,6 +5559,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg cannot enumerate Gradle task actions. The work a task performs is either a method annotated `@TaskAction` on a `DefaultTask` subclass -- and the Groovy plugin records neither annotations nor base types, so neither the marker nor `extends DefaultTask` is visible to any matcher -- or a closure: `doFirst { }`, `doLast { }`, `task hello { }`, `tasks.register(\"hello\") { }`, `tasks.named(\"test\") { }`. The plugin deliberately skips `closure_expression`, so those bodies belong to no callable and everything they call reads as dead. Detection is also weak on the files that matter most: `build.gradle` and `settings.gradle` are top-level statement sequences with no enclosing method and normally carry no `import org.gradle...` line, so this rule usually fires only on plugin sources under `buildSrc/` or `build-logic/`, not on the build scripts themselves. Grep for `@TaskAction`, `doLast`, `doFirst`, `task ` and `tasks.register` to enumerate by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gradle-plugin",
@@ -5303,6 +5576,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spock",
@@ -5319,6 +5593,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Spock. A feature method is declared with a STRING name -- `def \"stops when the build fails\"() { given: ... when: ... then: ... }` -- and the JUnit runner, not project code, invokes it, so it has no caller and every production function the spec exercises loses its only incoming edge. Even where a callable is minted, its simple name is the whole sentence, so no method-name matcher can be written for it; and the Groovy plugin records no base types, so `extends Specification` is invisible, and no annotations, so `@Unroll`, `@Shared`, `@Stepwise`, `@Requires({ ... })` and `@IgnoreIf({ ... })` are unmatchable too. The fixture methods `setup`, `cleanup`, `setupSpec` and `cleanupSpec` are runner-invoked, and the `where:` block's data-provider expressions are evaluated by Spock's AST transform rather than called. Treat every class extending `Specification` as a root and read its `def \"...\"` methods.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grails",
@@ -5343,6 +5618,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Grails. Controller actions are pure convention: any public method -- or `def action = { ... }` closure -- on a class whose NAME ends in `Controller` under `grails-app/controllers/` is an HTTP entry point, with no annotation and no base type to key on, and the Groovy plugin records neither anyway. The URL map lives in `grails-app/conf/UrlMappings.groovy` as `static mappings = { \"/$controller/$action?/$id?\" { } }`, a DSL of closures binding URLs to methods by string interpolation, so nothing links a request to a method statically. Interceptors (`*Interceptor` with `before()` / `after()`), TagLibs (closures under a `static namespace`), services injected by name (`def fooService`) and GORM lifecycle hooks (`beforeInsert`, `afterUpdate`, `beforeValidate`) are all convention-invoked as well. Enumerate `grails-app/controllers/**/*Controller.groovy` and `grails-app/conf/UrlMappings.groovy` by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jenkins-pipeline",
@@ -5365,6 +5641,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Jenkins pipelines. A declarative `Jenkinsfile` is `pipeline { agent any; stages { stage('build') { steps { sh 'make' } } } }` -- a tree of anonymous closures with no enclosing method -- and a scripted pipeline is bare top-level statements; either way the body belongs to no callable, so nothing it invokes is reachable. A shared-library step is `vars/<name>.groovy` defining `def call(...)`, invoked as `<name>(...)` purely by filename convention from a Jenkinsfile, and `call` is far too common a name to match on safely. Detection is doubly blunted: a bare `Jenkinsfile` has no extension and no shebang, so cgg skips it outright as an unknown extension, and Jenkinsfiles that ARE analyzed almost never carry an import line, so this rule fires mainly on Jenkins plugin sources or on scripts that explicitly `import hudson.model.*`. Enumerate `Jenkinsfile*`, `vars/*.groovy` and `src/**/*.groovy` in the shared library by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "erlang-gen-server",
@@ -5394,6 +5671,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "erlang-otp-lifecycle",
@@ -5419,6 +5697,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for erlang-otp-lifecycle. Its runtime-invoked methods (init, terminate, code_change, callback_mode, format_status) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and erlang carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "erlang-application",
@@ -5435,6 +5714,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "`-behaviour(application)` makes `start/2` and `stop/1` the OTP application entry points, but cgg does not enumerate them: `start` and `stop` are two of the most common function names in Erlang (744 and 365 definitions in the OTP corpus), and the erlang plugin populates no base_types, so there is no way to pair the names with the behaviour and matching them alone would flood the graph. Inspect the `start/2` clause of every module carrying `-behaviour(application)`, together with the `{mod, {Module, StartArgs}}` tuple of the matching `.app.src`/`.app` file, which names the module the runtime actually boots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cowboy",
@@ -5458,6 +5738,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Cowboy dispatches through a routing table built by `cowboy_router:compile([{HostMatch, [{PathMatch, HandlerModule, InitialState}]}])` — the handler is a bare module atom buried in a nested list of tuples, which cgg does not decode, and the handler's own `init/2` is an ordinary two-argument function indistinguishable by name from any other `init`. Read the argument of `cowboy_router:compile/1` (usually in the application's `start/2`) to recover the path-to-module map, then read `init/2` in each named module, plus the `cowboy_rest` callbacks `allowed_methods/2`, `content_types_provided/2`, `content_types_accepted/2`, and `websocket_init/1`, `websocket_handle/2`, `websocket_info/2` for websocket handlers.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "common-test",
@@ -5474,6 +5755,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "A Common Test suite's testcases are arbitrary `Name/1` functions whose names appear ONLY inside the list returned by `all/0` (and `groups/0` for grouped runs). cgg matches method names literally, has no glob, and cannot evaluate a function body to read a returned list, so not one testcase is enumerable. Enumerating only the fixed callbacks (`init_per_suite/1`, `end_per_suite/1`, `init_per_testcase/2`, `end_per_testcase/2`, `init_per_group/2`, `end_per_group/2`, `suite/0`) would print a confident count that omits every actual test, which is worse than declining. Read the list returned by `all/0` in each `*_SUITE.erl`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "eunit",
@@ -5490,6 +5772,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "EUnit collects tests by function-name SUFFIX — every zero-arity function ending in `_test` (a simple test) or `_test_` (a generator) is run automatically, and further tests are produced by the `?_test`, `?_assert` and `?LET`-style macros that `eunit.hrl` expands. cgg matches method names literally and has neither a suffix matcher nor a preprocessor, so no EUnit test is enumerable. Read the functions ending in `_test`/`_test_` in every module that carries `-include_lib(\"eunit/include/eunit.hrl\").`",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "servant",
@@ -5506,6 +5789,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Servant binds handlers to routes POSITIONALLY: the routes live in a type-level API (`type API = \"users\" :> Capture \"id\" Int :> Get '[JSON] User :<|> ...`) and the handlers are a matching `:<|>` chain of plain values handed to `serve`/`serveWithContext`/`hoistServer`. No handler carries a name, decorator, or registration call, and the correspondence exists only in the type checker, which cgg does not run. Read the API type synonym and the `:<|>` server chain side by side and pair the nth handler with the nth arm of the type.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "yesod",
@@ -5522,6 +5806,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Yesod route handlers are named by CONVENTION after Template Haskell expansion: `mkYesod`/`mkYesodData` consume a `parseRoutes` quasi-quote block and require a `get<Route>R`, `post<Route>R`, `delete<Route>R` function per route/method pair. cgg does not run Template Haskell and matches method names literally with no glob, so the `get*R`/`post*R` family cannot be enumerated. Read the `[parseRoutes| ... |]` quasi-quote to get the route table, then the correspondingly named `get*R`/`post*R` handlers.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "scotty",
@@ -5538,6 +5823,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Scotty routes are registered by `get`/`post`/`put`/`delete`/`matchAny` applied to a path pattern and an inline `ActionM` do-block, all inside the `scotty`/`scottyT` monadic block. The haskell plugin emits no argument-position (value) references at all — it has no registrar support, unlike the js/py/go/rust plugins — so cgg can see neither the handler value nor the route string. Read the `scotty`/`scottyT` block and list its `get`/`post` lines with the do-block each one opens.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "wai",
@@ -5554,6 +5840,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "A WAI entry point is any value of the `Application` type alias (`Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived`) passed to `Warp.run`/`Warp.runSettings`. It is an ordinary function binding with no marker of any kind, and Haskell type aliases are not recorded as base types by the plugin, so cgg cannot distinguish it from any other function. Read the argument of `Warp.run`/`Warp.runSettings` and follow the `Middleware` chain (`. logStdout . cors ...`) that wraps it down to the innermost Application.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "tasty",
@@ -5570,6 +5857,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hspec",
@@ -5586,6 +5874,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "haskell-main",
@@ -5607,6 +5896,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for haskell-main. Its runtime-invoked methods (main) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and haskell carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dream",
@@ -5623,6 +5913,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Dream routes are `Dream.get \"/path\" handler` entries in the list passed to `Dream.router`, run from a `let () = Dream.run @@ Dream.logger @@ Dream.router [...]` pipeline. Three separate things block enumeration: the ocaml plugin records no argument-position handler references, a `let () = ...` binding produces NO callable at all (verified — cgg extracted only `hello` from a two-binding Dream module), and the `@@` operator makes the pipeline an infix expression rather than an `application_expression`, so even the `Dream.run` call is not recorded. Read the `Dream.router [ ... ]` list to get the route-to-handler map.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "opium",
@@ -5639,6 +5930,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Opium routes are `App.get \"/path\" handler` / `App.post ...` combinators threaded onto an `App.empty` value with `|>` and started by `App.run_command`. The ocaml plugin records no argument-position handler references and `|>` is an infix operator rather than an application node, so neither the handler nor the route string is visible. Read the `|>` chain that ends in `App.run_command`/`App.start` and list each `App.<verb> \"path\" handler` link.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "alcotest",
@@ -5655,6 +5947,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Alcotest cases are `Alcotest.test_case \"name\" `Quick f` tuples collected into a list of `(suite_name, case list)` pairs and handed to `Alcotest.run`. The test function `f` reaches the runner only through argument position, which the ocaml plugin does not record, and the `let () = Alcotest.run ...` binding produces no callable, so the suite has no visible root either. Read the suite list passed to `Alcotest.run` and treat every function named in a `test_case` as an entry point.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cmdliner",
@@ -5671,6 +5964,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "A Cmdliner subcommand's implementation is a plain function lifted into a `Term.t` by `Term.const f $ arg1 $ arg2`, registered with `Cmd.v info term` / `Cmd.group`, and finally run from `let () = exit (Cmd.eval cmd)`. The function reaches the runtime purely through argument position, which the ocaml plugin does not record, and the `let () = ...` program entry produces no callable at all — so both the command implementations and OCaml's actual entry point are invisible. Read the `Cmd.v`/`Cmd.group` list and take the `Term.const` argument of each as an entry point. This is also why OCaml programs generally show no `main`: cgg extracts nothing for `let () =`, and `let main` is a bare convention (15 unrelated `let main` bindings in the dune corpus, including `otherlibs/stdune/src/at_exit.ml`), too weak to match by name.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fsharp-entrypoint",
@@ -5687,6 +5981,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for fsharp-entrypoint. Its runtime-invoked methods (main) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and fsharp carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "giraffe",
@@ -5703,6 +5998,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Giraffe routes are `route \"/path\" >=> handler` combinators composed with the Kleisli operator `>=>` and gathered by `choose [ ... ]` into one `HttpHandler` value passed to `app.UseGiraffe`. Handlers appear only in operator/argument position, which the fsharp plugin does not record, so no route binds to a function. Read the `choose [ ... ]` list in the `webApp` value and follow each `>=>` chain to its terminal handler.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "saturn",
@@ -5719,6 +6015,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Saturn declares routes inside computation-expression blocks — `router { get \"/path\" handler; post \"/path\" other }` and `application { use_router r }`. The fsharp plugin records neither computation-expression custom operations nor their argument-position handlers, so the whole routing table is invisible. Read each `router { ... }` block for its verb/path/handler triples and each `controller { ... }` block for its `index`/`show`/`create`/`update`/`delete` members.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "suave",
@@ -5735,6 +6032,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Suave routes are WebPart values — `path \"/x\" >=> handler`, `GET >=> choose [ ... ]` — combined with `choose` and started by `startWebServer config app`. Handlers sit in operator and list-element position, which the fsharp plugin does not record, so no WebPart is bound to a function. Read the `choose [ ... ]` WebPart list passed to `startWebServer`/`startWebServerAsync`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "expecto",
@@ -5751,6 +6049,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "Expecto tests are `testCase \"name\" <| fun () -> ...` values collected into a `testList \"suite\" [ ... ]` and marked with the `[<Tests>]` attribute. Both channels are dead for F#: the fsharp plugin populates no attributes (so `[<Tests>]` cannot be matched) and records no argument-position lambdas (so the individual cases cannot be matched). Read every `[<Tests>]`-marked value and enumerate the `testCase`/`testCaseAsync`/`testProperty` entries of its `testList`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fsharp-nunit",
@@ -5767,6 +6066,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "NUnit test methods are identified solely by the `[<Test>]`, `[<TestCase>]`, `[<TestCaseSource>]`, `[<Theory>]` attributes and the fixture hooks `[<SetUp>]`, `[<TearDown>]`, `[<OneTimeSetUp>]`, `[<OneTimeTearDown>]`. The fsharp plugin hardcodes `attributes: Vec::new()` on every DefRecord, so cgg cannot tell an F# test from any other `let`-bound function or member — unlike the C# `nunit` rule, there is not even an attribute stream to read. Treat every `[<Test>]`-marked member of a `[<TestFixture>]` type as a root, and note that `[<TestCaseSource>]` additionally names its data provider by STRING, leaving that member with no caller either.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "r-package-hooks",
@@ -5806,6 +6106,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "testthat",
@@ -5822,6 +6123,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "testthat entries are `test_that(\"desc\", { ... })` calls whose second argument is a brace expression, not a named function, so cgg has no callable to attach an entry to; the same applies to `setup()`/`teardown()` and the auto-sourced `helper-*.R` files. Read tests/testthat/test-*.R and tests/testthat.R to enumerate.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "shiny",
@@ -5838,6 +6140,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Shiny's reactive entry points are `observeEvent(input$x, { ... })`, `reactive({ ... })`, `eventReactive`, `output$plot <- renderPlot({ ... })` and `moduleServer(id, function(input, output, session) ...)`. All pass a brace expression or an anonymous function to a registrar, and the R plugin records no argument/context metadata on call sites, so none can be bound to a handler. Only the top-level `server <- function(input, output, session)` is a named definition. Read app.R / server.R / R/mod_*.R.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "plumber",
@@ -5854,6 +6157,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "plumber routes are declared in `#* @get /path` / `#* @post /path` / `#* @serializer` roxygen-style COMMENT blocks immediately above the handler function. The R plugin records no comment annotations as definition attributes, so the route-to-function binding is invisible and every handler reads as unreferenced. Read the `#*` blocks in plumber.R / entrypoint.R.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "r-s3-dispatch",
@@ -5886,6 +6190,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "S3/S4/S7 methods are invoked by dispatch, never by a call naming them: `print.myclass <- function(x, ...)` is reached through `UseMethod(\"print\")`, `setMethod(\"show\", ...)` through `standardGeneric`, and `S7::method(generic, class) <- function(...)` through S7 dispatch registered at load time. ggplot2 registers these in .onLoad via `registerS3method(\"+\", \"gg\", add_gg)` and `S7::methods_register()`. Grep for `UseMethod(`, `registerS3method(`, `setMethod(`, `S7::method(` to enumerate.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "julia-module-init",
@@ -5915,6 +6220,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "julia-test",
@@ -5937,6 +6243,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "`@testset \"name\" begin ... end` and `@test` are macro invocations wrapping a begin-block, not function definitions, so the Julia plugin records no callable for a test body and the calls inside it are attributed to no caller. Test files are also pulled in by `include(\"foo.jl\")` from runtests.jl rather than by import. Read test/runtests.jl and the files it includes.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flux",
@@ -5953,6 +6260,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "A Flux layer's forward pass is a CALLABLE-STRUCT method — `function (m::Dense)(x)` — whose signature text begins with `(`, so cgg's Julia extractor (which takes the name as everything before the first paren) records NO definition for it at all. Every layer forward pass is therefore absent from the graph, not merely unreferenced. Same for `@layer`/`@functor`-generated methods and `@non_differentiable` rules. Read src/layers/*.jl for `function (m::T)(` definitions.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "genie",
@@ -5969,6 +6277,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Genie routes are registered by `route(\"/path\", handler)` / `route(\"/path\", HomeController.index)` and by the `@get`/`@post` macros; Oxygen uses `@get \"/path\" function(req) ...`. The Julia plugin records no argument or context metadata on call sites, so a handler passed as a value is never linked to its route. Read routes.jl and app/resources/*/Controller.jl.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "julia-base-dispatch",
@@ -6014,6 +6323,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "pester",
@@ -6030,6 +6340,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Pester `Describe` / `Context` / `It` / `BeforeAll` / `BeforeEach` / `AfterAll` each take a `{ }` ScriptBlock, not a named function, so cgg has no callable to mark as an entry. Detection is also fragile: real Pester suites normally do NOT `Import-Module Pester` (PowerShellGet's 16 Describe and 295 It blocks carry only `Import-Module $modPath`, a variable), so this rule fires only when the import is spelled literally. Read *.Tests.ps1.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "powershell-dsc",
@@ -6056,6 +6367,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "powershell-module",
@@ -6081,6 +6393,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "A module's public surface is invoked from the shell, never from source: functions named in the manifest's `FunctionsToExport` array (a list of string literals in the .psd1, not calls) or in `Export-ModuleMember -Function`, and advanced functions marked by a `[CmdletBinding()]` + `param([Parameter(Mandatory)]...)` block. The PowerShell plugin records neither definition attributes nor visibility (26 [CmdletBinding( and 167 [Parameter( in PowerShellGet are all dropped), so exported cmdlets are indistinguishable from private helpers. Read the .psd1 FunctionsToExport list.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bash-dispatch",
@@ -6105,6 +6418,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "Shell functions are entered by four means that are never a call expression naming them: (1) a `case \"$1\" in --issue) issue \"$@\" ;;` argv dispatch — acme.sh dispatches ~60 subcommands this way from line 7906; (2) a dynamically built name, `eval \"$_method\"` or `\"dns_${provider}_add\"` — this is how all 107 identically-named `_get_root` dnsapi functions are reached, and every one of them reads as unreferenced; (3) `trap 'rm -f $_tempfile' EXIT` handlers; (4) `main \"$@\"` as the process entry. Bash also has no package imports at all — `source`/`.` targets in real scripts are shell variables (`. \"$DOMAIN_CONF\"`), so this rule's literal-path detect will not fire on most repos, acme.sh included. Grep for `case ` dispatch blocks, `trap `, and `eval `.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "zig-main",
@@ -6121,6 +6435,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for zig-main. Its runtime-invoked methods (main) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and zig carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "zig-build",
@@ -6137,6 +6452,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for zig-build. Its runtime-invoked methods (build) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and zig carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "zig-test",
@@ -6153,6 +6469,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "`test \"name\" { ... }` and bare `test { ... }` blocks are the Zig test entry points, and the Zig plugin only walks `function_declaration` nodes — a `test_declaration` produces no callable whatsoever, so the block is absent from the graph and the calls inside it are attributed to no caller. zig-http alone has 127 such blocks. Grep for `^test \"` and run `zig build test` to enumerate.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "zig-export",
@@ -6169,6 +6486,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "C-ABI and WASM entry points are declared by `export fn name()`, by `pub fn name() callconv(.c)`, and by `comptime { @export(&f, .{ .name = \"...\" }) }`. The Zig plugin records neither visibility nor calling convention on definitions (it always writes an empty visibility string), so an exported symbol the host or the linker calls is indistinguishable from a private helper. Grep for `export fn`, `callconv(.c)` and `@export(`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cmake",
@@ -6218,6 +6536,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for CMake, and CMake has no handler construct: the build tool executes a file top to bottom, so the entry is the file itself rather than any function() or macro() inside it. The units invoked from outside the tree are the top-level CMakeLists.txt (which cgg does not analyze at all - only the .cmake extension is recognised), any module run in script mode via `cmake -P` (including install(SCRIPT ...), install(CODE ...), add_custom_command(COMMAND ${CMAKE_COMMAND} -P ...) and `ctest -S`), the toolchain file named by CMAKE_TOOLCHAIN_FILE, the Find<Pkg>.cmake and <Pkg>Config.cmake modules a consumer project include()s or find_package()es, and any callable reached only through cmake_language(DEFER CALL ...) or cmake_language(EVAL CODE ...). Read the top-level CMakeLists.txt and every installed or exported module by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nix",
@@ -6234,6 +6553,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Nix. Nix code is evaluated by the nix CLI, never called: the entry points are the `outputs = { self, nixpkgs, ... }: ...` lambda of flake.nix, the top-level `{ config, lib, pkgs, ... }: { ... }` lambda of every NixOS/home-manager module named in an `imports = [ ./foo.nix ]` list, overlay lambdas of the form `final: prev: { ... }`, and the package lambdas invoked by `callPackage ./pkg.nix {}`. cgg records a callable only where a binding's right-hand side is a lambda (`foo = args: ...`), so a module file whose entire body is one lambda contributes no callable at all and cannot be reported here; and `callPackage ./p.nix {}` is not the builtin `import`, so it is not recorded as an import either. Read flake.nix's outputs and each module's imports list by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bazel",
@@ -6273,6 +6593,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Bazel. Starlark is called by the build tool, not by anything in the tree: the entry points are the `implementation = _foo_impl` functions passed to rule(...), aspect(...), repository_rule(...), module_extension(...) and transition(...), the `init =` constructor passed to provider(...), the `resolve_fn`/`toolchain` hooks, and every macro invoked from a BUILD or BUILD.bazel file. The implementation function is named in argument position, which cgg does not record as a reference, so each `_impl(ctx)` reads as unreferenced; and plain `BUILD` files carry no extension, so cgg does not analyze them at all (only .bzl, .star and .bazel). Grep for `implementation =` and read every BUILD file by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "fortran-program",
@@ -6303,6 +6624,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Fortran. The entry points are the single PROGRAM unit that becomes the executable's main, every procedure carrying a bind(c, name=\"...\") attribute (called from C, from a Python/ctypes driver, or through dlopen), and any procedure passed as an actual argument into a library solver's callback slot - a form Fortran expresses with no marker at all. cgg records PROGRAM, SUBROUTINE and FUNCTION identically - same variant, no attribute, no visibility - so it cannot tell the program unit from an ordinary subroutine, and it does not read the bind(c) attribute or the module's public/private statement. Grep for `^\\s*program ` and `bind(c` by hand; each PROGRAM found is one executable's main.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vhdl-toplevel",
@@ -6319,6 +6641,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for VHDL, and hardware has no caller: the simulator or synthesizer elaborates one top-level entity and drives its ports. The entry points are that entity - the one no other architecture instantiates - the testbench entity, which is recognisable by having no port list at all, the processes inside each architecture, which cgg does not extract (a procedure called only from a process body therefore reads as unreferenced), and anything bound through a configuration declaration or a VHPI/foreign attribute. cgg does record entities, architectures and subprograms, and treats an architecture's `of <entity>` as a reference, so entities with no incoming edge are the candidate tops. Read those and each testbench's stimulus process by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-atexit",
@@ -6335,6 +6658,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg cannot enumerate atexit handlers. The entry is every function handed to atexit.register(func, *args) — including the decorator form @atexit.register — plus anything registered indirectly through a library's own shutdown hook. Those functions run after the last statement of the program and nothing in the source calls them, so they read as dead. The verb is `register`, which is far too common in Python to match tree-wide (493 `.register(` call sites against 9 real atexit ones in cgg's corpus), so cgg declines rather than flooding. Grep for `atexit.register` in files that import atexit and read each target by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-signal",
@@ -6351,6 +6675,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-threading",
@@ -6367,6 +6692,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-unittest",
@@ -6389,6 +6715,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-argparse",
@@ -6405,6 +6732,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-context-manager",
@@ -6421,6 +6749,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "py-setuptools-entrypoints",
@@ -6437,6 +6766,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg cannot enumerate packaging entry points. The real program start of an installed Python distribution is the `module:function` string in a console_scripts / gui_scripts entry-point group, and that string lives in packaging metadata cgg never parses: the entry_points= argument of setup() in setup.py, the [options.entry_points] section of setup.cfg, or [project.scripts] and [project.entry-points.*] in pyproject.toml. Plugin systems built on the same mechanism (pytest11, flake8.extension, importlib.metadata.entry_points groups) are invisible the same way. Open setup.cfg / pyproject.toml, read each `name = pkg.module:func` line, and treat the named function as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "node-event-emitter",
@@ -6467,6 +6797,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "node-event-emitter",
@@ -6497,6 +6828,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "minitest",
@@ -6520,6 +6852,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rspec",
@@ -6536,6 +6869,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg cannot enumerate RSpec examples. Every example is an anonymous block passed to it/specify/example inside a describe/context, and the surrounding before/after/around/let/let!/subject/shared_examples blocks are anonymous too — none has a name a call graph can anchor to. Matching `it` tree-wide would mint one node per example (over a thousand spec files in cgg's corpus) and still name none of them usefully, so cgg declines. Read *_spec.rb, spec/support/**.rb and the rails_helper/spec_helper config blocks by hand; everything they call is live even though nothing in lib/ or app/ references it.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "phpunit",
@@ -6558,6 +6892,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "junit",
@@ -6588,6 +6923,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "junit-params",
@@ -6609,6 +6945,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg cannot enumerate JUnit's indirect test sources, and every one of them leaves a real method with no caller. @MethodSource(\"name\"), @ArgumentsSource(X.class), @EnumSource and @CsvFileSource name their provider by STRING or by a class literal, so the provider method itself is referenced nowhere in Java source. @Nested inner classes and the test class CONSTRUCTOR are instantiated by the runner. @RunWith(Parameterized.class) invokes the @Parameters method and then the constructor once per row. Every org.junit.jupiter.api.extension.Extension implementation (BeforeEachCallback, AfterEachCallback, ParameterResolver, TestInstancePostProcessor) runs only through @ExtendWith, @RegisterExtension or a META-INF/services file. Read the string argument of each @MethodSource/@ArgumentsSource and the type argument of each @ExtendWith/@RunWith, and treat the members they name as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "java-serviceloader",
@@ -6625,6 +6962,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "ServiceLoader binds implementations by NAME in a file cgg never reads. META-INF/services/<fully.qualified.Interface> is a plain text file listing implementation class names (as is the `provides X with Y;` clause in module-info.java), and the runtime instantiates each named class through its public no-arg CONSTRUCTOR and then calls the interface methods on it. No Java source anywhere references those classes, so the provider class, its no-arg constructor, and every interface method it implements all read as unreferenced. Open each META-INF/services/* file and each module-info.java `provides` clause and treat the classes named there — constructor included — as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "java-closeable",
@@ -6641,6 +6979,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "java-runtime",
@@ -6657,6 +6996,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "Java hands control to code that cgg's Java plugin does not turn into a callable or a reference. A `static { … }` class initializer and an instance `{ … }` initializer block are NOT extracted as callables at all — verified: a probe with `static { boot(); }` produced zero edges and left `boot` with in-degree zero — so everything an initializer calls reads as dead. Runtime.getRuntime().addShutdownHook(new Thread(…)) passes a Thread OBJECT, not a named function, so the hook body has no caller. protected void finalize() is invoked only by the garbage collector. And reflection names its target by string: Class.forName(String), Class.getMethod(String), Constructor.newInstance, java.beans property accessors, and every annotation processor. Grep for `static {`, `addShutdownHook`, `Class.forName` and `.getMethod(` and treat what they reach as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "junit",
@@ -6690,6 +7030,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kotlinx-coroutines",
@@ -6706,6 +7047,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "The body of a coroutine is a LAMBDA, and cgg's Kotlin plugin records neither value references nor inline closures (it never calls the registrar-capture pass), so nothing handed to launch, async, runBlocking, withContext, flow, produce, channelFlow or coroutineScope has a callable node at all — that code runs on a dispatcher with no caller anywhere in the graph. The same holds for CoroutineExceptionHandler bodies, `Flow.collect { … }` blocks, `invokeOnCompletion { … }`, and suspend functions passed as `::name` references. Read each launch/async/withContext/collect block and treat its body, and every function it calls, as reachable.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kotlin-runtime",
@@ -6722,6 +7064,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "Kotlin reaches members through syntax rather than a named call, and cgg's Kotlin plugin records no class supertypes and no value references, so none of it can be matched by rule. Not extracted as callables at all: `init { }` blocks, `companion object` initializers, and property `get()`/`set()` accessors. Invoked by syntax with no call expression: `operator fun` members (plus, minus, times, invoke, get, set, compareTo, contains, iterator, rangeTo, component1..N used by destructuring), `override fun toString/equals/hashCode`, and `getValue`/`setValue` on a `by` delegate. Invoked through a value: any function passed as `::name` or as a lambda to a higher-order function. Inspect every `init {`, `operator fun`, `by ` delegate, `::` reference and lambda argument in the file and treat the targets as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "mstest",
@@ -6753,6 +7096,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "csharp-disposable",
@@ -6769,6 +7113,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "csharp-runtime",
@@ -6785,6 +7130,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "C# hands control to methods that no call expression names. `someEvent += Handler` and `-= Handler` are assignments, not calls, so every event-handler method — and every `+= (s, e) => { … }` lambda — has no caller in the graph. A finalizer `~Type()` is run only by the garbage collector; cgg extracts it as a `destructor` with in-degree zero (verified on a probe: `D.~D` kind=destructor, no edges). A `static Type()` static constructor runs on first use of the type. A [Serializable] deserialization constructor `Type(SerializationInfo, StreamingContext)` is called by the formatter. Task.Run(() => …), ThreadPool.QueueUserWorkItem and Timer callbacks take a lambda, not a named function. And Activator.CreateInstance, Type.GetMethod(\"name\"), Assembly.CreateInstance and dependency-injection registration name their target by string or by Type object. Grep for `+=` on events, `~<TypeName>(`, `static <TypeName>(`, `GetMethod(` and `CreateInstance(` and treat what they name as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "go-testing",
@@ -6801,6 +7147,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "`go test` invokes functions by NAME PREFIX, and cgg's Go root rule only recognises `Test*` (roots.rs is_test_name requires a `Test` prefix plus more). BenchmarkXxx(b *testing.B), FuzzXxx(f *testing.F) and ExampleXxx() therefore have no caller and are not root-marked, so they and everything they reach read as dead. Neither are the func literals that carry most modern Go test logic: t.Run(\"sub\", func(t *testing.T){ … }), t.Cleanup(func(){ … }), f.Fuzz(func(t *testing.T, b []byte){ … }) and b.RunParallel(func(pb *testing.PB){ … }) — a closure in argument position is not extracted as a callable by cgg's Go plugin, so its body has no node at all. Treat every Benchmark*/Fuzz*/Example* function, and every t.Run / t.Cleanup / f.Fuzz body, as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "go-encoding",
@@ -6837,6 +7184,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "go-signal",
@@ -6853,6 +7201,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "signal.Notify(ch, os.Interrupt) delivers to a CHANNEL, not to a function, so there is no handler argument for cgg to bind. The real handler is whichever goroutine consumes that channel — almost always an anonymous `go func(){ for range ch { … } }()`, which cgg's Go plugin does not extract as a callable at all — and signal.NotifyContext hides the same body behind a cancelled context. The shutdown path a program runs on SIGINT/SIGTERM is consequently invisible: graceful-shutdown, flush and cleanup functions all read as dead. Find every signal.Notify / signal.NotifyContext call, follow the channel or context it returns to the goroutine that consumes it, and treat that body and everything it calls as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "go-runtime",
@@ -6869,6 +7218,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "Go's func values and implicit interfaces hide callers cgg cannot recover. A func literal is not extracted as a callable, so the bodies of `go func(){ … }()`, `defer func(){ … }()`, `sync.Once.Do(func(){ … })`, `sort.Slice(x, func(i, j int) bool { … })`, `http.HandlerFunc(func(w, r){ … })` and `errgroup.Go(func() error { … })` have no node in the graph at all. A func value stored in a struct field, map or slice is invoked through the variable, never through the name. And nothing in Go source declares that a type implements an interface, so Read / Write / Close / Error / String / Len / Less / Swap / ServeHTTP / Scan / Value implementations are called by the standard library with no textual call site — cgg's rules cover only ServeHTTP (net/http) and the encoding Marshal/Unmarshal family, because the remaining names are too common to match safely. Scan the file for `func(` in argument position, and for method sets matching an interface the type is passed to, and treat those bodies as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rust-std-traits",
@@ -6964,6 +7314,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "embedded-rt",
@@ -6995,6 +7346,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "serde",
@@ -7011,6 +7363,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "serde names helper functions by STRING inside an attribute that sits on a struct FIELD, not on a callable: #[serde(deserialize_with = \"path::fn\")], serialize_with, default = \"fn\", skip_serializing_if = \"fn\", with = \"module\" and getter = \"fn\". cgg records no reference at all from a field attribute, so every one of those helper functions — and any module written solely to hold them — reads as dead while being called on every (de)serialization. The derive macros compound it: the generated Serialize/Deserialize impls are code cgg never sees, and they are the only callers of hand-written `impl Visitor` methods (visit_str, visit_map, visit_seq, expecting) and of manual serialize/deserialize impls. Grep for `_with = \"`, `default = \"`, `skip_serializing_if = \"` and `getter = \"` and treat the paths they name, plus every `impl Visitor`, as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rust-runtime",
@@ -7027,6 +7380,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "Rust starts work through closures that cgg's Rust plugin cannot bind: it records a value reference only for a bare `identifier` / `scoped_identifier` / `&identifier` argument, so `std::thread::spawn(|| { … })`, `rayon::spawn`, `std::panic::set_hook(Box::new(|info| { … }))`, `ctrlc::set_handler(|| { … })`, `libc::atexit` and any callback stored as a `Box<dyn Fn>` field have no callable node for their body at all — that code runs on another thread, at panic, or at Ctrl-C with nothing pointing at it. Trait methods reached through `dyn Trait` objects and through generic monomorphisation likewise have no textual call site; run cgg with --dynamic-dispatch to add trait-declaration-to-impl edges for those. Inspect every closure passed to spawn / set_hook / set_handler / atexit and every `Box<dyn Trait>` you construct, and treat those bodies as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gtest",
@@ -7043,6 +7397,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for gtest. Its runtime-invoked methods (TEST, TEST_F, TEST_P, TYPED_TEST, TYPED_TEST_P, SetUp, TearDown, SetUpTestSuite) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and cpp carries no base type cgg can constrain them with. Inspect those methods by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cpp-test-macros",
@@ -7065,6 +7420,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "doctest and Catch2 declare a test with a macro whose argument is a STRING — TEST_CASE(\"name\"), TEST_CASE_TEMPLATE, TEST_SUITE, SCENARIO, SUBCASE, SECTION — and tree-sitter-cpp does not parse that as a function definition. cgg therefore extracts NO callable whatsoever for the test body: it is not merely unreferenced, it is absent from the graph, and every helper that only those tests call reads as dead. (gtest's TEST(Suite, Name) takes identifiers and does parse, which is why gtest is enumerated and this is not.) Grep for `TEST_CASE(`, `TEST_CASE_TEMPLATE(`, `SCENARIO(`, `SUBCASE(` and `SECTION(` and treat the enclosing block, and every function it reaches, as live.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "cpp-runtime",
@@ -7089,6 +7445,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "C++ registers callbacks by passing a function pointer, lambda or member pointer as an argument, and cgg's C++ plugin records neither value references nor closures (it never calls the registrar-capture pass), so NONE of these produce an edge and every target reads as dead: std::signal(SIGINT, handler) and sigaction; atexit / at_quick_exit; pthread_create(&t, 0, start_routine, 0) start routines and pthread_key_create destructors; std::thread t(fn) and std::async(fn); qsort(base, n, sz, cmp) and std::sort comparators; std::function / std::bind targets stored in members; Qt connect(...) slots, signals and Q_INVOKABLE methods; __attribute__((constructor)) / __attribute__((destructor)) functions; constructors and destructors of file-scope static objects; and interrupt vector tables. Compounding this, the plugin records ONLY quoted #include \"...\" — angle-bracket system headers such as <csignal> and <thread> are invisible — so this rule cannot even be detected in most projects. Grep for signal(, atexit(, pthread_create(, qsort(, connect( and __attribute__((constructor and treat the functions they name as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "c-runtime",
@@ -7113,6 +7470,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "C hands control to a function pointer, and cgg's C plugin extracts no attributes, no base types and no value references at all — it never runs the registrar-capture pass — so every callback target is invisible: signal(SIGINT, handler) and sigaction(sig, &act, 0) handlers; atexit / at_quick_exit / on_exit functions; pthread_create(&t, 0, start_routine, arg) start routines, pthread_once init functions and pthread_key_create destructors; qsort / bsearch comparators; __attribute__((constructor)) and __attribute__((destructor)) functions that run before and after main; interrupt service routines wired through a vector table or a linker script; longjmp targets; and any function pointer stored in a struct (the vtable pattern that carries most C plugin and driver architectures). Compounding this, the plugin records ONLY quoted #include \"...\" — <signal.h>, <stdlib.h> and <pthread.h> in angle brackets are dropped — so this rule cannot even be detected in most C projects. Grep for signal(, sigaction(, atexit(, pthread_create(, qsort(, bsearch(, __attribute__((constructor and for struct fields of function-pointer type, and treat the functions they name as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "litestar",
@@ -7142,6 +7500,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "falcon",
@@ -7175,6 +7534,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "quart",
@@ -7208,6 +7568,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "connexion",
@@ -7224,6 +7585,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Connexion, because Connexion does not route in Python at all. Every handler is named by an `operationId: my_package.my_module.my_function` STRING in the OpenAPI/Swagger document, optionally rebased by an `x-openapi-router-controller` key on the path or operation, so no Python source line ever references the handler and every one of them reads as dead code. Open the spec passed to `connexion.App(...).add_api(\"openapi.yaml\")` / `FlaskApp(...).add_api(...)` and resolve each operationId and x-openapi-router-controller by hand; also check `add_error_handler(...)`, the `validator_map` entries, and the security handlers named by `x-basicInfoFunc` / `x-bearerInfoFunc` / `x-apikeyInfoFunc`, which name Python callables the same string-only way.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "robyn",
@@ -7256,6 +7618,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "nicegui",
@@ -7272,6 +7635,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for NiceGUI. Its entry points are (a) functions decorated `@ui.page('/path')`, (b) event handlers passed as KEYWORD arguments -- `ui.button('Save', on_click=save)`, `on_change=`, `on_value_change=`, `on_upload=` -- which sit in argument position but under a keyword the registrar matcher does not read, (c) callbacks handed to `ui.timer(1.0, refresh)` and `ui.keyboard(on_key=...)`, and (d) the app lifecycle hooks `app.on_startup(...)`, `app.on_shutdown(...)`, `app.on_connect(...)`, `app.on_disconnect(...)`. Grep for `@ui.page`, `on_click=`, `on_change=` and `ui.timer(` and treat each named function or lambda body as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "panel",
@@ -7288,6 +7652,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Panel/HoloViz. Its entry points are (a) functions decorated `@pn.depends(widget.param.value)` or `@param.depends('value', watch=True)`, (b) callbacks registered by `obj.param.watch(callback, 'value')` and `button.on_click(callback)`, (c) functions bound reactively with `pn.bind(fn, widget)`, and (d) the module-level body of the served script itself, which `panel serve app.py` executes top-to-bottom and which publishes its result with `.servable()`. None of these is a call whose argument cgg can attribute to a route. Inspect every `.servable()` site, every `param.watch` / `pn.bind` / `@pn.depends` argument, and the `pn.state.onload(...)` / `pn.state.add_periodic_callback(...)` callbacks.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dash",
@@ -7314,6 +7679,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "scrapy",
@@ -7346,6 +7712,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "huey",
@@ -7373,6 +7740,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rq",
@@ -7396,6 +7764,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "dramatiq",
@@ -7412,6 +7781,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "apscheduler",
@@ -7428,6 +7798,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "pytest",
@@ -7444,6 +7815,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for pytest; the runner -- not any code in the tree -- collects and invokes everything. Nothing in the source calls a `def test_*` function or the test methods of a `Test*` class. A `@pytest.fixture` is matched to a test BY PARAMETER NAME, so a fixture defined in conftest.py has no textual link to any of its users whatsoever. The same is true of every `conftest.py` hook (`pytest_addoption`, `pytest_collection_modifyitems`, `pytest_generate_tests`, `pytest_runtest_setup`, and any other `pytest_*` function), the xunit-style `setup_module` / `teardown_function` / `setup_method` hooks, plugin modules named by string in a `pytest11` entry point in setup.py or pyproject.toml, and the callables reached through `@pytest.mark.parametrize(..., indirect=True)`. Treat all of them as roots, not as dead code.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "adonisjs",
@@ -7460,6 +7832,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for AdonisJS. Routes live in start/routes.ts and name their handler as a TUPLE whose second element is a STRING method name -- `router.get('/users', [UsersController, 'index'])` -- or as a lazy dynamic import -- `router.get('/users', () => import('#controllers/users_controller'))` -- so the controller method has no textual caller; `router.resource('/posts', PostsController)` expands to seven such methods implicitly. Framework-invoked with no caller either: the `handle()` method of each `app/middleware/*.ts` class listed in start/kernel.ts, `app/exceptions/handler.ts`, event listeners registered by string in start/events.ts, and Ace commands (classes under commands/ with a static `commandName` and a `run()` method). Read start/routes.ts, start/kernel.ts and commands/ by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "feathers",
@@ -7476,6 +7849,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Feathers. A service is registered as an object or class INSTANCE -- `app.use('/messages', new MessageService())` or `app.use('messages', { async find(params) {...} })` -- and the runtime then invokes its `find`, `get`, `create`, `update`, `patch` and `remove` methods; those names are far too common to match without a base type, and Feathers services declare none. Hooks are worse: `app.hooks({ before: { create: [validate, authenticate] } })` and `service.hooks(...)` bury every hook function inside a nested object literal keyed by method name. Real-time entry points sit in `app.publish(...)`, `app.on('connection', ...)` and channels.ts. Inspect every `app.use(` registration, every `*.hooks.ts` file, and channels.ts.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "feathers",
@@ -7492,6 +7866,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Feathers. A service is registered as an object or class INSTANCE -- `app.use('/messages', new MessageService())` or `app.use('messages', { async find(params) {...} })` -- and the runtime then invokes its `find`, `get`, `create`, `update`, `patch` and `remove` methods; those names are far too common to match without a base type, and Feathers services declare none. Hooks are worse: `app.hooks({ before: { create: [validate, authenticate] } })` and `service.hooks(...)` bury every hook function inside a nested object literal keyed by method name. Real-time entry points sit in `app.publish(...)`, `app.on('connection', ...)` and channels.js. Inspect every `app.use(` registration, every `*.hooks.js` file, and channels.js.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "loopback",
@@ -7508,6 +7883,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "graphql-yoga",
@@ -7528,6 +7904,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for GraphQL Yoga resolvers. A resolver is a PROPERTY of a nested object literal -- `{ Query: { user: (parent, args, ctx) => ... }, Mutation: { ... }, Subscription: { comment: { subscribe, resolve } }, User: { posts: ... } }` -- passed to `createSchema({ typeDefs, resolvers })` or `makeExecutableSchema`. There is no registrar call and no decorator: the property KEY is the GraphQL field name and its value is the entry point, so every resolver reads as dead code. Also uncallable from source: `plugins: [useX(), { onRequest() {...} }]` hook objects, `context: ({ request }) => ...`, and directive implementations mapped by name. Read the resolvers map alongside the SDL in typeDefs / *.graphql.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "graphql-yoga",
@@ -7548,6 +7925,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for GraphQL Yoga resolvers. A resolver is a PROPERTY of a nested object literal -- `{ Query: { user: (parent, args, ctx) => ... }, Mutation: { ... }, Subscription: { comment: { subscribe, resolve } } }` -- passed to `createSchema({ typeDefs, resolvers })` or `makeExecutableSchema`. There is no registrar call and no decorator: the property KEY is the GraphQL field name and its value is the entry point, so every resolver reads as dead code. Also uncallable from source: `plugins: [{ onRequest() {...} }]` hook objects, `context: ({ request }) => ...`, and directive implementations mapped by name. Read the resolvers map alongside the SDL in typeDefs / *.graphql.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "apollo-server",
@@ -7572,6 +7950,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Apollo Server resolvers. Every resolver is a PROPERTY of a nested object literal handed to `new ApolloServer({ typeDefs, resolvers })` -- `{ Query: { books: () => ... }, Mutation: { addBook: (_, args, ctx) => ... }, Book: { author: (parent) => ... } }` -- so the property key is the GraphQL field name and nothing ever calls the function. The same shape hides `plugins: [{ async requestDidStart() { return { async willSendResponse() {...} } } }]` lifecycle hooks, `context: async ({ req }) => ...` passed to `startStandaloneServer` / `expressMiddleware`, `formatError`, and `dataSources`. `@resolver`-style class decorators only appear if TypeGraphQL or Nexus is layered on top. Read the resolvers map together with the SDL in typeDefs / *.graphql.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "apollo-server",
@@ -7596,6 +7975,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Apollo Server resolvers. Every resolver is a PROPERTY of a nested object literal handed to `new ApolloServer({ typeDefs, resolvers })` -- `{ Query: { books: () => ... }, Mutation: { addBook: (_, args, ctx) => ... }, Book: { author: (parent) => ... } }` -- so the property key is the GraphQL field name and nothing ever calls the function. The same shape hides `plugins: [{ async requestDidStart() {...} }]` lifecycle hooks, `context: async ({ req }) => ...` passed to `startStandaloneServer` / `expressMiddleware`, `formatError`, and `dataSources`. Read the resolvers map together with the SDL in typeDefs / *.graphql.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "express-gateway",
@@ -7612,6 +7992,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Express Gateway. Nothing routes in JavaScript: `apiEndpoints`, `serviceEndpoints` and `pipelines` are declared in gateway.config.yml and reference policies BY NAME. A custom policy's real handler is the middleware returned two levels deep -- `policy: (actionParams, config) => (req, res, next) => {...}` -- inside the object passed to `pluginContext.registerPolicy({ name: 'my-policy', policy, schema })` in the plugin's index.js, and the other extension points are `registerCondition(...)`, `registerGatewayRoute(app => ...)` and `registerAdminRoute(...)`. Read the `policies:` and `pipelines:` lists in gateway.config.yml alongside each plugin's `registerPolicy` call.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "meteor",
@@ -7628,6 +8009,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Meteor. Its server entry points are properties of object literals, not arguments: `Meteor.methods({ 'tasks.insert'(text) {...}, 'tasks.remove'(id) {...} })` puts every RPC method inside one object keyed by its wire name, and clients invoke it by that STRING via `Meteor.call('tasks.insert', ...)`. Publications are `Meteor.publish('tasks', function () {...})` (a deliberately non-arrow anonymous function so `this.userId` works), startup code is `Meteor.startup(() => {...})`, and raw HTTP is mounted with `WebApp.connectHandlers.use('/path', handler)`. Meteor also loads files by DIRECTORY convention -- everything under server/, client/ and imports/ -- with no import statement at all, so detection depends on some file importing `meteor/meteor`. Enumerate the `Meteor.methods` object keys and `Meteor.publish` names by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sails",
@@ -7644,6 +8026,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Sails. Routes are STRING-to-STRING mappings in config/routes.js -- `'GET /user/:id': 'UserController.findOne'` or `'POST /login': { action: 'entrance/login' }` -- so no handler is ever named as a value. Actions are `module.exports = { friendlyName, inputs, exits, fn: async function (inputs, exits) {...} }` object literals under api/controllers/**, and the same shape covers api/helpers/** (invoked as `sails.helpers.fooBar()` by string path) and api/policies/** (listed by name in config/policies.js). Model lifecycle callbacks (`beforeCreate`, `afterUpdate`) and api/hooks/** are likewise object properties. Detection is weak too: `sails` is a runtime global, so many app files import nothing. Read config/routes.js, config/policies.js and each api/controllers action file by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "restify",
@@ -7665,6 +8048,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "restify",
@@ -7686,6 +8070,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "polka",
@@ -7704,6 +8089,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "oak",
@@ -7720,6 +8106,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Oak (Deno). Handlers are middleware callbacks -- `router.get('/books/:id', (ctx) => {...})`, `router.post(...)`, `app.use(async (ctx, next) => {...})`, plus the mounting calls `app.use(router.routes())` and `app.use(router.allowedMethods())` -- and `get` / `use` are too ambiguous to claim without corroboration. Detection is fragile on top of that: Deno imports Oak by URL or JSR specifier, and a deno.land/x URL carries a version segment (`https://deno.land/x/oak@v12.6.1/mod.ts`) that no fixed prefix matches, so this rule fires only on the `jsr:@oak/oak` / bare-specifier / import-map forms. Grep for `new Router(`, `.routes()` and `app.use(` and read the surrounding callbacks; also check `app.addEventListener('error', ...)` and `app.listen(...)`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "bun-serve",
@@ -7736,6 +8123,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Bun.serve. Every handler is a PROPERTY of an options object literal, never an argument to a call: `Bun.serve({ fetch(req) {...}, error(e) {...}, websocket: { open(ws) {...}, message(ws, msg) {...}, close(ws) {...} }, routes: { '/api/users': { GET: (req) => ..., POST: (req) => ... } } })`, and the `export default { port, fetch }` form is the same shape. Detection is fragile too: `Bun` is a global injected by the runtime, so a file using `Bun.serve` often imports nothing and this rule fires only when something in the tree explicitly imports `bun` or a `bun:*` module. Grep for `Bun.serve(`, `export default {` with a `fetch` key, and `Bun.connect` / `Bun.listen` socket handler objects, and treat each property as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vitest",
@@ -7752,6 +8140,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for vitest. Its block verbs (test, it, describe, suite, bench, beforeEach, afterEach, beforeAll, afterAll) are the same words every test suite uses, and cgg's registrar-verb set is GLOBAL across rules: listing them here would make every `describe(...)` and `it(...)` in the tree mint a synthesized handler node, on any project that has this runner anywhere. Treat each test callback and hook as a root by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vitest",
@@ -7768,6 +8157,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for vitest. Its block verbs (test, it, describe, suite, bench, beforeEach, afterEach, beforeAll, afterAll) are the same words every test suite uses, and cgg's registrar-verb set is GLOBAL across rules: listing them here would make every `describe(...)` and `it(...)` in the tree mint a synthesized handler node, on any project that has this runner anywhere. Treat each test callback and hook as a root by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jest",
@@ -7791,6 +8181,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Jest, and detection is the first problem: `describe`, `it`, `test`, `expect` and the `beforeEach` / `afterAll` hooks are GLOBALS injected by the runner, so a typical test file imports nothing from Jest and this rule fires only when something explicitly imports `jest`, `@jest/globals` or a `jest-*` package. Beyond the test callbacks themselves, none of these has a caller: the factory function in `jest.mock('./mod', () => ({ ... }))`, the modules named by STRING in jest.config.js under `setupFiles`, `setupFilesAfterEnv`, `globalSetup`, `globalTeardown`, `testEnvironment`, `transform` and `moduleNameMapper`, the files under `__mocks__/` that Jest loads by filename convention, and custom matchers added by `expect.extend({ toBeX(received) {...} })`. Read jest.config.js and every `jest.mock` factory by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jest",
@@ -7814,6 +8205,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Jest, and detection is the first problem: `describe`, `it`, `test`, `expect` and the `beforeEach` / `afterAll` hooks are GLOBALS injected by the runner, so a typical .test.ts file imports nothing from Jest and this rule fires only when something explicitly imports `jest`, `@jest/globals`, `ts-jest` or a `jest-*` package. Beyond the test callbacks themselves, none of these has a caller: the factory in `jest.mock('./mod', () => ({ ... }))`, the modules named by STRING in jest.config.ts under `setupFiles`, `setupFilesAfterEnv`, `globalSetup`, `globalTeardown`, `testEnvironment`, `transform` and `moduleNameMapper`, the files under `__mocks__/`, and matchers added by `expect.extend({ toBeX(received) {...} })`. Read jest.config.ts and every `jest.mock` factory by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "playwright",
@@ -7835,6 +8227,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for playwright. Its block verbs (test, describe, step, beforeEach, afterEach, beforeAll, afterAll) are the same words every test suite uses, and cgg's registrar-verb set is GLOBAL across rules: listing them here would make every `describe(...)` and `it(...)` in the tree mint a synthesized handler node, on any project that has this runner anywhere. Treat each test callback and hook as a root by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "playwright",
@@ -7851,6 +8244,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for playwright. Its block verbs (test, describe, step, beforeEach, afterEach, beforeAll, afterAll) are the same words every test suite uses, and cgg's registrar-verb set is GLOBAL across rules: listing them here would make every `describe(...)` and `it(...)` in the tree mint a synthesized handler node, on any project that has this runner anywhere. Treat each test callback and hook as a root by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gorilla-mux",
@@ -7871,6 +8265,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "grpc-gateway",
@@ -7887,6 +8282,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for grpc-gateway. The reverse-proxy layer is code-generated into `*.pb.gw.go` files whose exported `RegisterXxxHandler`, `RegisterXxxHandlerServer`, `RegisterXxxHandlerFromEndpoint` and `RegisterXxxHandlerClient` functions are called once from wiring code and then dispatch through unexported `request_Xxx_Yyy_0` / `local_request_Xxx_Yyy_0` shims selected from package-level `pattern_Xxx_Yyy_0` tables -- function VALUES in a table, not calls, so both the shims and the real service methods look unreachable. The URL each one serves is not in Go at all: it comes from the `option (google.api.http) = { get: \"/v1/users/{id}\" }` annotation in the .proto. Read those http annotations next to the generated .pb.gw.go and treat your service implementation methods as the entry points.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kratos",
@@ -7903,6 +8299,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Kratos. Both surfaces are code-generated: `*_http.pb.go` defines `RegisterGreeterHTTPServer(s, srv)`, which installs closures onto the router with `r.POST(\"/v1/greeter\", _Greeter_SayHello0_HTTP_Handler(srv))`, and `*_grpc.pb.go` does the equivalent for gRPC. Your entry point is therefore the method on your service struct that satisfies the generated `GreeterHTTPServer` / `GreeterServer` interface -- an implicitly-implemented Go interface with no declaration to match -- and the route strings live in the .proto's `google.api.http` options, not in Go. Also uncallable from source: middleware listed in `http.Middleware(...)` / `grpc.Middleware(...)`, and the `kratos.New(kratos.Server(...))` bootstrap assembled by wire_gen.go. Read the generated `Register*HTTPServer` functions and pair each with your service impl methods.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "go-kit",
@@ -7919,6 +8316,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Go kit. Its entry points are function VALUES, not named handlers: `MakeGetProfileEndpoint(svc)` RETURNS an anonymous `endpoint.Endpoint` closure, which is passed together with two more function values to `httptransport.NewServer(ep, decodeGetProfileRequest, encodeResponse)` and only then mounted on a router. The decode/encode functions are never called by name, the endpoint closure has no name at all, and the `Service` interface your struct implements is satisfied implicitly. Middleware has the same shape -- `LoggingMiddleware(logger)(next Service) Service`. Read every `NewServer(` call site in transport.go / transport_http.go, every `Make*Endpoint` constructor, and every `decode*Request` / `encode*Response` function, and treat them all as roots.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "goa",
@@ -7935,6 +8333,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Goa. The API is written as a DSL in design/*.go -- `var _ = Service(\"calc\", func() { Method(\"add\", func() { HTTP(func() { GET(\"/add/{a}/{b}\") }) }) })` -- which is executed by the `goa gen` tool, not by the program, so those calls describe routes that no running code reaches. The generated gen/ tree then holds `gen/http/calc/server/server.go` with `New(e *calc.Endpoints, mux goahttp.Muxer, ...)` and `Mount*Handler` functions installing closures, and `gen/calc/service.go` declaring the `Service` interface your struct satisfies implicitly. Read design/*.go for the route table and match each `Method(\"name\", ...)` to the identically named method on your service implementation.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "revel",
@@ -7951,6 +8350,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Revel. Routes live in conf/routes -- a plain-text file whose lines read `GET /users App.Index` -- naming controller methods by STRING, so no action has a caller anywhere in Go. A controller is a struct EMBEDDING `*revel.Controller` (Go embedding, not a declared base type), and every exported method on it returning `revel.Result` is a potential action. Also framework-invoked: interceptors registered as function values by `revel.InterceptMethod(App.CheckUser, revel.BEFORE)` and `revel.InterceptFunc(...)`, and the `func init()` in app/init.go. Read conf/routes and enumerate the exported `revel.Result`-returning methods of each controller by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "martini",
@@ -7973,6 +8373,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hertz",
@@ -7992,6 +8393,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "asynq",
@@ -8008,6 +8410,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "machinery",
@@ -8024,6 +8427,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Machinery. Tasks are registered by NAME through a map literal -- `server.RegisterTasks(map[string]interface{}{\"add\": exampletasks.Add, \"multiply\": exampletasks.Multiply})` -- so each handler appears only as a value inside a composite literal, never as an argument cgg can attribute to a registrar; only the singular `server.RegisterTask(\"add\", exampletasks.Add)` form puts the function in argument position. Workers then dispatch by the string in `tasks.Signature{Name: \"add\"}`, and the `Chain` / `Group` / `Chord` builders compose those signatures. Read every `RegisterTasks(map[string]interface{}{...})` literal and match each key to the `Signature{Name:}` values used at the enqueue sites.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "robfig-cron",
@@ -8040,6 +8444,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "salvo",
@@ -8056,6 +8461,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "ntex",
@@ -8075,6 +8481,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "gotham",
@@ -8091,6 +8498,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Gotham. Handlers are attached inside a router-builder CLOSURE -- `build_simple_router(|route| { route.get(\"/products\").to(products::index); route.post(\"/x\").to_new_handler(H); route.scope(\"/api\", |r| { ... }); })` -- and the attaching method is `to` / `to_async` / `to_new_handler` / `to_dir` / `to_file`, names far too short and generic to match safely across a crate. A handler is just `fn(State) -> (State, impl IntoResponse)` referenced as a function value, so it has no caller. Read every `build_simple_router` / `build_router` closure, follow each `.to*(...)` argument, and also check middleware pipelines built with `new_pipeline().add(...)` whose `Middleware::call` the framework invokes.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "iron",
@@ -8107,6 +8515,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Iron. Routing is done either by the `router!` MACRO -- `router!(index: get \"/\" => handler, query: get \"/:query\" => query_handler)` -- whose arms are macro token trees that tree-sitter does not resolve into calls, or by `Router::new()` plus `router.get(\"/\", handler, \"index\")`, where the handler is the SECOND argument and the verb `get` is indistinguishable from a map lookup. Middleware is `chain.link_before(Mw)` / `link_after(...)` on types implementing `BeforeMiddleware` / `AfterMiddleware`, whose `before` / `after` methods only the framework calls. Start at `Iron::new(chain).http(addr)` and read the `router!` arms and every `Handler::handle` impl by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "lambda-runtime",
@@ -8123,6 +8532,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "shuttle",
@@ -8147,6 +8557,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "tokio-cron",
@@ -8163,6 +8574,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for tokio-cron-scheduler or the bare `cron` crate. A scheduled job's body is a CLOSURE passed to a constructor -- `Job::new(\"1/10 * * * * *\", |uuid, mut l| { ... })`, `Job::new_async(...)`, `Job::new_repeated(Duration::from_secs(8), ...)` -- and `new` is far too common a name to treat as a registrar; the job is then handed to `sched.add(job).await` and only the scheduler ever runs it. With the bare `cron` crate there is no registration at all: `Schedule::from_str(\"0 0 * * * *\")?.upcoming(Utc)` yields timestamps and your own loop decides what to call. Grep for `Job::new`, `Job::new_async` and `.upcoming(` and treat each closure -- and the function it delegates to -- as a root.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "criterion",
@@ -8179,6 +8591,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Criterion benchmarks. A benchmark function is named only inside two MACRO invocations -- `criterion_group!(benches, criterion_benchmark, other_bench);` and `criterion_main!(benches);` -- which tree-sitter sees as macro token trees rather than calls, so every `fn xxx(c: &mut Criterion)` in benches/*.rs has no caller and reads as dead code. The measured code sits one level further down, in the closure passed to `c.bench_function(\"name\", |b| b.iter(|| ...))`, `bench_with_input`, or a `BenchmarkGroup`'s `bench_function`. Note also that a benches/ target is only compiled under `cargo bench`, and `[[bench]] harness = false` in Cargo.toml is what wires `criterion_main!` up as the binary's real main. Read benches/*.rs, take the function names listed in each `criterion_group!`, and follow their `bench_function` closures.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "camel",
@@ -8195,6 +8608,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Apache Camel. The Camel runtime, not any call in the tree, invokes user code. Start from the configure() method of every class extending RouteBuilder / EndpointRouteBuilder / RouteConfigurationBuilder -- that method IS the route list and nothing calls it. Inside it control leaves by STRING URI: from(\"jms:queue:orders\"), .to(\"bean:orderService?method=process\"), and .to(\"direct:x\") paired with a from(\"direct:x\") in a different RouteBuilder, so neither the consumed endpoint nor the named bean has an edge. The rest is inline lambdas -- .process(exchange -> ...), .filter(...), .choice().when(...), .onException(...).process(...). Also runtime-invoked: Processor.process, AggregationStrategy.aggregate, Predicate/Expression implementations, and @Handler / @Consume(\"...\") annotated bean methods. Grep for `extends RouteBuilder`, `.to(\"bean:`, `@Consume` and `@Handler`.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-batch",
@@ -8301,6 +8715,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-batch",
@@ -8399,6 +8814,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-integration",
@@ -8415,6 +8831,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Spring Integration. Its entry points are the methods annotated @ServiceActivator, @Transformer, @Splitter, @Aggregator, @ReleaseStrategy, @CorrelationStrategy, @Router, @Filter, @InboundChannelAdapter and @Publisher -- the container binds each to a MessageChannel by STRING channel name (inputChannel = \"orders\", outputChannel = \"...\"), so no call in the tree reaches them -- plus MessageHandler.handleMessage and MessageSource.receive implementations, and the interface methods of every @MessagingGateway, which has no implementation class in the tree at all because the proxy is generated at runtime. Modern code instead declares IntegrationFlow beans whose steps are inline lambdas (.handle(m -> ...), .transform(...), .route(...)) with no name to anchor to. NOTE: org.springframework.integration also ships non-messaging utilities such as RedisLockRegistry, so this import alone does not prove a messaging flow exists -- confirm by grepping for @ServiceActivator, @MessagingGateway and IntegrationFlow.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "spring-integration",
@@ -8431,6 +8848,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Spring Integration. Its entry points are the methods annotated @ServiceActivator, @Transformer, @Splitter, @Aggregator, @ReleaseStrategy, @CorrelationStrategy, @Router, @Filter, @InboundChannelAdapter and @Publisher -- the container binds each to a MessageChannel by STRING channel name (inputChannel = \"orders\"), so no call in the tree reaches them -- plus MessageHandler.handleMessage and MessageSource.receive implementations, and the interface methods of every @MessagingGateway, whose implementation is a runtime proxy that exists nowhere in source. Kotlin code usually uses the integrationFlow { } DSL, whose steps are all inline lambdas with no name to anchor to. NOTE: org.springframework.integration also ships non-messaging utilities such as RedisLockRegistry, so this import alone does not prove a messaging flow exists.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jpa-lifecycle",
@@ -8455,6 +8873,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jpa-lifecycle",
@@ -8479,6 +8898,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hibernate-listeners",
@@ -8578,6 +8998,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "kafka-streams",
@@ -8594,6 +9015,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Kafka Streams. The StreamThread, not any call in the tree, invokes user code. Most of a topology is inline lambdas chained on a StreamsBuilder/KStream -- .map((k, v) -> ...), .filter(...), .foreach(...), .transformValues(...), .peek(...) -- and those have no name to anchor to. The named entries are Processor.process (both org.apache.kafka.streams.processor.Processor and processor.api.Processor), FixedKeyProcessor.process, Transformer.transform, ValueTransformer/ValueTransformerWithKey.transform, their init/close, the ProcessorSupplier/TransformerSupplier.get factories, the Punctuator.punctuate callbacks scheduled by context.schedule(...), StateRestoreListener and the uncaught-exception handler. Low-level topologies additionally wire nodes by STRING name via topology.addSource/addProcessor/addStateStore/addSink, and Serde/Serializer/Deserializer classes are named by STRING class name in the StreamsConfig properties. Start from the class that calls new KafkaStreams(topology, props) and read the builder chain by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "flink",
@@ -8610,6 +9032,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Apache Flink. The JobManager/TaskManager invokes user code; nothing in the tree calls it. Start from the main(String[]) that builds a StreamExecutionEnvironment (or ExecutionEnvironment/TableEnvironment) and ends in env.execute(...) -- that method is the job driver and typically has no caller either. The operators are either inline lambdas on the DataStream chain (.map(x -> ...), .filter(...), .keyBy(...)) with no name to anchor to, or classes implementing MapFunction/FlatMapFunction/FilterFunction/ReduceFunction/KeySelector/ProcessFunction/KeyedProcessFunction/CoProcessFunction/WindowFunction/ProcessWindowFunction/AggregateFunction/SinkFunction/SourceFunction/RichFunction, whose map/flatMap/filter/reduce/processElement/onTimer/invoke/run/cancel/open/close/getKey methods the runtime calls. Also runtime-invoked: CheckpointedFunction.snapshotState/initializeState, and Table/SQL UDFs (ScalarFunction, TableFunction, AggregateFunction) whose eval/accumulate methods Flink locates by REFLECTION on the method name, so they are referenced from nowhere at all.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "storm",
@@ -8679,6 +9102,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vaadin",
@@ -8695,6 +9119,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Vaadin. The framework instantiates and drives views itself, so nothing in the tree calls them. Read every class annotated @Route/@RouteAlias -- its CONSTRUCTOR is the page body and has no caller -- then the BeforeEnterObserver.beforeEnter, AfterNavigationObserver.afterNavigation, BeforeLeaveObserver.beforeLeave and HasUrlParameter.setParameter implementations, @ClientCallable methods which the browser invokes BY NAME over the websocket, AppShellConfigurator.configurePage, VaadinServiceInitListener.serviceInit and any HasErrorParameter.setErrorParameter. The interactive surface is almost entirely inline lambdas passed to addClickListener/addValueChangeListener/addSelectionListener/addAttachListener and to Grid.addColumn(item -> ...)/setRenderer, so those handlers have no name for an edge to bind to. Grep for @Route, @ClientCallable and addClickListener.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "jsf",
@@ -8711,6 +9136,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for JSF (Jakarta Faces). A managed bean's action methods are named by an EL STRING inside .xhtml/.jsp markup -- action=\"#{orderBean.save}\", actionListener=\"#{bean.onSelect}\", value=\"#{bean.items}\", rendered=\"#{bean.visible}\" -- and cgg does not parse those files at all, so every action method, getter and setter on a @Named/@ManagedBean/@ViewScoped/@SessionScoped/@RequestScoped bean reads as unreferenced. Also runtime-invoked with no caller in source: @PostConstruct/@PreDestroy, PhaseListener.beforePhase/afterPhase, SystemEventListener.processEvent, Converter.getAsObject/getAsString, Validator.validate, ViewHandler/ResourceHandler/ExceptionHandler wrappers, and any bean, converter or navigation rule declared in faces-config.xml. Grep the .xhtml templates for #{ ... } expressions to enumerate the real entry points.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "android-compose",
@@ -8727,6 +9153,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Jetpack Compose. A @Composable function is invoked by the Compose recomposition runtime rather than by an ordinary call, and the root of every tree is a trailing lambda: setContent { MyApp() } inside Activity.onCreate, ComposeView.setContent { }, or the composable(\"route\") { } destinations of a NavHost, which additionally bind BY STRING route. @Preview functions are invoked only by the IDE/tooling and by screenshot tests. Effect bodies (LaunchedEffect, DisposableEffect, SideEffect, produceState, rememberCoroutineScope), Modifier.clickable { } handlers and onClick = { } parameters are all anonymous lambdas with no name to anchor an edge to. Grep for setContent, @Preview and NavHost, and read those lambda bodies to find which composables are actually roots -- the rest are called from other composables and already have edges.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "signalr",
@@ -8743,6 +9170,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "orleans",
@@ -8775,6 +9203,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "hangfire",
@@ -8791,6 +9220,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Hangfire. The Hangfire server process, not any call in the tree, invokes the job: BackgroundJob.Enqueue(() => svc.Work(x)), BackgroundJob.Schedule(...), BackgroundJob.ContinueJobWith(...) and RecurringJob.AddOrUpdate(\"job-id\", () => svc.Work(x), Cron.Daily) capture the target inside an Expression<Action> that is SERIALISED to the job storage and re-invoked later by type name and method name -- and a recurring job already present in the database is re-invoked with no registration anywhere in the source. Also runtime-invoked: IBackgroundProcess.Execute, JobActivator.ActivateJob, and the filter hooks OnPerforming/OnPerformed/OnCreating/OnCreated/OnStateElection/OnStateApplied on IServerFilter, IClientFilter, IElectStateFilter and IApplyStateFilter. Grep for `BackgroundJob.`, `RecurringJob.` and `[AutomaticRetry]`, and read the Program/Startup registration and the Hangfire dashboard's recurring-job list by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "mediatr",
@@ -8822,6 +9252,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "ef-core",
@@ -8897,6 +9328,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "maui",
@@ -8913,6 +9345,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for .NET MAUI. The event handlers of a page are named BY STRING inside the .xaml file (Clicked=\"OnSubmitClicked\", TextChanged=\"OnSearch\", Command=\"{Binding LoadCommand}\") and cgg does not parse .xaml at all, so every handler in the .xaml.cs code-behind reads as unreferenced -- as does the code-behind CONSTRUCTOR and InitializeComponent, which the generated partial class supplies. Also runtime-invoked with no caller in source: Page.OnAppearing/OnDisappearing/OnNavigatedTo/OnNavigatedFrom/OnBackButtonPressed, Application.CreateWindow/OnStart/OnSleep/OnResume, Shell route handlers registered by Routing.RegisterRoute(\"details\", typeof(DetailPage)) which bind by STRING, MauiProgram.CreateMauiApp, the delegates wrapped in new Command(...)/AsyncRelayCommand(...), the [RelayCommand]/[ObservableProperty] source-generated members of the MVVM Toolkit, and IValueConverter.Convert/ConvertBack. Read each .xaml beside its .xaml.cs by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "wpf-winforms",
@@ -8939,6 +9372,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for WPF or WinForms. In WPF the handler is named BY STRING in the .xaml markup (Click=\"SaveButton_Click\", Loaded=\"OnLoaded\", Command=\"{Binding Save}\") and cgg does not parse .xaml, so every handler in the .xaml.cs code-behind is unreferenced. In WinForms the handler is attached in the generated *.Designer.cs with `this.button1.Click += new EventHandler(this.button1_Click);` -- an event subscription, not a call, so no edge is created there either. Also runtime-invoked: Application.OnStartup/OnExit, Window/Form/UserControl OnLoad/OnPaint/OnClosing/OnFormClosed/Dispose(bool), IValueConverter.Convert/ConvertBack, IMultiValueConverter, ICommand.Execute/CanExecute, IDataErrorInfo/INotifyPropertyChanged members read by the binding engine, and the static PropertyChangedCallback/CoerceValueCallback/ValidateValueCallback methods passed to DependencyProperty.Register. Read each .xaml and *.Designer.cs beside its code-behind by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "symfony-messenger",
@@ -8967,6 +9401,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "laravel-lifecycle",
@@ -9044,6 +9479,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "laravel-events",
@@ -9068,6 +9504,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Laravel's event, middleware and observer wiring; the existing `laravel` rule covers routes, controllers, console commands and Job::handle only. Everything here is wired by CLASS-STRING rather than by a call: the $listen and $subscribe arrays of EventServiceProvider (each value is a listener class whose handle(Event $e) -- or __invoke -- is invoked by the dispatcher), Event::listen('order.shipped', [SendNotification::class, 'handle']) registrations, the $middleware/$middlewareGroups/$routeMiddleware/$middlewareAliases arrays in app/Http/Kernel.php or bootstrap/app.php (each middleware's handle($request, Closure $next) and terminate($request, $response) are called by the pipeline), Model::observe(UserObserver::class) and #[ObservedBy] observers (creating/created/updating/updated/deleting/deleted/restored/forceDeleted), the $dispatchesEvents map on Eloquent models, the $commands array of ConsoleKernel plus its schedule(Schedule $schedule) method, and broadcastOn/broadcastAs/broadcastWith on ShouldBroadcast events. Grep for `protected $listen`, `Event::listen`, `->observe(`, `$middleware` and `#[ObservedBy]` and read each named class by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "swoole",
@@ -9084,6 +9521,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Swoole/OpenSwoole. Every entry is a callback registered against a STRING event name on a long-lived server object -- $server->on('request', function($req, $res) { ... }) and the same for 'receive', 'connect', 'close', 'open', 'message', 'handshake', 'task', 'finish', 'workerStart', 'workerStop', 'workerError', 'pipeMessage', 'managerStart' -- so the handler is bound by a string cgg cannot follow and is usually an anonymous closure with no name to anchor to. The same shape covers Swoole\\Timer::tick/after, go() and Swoole\\Coroutine\\run() bodies, new Swoole\\Process(function($p) { ... }), and Swoole\\Coroutine\\Server handlers. Laravel Octane wraps this in Octane::route()/Octane::tick() and boots the framework once outside any request. Grep for `->on('` on a Swoole server, `go(` and `Coroutine::create` and read each callback body by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "roadrunner",
@@ -9100,6 +9538,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for RoadRunner. The PHP worker is a top-level script named by `command:` in .rr.yaml -- not by anything in the source -- and it enters the application through a receive loop, `while ($req = $psr->waitRequest()) { $resp = $handler->handle($req); $psr->respond($resp); }`, where the request arrives over a pipe from the Go server. The whole HTTP surface therefore hangs off a loop with no framework call for cgg to bind. The same shape covers the Jobs consumer ($consumer->waitTask() then $task->complete()/$task->fail()), the Temporal worker (the classes passed to $worker->registerWorkflowTypes(...) and $worker->registerActivity(...), whose #[WorkflowMethod]/#[ActivityMethod] members the Temporal service invokes), the gRPC services registered on Spiral\\RoadRunner\\GRPC\\Server, and Centrifugo/TCP/KV handlers. Read the worker script named in .rr.yaml and the PSR-15 handler it delegates to by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rails-callbacks",
@@ -9164,6 +9603,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "actioncable",
@@ -9185,6 +9625,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "rack",
@@ -9201,6 +9642,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for bare Rack. Every Rack application and every middleware is entered through `call(env)`, and `call` is far too common a method name for cgg to claim safely -- a rule matching it would mark every proc-like object in the tree. The wiring lives in config.ru, which is not a .rb file and is not parsed at all: its `use Rack::Deflater`, `use MyMiddleware, opt: 1`, `map '/admin' do run AdminApp end` and `run MyApp.new` lines name the classes by constant, and Rack::Builder blocks and Rack::URLMap hashes do the same with STRING path keys. Read config.ru first, then the call(env) method and the initialize(app, options) of every class it names, plus any `Rack::Handler`/`Rackup::Handler` shim.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "puma",
@@ -9217,6 +9659,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Puma. config/puma.rb is instance_eval'd by Puma::DSL, so its top-level directives and the blocks they take -- before_fork, on_worker_boot, on_worker_shutdown, on_worker_fork, after_worker_fork, on_refork, on_restart, on_booted, lowlevel_error_handler, and `plugin :tmp_restart` -- have no caller anywhere in the tree, and each block body runs in the master or in a freshly forked worker at boot. The rackup file the config names (`rackup 'config.ru'`) is loaded by path rather than required, so it has no caller either. Read config/puma.rb by hand, and note that a Puma plugin's own definition file is located by STRING plugin name from the gem load path.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "sidekiq-lifecycle",
@@ -9233,6 +9676,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "cgg has no entry rules for Sidekiq's server-side lifecycle; the existing `sidekiq` rule covers Sidekiq::Job/Sidekiq::Worker#perform only. Sidekiq.configure_server and Sidekiq.configure_client take a block that is yielded at boot, and inside it the config.on(:startup)/on(:quiet)/on(:shutdown)/on(:heartbeat) blocks, config.death_handlers << ->(job, ex) { ... }, config.error_handlers << and the server/client middleware chains (chain.add MyMiddleware, whose call(worker, job, queue) { yield } is invoked by the chain and never by any call in source) are all anonymous blocks or bare class constants. Sidekiq-cron and sidekiq-scheduler additionally name the worker class BY STRING in config/sidekiq.yml or config/schedule.yml, which cgg does not parse. Read config/initializers/sidekiq.rb and the schedule YAML by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "godot",
@@ -9332,6 +9776,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "godot-signal",
@@ -9348,6 +9793,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg enumerates only the `_`-prefixed engine callbacks Godot overrides on a Node subclass. Signal handlers are wired from outside C# source and are NOT enumerated: `.tscn`/`.tres` scene files carry `[connection signal=\"pressed\" ... method=\"_on_button_pressed\"]` lines naming a handler cgg never parses, and in code the wiring is `node.Connect(\"pressed\", Callable.From(OnPressed))`, `button.Pressed += OnPressed`, `CallDeferred(\"MethodName\")`, `Call(\"MethodName\")` or `Rpc(\"MethodName\")` — string or delegate dispatch with no call expression. A `[Signal] delegate void FooEventHandler()` declares the signal but never names its handler. Grep every .tscn for `method=\"` and every .cs for `+= On` and `Connect(` and match the handlers by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "monogame",
@@ -9382,6 +9828,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "avalonia",
@@ -9448,6 +9895,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "avalonia-xaml",
@@ -9464,6 +9912,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg enumerates only the lifecycle overrides declared on Avalonia base types. Everything markup-driven is invisible because `.axaml`/`.xaml` is not parsed: a `Click=\"OnSaveClicked\"` (or `Tapped=`/`KeyDown=`/`SelectionChanged=`) attribute naming a handler in the `*.axaml.cs` code-behind partial class, a `Command=\"{Binding SaveCommand}\"` binding into an ICommand/ReactiveCommand property, and `{Binding PropertyName}` getters all invoke code with no call site in source. Grep the .axaml files for `Click=`, `Command=` and `{Binding` and match each name to its code-behind method or view-model member by hand. `[RelayCommand]`-annotated methods are covered separately by the mvvm-toolkit rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "mvvm-toolkit",
@@ -9480,6 +9929,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "blazor-lifecycle",
@@ -9515,6 +9965,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "blazor-jsinterop",
@@ -9531,6 +9982,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "javafx",
@@ -9577,6 +10029,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "swing",
@@ -9638,6 +10091,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "compose",
@@ -9658,6 +10112,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "ktor-client",
@@ -9674,6 +10129,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for the Ktor HTTP client. Every extension point is a trailing lambda the client runtime invokes, with no named callable for an entry to attach to: the `HttpClient(engine) { ... }` configuration block, each `install(Plugin) { ... }` block, `HttpResponseValidator { validateResponse { }; handleResponseExceptionWithRequest { } }`, `defaultRequest { }`, `Auth { bearer { loadTokens { }; refreshTokens { } } }`, the `intercept(Phase) { }` pipeline handlers, the `onUpload`/`onDownload` progress listeners, and the session bodies of `client.webSocket { }` and `client.sse { }`. Read the HttpClient construction site and walk every block reachable from it by hand. Ktor SERVER routes are disclosed separately under the `ktor` rule, whose detect list deliberately excludes io.ktor.client.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "angular",
@@ -9721,6 +10177,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "angular-host",
@@ -9737,6 +10194,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "angular-router",
@@ -9769,6 +10227,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react",
@@ -9800,6 +10259,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react",
@@ -9831,6 +10291,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: false,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react-hooks",
@@ -9847,6 +10308,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for React function components, which are most of a modern React codebase. A function component is invoked by the React renderer when JSX names it (`<UserCard />`), and cgg does not read JSX element names as calls — so every exported function component reads as unreferenced. The same holds for every callback handed to a hook: the useEffect / useLayoutEffect / useCallback / useMemo / useImperativeHandle bodies, the reducer passed to useReducer, the updater passed to setState, and the subscribe/getSnapshot functions of useSyncExternalStore are all invoked by the renderer, never by a call site. So are event props — `onClick={handleSave}`, `onSubmit={...}` — which are property values React calls, not calls. Enumerate by hand: the exported components in each file, the useEffect bodies inside them, and every `on*={...}` prop. Class-component lifecycle methods ARE enumerated, under the `react` rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react-hooks",
@@ -9863,6 +10325,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for React function components, which are most of a modern React codebase. A function component is invoked by the React renderer when JSX names it (`<UserCard />`), and cgg does not read JSX element names as calls — so every exported function component reads as unreferenced. The same holds for every callback handed to a hook: the useEffect / useLayoutEffect / useCallback / useMemo / useImperativeHandle bodies, the reducer passed to useReducer, the updater passed to setState, and the subscribe/getSnapshot functions of useSyncExternalStore are all invoked by the renderer, never by a call site. So are event props — `onClick={handleSave}`, `onSubmit={...}` — which are property values React calls, not calls. Enumerate by hand: the exported components in each file, the useEffect bodies inside them, and every `on*={...}` prop. Class-component lifecycle methods ARE enumerated, under the `react` rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react-native",
@@ -9884,6 +10347,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "react-native",
@@ -9905,6 +10369,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vue",
@@ -9921,6 +10386,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Vue components. `.vue` single-file components are not parsed at all, so their `<script setup>` bodies, their template event bindings (`@click=\"onSave\"`, `v-on:submit=\"...\"`) and their lifecycle hooks are entirely invisible. In the `.ts`/`.js` files cgg does read, the Options-API hooks (beforeCreate, created, beforeMount, mounted, beforeUpdate, updated, beforeUnmount, unmounted, activated, deactivated, errorCaptured) and the `methods:` / `computed:` / `watch:` / `setup()` members are properties of an object literal handed to `defineComponent({...})` — the runtime calls them and no source call site exists. Composition-API callbacks passed to onMounted / onUnmounted / watch / watchEffect / computed are invoked by the reactivity system, and Vue Router's `beforeEnter` / `beforeRouteEnter` / navigation guards are invoked on navigation. Enumerate every .vue file and every defineComponent object by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "vue",
@@ -9937,6 +10403,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Vue components. `.vue` single-file components are not parsed at all, so their `<script setup>` bodies, their template event bindings (`@click=\"onSave\"`, `v-on:submit=\"...\"`) and their lifecycle hooks are entirely invisible. In the `.js`/`.mjs` files cgg does read, the Options-API hooks (beforeCreate, created, beforeMount, mounted, beforeUpdate, updated, beforeUnmount, unmounted, activated, deactivated, errorCaptured) and the `methods:` / `computed:` / `watch:` / `setup()` members are properties of an object literal handed to `defineComponent({...})` — the runtime calls them and no source call site exists. Composition-API callbacks passed to onMounted / onUnmounted / watch / watchEffect / computed are invoked by the reactivity system, and Vue Router's `beforeEnter` / `beforeRouteEnter` / navigation guards are invoked on navigation. Enumerate every .vue file and every defineComponent object by hand.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "svelte",
@@ -9953,6 +10420,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Svelte components. `.svelte` files are not parsed at all, so component markup, `<script>` bodies, `on:click={handler}` bindings, `$:` reactive statements and Svelte 5 `$effect(...)` / `$derived(...)` runes are invisible. In the `.ts`/`.js` files cgg does read, the callbacks handed to the lifecycle functions (onMount, onDestroy, beforeUpdate, afterUpdate, tick) run only because the Svelte runtime calls them; so do the subscribe/set/update closures of a custom store built from writable/readable/derived, and the `update`/`destroy` members returned by a `use:action` factory. Enumerate the .svelte files, every custom store factory and every action factory by hand. SvelteKit's route entry points are disclosed separately under the `sveltekit` rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
     RuleSpec {
         id: "svelte",
@@ -9969,6 +10437,7 @@ pub const SPECS: &[RuleSpec] = &[
         node: true,
         gap: "cgg has no entry rules for Svelte components. `.svelte` files are not parsed at all, so component markup, `<script>` bodies, `on:click={handler}` bindings, `$:` reactive statements and Svelte 5 `$effect(...)` / `$derived(...)` runes are invisible. In the `.js`/`.mjs` files cgg does read, the callbacks handed to the lifecycle functions (onMount, onDestroy, beforeUpdate, afterUpdate, tick) run only because the Svelte runtime calls them; so do the subscribe/set/update closures of a custom store built from writable/readable/derived, and the `update`/`destroy` members returned by a `use:action` factory. Enumerate the .svelte files, every custom store factory and every action factory by hand. SvelteKit's route entry points are disclosed separately under the `sveltekit` rule.",
         observer_types: NONE,
+        handler_on_enclosing_owner: false,
     },
 ];
 
@@ -9989,6 +10458,7 @@ pub fn builtin() -> Vec<FrameworkRule> {
             string_targets: s.string_targets,
             node: s.node,
             observer_types: s.observer_types.iter().map(|x| x.to_string()).collect(),
+            handler_on_enclosing_owner: s.handler_on_enclosing_owner,
         })
         .collect()
 }

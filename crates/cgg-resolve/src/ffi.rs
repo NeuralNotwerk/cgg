@@ -16,6 +16,7 @@
 use std::collections::{HashMap, HashSet};
 
 use cgg_core::FileFacts;
+use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
 use cgg_core::graph::{CallEdge, CallableKind, CallableNode, Confidence, Graph, Via};
 use cgg_core::ids::{CallableId, ResolverId};
 
@@ -24,10 +25,11 @@ use crate::names::owner_from_qn;
 #[derive(Debug, Default)]
 pub struct FfiOutput {
     pub edges: Vec<CallEdge>,
+    pub unresolved: Vec<AuditUnresolvedCall>,
 }
 
 /// Detect FFI boundaries and emit cross-language edges.
-pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
+pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOutput {
     let mut out = FfiOutput::default();
     let resolver = ResolverId::new("ffi-linker");
 
@@ -164,6 +166,7 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
         &by_name,
         &mut seen_ffi_edges,
         &resolver,
+        fanout_cap,
         &mut out,
     );
 
@@ -247,17 +250,34 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts]) -> FfiOutput {
 /// Kivy `.kv` event bindings call Python methods (`root.foo()`,
 /// `app.root.controller.estop()`). Same-language resolve cannot see
 /// across the markup/host boundary; this is the asm↔C equivalent.
-const KIVY_PYTHON_FANOUT: usize = 5;
-
 fn link_kivy_python(
     graph: &Graph,
     facts: &[FileFacts],
     by_name: &HashMap<&str, Vec<(CallableId, &str)>>,
     seen: &mut std::collections::HashSet<(CallableId, CallableId, u32)>,
     resolver: &ResolverId,
+    fanout_cap: usize,
     out: &mut FfiOutput,
 ) {
     let (app_classes, app_roots) = kivy_app_context(graph, facts);
+
+    // Build a field→type index from class_fields so receiver chains
+    // like `root.remote_rv.goto_path()` resolve through declared fields:
+    // remote_rv = ObjectProperty(…) on the rule class → the type is used
+    // as preferred_owner instead of capitalising the attribute name.
+    let field_types: HashMap<(String, String), String> = facts
+        .iter()
+        .filter(|f| f.language == "python")
+        .flat_map(|f| {
+            f.class_fields.iter().map(|cf| {
+                (
+                    (cf.class_qn.clone(), cf.field_name.clone()),
+                    cf.type_name.clone(),
+                )
+            })
+        })
+        .collect();
+
     for f in facts {
         if f.language != "kivy" {
             continue;
@@ -267,6 +287,15 @@ fn link_kivy_python(
                 continue;
             }
             let Some(rows) = by_name.get(r.name.as_str()) else {
+                out.unresolved.push(AuditUnresolvedCall::new(
+                    enclosing_callable(graph, f, r.site_byte),
+                    f.file,
+                    r.site_line,
+                    r.site_byte,
+                    r.name.clone(),
+                    r.receiver_hint.clone(),
+                    UnresolvedReason::NoCandidateCrossFile,
+                ));
                 continue;
             };
             let python: Vec<CallableId> = rows
@@ -275,12 +304,37 @@ fn link_kivy_python(
                 .map(|(id, _)| *id)
                 .collect();
             if python.is_empty() {
+                out.unresolved.push(AuditUnresolvedCall::new(
+                    enclosing_callable(graph, f, r.site_byte),
+                    f.file,
+                    r.site_line,
+                    r.site_byte,
+                    r.name.clone(),
+                    r.receiver_hint.clone(),
+                    UnresolvedReason::NoCandidateCrossFile,
+                ));
                 continue;
             }
             let Some(src_id) = enclosing_callable(graph, f, r.site_byte) else {
+                out.unresolved.push(AuditUnresolvedCall::new(
+                    None,
+                    f.file,
+                    r.site_line,
+                    r.site_byte,
+                    r.name.clone(),
+                    r.receiver_hint.clone(),
+                    UnresolvedReason::NoEnclosingCallable,
+                ));
                 continue;
             };
             let preferred = r.context.as_str();
+            // Refine the preferred owner through declared class fields.
+            // `root.remote_rv.goto_path()` has context "Remote_rv" from
+            // the capitalisation heuristic; if the rule class declares
+            // `remote_rv = ObjectProperty(…)` the field type wins.
+            let refined =
+                refine_owner_via_fields(preferred, &r.receiver_hint, &field_types);
+            let preferred = refined.as_deref().unwrap_or(preferred);
             let mut scored: Vec<(i32, CallableId)> = Vec::new();
             for dst in &python {
                 if *dst == src_id {
@@ -296,9 +350,35 @@ fn link_kivy_python(
                 }
             }
             let (confidence, chosen) = if scored.is_empty() {
-                if python.len() == 1 && python[0] != src_id {
+                // Name-only fallback: accept only when the receiver is
+                // bare (root/self/app), the single candidate is not test
+                // code, and it is the only Python callable of that name.
+                let bare = matches!(
+                    r.context.as_str(),
+                    "" | "root" | "self" | "App" | "app.root"
+                );
+                let candidate_ok = python.len() == 1
+                    && python[0] != src_id
+                    && bare
+                    && graph
+                        .callables
+                        .get(&python[0])
+                        .is_some_and(|n| n.test_role.is_none());
+                if candidate_ok {
                     (Confidence::Medium, vec![python[0]])
                 } else {
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        Some(src_id),
+                        f.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::Other(format!(
+                            "kv-python: {} candidates, no owner match",
+                            python.len()
+                        )),
+                    ));
                     continue;
                 }
             } else {
@@ -308,7 +388,18 @@ fn link_kivy_python(
                     .filter(|(s, _)| *s == max)
                     .map(|(_, id)| id)
                     .collect();
-                if best.len() > KIVY_PYTHON_FANOUT {
+                if best.len() > fanout_cap {
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        Some(src_id),
+                        f.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::FanoutCapExceeded {
+                            candidates: best.len() as u32,
+                        },
+                    ));
                     continue;
                 }
                 let conf = if best.len() == 1 && max >= 3 {
@@ -443,6 +534,46 @@ fn is_kivy_app_base(b: &str) -> bool {
         .next()
         .unwrap_or(b)
         .eq_ignore_ascii_case("App")
+}
+
+/// Resolve a receiver chain like `root.remote_rv.goto_path()` through
+/// class-field declarations.
+///
+/// The extraction pass produces context "Remote_rv" (capitalised
+/// heuristic), but the rule class may declare
+/// `remote_rv = ObjectProperty(…)`. When the field's type name matches a
+/// Python class, use that instead of the capitalised guess.
+fn refine_owner_via_fields(
+    preferred: &str,
+    receiver: &str,
+    field_types: &HashMap<(String, String), String>,
+) -> Option<String> {
+    if preferred.is_empty() || receiver.is_empty() || field_types.is_empty() {
+        return None;
+    }
+    // `root.remote_rv.goto_path()`: receiver "root.remote_rv", context
+    // is the rule class or the capitalised last segment. Extract the
+    // attribute name from the receiver chain.
+    let segments: Vec<&str> = receiver.split('.').collect();
+    if segments.len() < 2 {
+        return None;
+    }
+    // The field is the second-to-last segment (the object of the method
+    // call). E.g. in `root.remote_rv.goto_path()`, receiver is
+    // "root.remote_rv" and the field is "remote_rv".
+    let field = *segments.last()?;
+    if matches!(field, "root" | "self" | "app" | "parent" | "ids") {
+        return None;
+    }
+    // Try every class — the preferred owner is the rule class, but we
+    // don't know which qualified name it has, so scan all field_types
+    // for a match on this field name.
+    for ((_, fname), tname) in field_types {
+        if fname == field {
+            return Some(tname.clone());
+        }
+    }
+    None
 }
 
 /// Smallest-enclosing-range callable for `(file, byte)`.
@@ -761,7 +892,7 @@ mod tests {
         f.language = "javascript".into();
         g.callables.get_mut(&CallableId::new(1)).unwrap().language = "javascript".into();
 
-        let out = link_ffi(&g, &[]);
+        let out = link_ffi(&g, &[], 5);
         assert_eq!(out.edges.len(), 1, "one cross-language edge expected");
         assert!(matches!(out.edges[0].via, Via::Ffi(ref fam) if fam == "wasm-bindgen"));
     }
@@ -769,7 +900,7 @@ mod tests {
     #[test]
     fn pyo3_cross_language_edge() {
         let g = mk_graph();
-        let out = link_ffi(&g, &[]);
+        let out = link_ffi(&g, &[], 5);
         assert_eq!(out.edges.len(), 1);
         assert_eq!(out.edges[0].src, CallableId::new(1));
         assert_eq!(out.edges[0].dst, CallableId::new(0));
@@ -781,7 +912,7 @@ mod tests {
         let mut g = mk_graph();
         // Change python callable to rust — should not emit FFI edge.
         g.callables.get_mut(&CallableId::new(1)).unwrap().language = "rust".into();
-        let out = link_ffi(&g, &[]);
+        let out = link_ffi(&g, &[], 5);
         assert!(out.edges.is_empty());
     }
 
@@ -908,7 +1039,7 @@ mod tests {
             ..Default::default()
         });
 
-        let out = link_ffi(&g, &[]);
+        let out = link_ffi(&g, &[], 5);
         assert!(
             out.edges.is_empty(),
             "a napi export must not link a Python stub, even with a matching owner name: {:?}",
@@ -983,7 +1114,7 @@ mod tests {
             ..Default::default()
         });
 
-        let out = link_ffi(&g, &[]);
+        let out = link_ffi(&g, &[], 5);
         assert_eq!(
             out.edges.len(),
             1,
@@ -1087,7 +1218,7 @@ mod tests {
             ..Default::default()
         });
 
-        let out = link_ffi(&g, &[facts]);
+        let out = link_ffi(&g, &[facts], 5);
         let kv: Vec<_> = out
             .edges
             .iter()
@@ -1199,7 +1330,7 @@ mod tests {
             ..Default::default()
         });
 
-        let out = link_ffi(&g, &[kv, py]);
+        let out = link_ffi(&g, &[kv, py], 5);
         let kv_edges: Vec<_> = out
             .edges
             .iter()

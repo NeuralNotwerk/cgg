@@ -98,7 +98,7 @@ declare -a ENTRIES=(
     "UVVM|vhdl-uvvm|vhdl|uvvm_util/src"
     "xv6|asm-xv6|asm|"
     "xv6 (c+asm)|asm-xv6|c,asm|"
-    "kivy|kivy-kivy|kivy|kivy"
+    "Carvera_Controller|kivy-carvera|kivy|."
     "smithy/protocol-tests|smithy-protocol-tests|smithy|smithy-aws-protocol-tests/model"
     "grpc-proto|proto-grpc|proto|"
     "graphql-schema|graphql-github|graphql|"

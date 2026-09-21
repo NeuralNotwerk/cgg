@@ -1027,7 +1027,9 @@ class C:
             f.class_fields
         );
         assert!(
-            f.class_fields.iter().all(|cf| cf.class_qn.contains("Label")),
+            f.class_fields
+                .iter()
+                .all(|cf| cf.class_qn.contains("Label")),
             "class_qn must name the class: {:?}",
             f.class_fields
         );

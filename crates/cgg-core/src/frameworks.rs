@@ -274,6 +274,10 @@ pub struct FrameworkRule {
     /// observer callbacks (e.g. Kivy's `StringProperty`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub observer_types: Vec<String>,
+
+    /// Use the enclosing-owner lookup for value-ref handler resolution.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub handler_on_enclosing_owner: bool,
 }
 
 fn default_true() -> bool {

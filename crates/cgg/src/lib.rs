@@ -778,7 +778,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // --- Phase 3d: FFI linker (cross-language edges) ----------------------
     let ffi_out = {
         let _s = cgg_core::profile::span("resolve::ffi");
-        cgg_resolve::ffi::link_ffi(&graph, &all_facts)
+        cgg_resolve::ffi::link_ffi(&graph, &all_facts, opts.fanout_cap as usize)
     };
     for e in &ffi_out.edges {
         match e.confidence {
@@ -791,6 +791,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     }
     metrics.edges += ffi_out.edges.len() as u64;
     graph.edges.extend(ffi_out.edges);
+    metrics.unresolved_calls += ffi_out.unresolved.len() as u64;
+    graph.unresolved.extend(ffi_out.unresolved);
 
     // Descriptor → implementation, after FFI because it asks the same
     // kind of question one level up and wants the whole graph present.
