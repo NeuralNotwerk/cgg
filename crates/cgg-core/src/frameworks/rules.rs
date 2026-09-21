@@ -58,11 +58,10 @@ pub struct RuleSpec {
     /// "owner" is the namespace, so any `(get m id)` inside a defn
     /// would bind to the namespace's `id`.
     ///
-    /// Currently only the `kivy` rule sets this.  Instead of adding the
-    /// field to all 432 rules, `frameworks/mod.rs` gates on
-    /// `!observer_types.is_empty()` as an implicit opt-in — the only
-    /// rule with observer types today is Kivy, and it is the rule this
-    /// lookup was built for.
+    /// When set, the framework matcher prefers value-ref handlers on the
+    /// same type as the registrar call (e.g. `self.bind(on_x=self.handler)`
+    /// resolves to the handler on the enclosing class, not a same-named
+    /// method elsewhere). Opt-in; currently only the `kivy` rule sets this.
     pub handler_on_enclosing_owner: bool,
 }
 

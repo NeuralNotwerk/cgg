@@ -111,6 +111,8 @@ impl LanguagePlugin for KivyPlugin {
             last_event_def: None,
         };
         w.walk(tree.root_node());
+        drop(w);
+        harvest_unparsed_rule_calls(&mut facts, source);
         facts
     }
 }
@@ -154,9 +156,11 @@ impl<'a> KivyWalker<'a> {
                 {
                     let name = self.text(name_n).to_string();
                     if !name.is_empty() {
+                        let saved = self.last_event_def.take();
                         self.rule_stack.push(name);
                         self.walk_children(node);
                         self.rule_stack.pop();
+                        self.last_event_def = saved;
                         return;
                     }
                 }
@@ -181,7 +185,9 @@ impl<'a> KivyWalker<'a> {
                             self.root_widget = name.clone();
                         }
                         self.widget_stack.push(name);
+                        let saved = self.last_event_def.take();
                         self.walk_children(node);
+                        self.last_event_def = saved;
                         self.widget_stack.pop();
                         return;
                     }
@@ -192,9 +198,10 @@ impl<'a> KivyWalker<'a> {
                 return;
             }
             "ERROR" => {
-                // Parse recovery ejects `if cond: app.root.play()` to a
-                // root-level ERROR in large KV files. Scan it as a
-                // binding suite so the calls still become refs.
+                // Parse recovery ejects later `<Rule>:` blocks and
+                // `if cond: call()` suites to ERROR. Walk any nested
+                // well-formed children first, then scan leftovers.
+                self.walk_children(node);
                 self.record_anonymous_suite(node);
                 return;
             }
@@ -291,12 +298,20 @@ impl<'a> KivyWalker<'a> {
         } else if let Some(idx) = self.last_event_def {
             // Non-event property with calls (e.g. `else: app.root.apply()`
             // parsed as a property after `on_release:`).  Extend the
-            // preceding event binding's span to enclose these refs.
+            // preceding event binding's span to enclose these refs,
+            // clamped to the enclosing widget/rule so spans don't leak
+            // across siblings.
+            let widget_end = node
+                .parent()
+                .and_then(|p| p.parent())
+                .map(|w| w.end_byte())
+                .unwrap_or(node.end_byte());
             let max_byte = calls
                 .iter()
                 .map(|c| c.byte as usize + c.name.len() + 2)
                 .max()
-                .unwrap_or(node.end_byte());
+                .unwrap_or(node.end_byte())
+                .min(widget_end);
             let def = &mut self.facts.definitions[idx];
             if max_byte as u32 > def.end_byte {
                 def.end_byte = max_byte as u32;
@@ -600,6 +615,126 @@ fn scan_text_calls(source: &[u8], start: usize, end: usize) -> Vec<KvCall> {
         i += 1;
     }
     out
+}
+
+/// Top-level `<ClassName>:` / `<Class@Base>:` rules and the source span
+/// each owns (from its selector to the next rule, or EOF).
+///
+/// Used when the grammar fails to wrap a later rule (an unclosed widget
+/// in a large KV file turns `<ZProbePopup>:` into a tiny ERROR and the
+/// body is never a `rule` node). A text pass over these spans still
+/// sees `root.on_ok_pressed()`.
+fn top_level_kv_rules(source: &[u8]) -> Vec<(String, usize, usize)> {
+    let mut starts: Vec<(String, usize)> = Vec::new();
+    let mut i = 0;
+    let mut at_line = true;
+    while i < source.len() {
+        if source[i] == b'\n' {
+            at_line = true;
+            i += 1;
+            continue;
+        }
+        if !at_line {
+            i += 1;
+            continue;
+        }
+        at_line = false;
+        let mut j = i;
+        while j < source.len() && matches!(source[j], b' ' | b'\t') {
+            j += 1;
+        }
+        if j >= source.len() || source[j] != b'<' {
+            i += 1;
+            continue;
+        }
+        j += 1;
+        if j >= source.len() || !is_ident_start(source[j]) {
+            i += 1;
+            continue;
+        }
+        let (name, after) = read_ident(source, j);
+        j = after;
+        if j < source.len() && source[j] == b'@' {
+            j += 1;
+            while j < source.len() && (is_ident_start(source[j]) || source[j] == b'+') {
+                j += 1;
+            }
+        }
+        if j < source.len() && source[j] == b'>' {
+            j += 1;
+        } else {
+            i += 1;
+            continue;
+        }
+        // Accept both `<Rule>:` and `<Rule>` (colon-less headers).
+        let j = skip_ws(source, j);
+        if j < source.len()
+            && (source[j] == b':' || source[j] == b'\n' || source[j] == b'\r')
+            && !name.is_empty()
+        {
+            starts.push((name, i));
+        }
+        i += 1;
+    }
+    let mut out = Vec::with_capacity(starts.len());
+    for (idx, (name, start)) in starts.iter().enumerate() {
+        let end = starts.get(idx + 1).map(|(_, s)| *s).unwrap_or(source.len());
+        out.push((name.clone(), *start, end));
+    }
+    out
+}
+
+/// Fill in calls the AST walk missed, attributing them to the enclosing
+/// `<Rule>:` even when that rule never became a `rule` node. Also
+/// corrects `root.foo()` refs that landed on a widget owner (`BoxLayout`)
+/// because the rule was recovered as ERROR.
+fn harvest_unparsed_rule_calls(facts: &mut FileFacts, source: &[u8]) {
+    for (rule, start, end) in top_level_kv_rules(source) {
+        let calls = scan_text_calls(source, start, end);
+        let mut added = false;
+        for call in calls {
+            let preferred = preferred_owner(&call.receiver, &rule, None);
+            if let Some(existing) = facts
+                .references
+                .iter_mut()
+                .find(|r| r.site_byte == call.byte && r.name == call.name)
+            {
+                if existing.context != preferred
+                    && (call.receiver == "root" || call.receiver.is_empty())
+                {
+                    existing.context = preferred;
+                }
+                continue;
+            }
+            if !added {
+                let sl = line_at(source, start);
+                let el = line_at(source, end.saturating_sub(1).max(start));
+                facts.definitions.push(DefRecord {
+                    simple_name: "kv_rule".into(),
+                    qualified_name: format!("{rule}.kv_rule:{sl}"),
+                    variant: DefVariant::InherentMethod,
+                    start_line: sl,
+                    end_line: el,
+                    start_byte: start as u32,
+                    end_byte: end as u32,
+                    signature_hint: "…".into(),
+                    visibility: String::new(),
+                    vis: Vis::Public,
+                    attributes: vec!["kv-binding".into()],
+                    ..Default::default()
+                });
+                added = true;
+            }
+            facts.references.push(RefRecord {
+                name: call.name,
+                receiver_hint: call.receiver,
+                site_line: call.line,
+                site_byte: call.byte,
+                context: preferred,
+                ..Default::default()
+            });
+        }
+    }
 }
 
 /// Bytes of this property plus following leftover siblings.
@@ -1136,5 +1271,79 @@ Button:\n    on_release:\n        if root.mode == 'Run': app.root.play(1)\n     
             "colonless rule+inheritance: {:?}",
             f.definitions
         );
+    }
+
+    #[test]
+    fn last_event_def_does_not_leak_across_rules() {
+        let src = "\
+<A>:
+    Button:
+        on_release: root.f()
+<B>:
+    Label:
+        text: tr._('x')
+";
+        let f = extract(src, "/tmp/leak.kv");
+        let on_release = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name.contains("A.on_release"))
+            .expect("A.on_release def");
+        // The on_release span must NOT extend into <B>:.
+        let b_start = src.find("<B>:").unwrap() as u32;
+        assert!(
+            on_release.end_byte <= b_start,
+            "on_release end_byte {} should be <= <B> start {}: defs={:?}",
+            on_release.end_byte,
+            b_start,
+            f.definitions
+        );
+    }
+
+    #[test]
+    fn later_rule_keeps_root_calls_when_an_earlier_widget_does_not_parse() {
+        let src = "\
+<Broken>:
+    Button:
+        on_release: root.missing(
+<ZProbePopup>:
+    Button:
+        on_release: root.on_ok_pressed()
+<AutoLevelPopup>:
+    Button:
+        on_release: root.on_ok_pressed()
+";
+        let f = extract(src, "/tmp/makera.kv");
+        let ok: Vec<_> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "on_ok_pressed")
+            .collect();
+        assert!(
+            ok.iter().any(|r| r.context == "ZProbePopup"),
+            "ZProbePopup.on_ok_pressed missing: {:?}",
+            f.references
+        );
+        assert!(
+            ok.iter().any(|r| r.context == "AutoLevelPopup"),
+            "AutoLevelPopup.on_ok_pressed missing: {:?}",
+            f.references
+        );
+    }
+
+    #[test]
+    fn well_formed_rule_root_call_keeps_the_rule_owner() {
+        let src = "\
+<OriginPopup>:
+    Button:
+        on_release: root.on_ok_pressed()
+";
+        let f = extract(src, "/tmp/makera.kv");
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "on_ok_pressed")
+            .expect("on_ok_pressed");
+        assert_eq!(r.context, "OriginPopup");
     }
 }

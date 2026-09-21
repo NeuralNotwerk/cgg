@@ -350,13 +350,12 @@ fn link_kivy_python(
                 }
             }
             let (confidence, chosen) = if scored.is_empty() {
-                // Name-only fallback: accept only when the receiver is
-                // bare (root/self/app), the single candidate is not test
-                // code, and it is the only Python callable of that name.
-                let bare = matches!(
-                    r.context.as_str(),
-                    "" | "root" | "self" | "App" | "app.root"
-                );
+                // Name-only fallback: decide on receiver_hint, not
+                // context (which is the rule class name, never "root").
+                let hint = r.receiver_hint.as_str();
+                let first_seg = hint.split('.').next().unwrap_or(hint);
+                let bare = matches!(first_seg, "" | "root" | "self" | "app" | "App");
+                let rooted_chain = bare && hint.contains('.');
                 let candidate_ok = python.len() == 1
                     && python[0] != src_id
                     && bare
@@ -365,7 +364,12 @@ fn link_kivy_python(
                         .get(&python[0])
                         .is_some_and(|n| n.test_role.is_none());
                 if candidate_ok {
-                    (Confidence::Medium, vec![python[0]])
+                    let conf = if rooted_chain {
+                        Confidence::Low
+                    } else {
+                        Confidence::Medium
+                    };
+                    (conf, vec![python[0]])
                 } else {
                     out.unresolved.push(AuditUnresolvedCall::new(
                         Some(src_id),
@@ -541,8 +545,10 @@ fn is_kivy_app_base(b: &str) -> bool {
 ///
 /// The extraction pass produces context "Remote_rv" (capitalised
 /// heuristic), but the rule class may declare
-/// `remote_rv = ObjectProperty(…)`. When the field's type name matches a
-/// Python class, use that instead of the capitalised guess.
+/// `remote_rv: DataRV` or `remote_rv = DataRV()`. When the field's type
+/// name matches a Python class, use that instead of the capitalised
+/// guess.  Kivy `*Property()` descriptors are skipped — their type name
+/// is the descriptor, not the stored value.
 fn refine_owner_via_fields(
     preferred: &str,
     receiver: &str,
@@ -551,29 +557,34 @@ fn refine_owner_via_fields(
     if preferred.is_empty() || receiver.is_empty() || field_types.is_empty() {
         return None;
     }
-    // `root.remote_rv.goto_path()`: receiver "root.remote_rv", context
-    // is the rule class or the capitalised last segment. Extract the
-    // attribute name from the receiver chain.
     let segments: Vec<&str> = receiver.split('.').collect();
     if segments.len() < 2 {
         return None;
     }
-    // The field is the second-to-last segment (the object of the method
-    // call). E.g. in `root.remote_rv.goto_path()`, receiver is
-    // "root.remote_rv" and the field is "remote_rv".
     let field = *segments.last()?;
     if matches!(field, "root" | "self" | "app" | "parent" | "ids") {
         return None;
     }
-    // Try every class — the preferred owner is the rule class, but we
-    // don't know which qualified name it has, so scan all field_types
-    // for a match on this field name.
-    for ((_, fname), tname) in field_types {
-        if fname == field {
+    // Prefer the rule class (preferred), but fall back to any class
+    // that declares this field.
+    let mut fallback: Option<&str> = None;
+    for ((class, fname), tname) in field_types {
+        if fname != field {
+            continue;
+        }
+        // Skip Kivy descriptor types — their name is the descriptor,
+        // not the value type stored in the attribute.
+        if tname.ends_with("Property") {
+            continue;
+        }
+        if class.rsplit('.').next() == Some(preferred) {
             return Some(tname.clone());
         }
+        if fallback.is_none() {
+            fallback = Some(tname.as_str());
+        }
     }
-    None
+    fallback.map(|s| s.to_string())
 }
 
 /// Smallest-enclosing-range callable for `(file, byte)`.

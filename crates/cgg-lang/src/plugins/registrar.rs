@@ -614,9 +614,7 @@ fn collect_value_refs(
             // is how CDK names every Lambda in a TypeScript stack.
             | "object"
             | "boolean_operator"
-            | "conditional_expression"
             | "parenthesized_expression"
-            | "not_operator"
     ) {
         // `[C::class, 'method']` is one target, not two loose names.
         if let Some((owner, method)) = class_method_pair(arg, source) {
@@ -634,6 +632,34 @@ fn collect_value_refs(
         }
         let mut cursor = arg.walk();
         for child in arg.named_children(&mut cursor) {
+            if let Some(s) = string_within(child, source) {
+                out.push(RefRecord {
+                    from_macro_arg: false,
+                    name: s,
+                    receiver_hint: STRING_REF_HINT.to_string(),
+                    site_line: line,
+                    site_byte: child.start_byte() as u32,
+                    context: context.to_string(),
+                    route: route.to_string(),
+                    kwargs: Vec::new(),
+                });
+            } else {
+                collect_value_refs(ctx, child, source, context, route, line, out, depth);
+            }
+        }
+        return;
+    }
+
+    // `f = a if c else b`: only capture consequence (child 0) and
+    // alternative (child 2), NOT the condition — `asgi` in
+    // `DummyResourceAsync() if asgi else DummyResource()` is a bare
+    // name, not a callable.
+    if kind == "conditional_expression" {
+        let mut cursor = arg.walk();
+        for (i, child) in arg.named_children(&mut cursor).enumerate() {
+            if i == 1 {
+                continue; // skip the condition
+            }
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
                     from_macro_arg: false,
