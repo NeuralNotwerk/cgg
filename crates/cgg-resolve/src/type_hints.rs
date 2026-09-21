@@ -310,7 +310,7 @@ pub fn propagate_types_with_returns(
 
         // Special-case `self.<field>` BEFORE the dot/colon filter
         // below — the field's type comes from the per-method scoped
-        // self_field_map populated by the Rust extractor.
+        // self_field_map populated by the Rust and Python extractors.
         if rh.starts_with("self.") {
             if let Some(enc) = enclosing_def(facts, rref.site_byte)
                 && let Some(&ty) = self_field_map.get(&(enc.start_byte, rh))
@@ -662,7 +662,7 @@ fn is_primitive(ty: &str) -> bool {
 mod tests {
     use super::*;
     use cgg_core::ids::FileId;
-    use cgg_core::{DefVariant, RefRecord};
+    use cgg_core::{DefVariant, LocalType, RefRecord};
     use std::path::PathBuf;
 
     fn mk_facts(defs: Vec<DefRecord>, refs: Vec<RefRecord>) -> FileFacts {
@@ -771,5 +771,25 @@ mod tests {
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "self");
+    }
+
+    #[test]
+    fn self_field_rewrites_to_the_declared_type() {
+        let defs = vec![mk_def("App.connect", "def connect(self):", 0, 100)];
+        let refs = vec![RefRecord {
+            name: "open".into(),
+            receiver_hint: "self.controller".into(),
+            site_line: 5,
+            site_byte: 50,
+            ..Default::default()
+        }];
+        let mut facts = mk_facts(defs, refs);
+        facts.local_types.push(LocalType {
+            var_name: "self.controller".into(),
+            type_name: "Controller".into(),
+            scope_byte: 0,
+        });
+        propagate_types(&mut facts);
+        assert_eq!(facts.references[0].receiver_hint, "Controller");
     }
 }

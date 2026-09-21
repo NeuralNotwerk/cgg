@@ -467,3 +467,57 @@ class D(DropDown):\n    def on_dismiss(self):\n        return 1\n",
         "unused should still be reported, findings: {names:?}"
     );
 }
+
+#[test]
+fn later_kv_rule_on_ok_pressed_keeps_both_python_methods_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "popups.py",
+        b"class ZProbePopup:\n    def on_ok_pressed(self):\n        return 1\n    def unused(self):\n        return 0\n\
+class AutoLevelPopup:\n    def on_ok_pressed(self):\n        return 2\n",
+    );
+    write(
+        tmp.path(),
+        "makera.kv",
+        b"<Broken>:\n    Button:\n        on_release: root.missing(\n\
+<ZProbePopup>:\n    Button:\n        on_release: root.on_ok_pressed()\n\
+<AutoLevelPopup>:\n    Button:\n        on_release: root.on_ok_pressed()\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let qns: Vec<String> =
+        serde_json::from_str::<serde_json::Value>(&fs::read_to_string(&report).unwrap())
+            .unwrap()["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|f| f["qualified_name"].as_str().map(|s| s.to_string()))
+            .collect();
+    assert!(
+        !qns.iter().any(|q| q.contains("ZProbePopup.on_ok_pressed")),
+        "ZProbePopup.on_ok_pressed should be live, findings: {qns:?}"
+    );
+    assert!(
+        !qns.iter()
+            .any(|q| q.contains("AutoLevelPopup.on_ok_pressed")),
+        "AutoLevelPopup.on_ok_pressed should be live, findings: {qns:?}"
+    );
+    assert!(
+        qns.iter().any(|q| q.contains("ZProbePopup.unused")),
+        "unused should still be reported, findings: {qns:?}"
+    );
+}

@@ -25,6 +25,17 @@ ever grows in default mode — see *Compatibility* below).
   widget class. Multi-statement suites, `app.root` and a built-in `kivy`
   framework rule (`App.build`, `on_start`/`on_stop`, `on_touch_*`,
   `.bind()`, `Clock.schedule_*`, `on_<prop>` observers) are included.
+- **Python inheritance fan-out.** `--dynamic-dispatch` emits `dyn` edges
+  from a base method to each subclass override, walking past intermediate
+  bases that do not define the method. `__init__`/`__new__`/`__del__` and
+  nested functions are excluded.
+- **Python `self.field` types.** `self.controller = Controller(...)` in
+  `__init__` and class annotations (`controller: Controller`) propagate as
+  `self.controller` types, so `self.controller.open()` resolves the same
+  way Rust `self.store.foo()` already did.
+- **KV `<Rule>:` recovery.** When an earlier parse error turns a later
+  `<Widget>:` rule into a tiny ERROR node, a text pass over each top-level
+  rule still harvests calls and attributes them to the correct class.
 
 ## [0.8.5] - 2026-09-18
 

@@ -266,9 +266,11 @@ pub struct Cli {
     pub include_stdlib: bool,
 
     /// Emit interface/trait dynamic-dispatch fan-out edges (declaration
-    /// → each implementation), tagged `dynamic`/low-confidence. The
-    /// exact call-site → declaration edge is always emitted; this flag
-    /// adds the over-approximated fan-out. Off by default.
+    /// → each implementation), tagged `dynamic`/low-confidence. Also
+    /// fans Python class overrides out from inherited methods of the
+    /// same name. The exact call-site → declaration edge is always
+    /// emitted; this flag adds the over-approximated fan-out. Off by
+    /// default; `--dead-code` turns it on.
     #[arg(long = "dynamic-dispatch", action = ArgAction::SetTrue)]
     pub dynamic_dispatch: bool,
 

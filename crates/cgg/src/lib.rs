@@ -582,7 +582,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                                 .any(|a| a == "synthetic" || a.starts_with("derive:")),
                             trait_impl_target: trait_impl_target_from_qn(
                                 &d.qualified_name,
-                            ),
+                            )
+                            .or_else(|| cgg_resolve::dispatch::inheritance_target(d)),
                             ..Default::default()
                         });
 
@@ -994,6 +995,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     if opts.dynamic_dispatch {
         let _s = cgg_core::profile::span("resolve::dispatch");
         for e in cgg_resolve::dispatch::fanout(&graph) {
+            graph.add_edge(e);
+        }
+        for e in cgg_resolve::dispatch::inheritance_fanout(&graph, &all_facts) {
             graph.add_edge(e);
         }
     }

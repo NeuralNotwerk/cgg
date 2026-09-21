@@ -935,6 +935,220 @@ impl Storage for MemStorage { fn put(&mut self, k: &str) {} }
 }
 
 #[test]
+fn python_inheritance_fanout_is_opt_in() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "ops.py",
+        b"class OperationsBase:\n    def generate(self):\n        return 1\n\
+class BoreOperation(OperationsBase):\n    def generate(self):\n        return 2\n",
+    );
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .args(["-o"])
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain)
+            .unwrap()
+            .matches("-->|dyn|")
+            .count(),
+        0
+    );
+
+    let dyn_out = tmp.path().join("d.mmd");
+    cgg()
+        .args(["--dynamic-dispatch", "-o"])
+        .arg(&dyn_out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&dyn_out).unwrap();
+    assert!(
+        g.contains("-->|dyn|"),
+        "expected a dynamic inheritance edge:\n{g}"
+    );
+}
+
+#[test]
+fn python_subclass_override_is_live_when_base_method_is() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "ops.py",
+        b"class OperationsBase:\n    def generate(self):\n        return 1\n\
+class BoreOperation(OperationsBase):\n    def generate(self):\n        return 2\n    def unused(self):\n        return 3\n\
+def entry():\n    x = OperationsBase()\n    return x.generate()\nentry()\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let qns: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    assert!(
+        !qns.iter().any(|q| q.contains("BoreOperation.generate")),
+        "subclass generate should be live via inheritance fan-out, findings: {qns:?}"
+    );
+    assert!(
+        qns.iter().any(|q| q.contains("BoreOperation.unused")),
+        "unused should still be reported, findings: {qns:?}"
+    );
+}
+
+#[test]
+fn python_private_class_override_is_live_when_base_method_is() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "tips.py",
+        b"class ToolTipButton:\n    def on_mouse_pos(self):\n        return 1\n\
+class _MarkerHoverToolTip(ToolTipButton):\n    def on_mouse_pos(self):\n        return 2\n\
+def entry():\n    x = ToolTipButton()\n    return x.on_mouse_pos()\nentry()\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let qns: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    assert!(
+        !qns.iter()
+            .any(|q| q.contains("_MarkerHoverToolTip.on_mouse_pos")),
+        "private-class override should be live via inheritance fan-out, findings: {qns:?}"
+    );
+}
+
+#[test]
+fn python_self_field_constructor_resolves_the_method_call() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "controller.py",
+        b"class Controller:\n    def open(self):\n        return 1\n    def unused(self):\n        return 0\n",
+    );
+    write(
+        tmp.path(),
+        "app.py",
+        b"from controller import Controller\n\
+class App:\n    def __init__(self):\n        self.controller = Controller()\n    def connect(self):\n        return self.controller.open()\n\
+def entry():\n    app = App()\n    return app.connect()\nentry()\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let qns: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    assert!(
+        !qns.iter().any(|q| q.contains("Controller.open")),
+        "Controller.open should be live via self.controller, findings: {qns:?}"
+    );
+    assert!(
+        qns.iter().any(|q| q.contains("Controller.unused")),
+        "unused should still be reported, findings: {qns:?}"
+    );
+}
+
+#[test]
+fn python_class_annotation_types_self_field_calls() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "ctrl.py",
+        b"class Controller:\n    def open(self):\n        return 1\n",
+    );
+    write(
+        tmp.path(),
+        "panel.py",
+        b"from ctrl import Controller\n\
+class Panel:\n    controller: Controller\n    def __init__(self, controller):\n        self.controller = controller\n    def go(self):\n        return self.controller.open()\n\
+def entry():\n    p = Panel(Controller())\n    return p.go()\nentry()\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let qns: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    assert!(
+        !qns.iter().any(|q| q.contains("Controller.open")),
+        "Controller.open should be live via annotated self.controller, findings: {qns:?}"
+    );
+}
+
+#[test]
 fn rust_reference_edges_are_opt_in() {
     let tmp = TempDir::new().unwrap();
     let src =

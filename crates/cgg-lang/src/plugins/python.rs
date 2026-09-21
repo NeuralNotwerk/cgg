@@ -10,14 +10,20 @@
 //!   an `attribute`.
 //! * **Imports** — `import_statement` and `import_from_statement`,
 //!   flattened with alias support.
+//! * **Instance-field types** — `self.x = Foo(...)` and class
+//!   annotations (`x: Foo`) become `self.x` LocalTypes on every method
+//!   of that class, so the type propagator can rewrite `self.x.m()`.
 //!
 //! Module name for qualified names is derived from the file stem for
 //! Task 4. Task 6 will refine this to the full dotted package path by
 //! consulting `__init__.py` chains via stack-graphs.
 
+use std::collections::HashMap;
 use std::path::Path;
 
-use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use cgg_core::{
+    DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord, ids::FileId,
+};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -68,6 +74,7 @@ impl LanguagePlugin for PythonPlugin {
             facts: &mut facts,
             scope: vec![module_name(path)],
             bases: Vec::new(),
+            class_field_types: Vec::new(),
         };
         walker.walk(tree.root_node());
         let mut out = facts;
@@ -121,6 +128,12 @@ struct Walker<'a> {
     scope: Vec<String>,
     /// Base classes of the enclosing `class`, innermost last.
     bases: Vec<Vec<String>>,
+    /// Instance-attribute types of the enclosing `class`, innermost last.
+    /// `self.controller = Controller(...)` and `controller: Controller`
+    /// both land here; a post-pass on the class copies them onto every
+    /// method as `self.<field>` LocalTypes so the type propagator can
+    /// rewrite `self.controller.open()`.
+    class_field_types: Vec<HashMap<String, String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -142,8 +155,17 @@ impl<'a> Walker<'a> {
                 // the runtime calls `forward`; nothing else in the file
                 // does.
                 self.bases.push(super::attrs::base_types(node, self.source));
-                collect_class_fields(node, self.source, &self.scope, self.facts);
+                self.class_field_types.push(HashMap::new());
+                collect_class_fields(
+                    node,
+                    self.source,
+                    &self.scope,
+                    self.facts,
+                    self.class_field_types.last_mut(),
+                );
                 self.walk_children(node);
+                self.emit_instance_field_types();
+                self.class_field_types.pop();
                 self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
                     self.scope.pop();
@@ -366,38 +388,80 @@ impl<'a> Walker<'a> {
         let (Some(left), Some(right)) = (left, right) else {
             return;
         };
-        if left.kind() != "identifier" {
-            return;
-        }
-        let var_name = self.text(left).to_string();
-        if var_name.is_empty() {
-            return;
-        }
-        // RHS must be a call where the function name starts with uppercase
         if right.kind() != "call" {
             return;
         }
         let func = right.child_by_field_name("function");
         let Some(func) = func else { return };
-        let func_text = self.text(func);
-        // Direct constructor: Foo(...)
-        if func.kind() == "identifier" && func_text.starts_with(char::is_uppercase) {
-            self.facts.local_types.push(cgg_core::LocalType {
-                var_name: var_name.clone(),
-                type_name: func_text.to_string(),
+        let Some(type_name) = constructor_type(func, self.source) else {
+            return;
+        };
+
+        if left.kind() == "identifier" {
+            let var_name = self.text(left).to_string();
+            if var_name.is_empty() {
+                return;
+            }
+            self.facts.local_types.push(LocalType {
+                var_name,
+                type_name,
                 scope_byte: node.start_byte() as u32,
             });
+            return;
         }
-        // Attribute constructor: module.Foo(...)
-        if func.kind() == "attribute"
-            && let Some(attr) = func.child_by_field_name("attribute")
-        {
-            let attr_text = self.text(attr);
-            if attr_text.starts_with(char::is_uppercase) {
-                self.facts.local_types.push(cgg_core::LocalType {
-                    var_name,
-                    type_name: attr_text.to_string(),
-                    scope_byte: node.start_byte() as u32,
+
+        // `self.controller = Controller(...)` — instance field. Recorded
+        // on the enclosing class and copied onto every method at class
+        // exit; the assignment site itself is not a useful scope.
+        if left.kind() == "attribute" {
+            let Some(obj) = left.child_by_field_name("object") else {
+                return;
+            };
+            let Some(attr) = left.child_by_field_name("attribute") else {
+                return;
+            };
+            if self.text(obj) != "self" {
+                return;
+            }
+            let field = self.text(attr).to_string();
+            if field.is_empty() {
+                return;
+            }
+            if let Some(fields) = self.class_field_types.last_mut() {
+                fields.insert(field, type_name);
+            }
+        }
+    }
+
+    /// Copy the enclosing class's instance-field types onto every method
+    /// of that class, keyed by the method's start byte so `self.x.m()`
+    /// inside `connect` sees a type assigned in `__init__`.
+    fn emit_instance_field_types(&mut self) {
+        let Some(fields) = self.class_field_types.last() else {
+            return;
+        };
+        if fields.is_empty() {
+            return;
+        }
+        let Some(class_name) = self.scope.last() else {
+            return;
+        };
+        let fields: Vec<(String, String)> =
+            fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let class_name = class_name.clone();
+        let starts: Vec<u32> = self
+            .facts
+            .definitions
+            .iter()
+            .filter(|d| d.qualified_name.rsplit('.').nth(1) == Some(class_name.as_str()))
+            .map(|d| d.start_byte)
+            .collect();
+        for start in starts {
+            for (fname, ty) in &fields {
+                self.facts.local_types.push(LocalType {
+                    var_name: format!("self.{fname}"),
+                    type_name: ty.clone(),
+                    scope_byte: start,
                 });
             }
         }
@@ -568,8 +632,58 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
     out
 }
 
+/// True when `s` looks like a type name, including PEP 8 private classes
+/// (`_MarkerHoverToolTip`). Methods on those classes are still methods;
+/// the leading underscore is visibility, not a different kind of scope.
 fn starts_uppercase(s: &str) -> bool {
-    s.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+    s.trim_start_matches('_')
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_uppercase())
+}
+
+fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
+    let name = match func.kind() {
+        "identifier" => func.utf8_text(source).ok()?.to_string(),
+        "attribute" => func
+            .child_by_field_name("attribute")
+            .and_then(|a| a.utf8_text(source).ok())
+            .map(|s| s.to_string())?,
+        _ => return None,
+    };
+    if starts_uppercase(&name) {
+        Some(name)
+    } else {
+        None
+    }
+}
+
+fn annotation_type_stem(raw: &str) -> Option<String> {
+    let mut t = raw.trim();
+    if t.is_empty() {
+        return None;
+    }
+    // `Optional[Foo]`, `list[Foo]` — the inner type is the instance type.
+    if let Some(open) = t.find('[')
+        && let Some(close) = t.rfind(']')
+        && close > open + 1
+    {
+        t = t[open + 1..close].split(',').next().unwrap_or("").trim();
+    }
+    let stem = t
+        .split('|')
+        .next()
+        .unwrap_or(t)
+        .trim()
+        .rsplit('.')
+        .next()
+        .unwrap_or(t)
+        .trim();
+    if starts_uppercase(stem) {
+        Some(stem.to_string())
+    } else {
+        None
+    }
 }
 
 /// Generic class-level `name = Type(...)` extraction.
@@ -583,6 +697,7 @@ fn collect_class_fields(
     source: &[u8],
     scope: &[String],
     facts: &mut FileFacts,
+    mut instance_fields: Option<&mut HashMap<String, String>>,
 ) {
     let Some(body) = class.child_by_field_name("body") else {
         return;
@@ -590,22 +705,27 @@ fn collect_class_fields(
     let class_qn = scope.join(".");
     let mut c = body.walk();
     for child in body.named_children(&mut c) {
-        if child.kind() != "expression_statement" {
-            continue;
-        }
-        let Some(assign) = child.named_child(0) else {
+        let stmt = if child.kind() == "expression_statement" {
+            child.named_child(0)
+        } else {
+            Some(child)
+        };
+        let Some(stmt) = stmt else {
             continue;
         };
-        if assign.kind() != "assignment" {
+        if stmt.kind() != "assignment" {
             continue;
         }
-        let Some(left) = assign.child_by_field_name("left") else {
+        if let Some(fields) = instance_fields.as_mut() {
+            record_annotated_instance_field(stmt, source, fields);
+        }
+        let Some(left) = stmt.child_by_field_name("left") else {
             continue;
         };
         if left.kind() != "identifier" {
             continue;
         }
-        let Some(right) = assign.child_by_field_name("right") else {
+        let Some(right) = stmt.child_by_field_name("right") else {
             continue;
         };
         if right.kind() != "call" {
@@ -635,9 +755,41 @@ fn collect_class_fields(
             class_qn: class_qn.clone(),
             field_name: field_name.to_string(),
             type_name: type_name.to_string(),
-            line: (assign.start_position().row as u32) + 1,
+            line: (stmt.start_position().row as u32) + 1,
         });
     }
+}
+
+fn record_annotated_instance_field(
+    node: tree_sitter::Node,
+    source: &[u8],
+    fields: &mut HashMap<String, String>,
+) {
+    let left = node
+        .child_by_field_name("left")
+        .or_else(|| node.named_child(0));
+    let Some(left) = left else {
+        return;
+    };
+    if left.kind() != "identifier" {
+        return;
+    }
+    let Ok(name) = left.utf8_text(source) else {
+        return;
+    };
+    if name.is_empty() {
+        return;
+    }
+    let Some(ty) = node.child_by_field_name("type") else {
+        return;
+    };
+    let Ok(raw) = ty.utf8_text(source) else {
+        return;
+    };
+    let Some(stem) = annotation_type_stem(raw) else {
+        return;
+    };
+    fields.insert(name.to_string(), stem);
 }
 
 /// Python has no visibility keyword; the underscore convention is the
@@ -764,6 +916,72 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         extract_with("m.py", src)
+    }
+
+    #[test]
+    fn underscore_prefixed_subclass_records_base_types() {
+        let f = extract(
+            "class _MarkerHoverToolTip(ToolTipButton):\n    def on_mouse_pos(self, *args):\n        pass\n",
+        );
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "on_mouse_pos")
+            .expect("on_mouse_pos");
+        assert_eq!(d.base_types, ["ToolTipButton"], "bases: {:?}", d.base_types);
+        assert_eq!(
+            d.variant,
+            DefVariant::InherentMethod,
+            "a `_Class` method must not be classified as a free function"
+        );
+    }
+
+    #[test]
+    fn self_field_constructor_is_copied_onto_every_method() {
+        let f = extract(
+            "class App:\n    def __init__(self):\n        self.controller = Controller()\n    def connect(self):\n        self.controller.open()\n",
+        );
+        let connect = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "connect")
+            .expect("connect");
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.controller"
+                    && t.type_name == "Controller"
+                    && t.scope_byte == connect.start_byte
+            }),
+            "connect should see self.controller: Controller; types: {:?}",
+            f.local_types
+        );
+        let open = f
+            .references
+            .iter()
+            .find(|r| r.name == "open")
+            .expect("open");
+        assert_eq!(open.receiver_hint, "self.controller");
+    }
+
+    #[test]
+    fn class_annotation_is_an_instance_field_type() {
+        let f = extract(
+            "class Panel:\n    controller: Controller\n    def go(self):\n        self.controller.open()\n",
+        );
+        let go = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "go")
+            .expect("go");
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.controller"
+                    && t.type_name == "Controller"
+                    && t.scope_byte == go.start_byte
+            }),
+            "annotation missed; types: {:?}",
+            f.local_types
+        );
     }
 
     /// Names captured as value references (a callable passed as a
@@ -1027,7 +1245,9 @@ class C:
             f.class_fields
         );
         assert!(
-            f.class_fields.iter().all(|cf| cf.class_qn.contains("Label")),
+            f.class_fields
+                .iter()
+                .all(|cf| cf.class_qn.contains("Label")),
             "class_qn must name the class: {:?}",
             f.class_fields
         );
