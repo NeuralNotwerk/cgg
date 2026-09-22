@@ -481,7 +481,7 @@ fn cpp_namespace_cross_file_resolves() {
     write(
         tmp.path(),
         "math.cpp",
-        b"#include \"math.hpp\"\nnamespace math {\nint Calc::add(int a, int b) { return a + b; }\n}\n",
+        b"#include \"math.hpp\"\nnamespace math {\nint helper(int a, int b) { return a + b; }\nint Calc::add(int a, int b) { return helper(a, b); }\n}\n",
     );
     write(
         tmp.path(),
@@ -514,10 +514,27 @@ fn cpp_namespace_cross_file_resolves() {
             }
         })
     };
+    // The header declaration and the .cpp body are one function. The
+    // edge has to land on the body, which is the node that calls helper.
+    let add_nodes: Vec<&str> = g
+        .lines()
+        .filter(|l| l.contains("[\"math::Calc::add\"]"))
+        .collect();
+    assert_eq!(
+        add_nodes.len(),
+        1,
+        "prototype and body should be one node:\n{g}"
+    );
     let run = node_id("run").expect("run node");
     let add = node_id("math::Calc::add").expect("math::Calc::add node");
     let arrow = format!("{run} --> {add}");
     assert!(g.contains(&arrow), "missing C++ cross-file edge:\n{g}");
+    let helper = node_id("math::helper").expect("math::helper node");
+    let into_body = format!("{add} --> {helper}");
+    assert!(
+        g.contains(&into_body),
+        "call from add should leave the definition, not an empty prototype:\n{g}"
+    );
 }
 
 #[test]

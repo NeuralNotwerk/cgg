@@ -364,7 +364,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // `ThreadPool::install`, so every `par_iter` below — here, in type
     // propagation, in the intra-file link, and inside cross_file and
     // frameworks — inherits it. Nothing sets a *global* pool any more.
-    let results: Vec<FileOutcome> = outcome
+    let mut results: Vec<FileOutcome> = outcome
         .candidates
         .par_iter()
         .map(|cand| {
@@ -481,6 +481,22 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             })
         })
         .collect();
+
+    // A C++ prototype and its out-of-line body are one function. Drop the
+    // prototype before ids are assigned so every later pass — intra-file,
+    // cross-file, dead-code — sees only the body.
+    {
+        let mut cpp_facts: Vec<&mut FileFacts> = Vec::new();
+        for result in &mut results {
+            if let FileOutcome::Analyzed(fr) = result
+                && fr.lang == "cpp"
+                && let Some(facts) = fr.facts.as_mut()
+            {
+                cpp_facts.push(facts);
+            }
+        }
+        cgg_lang::plugins::cpp::unify_declarations(&mut cpp_facts);
+    }
 
     // --- Sequential merge: assign IDs and build graph ---------------------
     let _phase_merge_graph_build = cgg_core::profile::span("merge::graph-build");

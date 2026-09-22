@@ -6,6 +6,12 @@
 //! * Methods inside class bodies (including constructors/destructors).
 //! * `qualified_identifier` in call expressions (`ns::fn()`).
 //! * `field_expression` for `obj.method()` / `ptr->method()`.
+//!
+//! An out-of-line definition (`void Robot::on_gcode_received(...) { }`)
+//! keeps the same simple name as the header declaration (`on_gcode_received`),
+//! and [`unify_declarations`] drops that declaration when the body is in
+//! the tree. Otherwise every call binds to the empty prototype and the
+//! body — which holds the outgoing edges — has no callers.
 
 use std::path::Path;
 
@@ -97,8 +103,13 @@ impl<'a> CppWalker<'a> {
                     self.walk_children(node);
                     self.scope.pop();
                 } else {
-                    // anonymous namespace
+                    // Each translation unit's anonymous namespace is a
+                    // distinct scope. Leaving it unnamed made `helper` in
+                    // two `.cpp` files the same qualified name, so a body
+                    // there would absorb an unrelated header prototype.
+                    self.scope.push("(anonymous)".to_string());
                     self.walk_children(node);
+                    self.scope.pop();
                 }
                 return;
             }
@@ -126,7 +137,10 @@ impl<'a> CppWalker<'a> {
                 self.walk_children(node);
                 return;
             }
-            "declaration" => {
+            // Method declarations inside a class are `field_declaration`,
+            // not `declaration`. Missing that node is why a header
+            // prototype never existed to absorb into the out-of-line body.
+            "declaration" | "field_declaration" => {
                 self.try_record_prototype(node);
                 self.walk_children(node);
                 return;
@@ -172,16 +186,30 @@ impl<'a> CppWalker<'a> {
         let Some(decl) = node.child_by_field_name("declarator") else {
             return;
         };
-        let (simple, variant) = self.fn_info_from_declarator(decl);
-        if simple.is_empty() {
+        let Some(fn_decl) = unwrap_function_declarator(decl) else {
+            return;
+        };
+        let info = self.fn_info_from_declarator(fn_decl);
+        // `= default` / `= delete` is the definition even though it has
+        // no compound statement. `= 0` is not: the body, if any, is
+        // elsewhere, and this declaration must stay a prototype so the
+        // real body can absorb it.
+        let has_body = node.child_by_field_name("body").is_some()
+            || has_child_kind(node, "default_method_clause")
+            || has_child_kind(node, "delete_method_clause");
+        self.push_def(node, info, has_body);
+    }
+
+    fn push_def(&mut self, node: Node, info: FnInfo, has_body: bool) {
+        if info.simple.is_empty() {
             return;
         }
-        let qn = self.qn(&simple);
+        let qn = self.qualified_name(&info.qual_tail);
         let (sl, el) = line_range(node);
         self.facts.definitions.push(DefRecord {
-            simple_name: simple,
+            simple_name: info.simple,
             qualified_name: qn,
-            variant,
+            variant: info.variant,
             start_line: sl,
             end_line: el,
             start_byte: node.start_byte() as u32,
@@ -189,89 +217,117 @@ impl<'a> CppWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: cuda_qualifiers(self.text(node)),
+            has_body,
             ..Default::default()
         });
     }
 
-    fn fn_info_from_declarator(&self, decl: Node) -> (String, DefVariant) {
+    /// Qualified name of `tail` under the current namespace/class stack.
+    ///
+    /// `tail` is either a bare identifier (`add`, inside the class) or
+    /// the out-of-line declarator text (`Calc::add`, `math::Calc::add`).
+    /// When the declarator already starts with the enclosing scope,
+    /// prepending it again would produce `math::math::Calc::add`.
+    fn qualified_name(&self, tail: &str) -> String {
+        if self.scope.is_empty() {
+            return tail.to_string();
+        }
+        let scope = self.scope.join("::");
+        if tail == scope || tail.starts_with(&(scope.clone() + "::")) {
+            tail.to_string()
+        } else {
+            format!("{scope}::{tail}")
+        }
+    }
+
+    fn fn_info_from_declarator(&self, decl: Node) -> FnInfo {
         // function_declarator -> declarator: identifier | field_identifier |
-        //   destructor_name | qualified_identifier
+        //   destructor_name | qualified_identifier. Pointer and reference
+        //   declarators are unwrapped by the caller (`int *Robot::foo()`).
         if decl.kind() != "function_declarator" {
-            return (String::new(), DefVariant::FreeFunction);
+            return FnInfo::empty();
         }
         let Some(d) = decl.child_by_field_name("declarator") else {
-            return (String::new(), DefVariant::FreeFunction);
+            return FnInfo::empty();
         };
         match d.kind() {
             "identifier" => {
                 let name = self.text(d).to_string();
                 // If inside a class scope, it's a constructor if name == class name.
                 let variant =
-                    if self.scope.last().map(|s| s.as_str()) == Some(name.as_str()) {
+                    if self.scope.last().map(String::as_str) == Some(name.as_str()) {
                         DefVariant::Constructor
                     } else if self.scope.is_empty() {
                         DefVariant::FreeFunction
                     } else {
                         DefVariant::InherentMethod
                     };
-                (name, variant)
+                FnInfo::named(name, variant)
             }
             "field_identifier" => {
                 let name = self.text(d).to_string();
-                (name, DefVariant::InherentMethod)
+                FnInfo::named(name, DefVariant::InherentMethod)
             }
             "destructor_name" => {
                 // ~ClassName
                 let name = format!("~{}", self.text(d).trim_start_matches('~'));
-                (name, DefVariant::Destructor)
+                FnInfo::named(name, DefVariant::Destructor)
             }
-            "qualified_identifier" => {
-                // Out-of-line: `ClassName::method` or `ns::Class::method`.
-                // We take the full text as the simple name (qualified
-                // name will prepend current scope).
-                let name_node = d.child_by_field_name("name");
-                let simple = name_node
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_else(|| self.text(d).to_string());
-                // Check if destructor
-                if simple.starts_with('~') {
-                    (simple, DefVariant::Destructor)
+            "qualified_identifier" => self.qualified_fn_info(d),
+            "operator_name" | "operator_cast" => {
+                FnInfo::named(self.text(d).to_string(), DefVariant::InherentMethod)
+            }
+            _ => FnInfo::empty(),
+        }
+    }
+
+    /// `void Robot::on_gcode_received()` and `int math::Calc::add()`.
+    ///
+    /// The simple name is the last segment (`on_gcode_received`, `add`),
+    /// matching the header declaration inside the class. The qualified
+    /// name is the declarator text (`Robot::on_gcode_received`), so the
+    /// `(language, owner, method)` index the resolver looks up contains
+    /// the body and not a second spelling of it.
+    fn qualified_fn_info(&self, qual: Node) -> FnInfo {
+        let leaf = deepest_name(qual);
+        let simple = match leaf.kind() {
+            "destructor_name" => {
+                let t = self.text(leaf);
+                if t.starts_with('~') {
+                    t.to_string()
                 } else {
-                    (self.text(d).to_string(), DefVariant::InherentMethod)
+                    format!("~{t}")
                 }
             }
-            "operator_name" | "operator_cast" => {
-                (self.text(d).to_string(), DefVariant::InherentMethod)
-            }
-            _ => (String::new(), DefVariant::FreeFunction),
+            _ => self.text(leaf).to_string(),
+        };
+        if simple.is_empty() {
+            return FnInfo::empty();
+        }
+        let variant = if leaf.kind() == "destructor_name" || simple.starts_with('~') {
+            DefVariant::Destructor
+        } else if immediate_class(qual, self.source).as_deref() == Some(simple.as_str()) {
+            DefVariant::Constructor
+        } else {
+            DefVariant::InherentMethod
+        };
+        FnInfo {
+            simple,
+            qual_tail: self.text(qual).to_string(),
+            variant,
         }
     }
 
     fn try_record_prototype(&mut self, node: Node) {
         let mut c = node.walk();
         for child in node.children(&mut c) {
-            if child.kind() == "function_declarator" {
-                let (simple, variant) = self.fn_info_from_declarator(child);
-                if !simple.is_empty() {
-                    let qn = self.qn(&simple);
-                    let (sl, el) = line_range(node);
-                    self.facts.definitions.push(DefRecord {
-                        simple_name: simple,
-                        qualified_name: qn,
-                        variant,
-                        start_line: sl,
-                        end_line: el,
-                        start_byte: node.start_byte() as u32,
-                        end_byte: node.end_byte() as u32,
-                        signature_hint: super::extract_signature(self.text(node)),
-                        visibility: String::new(),
-                        // A declaration-only kernel (`__global__ void
-                        // saxpy(...);` in a header) is an entry point
-                        // just as much as its definition.
-                        attributes: cuda_qualifiers(self.text(node)),
-                        ..Default::default()
-                    });
-                }
+            if let Some(fn_decl) = unwrap_function_declarator(child) {
+                let info = self.fn_info_from_declarator(fn_decl);
+                // A declaration-only kernel (`__global__ void saxpy(...);`
+                // in a header) is an entry point just as much as its
+                // definition. `has_body` stays false so a later definition
+                // can absorb this node.
+                self.push_def(node, info, false);
                 return;
             }
         }
@@ -382,6 +438,486 @@ impl<'a> CppWalker<'a> {
     }
 }
 
+struct FnInfo {
+    simple: String,
+    /// Bare name, or the out-of-line declarator (`Calc::add`).
+    qual_tail: String,
+    variant: DefVariant,
+}
+
+impl FnInfo {
+    fn empty() -> Self {
+        Self {
+            simple: String::new(),
+            qual_tail: String::new(),
+            variant: DefVariant::FreeFunction,
+        }
+    }
+
+    fn named(name: String, variant: DefVariant) -> Self {
+        Self {
+            qual_tail: name.clone(),
+            simple: name,
+            variant,
+        }
+    }
+}
+
+/// `int *Robot::foo()` nests the function declarator inside a pointer
+/// (or reference) declarator. Walk those wrappers down to it.
+fn unwrap_function_declarator(node: Node) -> Option<Node> {
+    let mut n = node;
+    loop {
+        if n.kind() == "function_declarator" {
+            return Some(n);
+        }
+        if !matches!(
+            n.kind(),
+            "pointer_declarator"
+                | "reference_declarator"
+                | "attributed_declarator"
+                | "parenthesized_declarator"
+        ) {
+            return None;
+        }
+        if let Some(inner) = n.child_by_field_name("declarator") {
+            n = inner;
+            continue;
+        }
+        let mut c = n.walk();
+        let inner = n.children(&mut c).find(|ch| {
+            matches!(
+                ch.kind(),
+                "function_declarator"
+                    | "pointer_declarator"
+                    | "reference_declarator"
+                    | "attributed_declarator"
+                    | "parenthesized_declarator"
+            )
+        })?;
+        n = inner;
+    }
+}
+
+fn has_child_kind(node: Node, kind: &str) -> bool {
+    let mut c = node.walk();
+    node.children(&mut c).any(|ch| ch.kind() == kind)
+}
+
+/// Rightmost `name` field. `math::Calc::add` nests qualified identifiers,
+/// and `child_by_field_name` returns the first, which is not the method.
+fn last_name_field(node: Node) -> Option<Node> {
+    let mut cursor = node.walk();
+    if !cursor.goto_first_child() {
+        return None;
+    }
+    let mut last = None;
+    loop {
+        if cursor.field_name() == Some("name") {
+            last = Some(cursor.node());
+        }
+        if !cursor.goto_next_sibling() {
+            break;
+        }
+    }
+    last
+}
+
+fn deepest_name(node: Node) -> Node {
+    let mut n = node;
+    while n.kind() == "qualified_identifier" {
+        let Some(name) = last_name_field(n) else {
+            break;
+        };
+        n = name;
+    }
+    n
+}
+
+/// Class name immediately qualifying the method: `Calc` in
+/// `math::Calc::add`, `Calc` in `Calc::~Calc`.
+fn immediate_class(qual: Node, source: &[u8]) -> Option<String> {
+    let mut n = qual;
+    loop {
+        if n.kind() != "qualified_identifier" {
+            return None;
+        }
+        let name = last_name_field(n)?;
+        if name.kind() == "qualified_identifier" {
+            n = name;
+            continue;
+        }
+        let scope = n.child_by_field_name("scope")?;
+        let text = scope.utf8_text(source).unwrap_or("");
+        let last = text.rsplit("::").next().unwrap_or(text);
+        if last.is_empty() {
+            return None;
+        }
+        return Some(last.to_string());
+    }
+}
+
+/// Drop a C++ prototype when the tree also contains its body.
+///
+/// Header `void Robot::on_gcode_received(void*);` and
+/// `Robot.cpp`'s definition are one function. Keeping both makes every
+/// resolved call land on the prototype, which has no outgoing edges,
+/// while the body — which has them — has no callers. A prototype is
+/// removed when any body shares its qualified name and parameter list.
+/// Two overloads stay apart because the parameter lists differ. Two
+/// bodies of one signature (a test stub beside the real definition)
+/// both stay; only the prototype goes. Anonymous-namespace definitions
+/// are per translation unit, so a body there absorbs a prototype only
+/// in the same file.
+pub fn unify_declarations(files: &mut [&mut FileFacts]) {
+    struct Body {
+        file: usize,
+        key: String,
+    }
+    let mut bodies: std::collections::HashMap<String, Vec<Body>> =
+        std::collections::HashMap::new();
+    for (file_idx, facts) in files.iter().enumerate() {
+        if facts.language != "cpp" {
+            continue;
+        }
+        for def in &facts.definitions {
+            if !def.has_body {
+                continue;
+            }
+            let Some(key) = overload_key(&def.signature_hint) else {
+                continue;
+            };
+            bodies
+                .entry(def.qualified_name.clone())
+                .or_default()
+                .push(Body {
+                    file: file_idx,
+                    key,
+                });
+        }
+    }
+    for (file_idx, facts) in files.iter_mut().enumerate() {
+        if facts.language != "cpp" {
+            continue;
+        }
+        facts.definitions.retain(|def| {
+            if def.has_body || def.attributes.iter().any(|a| a == "macro") {
+                return true;
+            }
+            let Some(candidates) = bodies.get(&def.qualified_name) else {
+                return true;
+            };
+            let Some(key) = overload_key(&def.signature_hint) else {
+                return true;
+            };
+            // Every body of this overload, restricted to this file when
+            // the name is an anonymous-namespace function (each
+            // translation unit has its own). One body or several — a
+            // test stub next to the real definition — the prototype is
+            // not an extra function. Zero bodies: keep the declaration.
+            let mut hits: Vec<_> = candidates.iter().filter(|b| b.key == key).collect();
+            if def.qualified_name.contains("(anonymous)") {
+                hits.retain(|b| b.file == file_idx);
+            }
+            if hits.is_empty() {
+                return true;
+            }
+            false
+        });
+    }
+}
+
+/// Parameter list plus cv/ref qualifiers, with names and default
+/// arguments removed, so `void add(int a, int b);` and
+/// `int Calc::add(int a, int b)` name one overload.
+fn overload_key(sig: &str) -> Option<String> {
+    // Definitions often carry the parameter comments the header omits
+    // (`BYTE drv, /* Logical drive number */ BYTE sfd`). Those comments
+    // are not part of the overload.
+    let sig = strip_comments(sig);
+    let open = sig.find('(')?;
+    let close = matching_paren(&sig, open)?;
+    let mut parts: Vec<String> = split_params(&sig[open + 1..close])
+        .into_iter()
+        .map(|p| normalize_param(&p))
+        .collect();
+    // `void f(void)` is the same function as `void f()`.
+    if parts.len() == 1 && parts[0] == "void" {
+        parts.clear();
+    }
+    let quals = method_qualifiers(&sig[close + 1..]);
+    Some(format!("{quals}|{}", parts.join("|")))
+}
+
+fn matching_paren(sig: &str, open: usize) -> Option<usize> {
+    let mut depth = 0i32;
+    for (i, ch) in sig[open..].char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + i);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn split_params(params: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut start = 0usize;
+    for (i, ch) in params.char_indices() {
+        match ch {
+            '<' | '(' | '[' => depth += 1,
+            '>' | ')' | ']' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                let part = params[start..i].trim();
+                if !part.is_empty() {
+                    out.push(part.to_string());
+                }
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    let last = params[start..].trim();
+    if !last.is_empty() {
+        out.push(last.to_string());
+    }
+    out
+}
+
+fn normalize_param(param: &str) -> String {
+    let param = strip_default(param);
+    let collapsed = param.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut owned: Vec<String> = collapsed
+        .split(' ')
+        .filter(|t| !t.is_empty())
+        .map(strip_array_name)
+        .collect();
+    if let Some(last) = owned.last().map(String::as_str) {
+        let stripped = strip_glued_name(last).to_string();
+        if stripped != last {
+            owned.pop();
+            if !stripped.is_empty() {
+                owned.push(stripped);
+            }
+        } else if should_drop_trailing_name(&owned) {
+            owned.pop();
+        }
+    }
+    let joined = collapse_pointer_space(&owned.join(" ")).replace(" [", "[");
+    // `std::string` in a header and `string` in a .cpp that has
+    // `using std::string` are the same parameter. `T[]` and `T*` are
+    // the same function parameter type.
+    decay_std_and_array(&joined)
+}
+
+fn decay_std_and_array(param: &str) -> String {
+    let param = param.replace("std::", "");
+    let Some(bracket) = param.rfind('[') else {
+        return param;
+    };
+    if !param.ends_with(']') {
+        return param;
+    }
+    format!("{}*", param[..bracket].trim_end())
+}
+
+/// `float xs[]` and `float[]` are the same parameter. The name sits
+/// immediately before the brackets.
+fn strip_array_name(token: &str) -> String {
+    let Some(bracket) = token.find('[') else {
+        return token.to_string();
+    };
+    let name = &token[..bracket];
+    if !name.is_empty() && is_param_name(name) {
+        token[bracket..].to_string()
+    } else {
+        token.to_string()
+    }
+}
+
+/// Drop a trailing identifier when it is a parameter name.
+///
+/// `enum MOTION_MODE_T motion_mode` drops `motion_mode`.
+/// `enum MOTION_MODE_T` does not drop `MOTION_MODE_T`: the token before
+/// it is the introducer, so that identifier is the type.
+/// `const uint32_t` / `volatile Foo` are the same: after a cv-qualifier
+/// the identifier is the type, or a header that omitted the name would
+/// not match `const uint32_t n` in the body.
+fn should_drop_trailing_name(tokens: &[String]) -> bool {
+    if tokens.len() < 2 {
+        return false;
+    }
+    let last = tokens.last().map(String::as_str).unwrap_or("");
+    if !is_param_name(last) {
+        return false;
+    }
+    let prev = tokens[tokens.len() - 2].as_str();
+    !matches!(
+        prev,
+        "enum" | "struct" | "class" | "union" | "typename" | "const" | "volatile"
+    )
+}
+
+fn strip_comments(sig: &str) -> String {
+    let mut out = String::with_capacity(sig.len());
+    let mut chars = sig.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            while let Some(d) = chars.next() {
+                if d == '*' && chars.peek() == Some(&'/') {
+                    chars.next();
+                    break;
+                }
+            }
+            out.push(' ');
+        } else if c == '/' && chars.peek() == Some(&'/') {
+            for d in chars.by_ref() {
+                if d == '\n' {
+                    break;
+                }
+            }
+            out.push(' ');
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn strip_default(param: &str) -> &str {
+    let mut depth = 0i32;
+    for (i, ch) in param.char_indices() {
+        match ch {
+            '<' | '(' | '[' => depth += 1,
+            '>' | ')' | ']' => depth = depth.saturating_sub(1),
+            '=' if depth == 0 => return param[..i].trim(),
+            _ => {}
+        }
+    }
+    param.trim()
+}
+
+/// `*stream` / `&name` / `&&name` → the pointer or reference tokens.
+fn strip_glued_name(token: &str) -> &str {
+    let rest = token.trim_start_matches(['*', '&']);
+    if rest.len() < token.len() && is_param_name(rest) {
+        &token[..token.len() - rest.len()]
+    } else {
+        token
+    }
+}
+
+fn is_param_name(token: &str) -> bool {
+    let mut chars = token.chars();
+    match chars.next() {
+        Some(c) if c == '_' || c.is_ascii_alphabetic() => {}
+        _ => return false,
+    }
+    if !chars.all(|c| c == '_' || c.is_ascii_alphanumeric()) {
+        return false;
+    }
+    !is_type_keyword(token)
+}
+
+fn is_type_keyword(token: &str) -> bool {
+    matches!(
+        token,
+        "int"
+            | "void"
+            | "char"
+            | "bool"
+            | "float"
+            | "double"
+            | "long"
+            | "short"
+            | "signed"
+            | "unsigned"
+            | "auto"
+            | "const"
+            | "volatile"
+            | "wchar_t"
+            | "char8_t"
+            | "char16_t"
+            | "char32_t"
+            | "size_t"
+    )
+}
+
+fn collapse_pointer_space(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i].is_whitespace() {
+            let mut j = i;
+            while j < chars.len() && chars[j].is_whitespace() {
+                j += 1;
+            }
+            let prev_ptr = out.ends_with(['*', '&']);
+            let next_ptr = chars.get(j).is_some_and(|c| *c == '*' || *c == '&');
+            if !prev_ptr && !next_ptr {
+                out.push(' ');
+            }
+            i = j;
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+fn method_qualifiers(after: &str) -> String {
+    let mut rest = after;
+    if let Some(i) = rest.find(['{', ';']) {
+        rest = &rest[..i];
+    }
+    let rest = strip_call(rest, "noexcept");
+    let rest = strip_call(&rest, "throw");
+    let rest = rest.split('=').next().unwrap_or(&rest);
+    // Glued forms (`const&`, `const&&`) are one token, so this is a
+    // substring check rather than a token match. `noexcept(...)` was
+    // already removed; a `const` inside it must not count.
+    let mut flags = Vec::new();
+    if rest.contains("const") {
+        flags.push("const");
+    }
+    if rest.contains("volatile") {
+        flags.push("volatile");
+    }
+    if rest.contains("&&") {
+        flags.push("&&");
+    } else if rest.contains('&') {
+        flags.push("&");
+    }
+    flags.join(" ")
+}
+
+fn strip_call(s: &str, kw: &str) -> String {
+    let Some(at) = s.find(kw) else {
+        return s.to_string();
+    };
+    let after = s[at + kw.len()..].trim_start();
+    if !after.starts_with('(') {
+        return s.to_string();
+    }
+    let Some(rel) = matching_paren(after, 0) else {
+        return s.to_string();
+    };
+    let mut out = String::new();
+    out.push_str(&s[..at]);
+    out.push_str(&after[rel + 1..]);
+    out
+}
+
 fn line_range(n: Node) -> (u32, u32) {
     (
         (n.start_position().row as u32) + 1,
@@ -397,13 +933,17 @@ mod tests {
     use tree_sitter::Parser;
 
     fn extract(src: &str) -> FileFacts {
+        extract_at(src, "/tmp/__cgg_test__/x.cpp")
+    }
+
+    fn extract_at(src: &str, path: &str) -> FileFacts {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_cpp::LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         CppPlugin.extract(
             &crate::ExtractCtx::plain(),
             FileId::new(0),
-            &PathBuf::from("/tmp/__cgg_test__/x.cpp"),
+            &PathBuf::from(path),
             &tree,
             src.as_bytes(),
         )
@@ -479,6 +1019,276 @@ public:
             .collect();
         assert!(refs.contains(&("run", "obj")), "got: {refs:?}");
         assert!(refs.contains(&("exec", "ptr")), "got: {refs:?}");
+    }
+
+    #[test]
+    fn out_of_line_simple_name_is_the_method() {
+        let f = extract(
+            "void Robot::on_gcode_received(void *argument) { (void)argument; }\n",
+        );
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "on_gcode_received")
+            .expect("simple name is the method, not Robot::on_gcode_received");
+        assert_eq!(d.qualified_name, "Robot::on_gcode_received");
+        assert!(d.has_body);
+    }
+
+    #[test]
+    fn out_of_line_inside_namespace_matches_the_class() {
+        let header = extract(
+            "namespace math {\nclass Calc {\npublic:\n    static int add(int a, int b);\n};\n}\n",
+        );
+        let decl = header
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "add")
+            .unwrap();
+        assert_eq!(decl.qualified_name, "math::Calc::add");
+        assert!(!decl.has_body);
+
+        let body = extract(
+            "namespace math {\nint Calc::add(int a, int b) { return a + b; }\n}\n",
+        );
+        let def = body
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "add")
+            .unwrap();
+        assert_eq!(def.qualified_name, "math::Calc::add");
+        assert!(def.has_body);
+
+        // The declarator is already fully qualified; the enclosing
+        // namespace must not be prepended a second time.
+        let full = extract(
+            "namespace math {\nint math::Calc::add(int a, int b) { return a + b; }\n}\n",
+        );
+        let def = full
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "add")
+            .unwrap();
+        assert_eq!(def.qualified_name, "math::Calc::add");
+    }
+
+    #[test]
+    fn out_of_line_constructor_destructor_and_pointer_return() {
+        let f = extract(
+            "Calc::~Calc() {}\nCalc::Calc(int a) : x(a) {}\nint *Calc::foo() { return 0; }\n",
+        );
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(qns.contains(&"Calc::~Calc"), "got: {qns:?}");
+        assert!(qns.contains(&"Calc::Calc"), "got: {qns:?}");
+        assert!(qns.contains(&"Calc::foo"), "got: {qns:?}");
+        let ctor = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Calc::Calc")
+            .unwrap();
+        assert_eq!(ctor.variant, DefVariant::Constructor);
+        assert_eq!(ctor.simple_name, "Calc");
+        let dtor = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "~Calc")
+            .unwrap();
+        assert_eq!(dtor.variant, DefVariant::Destructor);
+        let foo = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "foo")
+            .unwrap();
+        assert!(foo.has_body);
+    }
+
+    #[test]
+    fn function_pointer_field_is_not_a_callable() {
+        let f = extract("class A { void (*cb)(); int x; };\n");
+        assert!(
+            f.definitions.iter().all(|d| d.simple_name != "cb"),
+            "function pointer field recorded as a callable: {:?}",
+            f.definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn anonymous_namespace_is_its_own_scope() {
+        let f = extract("namespace { void helper() {} }\n");
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "helper")
+            .unwrap();
+        assert_eq!(d.qualified_name, "(anonymous)::helper");
+    }
+
+    #[test]
+    fn prototype_is_dropped_when_the_body_is_in_another_file() {
+        let mut header = extract_at(
+            "namespace math {\nclass Calc {\npublic:\n    static int add(int a, int b);\n    int* foo();\n    void set(int x = 0);\n    bool idle() const;\n};\n}\n",
+            "/tmp/__cgg_test__/math.hpp",
+        );
+        let mut body = extract_at(
+            "namespace math {\nint Calc::add(int a, int b) { return a + b; }\nint* Calc::foo() { return 0; }\nvoid Calc::set(int x) {}\nbool Calc::idle() const { return true; }\n}\n",
+            "/tmp/__cgg_test__/math.cpp",
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.iter().all(|d| d.simple_name != "add"
+                && d.simple_name != "foo"
+                && d.simple_name != "set"
+                && d.simple_name != "idle"),
+            "prototypes should be absorbed, still have: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
+        );
+        for name in ["add", "foo", "set", "idle"] {
+            assert!(
+                body.definitions
+                    .iter()
+                    .any(|d| d.simple_name == name && d.has_body),
+                "missing body {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn enum_comments_and_array_parameters_still_match() {
+        let mut header = extract_at(
+            "class Robot {\n  void process_move(Gcode *gcode, enum MOTION_MODE_T);\n  void go(const float[]);\n};\n",
+            "/tmp/__cgg_test__/Robot.h",
+        );
+        let mut body = extract_at(
+            "void Robot::process_move(Gcode *gcode, /* mode */ enum MOTION_MODE_T motion_mode) {}\nvoid Robot::go(const float cartesian_mm[]) {}\n",
+            "/tmp/__cgg_test__/Robot.cpp",
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.is_empty(),
+            "prototypes left: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn cv_qualified_unnamed_type_matches_the_named_body() {
+        // `const uint32_t` is the type, not a name to drop. A header that
+        // omits the parameter name used to key as `const` and miss the body.
+        let mut header = extract_at(
+            "class Widget {\n  void draw(const uint32_t);\n  void paint(volatile Foo);\n};\n",
+            "/tmp/__cgg_test__/Widget.h",
+        );
+        let mut body = extract_at(
+            "void Widget::draw(const uint32_t n) {}\nvoid Widget::paint(volatile Foo x) {}\n",
+            "/tmp/__cgg_test__/Widget.cpp",
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.is_empty(),
+            "left: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| (&d.qualified_name, &d.signature_hint))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.simple_name == "draw" && d.has_body)
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.simple_name == "paint" && d.has_body)
+        );
+    }
+
+    #[test]
+    fn std_qualification_and_array_parameters_match_the_body() {
+        let mut header = extract_at(
+            "class ConfigSource {\n  bool process_line(const std::string &buffer);\n  void update(const unsigned char *buf, size_t n);\n};\n",
+            "/tmp/__cgg_test__/ConfigSource.h",
+        );
+        let mut body = extract_at(
+            "bool ConfigSource::process_line(const string &buffer) { return true; }\nvoid ConfigSource::update(const unsigned char input[], size_t length) {}\n",
+            "/tmp/__cgg_test__/ConfigSource.cpp",
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.is_empty(),
+            "left: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| (&d.qualified_name, &d.signature_hint))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn overloads_and_anonymous_bodies_are_not_merged_away() {
+        let mut header = extract_at(
+            "void f(int x);\nvoid f(int x, int y);\nvoid helper();\n",
+            "/tmp/__cgg_test__/a.hpp",
+        );
+        let mut body = extract_at(
+            "void f(int x) {}\nvoid f(double x) {}\nnamespace { void helper() {} }\n",
+            "/tmp/__cgg_test__/a.cpp",
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        // `f(int)` has a body; `f(int, int)` does not. `f(double)` is a
+        // different overload and must not absorb `f(int, int)`.
+        let header_names: Vec<&str> = header
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(
+            !header_names.contains(&"f")
+                || header
+                    .definitions
+                    .iter()
+                    .filter(|d| d.qualified_name == "f")
+                    .count()
+                    == 1,
+            "got header: {header_names:?}"
+        );
+        assert_eq!(
+            header
+                .definitions
+                .iter()
+                .filter(|d| d.qualified_name == "f")
+                .count(),
+            1,
+            "only the unmatched overload stays, got {header_names:?}"
+        );
+        assert!(
+            header
+                .definitions
+                .iter()
+                .any(|d| d.qualified_name == "helper")
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.qualified_name == "(anonymous)::helper")
+        );
     }
 
     #[test]
