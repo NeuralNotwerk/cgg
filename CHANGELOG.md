@@ -73,6 +73,43 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Fixed
 
+> **Parenthesised `from … import (…)` blocks never bound their first and
+> last names, in every release since 0.2.0.** Calls through those names
+> fell to the same-name fan-out, which is a guess; past `--fanout-cap`
+> they resolved to nothing and `--report-unreferenced` reported the called
+> function as unreferenced. Any dead-code conclusion drawn from a Python
+> tree that uses this import style was affected. Details below.
+
+- **Parenthesised from-imports lost their first and last binding.** The
+  Python plugin forwards the import's item list to the resolver as one
+  comma-separated blob, and the resolver trims whitespace per item. For
+  `from client import (\n    create_remediation_request,\n    _create_client as c,\n)`
+  the first item arrived as `(create_remediation_request` and the last as
+  `c)`, so neither registered as a binding. Every call through such a
+  name then took the duck-typed same-name path: a `medium` edge to every
+  same-named definition in the tree (wrong ones included), and once the
+  count passed `--fanout-cap`, no edge at all — a live function reported
+  as unreferenced. Middle items in a block were unaffected, which is why
+  it survived: it only bit the first or last name. Reported from a
+  reachability audit of two large Python codebases; the reporter's shape
+  is now `parse_import`'s unit test and the end-to-end test
+  `parenthesised_from_import_binds_at_high_confidence_past_the_fanout_cap`.
+  The items blob is normalised at extraction (parentheses, line breaks,
+  trailing comma) and the resolver trims stray parentheses per item.
+  Measured over the 175-repository corpus, Python only: 1,572 edges
+  upgraded from `medium` guess to `high` binding, 76 wrong fan-out edges
+  removed, 12 edges past the cap restored, 0 high-confidence edges lost;
+  dead-code findings +10 / −6, every one of the ten a function whose only
+  incoming edge was a false fan-out. Affected repositories include
+  powertools-lambda (288 upgrades), py-scrapy (95), py-dash (166),
+  app-fastapi-dispatch (37) and pyspark (687).
+- **`--fanout-cap 0` is documented as "never guess".** A single same-named
+  candidate is still a guess — the receiver may be a third-party object
+  cgg never saw — and `0` already suppressed it with an audited
+  `fanout-cap-exceeded {candidates: 1}` record; the help text and README
+  now say so, for reachability audits where a false edge costs more than
+  a missing one.
+
 - **kv→python name-only fallback checked the wrong field.** The bare-
   receiver guard (`root`/`self`/`app`) tested `context` (the rule class
   name) instead of `receiver_hint` (the actual receiver), rejecting the

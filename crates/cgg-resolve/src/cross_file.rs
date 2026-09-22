@@ -810,6 +810,10 @@ pub fn resolve(
                         // exported names from that file.
                         let module = imp.path.trim();
                         for item in imp.alias.split(',') {
+                            // Defensive: a plugin that forwards a
+                            // parenthesised list verbatim must not
+                            // register `(a` and `b)` as names.
+                            let item = item.trim().trim_matches(|c| c == '(' || c == ')');
                             let (src, alias) = match item.split_once(" as ") {
                                 Some((s, a)) => (s.trim(), a.trim()),
                                 None => (item.trim(), item.trim()),

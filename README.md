@@ -131,7 +131,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--rollup` | (off) | Fold the graph to a coarser granularity if rendering it would exceed this token budget (`100k`, `120000`, `1.5m`). A graph already under budget is left byte-identical. The count is an **estimate** — `max(words × 2.5, bytes ÷ 1.8)`, no tokenizer ships in the binary. Every rollup is announced on stderr, in the graph, and in the audit |
 | `--rollup-by` | (off) | Granularity to fold to: `callable`, `type`, `module`, `file`, `package`, `dir:N`, `language`. Applied exactly on its own; with `--rollup` it is a floor the budget may coarsen past |
 | `--from-graph` | (none) | Re-query a graph saved by an earlier `-t json` run instead of analyzing source. `--filter`, `-n`, `--exclude-*` and `--rollup` all apply to it |
-| `--fanout-cap` | 5 | Max same-named candidates for a duck-typed method call before the fan-out is dropped. Drops are recorded as `fanout-cap-exceeded` with the candidate count — never silently |
+| `--fanout-cap` | 5 | Max same-named candidates for a duck-typed method call before the fan-out is dropped. Drops are recorded as `fanout-cap-exceeded` with the candidate count — never silently. A single candidate is still a guess (the receiver may be a third-party object); `0` means never guess: no duck-typed edge without type evidence, every suppressed guess audited. Prefer it for reachability audits, where a false edge costs more than a missing one |
 | `--include-tests` | off | Show dead-code findings that live in test scope. Test code is always analyzed and always counts as a caller |
 | `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
 | `--skip-minified` | off | Skip minified JS/CSS: `name.min.{js,mjs,cjs,css}`, or any file with one of those extensions averaging over 2,000 B/line on the first 8 KB. Bundled output has no callable structure worth graphing and dominates wall time on a mixed-language tree — but it is real source that parses, so the default walk analyzes it and dropping it is your call, not cgg's. Skips are audited as `skip_reason: minified` and counted in the run summary |
@@ -525,7 +525,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2571 callables, 5814 edges, 1547 cross-file, 165ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2574 callables, 5826 edges, 1549 cross-file, 161ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 

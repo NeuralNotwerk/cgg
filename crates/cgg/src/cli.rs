@@ -187,7 +187,12 @@ pub struct Cli {
     pub from_graph: Option<PathBuf>,
 
     /// Max same-named candidates for a duck-typed method call before the
-    /// fan-out is dropped. Drops are recorded as `fanout-cap-exceeded`.
+    /// fan-out is dropped. Drops are recorded as `fanout-cap-exceeded`
+    /// with the candidate count. A single same-named candidate is still
+    /// a guess — the receiver may be a third-party object cgg never saw —
+    /// so `0` means "never guess": no duck-typed edge is emitted without
+    /// type evidence, and every suppressed guess is audited. Use it when a
+    /// false edge costs more than a missing one, e.g. reachability audits.
     #[arg(
         long = "fanout-cap",
         value_name = "N",

@@ -503,13 +503,24 @@ fn parse_import(text: &str) -> (String, String, String) {
     if let Some(rest) = text.strip_prefix("from ")
         && let Some((module, items)) = rest.split_once(" import ")
     {
-        // For Task 4 we record the module + "import items" blob
-        // under `path`. The resolver in Task 6 parses per-item.
-        return (
-            "from-import".into(),
-            module.trim().to_string(),
-            items.trim().to_string(),
-        );
+        // The module goes under `path`; the items list, as one blob the
+        // resolver splits on commas, under `alias`. A parenthesised list —
+        // `from m import (a, b as c)`, and its multi-line form with a
+        // trailing comma — must lose its parentheses and line breaks here,
+        // or the first item reaches the resolver as `(a` and the last as
+        // `b)` and neither ever binds. Every call through such a name then
+        // fell to the same-name fan-out, and past `--fanout-cap` to
+        // nothing, which reported live functions as unreferenced.
+        let items = items
+            .trim()
+            .trim_start_matches('(')
+            .trim_end_matches(')')
+            .replace('\\', " ")
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        let items = items.trim().trim_end_matches(',').trim().to_string();
+        return ("from-import".into(), module.trim().to_string(), items);
     }
     if let Some(rest) = text.strip_prefix("import ") {
         let r = rest.trim();
@@ -937,6 +948,25 @@ class C:
             .map(|d| (d.simple_name.clone(), d.variant))
             .collect();
         assert_eq!(defs_by_name["inc"], DefVariant::NamedLambda);
+    }
+
+    #[test]
+    fn parenthesised_from_import_binds_every_name() {
+        // The reporter's exact shape: first name unaliased, the rest
+        // aliased, multi-line, trailing comma.
+        let (kind, path, items) = parse_import(
+            "from client import (\n    create_remediation_request,\n    _create_client as _create_local_client,\n    _get_endpoint as _get_local_endpoint,\n)",
+        );
+        assert_eq!(kind, "from-import");
+        assert_eq!(path, "client");
+        assert_eq!(
+            items,
+            "create_remediation_request, _create_client as _create_local_client, _get_endpoint as _get_local_endpoint"
+        );
+        let (_, _, one_line) = parse_import("from m import (a, b as c)");
+        assert_eq!(one_line, "a, b as c");
+        let (_, _, plain) = parse_import("from m import a, b as c");
+        assert_eq!(plain, "a, b as c");
     }
 
     #[test]

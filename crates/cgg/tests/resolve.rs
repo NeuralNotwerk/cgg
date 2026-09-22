@@ -1755,3 +1755,82 @@ fn a_keyword_matching_nothing_does_not_erase_the_fanout() {
         "both candidates should survive:\n{g}"
     );
 }
+
+/// A name imported in a parenthesised `from … import (…)` block — the
+/// reporter's shape: first name unaliased, later names aliased,
+/// multi-line, trailing comma — must bind through the import, at high
+/// confidence, and must not fall to the same-name fan-out. With seven
+/// same-named definitions elsewhere the fan-out would exceed the cap and
+/// the callee would be reported unreferenced although it is called.
+#[test]
+fn parenthesised_from_import_binds_at_high_confidence_past_the_fanout_cap() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "client.py",
+        b"def create_remediation_request(payload):\n    return payload\n\ndef _create_client(stage):\n    return stage\n",
+    );
+    for i in 0..7 {
+        write(
+            tmp.path(),
+            &format!("dup{i}.py"),
+            b"def create_remediation_request(payload):\n    return -payload\n",
+        );
+    }
+    write(
+        tmp.path(),
+        "caller.py",
+        b"from client import (\n    create_remediation_request,\n    _create_client as _create_local_client,\n)\n\ndef go(payload):\n    return create_remediation_request(payload)\n",
+    );
+
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let callables = g["callables"].as_object().unwrap();
+    let qn = |id: &str| {
+        callables[id]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(e["src"].as_str().unwrap()),
+                qn(e["dst"].as_str().unwrap()),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .filter(|(s, _, _)| s == "caller.go")
+        .collect();
+    assert_eq!(
+        edges,
+        vec![(
+            "caller.go".to_string(),
+            "client.create_remediation_request".to_string(),
+            "high".to_string()
+        )],
+        "the parenthesised import must bind exactly the imported definition: {edges:?}"
+    );
+
+    let report = cgg()
+        .args(["--report-unreferenced"])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    let text = String::from_utf8_lossy(&report.stdout).to_string()
+        + &String::from_utf8_lossy(&report.stderr);
+    assert!(
+        !text.contains("client.create_remediation_request"),
+        "a called function must not be reported unreferenced:\n{text}"
+    );
+}
