@@ -322,6 +322,11 @@ pub struct FileFacts {
     /// Used by the type propagator to rewrite receiver_hints.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub local_types: Vec<LocalType>,
+    /// Class fields (`StreamOutput* streams` on `Kernel`). The call is
+    /// usually in another file from the declaration, so the propagator
+    /// indexes these across the whole run and walks one `->` / `.` hop.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub field_types: Vec<FieldType>,
     /// Names this file makes visible to other modules.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exports: Vec<ExportRecord>,
@@ -358,6 +363,17 @@ pub struct LocalType {
     pub scope_byte: u32,
 }
 
+/// A field of a class or struct, recorded so `obj->field->method()` can
+/// be typed from the field's declaration rather than from the call site.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FieldType {
+    /// Bare class name (`Kernel`), matching the owner segment of a method.
+    pub owner: String,
+    pub field: String,
+    /// Bare nominal type (`StreamOutput`), pointers and qualifiers removed.
+    pub type_name: String,
+}
+
 impl FileFacts {
     pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
         Self {
@@ -368,6 +384,7 @@ impl FileFacts {
             references: Vec::new(),
             imports: Vec::new(),
             local_types: Vec::new(),
+            field_types: Vec::new(),
             exports: Vec::new(),
             dyn_uses: Vec::new(),
             unreachable: Vec::new(),
@@ -379,6 +396,32 @@ impl FileFacts {
             && self.references.is_empty()
             && self.imports.is_empty()
     }
+}
+
+/// First template argument of `unique_ptr<Kernel, Deleter>` → `Kernel`.
+///
+/// Shared between the extraction plugin (`nominal_type` in `cpp.rs`)
+/// and the resolver (`nominal_type_token` in `type_hints.rs`), both of
+/// which peel `shared_ptr<T>` / `unique_ptr<T>` to the pointed-to type.
+pub fn first_template_arg(s: &str) -> Option<&str> {
+    let open = s.find('<')?;
+    let mut depth = 0i32;
+    for (i, ch) in s[open..].char_indices() {
+        match ch {
+            '<' => depth += 1,
+            '>' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(s[open + 1..open + i].trim()).filter(|a| !a.is_empty());
+                }
+            }
+            ',' if depth == 1 => {
+                return Some(s[open + 1..open + i].trim()).filter(|a| !a.is_empty());
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 #[cfg(test)]

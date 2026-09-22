@@ -15,7 +15,10 @@
 
 use std::path::Path;
 
-use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use cgg_core::{
+    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, RefRecord,
+    first_template_arg, ids::FileId,
+};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -56,6 +59,7 @@ impl LanguagePlugin for CppPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            class_stack: Vec::new(),
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -71,6 +75,9 @@ struct CppWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Class and struct names currently open. Namespaces stay on `scope`
+    /// only, so a field's owner is the class and not the namespace.
+    class_stack: Vec<String>,
     /// Needed for the registrar-verb gate. Without it C++ captured no
     /// argument-position handler at all, so `run_handler(my_handler)` —
     /// the one entry point an aws-lambda-cpp binary has — referenced
@@ -119,8 +126,10 @@ impl<'a> CppWalker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !name.is_empty() {
-                    self.scope.push(name);
+                    self.scope.push(name.clone());
+                    self.class_stack.push(name);
                     self.walk_children(node);
+                    self.class_stack.pop();
                     self.scope.pop();
                 } else {
                     self.walk_children(node);
@@ -141,6 +150,11 @@ impl<'a> CppWalker<'a> {
             // not `declaration`. Missing that node is why a header
             // prototype never existed to absorb into the out-of-line body.
             "declaration" | "field_declaration" => {
+                if node.kind() == "field_declaration" {
+                    self.record_field(node);
+                } else {
+                    self.record_local(node);
+                }
                 self.try_record_prototype(node);
                 self.walk_children(node);
                 return;
@@ -151,6 +165,11 @@ impl<'a> CppWalker<'a> {
             }
             "preproc_include" => {
                 self.record_include(node);
+                return;
+            }
+            "new_expression" => {
+                self.record_new(node);
+                self.walk_children(node);
                 return;
             }
             "call_expression" => {
@@ -233,7 +252,13 @@ impl<'a> CppWalker<'a> {
             return tail.to_string();
         }
         let scope = self.scope.join("::");
-        if tail == scope || tail.starts_with(&(scope.clone() + "::")) {
+        // A bare name equal to the class (`Kernel` inside `class Kernel`)
+        // is a constructor, and its qualified name is `Kernel::Kernel`.
+        // Only a declarator that already contains `::` can already include
+        // the enclosing scope (`math::Calc::add` written inside `namespace math`).
+        if tail.contains("::")
+            && (tail == scope || tail.starts_with(&(scope.clone() + "::")))
+        {
             tail.to_string()
         } else {
             format!("{scope}::{tail}")
@@ -318,6 +343,53 @@ impl<'a> CppWalker<'a> {
         }
     }
 
+    /// `StreamOutput* streams` inside `class Kernel`. The call
+    /// `kernel->streams->printf()` is in another file; only the type
+    /// travels, via [`FileFacts::field_types`].
+    fn record_field(&mut self, node: Node) {
+        let Some(owner) = self.class_stack.last().cloned() else {
+            return;
+        };
+        let Some(ty) = node
+            .child_by_field_name("type")
+            .and_then(|t| nominal_type(self.text(t)))
+        else {
+            return;
+        };
+        for declarator in declarator_fields(node) {
+            let Some(field) = variable_name(declarator, self.source) else {
+                continue;
+            };
+            self.facts.field_types.push(FieldType {
+                owner: owner.clone(),
+                field,
+                type_name: ty.clone(),
+            });
+        }
+    }
+
+    /// `Kernel* kernel = new Kernel()` and other block/file declarations.
+    /// A function prototype has no variable name and is skipped.
+    fn record_local(&mut self, node: Node) {
+        let Some(ty) = node
+            .child_by_field_name("type")
+            .and_then(|t| nominal_type(self.text(t)))
+        else {
+            return;
+        };
+        let scope_byte = node.start_byte() as u32;
+        for declarator in declarator_fields(node) {
+            let Some(var_name) = variable_name(declarator, self.source) else {
+                continue;
+            };
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name,
+                type_name: ty.clone(),
+                scope_byte,
+            });
+        }
+    }
+
     fn try_record_prototype(&mut self, node: Node) {
         let mut c = node.walk();
         for child in node.children(&mut c) {
@@ -393,6 +465,24 @@ impl<'a> CppWalker<'a> {
                 });
             }
         }
+    }
+
+    /// `new Kernel()` is the call that enters `Kernel::Kernel`. The
+    /// grammar does not treat it as a `call_expression`.
+    fn record_new(&mut self, node: Node) {
+        let Some(ty) = node.child_by_field_name("type") else {
+            return;
+        };
+        let Some(name) = nominal_type(self.text(ty)) else {
+            return;
+        };
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: String::new(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            ..Default::default()
+        });
     }
 
     fn record_call(&mut self, node: Node) {
@@ -503,6 +593,108 @@ fn has_child_kind(node: Node, kind: &str) -> bool {
     let mut c = node.walk();
     node.children(&mut c).any(|ch| ch.kind() == kind)
 }
+
+fn declarator_fields(node: Node) -> Vec<Node> {
+    let mut cursor = node.walk();
+    if !cursor.goto_first_child() {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    loop {
+        if cursor.field_name() == Some("declarator") {
+            out.push(cursor.node());
+        }
+        if !cursor.goto_next_sibling() {
+            break;
+        }
+    }
+    out
+}
+
+/// Identifier a declaration names, or `None` when the declarator is a
+/// function (a prototype, not a variable or field).
+fn variable_name(node: Node, source: &[u8]) -> Option<String> {
+    let mut n = node;
+    loop {
+        match n.kind() {
+            "identifier" | "field_identifier" => {
+                let text = n.utf8_text(source).unwrap_or("").trim();
+                if text.is_empty() {
+                    return None;
+                }
+                return Some(text.to_string());
+            }
+            "function_declarator" => return None,
+            "init_declarator"
+            | "pointer_declarator"
+            | "array_declarator"
+            | "reference_declarator"
+            | "attributed_declarator"
+            | "parenthesized_declarator" => {
+                n = inner_declarator(n)?;
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn inner_declarator(node: Node) -> Option<Node> {
+    if let Some(inner) = node.child_by_field_name("declarator") {
+        return Some(inner);
+    }
+    let mut c = node.walk();
+    node.children(&mut c).find(|ch| {
+        matches!(
+            ch.kind(),
+            "identifier"
+                | "field_identifier"
+                | "function_declarator"
+                | "pointer_declarator"
+                | "reference_declarator"
+                | "array_declarator"
+                | "init_declarator"
+                | "parenthesized_declarator"
+                | "attributed_declarator"
+                | "qualified_identifier"
+        )
+    })
+}
+
+/// `const StreamOutput*` / `std::string` → `StreamOutput` / `string`,
+/// dropping a result that is not a nominal type (`int`, `void`).
+///
+/// `std::unique_ptr<Kernel>` and `shared_ptr<const StreamOutput>` peel
+/// to the pointed-to type: the field hop needs `Kernel`, not the wrapper.
+fn nominal_type(raw: &str) -> Option<String> {
+    let mut s = raw.trim();
+    loop {
+        let next = s.trim_start();
+        if let Some(rest) = next
+            .strip_prefix("const ")
+            .or_else(|| next.strip_prefix("volatile "))
+            .or_else(|| next.strip_prefix("typename "))
+        {
+            s = rest;
+        } else {
+            s = next;
+            break;
+        }
+    }
+    let s = s.trim_matches(|c: char| c == '*' || c == '&' || c.is_whitespace());
+    let s = s.rsplit("::").next().unwrap_or(s).trim();
+    if let Some(arg) = first_template_arg(s)
+        && let Some(inner) = nominal_type(arg)
+    {
+        return Some(inner);
+    }
+    let s = s.split('<').next().unwrap_or(s).trim();
+    let s = s.trim_matches(|c: char| c == '*' || c == '&');
+    if s.is_empty() || !s.starts_with(|c: char| c.is_uppercase()) {
+        return None;
+    }
+    Some(s.to_string())
+}
+
 
 /// Rightmost `name` field. `math::Calc::add` nests qualified identifiers,
 /// and `child_by_field_name` returns the first, which is not the method.
@@ -984,6 +1176,15 @@ public:
             .map(|d| d.qualified_name.as_str())
             .collect();
         assert!(qns.contains(&"ns::Foo::Foo"), "got: {qns:?}");
+        // A constructor in a global class is `Foo::Foo`, not bare `Foo`.
+        // The bare name is what `new Foo()` looks up.
+        let global = extract("class Foo { Foo(); };\n");
+        let ctor = global
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "Foo")
+            .unwrap();
+        assert_eq!(ctor.qualified_name, "Foo::Foo");
         assert!(qns.contains(&"ns::Foo::~Foo"), "got: {qns:?}");
         assert!(qns.contains(&"ns::Foo::bar"), "got: {qns:?}");
         let ctor = f
@@ -1116,6 +1317,60 @@ public:
                 .iter()
                 .map(|d| &d.qualified_name)
                 .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn local_variable_and_field_types_are_recorded() {
+        let f = extract(
+            r#"
+class Kernel {
+    StreamOutput* streams;
+    void add_module(Module* module);
+};
+void init() {
+    Kernel* kernel = new Kernel();
+    kernel->add_module(kernel);
+    kernel->streams->printf();
+}
+"#,
+        );
+        let local = f
+            .local_types
+            .iter()
+            .find(|t| t.var_name == "kernel")
+            .expect("kernel local");
+        assert_eq!(local.type_name, "Kernel");
+        let field = f
+            .field_types
+            .iter()
+            .find(|t| t.owner == "Kernel" && t.field == "streams")
+            .expect("streams field");
+        assert_eq!(field.type_name, "StreamOutput");
+        let wrapped = extract(
+            "class Kernel { std::unique_ptr<StreamOutput> out; shared_ptr<const Robot> robot; };\n",
+        );
+        let out = wrapped
+            .field_types
+            .iter()
+            .find(|t| t.field == "out")
+            .expect("unique_ptr field");
+        assert_eq!(out.type_name, "StreamOutput");
+        let robot = wrapped
+            .field_types
+            .iter()
+            .find(|t| t.field == "robot")
+            .expect("shared_ptr field");
+        assert_eq!(robot.type_name, "Robot");
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(refs.contains(&("add_module", "kernel")), "refs: {refs:?}");
+        assert!(
+            refs.contains(&("printf", "kernel->streams")),
+            "refs: {refs:?}"
         );
     }
 
