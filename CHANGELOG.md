@@ -55,6 +55,18 @@ ever grows in default mode — see *Compatibility* below).
 - KV embedded in `Builder.load_string('''…''')` inside Python files is
   not seen by the Kivy plugin.
 
+### Changed
+
+- **README benchmark table re-measured.** The per-language table had not
+  been regenerated since v0.4.0 (`f433c76`), so 29 of its 45 rows carried
+  counts from a resolver several releases old (ripgrep 6,984 edges where
+  the current binary finds 7,008; zod 1,795 callables where it finds
+  1,701). Regenerated from this tree. Regenerating with the 0.8.5 binary
+  produces identical rows for every existing language, so the movement
+  is the table catching up, not this change. A Kivy row is added
+  (Carvera_Controller, 642 callables; ctags has no KV parser, so its
+  recall column is empty).
+
 ### Fixed
 
 - **kv→python name-only fallback checked the wrong field.** The bare-
@@ -72,6 +84,41 @@ ever grows in default mode — see *Compatibility* below).
 - **Ternary value-ref widening captured the condition.** `a if cond else
   b` now descends only into the consequence and alternative;
   `not_operator` is no longer descended into.
+
+### Performance
+
+Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
+11986c1 3`, median of 3 samples per repo, baseline built in its own
+worktree), machine load 7.68 / 8.98 / 7.78 at measurement time:
+
+| | 0.8.5 | this tree | delta |
+| --- | --- | --- | --- |
+| corpus total, 170 of 174 repos | 190,746 ms | 194,152 ms | +1.8% |
+
+The 30-minute budget stopped the run before `verilog-picorv32`,
+`vhdl-uvvm`, `zig-http` and `zig-zig`. The script's own noise floor for
+this total is 1–1.5%, so +1.8% reads as flat, and it is **not
+like-for-like**: `.kv` files were unknown-extension skips in 0.8.5 and
+are parsed now. The Kivy application rows therefore carry new default
+work, not overhead — `app-carvera-kivy` 296 → 411 ms (23 KV files;
+KV parse plus extraction is 178 ms of that run), `kivy-kivymd` 205 →
+288 ms. Every non-Kivy row over 150 ms that the 3-sample table showed
+more than 5% slower was re-sampled with ten interleaved runs of each
+binary, minimum taken: `ocaml-dune` −4.3%, `go-fzf` −1.2%,
+`csharp-newtonsoft` −2.3%, `graphql-github` +0.8% (jitter);
+`go-caddy` +9.9% is +16 ms on a 162 ms run with byte-identical output
+and no Go code path touched (jitter at that scale); and
+`app-torch-ultralytics` +5.1% is +12 ms on 234 ms, which Python pays
+for the widened value-reference capture (194 more references recorded
+on that repository) and the class-field scan. No repository moves by
+more than the noise band for a reason in the code. Graph output is
+byte-identical to 0.8.5 on 165 of 174 corpus repositories; the nine
+that differ are the eight Kivy repositories and `py-falcon` (seven
+handlers newly reached through ternary branches).
+
+`cargo test --workspace`: 886 tests, 9 s on a warm build. Pre-commit
+hook end to end (tests, release build, README regeneration,
+docs-check): 9 s warm.
 
 ### Credits
 
