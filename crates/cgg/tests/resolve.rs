@@ -770,6 +770,296 @@ fn cpp_typed_call_reaches_every_definition_not_only_the_last() {
 }
 
 #[test]
+fn cpp_virtual_call_reaches_overrides() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "shape.h",
+        b"class Shape {\npublic:\n    virtual void draw();\n};\nclass Circle : public Shape {\npublic:\n    void draw();\n};\nclass Square : public Shape {\npublic:\n    void draw();\n};\n",
+    );
+    write(
+        tmp.path(),
+        "shape.cpp",
+        b"#include \"shape.h\"\nvoid Shape::draw() {}\nvoid Circle::draw() {}\nvoid Square::draw() {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"shape.h\"\nvoid render(Shape* s) { s->draw(); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let render = node_id("render").unwrap_or_else(|| panic!("render:\n{g}"));
+    let shape = node_id("Shape::draw").unwrap_or_else(|| panic!("Shape::draw:\n{g}"));
+    let circle = node_id("Circle::draw").unwrap_or_else(|| panic!("Circle::draw:\n{g}"));
+    let square = node_id("Square::draw").unwrap_or_else(|| panic!("Square::draw:\n{g}"));
+    assert!(g.contains(&format!("{render} --> {shape}")), "base:\n{g}");
+    assert!(
+        g.contains(&format!("{render} -->|dyn| {circle}")),
+        "Circle override should be dyn:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{render} -->|dyn| {square}")),
+        "Square override should be dyn:\n{g}"
+    );
+}
+
+#[test]
+fn cpp_virtual_overrides_are_not_capped() {
+    // Duck-typed fan-out stops at 5. A vtable is the real override set
+    // and must not be dropped when a class has more children than that.
+    let tmp = TempDir::new().unwrap();
+    let mut header =
+        String::from("class Shape {\npublic:\n    virtual void draw();\n};\n");
+    let mut body = String::from("#include \"shape.h\"\nvoid Shape::draw() {}\n");
+    for i in 0..6 {
+        header.push_str(&format!(
+            "class D{i} : public Shape {{\npublic:\n    void draw();\n}};\n"
+        ));
+        body.push_str(&format!("void D{i}::draw() {{}}\n"));
+    }
+    write(tmp.path(), "shape.h", header.as_bytes());
+    write(tmp.path(), "shape.cpp", body.as_bytes());
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"shape.h\"\nvoid render(Shape* s) { s->draw(); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let render = node_id("render").unwrap_or_else(|| panic!("render:\n{g}"));
+    for i in 0..6 {
+        let d =
+            node_id(&format!("D{i}::draw")).unwrap_or_else(|| panic!("D{i}::draw:\n{g}"));
+        assert!(
+            g.contains(&format!("{render} -->|dyn| {d}")),
+            "override D{i} missing (cap would drop it):\n{g}"
+        );
+    }
+}
+
+#[test]
+fn cpp_non_virtual_call_does_not_fan_out_to_overrides() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "shape.h",
+        b"class Shape {\npublic:\n    void draw();\n};\nclass Circle : public Shape {\npublic:\n    void draw();\n};\n",
+    );
+    write(
+        tmp.path(),
+        "shape.cpp",
+        b"#include \"shape.h\"\nvoid Shape::draw() {}\nvoid Circle::draw() {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"shape.h\"\nvoid render(Shape* s) { s->draw(); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let render = node_id("render").unwrap_or_else(|| panic!("render:\n{g}"));
+    let shape = node_id("Shape::draw").unwrap_or_else(|| panic!("Shape::draw:\n{g}"));
+    let circle = node_id("Circle::draw").unwrap_or_else(|| panic!("Circle::draw:\n{g}"));
+    assert!(g.contains(&format!("{render} --> {shape}")), "base:\n{g}");
+    assert!(
+        !g.contains(&format!("{render} --> {circle}")),
+        "non-virtual must not fan out:\n{g}"
+    );
+}
+
+#[test]
+fn cpp_typed_derived_pointer_does_not_reach_sibling_overrides() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "shape.h",
+        b"class Shape {\npublic:\n    virtual void draw();\n};\nclass Circle : public Shape {\npublic:\n    void draw();\n};\nclass Square : public Shape {\npublic:\n    void draw();\n};\n",
+    );
+    write(
+        tmp.path(),
+        "shape.cpp",
+        b"#include \"shape.h\"\nvoid Shape::draw() {}\nvoid Circle::draw() {}\nvoid Square::draw() {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"shape.h\"\nvoid render(Circle* c) { c->draw(); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let render = node_id("render").unwrap_or_else(|| panic!("render:\n{g}"));
+    let circle = node_id("Circle::draw").unwrap_or_else(|| panic!("Circle::draw:\n{g}"));
+    let square = node_id("Square::draw").unwrap_or_else(|| panic!("Square::draw:\n{g}"));
+    assert!(
+        g.contains(&format!("{render} --> {circle}")),
+        "typed Circle* should call Circle::draw:\n{g}"
+    );
+    assert!(
+        !g.contains(&format!("{render} --> {square}"))
+            && !g.contains(&format!("{render} -->|dyn| {square}")),
+        "sibling Square::draw must not be reached:\n{g}"
+    );
+}
+
+#[test]
+fn cpp_virtual_dyn_edges_are_not_duplicated_by_dynamic_dispatch_flag() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "shape.h",
+        b"class Shape {\npublic:\n    virtual void draw();\n};\nclass Circle : public Shape {\npublic:\n    void draw();\n};\n",
+    );
+    write(
+        tmp.path(),
+        "shape.cpp",
+        b"#include \"shape.h\"\nvoid Shape::draw() {}\nvoid Circle::draw() {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"shape.h\"\nvoid render(Shape* s) { s->draw(); }\n",
+    );
+    let run = |name: &str, extra: &[&str]| {
+        let out = tmp.path().join(name);
+        let mut cmd = cgg();
+        cmd.args(["-t", "mermaid", "-o"]).arg(&out);
+        cmd.args(extra);
+        cmd.arg(tmp.path()).assert().success();
+        fs::read_to_string(&out)
+            .unwrap()
+            .matches("-->|dyn|")
+            .count()
+    };
+    let plain = run("p.mmd", &[]);
+    let flagged = run("d.mmd", &["--dynamic-dispatch"]);
+    assert!(plain >= 1, "virtual fan-out is in the default graph");
+    assert_eq!(
+        plain, flagged,
+        " --dynamic-dispatch must not duplicate C++ vtable edges"
+    );
+}
+
+#[test]
+fn cpp_member_pointer_table_reaches_overrides() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "module.h",
+        b"class Module {\npublic:\n    virtual void on_idle(void*);\n    virtual void on_tick(void*);\n};\nclass Robot : public Module {\npublic:\n    void on_idle(void*);\n};\ntypedef void (Module::*CB)(void*);\nextern const CB table[2];\n",
+    );
+    write(
+        tmp.path(),
+        "module.cpp",
+        b"#include \"module.h\"\nconst CB table[2] = { &Module::on_idle, &Module::on_tick };\nvoid Module::on_idle(void*) {}\nvoid Module::on_tick(void*) {}\nvoid Robot::on_idle(void*) {}\n",
+    );
+    write(
+        tmp.path(),
+        "kernel.cpp",
+        b"#include \"module.h\"\nvoid call_event(Module* m, int i) { (m->*table[i])(0); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let call = node_id("call_event").unwrap_or_else(|| panic!("call_event:\n{g}"));
+    let idle = node_id("Module::on_idle").unwrap_or_else(|| panic!("on_idle:\n{g}"));
+    let tick = node_id("Module::on_tick").unwrap_or_else(|| panic!("on_tick:\n{g}"));
+    let robot =
+        node_id("Robot::on_idle").unwrap_or_else(|| panic!("Robot::on_idle:\n{g}"));
+    assert!(
+        g.contains(&format!("{call} -->|dyn| {idle}")),
+        "table on_idle:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{call} -->|dyn| {tick}")),
+        "table on_tick:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{call} -->|dyn| {robot}")),
+        "override of table take:\n{g}"
+    );
+}
+
+#[test]
 fn js_esm_import_resolves() {
     // JS project: utils.js exports helper; main.js imports and calls it.
     let tmp = TempDir::new().unwrap();

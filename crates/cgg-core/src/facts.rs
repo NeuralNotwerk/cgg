@@ -332,6 +332,10 @@ pub struct FileFacts {
     /// of such macros and field hops against [`Self::field_types`].
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub macro_aliases: Vec<MacroAlias>,
+    /// `&Type::method` stored into a table that an indexed `->*` call
+    /// later dispatches through.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub member_ptr_takes: Vec<MemberPtrTake>,
     /// Names this file makes visible to other modules.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exports: Vec<ExportRecord>,
@@ -390,6 +394,16 @@ pub struct MacroAlias {
     pub replacement: String,
 }
 
+/// One address-taken member, with the table it was stored into.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberPtrTake {
+    /// Initializer being filled (`kernel_callback_functions`).
+    pub table: String,
+    /// Class the pointer names (`Module` in `&Module::on_idle`).
+    pub owner: String,
+    pub method: String,
+}
+
 impl FileFacts {
     pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
         Self {
@@ -402,6 +416,7 @@ impl FileFacts {
             local_types: Vec::new(),
             field_types: Vec::new(),
             macro_aliases: Vec::new(),
+            member_ptr_takes: Vec::new(),
             exports: Vec::new(),
             dyn_uses: Vec::new(),
             unreachable: Vec::new(),

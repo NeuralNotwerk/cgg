@@ -154,6 +154,7 @@ const BASE_CONTAINER_KINDS: &[&str] = &[
     "implements_clause",
     "argument_list",
     "base_clause",
+    "base_class_clause",
     "class_interface_clause",
     "extends_type_clause",
     "extends_interfaces",
@@ -198,11 +199,9 @@ pub(crate) fn base_types(node: Node, source: &[u8]) -> Vec<String> {
 /// `< Super`, and skips keyword-argument noise Python allows in a base
 /// list (`class C(Base, metaclass=Meta)`).
 fn split_type_list(raw: &str) -> Vec<String> {
-    let mut s = raw.trim();
-    for kw in ["extends", "implements", "public", "private", "protected"] {
-        s = s.trim_start_matches(kw).trim_start();
-    }
+    let s = raw.trim();
     let s = trim_unbalanced_close(s.trim_start_matches(['(', ':', '<', '[']).trim());
+    let s = strip_leading_type_kws(s);
 
     let mut parts: Vec<String> = Vec::new();
     let mut depth = 0i32;
@@ -227,15 +226,35 @@ fn split_type_list(raw: &str) -> Vec<String> {
 
     parts
         .into_iter()
-        .map(|p| {
-            p.trim()
-                .trim_start_matches("extends ")
-                .trim_start_matches("implements ")
-                .trim()
-                .to_string()
-        })
+        .map(|p| strip_leading_type_kws(p.trim()))
         .filter(|p| !p.is_empty())
         .collect()
+}
+
+/// Strip `public` / `virtual` / `extends` prefixes until none remain.
+///
+/// C++ writes both `public virtual Shape` and `virtual public Shape`.
+/// One pass left the second as `public Shape`, which `is_type_name`
+/// rejects because of the space.
+fn strip_leading_type_kws(s: &str) -> String {
+    let mut t = s.trim().to_string();
+    loop {
+        let next = t
+            .strip_prefix("extends")
+            .or_else(|| t.strip_prefix("implements"))
+            .or_else(|| t.strip_prefix("public"))
+            .or_else(|| t.strip_prefix("private"))
+            .or_else(|| t.strip_prefix("protected"))
+            .or_else(|| t.strip_prefix("virtual"));
+        let Some(rest) = next else {
+            return t;
+        };
+        let rest = rest.trim_start().to_string();
+        if rest == t {
+            return t;
+        }
+        t = rest;
+    }
 }
 
 /// Strip trailing closers that close nothing — the container's own
@@ -330,6 +349,12 @@ mod tests {
         );
         // The container's own delimiter still goes.
         assert_eq!(split_type_list("(Base, Mixin)"), vec!["Base", "Mixin"]);
+        // C++ access specifiers, including virtual inheritance either order.
+        assert_eq!(
+            split_type_list(": virtual public Shape, public Circle"),
+            vec!["Shape", "Circle"]
+        );
+        assert_eq!(split_type_list(": public virtual Shape"), vec!["Shape"]);
     }
 
     #[test]
