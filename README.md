@@ -1361,6 +1361,10 @@ know](#adding-a-framework-cgg-does-not-know).
   machine-generated data, never hand-written code) is skipped and audited
   as `skip_reason: too-deep` instead of overflowing the stack and aborting
   the process, which is what 0.8.4 and earlier did.
+- Source lines exceeding a per-grammar byte threshold are skipped before
+  parsing (`skip_reason: long-line`). Some tree-sitter grammars (Kivy KV)
+  parse in time quadratic in line length; the guard prevents a multi-second
+  stall. Currently only Kivy KV sets a cap (32 KB/line).
 - C/C++ macros are extracted as callables but not expanded (no preprocessor simulation)
 - Type inference is partial — handles parameters, constructors, return types,
   and (opt-in, Rust) interface/trait dispatch to known implementors via

@@ -25,6 +25,40 @@ ever grows in default mode — see *Compatibility* below).
   widget class. Multi-statement suites, `app.root` and a built-in `kivy`
   framework rule (`App.build`, `on_start`/`on_stop`, `on_touch_*`,
   `.bind()`, `Clock.schedule_*`, `on_<prop>` observers) are included.
+- **Per-language line-length guard (`skip_reason: long-line`).** Some
+  tree-sitter grammars parse in time quadratic in line length; a file
+  whose longest line exceeds the plugin's threshold is skipped before
+  parsing. Currently only Kivy KV sets a cap (32 KB/line). The guard
+  bounds cost per line, not per file — the real fix is a parse-time
+  budget, which is a pre-existing gap, not this PR's to solve.
+- **Colon-less KV rule headers.** `<BaseChipIcon>` without a trailing
+  colon (KivyMD style) is now accepted by the vendored grammar.
+- **KV rule recovery after parse errors.** A text-level
+  `harvest_unparsed_rule_calls` pass attributes calls to the enclosing
+  `<Rule>:` even when the grammar fails to wrap it as a tree-sitter
+  `rule` node (e.g. after an unclosed parenthesis).
+- **20 inherited-property observer names** added to the kivy framework
+  rule (`on_text`, `on_state`, `on_active`, `on_press`, `on_release`,
+  etc.), so subclass observers of built-in Kivy properties are no longer
+  reported as dead code.
+
+### Fixed
+
+- **kv→python name-only fallback checked the wrong field.** The bare-
+  receiver guard (`root`/`self`/`app`) tested `context` (the rule class
+  name) instead of `receiver_hint` (the actual receiver), rejecting the
+  exact case it was written to keep. Rooted chains now emit
+  `Confidence::Low`.
+- **`last_event_def` span leaked across rules.** An `on_*` binding in
+  `<A>:` could extend its byte span into the next `<B>:`, corrupting
+  `--since` line-range intersection. The index is now saved/restored on
+  rule and widget entry, and clamped to the enclosing widget's `end_byte`.
+- **`refine_owner_via_fields` resolved to the Kivy descriptor type.**
+  `ObjectProperty`, `StringProperty`, etc. are now skipped; the lookup
+  prefers the rule class when multiple classes declare the same field.
+- **Ternary value-ref widening captured the condition.** `a if cond else
+  b` now descends only into the consequence and alternative;
+  `not_operator` is no longer descended into.
 
 ## [0.8.5] - 2026-09-18
 
