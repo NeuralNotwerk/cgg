@@ -330,10 +330,11 @@ pub fn propagate_types_with_fields(
     // long-lived host process. The allocation *count* is unchanged — the
     // leaked version called `to_string()` too — so this costs nothing; the
     // strings are simply freed now.
+    let cpp = facts.language == "cpp";
     let param_store: Vec<(u32, String, String)> = facts
         .definitions
         .iter()
-        .flat_map(collect_param_types)
+        .flat_map(|d| collect_param_types(d, cpp))
         .collect();
     // Key: (enclosing_start_byte, variable_name) -> type_name. Last write
     // wins, exactly as the repeated `map.insert` did.
@@ -353,10 +354,15 @@ pub fn propagate_types_with_fields(
     // call site (`lookup_local_type`) so two functions sharing a
     // variable name do not last-write-win.
     let mut self_field_map: HashMap<(u32, &str), &str> = HashMap::new();
+    // File-wide, last-write-wins map of ordinary locals: the lookup every
+    // plugin except C++ was written against (see Strategy 3 below).
+    let mut local_type_map: HashMap<&str, &str> = HashMap::new();
     for lt in &facts.local_types {
         if lt.var_name.starts_with("self.") {
             self_field_map
                 .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
+        } else {
+            local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
         }
     }
 
@@ -483,10 +489,19 @@ pub fn propagate_types_with_fields(
             continue;
         }
 
-        // Strategy 3: explicit local variable type declarations, scoped
-        // to the enclosing callable so two `stream` locals in one file
-        // do not last-write-win across functions.
-        if let Some(ty) = lookup_local_type(facts, rref.site_byte, rh) {
+        // Strategy 3: explicit local variable type declarations. C++ looks
+        // them up per call site, scoped to the enclosing callable, so two
+        // `stream` locals in one file do not last-write-win. Every other
+        // plugin keeps the file-wide map: their `scope_byte` conventions
+        // differ (PHP records none), and scoping them changed resolution
+        // in every language on the corpus, losing 1,698 high-confidence
+        // edges outside C/C++.
+        let local_ty = if cpp {
+            lookup_local_type(facts, rref.site_byte, rh)
+        } else {
+            local_type_map.get(rh).copied()
+        };
+        if let Some(ty) = local_ty {
             rewrites.push((i, ty.to_string()));
             continue;
         }
@@ -546,7 +561,7 @@ pub fn propagate_types_with_fields(
 /// Returns owned strings rather than writing borrowed ones into a map: the
 /// caller needs them to outlive its borrow of `facts`, and owning them
 /// there is what lets the caller free them. See the call site.
-fn collect_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
+fn collect_param_types(def: &DefRecord, cpp: bool) -> Vec<(u32, String, String)> {
     let mut out = Vec::new();
     // Parse parameter types from signature_hint.
     // Patterns we recognize:
@@ -586,8 +601,17 @@ fn collect_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
             continue;
         }
 
-        // Try "Type name" pattern (Java, C#, C++, Go)
-        if let Some((name, ty)) = parse_type_first_param(param) {
+        // Try "Type name" pattern (Java, C#, C++, Go). C++ gets the parser
+        // that understands `const StreamOutput *stream`, modifiers and
+        // defaults; every other plugin keeps the parser it was written
+        // against, because the C++ one rejects `ContainerBuilder $container`
+        // and cost PHP its typed receivers corpus-wide.
+        let parsed = if cpp {
+            parse_type_first_param_cpp(param)
+        } else {
+            parse_type_first_param(param)
+        };
+        if let Some((name, ty)) = parsed {
             out.push((def.start_byte, name.to_string(), ty.to_string()));
         }
     }
@@ -622,7 +646,37 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
     Some((name, ty))
 }
 
+/// The pre-0.9 parser, kept verbatim for every language except C++.
 fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
+    // "Service x" or "final Service x" or "Service<T> x"
+    let parts: Vec<&str> = param.split_whitespace().collect();
+    if parts.len() < 2 {
+        return None;
+    }
+    // Skip modifiers
+    let (ty_idx, name_idx) = if matches!(parts[0], "final" | "const" | "var" | "val") {
+        if parts.len() < 3 {
+            return None;
+        }
+        (1, 2)
+    } else {
+        (0, parts.len() - 1)
+    };
+    let ty = parts[ty_idx].trim_end_matches(['<', '>']);
+    let name = parts[name_idx];
+    if ty.is_empty() || name.is_empty() {
+        return None;
+    }
+    if !ty.starts_with(char::is_uppercase) {
+        return None;
+    }
+    if is_primitive(ty) {
+        return None;
+    }
+    Some((name, ty))
+}
+
+fn parse_type_first_param_cpp(param: &str) -> Option<(&str, &str)> {
     // "Service x", "final Service x", "Service<T> x",
     // "const StreamOutput *stream", "Module* module".
     let param = strip_default_suffix(param);
@@ -1027,6 +1081,7 @@ mod tests {
             },
         ];
         let mut facts = mk_facts(defs, refs);
+        facts.language = "cpp".into();
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
         assert_eq!(facts.references[1].receiver_hint, "Module");
@@ -1097,6 +1152,7 @@ mod tests {
             },
         ];
         let mut facts = mk_facts(defs, refs);
+        facts.language = "cpp".into();
         facts.local_types.push(cgg_core::LocalType {
             var_name: "stream".into(),
             type_name: "StreamOutput".into(),
@@ -1109,6 +1165,47 @@ mod tests {
         });
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
+        assert_eq!(facts.references[1].receiver_hint, "Kernel");
+    }
+
+    /// The corpus-wide regression the scoping caused when it ran for every
+    /// language: PHP alone lost 8,142 typed-receiver edges. Outside C++ the
+    /// file-wide, last-write-wins lookup stays exactly as it was.
+    #[test]
+    fn locals_outside_cpp_keep_the_file_wide_lookup() {
+        let defs = vec![
+            mk_def("a", "void a()", 0, 50),
+            mk_def("b", "void b()", 50, 100),
+        ];
+        let refs = vec![
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "stream".into(),
+                site_line: 2,
+                site_byte: 20,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "add_module".into(),
+                receiver_hint: "stream".into(),
+                site_line: 6,
+                site_byte: 70,
+                ..Default::default()
+            },
+        ];
+        let mut facts = mk_facts(defs, refs);
+        facts.local_types.push(cgg_core::LocalType {
+            var_name: "stream".into(),
+            type_name: "StreamOutput".into(),
+            scope_byte: 10,
+        });
+        facts.local_types.push(cgg_core::LocalType {
+            var_name: "stream".into(),
+            type_name: "Kernel".into(),
+            scope_byte: 60,
+        });
+        propagate_types(&mut facts);
+        assert_eq!(facts.references[0].receiver_hint, "Kernel");
         assert_eq!(facts.references[1].receiver_hint, "Kernel");
     }
 

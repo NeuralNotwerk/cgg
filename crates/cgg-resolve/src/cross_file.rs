@@ -380,7 +380,12 @@ fn rewrite_rust_use_path(path: &str, crate_root: &str, own_module: &str) -> Stri
 }
 
 /// Resolve call-site references across files using import tables.
-pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFileOutput {
+pub fn resolve(
+    graph: &Graph,
+    facts: &[FileFacts],
+    fanout_cap: usize,
+    dynamic_dispatch: bool,
+) -> CrossFileOutput {
     // Edges already emitted by `intra_file`, keyed for O(1) lookup.
     //
     // The de-duplication test below used to scan every edge in the graph
@@ -1608,8 +1613,13 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
         out.unresolved.append(&mut o.unresolved);
     }
 
-    let extra = cpp_virtual_dispatch(graph, facts, &out.edges, &by_owner_method);
-    out.edges.extend(extra);
+    // C++ virtual and member-pointer fan-out is `Via::Dynamic`, and every
+    // dynamic edge is opt-in: `--dynamic-dispatch` (which `--dead-code`
+    // turns on) never changes the default graph.
+    if dynamic_dispatch {
+        let extra = cpp_virtual_dispatch(graph, facts, &out.edges, &by_owner_method);
+        out.edges.extend(extra);
+    }
     out
 }
 
@@ -1720,7 +1730,7 @@ fn cpp_virtual_dispatch(
                     &virtual_methods,
                     &bases_by_owner,
                     &derived_by_base,
-                    &by_owner_method,
+                    by_owner_method,
                 );
                 for dst in targets {
                     if dst == src {
@@ -1776,7 +1786,7 @@ fn cpp_virtual_dispatch(
             continue;
         }
         for ov in
-            cpp_descendants(owner, &node.simple_name, &derived_by_base, &by_owner_method)
+            cpp_descendants(owner, &node.simple_name, &derived_by_base, by_owner_method)
         {
             if ov == dst || ov == src {
                 continue;
@@ -2932,7 +2942,7 @@ fn enclosing_callable_id(
 mod tests {
     /// `resolve` at the default fan-out cap.
     fn resolve_default(g: &Graph, f: &[FileFacts]) -> CrossFileOutput {
-        resolve(g, f, DEFAULT_FANOUT_CAP)
+        resolve(g, f, DEFAULT_FANOUT_CAP, false)
     }
 
     use super::*;

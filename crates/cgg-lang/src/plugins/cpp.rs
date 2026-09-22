@@ -934,7 +934,6 @@ fn nominal_type(raw: &str) -> Option<String> {
     Some(s.to_string())
 }
 
-
 /// Rightmost `name` field. `math::Calc::add` nests qualified identifiers,
 /// and `child_by_field_name` returns the first, which is not the method.
 fn last_name_field(node: Node) -> Option<Node> {

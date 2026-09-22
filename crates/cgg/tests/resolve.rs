@@ -789,7 +789,7 @@ fn cpp_virtual_call_reaches_overrides() {
     );
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "-o"])
+        .args(["--dynamic-dispatch", "-t", "mermaid", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
@@ -843,7 +843,7 @@ fn cpp_virtual_overrides_are_not_capped() {
     );
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "-o"])
+        .args(["--dynamic-dispatch", "-t", "mermaid", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
@@ -890,7 +890,7 @@ fn cpp_non_virtual_call_does_not_fan_out_to_overrides() {
     );
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "-o"])
+        .args(["--dynamic-dispatch", "-t", "mermaid", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()
@@ -967,7 +967,7 @@ fn cpp_typed_derived_pointer_does_not_reach_sibling_overrides() {
 }
 
 #[test]
-fn cpp_virtual_dyn_edges_are_not_duplicated_by_dynamic_dispatch_flag() {
+fn cpp_virtual_dyn_edges_are_opt_in_behind_dynamic_dispatch() {
     let tmp = TempDir::new().unwrap();
     write(
         tmp.path(),
@@ -997,10 +997,13 @@ fn cpp_virtual_dyn_edges_are_not_duplicated_by_dynamic_dispatch_flag() {
     };
     let plain = run("p.mmd", &[]);
     let flagged = run("d.mmd", &["--dynamic-dispatch"]);
-    assert!(plain >= 1, "virtual fan-out is in the default graph");
     assert_eq!(
-        plain, flagged,
-        " --dynamic-dispatch must not duplicate C++ vtable edges"
+        plain, 0,
+        "C++ vtable fan-out is opt-in: the default graph carries no dyn edges"
+    );
+    assert!(
+        flagged >= 1,
+        "--dynamic-dispatch must add the C++ vtable edges"
     );
 }
 
@@ -1024,7 +1027,7 @@ fn cpp_member_pointer_table_reaches_overrides() {
     );
     let mmd = tmp.path().join("g.mmd");
     cgg()
-        .args(["-t", "mermaid", "-o"])
+        .args(["--dynamic-dispatch", "-t", "mermaid", "-o"])
         .arg(&mmd)
         .arg(tmp.path())
         .assert()

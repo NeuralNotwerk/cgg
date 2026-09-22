@@ -485,7 +485,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 | Java | import, import static | params, `Type var`, `new Foo()` | Local variable types |
 | Kotlin | import, as alias | params, `val x: T`, `Foo()` | Class-as-constructor |
 | C | `#include` transitive (depth 8) | — | Macros as callables |
-| C++ | `#include` transitive | — | Templates, operators |
+| C++ | `#include` transitive | params, locals, fields (one hop), `new T()`, object-like macro receivers | Templates, operators; prototypes unify with out-of-line bodies; virtual and member-pointer-table fan-out with `--dynamic-dispatch`; a `.h` without a same-stem `.cpp` sibling is parsed as C |
 | C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors |
 | Bash | `source ./file.sh` | — | Builtin filter |
 | Ruby | require/require_relative | — | initialize → Constructor |
@@ -525,7 +525,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2464 callables, 5593 edges, 1533 cross-file, 159ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2571 callables, 5814 edges, 1547 cross-file, 165ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -585,18 +585,22 @@ flowchart LR
   N46["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
   N47["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
   N48["cgg_lang::parser::exceeds_depth"]
-  N49["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N50["cgg_resolve::cross_file::resolve"]
-  N51["cgg_resolve::descriptor::link_descriptors"]
-  N52["cgg_resolve::dispatch::fanout"]
-  N53["cgg_resolve::ffi::link_ffi"]
-  N54["cgg_resolve::frameworks::detect"]
-  N55["cgg_resolve::intra_file::link_file"]
-  N56["cgg_resolve::names::owner_from_qn"]
-  N57["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N58["cgg_resolve::type_hints::build_return_type_map"]
-  N59["cgg_resolve::type_hints::propagate_types_with_returns"]
-  N60["cgg_walk::walk"]
+  N49["cgg_lang::plugins::cpp::unify_declarations"]
+  N50["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N51["cgg_resolve::cross_file::resolve"]
+  N52["cgg_resolve::descriptor::link_descriptors"]
+  N53["cgg_resolve::dispatch::fanout"]
+  N54["cgg_resolve::ffi::link_ffi"]
+  N55["cgg_resolve::frameworks::detect"]
+  N56["cgg_resolve::intra_file::link_file"]
+  N57["cgg_resolve::names::owner_from_qn"]
+  N58["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N59["cgg_resolve::type_hints::field_index"]
+  N60["cgg_resolve::type_hints::macro_index"]
+  N61["cgg_resolve::type_hints::resolve_macro_types"]
+  N62["cgg_resolve::type_hints::build_return_type_map"]
+  N63["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N64["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N11
@@ -618,7 +622,7 @@ flowchart LR
   N3 --> N0
   N3 --> N39
   N3 --> N34
-  N3 --> N60
+  N3 --> N64
   N3 --> N43
   N3 --> N37
   N3 --> N45
@@ -629,29 +633,33 @@ flowchart LR
   N3 -->|18x| N35
   N3 -->|2x| N47
   N3 --> N42
-  N3 --> N49
+  N3 --> N50
   N3 --> N41
   N3 --> N46
   N3 --> N48
   N3 --> N40
+  N3 --> N49
   N3 --> N25
   N3 --> N36
   N3 --> N32
-  N3 --> N56
+  N3 --> N57
   N3 --> N26
   N3 --> N31
+  N3 --> N62
   N3 --> N58
-  N3 --> N57
   N3 --> N59
+  N3 --> N60
+  N3 --> N61
+  N3 --> N63
   N3 --> N29
-  N3 --> N55
+  N3 --> N56
   N3 --> N27
   N3 --> N28
-  N3 --> N50
-  N3 --> N53
   N3 --> N51
   N3 --> N54
   N3 --> N52
+  N3 --> N55
+  N3 --> N53
   N3 --> N33
   N3 -->|5x| N19
   N3 --> N23
@@ -677,13 +685,13 @@ flowchart LR
   N14 --> N31
   N14 --> N33
   N21 --> N30
-  N50 -->|6x| N35
-  N50 -->|5x| N56
-  N51 -->|2x| N56
-  N52 --> N56
-  N54 -->|10x| N35
-  N55 -->|3x| N56
-  N59 -->|3x| N35
+  N51 -->|6x| N35
+  N51 -->|5x| N57
+  N52 -->|2x| N57
+  N53 --> N57
+  N55 -->|10x| N35
+  N56 -->|3x| N57
+  N63 -->|3x| N35
 ```
 <!-- cgg:end:self -->
 
@@ -1372,10 +1380,13 @@ know](#adding-a-framework-cgg-does-not-know).
   parsing (`skip_reason: long-line`). Some tree-sitter grammars (Kivy KV)
   parse in time quadratic in line length; the guard prevents a multi-second
   stall. Currently only Kivy KV sets a cap (32 KB/line).
-- C/C++ macros are extracted as callables but not expanded (no preprocessor simulation)
+- C/C++ function-like macros are extracted as callables but not expanded (no
+  preprocessor simulation). Object-like `#define NAME expr` is followed one
+  level only to type a receiver (`THE_APP->run()`); nothing else is preprocessed
 - Type inference is partial — handles parameters, constructors, return types,
-  and (opt-in, Rust) interface/trait dispatch to known implementors via
-  `--dynamic-dispatch`; does not handle generics or fully dynamic typing
+  and (opt-in, Rust and C++) interface/trait and virtual dispatch to known
+  implementors and overrides via `--dynamic-dispatch`; does not handle generics
+  or fully dynamic typing
 - No daemon / watch mode, and **no on-disk cache**. Every run re-walks,
   re-parses and re-resolves from source, which is what makes a run
   reproducible from the tree alone. Parsing dominates the wall clock, so
@@ -1422,10 +1433,10 @@ flight.
   itself is unreached. Together these are the largest remaining
   false-positive class in `--dead-code` on Rust.
 - **Dynamic-dispatch fan-out across all languages.** The declaration →
-  implementation fan-out (`--dynamic-dispatch`) is wired for Rust; the
-  resolver and output machinery are language-agnostic, but the
-  per-plugin capture still needs porting to the other interface-bearing
-  plugins. (Function-as-value capture now covers python, javascript,
+  implementation fan-out (`--dynamic-dispatch`) is wired for Rust traits
+  and for C++ virtual methods and member-pointer tables; the resolver and
+  output machinery are language-agnostic, but the per-plugin capture still
+  needs porting to the other interface-bearing plugins. (Function-as-value capture now covers python, javascript,
   typescript, go, java, csharp, php, ruby, rust, elixir and perl.)
 - **File-system-routed frameworks.** Next.js and Blazor put the route in
   the file layout or in markup cgg does not parse, so both are detected

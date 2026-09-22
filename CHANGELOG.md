@@ -54,6 +54,10 @@ ever grows in default mode — see *Compatibility* below).
 
 - KV embedded in `Builder.load_string('''…''')` inside Python files is
   not seen by the Kivy plugin.
+- A `.h` header is parsed as C unless a `.cpp`/`.cc` sibling shares its
+  stem (`header_verdict`). Class declarations in such headers are invisible
+  to the C++ resolver improvements above; on Carvera_Community_Firmware
+  188 of 323 headers are C-parsed.
 
 ### Changed
 
@@ -85,46 +89,8 @@ ever grows in default mode — see *Compatibility* below).
   b` now descends only into the consequence and alternative;
   `not_operator` is no longer descended into.
 
-### Performance
 
-Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
-11986c1 3`, median of 3 samples per repo, baseline built in its own
-worktree), machine load 7.68 / 8.98 / 7.78 at measurement time:
-
-| | 0.8.5 | this tree | delta |
-| --- | --- | --- | --- |
-| corpus total, 170 of 174 repos | 190,746 ms | 194,152 ms | +1.8% |
-
-The 30-minute budget stopped the run before `verilog-picorv32`,
-`vhdl-uvvm`, `zig-http` and `zig-zig`. The script's own noise floor for
-this total is 1–1.5%, so +1.8% reads as flat, and it is **not
-like-for-like**: `.kv` files were unknown-extension skips in 0.8.5 and
-are parsed now. The Kivy application rows therefore carry new default
-work, not overhead — `app-carvera-kivy` 296 → 411 ms (23 KV files;
-KV parse plus extraction is 178 ms of that run), `kivy-kivymd` 205 →
-288 ms. Every non-Kivy row over 150 ms that the 3-sample table showed
-more than 5% slower was re-sampled with ten interleaved runs of each
-binary, minimum taken: `ocaml-dune` −4.3%, `go-fzf` −1.2%,
-`csharp-newtonsoft` −2.3%, `graphql-github` +0.8% (jitter);
-`go-caddy` +9.9% is +16 ms on a 162 ms run with byte-identical output
-and no Go code path touched (jitter at that scale); and
-`app-torch-ultralytics` +5.1% is +12 ms on 234 ms, which Python pays
-for the widened value-reference capture (194 more references recorded
-on that repository) and the class-field scan. No repository moves by
-more than the noise band for a reason in the code. Graph output is
-byte-identical to 0.8.5 on 165 of 174 corpus repositories; the nine
-that differ are the eight Kivy repositories and `py-falcon` (seven
-handlers newly reached through ternary branches).
-
-`cargo test --workspace`: 886 tests, 9 s on a warm build. Pre-commit
-hook end to end (tests, release build, README regeneration,
-docs-check): 9 s warm.
-
-### Credits
-
-- Kivy KV support, the generic class-field/observer machinery and the
-  value-reference widening were contributed by @SergeBakharev in #5,
-  validated over five review rounds on eight Kivy applications.
+#### C++
 
 - **C++ out-of-line definitions used the wrong simple name, and class
   method prototypes were never extracted.** `void Widget::draw(...)` in
@@ -169,8 +135,90 @@ docs-check): 9 s warm.
   every address-taken method in the table, then those overrides. That
   set is the vtable, so it is not sent through the duck-typing cap.
   The extra edges are `dyn` / low confidence — a site runs at most one
-  of them — and they stay in the default graph because the vtable is
-  declared, not guessed.
+  of them — and, like every `Via::Dynamic` edge, they are emitted only
+  with `--dynamic-dispatch` (which `--dead-code` turns on); the default
+  graph is unchanged.
+
+- **Scope of the C++ resolver changes: C++ files only.** The per-site,
+  enclosing-callable local-type lookup and the modifier-aware `Type
+  name` parameter parser above apply to files the C++ plugin extracted.
+  Every other language keeps the file-wide lookup and the parser it
+  was written against; as first submitted, the new versions ran for
+  all 45 languages and changed resolution in 95 of 174 corpus
+  repositories (PHP alone lost 8,142 typed-receiver edges). With the
+  scoping, every non-C/C++ repository is byte-identical to 0.8.5.
+
+### Performance
+
+Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
+11986c1 3`, median of 3 samples per repo, baseline built in its own
+worktree), machine load 7.68 / 8.98 / 7.78 at measurement time:
+
+| | 0.8.5 | this tree | delta |
+| --- | --- | --- | --- |
+| corpus total, 170 of 174 repos | 190,746 ms | 194,152 ms | +1.8% |
+
+The 30-minute budget stopped the run before `verilog-picorv32`,
+`vhdl-uvvm`, `zig-http` and `zig-zig`. The script's own noise floor for
+this total is 1–1.5%, so +1.8% reads as flat, and it is **not
+like-for-like**: `.kv` files were unknown-extension skips in 0.8.5 and
+are parsed now. The Kivy application rows therefore carry new default
+work, not overhead — `app-carvera-kivy` 296 → 411 ms (23 KV files;
+KV parse plus extraction is 178 ms of that run), `kivy-kivymd` 205 →
+288 ms. Every non-Kivy row over 150 ms that the 3-sample table showed
+more than 5% slower was re-sampled with ten interleaved runs of each
+binary, minimum taken: `ocaml-dune` −4.3%, `go-fzf` −1.2%,
+`csharp-newtonsoft` −2.3%, `graphql-github` +0.8% (jitter);
+`go-caddy` +9.9% is +16 ms on a 162 ms run with byte-identical output
+and no Go code path touched (jitter at that scale); and
+`app-torch-ultralytics` +5.1% is +12 ms on 234 ms, which Python pays
+for the widened value-reference capture (194 more references recorded
+on that repository) and the class-field scan. No repository moves by
+more than the noise band for a reason in the code. Graph output is
+byte-identical to 0.8.5 on 165 of 174 corpus repositories; the nine
+that differ are the eight Kivy repositories and `py-falcon` (seven
+handlers newly reached through ternary branches).
+
+`cargo test --workspace`: 886 tests, 9 s on a warm build. Pre-commit
+hook end to end (tests, release build, README regeneration,
+docs-check): 9 s warm.
+
+#### C++ resolver (#8)
+
+Paired A/B against the previous `main` commit (`scripts/perf-compare.sh
+e673534 3`, median of 3 per repo, baseline in its own worktree), load
+10.0 / 14.2 / 20.1 at measurement time (the corpus identity pass had just
+finished):
+
+| | main before | with the C++ resolver | delta |
+| --- | --- | --- | --- |
+| corpus total, 165 of 175 repos | 192,963 ms | 192,694 ms | −0.1% |
+
+Flat within the script's 1–1.5% noise floor; the 30-minute budget
+stopped before `smithy-protocol-tests` and the nine repositories after
+it alphabetically. Not like-for-like on C++ files, which now get
+prototype unification, typed receivers, macro receivers and a run-wide
+field index: `app-carvera-firmware-cpp` 281 → 319 ms and
+`app-smoothieware-cpp` 193 → 216 ms in the 3-sample table, re-sampled
+with ten interleaved runs of each binary as +5.6% (232 → 245 ms) and
++1.8%; the larger C++-bearing repositories sit at +2.3% (`cmake-kitware`),
++2.5% (`erlang-otp`), +4.0% (`dart-flutter`), +4.3% (`cpp-nlohmann-json`,
++0.6% on re-sampling). Every non-C++ row over 150 ms that showed more
+than 5% either way was noise under the decaying load: `go-fzf` +9.6% in
+the table is −13.7% over ten runs, `app-godot-demos` +10.0% is −1.8%,
+and the same table shows `bash-acme` −20.9% and `app-immich-nestjs`
+−14.2% with byte-identical output. Outside C/C++, graph output is
+byte-identical to the previous `main` on every repository; no default
+graph carries a `dynamic` edge.
+
+### Credits
+
+- Kivy KV support, the generic class-field/observer machinery and the
+  value-reference widening were contributed by @SergeBakharev in #5,
+  validated over five review rounds on eight Kivy applications.
+- C++ type-inference improvements (out-of-line bodies, typed receivers,
+  macro receivers, virtual and member-pointer fan-out) were contributed by
+  @SergeBakharev in #8.
 
 ## [0.8.5] - 2026-09-18
 

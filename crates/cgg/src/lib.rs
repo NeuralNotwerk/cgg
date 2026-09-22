@@ -784,7 +784,12 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // --- Phase 3c: cross-file import-chain resolver -----------------------
     let cf_out = {
         let _s = cgg_core::profile::span("resolve::cross-file");
-        cgg_resolve::cross_file::resolve(&graph, &all_facts, opts.fanout_cap as usize)
+        cgg_resolve::cross_file::resolve(
+            &graph,
+            &all_facts,
+            opts.fanout_cap as usize,
+            opts.dynamic_dispatch,
+        )
     };
     for e in &cf_out.edges {
         match e.confidence {
