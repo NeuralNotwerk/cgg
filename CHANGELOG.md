@@ -33,6 +33,16 @@ ever grows in default mode — see *Compatibility* below).
   unify with the out-of-line body. A typed call reaches every definition
   of a name, not only the last-indexed one.
 
+- **C++ object-like macros used as receivers were left untyped.**
+  `#define THE_APP App::instance` appears as an uppercase identifier, so
+  the propagator skipped it and `THE_APP->run()` never bound. Object-like
+  `#define`s are recorded as `MacroAlias` (function-like macros stay
+  callables; numeric replacements are ignored). A run-wide pass expands
+  macro chains and `Owner::field` / `base->field` hops against the field
+  index, then rewrites bare macro receivers and `MACRO->field->…` like
+  typed locals. A parenthesized replacement `(App::instance)` is
+  unwrapped.
+
 ## [0.8.5] - 2026-09-18
 
 Security fixes from a review done for a downstream third-party import,

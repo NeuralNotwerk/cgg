@@ -106,6 +106,104 @@ pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, S
     out
 }
 
+/// Object-like macro name → replacement text, first definition wins.
+pub fn macro_index(all_facts: &[FileFacts]) -> HashMap<String, String> {
+    let mut out: HashMap<String, String> = HashMap::new();
+    for facts in all_facts {
+        for m in &facts.macro_aliases {
+            out.entry(m.name.clone())
+                .or_insert_with(|| m.replacement.clone());
+        }
+    }
+    out
+}
+
+/// Resolve each object-like macro to a nominal type via its replacement
+/// and the class-field index. `#define THEKERNEL Kernel::instance` with
+/// `static Kernel* instance` becomes `Kernel`; `#define THEROBOT
+/// THEKERNEL->robot` walks that type through the `robot` field.
+pub fn resolve_macro_types(
+    macros: &HashMap<String, String>,
+    fields: &HashMap<String, HashMap<String, String>>,
+) -> HashMap<String, String> {
+    let mut out: HashMap<String, String> = HashMap::new();
+    for name in macros.keys() {
+        if let Some(ty) = type_macro_expr(name, macros, fields, 0) {
+            out.insert(name.clone(), ty);
+        }
+    }
+    out
+}
+
+const MACRO_EXPAND_DEPTH: u32 = 8;
+
+/// Type of a macro replacement or receiver fragment: another macro, a
+/// `Owner::field` static, or a `base->field` / `base.field` chain.
+fn type_macro_expr(
+    expr: &str,
+    macros: &HashMap<String, String>,
+    fields: &HashMap<String, HashMap<String, String>>,
+    depth: u32,
+) -> Option<String> {
+    if depth >= MACRO_EXPAND_DEPTH {
+        return None;
+    }
+    let expr = expr.trim();
+    if expr.is_empty() {
+        return None;
+    }
+    if let Some(repl) = macros.get(expr) {
+        return type_macro_expr(repl, macros, fields, depth + 1);
+    }
+    if expr.contains("->") {
+        let mut parts = expr.split("->");
+        let mut ty = type_macro_expr(parts.next()?.trim(), macros, fields, depth + 1)?;
+        for field in parts {
+            let field = field.trim();
+            if !is_plain_ident(field) {
+                return None;
+            }
+            ty = fields.get(&ty)?.get(field)?.clone();
+        }
+        return capitalize_type(ty);
+    }
+    if expr.contains('.') && !expr.contains("::") {
+        let mut parts = expr.split('.');
+        let mut ty = type_macro_expr(parts.next()?.trim(), macros, fields, depth + 1)?;
+        for field in parts {
+            let field = field.trim();
+            if !is_plain_ident(field) {
+                return None;
+            }
+            ty = fields.get(&ty)?.get(field)?.clone();
+        }
+        return capitalize_type(ty);
+    }
+    if let Some((owner, field)) = split_owner_field(expr) {
+        let ty = fields.get(owner)?.get(field)?.clone();
+        return capitalize_type(ty);
+    }
+    None
+}
+
+fn split_owner_field(expr: &str) -> Option<(&str, &str)> {
+    let (owner, field) = expr.rsplit_once("::")?;
+    let owner = owner.rsplit("::").next()?.trim();
+    let field = field.trim();
+    if !is_plain_ident(owner) || !is_plain_ident(field) {
+        return None;
+    }
+    Some((owner, field))
+}
+
+fn capitalize_type(ty: String) -> Option<String> {
+    if ty.starts_with(char::is_uppercase) {
+        Some(ty)
+    } else {
+        None
+    }
+}
+
 /// Build a map of function_simple_name -> return_type from all
 /// definitions across all files. Parses return types from signature_hint.
 pub fn build_return_type_map<'a>(
@@ -198,16 +296,22 @@ pub fn propagate_types_with_returns(
     facts: &mut FileFacts,
     return_types: &ReturnTypeIndex<'_>,
 ) {
-    let empty = HashMap::new();
-    propagate_types_with_fields(facts, return_types, &empty);
+    let empty_fields = HashMap::new();
+    let empty_macros = HashMap::new();
+    propagate_types_with_fields(facts, return_types, &empty_fields, &empty_macros);
 }
 
 /// [`propagate_types_with_returns`] plus class fields, so
 /// `kernel->streams->printf()` rewrites to receiver `StreamOutput`.
+///
+/// `macros` maps object-like macro names already resolved to a nominal
+/// type (`THEKERNEL` → `Kernel`), so `THEKERNEL->streams` and a bare
+/// `THEROBOT` rewrite the same way a typed local would.
 pub fn propagate_types_with_fields(
     facts: &mut FileFacts,
     return_types: &ReturnTypeIndex<'_>,
     fields: &HashMap<String, HashMap<String, String>>,
+    macros: &HashMap<String, String>,
 ) {
     // Pass 1: Extract type hints from definition signatures.
     //
@@ -329,12 +433,13 @@ pub fn propagate_types_with_fields(
         }
 
         // `kernel->streams` / `this->streams` / `obj.streams`. The base
-        // is a local, a parameter, or `this`; each following identifier
-        // is a field. A chain that does not fully resolve is left as
-        // written — a partial type would name the wrong receiver.
+        // is a local, a parameter, `this`, or an object-like macro; each
+        // following identifier is a field. A chain that does not fully
+        // resolve is left as written — a partial type would name the
+        // wrong receiver.
         if facts.language == "cpp" && (rh.contains("->") || rh.contains('.')) {
             if let Some(ty) =
-                member_chain_type(rh, facts, rref.site_byte, &type_map, fields)
+                member_chain_type(rh, facts, rref.site_byte, &type_map, fields, macros)
             {
                 rewrites.push((i, ty));
             }
@@ -350,6 +455,13 @@ pub fn propagate_types_with_fields(
             }
             // No match — leave as-is so the resolver can still try a
             // direct lookup downstream.
+            continue;
+        }
+
+        // `#define THEKERNEL Kernel::instance` — the name is uppercase,
+        // so it would otherwise be skipped as a type-looking path.
+        if let Some(ty) = macros.get(rh) {
+            rewrites.push((i, ty.clone()));
             continue;
         }
 
@@ -593,14 +705,16 @@ fn param_name_token(tok: &str) -> Option<&str> {
 
 /// Type of `base->field->...` / `base.field...`.
 ///
-/// `this` is the enclosing method's class. Anything else is a parameter
-/// or a local. Each later piece must be a field of the type so far.
+/// `this` is the enclosing method's class. Anything else is a parameter,
+/// a local, or an object-like macro already resolved to a type. Each
+/// later piece must be a field of the type so far.
 fn member_chain_type(
     rh: &str,
     facts: &FileFacts,
     site_byte: u32,
     type_map: &HashMap<(u32, &str), &str>,
     fields: &HashMap<String, HashMap<String, String>>,
+    macros: &HashMap<String, String>,
 ) -> Option<String> {
     let (base, rest) = if rh.contains("->") {
         let mut parts = rh.split("->");
@@ -623,6 +737,8 @@ fn member_chain_type(
         param_ty.to_string()
     } else if let Some(local_ty) = lookup_local_type(facts, site_byte, base) {
         local_ty.to_string()
+    } else if let Some(macro_ty) = macros.get(base) {
+        macro_ty.clone()
     } else {
         return None;
     };
@@ -948,7 +1064,12 @@ mod tests {
             .entry("Kernel".into())
             .or_default()
             .insert("streams".into(), "StreamOutput".into());
-        propagate_types_with_fields(&mut facts, &ReturnTypeIndex::default(), &fields);
+        propagate_types_with_fields(
+            &mut facts,
+            &ReturnTypeIndex::default(),
+            &fields,
+            &HashMap::new(),
+        );
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
         assert_eq!(facts.references[1].receiver_hint, "StreamOutput");
     }
@@ -989,6 +1110,64 @@ mod tests {
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
         assert_eq!(facts.references[1].receiver_hint, "Kernel");
+    }
+
+    #[test]
+    fn cpp_object_like_macros_type_as_their_expansion() {
+        let defs = vec![mk_def("init", "void init()", 0, 200)];
+        let refs = vec![
+            RefRecord {
+                name: "add_module".into(),
+                receiver_hint: "THEKERNEL".into(),
+                site_line: 2,
+                site_byte: 40,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "THEKERNEL->streams".into(),
+                site_line: 3,
+                site_byte: 60,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "on_idle".into(),
+                receiver_hint: "THEROBOT".into(),
+                site_line: 4,
+                site_byte: 80,
+                ..Default::default()
+            },
+        ];
+        let mut facts = mk_facts(defs, refs);
+        facts.language = "cpp".into();
+        let mut fields: HashMap<String, HashMap<String, String>> = HashMap::new();
+        fields
+            .entry("Kernel".into())
+            .or_default()
+            .insert("instance".into(), "Kernel".into());
+        fields
+            .entry("Kernel".into())
+            .or_default()
+            .insert("streams".into(), "StreamOutput".into());
+        fields
+            .entry("Kernel".into())
+            .or_default()
+            .insert("robot".into(), "Robot".into());
+        let mut replacements = HashMap::new();
+        replacements.insert("THEKERNEL".into(), "Kernel::instance".into());
+        replacements.insert("THEROBOT".into(), "THEKERNEL->robot".into());
+        let macros = resolve_macro_types(&replacements, &fields);
+        assert_eq!(macros.get("THEKERNEL").map(String::as_str), Some("Kernel"));
+        assert_eq!(macros.get("THEROBOT").map(String::as_str), Some("Robot"));
+        propagate_types_with_fields(
+            &mut facts,
+            &ReturnTypeIndex::default(),
+            &fields,
+            &macros,
+        );
+        assert_eq!(facts.references[0].receiver_hint, "Kernel");
+        assert_eq!(facts.references[1].receiver_hint, "StreamOutput");
+        assert_eq!(facts.references[2].receiver_hint, "Robot");
     }
 
     #[test]

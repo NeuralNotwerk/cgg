@@ -46,8 +46,8 @@ pub use external::{
 };
 pub use facts::{
     DefRecord, DefVariant, DynUse, ExportRecord, FieldType, FileFacts, ImportRecord,
-    LocalType, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT,
-    Vis, first_template_arg,
+    LocalType, MacroAlias, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion,
+    VALUE_REF_HINT, Vis, first_template_arg,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
