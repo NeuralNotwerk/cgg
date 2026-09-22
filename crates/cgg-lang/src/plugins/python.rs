@@ -10,14 +10,20 @@
 //!   an `attribute`.
 //! * **Imports** — `import_statement` and `import_from_statement`,
 //!   flattened with alias support.
+//! * **Instance-field types** — `self.x = Foo(...)` and class
+//!   annotations (`x: Foo`) become `self.x` LocalTypes on every method
+//!   of that class, so the type propagator can rewrite `self.x.m()`.
 //!
 //! Module name for qualified names is derived from the file stem for
 //! Task 4. Task 6 will refine this to the full dotted package path by
 //! consulting `__init__.py` chains via stack-graphs.
 
+use std::collections::HashMap;
 use std::path::Path;
 
-use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use cgg_core::{
+    DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord, ids::FileId,
+};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -68,6 +74,7 @@ impl LanguagePlugin for PythonPlugin {
             facts: &mut facts,
             scope: vec![module_name(path)],
             bases: Vec::new(),
+            class_field_types: Vec::new(),
         };
         walker.walk(tree.root_node());
         let mut out = facts;
@@ -121,6 +128,12 @@ struct Walker<'a> {
     scope: Vec<String>,
     /// Base classes of the enclosing `class`, innermost last.
     bases: Vec<Vec<String>>,
+    /// Instance-attribute types of the enclosing `class`, innermost last.
+    /// `self.controller = Controller(...)` and `controller: Controller`
+    /// both land here; a post-pass on the class copies them onto every
+    /// method as `self.<field>` LocalTypes so the type propagator can
+    /// rewrite `self.controller.open()`.
+    class_field_types: Vec<HashMap<String, String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -143,7 +156,13 @@ impl<'a> Walker<'a> {
                 // does.
                 self.bases.push(super::attrs::base_types(node, self.source));
                 collect_class_fields(node, self.source, &self.scope, self.facts);
+                self.class_field_types.push(HashMap::new());
+                if let Some(fields) = self.class_field_types.last_mut() {
+                    scan_class_annotations(node, self.source, fields);
+                }
                 self.walk_children(node);
+                self.emit_instance_field_types();
+                self.class_field_types.pop();
                 self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
                     self.scope.pop();
@@ -366,38 +385,87 @@ impl<'a> Walker<'a> {
         let (Some(left), Some(right)) = (left, right) else {
             return;
         };
-        if left.kind() != "identifier" {
-            return;
-        }
-        let var_name = self.text(left).to_string();
-        if var_name.is_empty() {
-            return;
-        }
-        // RHS must be a call where the function name starts with uppercase
         if right.kind() != "call" {
             return;
         }
         let func = right.child_by_field_name("function");
         let Some(func) = func else { return };
-        let func_text = self.text(func);
-        // Direct constructor: Foo(...)
-        if func.kind() == "identifier" && func_text.starts_with(char::is_uppercase) {
-            self.facts.local_types.push(cgg_core::LocalType {
-                var_name: var_name.clone(),
-                type_name: func_text.to_string(),
+        let Some(type_name) = constructor_type(func, self.source) else {
+            return;
+        };
+
+        if left.kind() == "identifier" {
+            let var_name = self.text(left).to_string();
+            if var_name.is_empty() {
+                return;
+            }
+            self.facts.local_types.push(LocalType {
+                var_name,
+                type_name,
                 scope_byte: node.start_byte() as u32,
             });
+            return;
         }
-        // Attribute constructor: module.Foo(...)
-        if func.kind() == "attribute"
-            && let Some(attr) = func.child_by_field_name("attribute")
-        {
-            let attr_text = self.text(attr);
-            if attr_text.starts_with(char::is_uppercase) {
-                self.facts.local_types.push(cgg_core::LocalType {
-                    var_name,
-                    type_name: attr_text.to_string(),
-                    scope_byte: node.start_byte() as u32,
+
+        // `self.controller = Controller(...)` — instance field. Recorded
+        // on the enclosing class and copied onto every method at class
+        // exit; the assignment site itself is not a useful scope.
+        if left.kind() == "attribute" {
+            let Some(obj) = left.child_by_field_name("object") else {
+                return;
+            };
+            let Some(attr) = left.child_by_field_name("attribute") else {
+                return;
+            };
+            if self.text(obj) != "self" {
+                return;
+            }
+            let field = self.text(attr).to_string();
+            if field.is_empty() {
+                return;
+            }
+            if let Some(fields) = self.class_field_types.last_mut() {
+                fields.insert(field, type_name);
+            }
+        }
+    }
+
+    /// Copy the enclosing class's instance-field types onto every method
+    /// of that class, keyed by the method's start byte so `self.x.m()`
+    /// inside `connect` sees a type assigned in `__init__`.
+    fn emit_instance_field_types(&mut self) {
+        let Some(fields) = self.class_field_types.last() else {
+            return;
+        };
+        if fields.is_empty() {
+            return;
+        }
+        // Full class QN (`mod.Other.App`), not the bare last segment —
+        // a nested `class App` must not inherit (or donate) field types
+        // from a module-level `class App` in the same file.
+        let class_qn = self.scope.join(".");
+        if class_qn.is_empty() {
+            return;
+        }
+        let fields: Vec<(String, String)> =
+            fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let starts: Vec<u32> = self
+            .facts
+            .definitions
+            .iter()
+            .filter(|d| {
+                d.qualified_name
+                    .rsplit_once('.')
+                    .is_some_and(|(owner, _)| owner == class_qn)
+            })
+            .map(|d| d.start_byte)
+            .collect();
+        for start in starts {
+            for (fname, ty) in &fields {
+                self.facts.local_types.push(LocalType {
+                    var_name: format!("self.{fname}"),
+                    type_name: ty.clone(),
+                    scope_byte: start,
                 });
             }
         }
@@ -580,7 +648,111 @@ fn collect_decorators(node: Node, source: &[u8]) -> Vec<String> {
 }
 
 fn starts_uppercase(s: &str) -> bool {
-    s.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+    cgg_core::looks_like_type_name(s)
+}
+
+fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
+    let name = match func.kind() {
+        "identifier" => func.utf8_text(source).ok()?.to_string(),
+        "attribute" => func
+            .child_by_field_name("attribute")
+            .and_then(|a| a.utf8_text(source).ok())
+            .map(|s| s.to_string())?,
+        _ => return None,
+    };
+    if starts_uppercase(&name) {
+        Some(name)
+    } else {
+        None
+    }
+}
+
+fn annotation_type_stem(raw: &str) -> Option<String> {
+    let mut t = raw.trim();
+    if t.is_empty() {
+        return None;
+    }
+    // `Optional[Foo]`, `list[Foo]` — the inner type is the instance type.
+    if let Some(open) = t.find('[')
+        && let Some(close) = t.rfind(']')
+        && close > open + 1
+    {
+        t = t[open + 1..close].split(',').next().unwrap_or("").trim();
+    }
+    // `Foo | None`, `None | Foo` — pick the first non-None component.
+    let stem = t
+        .split('|')
+        .map(|s| s.trim())
+        .filter(|s| *s != "None")
+        .find_map(|s| {
+            let bare = s.rsplit('.').next().unwrap_or(s).trim();
+            if starts_uppercase(bare) {
+                Some(bare.to_string())
+            } else {
+                None
+            }
+        });
+    stem
+}
+
+/// Scan the class body for `name: Type` annotations and record them as
+/// instance-field types.  This is the standalone class-body scan that
+/// does not require `ClassFieldDecl` infrastructure.
+fn scan_class_annotations(
+    class: tree_sitter::Node,
+    source: &[u8],
+    fields: &mut HashMap<String, String>,
+) {
+    let Some(body) = class.child_by_field_name("body") else {
+        return;
+    };
+    let mut c = body.walk();
+    for child in body.named_children(&mut c) {
+        let stmt = if child.kind() == "expression_statement" {
+            child.named_child(0)
+        } else {
+            Some(child)
+        };
+        let Some(stmt) = stmt else {
+            continue;
+        };
+        if stmt.kind() != "assignment" {
+            continue;
+        }
+        record_annotated_instance_field(stmt, source, fields);
+    }
+}
+
+fn record_annotated_instance_field(
+    node: tree_sitter::Node,
+    source: &[u8],
+    fields: &mut HashMap<String, String>,
+) {
+    let left = node
+        .child_by_field_name("left")
+        .or_else(|| node.named_child(0));
+    let Some(left) = left else {
+        return;
+    };
+    if left.kind() != "identifier" {
+        return;
+    }
+    let Ok(name) = left.utf8_text(source) else {
+        return;
+    };
+    if name.is_empty() {
+        return;
+    }
+    let Some(ty) = node.child_by_field_name("type") else {
+        return;
+    };
+    let Ok(raw) = ty.utf8_text(source) else {
+        return;
+    };
+    let Some(stem) = annotation_type_stem(raw) else {
+        return;
+    };
+    fields.insert(name.to_string(), stem);
 }
 
 /// Generic class-level `name = Type(...)` extraction.
@@ -1062,6 +1234,148 @@ class C:
                 .all(|cf| cf.class_qn.contains("Label")),
             "class_qn must name the class: {:?}",
             f.class_fields
+        );
+    }
+
+    #[test]
+    fn underscore_prefixed_subclass_records_base_types() {
+        let f = extract(
+            "class _MarkerHoverToolTip(ToolTipButton):\n    def on_mouse_pos(self, *args):\n        pass\n",
+        );
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "on_mouse_pos")
+            .expect("on_mouse_pos");
+        assert_eq!(d.base_types, ["ToolTipButton"], "bases: {:?}", d.base_types);
+        assert_eq!(
+            d.variant,
+            DefVariant::InherentMethod,
+            "a `_Class` method must not be classified as a free function"
+        );
+    }
+
+    #[test]
+    fn self_field_constructor_is_copied_onto_every_method() {
+        let f = extract(
+            "class App:\n    def __init__(self):\n        self.controller = Controller()\n    def connect(self):\n        self.controller.open()\n",
+        );
+        let connect = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "connect")
+            .expect("connect");
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.controller"
+                    && t.type_name == "Controller"
+                    && t.scope_byte == connect.start_byte
+            }),
+            "connect should see self.controller: Controller; types: {:?}",
+            f.local_types
+        );
+        let open = f
+            .references
+            .iter()
+            .find(|r| r.name == "open")
+            .expect("open");
+        assert_eq!(open.receiver_hint, "self.controller");
+    }
+
+    #[test]
+    fn class_annotation_is_an_instance_field_type() {
+        let f = extract(
+            "class Panel:\n    controller: Controller\n    def go(self):\n        self.controller.open()\n",
+        );
+        let go = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "go")
+            .expect("go");
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.controller"
+                    && t.type_name == "Controller"
+                    && t.scope_byte == go.start_byte
+            }),
+            "annotation missed; types: {:?}",
+            f.local_types
+        );
+    }
+
+    #[test]
+    fn annotation_type_stem_skips_none_in_union() {
+        assert_eq!(
+            annotation_type_stem("None | Foo"),
+            Some("Foo".to_string())
+        );
+        assert_eq!(
+            annotation_type_stem("Foo | None"),
+            Some("Foo".to_string())
+        );
+        assert_eq!(
+            annotation_type_stem("Optional[Foo]"),
+            Some("Foo".to_string())
+        );
+        assert_eq!(
+            annotation_type_stem("module.Foo"),
+            Some("Foo".to_string())
+        );
+        assert_eq!(annotation_type_stem("int"), None);
+        assert_eq!(annotation_type_stem("None"), None);
+        assert_eq!(annotation_type_stem(""), None);
+    }
+
+    #[test]
+    fn nested_class_does_not_share_instance_field_types_with_same_named_outer() {
+        let f = extract(
+            "class App:\n    def __init__(self):\n        self.controller = Controller()\n    def connect(self):\n        pass\n\
+             class Other:\n    class App:\n        def __init__(self):\n            self.panel = Panel()\n        def go(self):\n            pass\n",
+        );
+        let connect = f
+            .definitions
+            .iter()
+            .find(|d| {
+                d.qualified_name.ends_with(".App.connect")
+                    && !d.qualified_name.contains(".Other.")
+            })
+            .expect("App.connect");
+        let go = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name.contains(".Other.App.go"))
+            .expect("Other.App.go");
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.controller"
+                    && t.type_name == "Controller"
+                    && t.scope_byte == connect.start_byte
+            }),
+            "outer App.connect should see controller; types: {:?}",
+            f.local_types
+        );
+        assert!(
+            !f.local_types.iter().any(|t| {
+                t.var_name == "self.controller" && t.scope_byte == go.start_byte
+            }),
+            "nested Other.App.go must not inherit outer App fields; types: {:?}",
+            f.local_types
+        );
+        assert!(
+            f.local_types.iter().any(|t| {
+                t.var_name == "self.panel"
+                    && t.type_name == "Panel"
+                    && t.scope_byte == go.start_byte
+            }),
+            "nested Other.App.go should see panel; types: {:?}",
+            f.local_types
+        );
+        assert!(
+            !f.local_types.iter().any(|t| {
+                t.var_name == "self.panel" && t.scope_byte == connect.start_byte
+            }),
+            "outer App.connect must not inherit nested App fields; types: {:?}",
+            f.local_types
         );
     }
 

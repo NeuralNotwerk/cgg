@@ -1043,6 +1043,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         for e in cgg_resolve::dispatch::fanout(&graph) {
             graph.add_edge(e);
         }
+        for e in cgg_resolve::dispatch::inheritance_fanout(&graph, &all_facts) {
+            graph.add_edge(e);
+        }
     }
 
     // Account any synthesized nodes/edges (exit nodes, dispatch fan-out)

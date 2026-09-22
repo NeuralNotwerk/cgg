@@ -478,7 +478,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 | Language | Cross-file resolution | Type inference | Notes |
 | -------- | --------------------- | -------------- | ----- |
 | Rust | pub-use chains, Cargo.toml crate names | params, `Foo::new()` | Module paths from src/ |
-| Python | from-import, import-as | params, `Foo()` | `__init__.py` package walk; `.ipynb` supported |
+| Python | from-import, import-as | params, `Foo()`, `self.x = Foo()`, `x: Foo` | `__init__.py` package walk; `.ipynb` supported |
 | JavaScript | ESM import, CJS require() | params | exports.fn, defineGetter |
 | TypeScript | ESM import | params | Delegates to JS walker |
 | Go | package imports | params, `var T`, `New*()` | Interface methods, func literals |
@@ -1384,9 +1384,9 @@ know](#adding-a-framework-cgg-does-not-know).
   preprocessor simulation). Object-like `#define NAME expr` is followed one
   level only to type a receiver (`THE_APP->run()`); nothing else is preprocessed
 - Type inference is partial — handles parameters, constructors, return types,
-  and (opt-in, Rust and C++) interface/trait and virtual dispatch to known
-  implementors and overrides via `--dynamic-dispatch`; does not handle generics
-  or fully dynamic typing
+  and (opt-in, Rust, C++, and Python) interface/trait, virtual, and
+  class-inheritance dispatch to known implementors and overrides via
+  `--dynamic-dispatch`; does not handle generics or fully dynamic typing
 - No daemon / watch mode, and **no on-disk cache**. Every run re-walks,
   re-parses and re-resolves from source, which is what makes a run
   reproducible from the tree alone. Parsing dominates the wall clock, so
@@ -1432,12 +1432,14 @@ flight.
   impl reached only through its trait is invisible when the declaration
   itself is unreached. Together these are the largest remaining
   false-positive class in `--dead-code` on Rust.
-- **Dynamic-dispatch fan-out across all languages.** The declaration →
-  implementation fan-out (`--dynamic-dispatch`) is wired for Rust traits
-  and for C++ virtual methods and member-pointer tables; the resolver and
-  output machinery are language-agnostic, but the per-plugin capture still
-  needs porting to the other interface-bearing plugins. (Function-as-value capture now covers python, javascript,
-  typescript, go, java, csharp, php, ruby, rust, elixir and perl.)
+- **Dynamic-dispatch fan-out across remaining languages.** The declaration →
+  implementation fan-out (`--dynamic-dispatch`) is wired for Rust traits,
+  C++ virtual methods and member-pointer tables, and Python class
+  inheritance; the resolver and output machinery are language-agnostic,
+  but the per-plugin capture still needs porting to the other
+  interface-bearing plugins. (Function-as-value capture now covers python,
+  javascript, typescript, go, java, csharp, php, ruby, rust, elixir and
+  perl.)
 - **File-system-routed frameworks.** Next.js and Blazor put the route in
   the file layout or in markup cgg does not parse, so both are detected
   and reported as gaps rather than enumerated. Closing this means

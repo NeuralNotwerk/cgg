@@ -457,6 +457,19 @@ impl FileFacts {
     }
 }
 
+/// True when `s` looks like a type name: starts with an uppercase
+/// letter after stripping leading underscores (PEP 8 private classes
+/// like `_MarkerHoverToolTip`).
+///
+/// Shared between the extraction plugin (`starts_uppercase` in
+/// `python.rs`) and the resolver (`looks_like_type` in `dispatch.rs`).
+pub fn looks_like_type_name(s: &str) -> bool {
+    s.trim_start_matches('_')
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_uppercase())
+}
+
 /// First template argument of `unique_ptr<Kernel, Deleter>` → `Kernel`.
 ///
 /// Shared between the extraction plugin (`nominal_type` in `cpp.rs`)
@@ -519,5 +532,17 @@ mod tests {
         let s = serde_json::to_string(&f).unwrap();
         let f2: FileFacts = serde_json::from_str(&s).unwrap();
         assert_eq!(f, f2);
+    }
+
+    #[test]
+    fn looks_like_type_name_strips_underscores() {
+        assert!(looks_like_type_name("Foo"));
+        assert!(looks_like_type_name("_Foo"));
+        assert!(looks_like_type_name("__Foo"));
+        assert!(looks_like_type_name("_MarkerHoverToolTip"));
+        assert!(!looks_like_type_name("foo"));
+        assert!(!looks_like_type_name("_foo"));
+        assert!(!looks_like_type_name("__init__"));
+        assert!(!looks_like_type_name(""));
     }
 }

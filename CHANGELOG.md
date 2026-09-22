@@ -9,6 +9,21 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Added
 
+- **Python inheritance fan-out (opt-in).** `--dynamic-dispatch` (and
+  therefore `--dead-code`) emits `dyn` edges from a base method to each
+  subclass override, walking past intermediate bases that do not define
+  the method. `__init__`/`__new__`/`__del__` and nested functions are
+  excluded. The default graph is unchanged: this pass does not write
+  `trait_impl_target`, so it cannot leak declaration→override edges into
+  C++, Java, or any other language that already records bases.
+- **Python `self.field` types (default graph).** `self.controller =
+  Controller(...)` in `__init__` and class annotations (`controller:
+  Controller`) propagate as `self.controller` types, so
+  `self.controller.open()` resolves the same way Rust `self.store.foo()`
+  already did. This *does* grow the default Python edge set: a typed
+  receiver replaces a same-name guess. Nested classes are matched by
+  full qualified name, so a nested `class App` does not share field
+  types with a module-level `class App`.
 - **Generic class-field extraction.** The Python plugin now records every
   class-level `name = Type(...)` assignment in `FileFacts::class_fields`,
   framework-agnostically. Useful for any descriptor-driven library (Kivy,
@@ -109,6 +124,9 @@ ever grows in default mode — see *Compatibility* below).
   `fanout-cap-exceeded {candidates: 1}` record; the help text and README
   now say so, for reachability audits where a false edge costs more than
   a missing one.
+- **`starts_uppercase` now strips leading underscores**, so PEP 8 private
+  classes (`_MarkerHoverToolTip`) are classified as classes, not free
+  functions.
 
 - **kv→python name-only fallback checked the wrong field.** The bare-
   receiver guard (`root`/`self`/`app`) tested `context` (the rule class

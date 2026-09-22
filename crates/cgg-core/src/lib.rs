@@ -48,6 +48,7 @@ pub use facts::{
     ClassFieldDecl, DefRecord, DefVariant, DynUse, ExportRecord, FieldType, FileFacts,
     ImportRecord, LocalType, MacroAlias, MemberPtrTake, RefRecord, STRING_REF_HINT,
     TestRole, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
+    looks_like_type_name,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
