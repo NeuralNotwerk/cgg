@@ -538,6 +538,179 @@ fn cpp_namespace_cross_file_resolves() {
 }
 
 #[test]
+fn cpp_typed_local_and_field_chain_resolve() {
+    // `Kernel* kernel` types `kernel->add_module`. `streams` is a field
+    // declared on the class, so `kernel->streams->printf` types as
+    // StreamOutput even though the call and the field are in different
+    // files. `this->streams` inside the method does the same.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "kernel.h",
+        b"class StreamOutput {\npublic:\n    void printf(const char*);\n};\nclass Kernel {\npublic:\n    StreamOutput* streams;\n    void add_module(int);\n};\n",
+    );
+    write(
+        tmp.path(),
+        "kernel.cpp",
+        b"#include \"kernel.h\"\nvoid StreamOutput::printf(const char*) {}\nvoid Kernel::add_module(int) { this->streams->printf(\"x\"); }\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"kernel.h\"\nvoid init() {\n    Kernel* kernel = new Kernel();\n    kernel->add_module(1);\n    kernel->streams->printf(\"hi\");\n}\nvoid shout(StreamOutput* stream) { stream->printf(\"z\"); }\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let init = node_id("init").unwrap_or_else(|| panic!("init:\n{g}"));
+    let add = node_id("Kernel::add_module").unwrap_or_else(|| panic!("add:\n{g}"));
+    let printf =
+        node_id("StreamOutput::printf").unwrap_or_else(|| panic!("printf:\n{g}"));
+    let shout = node_id("shout").unwrap_or_else(|| panic!("shout:\n{g}"));
+    assert!(
+        g.contains(&format!("{init} --> {add}")),
+        "kernel->add_module did not resolve:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{init} --> {printf}")),
+        "kernel->streams->printf did not resolve:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{add} --> {printf}")),
+        "this->streams->printf did not resolve:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{shout} --> {printf}")),
+        "stream parameter did not resolve:\n{g}"
+    );
+}
+
+#[test]
+fn cpp_same_local_name_in_two_functions_keeps_each_type() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "io.h",
+        b"class StreamOutput {\npublic:\n    void printf(const char*);\n};\nclass Kernel {\npublic:\n    void add_module(int);\n};\n",
+    );
+    write(
+        tmp.path(),
+        "io.cpp",
+        b"#include \"io.h\"\nvoid StreamOutput::printf(const char*) {}\nvoid Kernel::add_module(int) {}\nvoid a() { StreamOutput* stream; stream->printf(\"x\"); }\nvoid b() { Kernel* stream; stream->add_module(1); }\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let a = node_id("a").unwrap_or_else(|| panic!("a:\n{g}"));
+    let b = node_id("b").unwrap_or_else(|| panic!("b:\n{g}"));
+    let printf =
+        node_id("StreamOutput::printf").unwrap_or_else(|| panic!("printf:\n{g}"));
+    let add = node_id("Kernel::add_module").unwrap_or_else(|| panic!("add:\n{g}"));
+    assert!(g.contains(&format!("{a} --> {printf}")), "a:\n{g}");
+    assert!(g.contains(&format!("{b} --> {add}")), "b:\n{g}");
+    assert!(
+        !g.contains(&format!("{a} --> {add}")),
+        "a must not pick b's stream:\n{g}"
+    );
+}
+
+#[test]
+fn cpp_typed_call_reaches_every_definition_not_only_the_last() {
+    // Two translation units define Kernel::add_module. by_qn keeps one
+    // of them; a typed call must still reach both, or every call lands
+    // on whichever file was indexed last.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "kernel.h",
+        b"class Kernel {\npublic:\n    Kernel();\n    void add_module(int);\n};\n",
+    );
+    write(
+        tmp.path(),
+        "kernel.cpp",
+        b"#include \"kernel.h\"\nKernel::Kernel() {}\nvoid helper() {}\nvoid Kernel::add_module(int) { helper(); }\n",
+    );
+    write(
+        tmp.path(),
+        "stub.cpp",
+        b"#include \"kernel.h\"\nvoid Kernel::add_module(int) {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"kernel.h\"\nvoid init() {\n    Kernel* kernel = new Kernel();\n    kernel->add_module(1);\n}\n",
+    );
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let ids = |qn: &str| -> Vec<String> {
+        g.lines()
+            .filter_map(|l| {
+                let l = l.trim();
+                if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                    Some(l.split('[').next()?.trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    let init = ids("init");
+    let adds = ids("Kernel::add_module");
+    let helpers = ids("helper");
+    assert_eq!(init.len(), 1, "init:\n{g}");
+    assert_eq!(adds.len(), 2, "both definitions:\n{g}");
+    assert!(
+        adds.iter()
+            .all(|a| g.contains(&format!("{} --> {a}", init[0]))),
+        "typed call should reach both definitions:\n{g}"
+    );
+    assert_eq!(helpers.len(), 1, "helper:\n{g}");
+    assert!(
+        g.contains(&format!("{} --> {}", adds[0], helpers[0]))
+            || g.contains(&format!("{} --> {}", adds[1], helpers[0])),
+        "the real body calls helper:\n{g}"
+    );
+}
+
+#[test]
 fn js_esm_import_resolves() {
     // JS project: utils.js exports helper; main.js imports and calls it.
     let tmp = TempDir::new().unwrap();

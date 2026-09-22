@@ -2032,7 +2032,21 @@ fn try_resolve_ref(
             }
             let direct = format!("{rh}::{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &direct, by_qn, reexports) {
-                return Some(vec![cid]);
+                // `by_qn` keeps one callable per qualified name. C++
+                // often has two: the real definition and a test stub,
+                // or two overloads the signature key did not separate.
+                // A typed call `kernel->add_module` must reach every
+                // one of them; step 4's owner-method index has the full
+                // set. Returning the single `by_qn` survivor here would
+                // send every such call at whichever file was indexed
+                // last.
+                let several = lang == "cpp"
+                    && by_owner_method
+                        .get(&(lang.to_string(), rh.to_string(), r.name.clone()))
+                        .is_some_and(|v| v.len() > 1);
+                if !several {
+                    return Some(vec![cid]);
+                }
             }
             // Step 3b: Rust intra-crate retry — when `mod::fn()` lives
             // inside `crate::other::Type::method`, the qualified name

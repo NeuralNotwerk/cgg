@@ -662,11 +662,18 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // it inline cost 817,607,605 iterations with two allocations each on
     // `erlang-otp`.
     let return_types = cgg_resolve::type_hints::ReturnTypeIndex::build(&return_types);
+    // Owned copies: the parallel rewrite borrows each file mutably and
+    // cannot also borrow the field declarations out of those files.
+    let field_types = cgg_resolve::type_hints::field_index(&all_facts);
     {
         // Per-file and independent: each call only mutates its own facts.
         let _s = cgg_core::profile::span("resolve::type-propagate");
         all_facts.par_iter_mut().for_each(|facts| {
-            cgg_resolve::type_hints::propagate_types_with_returns(facts, &return_types);
+            cgg_resolve::type_hints::propagate_types_with_fields(
+                facts,
+                &return_types,
+                &field_types,
+            );
         });
     }
     let known_names = build_known_names(&all_facts);

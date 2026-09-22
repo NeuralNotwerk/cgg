@@ -138,6 +138,18 @@ docs-check): 9 s warm.
   next identifier is the type, so `void draw(const uint32_t);` still
   matches `void Widget::draw(const uint32_t n)`.
 
+- **C++ calls through typed locals, parameters, and fields did not use
+  that type.** The plugin never filled `local_types`, so `w->draw()`
+  fell back to a bare-name lookup. Fields declared in a header were
+  invisible to calls in a `.cpp`. Locals, parameters, `new T()` as a
+  call to `T::T`, and `FieldType` entries are recorded; a run-wide field
+  index rewrites `obj->field->method()` / `this->field->method()`.
+  `unique_ptr<T>` / `shared_ptr<T>` fields contribute `T`. Locals are
+  scoped to the enclosing function, so two `stream` variables in one
+  file keep their own types. Global constructors are named `T::T` so they
+  unify with the out-of-line body. A typed call reaches every definition
+  of a name, not only the last-indexed one.
+
 ## [0.8.5] - 2026-09-18
 
 Security fixes from a review done for a downstream third-party import,

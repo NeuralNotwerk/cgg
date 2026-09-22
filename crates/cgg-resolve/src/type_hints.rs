@@ -13,7 +13,7 @@
 //! lets the intra-file linker match `x.method()` against
 //! `Foo::method` / `Foo.method`.
 
-use cgg_core::{DefRecord, FileFacts};
+use cgg_core::{DefRecord, FileFacts, first_template_arg};
 use std::collections::HashMap;
 
 /// `return_types`, pre-indexed by the lowercased return type.
@@ -87,6 +87,23 @@ impl<'a> ReturnTypeIndex<'a> {
 /// Rewrite receiver hints in-place using inferred type information.
 pub fn propagate_types(facts: &mut FileFacts) {
     propagate_types_with_returns(facts, &ReturnTypeIndex::default());
+}
+
+/// `(owner, field) -> nominal type`, first declaration wins.
+///
+/// Built once per run. Field declarations live in headers and the calls
+/// live in `.cpp` files, so a per-file map cannot see them.
+pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, String>> {
+    let mut out: HashMap<String, HashMap<String, String>> = HashMap::new();
+    for facts in all_facts {
+        for ft in &facts.field_types {
+            out.entry(ft.owner.clone())
+                .or_default()
+                .entry(ft.field.clone())
+                .or_insert_with(|| ft.type_name.clone());
+        }
+    }
+    out
 }
 
 /// Build a map of function_simple_name -> return_type from all
@@ -181,6 +198,17 @@ pub fn propagate_types_with_returns(
     facts: &mut FileFacts,
     return_types: &ReturnTypeIndex<'_>,
 ) {
+    let empty = HashMap::new();
+    propagate_types_with_fields(facts, return_types, &empty);
+}
+
+/// [`propagate_types_with_returns`] plus class fields, so
+/// `kernel->streams->printf()` rewrites to receiver `StreamOutput`.
+pub fn propagate_types_with_fields(
+    facts: &mut FileFacts,
+    return_types: &ReturnTypeIndex<'_>,
+    fields: &HashMap<String, HashMap<String, String>>,
+) {
     // Pass 1: Extract type hints from definition signatures.
     //
     // The names and types are slices of `def.signature_hint`, and `facts`
@@ -215,24 +243,16 @@ pub fn propagate_types_with_returns(
     // refs that look like constructors (name matches a type pattern).
     let constructor_types = find_constructor_assignments(facts);
 
-    // Pass 2b: Build map from explicit local variable type declarations,
-    // keyed by (enclosing-callable start_byte, var_name) so two `let
-    // builder = XBuilder::new()` in different functions of the same file
-    // don't conflate to one type — a file-wide last-write-wins map
-    // mis-resolves `builder.method()` to whichever builder type was
-    // declared last in the file.
-    let mut local_type_map: HashMap<&str, &str> = HashMap::new();
-    // Scoped lookup for self-field LocalTypes: keyed by the method's
-    // body start_byte so we don't bleed Type A's `self.store` into
-    // Type B's methods within the same file. Built from any LocalType
-    // whose var_name starts with `self.`.
+    // Pass 2b: self-field LocalTypes, keyed by the method's body
+    // start_byte so we don't bleed Type A's `self.store` into Type B's
+    // methods within the same file. Ordinary locals are looked up per
+    // call site (`lookup_local_type`) so two functions sharing a
+    // variable name do not last-write-win.
     let mut self_field_map: HashMap<(u32, &str), &str> = HashMap::new();
     for lt in &facts.local_types {
         if lt.var_name.starts_with("self.") {
             self_field_map
                 .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
-        } else {
-            local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
         }
     }
 
@@ -308,9 +328,19 @@ pub fn propagate_types_with_returns(
             continue;
         }
 
-        // Special-case `self.<field>` BEFORE the dot/colon filter
-        // below — the field's type comes from the per-method scoped
-        // self_field_map populated by the Rust extractor.
+        // `kernel->streams` / `this->streams` / `obj.streams`. The base
+        // is a local, a parameter, or `this`; each following identifier
+        // is a field. A chain that does not fully resolve is left as
+        // written — a partial type would name the wrong receiver.
+        if facts.language == "cpp" && (rh.contains("->") || rh.contains('.')) {
+            if let Some(ty) =
+                member_chain_type(rh, facts, rref.site_byte, &type_map, fields)
+            {
+                rewrites.push((i, ty));
+            }
+            continue;
+        }
+
         if rh.starts_with("self.") {
             if let Some(enc) = enclosing_def(facts, rref.site_byte)
                 && let Some(&ty) = self_field_map.get(&(enc.start_byte, rh))
@@ -341,8 +371,10 @@ pub fn propagate_types_with_returns(
             continue;
         }
 
-        // Strategy 3: explicit local variable type declarations
-        if let Some(&ty) = local_type_map.get(rh) {
+        // Strategy 3: explicit local variable type declarations, scoped
+        // to the enclosing callable so two `stream` locals in one file
+        // do not last-write-win across functions.
+        if let Some(ty) = lookup_local_type(facts, rref.site_byte, rh) {
             rewrites.push((i, ty.to_string()));
             continue;
         }
@@ -479,32 +511,142 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
 }
 
 fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
-    // "Service x" or "final Service x" or "Service<T> x"
+    // "Service x", "final Service x", "Service<T> x",
+    // "const StreamOutput *stream", "Module* module".
+    let param = strip_default_suffix(param);
     let parts: Vec<&str> = param.split_whitespace().collect();
-    if parts.len() < 2 {
+    let mut start = 0;
+    while start < parts.len() && is_param_modifier(parts[start]) {
+        start += 1;
+    }
+    if parts.len() - start < 2 {
         return None;
     }
-    // Skip modifiers
-    let (ty_idx, name_idx) = if matches!(parts[0], "final" | "const" | "var" | "val") {
-        if parts.len() < 3 {
-            return None;
-        }
-        (1, 2)
-    } else {
-        (0, parts.len() - 1)
-    };
-    let ty = parts[ty_idx].trim_end_matches(['<', '>']);
-    let name = parts[name_idx];
-    if ty.is_empty() || name.is_empty() {
-        return None;
-    }
-    if !ty.starts_with(char::is_uppercase) {
-        return None;
-    }
+    let ty = nominal_type_token(parts[start])?;
+    let name = param_name_token(parts.last()?)?;
     if is_primitive(ty) {
         return None;
     }
     Some((name, ty))
+}
+
+fn strip_default_suffix(param: &str) -> &str {
+    let mut depth = 0i32;
+    for (i, ch) in param.char_indices() {
+        match ch {
+            '<' | '(' | '[' => depth += 1,
+            '>' | ')' | ']' => depth = depth.saturating_sub(1),
+            '=' if depth == 0 => return param[..i].trim(),
+            _ => {}
+        }
+    }
+    param
+}
+
+fn is_param_modifier(tok: &str) -> bool {
+    matches!(
+        tok,
+        "final"
+            | "const"
+            | "volatile"
+            | "var"
+            | "val"
+            | "unsigned"
+            | "signed"
+            | "static"
+            | "extern"
+            | "mutable"
+            | "register"
+            | "typename"
+            | "inline"
+            | "virtual"
+            | "explicit"
+    )
+}
+
+fn nominal_type_token(tok: &str) -> Option<&str> {
+    let tok = tok.trim_matches(|c: char| c == '*' || c == '&');
+    let tok = tok.rsplit("::").next().unwrap_or(tok);
+    if let Some(arg) = first_template_arg(tok)
+        && let Some(inner) = nominal_type_token(arg)
+    {
+        return Some(inner);
+    }
+    let tok = tok.split('<').next().unwrap_or(tok).trim();
+    let tok = tok.trim_matches(|c: char| c == '*' || c == '&');
+    if tok.is_empty() || !tok.starts_with(char::is_uppercase) {
+        return None;
+    }
+    Some(tok)
+}
+
+fn param_name_token(tok: &str) -> Option<&str> {
+    let tok = tok.trim_matches(|c: char| c == '*' || c == '&');
+    if tok.is_empty() {
+        return None;
+    }
+    if !tok.chars().all(|c| c == '_' || c.is_ascii_alphanumeric()) {
+        return None;
+    }
+    Some(tok)
+}
+
+/// Type of `base->field->...` / `base.field...`.
+///
+/// `this` is the enclosing method's class. Anything else is a parameter
+/// or a local. Each later piece must be a field of the type so far.
+fn member_chain_type(
+    rh: &str,
+    facts: &FileFacts,
+    site_byte: u32,
+    type_map: &HashMap<(u32, &str), &str>,
+    fields: &HashMap<String, HashMap<String, String>>,
+) -> Option<String> {
+    let (base, rest) = if rh.contains("->") {
+        let mut parts = rh.split("->");
+        (parts.next()?.trim(), parts.collect::<Vec<_>>())
+    } else {
+        let mut parts = rh.split('.');
+        (parts.next()?.trim(), parts.collect::<Vec<_>>())
+    };
+    if rest.is_empty() {
+        return None;
+    }
+    let enclosing = enclosing_def(facts, site_byte);
+    let mut ty = if base == "this" {
+        enclosing.and_then(|d| {
+            crate::names::owner_from_qn(&d.qualified_name).map(str::to_string)
+        })?
+    } else if let Some(enc) = enclosing
+        && let Some(&param_ty) = type_map.get(&(enc.start_byte, base))
+    {
+        param_ty.to_string()
+    } else if let Some(local_ty) = lookup_local_type(facts, site_byte, base) {
+        local_ty.to_string()
+    } else {
+        return None;
+    };
+    for field in rest {
+        let field = field.trim();
+        if !is_plain_ident(field) {
+            return None;
+        }
+        ty = fields.get(&ty)?.get(field)?.clone();
+    }
+    if ty.starts_with(char::is_uppercase) {
+        Some(ty)
+    } else {
+        None
+    }
+}
+
+fn is_plain_ident(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c == '_' || c.is_ascii_alphabetic() => {}
+        _ => return false,
+    }
+    chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
 }
 
 fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
@@ -564,6 +706,37 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
         map.insert(ty.to_lowercase(), ty.to_string());
     }
     map
+}
+
+fn lookup_local_type<'a>(
+    facts: &'a FileFacts,
+    site_byte: u32,
+    name: &str,
+) -> Option<&'a str> {
+    let enclosing = enclosing_def(facts, site_byte);
+    let mut best_fn: Option<(u32, &'a str)> = None;
+    let mut best_file: Option<(u32, &'a str)> = None;
+    for lt in &facts.local_types {
+        if lt.var_name != name || lt.scope_byte > site_byte {
+            continue;
+        }
+        let inside_enclosing = enclosing
+            .is_some_and(|d| d.start_byte <= lt.scope_byte && lt.scope_byte < d.end_byte);
+        if inside_enclosing {
+            if best_fn.is_none_or(|(b, _)| lt.scope_byte >= b) {
+                best_fn = Some((lt.scope_byte, lt.type_name.as_str()));
+            }
+            continue;
+        }
+        let inside_other = facts
+            .definitions
+            .iter()
+            .any(|d| d.start_byte <= lt.scope_byte && lt.scope_byte < d.end_byte);
+        if !inside_other && best_file.is_none_or(|(b, _)| lt.scope_byte >= b) {
+            best_file = Some((lt.scope_byte, lt.type_name.as_str()));
+        }
+    }
+    best_fn.or(best_file).map(|(_, ty)| ty)
 }
 
 fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
@@ -704,6 +877,118 @@ mod tests {
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "Service");
+    }
+
+    #[test]
+    fn cpp_pointer_and_reference_params_use_the_nominal_type() {
+        let defs = vec![mk_def(
+            "shout",
+            "void shout(const StreamOutput *stream, Module* module, ConfigValue &result)",
+            0,
+            120,
+        )];
+        let refs = vec![
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "stream".into(),
+                site_line: 2,
+                site_byte: 40,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "add_module".into(),
+                receiver_hint: "module".into(),
+                site_line: 3,
+                site_byte: 60,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "as_bool".into(),
+                receiver_hint: "result".into(),
+                site_line: 4,
+                site_byte: 80,
+                ..Default::default()
+            },
+        ];
+        let mut facts = mk_facts(defs, refs);
+        propagate_types(&mut facts);
+        assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
+        assert_eq!(facts.references[1].receiver_hint, "Module");
+        assert_eq!(facts.references[2].receiver_hint, "ConfigValue");
+    }
+
+    #[test]
+    fn cpp_field_chain_rewrites_to_the_field_type() {
+        let defs = vec![mk_def("Kernel::add_module", "void add_module(int)", 0, 100)];
+        let refs = vec![
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "kernel->streams".into(),
+                site_line: 2,
+                site_byte: 40,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "this->streams".into(),
+                site_line: 3,
+                site_byte: 20,
+                ..Default::default()
+            },
+        ];
+        let mut facts = mk_facts(defs, refs);
+        facts.language = "cpp".into();
+        facts.local_types.push(cgg_core::LocalType {
+            var_name: "kernel".into(),
+            type_name: "Kernel".into(),
+            scope_byte: 0,
+        });
+        let mut fields: HashMap<String, HashMap<String, String>> = HashMap::new();
+        fields
+            .entry("Kernel".into())
+            .or_default()
+            .insert("streams".into(), "StreamOutput".into());
+        propagate_types_with_fields(&mut facts, &ReturnTypeIndex::default(), &fields);
+        assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
+        assert_eq!(facts.references[1].receiver_hint, "StreamOutput");
+    }
+
+    #[test]
+    fn locals_of_the_same_name_are_scoped_to_the_enclosing_function() {
+        let defs = vec![
+            mk_def("a", "void a()", 0, 50),
+            mk_def("b", "void b()", 50, 100),
+        ];
+        let refs = vec![
+            RefRecord {
+                name: "printf".into(),
+                receiver_hint: "stream".into(),
+                site_line: 2,
+                site_byte: 20,
+                ..Default::default()
+            },
+            RefRecord {
+                name: "add_module".into(),
+                receiver_hint: "stream".into(),
+                site_line: 6,
+                site_byte: 70,
+                ..Default::default()
+            },
+        ];
+        let mut facts = mk_facts(defs, refs);
+        facts.local_types.push(cgg_core::LocalType {
+            var_name: "stream".into(),
+            type_name: "StreamOutput".into(),
+            scope_byte: 10,
+        });
+        facts.local_types.push(cgg_core::LocalType {
+            var_name: "stream".into(),
+            type_name: "Kernel".into(),
+            scope_byte: 60,
+        });
+        propagate_types(&mut facts);
+        assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
+        assert_eq!(facts.references[1].receiver_hint, "Kernel");
     }
 
     #[test]
