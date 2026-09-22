@@ -525,7 +525,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2377 callables, 5376 edges, 1462 cross-file, 163ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2464 callables, 5593 edges, 1533 cross-file, 190ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -577,23 +577,26 @@ flowchart LR
   N38["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
   N39["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
   N40["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  N41["cgg_lang::PluginRegistry::with_v1_plugins"]
-  N42["cgg_lang::notebook::extract_python_source"]
-  N43["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N44["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  N45["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N46["cgg_lang::parser::exceeds_depth"]
-  N47["cgg_resolve::cross_file::resolve"]
-  N48["cgg_resolve::descriptor::link_descriptors"]
-  N49["cgg_resolve::dispatch::fanout"]
-  N50["cgg_resolve::ffi::link_ffi"]
-  N51["cgg_resolve::frameworks::detect"]
-  N52["cgg_resolve::intra_file::link_file"]
-  N53["cgg_resolve::names::owner_from_qn"]
-  N54["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N55["cgg_resolve::type_hints::build_return_type_map"]
-  N56["cgg_resolve::type_hints::propagate_types_with_returns"]
-  N57["cgg_walk::walk"]
+  N41["cgg_lang::longest_line_bytes"]
+  N42["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N43["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N44["cgg_lang::notebook::extract_python_source"]
+  N45["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N46["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  N47["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N48["cgg_lang::parser::exceeds_depth"]
+  N49["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N50["cgg_resolve::cross_file::resolve"]
+  N51["cgg_resolve::descriptor::link_descriptors"]
+  N52["cgg_resolve::dispatch::fanout"]
+  N53["cgg_resolve::ffi::link_ffi"]
+  N54["cgg_resolve::frameworks::detect"]
+  N55["cgg_resolve::intra_file::link_file"]
+  N56["cgg_resolve::names::owner_from_qn"]
+  N57["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N58["cgg_resolve::type_hints::build_return_type_map"]
+  N59["cgg_resolve::type_hints::propagate_types_with_returns"]
+  N60["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N11
@@ -609,43 +612,46 @@ flowchart LR
   N3 --> N8
   N3 --> N7
   N3 --> N6
-  N44 --> N44
+  N46 --> N46
   N3 --> N18
   N3 --> N1
   N3 --> N0
   N3 --> N39
   N3 --> N34
-  N3 --> N57
-  N3 --> N41
-  N3 --> N37
+  N3 --> N60
   N3 --> N43
+  N3 --> N37
+  N3 --> N45
   N3 --> N24
   N3 --> N30
   N3 --> N38
-  N3 --> N42
-  N3 -->|18x| N35
   N3 --> N44
+  N3 -->|18x| N35
+  N3 -->|2x| N47
+  N3 --> N42
+  N3 --> N49
+  N3 --> N41
   N3 --> N46
-  N3 --> N45
+  N3 --> N48
   N3 --> N40
   N3 --> N25
   N3 --> N36
   N3 --> N32
-  N3 --> N53
+  N3 --> N56
   N3 --> N26
   N3 --> N31
-  N3 --> N55
-  N3 --> N54
-  N3 --> N56
+  N3 --> N58
+  N3 --> N57
+  N3 --> N59
   N3 --> N29
-  N3 --> N52
+  N3 --> N55
   N3 --> N27
   N3 --> N28
-  N3 --> N47
   N3 --> N50
-  N3 --> N48
+  N3 --> N53
   N3 --> N51
-  N3 --> N49
+  N3 --> N54
+  N3 --> N52
   N3 --> N33
   N3 -->|5x| N19
   N3 --> N23
@@ -656,7 +662,7 @@ flowchart LR
   N6 --> N24
   N6 -->|3x| N20
   N6 --> N19
-  N7 --> N41
+  N7 --> N43
   N7 --> N20
   N7 --> N19
   N8 --> N20
@@ -671,13 +677,13 @@ flowchart LR
   N14 --> N31
   N14 --> N33
   N21 --> N30
-  N47 -->|6x| N35
-  N47 -->|5x| N53
-  N48 -->|2x| N53
-  N49 --> N53
-  N51 -->|9x| N35
-  N52 -->|3x| N53
-  N56 -->|3x| N35
+  N50 -->|6x| N35
+  N50 -->|5x| N56
+  N51 -->|2x| N56
+  N52 --> N56
+  N54 -->|10x| N35
+  N55 -->|3x| N56
+  N59 -->|3x| N35
 ```
 <!-- cgg:end:self -->
 

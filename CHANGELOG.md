@@ -73,6 +73,12 @@ ever grows in default mode — see *Compatibility* below).
   b` now descends only into the consequence and alternative;
   `not_operator` is no longer descended into.
 
+### Credits
+
+- Kivy KV support, the generic class-field/observer machinery and the
+  value-reference widening were contributed by @SergeBakharev in #5,
+  validated over five review rounds on eight Kivy applications.
+
 ## [0.8.5] - 2026-09-18
 
 Security fixes from a review done for a downstream third-party import,

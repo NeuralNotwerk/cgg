@@ -61,6 +61,7 @@ const BLIND_SPOTS: &[(&str, &[&str])] = &[
             "ids.foo lookups",
             "canvas instruction properties",
             "#:include files are not followed",
+            "KV embedded in Python strings (`Builder.load_string`) is not seen",
         ],
     ),
 ];
