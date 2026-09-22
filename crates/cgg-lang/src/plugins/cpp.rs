@@ -16,8 +16,8 @@
 use std::path::Path;
 
 use cgg_core::{
-    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, MacroAlias, RefRecord,
-    first_template_arg, ids::FileId,
+    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, MacroAlias, MemberPtrTake,
+    RefRecord, first_template_arg, ids::FileId,
 };
 use tree_sitter::{Node, Tree};
 
@@ -37,6 +37,7 @@ impl LanguagePlugin for CppPlugin {
         crate::PluginSignals {
             attributes: true,
             unreachable: true,
+            impls: true,
             ..Default::default()
         }
     }
@@ -60,6 +61,7 @@ impl LanguagePlugin for CppPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             class_stack: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -78,6 +80,10 @@ struct CppWalker<'a> {
     /// Class and struct names currently open. Namespaces stay on `scope`
     /// only, so a field's owner is the class and not the namespace.
     class_stack: Vec<String>,
+    /// Base types of the enclosing class, innermost last. A method
+    /// carries its owner's supertypes because the resolver fans a
+    /// virtual call out to overrides by walking this list.
+    bases: Vec<Vec<String>>,
     /// Needed for the registrar-verb gate. Without it C++ captured no
     /// argument-position handler at all, so `run_handler(my_handler)` —
     /// the one entry point an aws-lambda-cpp binary has — referenced
@@ -125,14 +131,19 @@ impl<'a> CppWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                let class_bases = super::attrs::base_types(node, self.source);
                 if !name.is_empty() {
                     self.scope.push(name.clone());
                     self.class_stack.push(name);
+                    self.bases.push(class_bases);
                     self.walk_children(node);
+                    self.bases.pop();
                     self.class_stack.pop();
                     self.scope.pop();
                 } else {
+                    self.bases.push(class_bases);
                     self.walk_children(node);
+                    self.bases.pop();
                 }
                 return;
             }
@@ -173,6 +184,11 @@ impl<'a> CppWalker<'a> {
             }
             "new_expression" => {
                 self.record_new(node);
+                self.walk_children(node);
+                return;
+            }
+            "pointer_expression" => {
+                self.record_member_ptr_take(node);
                 self.walk_children(node);
                 return;
             }
@@ -229,6 +245,10 @@ impl<'a> CppWalker<'a> {
         }
         let qn = self.qualified_name(&info.qual_tail);
         let (sl, el) = line_range(node);
+        let mut attributes = cuda_qualifiers(self.text(node));
+        if is_virtual_method(node, self.source) {
+            attributes.push("virtual".to_string());
+        }
         self.facts.definitions.push(DefRecord {
             simple_name: info.simple,
             qualified_name: qn,
@@ -239,8 +259,9 @@ impl<'a> CppWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: cuda_qualifiers(self.text(node)),
+            attributes,
             has_body,
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -516,9 +537,22 @@ impl<'a> CppWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
+        // `(m->*table[i])(...)` often has no usable `function` field
+        // because `->*` lands in an ERROR node. Scan the whole call.
+        if let Some((name, recv)) = member_ptr_from_call_func(node, self.source) {
+            self.facts.references.push(RefRecord {
+                name,
+                receiver_hint: recv,
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+                ..Default::default()
+            });
+            return;
+        }
         let Some(func) = node.child_by_field_name("function") else {
             return;
         };
+        let func = unwrap_parens(func);
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "field_expression" => {
@@ -533,7 +567,6 @@ impl<'a> CppWalker<'a> {
                 (field, arg)
             }
             "qualified_identifier" => {
-                // `ns::sub::fn()` — full text is the receiver+name.
                 let full = self.text(func);
                 if let Some(pos) = full.rfind("::") {
                     let recv = full[..pos].to_string();
@@ -554,6 +587,30 @@ impl<'a> CppWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             ..Default::default()
+        });
+    }
+
+    /// `&Module::on_idle` inside a table initializer.
+    fn record_member_ptr_take(&mut self, node: Node) {
+        let Some(op) = node.child_by_field_name("operator") else {
+            return;
+        };
+        if op.kind() != "&" {
+            return;
+        }
+        let Some(arg) = node.child_by_field_name("argument") else {
+            return;
+        };
+        let Some((owner, method)) = owner_method_from_qual(self.text(arg)) else {
+            return;
+        };
+        let Some(table) = enclosing_table_name(node, self.source) else {
+            return;
+        };
+        self.facts.member_ptr_takes.push(MemberPtrTake {
+            table,
+            owner,
+            method,
         });
     }
 }
@@ -622,6 +679,124 @@ fn unwrap_function_declarator(node: Node) -> Option<Node> {
 fn has_child_kind(node: Node, kind: &str) -> bool {
     let mut c = node.walk();
     node.children(&mut c).any(|ch| ch.kind() == kind)
+}
+
+fn is_virtual_method(node: Node, source: &[u8]) -> bool {
+    has_child_kind(node, "virtual")
+        || has_child_kind(node, "pure_virtual_clause")
+        || node
+            .utf8_text(source)
+            .ok()
+            .is_some_and(|t| t.trim_start().starts_with("virtual "))
+}
+
+fn unwrap_parens(mut n: Node) -> Node {
+    for _ in 0..8 {
+        if n.kind() != "parenthesized_expression" {
+            break;
+        }
+        let Some(inner) = n.named_child(0) else {
+            break;
+        };
+        n = inner;
+    }
+    n
+}
+
+fn table_ident(node: Node, source: &[u8]) -> Option<String> {
+    let n = unwrap_parens(node);
+    match n.kind() {
+        "identifier" => {
+            let t = n.utf8_text(source).ok()?.trim();
+            if t.is_empty() {
+                None
+            } else {
+                Some(t.to_string())
+            }
+        }
+        "subscript_expression" => n
+            .child_by_field_name("argument")
+            .and_then(|a| table_ident(a, source))
+            .or_else(|| n.named_child(0).and_then(|a| table_ident(a, source))),
+        _ => None,
+    }
+}
+
+fn member_ptr_from_call_func(func: Node<'_>, source: &[u8]) -> Option<(String, String)> {
+    let table = scan_member_ptr_table(func, source)?;
+    Some(("->*".to_string(), table))
+}
+
+/// `->*` is often inside an ERROR node rather than a `binary_expression`
+/// when the callee is parenthesized: `(m->*table[i])(...)`.
+fn scan_member_ptr_table(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let mut saw_op = false;
+    let mut stack = vec![node];
+    while let Some(n) = stack.pop() {
+        if n.kind() == "argument_list" {
+            continue;
+        }
+        if n.kind() == "->*" || n.kind() == ".*" {
+            saw_op = true;
+            continue;
+        }
+        if saw_op && let Some(t) = table_ident(n, source) {
+            return Some(t);
+        }
+        let mut kids = Vec::new();
+        let mut c = n.walk();
+        if c.goto_first_child() {
+            loop {
+                kids.push(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+        // DFS left-to-right: push in reverse.
+        for k in kids.into_iter().rev() {
+            stack.push(k);
+        }
+    }
+    None
+}
+
+fn owner_method_from_qual(raw: &str) -> Option<(String, String)> {
+    let raw = raw.trim();
+    let (owner, method) = raw.rsplit_once("::")?;
+    let owner = owner.rsplit("::").next()?.trim();
+    let method = method.trim();
+    if owner.is_empty()
+        || method.is_empty()
+        || !owner.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+        || !method.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_' || c == '~')
+    {
+        return None;
+    }
+    Some((owner.to_string(), method.to_string()))
+}
+
+fn enclosing_table_name(node: Node, source: &[u8]) -> Option<String> {
+    let mut n = node;
+    for _ in 0..16 {
+        n = n.parent()?;
+        if matches!(
+            n.kind(),
+            "init_declarator" | "declaration" | "field_declaration"
+        ) {
+            for d in declarator_fields(n) {
+                if let Some(name) = variable_name(d, source) {
+                    return Some(name);
+                }
+            }
+            if let Some(d) = n.child_by_field_name("declarator")
+                && let Some(name) = variable_name(d, source)
+            {
+                return Some(name);
+            }
+        }
+    }
+    None
 }
 
 fn declarator_fields(node: Node) -> Vec<Node> {
@@ -828,6 +1003,7 @@ fn immediate_class(qual: Node, source: &[u8]) -> Option<String> {
 pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     struct Body {
         file: usize,
+        def_idx: usize,
         key: String,
     }
     let mut bodies: std::collections::HashMap<String, Vec<Body>> =
@@ -836,7 +1012,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
         if facts.language != "cpp" {
             continue;
         }
-        for def in &facts.definitions {
+        for (def_idx, def) in facts.definitions.iter().enumerate() {
             if !def.has_body {
                 continue;
             }
@@ -848,23 +1024,26 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
                 .or_default()
                 .push(Body {
                     file: file_idx,
+                    def_idx,
                     key,
                 });
         }
     }
-    for (file_idx, facts) in files.iter_mut().enumerate() {
+    let mut drop_at: Vec<(usize, usize)> = Vec::new();
+    let mut merges: Vec<(usize, usize, bool, Vec<String>)> = Vec::new();
+    for (file_idx, facts) in files.iter().enumerate() {
         if facts.language != "cpp" {
             continue;
         }
-        facts.definitions.retain(|def| {
+        for (def_idx, def) in facts.definitions.iter().enumerate() {
             if def.has_body || def.attributes.iter().any(|a| a == "macro") {
-                return true;
+                continue;
             }
             let Some(candidates) = bodies.get(&def.qualified_name) else {
-                return true;
+                continue;
             };
             let Some(key) = overload_key(&def.signature_hint) else {
-                return true;
+                continue;
             };
             // Every body of this overload, restricted to this file when
             // the name is an anonymous-namespace function (each
@@ -876,9 +1055,38 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
                 hits.retain(|b| b.file == file_idx);
             }
             if hits.is_empty() {
-                return true;
+                continue;
             }
-            false
+            let virt = def.attributes.iter().any(|a| a == "virtual");
+            let bases = def.base_types.clone();
+            for h in &hits {
+                merges.push((h.file, h.def_idx, virt, bases.clone()));
+            }
+            drop_at.push((file_idx, def_idx));
+        }
+    }
+    for (file, def_idx, virt, bases) in merges {
+        let def = &mut files[file].definitions[def_idx];
+        if virt && !def.attributes.iter().any(|a| a == "virtual") {
+            def.attributes.push("virtual".into());
+        }
+        for b in bases {
+            if !def.base_types.contains(&b) {
+                def.base_types.push(b);
+            }
+        }
+    }
+    let drop_set: std::collections::HashSet<(usize, usize)> =
+        drop_at.into_iter().collect();
+    for (file_idx, facts) in files.iter_mut().enumerate() {
+        if facts.language != "cpp" {
+            continue;
+        }
+        let mut i = 0usize;
+        facts.definitions.retain(|_| {
+            let keep = !drop_set.contains(&(file_idx, i));
+            i += 1;
+            keep
         });
     }
 }
@@ -1496,6 +1704,98 @@ public:
             .find(|t| t.owner == "Kernel" && t.field == "robot")
             .expect("robot field");
         assert_eq!(robot.type_name, "Robot");
+    }
+
+    #[test]
+    fn bases_and_virtual_are_recorded_on_methods() {
+        let f = extract(
+            r#"
+class Shape { public: virtual void draw(); };
+class Circle : public Shape { public: void draw(); };
+"#,
+        );
+        let shape = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Shape::draw")
+            .expect("Shape::draw");
+        assert!(
+            shape.attributes.iter().any(|a| a == "virtual"),
+            "attrs: {:?}",
+            shape.attributes
+        );
+        let circle = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Circle::draw")
+            .expect("Circle::draw");
+        assert!(
+            circle.base_types.iter().any(|b| b == "Shape"),
+            "bases: {:?}",
+            circle.base_types
+        );
+        let virt = extract(
+            "class Shape {};\nclass Diamond : virtual public Shape { public: void draw(); };\n",
+        );
+        let draw = virt
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Diamond::draw")
+            .expect("Diamond::draw");
+        assert!(
+            draw.base_types.iter().any(|b| b == "Shape"),
+            "virtual public base: {:?}",
+            draw.base_types
+        );
+    }
+
+    #[test]
+    fn member_pointer_table_and_indexed_call_are_recorded() {
+        let f = extract(
+            r#"
+class Module {
+public:
+    virtual void on_idle(void*);
+};
+typedef void (Module::*CB)(void*);
+const CB table[] = { &Module::on_idle };
+void call_event(Module* m, int i) { (m->*table[i])(0); }
+"#,
+        );
+        assert!(
+            f.member_ptr_takes.iter().any(|t| {
+                t.table == "table" && t.owner == "Module" && t.method == "on_idle"
+            }),
+            "takes: {:?}",
+            f.member_ptr_takes
+        );
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(refs.contains(&("->*", "table")), "refs: {refs:?}");
+    }
+
+    #[test]
+    fn unify_copies_virtual_and_bases_onto_the_body() {
+        let mut header = extract_at(
+            "class Shape { public: virtual void draw(); };\nclass Circle : public Shape { public: void draw(); };\n",
+            "/tmp/__cgg_test__/shape.h",
+        );
+        let mut body =
+            extract_at("void Circle::draw() {}\n", "/tmp/__cgg_test__/shape.cpp");
+        unify_declarations(&mut [&mut header, &mut body]);
+        let circle = body
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Circle::draw")
+            .expect("body");
+        assert!(
+            circle.base_types.iter().any(|b| b == "Shape"),
+            "bases: {:?}",
+            circle.base_types
+        );
     }
 
     #[test]

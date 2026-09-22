@@ -160,6 +160,18 @@ docs-check): 9 s warm.
   typed locals. A parenthesized replacement `(App::instance)` is
   unwrapped.
 
+- **C++ virtual calls and indexed member-pointer tables did not reach
+  overrides.** `s->draw()` on a `Shape*` bound only `Shape::draw`.
+  `(m->*table[i])()` was not a named call at all. Bases are recorded on
+  methods, `virtual` is kept as an attribute, and `&Type::method` in a
+  table initializer is a `MemberPtrTake`. A virtual call fans out to
+  every override of that static type; an indexed `->*` call reaches
+  every address-taken method in the table, then those overrides. That
+  set is the vtable, so it is not sent through the duck-typing cap.
+  The extra edges are `dyn` / low confidence — a site runs at most one
+  of them — and they stay in the default graph because the vtable is
+  declared, not guessed.
+
 ## [0.8.5] - 2026-09-18
 
 Security fixes from a review done for a downstream third-party import,

@@ -1608,6 +1608,304 @@ pub fn resolve(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> CrossFi
         out.unresolved.append(&mut o.unresolved);
     }
 
+    let extra = cpp_virtual_dispatch(graph, facts, &out.edges, &by_owner_method);
+    out.edges.extend(extra);
+    out
+}
+
+/// C++ virtual calls and indexed member-pointer tables.
+///
+/// A typed call that already landed on `Shape::draw` also reaches every
+/// override on a type that inherits from `Shape`. An indexed
+/// `(m->*table[i])()` reaches every `&Type::method` stored in `table`,
+/// then those methods' overrides. The override set is the real vtable,
+/// so it is not sent through the duck-typing cap. The extra edges are
+/// `Via::Dynamic` / low confidence — a site runs at most one of them —
+/// and they stay in the default graph because the vtable is declared,
+/// not guessed (`--dynamic-dispatch` is a separate, opt-in pass over
+/// `trait_impl_target` and does not emit these).
+fn cpp_virtual_dispatch(
+    graph: &Graph,
+    facts: &[FileFacts],
+    new_edges: &[CallEdge],
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Vec<CallEdge> {
+    let resolver = ResolverId::new("cross-file:cpp-virtual");
+    let mut virtual_methods: std::collections::HashSet<(String, String, String)> =
+        std::collections::HashSet::new();
+    let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
+    let mut tables: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    for f in facts {
+        if f.language != "cpp" {
+            continue;
+        }
+        for d in &f.definitions {
+            let Some(owner) = owner_from_qn(&d.qualified_name) else {
+                continue;
+            };
+            if d.attributes.iter().any(|a| a == "virtual") {
+                virtual_methods.insert((
+                    f.language.clone(),
+                    owner.to_string(),
+                    d.simple_name.clone(),
+                ));
+            }
+            if !d.base_types.is_empty() {
+                let slot = bases_by_owner
+                    .entry((f.language.clone(), owner.to_string()))
+                    .or_default();
+                for b in &d.base_types {
+                    let bare = b.split(['<', '[']).next().unwrap_or(b).trim();
+                    let bare = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
+                    if !bare.is_empty() && !slot.iter().any(|x| x == bare) {
+                        slot.push(bare.to_string());
+                    }
+                }
+            }
+        }
+        for t in &f.member_ptr_takes {
+            let slot = tables.entry(t.table.clone()).or_default();
+            let pair = (t.owner.clone(), t.method.clone());
+            if !slot.contains(&pair) {
+                slot.push(pair);
+            }
+        }
+    }
+    if virtual_methods.is_empty() && tables.is_empty() {
+        return Vec::new();
+    }
+    let mut derived_by_base: HashMap<(String, String), Vec<String>> = HashMap::new();
+    for ((lang, owner), bases) in &bases_by_owner {
+        for b in bases {
+            let slot = derived_by_base
+                .entry((lang.clone(), b.clone()))
+                .or_default();
+            if !slot.iter().any(|x| x == owner) {
+                slot.push(owner.clone());
+            }
+        }
+    }
+    for kids in derived_by_base.values_mut() {
+        kids.sort();
+    }
+
+    let mut existing: std::collections::HashSet<(CallableId, CallableId, u32)> = graph
+        .edges
+        .iter()
+        .map(|e| (e.src, e.dst, e.site_byte))
+        .collect();
+    for e in new_edges {
+        existing.insert((e.src, e.dst, e.site_byte));
+    }
+
+    let mut extra = Vec::new();
+    for f in facts {
+        if f.language != "cpp" {
+            continue;
+        }
+        for r in &f.references {
+            if r.name != "->*" {
+                continue;
+            }
+            let Some(src) = innermost_at(graph, f.file, r.site_byte) else {
+                continue;
+            };
+            let Some(takes) = tables.get(&r.receiver_hint) else {
+                continue;
+            };
+            for (owner, method) in takes {
+                let targets = cpp_override_set(
+                    owner,
+                    method,
+                    &virtual_methods,
+                    &bases_by_owner,
+                    &derived_by_base,
+                    &by_owner_method,
+                );
+                for dst in targets {
+                    if dst == src {
+                        continue;
+                    }
+                    if !existing.insert((src, dst, r.site_byte)) {
+                        continue;
+                    }
+                    extra.push(CallEdge {
+                        src,
+                        dst,
+                        site_line: r.site_line,
+                        site_byte: r.site_byte,
+                        confidence: Confidence::Low,
+                        via: Via::Dynamic,
+                        resolver: resolver.clone(),
+                        weight: 1,
+                    });
+                }
+            }
+        }
+    }
+
+    let seed: Vec<(CallableId, CallableId, u32, u32)> = graph
+        .edges
+        .iter()
+        .chain(new_edges.iter())
+        .chain(extra.iter())
+        .map(|e| (e.src, e.dst, e.site_line, e.site_byte))
+        .collect();
+    for (src, dst, site_line, site_byte) in seed {
+        let Some(node) = graph.callables.get(&dst) else {
+            continue;
+        };
+        if node.language != "cpp" {
+            continue;
+        }
+        if node.simple_name.starts_with('~') {
+            continue;
+        }
+        let Some(owner) = owner_from_qn(&node.qualified_name) else {
+            continue;
+        };
+        if owner == node.simple_name {
+            continue;
+        }
+        if !cpp_slot_is_virtual(
+            owner,
+            &node.simple_name,
+            &virtual_methods,
+            &bases_by_owner,
+        ) {
+            continue;
+        }
+        for ov in
+            cpp_descendants(owner, &node.simple_name, &derived_by_base, &by_owner_method)
+        {
+            if ov == dst || ov == src {
+                continue;
+            }
+            if !existing.insert((src, ov, site_byte)) {
+                continue;
+            }
+            extra.push(CallEdge {
+                src,
+                dst: ov,
+                site_line,
+                site_byte,
+                confidence: Confidence::Low,
+                via: Via::Dynamic,
+                resolver: resolver.clone(),
+                weight: 1,
+            });
+        }
+    }
+    extra.sort_by_key(|e| (e.src.as_u64(), e.dst.as_u64(), e.site_byte));
+    extra
+}
+
+fn innermost_at(graph: &Graph, file: FileId, site_byte: u32) -> Option<CallableId> {
+    graph
+        .callables
+        .values()
+        .filter(|c| c.file == file && c.start_byte <= site_byte && site_byte < c.end_byte)
+        .min_by_key(|c| c.end_byte.saturating_sub(c.start_byte))
+        .map(|c| c.id)
+}
+
+fn cpp_slot_is_virtual(
+    owner: &str,
+    method: &str,
+    virtual_methods: &std::collections::HashSet<(String, String, String)>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+) -> bool {
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut frontier = vec![owner.to_string()];
+    for _ in 0..8 {
+        let mut next = Vec::new();
+        for t in std::mem::take(&mut frontier) {
+            if !seen.insert(t.clone()) {
+                continue;
+            }
+            if virtual_methods.contains(&("cpp".into(), t.clone(), method.to_string())) {
+                return true;
+            }
+            if let Some(bases) = bases_by_owner.get(&("cpp".into(), t)) {
+                next.extend(bases.iter().cloned());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    false
+}
+
+fn cpp_descendants(
+    owner: &str,
+    method: &str,
+    derived_by_base: &HashMap<(String, String), Vec<String>>,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Vec<CallableId> {
+    let mut seen_types: std::collections::BTreeSet<String> =
+        std::collections::BTreeSet::new();
+    seen_types.insert(owner.to_string());
+    let mut frontier: Vec<String> = derived_by_base
+        .get(&("cpp".into(), owner.to_string()))
+        .cloned()
+        .unwrap_or_default();
+    let mut out = Vec::new();
+    let mut seen_ids: std::collections::BTreeSet<u64> = std::collections::BTreeSet::new();
+    for _ in 0..8 {
+        let mut next = Vec::new();
+        for t in std::mem::take(&mut frontier) {
+            if !seen_types.insert(t.clone()) {
+                continue;
+            }
+            if let Some(cids) =
+                by_owner_method.get(&("cpp".into(), t.clone(), method.to_string()))
+            {
+                for id in cids {
+                    if seen_ids.insert(id.as_u64()) {
+                        out.push(*id);
+                    }
+                }
+            }
+            if let Some(kids) = derived_by_base.get(&("cpp".into(), t)) {
+                next.extend(kids.iter().cloned());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    out
+}
+
+fn cpp_override_set(
+    owner: &str,
+    method: &str,
+    virtual_methods: &std::collections::HashSet<(String, String, String)>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+    derived_by_base: &HashMap<(String, String), Vec<String>>,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Vec<CallableId> {
+    let mut out = Vec::new();
+    let mut seen: std::collections::BTreeSet<u64> = std::collections::BTreeSet::new();
+    if let Some(cids) =
+        by_owner_method.get(&("cpp".into(), owner.to_string(), method.to_string()))
+    {
+        for id in cids {
+            if seen.insert(id.as_u64()) {
+                out.push(*id);
+            }
+        }
+    }
+    if cpp_slot_is_virtual(owner, method, virtual_methods, bases_by_owner) {
+        for id in cpp_descendants(owner, method, derived_by_base, by_owner_method) {
+            if seen.insert(id.as_u64()) {
+                out.push(id);
+            }
+        }
+    }
     out
 }
 
