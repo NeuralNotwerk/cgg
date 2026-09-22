@@ -36,11 +36,24 @@ ever grows in default mode — see *Compatibility* below).
 - **KV rule recovery after parse errors.** A text-level
   `harvest_unparsed_rule_calls` pass attributes calls to the enclosing
   `<Rule>:` even when the grammar fails to wrap it as a tree-sitter
-  `rule` node (e.g. after an unclosed parenthesis).
+  `rule` node (e.g. after an unclosed parenthesis).  The same pass mints
+  a `kv_rule` node for any rule whose property-expression calls (e.g.
+  `text: root.get_setting(...)`) have no enclosing `on_*` binding,
+  keeping the graph at one node per rule rather than one per property.
 - **20 inherited-property observer names** added to the kivy framework
   rule (`on_text`, `on_state`, `on_active`, `on_press`, `on_release`,
   etc.), so subclass observers of built-in Kivy properties are no longer
   reported as dead code.
+- **kv→python unresolved references are audited.** Every kv→python
+  reference the linker cannot bind now appears in the audit with a reason
+  (`no-candidate-cross-file`, `no-enclosing-callable`, `fanout-cap-exceeded`,
+  or `kv-python: N candidates, no owner match`), and the linker honours
+  `--fanout-cap`.
+
+### Known limitations
+
+- KV embedded in `Builder.load_string('''…''')` inside Python files is
+  not seen by the Kivy plugin.
 
 ### Fixed
 

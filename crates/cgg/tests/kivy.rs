@@ -509,3 +509,108 @@ fn kv_file_with_very_long_line_is_skipped_not_hung() {
          file is skipped, not parsed"
     );
 }
+
+/// A kv→python reference the linker cannot bind must appear in the
+/// audit's unresolved list with a reason — drops are never silent.
+#[test]
+fn kv_unresolved_reference_appears_in_audit() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "popup.py",
+        b"class MyPopup:\n    def real_method(self):\n        return 1\n",
+    );
+    write(
+        tmp.path(),
+        "MyPopup.kv",
+        b"<MyPopup>:\n    Button:\n        on_release: root.no_such_method()\n        on_press: root.real_method()\n",
+    );
+
+    let out = tmp.path().join("g.mmd");
+    let audit = tmp.path().join("g.mmd.audit.json");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let text = fs::read_to_string(&audit).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+    // The audit is an array of events; unresolved calls live inside
+    // file_analyzed records across unresolved_calls, external_calls
+    // and stdlib_calls buckets.
+    let events = parsed.as_array().expect("audit should be an array");
+    let has_no_such = events.iter().any(|evt| {
+        evt["event"].as_str() == Some("file_analyzed")
+            && ["unresolved_calls", "external_calls", "stdlib_calls"]
+                .iter()
+                .any(|bucket| {
+                    evt[bucket].as_array().is_some_and(|calls| {
+                        calls.iter().any(|u| {
+                            u["name"].as_str().is_some_and(|n| n == "no_such_method")
+                        })
+                    })
+                })
+    });
+    assert!(
+        has_no_such,
+        "no_such_method should be in the audit's unresolved/external/stdlib calls"
+    );
+}
+
+/// Property-expression calls (`text: root.get_setting(...)`) that have
+/// no enclosing `on_*` binding get a `kv_rule` node, keeping them live.
+#[test]
+fn kv_property_expression_call_keeps_method_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "settings.py",
+        b"from kivy.uix.boxlayout import BoxLayout\n\
+class AngleSettings(BoxLayout):\n\
+    def get_setting(self, key):\n        return key\n\
+    def unused(self):\n        return 0\n",
+    );
+    write(
+        tmp.path(),
+        "AngleSettings.kv",
+        b"<AngleSettings>:\n\
+    Label:\n\
+        text: root.get_setting('YAxisDistance')\n\
+    TextInput:\n\
+        text: root.get_setting('XAxisDistance')\n\
+        on_text: root.get_setting('Z')\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let text = fs::read_to_string(&report).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let names: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["simple_name"].as_str())
+        .collect();
+    assert!(
+        !names.contains(&"get_setting"),
+        "get_setting should be live via property expression + on_text, findings: {names:?}"
+    );
+    assert!(
+        names.contains(&"unused"),
+        "unused should still be reported, findings: {names:?}"
+    );
+}

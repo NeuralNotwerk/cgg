@@ -687,7 +687,10 @@ fn top_level_kv_rules(source: &[u8]) -> Vec<(String, usize, usize)> {
 /// Fill in calls the AST walk missed, attributing them to the enclosing
 /// `<Rule>:` even when that rule never became a `rule` node. Also
 /// corrects `root.foo()` refs that landed on a widget owner (`BoxLayout`)
-/// because the rule was recovered as ERROR.
+/// because the rule was recovered as ERROR.  Also mints a `kv_rule`
+/// node when the rule contains existing references with no enclosing
+/// definition (e.g. `text: root.get_setting(...)` — a non-event property
+/// whose call was captured but has no `on_*` binding to live under).
 fn harvest_unparsed_rule_calls(facts: &mut FileFacts, source: &[u8]) {
     for (rule, start, end) in top_level_kv_rules(source) {
         let calls = scan_text_calls(source, start, end);
@@ -733,6 +736,41 @@ fn harvest_unparsed_rule_calls(facts: &mut FileFacts, source: &[u8]) {
                 context: preferred,
                 ..Default::default()
             });
+        }
+
+        // Non-event property calls (text: root.get_setting(...)) were
+        // captured by the AST walk but may lack an enclosing definition
+        // after the on_*-only policy + span clamping.  Mint one kv_rule
+        // node per rule that contains any un-enclosed reference.
+        if !added {
+            let start32 = start as u32;
+            let end32 = end as u32;
+            let has_unenclosed = facts.references.iter().any(|r| {
+                r.site_byte >= start32
+                    && r.site_byte < end32
+                    && !facts
+                        .definitions
+                        .iter()
+                        .any(|d| r.site_byte >= d.start_byte && r.site_byte < d.end_byte)
+            });
+            if has_unenclosed {
+                let sl = line_at(source, start);
+                let el = line_at(source, end.saturating_sub(1).max(start));
+                facts.definitions.push(DefRecord {
+                    simple_name: "kv_rule".into(),
+                    qualified_name: format!("{rule}.kv_rule:{sl}"),
+                    variant: DefVariant::InherentMethod,
+                    start_line: sl,
+                    end_line: el,
+                    start_byte: start32,
+                    end_byte: end32,
+                    signature_hint: "…".into(),
+                    visibility: String::new(),
+                    vis: Vis::Public,
+                    attributes: vec!["kv-binding".into()],
+                    ..Default::default()
+                });
+            }
         }
     }
 }
@@ -1345,5 +1383,35 @@ Button:\n    on_release:\n        if root.mode == 'Run': app.root.play(1)\n     
             .find(|r| r.name == "on_ok_pressed")
             .expect("on_ok_pressed");
         assert_eq!(r.context, "OriginPopup");
+    }
+
+    #[test]
+    fn property_expression_call_gets_enclosing_kv_rule_node() {
+        let src = "\
+<AngleSettings>:
+    Label:
+        text: root.get_setting('YAxisDistance')
+    TextInput:
+        text: root.get_setting('XAxisDistance')
+        on_text: root.get_setting('Z')
+";
+        let f = extract(src, "/tmp/AngleSettings.kv");
+        let refs: Vec<_> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "get_setting")
+            .collect();
+        assert_eq!(refs.len(), 3, "all three get_setting refs: {:?}", refs);
+        // Every ref must be enclosed by some definition.
+        for r in &refs {
+            assert!(
+                f.definitions
+                    .iter()
+                    .any(|d| r.site_byte >= d.start_byte && r.site_byte < d.end_byte),
+                "get_setting at byte {} has no enclosing def: defs={:?}",
+                r.site_byte,
+                f.definitions
+            );
+        }
     }
 }
