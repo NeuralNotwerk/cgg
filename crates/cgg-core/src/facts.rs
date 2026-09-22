@@ -327,6 +327,11 @@ pub struct FileFacts {
     /// indexes these across the whole run and walks one `->` / `.` hop.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub field_types: Vec<FieldType>,
+    /// Object-like macros (`#define THEKERNEL Kernel::instance`). The
+    /// replacement is kept as text; the type propagator expands chains
+    /// of such macros and field hops against [`Self::field_types`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub macro_aliases: Vec<MacroAlias>,
     /// Names this file makes visible to other modules.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exports: Vec<ExportRecord>,
@@ -400,6 +405,17 @@ pub struct FieldType {
     pub type_name: String,
 }
 
+/// An object-like `#define NAME replacement` whose replacement is an
+/// identifier, a qualified name, another such macro, or a field hop
+/// through one (`THEKERNEL->robot`). Function-like macros are callables
+/// instead and are not stored here.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MacroAlias {
+    pub name: String,
+    /// Replacement tokens as written, whitespace-collapsed.
+    pub replacement: String,
+}
+
 impl FileFacts {
     pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
         Self {
@@ -411,6 +427,7 @@ impl FileFacts {
             imports: Vec::new(),
             local_types: Vec::new(),
             field_types: Vec::new(),
+            macro_aliases: Vec::new(),
             exports: Vec::new(),
             dyn_uses: Vec::new(),
             unreachable: Vec::new(),

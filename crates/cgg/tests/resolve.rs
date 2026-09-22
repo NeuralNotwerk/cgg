@@ -647,6 +647,65 @@ fn cpp_same_local_name_in_two_functions_keeps_each_type() {
 }
 
 #[test]
+fn cpp_object_like_macro_receivers_resolve() {
+    // `#define THEKERNEL Kernel::instance` and aliases that hop through
+    // it. The receiver is uppercase, so without macro typing it would
+    // be left alone as a path and never bind.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "kernel.h",
+        b"#define THEKERNEL Kernel::instance\n#define THEROBOT THEKERNEL->robot\nclass StreamOutput {\npublic:\n    void printf(const char*);\n};\nclass Robot {\npublic:\n    void on_idle();\n};\nclass Kernel {\npublic:\n    static Kernel* instance;\n    StreamOutput* streams;\n    Robot* robot;\n    void add_module(int);\n};\n",
+    );
+    write(
+        tmp.path(),
+        "kernel.cpp",
+        b"#include \"kernel.h\"\nKernel* Kernel::instance;\nvoid StreamOutput::printf(const char*) {}\nvoid Robot::on_idle() {}\nvoid Kernel::add_module(int) {}\n",
+    );
+    write(
+        tmp.path(),
+        "main.cpp",
+        b"#include \"kernel.h\"\nvoid init() {\n    THEKERNEL->add_module(1);\n    THEKERNEL->streams->printf(\"hi\");\n    THEROBOT->on_idle();\n}\n",
+    );
+
+    let mmd = tmp.path().join("g.mmd");
+    cgg()
+        .args(["-t", "mermaid", "-o"])
+        .arg(&mmd)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&mmd).unwrap();
+    let node_id = |qn: &str| -> Option<String> {
+        g.lines().find_map(|l| {
+            let l = l.trim();
+            if l.starts_with(['C', 'N']) && l.contains(&format!("[\"{qn}\"]")) {
+                Some(l.split('[').next()?.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+    let init = node_id("init").unwrap_or_else(|| panic!("init:\n{g}"));
+    let add = node_id("Kernel::add_module").unwrap_or_else(|| panic!("add:\n{g}"));
+    let printf =
+        node_id("StreamOutput::printf").unwrap_or_else(|| panic!("printf:\n{g}"));
+    let idle = node_id("Robot::on_idle").unwrap_or_else(|| panic!("on_idle:\n{g}"));
+    assert!(
+        g.contains(&format!("{init} --> {add}")),
+        "THEKERNEL->add_module:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{init} --> {printf}")),
+        "THEKERNEL->streams->printf:\n{g}"
+    );
+    assert!(
+        g.contains(&format!("{init} --> {idle}")),
+        "THEROBOT->on_idle:\n{g}"
+    );
+}
+
+#[test]
 fn cpp_typed_call_reaches_every_definition_not_only_the_last() {
     // Two translation units define Kernel::add_module. by_qn keeps one
     // of them; a typed call must still reach both, or every call lands

@@ -16,7 +16,7 @@
 use std::path::Path;
 
 use cgg_core::{
-    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, RefRecord,
+    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, MacroAlias, RefRecord,
     first_template_arg, ids::FileId,
 };
 use tree_sitter::{Node, Tree};
@@ -160,7 +160,11 @@ impl<'a> CppWalker<'a> {
                 return;
             }
             "preproc_function_def" => {
-                self.record_macro_def(node);
+                self.record_function_macro(node);
+                return;
+            }
+            "preproc_def" => {
+                self.record_object_macro(node);
                 return;
             }
             "preproc_include" => {
@@ -405,7 +409,7 @@ impl<'a> CppWalker<'a> {
         }
     }
 
-    fn record_macro_def(&mut self, node: Node) {
+    fn record_function_macro(&mut self, node: Node) {
         let Some(name_node) = node.child_by_field_name("name") else {
             return;
         };
@@ -428,6 +432,32 @@ impl<'a> CppWalker<'a> {
             attributes: vec!["macro".to_string()],
             ..Default::default()
         });
+    }
+
+    /// `#define THEKERNEL Kernel::instance` — kept as text so the type
+    /// propagator can expand chains against class fields. A replacement
+    /// that is empty or only punctuation is ignored.
+    fn record_object_macro(&mut self, node: Node) {
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
+        let name = self.text(name_node).trim().to_string();
+        if name.is_empty() {
+            return;
+        }
+        let Some(value_node) = node.child_by_field_name("value") else {
+            return;
+        };
+        let replacement =
+            unwrap_outer_parens(&collapse_ws(self.text(value_node))).to_string();
+        if replacement.is_empty()
+            || !replacement.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+        {
+            return;
+        }
+        self.facts
+            .macro_aliases
+            .push(MacroAlias { name, replacement });
     }
 
     fn record_include(&mut self, node: Node) {
@@ -609,6 +639,40 @@ fn declarator_fields(node: Node) -> Vec<Node> {
         }
     }
     out
+}
+
+/// Collapse runs of whitespace in a preprocessor argument to a single
+/// space so `#define THEKERNEL Kernel::instance` and a multiline form
+/// share one replacement key.
+fn collapse_ws(raw: &str) -> String {
+    raw.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// `#define THE_APP (App::instance)` stores `App::instance`. Only the
+/// matching outer pair is stripped; `(a) + (b)` is left alone.
+fn unwrap_outer_parens(s: &str) -> &str {
+    let s = s.trim();
+    if !s.starts_with('(') || !s.ends_with(')') {
+        return s;
+    }
+    let mut depth = 0i32;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return if i + ch.len_utf8() == s.len() {
+                        s[1..i].trim()
+                    } else {
+                        s
+                    };
+                }
+            }
+            _ => {}
+        }
+    }
+    s
 }
 
 /// Identifier a declaration names, or `None` when the declarator is a
@@ -1372,6 +1436,66 @@ void init() {
             refs.contains(&("printf", "kernel->streams")),
             "refs: {refs:?}"
         );
+    }
+
+    #[test]
+    fn object_like_macros_and_static_fields_are_recorded() {
+        let f = extract(
+            r#"
+#define THEKERNEL Kernel::instance
+#define THECONVEYOR THEKERNEL->conveyor
+#define THEROBOT THEKERNEL->robot
+#define MAX_WCS 9UL
+class Kernel {
+public:
+    static Kernel* instance;
+    Robot* robot;
+    Conveyor* conveyor;
+};
+"#,
+        );
+        let aliases: Vec<(&str, &str)> = f
+            .macro_aliases
+            .iter()
+            .map(|m| (m.name.as_str(), m.replacement.as_str()))
+            .collect();
+        assert!(
+            aliases.contains(&("THEKERNEL", "Kernel::instance")),
+            "aliases: {aliases:?}"
+        );
+        let wrapped = extract("#define THE_APP (App::instance)\n");
+        assert!(
+            wrapped
+                .macro_aliases
+                .iter()
+                .any(|m| m.name == "THE_APP" && m.replacement == "App::instance"),
+            "parenthesized replacement: {:?}",
+            wrapped.macro_aliases
+        );
+        assert!(
+            aliases.contains(&("THECONVEYOR", "THEKERNEL->conveyor")),
+            "aliases: {aliases:?}"
+        );
+        assert!(
+            aliases.contains(&("THEROBOT", "THEKERNEL->robot")),
+            "aliases: {aliases:?}"
+        );
+        assert!(
+            aliases.iter().all(|(n, _)| *n != "MAX_WCS"),
+            "numeric macro should be ignored: {aliases:?}"
+        );
+        let instance = f
+            .field_types
+            .iter()
+            .find(|t| t.owner == "Kernel" && t.field == "instance")
+            .expect("instance field");
+        assert_eq!(instance.type_name, "Kernel");
+        let robot = f
+            .field_types
+            .iter()
+            .find(|t| t.owner == "Kernel" && t.field == "robot")
+            .expect("robot field");
+        assert_eq!(robot.type_name, "Robot");
     }
 
     #[test]

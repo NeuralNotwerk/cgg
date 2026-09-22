@@ -46,7 +46,8 @@ pub use external::{
 };
 pub use facts::{
     ClassFieldDecl, DefRecord, DefVariant, DynUse, ExportRecord, FieldType, FileFacts,
-    ImportRecord, LocalType, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion,
+    ImportRecord, LocalType, MacroAlias, RefRecord, STRING_REF_HINT, TestRole,
+    UnreachableRegion,
     VALUE_REF_HINT, Vis, first_template_arg,
 };
 pub use frameworks::{
