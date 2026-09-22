@@ -7,6 +7,20 @@ ever grows in default mode — see *Compatibility* below).
 
 ## [Unreleased]
 
+### Fixed
+
+- **C++ out-of-line definitions used the wrong simple name, and class
+  method prototypes were never extracted.** `void Widget::draw(...)` in
+  a `.cpp` kept simple name `Widget::draw`, so a call looking up `draw`
+  never found the body. Class methods declared as `field_declaration`
+  were skipped. The simple name is now the last segment; when any body
+  shares a prototype's qualified name and parameter list, the empty
+  declaration is dropped. Overloads and anonymous-namespace bodies stay
+  separate; parameter names, defaults, comments, `std::` prefixes, and
+  `T[]` versus `T*` do not keep a pair apart. After a cv-qualifier the
+  next identifier is the type, so `void draw(const uint32_t);` still
+  matches `void Widget::draw(const uint32_t n)`.
+
 ## [0.8.5] - 2026-09-18
 
 Security fixes from a review done for a downstream third-party import,
