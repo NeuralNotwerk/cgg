@@ -881,6 +881,28 @@ fn cpp_typed_receiver_with_no_known_class_falls_back_to_the_untyped_guess() {
 }
 
 #[test]
+fn cpp_template_member_prototype_unifies_with_its_out_of_line_body() {
+    // `Cursor::name` (in-class) and `Cursor<A>::name` (out of line) are one
+    // member; left apart, every bare call to it inside the class is
+    // ambiguous between the two.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "cursor.hpp",
+        b"template <typename A> class Cursor {\npublic:\n  int name(int x);\n  int step();\n};\ntemplate <typename A> int Cursor<A>::name(int x) { return x; }\ntemplate <typename A> int Cursor<A>::step() { return name(1); }\n",
+    );
+    let e = cpp_edges(tmp.path());
+    assert!(
+        e.contains(&(
+            "Cursor<A>::step".into(),
+            "Cursor<A>::name@cursor.hpp".into(),
+            "high".into()
+        )),
+        "{e:?}"
+    );
+}
+
+#[test]
 fn cpp_bare_call_in_a_member_prefers_the_enclosing_class() {
     // Unqualified lookup inside a member function searches the class
     // first: `get(...)` in `Reader::read` is `Reader::get`, not the

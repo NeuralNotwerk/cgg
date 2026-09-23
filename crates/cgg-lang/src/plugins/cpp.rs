@@ -1084,7 +1084,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
                 continue;
             };
             bodies
-                .entry(def.qualified_name.clone())
+                .entry(strip_template_args(&def.qualified_name))
                 .or_default()
                 .push(Body {
                     file: file_idx,
@@ -1104,7 +1104,11 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             if def.has_body || def.attributes.iter().any(|a| a == "macro") {
                 continue;
             }
-            let Some(candidates) = bodies.get(&def.qualified_name) else {
+            // `UnwindCursor::getReg` (the in-class prototype) and
+            // `UnwindCursor<A, R>::getReg` (the out-of-line body) are one
+            // member: the template arguments are not part of its identity.
+            let Some(candidates) = bodies.get(&strip_template_args(&def.qualified_name))
+            else {
                 continue;
             };
             let Some(key) = overload_key(&def.signature_hint) else {
@@ -1188,6 +1192,22 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             keep
         });
     }
+}
+
+/// A qualified name with every `<...>` argument list removed:
+/// `ns::Cursor<A, R>::get` → `ns::Cursor::get`.
+fn strip_template_args(qn: &str) -> String {
+    let mut out = String::with_capacity(qn.len());
+    let mut depth = 0u32;
+    for ch in qn.chars() {
+        match ch {
+            '<' => depth += 1,
+            '>' if depth > 0 => depth -= 1,
+            _ if depth == 0 => out.push(ch),
+            _ => {}
+        }
+    }
+    out
 }
 
 /// Parameter list plus cv/ref qualifiers, with names and default

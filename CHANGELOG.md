@@ -247,7 +247,7 @@ ever grows in default mode — see *Compatibility* below).
   repositories (PHP alone lost 8,142 typed-receiver edges). With the
   scoping, every non-C/C++ repository is byte-identical to 0.8.5.
 
-- **The C++ resolver changes lost calls 0.8.5 resolved; seven are fixed.**
+- **The C++ resolver changes lost calls 0.8.5 resolved; eight are fixed.**
   Found by diffing every node and edge of 0.8.5 against this tree over the
   whole corpus and requiring each loss to be explained. None of these
   shipped — they were regressions inside the unreleased #8 work — and each
@@ -278,6 +278,10 @@ ever grows in default mode — see *Compatibility* below).
   - *Type aliases* — `using Rect = TRect<float>;`, `typedef Foo Bar;` —
     are recorded and followed, so a receiver typed `Rect` looks in
     `TRect`. flutter's engine is written this way throughout.
+  - *Template members*: the in-class prototype `Cursor::name` and the
+    out-of-line body `Cursor<A>::name` were never paired, so a bare call
+    to the member inside the class was ambiguous (zig's libunwind).
+    Template argument lists are ignored when pairing.
   - *A typed receiver whose class cgg cannot find* (a template, a COM
     interface, a class in a header parsed as C) dropped the call. It now
     falls back to the receiver as written — what 0.8.5 resolved it with —

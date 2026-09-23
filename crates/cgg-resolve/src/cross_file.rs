@@ -818,6 +818,14 @@ pub fn resolve(
             // for ::-joined languages) for each prefix.
             let mut unqualified_prefixes: Vec<String> = Vec::new();
 
+            // A declaration this file made itself, merged into a body elsewhere,
+            // is still visible here — whether or not the file includes anything.
+            for (simple, qualified) in &facts.unified_decls {
+                let slot = direct_imports.entry(simple.clone()).or_default();
+                if !slot.contains(qualified) {
+                    slot.push(qualified.clone());
+                }
+            }
             for imp in &facts.imports {
                 match imp.kind.as_str() {
                     "from-import" => {
@@ -959,14 +967,6 @@ pub fn resolve(
                             .push(full);
                     }
                     "include" if matches!(lang.as_str(), "c" | "cpp" | "objc") => {
-                        // A declaration this file made itself, merged into a
-                        // body elsewhere, is still visible here.
-                        for (simple, qualified) in &facts.unified_decls {
-                            let slot = direct_imports.entry(simple.clone()).or_default();
-                            if !slot.contains(qualified) {
-                                slot.push(qualified.clone());
-                            }
-                        }
                         // C/C++: `#include "helpers.h"` — all definitions
                         // from the included file become available in this
                         // TU. We resolve the path relative to the current
