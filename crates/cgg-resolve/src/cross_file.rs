@@ -150,6 +150,17 @@ fn call_operator_names(lang: &str) -> &'static [&'static str] {
 /// `apply` produced no edge while `w.extra()` declared on the subclass
 /// did. Bounded and visited-guarded: a base list read from syntax can be
 /// cyclic, and depth is not evidence.
+/// Store the bare type name: the owner index is keyed that way, and a
+/// base is written as `generic.ObjectListView` or `Handler<T>` as often
+/// as plainly.
+fn push_bare_base(slot: &mut Vec<String>, b: &str) {
+    let bare = b.split(['<', '[']).next().unwrap_or(b).trim();
+    let bare = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
+    if !bare.is_empty() && !slot.iter().any(|x| x == bare) {
+        slot.push(bare.to_string());
+    }
+}
+
 fn resolve_via_bases(
     lang: &str,
     owner: &str,
@@ -594,11 +605,24 @@ pub fn resolve(
         .collect();
 
     // Owner type -> its declared bases, for walking the inheritance
-    // chain when a method is inherited rather than declared. Recorded on
-    // methods rather than types, because cgg's model has no node for a
-    // type — any method of the class carries the same base list.
+    // chain when a method is inherited rather than declared. Seeded from
+    // class records where the plugin writes them (Python), because a
+    // bodiless `class Middle(Base): pass` has no method to carry its
+    // bases and the chain would otherwise end at it; then from methods,
+    // for plugins that record bases only there.
     let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
     for f in facts {
+        for c in &f.classes {
+            let Some(owner) = c.class_qn.rsplit('.').next() else {
+                continue;
+            };
+            let slot = bases_by_owner
+                .entry((f.language.clone(), owner.to_string()))
+                .or_default();
+            for b in &c.base_types {
+                push_bare_base(slot, b);
+            }
+        }
         for d in &f.definitions {
             if d.base_types.is_empty() {
                 continue;
@@ -610,14 +634,7 @@ pub fn resolve(
                 .entry((f.language.clone(), owner.to_string()))
                 .or_default();
             for b in &d.base_types {
-                // Store the bare type name: the index is keyed that way,
-                // and a base is written as `generic.ObjectListView` or
-                // `Handler<T>` as often as plainly.
-                let bare = b.split(['<', '[']).next().unwrap_or(b).trim();
-                let bare = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
-                if !bare.is_empty() && !slot.iter().any(|x| x == bare) {
-                    slot.push(bare.to_string());
-                }
+                push_bare_base(slot, b);
             }
         }
     }
@@ -2501,7 +2518,13 @@ fn try_resolve_ref(
             && rh != "Self"
             && rh != "cls"
             && (relaxed_path_headed
-                || rh.chars().next().is_some_and(|c| c.is_uppercase()))
+                // A PEP 8 private class (`_CollectErrors`) is still a
+                // type: the plugin types `x = _CollectErrors()` as one,
+                // and rejecting it here left the call bound to nothing.
+                || (if lang == "python" { rh.trim_start_matches('_') } else { rh })
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_uppercase()))
         {
             let external = lang == "rust"
                 && rh.contains("::")

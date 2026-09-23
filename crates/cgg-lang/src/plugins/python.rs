@@ -18,7 +18,7 @@
 //! Task 4. Task 6 will refine this to the full dotted package path by
 //! consulting `__init__.py` chains via stack-graphs.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use cgg_core::{
@@ -73,11 +73,36 @@ impl LanguagePlugin for PythonPlugin {
             source,
             facts: &mut facts,
             scope: vec![module_name(path)],
+            scope_is_class: vec![false],
             bases: Vec::new(),
             class_field_types: Vec::new(),
+            class_field_annotated: Vec::new(),
+            function_local_classes: BTreeSet::new(),
         };
         walker.walk(tree.root_node());
+        let local_classes = std::mem::take(&mut walker.function_local_classes);
         let mut out = facts;
+        // A class defined inside a function whose name is defined more
+        // than once in the file names no single type: two tests that each
+        // define a local `_CrawlSpider` share an owner name, so typing
+        // `spider = _CrawlSpider()` bound one test's call to the other
+        // test's class. Those receivers stay untyped, as before. A
+        // function-local class with a unique name is typed normally.
+        if !local_classes.is_empty() {
+            let mut seen: BTreeMap<&str, u32> = BTreeMap::new();
+            for c in &out.classes {
+                let n = c.class_qn.rsplit('.').next().unwrap_or(&c.class_qn);
+                *seen.entry(n).or_default() += 1;
+            }
+            let ambiguous: BTreeSet<String> = local_classes
+                .into_iter()
+                .filter(|n| seen.get(n.as_str()).copied().unwrap_or(0) > 1)
+                .collect();
+            if !ambiguous.is_empty() {
+                out.local_types
+                    .retain(|t| !ambiguous.contains(&t.type_name));
+            }
+        }
         if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::PYTHON);
@@ -126,6 +151,10 @@ struct Walker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Parallel to `scope`: whether each entry is a `class` body. A
+    /// `def` is a method only when its *immediate* scope is a class; a
+    /// function nested inside a method is a plain function.
+    scope_is_class: Vec<bool>,
     /// Base classes of the enclosing `class`, innermost last.
     bases: Vec<Vec<String>>,
     /// Instance-attribute types of the enclosing `class`, innermost last.
@@ -133,7 +162,14 @@ struct Walker<'a> {
     /// both land here; a post-pass on the class copies them onto every
     /// method as `self.<field>` LocalTypes so the type propagator can
     /// rewrite `self.controller.open()`.
-    class_field_types: Vec<HashMap<String, String>>,
+    class_field_types: Vec<BTreeMap<String, String>>,
+    /// Fields of the enclosing `class` whose type came from a class-level
+    /// annotation. The declared type wins over any assignment.
+    class_field_annotated: Vec<BTreeSet<String>>,
+    /// Names of classes defined inside a function body anywhere in the
+    /// file. Their names are not unique across the file, so they are
+    /// never used as a receiver type.
+    function_local_classes: BTreeSet<String>,
 }
 
 impl<'a> Walker<'a> {
@@ -148,24 +184,46 @@ impl<'a> Walker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // Checked before the push: is any enclosing scope a function?
+                if !name.is_empty() && self.scope_is_class.iter().skip(1).any(|c| !c) {
+                    self.function_local_classes.insert(name.clone());
+                }
                 if !name.is_empty() {
                     self.scope.push(name);
+                    self.scope_is_class.push(true);
                 }
                 // `class Encoder(nn.Module)` is the only thing that says
                 // the runtime calls `forward`; nothing else in the file
                 // does.
-                self.bases.push(super::attrs::base_types(node, self.source));
+                let bases = super::attrs::base_types(node, self.source);
+                // Recorded for every class, methods or not, so an
+                // inheritance chain can pass through
+                // `class Middle(Base): pass`.
+                self.facts.classes.push(cgg_core::ClassDecl {
+                    class_qn: self.scope.join("."),
+                    base_types: bases.clone(),
+                    line: node.start_position().row as u32 + 1,
+                });
+                self.bases.push(bases);
                 collect_class_fields(node, self.source, &self.scope, self.facts);
-                self.class_field_types.push(HashMap::new());
+                self.class_field_types.push(BTreeMap::new());
                 if let Some(fields) = self.class_field_types.last_mut() {
                     scan_class_annotations(node, self.source, fields);
                 }
+                self.class_field_annotated.push(
+                    self.class_field_types
+                        .last()
+                        .map(|m| m.keys().cloned().collect())
+                        .unwrap_or_default(),
+                );
                 self.walk_children(node);
                 self.emit_instance_field_types();
                 self.class_field_types.pop();
+                self.class_field_annotated.pop();
                 self.bases.pop();
                 if node.child_by_field_name("name").is_some() {
                     self.scope.pop();
+                    self.scope_is_class.pop();
                 }
                 return;
             }
@@ -178,10 +236,12 @@ impl<'a> Walker<'a> {
                     .unwrap_or_default();
                 if !name.is_empty() {
                     self.scope.push(name.clone());
+                    self.scope_is_class.push(false);
                 }
                 self.walk_children(node);
                 if !name.is_empty() {
                     self.scope.pop();
+                    self.scope_is_class.pop();
                 }
                 return;
             }
@@ -328,11 +388,10 @@ impl<'a> Walker<'a> {
         //   * inside `class_definition`: method.
         //   * decorator @staticmethod / @classmethod / @property refine it.
         //   * `__init__` -> Constructor; `__del__` -> Destructor.
-        let inside_class = self
-            .scope
-            .iter()
-            .skip(1) // skip module name
-            .any(|s| starts_uppercase(s));
+        // The immediate scope decides. Asking whether *any* enclosing
+        // scope is a class made `def _scan()` nested inside a method a
+        // method too, and a bare `_scan()` call then never bound to it.
+        let inside_class = self.scope_is_class.last().copied().unwrap_or(false);
         let variant = if simple == "__init__" && inside_class {
             DefVariant::Constructor
         } else if simple == "__del__" && inside_class {
@@ -424,8 +483,28 @@ impl<'a> Walker<'a> {
             if field.is_empty() {
                 return;
             }
-            if let Some(fields) = self.class_field_types.last_mut() {
-                fields.insert(field, type_name);
+            // A field assigned two different types (`self.game = Game()`
+            // here, `self.game = BaseGame()` there) has no single type.
+            // Last-write-wins sent every call to whichever assignment
+            // came last, so it is left untyped instead (an empty name,
+            // skipped at emit). A class-level annotation is the declared
+            // type and is never overridden.
+            let annotated = self
+                .class_field_annotated
+                .last()
+                .is_some_and(|a| a.contains(&field));
+            if let Some(fields) = self.class_field_types.last_mut()
+                && !annotated
+            {
+                match fields.get(&field) {
+                    None => {
+                        fields.insert(field, type_name);
+                    }
+                    Some(t) if *t == type_name => {}
+                    Some(_) => {
+                        fields.insert(field, String::new());
+                    }
+                }
             }
         }
     }
@@ -447,8 +526,11 @@ impl<'a> Walker<'a> {
         if class_qn.is_empty() {
             return;
         }
-        let fields: Vec<(String, String)> =
-            fields.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let fields: Vec<(String, String)> = fields
+            .iter()
+            .filter(|(_, v)| !v.is_empty())
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
         let starts: Vec<u32> = self
             .facts
             .definitions
@@ -667,32 +749,53 @@ fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
     }
 }
 
+/// Type-level wrappers whose first argument *is* the instance type.
+/// A container (`list[Foo]`, `dict[str, Foo]`, `Sequence[Foo]`) is not:
+/// `self.items.clear()` on a `list[Foo]` runs `list.clear`, and typing
+/// the field as `Foo` would bind it to `Foo.clear` if one exists.
+const TRANSPARENT_WRAPPERS: &[&str] = &[
+    "Optional",
+    "Union",
+    "ClassVar",
+    "Final",
+    "Annotated",
+    "InitVar",
+];
+
 fn annotation_type_stem(raw: &str) -> Option<String> {
-    let mut t = raw.trim();
+    let mut t = raw.trim().trim_matches(|c| c == '"' || c == '\'');
     if t.is_empty() {
         return None;
     }
-    // `Optional[Foo]`, `list[Foo]` — the inner type is the instance type.
+    // `Optional[Foo]` — the argument is the instance type. `list[Foo]`
+    // is a list; a subscripted name that is not a transparent wrapper
+    // is a container, and the field's type is the container.
     if let Some(open) = t.find('[')
         && let Some(close) = t.rfind(']')
         && close > open + 1
     {
-        t = t[open + 1..close].split(',').next().unwrap_or("").trim();
+        let head = t[..open].trim().rsplit('.').next().unwrap_or("");
+        if !TRANSPARENT_WRAPPERS.contains(&head) {
+            return None;
+        }
+        t = t[open + 1..close].trim();
     }
-    // `Foo | None`, `None | Foo` — pick the first non-None component.
-    let stem = t
-        .split('|')
-        .map(|s| s.trim())
-        .filter(|s| *s != "None")
-        .find_map(|s| {
-            let bare = s.rsplit('.').next().unwrap_or(s).trim();
-            if starts_uppercase(bare) {
-                Some(bare.to_string())
-            } else {
-                None
-            }
-        });
-    stem
+    // `Foo | None` is `Foo`; `Foo | Bar` names two types and is
+    // neither, so it is left untyped rather than guessed.
+    let mut members = t
+        .split(['|', ','])
+        .map(|m| m.trim().trim_matches(|c| c == '"' || c == '\''))
+        .filter(|m| !m.is_empty() && *m != "None");
+    let first = members.next()?;
+    if members.next().is_some() {
+        return None;
+    }
+    let stem = first.rsplit('.').next().unwrap_or(first).trim();
+    if starts_uppercase(stem) {
+        Some(stem.to_string())
+    } else {
+        None
+    }
 }
 
 /// Scan the class body for `name: Type` annotations and record them as
@@ -701,7 +804,7 @@ fn annotation_type_stem(raw: &str) -> Option<String> {
 fn scan_class_annotations(
     class: tree_sitter::Node,
     source: &[u8],
-    fields: &mut HashMap<String, String>,
+    fields: &mut BTreeMap<String, String>,
 ) {
     let Some(body) = class.child_by_field_name("body") else {
         return;
@@ -726,7 +829,7 @@ fn scan_class_annotations(
 fn record_annotated_instance_field(
     node: tree_sitter::Node,
     source: &[u8],
-    fields: &mut HashMap<String, String>,
+    fields: &mut BTreeMap<String, String>,
 ) {
     let left = node
         .child_by_field_name("left")
@@ -1305,22 +1408,13 @@ class C:
 
     #[test]
     fn annotation_type_stem_skips_none_in_union() {
-        assert_eq!(
-            annotation_type_stem("None | Foo"),
-            Some("Foo".to_string())
-        );
-        assert_eq!(
-            annotation_type_stem("Foo | None"),
-            Some("Foo".to_string())
-        );
+        assert_eq!(annotation_type_stem("None | Foo"), Some("Foo".to_string()));
+        assert_eq!(annotation_type_stem("Foo | None"), Some("Foo".to_string()));
         assert_eq!(
             annotation_type_stem("Optional[Foo]"),
             Some("Foo".to_string())
         );
-        assert_eq!(
-            annotation_type_stem("module.Foo"),
-            Some("Foo".to_string())
-        );
+        assert_eq!(annotation_type_stem("module.Foo"), Some("Foo".to_string()));
         assert_eq!(annotation_type_stem("int"), None);
         assert_eq!(annotation_type_stem("None"), None);
         assert_eq!(annotation_type_stem(""), None);
@@ -1390,5 +1484,144 @@ class C:
             "`x or _default_request` is a reference; got {:?}",
             value_refs(&f)
         );
+    }
+
+    #[test]
+    fn a_field_assigned_two_types_is_left_untyped_unless_annotated() {
+        let f = extract(
+            "class App:\n    def a(self):\n        self.game = Game()\n    def b(self):\n        self.game = BaseGame()\n    def c(self):\n        self.same = Game()\n    def d(self):\n        self.same = Game()\n",
+        );
+        assert!(
+            !f.local_types.iter().any(|t| t.var_name == "self.game"),
+            "{:?}",
+            f.local_types
+        );
+        assert!(
+            f.local_types
+                .iter()
+                .any(|t| t.var_name == "self.same" && t.type_name == "Game")
+        );
+        let f = extract(
+            "class App:\n    game: BaseGame\n    def a(self):\n        self.game = Game()\n",
+        );
+        assert!(
+            f.local_types
+                .iter()
+                .all(|t| t.var_name != "self.game" || t.type_name == "BaseGame"),
+            "{:?}",
+            f.local_types
+        );
+        assert!(f.local_types.iter().any(|t| t.var_name == "self.game"));
+    }
+
+    #[test]
+    fn a_duplicated_function_local_class_is_never_a_receiver_type() {
+        let f = extract(
+            "class Top:\n    pass\n\ndef test_a():\n    class _Local(Top):\n        pass\n    s = _Local()\n    t = Top()\n    s.run()\n\ndef test_b():\n    class _Local(Top):\n        pass\n\ndef test_c():\n    class _Unique(Top):\n        pass\n    u = _Unique()\n",
+        );
+        assert!(
+            f.local_types
+                .iter()
+                .any(|t| t.var_name == "u" && t.type_name == "_Unique"),
+            "a unique function-local class is typed: {:?}",
+            f.local_types
+        );
+        assert!(
+            !f.local_types.iter().any(|t| t.type_name == "_Local"),
+            "{:?}",
+            f.local_types
+        );
+        assert!(
+            f.local_types
+                .iter()
+                .any(|t| t.var_name == "t" && t.type_name == "Top"),
+            "{:?}",
+            f.local_types
+        );
+    }
+
+    #[test]
+    fn function_nested_in_a_method_is_not_a_method() {
+        let f = extract(
+            "class Plain:\n    def build(self):\n        def _scan(x):\n            return x\n        return _scan(1)\n\nclass _Private:\n    def build(self):\n        def _scan(x):\n            return x\n        return _scan(1)\n",
+        );
+        for d in f.definitions.iter().filter(|d| d.simple_name == "_scan") {
+            assert_eq!(d.variant, DefVariant::FreeFunction, "{}", d.qualified_name);
+        }
+        for d in f.definitions.iter().filter(|d| d.simple_name == "build") {
+            assert_eq!(
+                d.variant,
+                DefVariant::InherentMethod,
+                "{}",
+                d.qualified_name
+            );
+        }
+    }
+
+    #[test]
+    fn annotation_stem_unwraps_optional_but_not_containers() {
+        assert_eq!(
+            annotation_type_stem("Controller").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("Optional[Controller]").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("typing.Optional[Controller]").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("Controller | None").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("\"Controller\"").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("Optional['Controller']").as_deref(),
+            Some("Controller")
+        );
+        assert_eq!(
+            annotation_type_stem("ui.Controller").as_deref(),
+            Some("Controller")
+        );
+        // A container's element type is not the field's type.
+        assert_eq!(annotation_type_stem("list[Controller]"), None);
+        assert_eq!(annotation_type_stem("dict[str, Controller]"), None);
+        assert_eq!(annotation_type_stem("Sequence[Controller]"), None);
+        // Two candidate types is no type.
+        assert_eq!(annotation_type_stem("Controller | Other"), None);
+        assert_eq!(annotation_type_stem("Union[Controller, Other]"), None);
+        assert_eq!(annotation_type_stem("int"), None);
+    }
+
+    #[test]
+    fn container_annotation_does_not_type_the_field() {
+        let f = extract(
+            "class Panel:\n    items: list[Controller]\n    def go(self):\n        self.items.clear()\n",
+        );
+        assert!(
+            !f.local_types.iter().any(|t| t.var_name == "self.items"),
+            "list[Controller] must not type self.items as Controller: {:?}",
+            f.local_types
+        );
+    }
+
+    #[test]
+    fn every_class_records_its_bases_even_without_methods() {
+        let f = extract(
+            "class Base:\n    def run(self):\n        pass\n\nclass Middle(Base):\n    pass\n\nclass Leaf(Middle):\n    def run(self):\n        pass\n",
+        );
+        let by_qn: std::collections::BTreeMap<_, _> = f
+            .classes
+            .iter()
+            .map(|c| (c.class_qn.as_str(), c.base_types.clone()))
+            .collect();
+        assert_eq!(by_qn.get("m.Base"), Some(&vec![]));
+        assert_eq!(by_qn.get("m.Middle"), Some(&vec!["Base".to_string()]));
+        assert_eq!(by_qn.get("m.Leaf"), Some(&vec!["Middle".to_string()]));
     }
 }

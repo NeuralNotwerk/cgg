@@ -55,6 +55,11 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
 
 /// Whether a definition is a member of a type rather than a free
 /// function.
+/// A same-name candidate: its index in `definitions`, and the record.
+type Candidate<'a> = (u32, &'a DefRecord);
+/// A byte range, `start..end`.
+type Span = (u32, u32);
+
 fn is_method_variant(v: DefVariant) -> bool {
     matches!(
         v,
@@ -150,6 +155,55 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
             let before = candidates.len();
             candidates.retain(|(_, d)| !is_method_variant(d.variant));
             methods_out_of_scope = (before - candidates.len()) as u32;
+        }
+
+        // Python lexical scope for a bare call. A function nested inside
+        // another is visible by name only within it, and the innermost
+        // definition shadows outer ones: `_scan()` inside the method that
+        // defines `_scan` is that local, and `_scan()` anywhere else is
+        // the module's. Without this, same-named nested definitions were
+        // ambiguous or bound across scopes. Deliberately NOT applied to
+        // `obj.name()` calls: a nested function escapes its scope when
+        // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
+        // and name lookup is the only thing that finds it there.
+        if rref.receiver_hint.is_empty()
+            && facts.language == "python"
+            && candidates.len() > 1
+        {
+            let parent_span = |d: &DefRecord| -> Option<(u32, u32)> {
+                facts
+                    .definitions
+                    .iter()
+                    .filter(|p| {
+                        p.start_byte <= d.start_byte
+                            && d.end_byte <= p.end_byte
+                            && (p.start_byte, p.end_byte) != (d.start_byte, d.end_byte)
+                    })
+                    .map(|p| (p.start_byte, p.end_byte))
+                    .min_by_key(|(a, b)| b - a)
+            };
+            let site = rref.site_byte;
+            let visible: Vec<(Candidate<'_>, Option<Span>)> = candidates
+                .iter()
+                .map(|c| (*c, parent_span(c.1)))
+                .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
+                .collect();
+            // Innermost enclosing scope first: the smallest parent span,
+            // and module level (no parent) last.
+            if let Some(best) = visible
+                .iter()
+                .map(|(_, p)| p.map_or(u32::MAX, |(a, b)| b - a))
+                .min()
+            {
+                let narrowed: Vec<(u32, &DefRecord)> = visible
+                    .iter()
+                    .filter(|(_, p)| p.map_or(u32::MAX, |(a, b)| b - a) == best)
+                    .map(|(c, _)| *c)
+                    .collect();
+                if !narrowed.is_empty() {
+                    candidates = narrowed;
+                }
+            }
         }
 
         // Receiver-based narrowing (Issue 1). A call of the form

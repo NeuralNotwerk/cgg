@@ -12,10 +12,15 @@ ever grows in default mode — see *Compatibility* below).
 - **Python inheritance fan-out (opt-in).** `--dynamic-dispatch` (and
   therefore `--dead-code`) emits `dyn` edges from a base method to each
   subclass override, walking past intermediate bases that do not define
-  the method. `__init__`/`__new__`/`__del__` and nested functions are
-  excluded. The default graph is unchanged: this pass does not write
-  `trait_impl_target`, so it cannot leak declaration→override edges into
-  C++, Java, or any other language that already records bases.
+  the method — including a bodiless `class Middle(Base): pass`, now
+  recorded as a class declaration (`FileFacts::classes`) so the chain does
+  not end at it. `__init__`/`__new__`/`__del__` and nested functions are
+  excluded. The edges carry resolver `dispatch:inheritance`. The default
+  graph is unchanged: this pass does not write `trait_impl_target`, so it
+  cannot leak declaration→override edges into C++, Java, or any other
+  language that already records bases. This is the template-method shape
+  (`BaseStep.run` calls `self.execute`, overridden two levels down) from
+  the same reachability audit as the import fix.
 - **Python `self.field` types (default graph).** `self.controller =
   Controller(...)` in `__init__` and class annotations (`controller:
   Controller`) propagate as `self.controller` types, so
@@ -23,7 +28,12 @@ ever grows in default mode — see *Compatibility* below).
   already did. This *does* grow the default Python edge set: a typed
   receiver replaces a same-name guess. Nested classes are matched by
   full qualified name, so a nested `class App` does not share field
-  types with a module-level `class App`.
+  types with a module-level `class App`. A field assigned two different
+  types (`self.game = Game()` here, `BaseGame()` there) is left untyped
+  rather than taking the last assignment; a class-level annotation is the
+  declared type and wins. `Optional[T]`, `T | None` and quoted forward
+  references unwrap to `T`; containers (`list[T]`, `dict[str, T]`) do
+  not, because `self.items.clear()` on a `list[T]` is `list.clear`.
 - **Generic class-field extraction.** The Python plugin now records every
   class-level `name = Type(...)` assignment in `FileFacts::class_fields`,
   framework-agnostically. Useful for any descriptor-driven library (Kivy,
@@ -124,9 +134,6 @@ ever grows in default mode — see *Compatibility* below).
   `fanout-cap-exceeded {candidates: 1}` record; the help text and README
   now say so, for reachability audits where a false edge costs more than
   a missing one.
-- **`starts_uppercase` now strips leading underscores**, so PEP 8 private
-  classes (`_MarkerHoverToolTip`) are classified as classes, not free
-  functions.
 
 - **kv→python name-only fallback checked the wrong field.** The bare-
   receiver guard (`root`/`self`/`app`) tested `context` (the rule class
@@ -143,7 +150,23 @@ ever grows in default mode — see *Compatibility* below).
 - **Ternary value-ref widening captured the condition.** `a if cond else
   b` now descends only into the consequence and alternative;
   `not_operator` is no longer descended into.
-
+- **PEP 8 private classes (`_MarkerHoverToolTip`) are classes.** Their
+  methods were classified as free functions, and a receiver typed as
+  `_CollectErrors` was rejected by the cross-file resolver, which only
+  accepted a type name starting with an uppercase letter.
+- **Python functions nested inside a method were classified as methods,
+  and bare calls ignored lexical scope.** A `def` was a method whenever
+  *any* enclosing scope looked like a class, so `def _scan()` inside a
+  method was a method and a bare `_scan()` call never bound to it; where a
+  module-level `_scan` also existed, the call bound there instead, at high
+  confidence. Method-ness is now decided by the immediate scope, and a
+  bare call sees a nested function only inside the function that defines
+  it, with the innermost definition shadowing outer ones. Calls through a
+  receiver (`self.getc()` on a callback passed in as a value) still find
+  a nested function by name, because values escape their scope. A class
+  defined inside a function whose name is defined more than once in the
+  file (tests that each declare a local `_CrawlSpider`) is never used as a
+  receiver type, because the resolver cannot tell the copies apart.
 
 #### C++
 
@@ -266,6 +289,46 @@ and the same table shows `bash-acme` −20.9% and `app-immich-nestjs`
 byte-identical to the previous `main` on every repository; no default
 graph carries a `dynamic` edge.
 
+#### Python inheritance fan-out and field types (#7)
+
+Paired A/B against the previous `main` commit (`scripts/perf-compare.sh
+b12637e 3`, median of 3 per repo, baseline in its own worktree), load
+11.1 / 10.8 / 17.0 at measurement time:
+
+| | main before | with #7 | delta |
+| --- | --- | --- | --- |
+| corpus total, 165 of 175 repos | 191,146 ms | 192,306 ms | +0.6% |
+
+Flat within the script's 1–1.5% noise floor; the 30-minute budget
+stopped before `smithy-protocol-tests` and the nine repositories after
+it. Twelve rows over 150 ms moved more than 5% either way. Eight are
+languages this change does not touch and whose output is byte-identical
+(`ocaml-dune` +14.9%, `app-gin-photoprism` +9.0%, `app-lemmy-actix`
+−11.8%, …). The two Python rows and the two largest non-Python rows were
+re-sampled with ten interleaved runs of each binary at `--jobs 1`, minimum
+taken: `app-pydantic-core` +0.1%, `app-saleor-celery` +0.0%,
+`ocaml-dune` +0.1%, `app-gin-photoprism` +0.8%. No repository moves for
+a reason in the code.
+
+Graph effect, 175-repository corpus against the previous `main`: 133
+repositories byte-identical, and every difference in the other 42 is in
+Python callables. Default graphs gain 5,542 high- and 3,284
+medium-confidence edges and 1,926 edges move from a medium guess to a
+high binding; 3,763 medium-confidence guesses are replaced by the typed
+target. Seventeen high-confidence edges leave the default graph: thirteen
+were wrong (`set()` — the builtin — bound to `_LazyEvent.set` in
+litestar, and nested functions bound across test functions in scrapy and
+pyspark), and four in scrapy's `test_item` are kept at medium because
+the local class shares its name with the enclosing test class.
+Dead-code findings fall from 765,281 to 763,328 corpus-wide (−2,001
+Python findings, +48): each new finding is a function whose only
+incoming edge was a same-name guess that the typed receiver now replaces,
+or a test-only call through a class with a dynamic base
+(`class _XMLSpider(self.spider_class)`), which a typed receiver cannot
+follow. No default graph carries a `dynamic` edge.
+
+`cargo test --workspace`: 941 tests.
+
 ### Credits
 
 - Kivy KV support, the generic class-field/observer machinery and the
@@ -274,6 +337,8 @@ graph carries a `dynamic` edge.
 - C++ type-inference improvements (out-of-line bodies, typed receivers,
   macro receivers, virtual and member-pointer fan-out) were contributed by
   @SergeBakharev in #8.
+- Python inheritance fan-out, `self.field` types and PEP 8 private-class
+  classification were contributed by @SergeBakharev in #7.
 
 ## [0.8.5] - 2026-09-18
 

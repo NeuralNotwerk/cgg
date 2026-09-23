@@ -354,6 +354,7 @@ pub struct FileFacts {
     /// uses them to recognise `on_<field>` methods as property observers.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub class_fields: Vec<ClassFieldDecl>,
+    pub classes: Vec<ClassDecl>,
 }
 
 /// A class-level `name = Type(...)` assignment.
@@ -371,6 +372,22 @@ pub struct ClassFieldDecl {
     pub field_name: String,
     /// Type / constructor name as written (`StringProperty`, `Column`).
     pub type_name: String,
+    pub line: u32,
+}
+
+/// A class declaration and the bases it names, recorded for every
+/// class the plugin sees — including one with no methods at all.
+///
+/// Method records carry `base_types` too, but a bodiless class
+/// (`class Middle(Base): pass`) has no method record, so an inheritance
+/// chain seeded from methods alone ends at it and an override two
+/// levels down never links to the base method it overrides.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ClassDecl {
+    /// Qualified name of the class (`module.ClassName`).
+    pub class_qn: String,
+    /// Base types as written, in declaration order.
+    pub base_types: Vec<String>,
     pub line: u32,
 }
 
@@ -447,6 +464,7 @@ impl FileFacts {
             dyn_uses: Vec::new(),
             unreachable: Vec::new(),
             class_fields: Vec::new(),
+            classes: Vec::new(),
         }
     }
 

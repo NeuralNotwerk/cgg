@@ -1551,6 +1551,161 @@ class BoreOperation(OperationsBase):\n    def generate(self):\n        return 2\
 }
 
 #[test]
+fn python_bare_call_binds_by_lexical_scope() {
+    // A function nested in a method is a function, visible only inside
+    // that method; the innermost definition shadows the module's.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "m.py",
+        b"def _scan(x):\n    return x\n\
+class A:\n    def one(self):\n        def _scan(x):\n            return x\n        return _scan(1)\n    def two(self):\n        return _scan(2)\n\
+class _Private:\n    def build(self):\n        def _walk(x):\n            return x\n        return _walk(1)\n",
+    );
+    let graph = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&graph)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&graph).unwrap()).unwrap();
+    let c = g["callables"].as_object().unwrap();
+    let qn = |id: &serde_json::Value| {
+        c[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let mut edges: Vec<(String, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| !qn(&e["src"]).starts_with('<'))
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    edges.sort();
+    let want: Vec<(String, String, String)> = [
+        ("m.A.one", "m.A.one._scan"),
+        ("m.A.two", "m._scan"),
+        ("m._Private.build", "m._Private.build._walk"),
+    ]
+    .iter()
+    .map(|(a, b)| (a.to_string(), b.to_string(), "high".to_string()))
+    .collect();
+    assert_eq!(edges, want);
+}
+
+#[test]
+fn python_override_through_a_bodiless_intermediate_class_is_live() {
+    // The template-method shape from a reachability audit: the base
+    // calls `self.execute`, the override sits two levels down behind
+    // `class Middle(BaseStep): pass`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "steps.py",
+        b"class BaseStep:\n    def run(self, data):\n        return self.execute(data)\n    def execute(self, data):\n        raise NotImplementedError\n\
+class Middle(BaseStep):\n    pass\n\
+class ScoreStep(Middle):\n    def execute(self, data):\n        return data\n\
+def main():\n    s = ScoreStep()\n    return s.run(1)\nmain()\n",
+    );
+
+    let graph = tmp.path().join("g.json");
+    cgg()
+        .args(["--dynamic-dispatch", "-t", "json", "-o"])
+        .arg(&graph)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&graph).unwrap()).unwrap();
+    let callables = g["callables"].as_object().unwrap();
+    let qn = |id: &serde_json::Value| {
+        callables[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    // `s: ScoreStep` inherits `run` through the bodiless class, so the
+    // typed-receiver base walk must reach `BaseStep.run` in the default
+    // graph — a resolved edge, not a low-confidence guess.
+    assert!(
+        g["edges"].as_array().unwrap().iter().any(|e| {
+            qn(&e["src"]) == "steps.main"
+                && qn(&e["dst"]) == "steps.BaseStep.run"
+                && e["confidence"] != "low"
+                && e["via"]["kind"] == "direct"
+        }),
+        "main -> BaseStep.run through Middle is missing"
+    );
+    let dyn_edges: Vec<(String, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["via"]["kind"] == "dynamic")
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["resolver"].as_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        dyn_edges,
+        vec![(
+            "steps.BaseStep.execute".to_string(),
+            "steps.ScoreStep.execute".to_string(),
+            "dispatch:inheritance".to_string()
+        )],
+        "one inheritance edge through the bodiless class, got {dyn_edges:?}"
+    );
+    // Inheritance is not a trait impl: Python nodes carry no
+    // `trait_impl_target`, so `dispatch:fanout` never double-labels
+    // the same edge and the JSON shape for Python is unchanged.
+    assert!(
+        callables
+            .values()
+            .all(|c| c.get("trait_impl_target").is_none()),
+        "Python nodes must not carry trait_impl_target"
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let qns: Vec<&str> = parsed["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    assert!(
+        !qns.iter().any(|q| q.contains("ScoreStep.execute")),
+        "ScoreStep.execute is reached through Middle; findings: {qns:?}"
+    );
+}
+
+#[test]
 fn python_subclass_override_is_live_when_base_method_is() {
     let tmp = TempDir::new().unwrap();
     write(

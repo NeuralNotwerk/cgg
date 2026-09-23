@@ -525,7 +525,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2574 callables, 5826 edges, 1549 cross-file, 161ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2621 callables, 5991 edges, 1599 cross-file, 157ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -590,17 +590,18 @@ flowchart LR
   N51["cgg_resolve::cross_file::resolve"]
   N52["cgg_resolve::descriptor::link_descriptors"]
   N53["cgg_resolve::dispatch::fanout"]
-  N54["cgg_resolve::ffi::link_ffi"]
-  N55["cgg_resolve::frameworks::detect"]
-  N56["cgg_resolve::intra_file::link_file"]
-  N57["cgg_resolve::names::owner_from_qn"]
-  N58["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N59["cgg_resolve::type_hints::field_index"]
-  N60["cgg_resolve::type_hints::macro_index"]
-  N61["cgg_resolve::type_hints::resolve_macro_types"]
-  N62["cgg_resolve::type_hints::build_return_type_map"]
-  N63["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N64["cgg_walk::walk"]
+  N54["cgg_resolve::dispatch::inheritance_fanout"]
+  N55["cgg_resolve::ffi::link_ffi"]
+  N56["cgg_resolve::frameworks::detect"]
+  N57["cgg_resolve::intra_file::link_file"]
+  N58["cgg_resolve::names::owner_from_qn"]
+  N59["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N60["cgg_resolve::type_hints::field_index"]
+  N61["cgg_resolve::type_hints::macro_index"]
+  N62["cgg_resolve::type_hints::resolve_macro_types"]
+  N63["cgg_resolve::type_hints::build_return_type_map"]
+  N64["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N65["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N11
@@ -622,7 +623,7 @@ flowchart LR
   N3 --> N0
   N3 --> N39
   N3 --> N34
-  N3 --> N64
+  N3 --> N65
   N3 --> N43
   N3 --> N37
   N3 --> N45
@@ -642,25 +643,26 @@ flowchart LR
   N3 --> N25
   N3 --> N36
   N3 --> N32
-  N3 --> N57
+  N3 --> N58
   N3 --> N26
   N3 --> N31
-  N3 --> N62
-  N3 --> N58
+  N3 --> N63
   N3 --> N59
   N3 --> N60
   N3 --> N61
-  N3 --> N63
+  N3 --> N62
+  N3 --> N64
   N3 --> N29
-  N3 --> N56
+  N3 --> N57
   N3 --> N27
   N3 --> N28
   N3 --> N51
-  N3 --> N54
-  N3 --> N52
   N3 --> N55
+  N3 --> N52
+  N3 --> N56
   N3 --> N53
-  N3 --> N33
+  N3 -->|2x| N33
+  N3 --> N54
   N3 -->|5x| N19
   N3 --> N23
   N3 -->|2x| N20
@@ -686,12 +688,13 @@ flowchart LR
   N14 --> N33
   N21 --> N30
   N51 -->|6x| N35
-  N51 -->|5x| N57
-  N52 -->|2x| N57
-  N53 --> N57
-  N55 -->|10x| N35
-  N56 -->|3x| N57
-  N63 -->|3x| N35
+  N51 -->|5x| N58
+  N52 -->|2x| N58
+  N53 --> N58
+  N54 -->|3x| N58
+  N56 -->|10x| N35
+  N57 -->|3x| N58
+  N64 -->|3x| N35
 ```
 <!-- cgg:end:self -->
 

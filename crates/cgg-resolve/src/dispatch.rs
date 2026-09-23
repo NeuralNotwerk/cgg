@@ -137,6 +137,25 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
         if f.language != "python" {
             continue;
         }
+        // Every class the plugin saw, including `class Middle(Base):
+        // pass`. A bodiless class has no method record, so seeding from
+        // definitions alone would end the chain at it and `Leaf.run`
+        // would never link to `Base.run`.
+        for c in &f.classes {
+            let name = c.class_qn.rsplit('.').next().unwrap_or(&c.class_qn);
+            if !looks_like_type(name) {
+                continue;
+            }
+            by_class_bases
+                .entry((f.language.clone(), name.to_string()))
+                .or_insert_with(|| {
+                    c.base_types
+                        .iter()
+                        .map(|b| type_stem(b).to_string())
+                        .filter(|s| is_inheritable_base(s))
+                        .collect()
+                });
+        }
         for d in &f.definitions {
             if d.base_types.is_empty() {
                 continue;
@@ -422,6 +441,43 @@ mod tests {
         assert_eq!(edges.len(), 1, "{edges:?}");
         assert_eq!(edges[0].src, CallableId::new(0));
         assert_eq!(edges[0].dst, CallableId::new(2));
+    }
+
+    #[test]
+    fn python_override_walks_past_a_bodiless_intermediate_class() {
+        // `class Middle(Base): pass` has no method record. Its bases
+        // come from the class record, or the chain ends at it.
+        let mut g = Graph::new();
+        g.add_callable(py_node(0, "steps.BaseStep.execute", 10));
+        g.add_callable(py_node(1, "steps.ScoreStep.execute", 50));
+        let mut f = FileFacts::new(
+            FileId::new(0),
+            std::path::PathBuf::from("steps.py"),
+            "python",
+        );
+        f.definitions
+            .push(py_def("execute", "steps.BaseStep.execute", 10, &[]));
+        f.definitions.push(py_def(
+            "execute",
+            "steps.ScoreStep.execute",
+            50,
+            &["Middle"],
+        ));
+        for (qn, bases) in [
+            ("steps.BaseStep", vec![]),
+            ("steps.Middle", vec!["BaseStep".to_string()]),
+            ("steps.ScoreStep", vec!["Middle".to_string()]),
+        ] {
+            f.classes.push(cgg_core::ClassDecl {
+                class_qn: qn.into(),
+                base_types: bases,
+                line: 1,
+            });
+        }
+        let edges = inheritance_fanout(&g, &[f]);
+        assert_eq!(edges.len(), 1, "{edges:?}");
+        assert_eq!(edges[0].src, CallableId::new(0));
+        assert_eq!(edges[0].dst, CallableId::new(1));
     }
 
     #[test]
