@@ -178,6 +178,37 @@ impl<'a> CppWalker<'a> {
                 self.record_object_macro(node);
                 return;
             }
+            "alias_declaration" => {
+                // `using Rect = TRect<float>;`
+                if let (Some(n), Some(t)) = (
+                    node.child_by_field_name("name"),
+                    node.child_by_field_name("type"),
+                ) {
+                    self.record_type_alias(
+                        self.text(n).to_string(),
+                        self.text(t).to_string(),
+                    );
+                }
+                self.walk_children(node);
+                return;
+            }
+            "type_definition" => {
+                // `typedef TRect<float> Rect;` — only a plain name
+                // declarator; pointer and function-pointer typedefs name
+                // no class.
+                if let (Some(t), Some(d)) = (
+                    node.child_by_field_name("type"),
+                    node.child_by_field_name("declarator"),
+                ) && d.kind() == "type_identifier"
+                {
+                    self.record_type_alias(
+                        self.text(d).to_string(),
+                        self.text(t).to_string(),
+                    );
+                }
+                self.walk_children(node);
+                return;
+            }
             "preproc_include" => {
                 self.record_include(node);
                 return;
@@ -415,10 +446,35 @@ impl<'a> CppWalker<'a> {
         }
     }
 
+    fn record_type_alias(&mut self, name: String, target: String) {
+        let target = target.split_whitespace().collect::<Vec<_>>().join(" ");
+        if name.is_empty() || target.is_empty() || name == target {
+            return;
+        }
+        self.facts.type_aliases.push(MacroAlias {
+            name,
+            replacement: target,
+        });
+    }
+
     fn try_record_prototype(&mut self, node: Node) {
+        // A macro in front of a method —
+        // `JSON_HEDLEY_NON_NULL(2) token_type scan_literal(...) { ... }` —
+        // makes the grammar's "declaration" swallow the whole body, and the
+        // first call inside it (`JSON_ASSERT(...)`) then reads as the
+        // declared name: a phantom method that made every real
+        // `JSON_ASSERT` call in nlohmann/json ambiguous. The `{` check
+        // below catches it. Rejecting every error-recovered declaration
+        // instead is too broad: `void Printf(const char *f, ...)
+        // FORMAT(1, 2);` recovers the same way and is a real prototype.
         let mut c = node.walk();
         for child in node.children(&mut c) {
             if let Some(fn_decl) = unwrap_function_declarator(child) {
+                // A prototype has no body: a `{` before its declarator
+                // means this node spans a definition the grammar misread.
+                if self.source[node.start_byte()..fn_decl.start_byte()].contains(&b'{') {
+                    return;
+                }
                 let info = self.fn_info_from_declarator(fn_decl);
                 // A declaration-only kernel (`__global__ void saxpy(...);`
                 // in a header) is an entry point just as much as its
@@ -564,7 +620,16 @@ impl<'a> CppWalker<'a> {
                     .child_by_field_name("field")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                (field, arg)
+                // `this->Base::Close()` names the class explicitly: it is a
+                // direct, non-virtual call to `Base::Close`. Record the
+                // method as the name and the class as the receiver, the same
+                // split as `Base::Close()` below. Keeping the qualified text
+                // as the name only matched while out-of-line bodies carried
+                // `Base::Close` as their simple name, which PR 8 fixed.
+                match field.rfind("::") {
+                    Some(pos) => (field[pos + 2..].to_string(), field[..pos].to_string()),
+                    None => (field, arg),
+                }
             }
             "qualified_identifier" => {
                 let full = self.text(func);
@@ -1029,6 +1094,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
         }
     }
     let mut drop_at: Vec<(usize, usize)> = Vec::new();
+    let mut unified: Vec<(usize, String, String)> = Vec::new();
     let mut merges: Vec<(usize, usize, bool, Vec<String>)> = Vec::new();
     for (file_idx, facts) in files.iter().enumerate() {
         if facts.language != "cpp" {
@@ -1056,10 +1122,38 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             if hits.is_empty() {
                 continue;
             }
+            // Bodies in more than one other file: independent translation
+            // units that happen to share a name (cuda-samples defines
+            // `BlackScholesCPU` once per sample). The declaration is the
+            // only thing that says which one this file means, so keep it
+            // rather than merging it into all of them.
+            let other_files: std::collections::BTreeSet<usize> = hits
+                .iter()
+                .map(|h| h.file)
+                .filter(|f| *f != file_idx)
+                .collect();
+            // Only for free functions: a class member defined in two files is
+            // one function with a test stub beside it (the typed call must
+            // reach both), not two unrelated programs.
+            if other_files.len() > 1
+                && !hits.iter().any(|h| h.file == file_idx)
+                && def.variant == DefVariant::FreeFunction
+            {
+                continue;
+            }
             let virt = def.attributes.iter().any(|a| a == "virtual");
             let bases = def.base_types.clone();
             for h in &hits {
                 merges.push((h.file, h.def_idx, virt, bases.clone()));
+            }
+            // The body may live in a file the caller never includes; keep
+            // the header's claim to the name so `#include` still reaches it.
+            if hits.iter().any(|h| h.file != file_idx) {
+                unified.push((
+                    file_idx,
+                    def.simple_name.clone(),
+                    def.qualified_name.clone(),
+                ));
             }
             drop_at.push((file_idx, def_idx));
         }
@@ -1073,6 +1167,12 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             if !def.base_types.contains(&b) {
                 def.base_types.push(b);
             }
+        }
+    }
+    for (file, simple, qualified) in unified {
+        let decls = &mut files[file].unified_decls;
+        if !decls.iter().any(|(s, q)| *s == simple && *q == qualified) {
+            decls.push((simple, qualified));
         }
     }
     let drop_set: std::collections::HashSet<(usize, usize)> =
@@ -1478,6 +1578,36 @@ public:
         let f = extract(src);
         let r = f.references.iter().find(|r| r.name == "compute").unwrap();
         assert_eq!(r.receiver_hint, "math::detail");
+    }
+
+    #[test]
+    fn a_macro_prefixed_method_body_mints_no_phantom_prototype() {
+        let f = extract(
+            "#define JSON_ASSERT(x) assert(x)\n#define NON_NULL(n)\nclass lexer {\n    NON_NULL(2)\n    int scan(const char* t)\n    {\n        JSON_ASSERT(t != nullptr);\n        return 0;\n    }\n};\n",
+        );
+        let phantoms: Vec<_> = f
+            .definitions
+            .iter()
+            .filter(|d| {
+                d.simple_name == "JSON_ASSERT"
+                    && !d.attributes.iter().any(|a| a == "macro")
+            })
+            .map(|d| d.qualified_name.clone())
+            .collect();
+        assert!(phantoms.is_empty(), "phantom prototypes: {phantoms:?}");
+    }
+
+    #[test]
+    fn qualified_member_call_names_the_method_and_its_class() {
+        let f = extract(
+            "struct Base { bool Close(); };\nstruct D : Base { bool Close(); };\nbool D::Close() { return this->Base::Close(); }\n",
+        );
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "Close")
+            .expect("`this->Base::Close()` is a call to `Close`");
+        assert_eq!(r.receiver_hint, "Base");
     }
 
     #[test]

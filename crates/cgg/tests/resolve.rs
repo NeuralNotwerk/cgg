@@ -727,6 +727,181 @@ fn cpp_object_like_macro_receivers_resolve() {
     );
 }
 
+/// Edges from `tmp` as (src, dst, confidence), rendered through `-t json`.
+fn cpp_edges(tmp: &Path) -> Vec<(String, String, String)> {
+    let out = tmp.join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp)
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let c = g["callables"].as_object().unwrap();
+    let file = |id: &serde_json::Value| {
+        let f = c[id.as_str().unwrap()]["file"].as_str().unwrap();
+        let p = g["files"][f]["path"].as_str().unwrap();
+        p.rsplit('/').next().unwrap().to_string()
+    };
+    let qn = |id: &serde_json::Value| {
+        c[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let mut v: Vec<_> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                format!("{}@{}", qn(&e["dst"]), file(&e["dst"])),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    v.sort();
+    v
+}
+
+#[test]
+fn cpp_header_declaration_merged_into_a_body_elsewhere_still_binds_through_include() {
+    // The caller includes only the header; the body lives in a .cpp it
+    // never includes. Merging the prototype away must not lose the call.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "mocks/mock.h",
+        b"#pragma once\nvoid mock_set_threads(int n);\n",
+    );
+    write(
+        tmp.path(),
+        "mocks/mock.cpp",
+        b"#include \"mock.h\"\nvoid mock_set_threads(int n) { (void)n; }\n",
+    );
+    write(
+        tmp.path(),
+        "tests/t.cpp",
+        b"#include \"mock.h\"\nvoid run_test() { mock_set_threads(3); }\n",
+    );
+    assert_eq!(
+        cpp_edges(tmp.path()),
+        vec![(
+            "run_test".into(),
+            "mock_set_threads@mock.cpp".into(),
+            "high".into()
+        )]
+    );
+}
+
+#[test]
+fn cpp_free_function_declared_in_several_programs_binds_to_its_own_declaration() {
+    // Independent samples each declare and define `cpu_ref`. Merging one
+    // sample's declaration into every same-named body made the call
+    // ambiguous; it binds to the declaration in its own file instead.
+    let tmp = TempDir::new().unwrap();
+    for s in ["a", "b"] {
+        write(
+            tmp.path(),
+            &format!("{s}/main.cpp"),
+            b"extern \"C\" void cpu_ref(float *out, int n);\nint main() { cpu_ref(0, 1); return 0; }\n",
+        );
+        write(
+            tmp.path(),
+            &format!("{s}/gold.cpp"),
+            b"extern \"C\" void cpu_ref(float *out, int n) { (void)out; (void)n; }\n",
+        );
+    }
+    let e = cpp_edges(tmp.path());
+    let calls: Vec<_> = e.iter().filter(|(s, _, _)| s == "main").collect();
+    assert_eq!(calls.len(), 2, "one edge per program: {e:?}");
+    assert!(
+        calls
+            .iter()
+            .all(|(_, d, c)| d == "cpu_ref@main.cpp" && c == "high"),
+        "{e:?}"
+    );
+}
+
+#[test]
+fn cpp_receiver_typed_through_an_alias_reaches_the_aliased_class() {
+    // A `.hpp`, not a `.h`: a bare `.h` without a same-stem `.cpp` is
+    // parsed as C, which has no templates (a known limitation).
+    // `Rect` names no class; `using Rect = TRect<float>` makes it one.
+    // A typed receiver or static call through the alias must land on
+    // `TRect`, not on nothing.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "rect.hpp",
+        b"template <class T> struct TRect {\n  static TRect MakeXYWH(T x) { return TRect(); }\n  T GetRight() const { return r; }\n  T r;\n};\nusing Rect = TRect<float>;\ntypedef TRect<int> IRect;\n",
+    );
+    write(
+        tmp.path(),
+        "use.cpp",
+        b"#include \"rect.hpp\"\nfloat use() {\n  Rect rect = Rect::MakeXYWH(1);\n  IRect ir;\n  ir.GetRight();\n  return rect.GetRight();\n}\n",
+    );
+    let e = cpp_edges(tmp.path());
+    for dst in ["TRect::MakeXYWH@rect.hpp", "TRect::GetRight@rect.hpp"] {
+        assert!(
+            e.iter()
+                .any(|(s, d, c)| s == "use" && d == dst && c != "low"),
+            "missing use -> {dst}: {e:?}"
+        );
+    }
+}
+
+#[test]
+fn cpp_typed_receiver_with_no_known_class_falls_back_to_the_untyped_guess() {
+    // `ITextProvider` is a COM interface cgg never sees. Typing the
+    // receiver must not drop the call: with no class to look in, it is
+    // resolved as the receiver as written would be — a medium guess.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "impl.cc",
+        b"class TextProviderWin {\npublic:\n  int GetSelection(int x);\n};\nint TextProviderWin::GetSelection(int x) { return x; }\n",
+    );
+    write(
+        tmp.path(),
+        "use.cc",
+        b"struct ITextProvider;\nint probe(ITextProvider* document_provider) {\n  return document_provider->GetSelection(1);\n}\n",
+    );
+    let e = cpp_edges(tmp.path());
+    assert_eq!(
+        e,
+        vec![(
+            "probe".into(),
+            "TextProviderWin::GetSelection@impl.cc".into(),
+            "medium".into()
+        )]
+    );
+}
+
+#[test]
+fn cpp_bare_call_in_a_member_prefers_the_enclosing_class() {
+    // Unqualified lookup inside a member function searches the class
+    // first: `get(...)` in `Reader::read` is `Reader::get`, not the
+    // unrelated free `get` defined in the same file.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "r.cpp",
+        b"int get() { return 1; }\nclass Reader {\npublic:\n    int get(int n) { return n; }\n    int read() { return get(2); }\n};\n",
+    );
+    let e = cpp_edges(tmp.path());
+    assert!(
+        e.contains(&(
+            "Reader::read".into(),
+            "Reader::get@r.cpp".into(),
+            "high".into()
+        )),
+        "{e:?}"
+    );
+}
+
 #[test]
 fn cpp_typed_call_reaches_every_definition_not_only_the_last() {
     // Two translation units define Kernel::add_module. by_qn keeps one

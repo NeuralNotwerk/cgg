@@ -86,6 +86,26 @@ ever grows in default mode — see *Compatibility* below).
 
 ### Changed
 
+- **Corpus: one checkout per repository, every checkout under test, and
+  a real application behind each framework.** Fourteen directories in
+  the benchmark corpus were second clones of repositories already
+  present, measured twice by every script that walks the corpus; they are
+  gone, and the rows that needed them (`kivy-carvera`,
+  `solidity-openzeppelin`, the combined xv6 row) read the one checkout,
+  the last through a `REPO_DIR` alias in `scripts/benchmark.sh`. Every
+  corpus directory is now an `APPS` entry, so framework coverage runs on
+  all of them, with claims measured by `scripts/sync-app-manifest.py`
+  rather than written by hand. 119 applications were added — one for each
+  framework rule no application exercised and one for each framework
+  whose only evidence was its own repository — and no repository was
+  removed. Rules never detected in any real application fell from 98 to
+  7, and each of those seven is a detection gap in cgg with an
+  application already in the corpus to fix it against (dream, eunit,
+  oak, padrino, puma, sails, powershell-dsc).
+- `scripts/release.sh` measured its self-analysis with `-o /dev/null`,
+  which cannot create the `/dev/null.audit.json` sidecar; it uses
+  `--no-graph`.
+
 - **README benchmark table re-measured.** The per-language table had not
   been regenerated since v0.4.0 (`f433c76`), so 29 of its 45 rows carried
   counts from a resolver several releases old (ripgrep 6,984 edges where
@@ -108,8 +128,9 @@ ever grows in default mode — see *Compatibility* below).
 - **Parenthesised from-imports lost their first and last binding.** The
   Python plugin forwards the import's item list to the resolver as one
   comma-separated blob, and the resolver trims whitespace per item. For
-  `from client import (\n    create_remediation_request,\n    _create_client as c,\n)`
-  the first item arrived as `(create_remediation_request` and the last as
+  a multi-line block importing `create_remediation_request` first and
+  `_create_client as c` last, the first item arrived as
+  `(create_remediation_request` and the last as
   `c)`, so neither registered as a binding. Every call through such a
   name then took the duck-typed same-name path: a `medium` edge to every
   same-named definition in the tree (wrong ones included), and once the
@@ -226,6 +247,46 @@ ever grows in default mode — see *Compatibility* below).
   repositories (PHP alone lost 8,142 typed-receiver edges). With the
   scoping, every non-C/C++ repository is byte-identical to 0.8.5.
 
+- **The C++ resolver changes lost calls 0.8.5 resolved; seven are fixed.**
+  Found by diffing every node and edge of 0.8.5 against this tree over the
+  whole corpus and requiring each loss to be explained. None of these
+  shipped — they were regressions inside the unreleased #8 work — and each
+  has a regression test in `crates/cgg/tests/resolve.rs` or the C++ plugin:
+  - *Class-qualified member calls* (`this->Base::Close()`) recorded
+    `Base::Close` as the called name. That only matched while out-of-line
+    bodies carried the same misnamed simple name, which #8 fixed; the call
+    is now the method `Close` on the class `Base`.
+  - *A header declaration merged into a body elsewhere* disappeared from
+    the header, so a caller that `#include`s only the header lost the call
+    (mocks in the Carvera firmware). Merged declarations are remembered on
+    the header (`FileFacts::unified_decls`) and the include closure reads
+    them.
+  - *Phantom prototypes*: a macro in front of a method
+    (`JSON_HEDLEY_NON_NULL(2) token_type scan_literal(...) { ... }`) made
+    the first call inside the body read as a declared method named
+    `JSON_ASSERT`, which made every real `JSON_ASSERT` call in
+    nlohmann/json ambiguous. A declaration with a `{` before its
+    declarator is not a prototype.
+  - *Bare calls inside a member function* now prefer the enclosing class,
+    as C++ name lookup does, instead of going ambiguous against a
+    same-named function elsewhere in the file.
+  - *Same-named free functions in independent programs* (cuda-samples
+    defines `BlackScholesCPU` once per sample) were merged into one
+    declaration with several bodies; the call went ambiguous. A free
+    function declared here with bodies in more than one other file keeps
+    its declaration, as 0.8.5 did.
+  - *Type aliases* — `using Rect = TRect<float>;`, `typedef Foo Bar;` —
+    are recorded and followed, so a receiver typed `Rect` looks in
+    `TRect`. flutter's engine is written this way throughout.
+  - *A typed receiver whose class cgg cannot find* (a template, a COM
+    interface, a class in a header parsed as C) dropped the call. It now
+    falls back to the receiver as written — what 0.8.5 resolved it with —
+    at medium confidence, so typing can add precision but not lose a call.
+
+  The macro-receiver rewrite #8 introduced is also now limited to C and
+  C++ sources: a Python or Java receiver that shares a C macro's name is
+  not that macro.
+
 ### Performance
 
 Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
@@ -288,6 +349,13 @@ and the same table shows `bash-acme` −20.9% and `app-immich-nestjs`
 −14.2% with byte-identical output. Outside C/C++, graph output is
 byte-identical to the previous `main` on every repository; no default
 graph carries a `dynamic` edge.
+
+#### C++ follow-up fixes
+
+Not yet timed. They change which declarations and receivers a call is
+looked up through, not how much work the pipeline does; the release
+run's paired comparison against 0.8.5 will measure them with everything
+else in this entry.
 
 #### Python inheritance fan-out and field types (#7)
 

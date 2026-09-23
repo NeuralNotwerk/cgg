@@ -355,6 +355,26 @@ pub struct FileFacts {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub class_fields: Vec<ClassFieldDecl>,
     pub classes: Vec<ClassDecl>,
+    /// C++ declarations this file made that were merged into a body in
+    /// another file, as `(simple_name, qualified_name)`. The prototype is
+    /// gone from `definitions`, but a file that `#include`s this one still
+    /// sees the name — the include closure reads this list too.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unified_decls: Vec<(String, String)>,
+    /// C++ type aliases, `using Rect = TRect<float>;` and `typedef Foo Bar;`,
+    /// as (alias, aliased type as written). A receiver typed `Rect` is a
+    /// `TRect`; without the alias its methods are looked up on a class
+    /// that does not exist.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_aliases: Vec<MacroAlias>,
+    /// C++ receivers the type propagator rewrote, as (site_byte, call
+    /// name, receiver as written). When the typed lookup then finds
+    /// nothing — the class is a template, an alias chain it cannot
+    /// follow, a COM interface, or declared in a header parsed as C —
+    /// the resolver retries with the receiver as written, so typing can
+    /// only add precision, never drop a call 0.8.5 resolved.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub untyped_receivers: Vec<(u32, String, String)>,
 }
 
 /// A class-level `name = Type(...)` assignment.
@@ -465,6 +485,9 @@ impl FileFacts {
             unreachable: Vec::new(),
             class_fields: Vec::new(),
             classes: Vec::new(),
+            unified_decls: Vec::new(),
+            type_aliases: Vec::new(),
+            untyped_receivers: Vec::new(),
         }
     }
 

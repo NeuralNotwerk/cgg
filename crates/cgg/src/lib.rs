@@ -668,6 +668,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     let macro_replacements = cgg_resolve::type_hints::macro_index(&all_facts);
     let macro_types =
         cgg_resolve::type_hints::resolve_macro_types(&macro_replacements, &field_types);
+    let type_aliases = cgg_resolve::type_hints::type_alias_index(&all_facts);
     {
         // Per-file and independent: each call only mutates its own facts.
         let _s = cgg_core::profile::span("resolve::type-propagate");
@@ -677,6 +678,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 &return_types,
                 &field_types,
                 &macro_types,
+                &type_aliases,
             );
         });
     }

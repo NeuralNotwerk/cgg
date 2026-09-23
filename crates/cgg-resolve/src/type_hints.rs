@@ -106,6 +106,67 @@ pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, S
     out
 }
 
+/// C++ type alias → the class it names, run-wide, first definition wins.
+///
+/// `using Rect = TRect<float>;` maps `Rect` to `TRect`: template arguments,
+/// cv-qualifiers, `typename`, and namespace qualification are stripped to
+/// the bare class name the owner index is keyed on. Chains
+/// (`using A = B; using B = C<int>;`) resolve up to eight levels; a cycle
+/// or a builtin target (`using Index = int;`) yields no entry.
+pub fn type_alias_index(all_facts: &[FileFacts]) -> HashMap<String, String> {
+    let mut raw: HashMap<String, String> = HashMap::new();
+    for facts in all_facts {
+        if facts.language != "cpp" {
+            continue;
+        }
+        for a in &facts.type_aliases {
+            if let Some(stem) = alias_stem(&a.replacement) {
+                raw.entry(a.name.clone()).or_insert(stem);
+            }
+        }
+    }
+    let mut out = HashMap::new();
+    for name in raw.keys() {
+        let mut cur = &raw[name];
+        let mut depth = 0;
+        while let Some(next) = raw.get(cur.as_str()) {
+            if depth >= 8 || next == name {
+                break;
+            }
+            cur = next;
+            depth += 1;
+        }
+        if cur != name {
+            out.insert(name.clone(), cur.clone());
+        }
+    }
+    out
+}
+
+fn alias_stem(target: &str) -> Option<String> {
+    let t = target.split('<').next().unwrap_or(target);
+    let t = t
+        .split_whitespace()
+        .filter(|w| {
+            !matches!(
+                *w,
+                "const" | "volatile" | "typename" | "struct" | "class" | "enum"
+            )
+        })
+        .next_back()?;
+    let t = t.trim_end_matches(['*', '&']).rsplit("::").next()?.trim();
+    let first = t.chars().next()?;
+    if !(first.is_alphabetic() || first == '_')
+        || t.chars().any(|c| !(c.is_alphanumeric() || c == '_'))
+    {
+        return None;
+    }
+    if is_primitive(t) || t.starts_with(char::is_lowercase) {
+        return None;
+    }
+    Some(t.to_string())
+}
+
 /// Object-like macro name → replacement text, first definition wins.
 pub fn macro_index(all_facts: &[FileFacts]) -> HashMap<String, String> {
     let mut out: HashMap<String, String> = HashMap::new();
@@ -298,7 +359,13 @@ pub fn propagate_types_with_returns(
 ) {
     let empty_fields = HashMap::new();
     let empty_macros = HashMap::new();
-    propagate_types_with_fields(facts, return_types, &empty_fields, &empty_macros);
+    propagate_types_with_fields(
+        facts,
+        return_types,
+        &empty_fields,
+        &empty_macros,
+        &empty_macros,
+    );
 }
 
 /// [`propagate_types_with_returns`] plus class fields, so
@@ -312,6 +379,7 @@ pub fn propagate_types_with_fields(
     return_types: &ReturnTypeIndex<'_>,
     fields: &HashMap<String, HashMap<String, String>>,
     macros: &HashMap<String, String>,
+    aliases: &HashMap<String, String>,
 ) {
     // Pass 1: Extract type hints from definition signatures.
     //
@@ -469,9 +537,17 @@ pub fn propagate_types_with_fields(
 
         // `#define THEKERNEL Kernel::instance` — the name is uppercase,
         // so it would otherwise be skipped as a type-looking path.
-        if let Some(ty) = macros.get(rh) {
-            rewrites.push((i, ty.clone()));
-            continue;
+        // Both tables come from C/C++ sources; a Python or Java receiver
+        // that happens to share the name is not that macro or alias.
+        if matches!(facts.language.as_str(), "c" | "cpp") {
+            if let Some(ty) = macros.get(rh) {
+                rewrites.push((i, ty.clone()));
+                continue;
+            }
+            if let Some(ty) = aliases.get(rh) {
+                rewrites.push((i, ty.clone()));
+                continue;
+            }
         }
 
         if rh.starts_with(char::is_uppercase) || rh.contains("::") || rh.contains('.') {
@@ -554,6 +630,20 @@ pub fn propagate_types_with_fields(
         }
     }
     for (i, ty) in rewrites {
+        // A local typed `Rect` is a `TRect` when `Rect` is an alias.
+        let ty = if facts.language == "cpp" {
+            aliases.get(&ty).cloned().unwrap_or(ty)
+        } else {
+            ty
+        };
+        if facts.language == "cpp" && facts.references[i].receiver_hint != ty {
+            let r = &facts.references[i];
+            facts.untyped_receivers.push((
+                r.site_byte,
+                r.name.clone(),
+                r.receiver_hint.clone(),
+            ));
+        }
         facts.references[i].receiver_hint = ty;
     }
 }
@@ -1127,6 +1217,7 @@ mod tests {
             &ReturnTypeIndex::default(),
             &fields,
             &HashMap::new(),
+            &HashMap::new(),
         );
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
         assert_eq!(facts.references[1].receiver_hint, "StreamOutput");
@@ -1264,6 +1355,7 @@ mod tests {
             &ReturnTypeIndex::default(),
             &fields,
             &macros,
+            &HashMap::new(),
         );
         assert_eq!(facts.references[0].receiver_hint, "Kernel");
         assert_eq!(facts.references[1].receiver_hint, "StreamOutput");

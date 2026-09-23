@@ -216,7 +216,9 @@ if [ "$QUICK" != 1 ]; then
 
     # Self-analysis: the smallest honest performance datapoint, and it
     # needs no corpus.
-    SELF="$($ROOT/target/release/cgg ./crates -t mermaid -o /dev/null 2>&1 | tail -1 || true)"
+    # --no-graph, not `-o /dev/null`: an output file gets an audit sidecar
+    # beside it, and `/dev/null.audit.json` cannot be created.
+    SELF="$($ROOT/target/release/cgg ./crates --no-graph 2>&1 | tail -1 || true)"
     [ -n "$SELF" ] && { echo "## Self-analysis"; echo '```text'; echo "$SELF"; echo '```'; echo; } >> "$FACTS"
 fi
 

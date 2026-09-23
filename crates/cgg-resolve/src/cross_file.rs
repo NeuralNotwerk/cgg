@@ -959,6 +959,14 @@ pub fn resolve(
                             .push(full);
                     }
                     "include" if matches!(lang.as_str(), "c" | "cpp" | "objc") => {
+                        // A declaration this file made itself, merged into a
+                        // body elsewhere, is still visible here.
+                        for (simple, qualified) in &facts.unified_decls {
+                            let slot = direct_imports.entry(simple.clone()).or_default();
+                            if !slot.contains(qualified) {
+                                slot.push(qualified.clone());
+                            }
+                        }
                         // C/C++: `#include "helpers.h"` — all definitions
                         // from the included file become available in this
                         // TU. We resolve the path relative to the current
@@ -1519,6 +1527,49 @@ pub fn resolve(
                         Some(cids)
                     }
                 });
+                // A typed C++ receiver whose lookup found nothing falls back
+                // to the receiver as written — exactly what 0.8.5 resolved
+                // it with — and anything that finds is a guess, so medium.
+                let mut untyped_fallback = false;
+                let resolved = match resolved {
+                    None if lang == "cpp" => facts
+                        .untyped_receivers
+                        .iter()
+                        .find(|(b, n, _)| *b == r.site_byte && *n == r.name)
+                        .and_then(|(_, _, orig)| {
+                            let mut r2 = r.clone();
+                            r2.receiver_hint = orig.clone();
+                            let (mut c2, mut n2) = (0u32, false);
+                            try_resolve_ref(
+                                graph,
+                                facts.file,
+                                &lang,
+                                &r2,
+                                &direct_imports,
+                                &module_aliases,
+                                &unqualified_prefixes,
+                                &scoped_simple,
+                                &by_qn,
+                                &by_simple,
+                                &by_owner_method,
+                                &by_full_owner_method,
+                                &reexports,
+                                &bases_by_owner,
+                                &known_owners,
+                                &stub_ids,
+                                &signatures,
+                                &var_types,
+                                caller_qn,
+                                fanout_cap,
+                                &rust_path_heads,
+                                &workspace_owner_names,
+                                &mut c2,
+                                &mut n2,
+                            )
+                        })
+                        .inspect(|_| untyped_fallback = true),
+                    other => other,
+                };
                 // An unambiguous binding is not a guess. A bare name
                 // bound by `from x import y` in this very file, or a
                 // module alias resolving to exactly one callable, is as
@@ -1528,6 +1579,7 @@ pub fn resolve(
                 // with more than one candidate stays `medium`: that is
                 // fan-out, and fan-out is a hypothesis.
                 let confidence = match &resolved {
+                    _ if untyped_fallback => Confidence::Medium,
                     Some(cids)
                         if cids.len() == 1
                             && (r.receiver_hint.is_empty()
@@ -2022,12 +2074,20 @@ fn collect_include_defs(
             visited.insert(target.file, depth);
         }
     }
-    // Import all definitions from the target.
+    // Import all definitions from the target, plus the C++ declarations
+    // it made whose prototypes were merged into a body elsewhere — the
+    // header still declares them, so an includer still sees them.
     for d in &target.definitions {
         direct_imports
             .entry(d.simple_name.clone())
             .or_default()
             .push(d.qualified_name.clone());
+    }
+    for (simple, qualified) in &target.unified_decls {
+        direct_imports
+            .entry(simple.clone())
+            .or_default()
+            .push(qualified.clone());
     }
     // Transitively follow includes in the target.
     for imp in &target.imports {

@@ -222,6 +222,26 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
         // the looser "any path segment equals owner" match, which keeps
         // module-qualified forms reachable.
         let rh = rref.receiver_hint.as_str();
+        // C++ unqualified name lookup inside a member function searches the
+        // enclosing class before the enclosing namespace: `get_binary(...)`
+        // in `binary_reader::get_bson_binary` is `binary_reader::get_binary`
+        // even when a same-named function exists elsewhere in the file.
+        // Narrow only when some candidate is such a member; otherwise the
+        // set stands.
+        if rh.is_empty() && facts.language == "cpp" && candidates.len() > 1 {
+            if let Some(owner) = enclosing
+                .and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
+            {
+                let members: Vec<(u32, &DefRecord)> = candidates
+                    .iter()
+                    .copied()
+                    .filter(|(_, d)| owner_from_qn(&d.qualified_name) == Some(owner))
+                    .collect();
+                if !members.is_empty() {
+                    candidates = members;
+                }
+            }
+        }
         let is_self = rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
         if is_self {
             // `self`/`Self`-qualified call. The owner is the *enclosing
