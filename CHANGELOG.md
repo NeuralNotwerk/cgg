@@ -2,10 +2,56 @@
 
 All notable changes to `cgg` are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project is
-pre-1.0, so the resolver's edge set may grow between releases (it only
-ever grows in default mode — see *Compatibility* below).
+pre-1.0. A minor release (0.x.0) may change the default graph, including
+removing edges a better resolver shows were wrong, and says what changed
+under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
+otherwise change the default graph.
 
 ## [Unreleased]
+
+## [0.9.0] - 2026-09-23
+
+A new language, Kivy KV (#5); typed C++ resolution (#8); Python
+inheritance fan-out and instance-field types (#7); and a fix for
+parenthesised Python imports that had been wrong since 0.2.0. Before
+release, every node and edge of 0.8.5 was diffed against this tree over
+the whole corpus (280 repositories) and each loss was required to have
+an explanation; eight regressions in the C++ work were found that way and
+fixed before shipping.
+
+> **Known issue: some chained C++ calls are dropped without an audit
+> record.** On dart-flutter and cmake, a call through a chained receiver
+> — `task_runners.GetUITaskRunner()->PostTask(...)`,
+> `this->Log().Error(...)` — that 0.8.5 bound by name-guessing can be
+> absent from 0.9.0's graph *and* from its unresolved list. The guesses
+> that disappear were wrong in every case checked (`PostTask` went to
+> `CompatTaskRunner::PostTask`; the call reaches `fml::TaskRunner`), so
+> the graph loses no correct edge that was verified, but a drop is meant
+> to be audited, never silent. About 2,500 medium-confidence edges across
+> the corpus are in this class. It will be fixed in a 0.9.x release.
+
+### Compatibility
+
+This is a minor release because the default graph changes materially for
+C++ and Python: the resolvers now type receivers, so many name guesses
+become bindings and many wrong guesses disappear. Output for every other
+language that 0.8.5 supported is unchanged. Measured over the
+280-repository corpus against 0.8.5:
+
+- Name-guessed (`medium`) edges that a typed receiver now contradicts are
+  gone, replaced where the type resolves by a `high` binding.
+- C++ fan-out sets that were guessed over an incomplete candidate list —
+  0.8.5 never indexed out-of-line method bodies under their real name —
+  now see every candidate; where that exceeds `--fanout-cap` the site is
+  audited as `fanout-cap-exceeded` instead of carrying up to five wrong
+  edges (about 20,000 edges, 99% of them verified to be this case).
+- A C++ prototype and its body are one node; edges to the prototype move
+  to the body, and nodes renamed with their true owner or anonymous
+  namespace keep their edges under the new name.
+
+`--fanout-cap 0` still means "never guess", and every edge still carries
+its confidence and resolver, so consumers that want only bindings can
+filter on `high`.
 
 ### Added
 
@@ -292,6 +338,24 @@ ever grows in default mode — see *Compatibility* below).
   not that macro.
 
 ### Performance
+
+Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
+v0.8.5 3`, median of 3 per repository, baseline built in its own
+worktree), load 8.3 / 7.8 / 8.0 at measurement time:
+
+| | 0.8.5 | 0.9.0 | delta |
+| --- | --- | --- | --- |
+| corpus total, 270 of 280 repos | 258,180 ms | 259,808 ms | +0.6% |
+
+Flat: within the script's 1–1.5% noise floor. The 40-minute budget
+stopped before `smithy-protocol-tests` and the nine repositories after
+it. Only three repositories whose run exceeds a second moved by more than
+300 ms: `erlang-otp` +437 ms (+5.6%), which is new default work — its
+vendored asmjit C++ now gets typed resolution — and two that got faster,
+`app-bamboobsc-struts` −340 ms and `app-symfony-messenger` −366 ms. The
+per-change blocks below were measured when each change landed.
+
+#### Kivy KV support (#5)
 
 Paired A/B against the 0.8.5 release commit (`scripts/perf-compare.sh
 11986c1 3`, median of 3 samples per repo, baseline built in its own

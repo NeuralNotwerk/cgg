@@ -1,6 +1,6 @@
 {
   "name": "cgg-callgraphgenerator-win32-x64-msvc",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "cpu": [
     "x64"
   ],
