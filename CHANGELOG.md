@@ -9,6 +9,46 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-24
+
+Fixes the 0.9.0 known issue. The graph is unchanged: every one of the
+280 corpus repositories renders byte-identical output on 0.9.0 and
+0.9.1. What changes is the audit, which now keeps records it used to
+erase.
+
+### Fixed
+
+> **Since 0.2.0, the audit erased unresolved, stdlib and external
+> records for calls that share a start byte with a resolved call.** A
+> chained call — `runners.GetUITaskRunner()->PostTask(...)`,
+> `this->Log().Error(...)`, Python's `a.b().c()` — is two calls that both
+> begin at `runners`. Reconciliation cleared every audit record at a
+> site that ended up with any edge, so when the inner call resolved and
+> the outer one did not, the outer call vanished: no edge and no record.
+> That is the "dropped without an audit record" known issue in 0.9.0,
+> and it was never C++-specific — 0.9.0 only exposed it, because the
+> outer calls now correctly exceed `--fanout-cap` instead of carrying a
+> wrong guess. Over the corpus, 229,446 unresolved and 284,580 stdlib or
+> external records that previous releases erased are now kept; any
+> unresolved-call count taken from an earlier release is low by that
+> class. Graphs were never affected.
+
+- **Audit reconciliation is per call, not per site.** A record is cleared
+  only when an edge at its site lands on a callable of the record's name,
+  or on the constructor of the class that name constructs (`Widget(3)`
+  binds `Widget.__init__`). The per-site de-duplication of unresolved
+  records is keyed the same way. Regression test:
+  `chained_call_dropped_at_the_cap_stays_in_the_audit_when_the_inner_call_resolves`
+  in `crates/cgg/tests/resolve.rs`, which fails on 0.9.0.
+
+### Performance
+
+The graph is identical, and the change is one lookup in a single
+post-processing pass. Timed at `--jobs 1` on the two largest corpus
+repositories, one run each: `dart-flutter` 50.7 s on 0.9.0 and 47.2 s on
+0.9.1, `zig-zig` 103.2 s and 103.4 s — no difference beyond run-to-run
+noise.
+
 ## [0.9.0] - 2026-09-23
 
 A new language, Kivy KV (#5); typed C++ resolution (#8); Python

@@ -903,6 +903,50 @@ fn cpp_template_member_prototype_unifies_with_its_out_of_line_body() {
 }
 
 #[test]
+fn chained_call_dropped_at_the_cap_stays_in_the_audit_when_the_inner_call_resolves() {
+    // `runners.Get()->Post(1)`: both calls start at `runners`, so they
+    // share a site byte. `Get` resolves; `Post` has more same-named
+    // candidates than the cap and is dropped. The inner call's edge must
+    // not erase the outer call's `fanout-cap-exceeded` record — a drop is
+    // never silent.
+    let tmp = TempDir::new().unwrap();
+    let mut lib = String::new();
+    for i in 0..7 {
+        lib.push_str(&format!(
+            "class R{i} {{\npublic:\n  void Post(int t);\n}};\nvoid R{i}::Post(int t) {{}}\n"
+        ));
+    }
+    write(tmp.path(), "lib.cc", lib.as_bytes());
+    write(
+        tmp.path(),
+        "use.cc",
+        b"class Runners {\npublic:\n  R0* Get();\n};\nR0* Runners::Get() { return nullptr; }\nvoid go(Runners& runners) {\n  runners.Get()->Post(1);\n}\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let posts: Vec<_> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["name"] == "Post" && u["site_line"] == 7)
+        .collect();
+    assert_eq!(
+        posts.len(),
+        1,
+        "the dropped Post call must be audited: {}",
+        g["unresolved"]
+    );
+    assert_eq!(posts[0]["reason"]["stage"], "fanout-cap-exceeded");
+}
+
+#[test]
 fn cpp_bare_call_in_a_member_prefers_the_enclosing_class() {
     // Unqualified lookup inside a member function searches the class
     // first: `get(...)` in `Reader::read` is `Reader::get`, not the

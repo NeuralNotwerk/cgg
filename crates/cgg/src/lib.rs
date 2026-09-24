@@ -885,11 +885,40 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // per-file unresolved/external lists, the run-level rollups, and
     // the by-language metrics. After this, "X unresolved, Y external"
     // means what it sounds like.
-    let resolved_sites: HashSet<(FileId, u32)> = graph
-        .edges
-        .iter()
-        .filter_map(|e| graph.callables.get(&e.src).map(|c| (c.file, e.site_byte)))
-        .collect();
+    // Keyed by the *called name* as well as the site. Chained calls share
+    // a start byte — `runners.GetUITaskRunner()->PostTask(...)` begins at
+    // `runners` for both calls — so a site-only key let the inner call's
+    // edge erase the outer call's unresolved record, and a call dropped
+    // at the fan-out cap vanished without a trace. An edge clears a
+    // record only when it lands on a callable of that name, or on the
+    // constructor of the class that name constructs (`Widget(3)` binds
+    // `Widget.__init__`).
+    let mut resolved_names: HashMap<(FileId, u32), HashSet<String>> = HashMap::new();
+    for e in &graph.edges {
+        let (Some(src), Some(dst)) =
+            (graph.callables.get(&e.src), graph.callables.get(&e.dst))
+        else {
+            continue;
+        };
+        let slot = resolved_names.entry((src.file, e.site_byte)).or_default();
+        slot.insert(dst.simple_name.clone());
+        let segs: Vec<&str> = dst
+            .qualified_name
+            .split(['.', ':'])
+            .filter(|x| !x.is_empty())
+            .collect();
+        if segs.len() >= 2 {
+            slot.insert(segs[segs.len() - 2].to_string());
+        }
+    }
+    let call_leaf = |name: &str| -> String {
+        name.rsplit(['.', ':']).next().unwrap_or(name).to_string()
+    };
+    let resolved_at = |file: FileId, byte: u32, name: &str| -> bool {
+        resolved_names
+            .get(&(file, byte))
+            .is_some_and(|names| names.contains(&call_leaf(name)) || names.contains(name))
+    };
 
     let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();
     let mut removed_per_lang_stdlib: HashMap<String, u64> = HashMap::new();
@@ -906,7 +935,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
 
         let before_u = rec.unresolved_calls.len();
         rec.unresolved_calls
-            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+            .retain(|c| !resolved_at(c.file, c.site_byte, &c.name));
         let dropped_u = (before_u - rec.unresolved_calls.len()) as u64;
         if dropped_u > 0 {
             *removed_per_lang_unresolved.entry(lang.clone()).or_default() += dropped_u;
@@ -915,7 +944,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
 
         let before_s = rec.stdlib_calls.len();
         rec.stdlib_calls
-            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+            .retain(|c| !resolved_at(c.file, c.site_byte, &c.name));
         let dropped_s = (before_s - rec.stdlib_calls.len()) as u64;
         if dropped_s > 0 {
             *removed_per_lang_stdlib.entry(lang.clone()).or_default() += dropped_s;
@@ -924,7 +953,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
 
         let before_e = rec.external_calls.len();
         rec.external_calls
-            .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+            .retain(|c| !resolved_at(c.file, c.site_byte, &c.name));
         let dropped_e = (before_e - rec.external_calls.len()) as u64;
         if dropped_e > 0 {
             *removed_per_lang_external.entry(lang).or_default() += dropped_e;
@@ -958,7 +987,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // graph.unresolved is the cross-file rollup. Same prune.
     graph
         .unresolved
-        .retain(|c| !resolved_sites.contains(&(c.file, c.site_byte)));
+        .retain(|c| !resolved_at(c.file, c.site_byte, &c.name));
 
     // Two passes can record the same site — the intra-file linker with
     // the generic "no candidate in this file", a later pass with the
@@ -969,14 +998,16 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     {
         use cgg_core::audit::UnresolvedReason as UR;
         let specific = |r: &UR| !matches!(r, UR::NoCandidateInFile | UR::Other(_));
-        let mut best: std::collections::HashMap<(FileId, u32), usize> =
+        // Per call, not per site: a chained call's two calls share a site.
+        let mut best: std::collections::HashMap<(FileId, u32, String), usize> =
             std::collections::HashMap::new();
         for (i, c) in graph.unresolved.iter().enumerate() {
-            match best.get(&(c.file, c.site_byte)) {
+            let key = (c.file, c.site_byte, call_leaf(&c.name));
+            match best.get(&key) {
                 Some(&j)
                     if specific(&graph.unresolved[j].reason) || !specific(&c.reason) => {}
                 _ => {
-                    best.insert((c.file, c.site_byte), i);
+                    best.insert(key, i);
                 }
             }
         }
