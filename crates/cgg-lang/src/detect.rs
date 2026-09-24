@@ -221,9 +221,18 @@ fn read_shebang(path: &Path) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// Disambiguate `.h`: prefer C++ when a sibling source file with the
-/// same stem is C++.
+/// Disambiguate `.h`: prefer C++ when the file content contains
+/// C++-only syntax or a sibling source file with the same stem is C++.
 fn header_verdict(path: &Path) -> DetectResult {
+    // Rule 3a: content sniffing — C++-only constructs in the first 8 KiB.
+    if has_cpp_content(path) {
+        return DetectResult {
+            verdict: DetectVerdict::Language("cpp"),
+            detected_via: "header-content:cpp".into(),
+        };
+    }
+
+    // Rule 3b: sibling heuristic — `foo.h` next to `foo.cpp`.
     const CPP_EXTS: &[&str] = &[".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".C"];
     if let (Some(stem), Some(dir)) = (path.file_stem(), path.parent())
         && let Ok(entries) = fs::read_dir(dir)
@@ -244,10 +253,386 @@ fn header_verdict(path: &Path) -> DetectResult {
             }
         }
     }
+
     DetectResult {
         verdict: DetectVerdict::Language("c"),
         detected_via: "header-heuristic:c".into(),
     }
+}
+
+/// Sniff the head of a `.h` file for C++-only syntax.
+///
+/// Returns `true` when the file almost certainly needs the C++ grammar.
+/// Comments and string literals are stripped first, so a keyword inside
+/// either does not count. `extern "C"` is deliberately not a trigger —
+/// it is a C-linkage declaration that is valid (and common) in headers
+/// consumed by both languages.
+fn has_cpp_content(path: &Path) -> bool {
+    use std::io::Read;
+    let Ok(mut f) = fs::File::open(path) else {
+        return false;
+    };
+    let mut buf = [0u8; 8192];
+    let n = f.read(&mut buf).unwrap_or(0);
+    if n == 0 {
+        return false;
+    }
+    let head = String::from_utf8_lossy(&buf[..n]);
+    let (stripped, saw_raw_string) = strip_c_lexemes(&head);
+    // `R"(…)"` is C++. The stripper stops at it so the contents cannot
+    // also be matched as code.
+    if saw_raw_string {
+        return true;
+    }
+
+    for line in stripped.lines() {
+        let t = line.trim();
+        if t.is_empty() {
+            continue;
+        }
+        // Includes are checked before the preprocessor skip: the
+        // directive itself starts with `#`. A trailing comment has
+        // already been removed, so `#include <vector> // note` still
+        // matches, and a commented-out include does not.
+        if has_cpp_include(t) {
+            return true;
+        }
+        if t.starts_with('#') {
+            continue;
+        }
+        if t.starts_with("namespace ") || t == "namespace" {
+            return true;
+        }
+        if let Some(rest) = t.strip_prefix("template")
+            && !rest.starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_')
+            && rest.trim_start().starts_with('<')
+        {
+            return true;
+        }
+        if has_enum_class(t) || has_cxx_base_clause(t) || has_access_specifier(t) {
+            return true;
+        }
+        if t.starts_with("using ") {
+            return true;
+        }
+        if contains_word(t, "constexpr")
+            || contains_word(t, "noexcept")
+            || t.contains("::")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// C++ standard-library headers that have no `.h` suffix. Matched on
+/// the leaf of an angle-bracket include, so `<vector>` and
+/// `<experimental/filesystem>` count and `<stdio.h>` / `<MyHeader>` do
+/// not. Sorted for binary search.
+const CPP_STDLIB_HEADERS: &[&str] = &[
+    "algorithm",
+    "any",
+    "array",
+    "atomic",
+    "barrier",
+    "bit",
+    "bitset",
+    "cassert",
+    "ccomplex",
+    "cctype",
+    "cerrno",
+    "cfenv",
+    "cfloat",
+    "charconv",
+    "chrono",
+    "cinttypes",
+    "ciso646",
+    "climits",
+    "clocale",
+    "cmath",
+    "codecvt",
+    "compare",
+    "complex",
+    "concepts",
+    "condition_variable",
+    "coroutine",
+    "csetjmp",
+    "csignal",
+    "cstdalign",
+    "cstdarg",
+    "cstdbool",
+    "cstddef",
+    "cstdint",
+    "cstdio",
+    "cstdlib",
+    "cstring",
+    "ctgmath",
+    "ctime",
+    "cuchar",
+    "cwchar",
+    "cwctype",
+    "debugging",
+    "deque",
+    "exception",
+    "execution",
+    "expected",
+    "filesystem",
+    "flat_map",
+    "flat_set",
+    "format",
+    "forward_list",
+    "fstream",
+    "functional",
+    "future",
+    "generator",
+    "hazard_pointer",
+    "initializer_list",
+    "inplace_vector",
+    "iomanip",
+    "ios",
+    "iosfwd",
+    "iostream",
+    "istream",
+    "iterator",
+    "latch",
+    "limits",
+    "linalg",
+    "list",
+    "locale",
+    "map",
+    "mdspan",
+    "memory",
+    "memory_resource",
+    "mutex",
+    "new",
+    "numbers",
+    "numeric",
+    "optional",
+    "ostream",
+    "print",
+    "queue",
+    "random",
+    "ranges",
+    "ratio",
+    "rcu",
+    "regex",
+    "scoped_allocator",
+    "semaphore",
+    "set",
+    "shared_mutex",
+    "source_location",
+    "span",
+    "spanstream",
+    "sstream",
+    "stack",
+    "stacktrace",
+    "stdexcept",
+    "stdfloat",
+    "stop_token",
+    "streambuf",
+    "string",
+    "string_view",
+    "strstream",
+    "syncstream",
+    "system_error",
+    "text_encoding",
+    "thread",
+    "tuple",
+    "type_traits",
+    "typeindex",
+    "typeinfo",
+    "unordered_map",
+    "unordered_set",
+    "utility",
+    "valarray",
+    "variant",
+    "vector",
+    "version",
+];
+
+fn is_cpp_stdlib_header(name: &str) -> bool {
+    CPP_STDLIB_HEADERS.binary_search(&name).is_ok()
+}
+
+/// `#include <vector>`, `#include <experimental/filesystem>`,
+/// `#include <bits/stdc++.h>`. `#include_next` is a different directive.
+/// Any other extensionless name (`<MyHeader>`) is not a signal: C
+/// projects include those too.
+fn has_cpp_include(line: &str) -> bool {
+    let Some(rest) = line.strip_prefix("#include") else {
+        return false;
+    };
+    if rest.starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_') {
+        return false;
+    }
+    let rest = rest.trim_start();
+    let Some(rest) = rest.strip_prefix('<') else {
+        return false;
+    };
+    let Some(end) = rest.find('>') else {
+        return false;
+    };
+    let inner = &rest[..end];
+    if inner.contains("++") {
+        return true;
+    }
+    let leaf = inner.rsplit('/').next().unwrap_or(inner);
+    is_cpp_stdlib_header(leaf)
+}
+
+/// `enum class` / `enum struct`, but not `enum classification`.
+fn has_enum_class(line: &str) -> bool {
+    let Some(rest) = line.strip_prefix("enum") else {
+        return false;
+    };
+    if !rest.starts_with(|c: char| c.is_whitespace()) {
+        return false;
+    }
+    let rest = rest.trim_start();
+    for kw in ["class", "struct"] {
+        if let Some(after) = rest.strip_prefix(kw)
+            && (after.is_empty()
+                || after.starts_with(|c: char| !c.is_ascii_alphanumeric() && c != '_'))
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// `class Foo: public Bar`, `class Foo :public Bar`, `struct S final`.
+/// A colon inside the brace (`struct Foo { int x : 3; }`) is a bitfield.
+/// A single colon is required, so `::` alone does not count here.
+fn has_cxx_base_clause(line: &str) -> bool {
+    let rest = if let Some(r) = line.strip_prefix("class ") {
+        r
+    } else if let Some(r) = line.strip_prefix("struct ") {
+        r
+    } else {
+        return false;
+    };
+    let head = match rest.find('{') {
+        Some(i) => &rest[..i],
+        None => rest,
+    };
+    if contains_word(head, "final") {
+        return true;
+    }
+    let b = head.as_bytes();
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b':' {
+            let prev = i > 0 && b[i - 1] == b':';
+            let next = i + 1 < b.len() && b[i + 1] == b':';
+            if !prev && !next {
+                return true;
+            }
+            if next {
+                i += 1;
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+/// `public:`, `public :`, `public: void draw();`.
+fn has_access_specifier(line: &str) -> bool {
+    for kw in ["public", "private", "protected"] {
+        let Some(rest) = line.strip_prefix(kw) else {
+            continue;
+        };
+        if rest.starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_') {
+            continue;
+        }
+        if rest.trim_start().starts_with(':') {
+            return true;
+        }
+    }
+    false
+}
+
+fn contains_word(line: &str, word: &str) -> bool {
+    let b = line.as_bytes();
+    let w = word.as_bytes();
+    if w.is_empty() || b.len() < w.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i + w.len() <= b.len() {
+        if &b[i..i + w.len()] == w {
+            let before_ok = i == 0 || !is_ident_byte(b[i - 1]);
+            let after = i + w.len();
+            let after_ok = after == b.len() || !is_ident_byte(b[after]);
+            if before_ok && after_ok {
+                return true;
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+fn is_ident_byte(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_'
+}
+
+/// Strip comments and string/character literals so keyword detection
+/// does not match inside them. Newlines are preserved. A C++ raw
+/// string (`R"delim(…)delim"`) is reported and the scan stops: the
+/// file is C++, and the contents must not be read as code.
+fn strip_c_lexemes(src: &str) -> (String, bool) {
+    let mut out = String::with_capacity(src.len());
+    let mut chars = src.chars().peekable();
+    let mut prev_ident = false;
+    while let Some(c) = chars.next() {
+        if c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            prev_ident = false;
+            loop {
+                match chars.next() {
+                    Some('*') if chars.peek() == Some(&'/') => {
+                        chars.next();
+                        break;
+                    }
+                    Some('\n') => out.push('\n'),
+                    None => break,
+                    _ => {}
+                }
+            }
+        } else if c == '/' && chars.peek() == Some(&'/') {
+            prev_ident = false;
+            for d in chars.by_ref() {
+                if d == '\n' {
+                    out.push('\n');
+                    break;
+                }
+            }
+        } else if c == 'R' && !prev_ident && chars.peek() == Some(&'"') {
+            return (out, true);
+        } else if c == '"' || c == '\'' {
+            let quote = c;
+            prev_ident = false;
+            out.push(' ');
+            while let Some(d) = chars.next() {
+                if d == '\\' {
+                    chars.next();
+                    continue;
+                }
+                if d == '\n' {
+                    out.push('\n');
+                    break;
+                }
+                if d == quote {
+                    break;
+                }
+            }
+        } else {
+            prev_ident = c == '_' || c.is_ascii_alphanumeric();
+            out.push(c);
+        }
+    }
+    (out, false)
 }
 
 #[cfg(test)]
@@ -462,5 +847,211 @@ mod tests {
         // catalogue is not an API descriptor, so `None` is correct.
         assert_eq!(sniff_structured_descriptor(&f), None);
         std::fs::remove_file(&f).ok();
+    }
+
+    // --- .h content detection tests ------------------------------------------
+
+    #[test]
+    fn h_with_namespace_detected_as_cpp() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "util.h",
+            b"#pragma once\nnamespace util {\nvoid foo();\n}\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("util.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+        assert_eq!(r.detected_via, "header-content:cpp");
+    }
+
+    #[test]
+    fn h_with_template_detected_as_cpp() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "vec.h",
+            b"template<typename T>\nclass Vec {};\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("vec.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_with_class_inheritance_detected_as_cpp() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "shape.h",
+            b"class Circle : public Shape {\npublic:\n  void draw();\n};\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("shape.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_with_using_detected_as_cpp() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "types.h",
+            b"#pragma once\nusing Callback = void(*)();\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("types.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_with_cpp_stdlib_include_detected_as_cpp() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "str.h",
+            b"#include <string>\n#include <vector>\nvoid foo();\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("str.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn pure_c_header_stays_c() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path(), "quicklz.h",
+            b"#ifndef QLZ_H\n#define QLZ_H\n#include <string.h>\ntypedef unsigned int ui32;\nsize_t qlz_decompress(const char *src, void *dst);\n#endif\n");
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("quicklz.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+        assert_eq!(r.detected_via, "header-heuristic:c");
+    }
+
+    #[test]
+    fn extern_c_header_stays_c() {
+        let dir = TempDir::new().unwrap();
+        write(dir.path(), "api.h",
+            b"#ifdef __cplusplus\nextern \"C\" {\n#endif\nvoid init(void);\n#ifdef __cplusplus\n}\n#endif\n");
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("api.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    #[test]
+    fn cpp_keyword_inside_comment_does_not_trigger() {
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path(),
+            "plain.h",
+            b"/* namespace foo { } */\n// template<int> class X;\nvoid bar(void);\n",
+        );
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let r = det.detect(&dir.path().join("plain.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    fn detect_h(src: &[u8]) -> DetectResult {
+        let dir = TempDir::new().unwrap();
+        write(dir.path(), "t.h", src);
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        det.detect(&dir.path().join("t.h"))
+    }
+
+    #[test]
+    fn cpp_stdlib_header_list_is_sorted() {
+        assert!(
+            CPP_STDLIB_HEADERS.windows(2).all(|w| w[0] < w[1]),
+            "CPP_STDLIB_HEADERS must stay sorted for binary_search"
+        );
+        assert!(is_cpp_stdlib_header("vector"));
+        assert!(is_cpp_stdlib_header("string"));
+        assert!(!is_cpp_stdlib_header("stdio.h"));
+        assert!(!is_cpp_stdlib_header("MyHeader"));
+    }
+
+    #[test]
+    fn h_class_base_without_spaces_around_colon() {
+        let r = detect_h(b"class Circle: public Shape {\n  void draw();\n};\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_access_specifier_with_declaration_on_same_line() {
+        let r = detect_h(b"class Circle {\npublic: void draw();\n};\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_enum_class_detected_as_cpp() {
+        let r = detect_h(b"#pragma once\nenum class Color { Red, Green };\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_constexpr_and_noexcept_detected_as_cpp() {
+        let r = detect_h(b"inline int add(int a, int b) noexcept { return a + b; }\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+        let r = detect_h(b"constexpr int N = 3;\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_scope_resolution_detected_as_cpp() {
+        let r = detect_h(b"void foo(std::string s);\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_stdcpp_header_with_dot_detected_as_cpp() {
+        let r = detect_h(b"#include <bits/stdc++.h>\nvoid foo();\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn h_include_with_trailing_comment_detected_as_cpp() {
+        let r = detect_h(b"#include <vector> // std::vector\nvoid foo();\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+    }
+
+    #[test]
+    fn commented_include_and_string_do_not_trigger() {
+        let r = detect_h(
+            b"/* #include <vector> */\n// #include <string>\nconst char *s = \"namespace foo\";\nvoid bar(void);\n",
+        );
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    #[test]
+    fn extensionless_project_header_stays_c() {
+        let r = detect_h(b"#include <MyHeader>\nvoid foo(void);\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    #[test]
+    fn include_next_of_c_header_stays_c() {
+        let r = detect_h(b"#include_next <stdio.h>\nvoid foo(void);\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    #[test]
+    fn bitfield_struct_stays_c() {
+        let r = detect_h(b"struct Flags { unsigned x : 3; unsigned y : 1; };\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
+    }
+
+    #[test]
+    fn string_containing_comment_opener_does_not_swallow_code() {
+        let r = detect_h(b"const char *s = \"/*\";\nvoid bar(void);\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
     }
 }
