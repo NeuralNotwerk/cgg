@@ -966,12 +966,12 @@ pub fn resolve(
                             .or_default()
                             .push(full);
                     }
-                    "include" if matches!(lang.as_str(), "c" | "cpp" | "objc") => {
-                        // C/C++: `#include "helpers.h"` — all definitions
-                        // from the included file become available in this
-                        // TU. We resolve the path relative to the current
-                        // file and transitively chase includes up to 8
-                        // levels deep.
+                    "include" if cgg_core::same_family(&lang, "c") => {
+                        // C family: `#include "helpers.h"` / `#import "Foo.h"`
+                        // — all definitions from the included file become
+                        // available in this TU. We resolve the path relative
+                        // to the current file and transitively chase includes
+                        // up to 8 levels deep.
                         let included_path = imp.path.trim();
                         if !included_path.is_empty() {
                             collect_include_defs(
@@ -3183,7 +3183,37 @@ fn is_external_rust_head(
 /// Look up `qn` in the callable index, following Rust `pub use`
 /// re-export chains up to a small depth cap so malformed graphs can't
 /// loop.
+///
+/// A miss in the caller's language retries the qualified name under
+/// each sibling in [`cgg_core::language_family`]. That is how a C++
+/// file `#include`ing a C header reaches the `.c` definition: the
+/// include records the name, and the only copy of it is indexed under
+/// `"c"`. The same-language entry wins when both exist, and it is the
+/// single `(language, qualified_name)` slot — the later callable, the
+/// same one a same-language lookup would return. Simple-name fan-out
+/// is not consulted here; widening that index mixes every C function
+/// into every C++ duck-typed call.
 fn lookup_with_reexports(
+    lang: &str,
+    qn: &str,
+    by_qn: &HashMap<(String, String), CallableId>,
+    reexports: &HashMap<(String, String), String>,
+) -> Option<CallableId> {
+    if let Some(cid) = lookup_in_language(lang, qn, by_qn, reexports) {
+        return Some(cid);
+    }
+    for sib in cgg_core::language_family(lang) {
+        if *sib == lang {
+            continue;
+        }
+        if let Some(cid) = by_qn.get(&((*sib).to_string(), qn.to_string())).copied() {
+            return Some(cid);
+        }
+    }
+    None
+}
+
+fn lookup_in_language(
     lang: &str,
     qn: &str,
     by_qn: &HashMap<(String, String), CallableId>,
@@ -5780,6 +5810,298 @@ mod tests {
             out.edges[0].dst,
             CallableId::new(1),
             "the impl, not the declaration"
+        );
+    }
+
+    /// A C++ file that `#include`s a C header must resolve a bare call
+    /// to the `.c` body, not the header prototype. Both share one
+    /// `(language, qualified_name)` slot; the later callable — the body,
+    /// when the header is indexed first, as `include/` sorts before
+    /// `src/` — is the one a same-language lookup would return.
+    #[test]
+    fn cpp_file_resolves_call_to_c_definition_via_include() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "quicklz.h", "c"));
+        g.add_file(mk_file(1, "quicklz.c", "c"));
+        g.add_file(mk_file(2, "Player.cpp", "cpp"));
+
+        // Header prototype first, body second. A sibling index that
+        // keeps the first id would bind the call to the prototype.
+        g.add_callable(mk_callable(
+            0,
+            "qlz_decompress",
+            "qlz_decompress",
+            0,
+            "c",
+            (0, 60),
+        ));
+        g.add_callable(mk_callable(
+            1,
+            "qlz_decompress",
+            "qlz_decompress",
+            1,
+            "c",
+            (100, 500),
+        ));
+        let mut caller = mk_callable(
+            2,
+            "decompress",
+            "Player::decompress",
+            2,
+            "cpp",
+            (5000, 6000),
+        );
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let h_facts = facts_for(
+            0,
+            "quicklz.h",
+            "c",
+            vec![mk_def(
+                "qlz_decompress",
+                "qlz_decompress",
+                DefVariant::FreeFunction,
+                (0, 60),
+            )],
+            vec![],
+            vec![],
+        );
+        let c_facts = facts_for(
+            1,
+            "quicklz.c",
+            "c",
+            vec![mk_def(
+                "qlz_decompress",
+                "qlz_decompress",
+                DefVariant::FreeFunction,
+                (100, 500),
+            )],
+            vec![],
+            vec![ImportRecord {
+                kind: "include".into(),
+                path: "quicklz.h".into(),
+                alias: String::new(),
+                site_line: 1,
+                site_byte: 0,
+            }],
+        );
+        let cpp_facts = facts_for(
+            2,
+            "Player.cpp",
+            "cpp",
+            vec![mk_def(
+                "decompress",
+                "Player::decompress",
+                DefVariant::InherentMethod,
+                (5000, 6000),
+            )],
+            vec![RefRecord {
+                name: "qlz_decompress".into(),
+                receiver_hint: String::new(),
+                site_line: 110,
+                site_byte: 5500,
+                ..Default::default()
+            }],
+            vec![ImportRecord {
+                kind: "include".into(),
+                path: "quicklz.h".into(),
+                alias: String::new(),
+                site_line: 1,
+                site_byte: 0,
+            }],
+        );
+
+        let out = resolve_default(&g, &[h_facts, c_facts, cpp_facts]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(
+            dsts,
+            vec![CallableId::new(1)],
+            "the include must land on the C body, not the prototype; \
+             unresolved: {:?}",
+            out.unresolved
+                .iter()
+                .filter(|u| u.name == "qlz_decompress")
+                .map(|u| &u.reason)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    /// Including some other header must not make every C function of
+    /// the same simple name visible. That is what widening `by_simple`
+    /// would do: the file has an import, step 1d's cap is 3, and one
+    /// C definition would become an edge.
+    #[test]
+    fn cpp_include_does_not_import_every_c_function() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "other.h", "c"));
+        g.add_file(mk_file(1, "quicklz.c", "c"));
+        g.add_file(mk_file(2, "Player.cpp", "cpp"));
+
+        g.add_callable(mk_callable(0, "helper", "helper", 0, "c", (0, 40)));
+        g.add_callable(mk_callable(
+            1,
+            "qlz_decompress",
+            "qlz_decompress",
+            1,
+            "c",
+            (100, 500),
+        ));
+        let mut caller = mk_callable(
+            2,
+            "decompress",
+            "Player::decompress",
+            2,
+            "cpp",
+            (5000, 6000),
+        );
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let other = facts_for(
+            0,
+            "other.h",
+            "c",
+            vec![mk_def(
+                "helper",
+                "helper",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let c_facts = facts_for(
+            1,
+            "quicklz.c",
+            "c",
+            vec![mk_def(
+                "qlz_decompress",
+                "qlz_decompress",
+                DefVariant::FreeFunction,
+                (100, 500),
+            )],
+            vec![],
+            vec![],
+        );
+        let cpp_facts = facts_for(
+            2,
+            "Player.cpp",
+            "cpp",
+            vec![mk_def(
+                "decompress",
+                "Player::decompress",
+                DefVariant::InherentMethod,
+                (5000, 6000),
+            )],
+            vec![RefRecord {
+                name: "qlz_decompress".into(),
+                receiver_hint: String::new(),
+                site_line: 110,
+                site_byte: 5500,
+                ..Default::default()
+            }],
+            vec![ImportRecord {
+                kind: "include".into(),
+                path: "other.h".into(),
+                alias: String::new(),
+                site_line: 1,
+                site_byte: 0,
+            }],
+        );
+
+        let out = resolve_default(&g, &[other, c_facts, cpp_facts]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert!(
+            dsts.is_empty(),
+            "qlz_decompress is not included by Player.cpp; edges: {dsts:?}"
+        );
+    }
+
+    /// A typed-looking C++ call fans out over C++ methods only. A C
+    /// function of the same simple name is not a candidate.
+    #[test]
+    fn cpp_fanout_ignores_c_functions() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "util.c", "c"));
+        g.add_file(mk_file(1, "Widget.cpp", "cpp"));
+        g.add_file(mk_file(2, "Player.cpp", "cpp"));
+
+        g.add_callable(mk_callable(0, "update", "update", 0, "c", (0, 40)));
+        let mut method = mk_callable(1, "update", "Widget::update", 1, "cpp", (0, 80));
+        method.kind = CallableKind::Method;
+        g.add_callable(method);
+        let mut caller = mk_callable(2, "tick", "Player::tick", 2, "cpp", (100, 200));
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let c_facts = facts_for(
+            0,
+            "util.c",
+            "c",
+            vec![mk_def(
+                "update",
+                "update",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let widget = facts_for(
+            1,
+            "Widget.cpp",
+            "cpp",
+            vec![mk_def(
+                "update",
+                "Widget::update",
+                DefVariant::InherentMethod,
+                (0, 80),
+            )],
+            vec![],
+            vec![],
+        );
+        let player = facts_for(
+            2,
+            "Player.cpp",
+            "cpp",
+            vec![mk_def(
+                "tick",
+                "Player::tick",
+                DefVariant::InherentMethod,
+                (100, 200),
+            )],
+            vec![RefRecord {
+                name: "update".into(),
+                receiver_hint: "obj".into(),
+                site_line: 4,
+                site_byte: 150,
+                ..Default::default()
+            }],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[c_facts, widget, player]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(
+            dsts,
+            vec![CallableId::new(1)],
+            "fan-out must stay inside C++; edges: {dsts:?}"
         );
     }
 }

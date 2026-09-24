@@ -59,11 +59,12 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
     // Helper: candidates with this simple name from C-family languages.
     let c_family_lookup = |name: &str| -> Vec<CallableId> {
         let stripped = name.trim_start_matches('_');
+        let c_family = cgg_core::language_family("c");
         let mut out: Vec<CallableId> = Vec::new();
         for candidate_name in [name, stripped] {
             if let Some(rows) = by_name.get(candidate_name) {
                 for &(cid, lang) in rows {
-                    if matches!(lang, "c" | "cpp" | "objc") {
+                    if c_family.contains(&lang) {
                         out.push(cid);
                     }
                 }
@@ -116,7 +117,7 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
                     });
                 }
             }
-        } else if matches!(f.language.as_str(), "c" | "cpp" | "objc") {
+        } else if cgg_core::same_family(f.language.as_str(), "c") {
             // For each ref in a C-family file whose target name (or its
             // `_name` variant) matches an asm label, link C → asm.
             for r in &f.references {
@@ -680,7 +681,7 @@ fn allowed_source_languages(family: &str) -> Option<&'static [&'static str]> {
     match family {
         "napi" => Some(&["javascript", "typescript"]),
         "pyo3" => Some(&["python"]),
-        "c-abi" => Some(&["c", "cpp", "objc"]),
+        "c-abi" => Some(cgg_core::language_family("c")),
         _ => None,
     }
 }

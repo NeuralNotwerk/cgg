@@ -24,6 +24,7 @@ pub mod facts;
 pub mod frameworks;
 pub mod graph;
 pub mod ids;
+pub mod lang_family;
 pub mod profile;
 pub mod stdlib;
 pub mod testfile;
@@ -59,5 +60,6 @@ pub use graph::{
     CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
 };
 pub use ids::{CallableId, FileId, ResolverId};
+pub use lang_family::{language_family, same_family};
 pub use testfile::{TestFileReason, classify_test_file};
 pub use version::CGG_VERSION;
