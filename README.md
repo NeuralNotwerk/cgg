@@ -327,7 +327,7 @@ source files
 │  cgg-walk      file discovery (.gitignore, deny-list)     │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-lang      tree-sitter parse → extract callables      │
-│                45 language plugins (+ .ipynb notebooks)   │
+│                46 language plugins (+ .ipynb notebooks)   │
 ├───────────────────────────────────────────────────────────┤
 │  cgg-resolve   link calls to definitions                  │
 │                ├── type propagation (params, locals,      │
@@ -463,7 +463,7 @@ confirm caller/callee impact. Grep finds string matches; `cgg` finds
 resolved calls — including method dispatch and cross-file edges that
 grep will miss or over-match.
 
-## Supported languages (45)
+## Supported languages (46)
 
 The last five are interface/descriptor languages: cgg maps their shape
 graphs onto the call-graph model, so an API model renders as a topology of
@@ -484,6 +484,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 | Go | package imports | params, `var T`, `New*()` | Interface methods, func literals |
 | Java | import, import static | params, `Type var`, `new Foo()` | Local variable types |
 | Kotlin | import, as alias | params, `val x: T`, `Foo()` | Class-as-constructor |
+| Lean 4 | import, open | — | def/theorem/abbrev/instance, structures/inductives, tactic lemma refs; macro/typeclass edges need the kernel |
 | C | `#include` transitive (depth 8) | — | Macros as callables |
 | C++ | `#include` transitive | params, locals, fields (one hop), `new T()`, object-like macro receivers | Templates, operators; prototypes unify with out-of-line bodies; virtual and member-pointer-table fan-out with `--dynamic-dispatch`; a `.h` without a same-stem `.cpp` sibling is parsed as C |
 | C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors |
@@ -1427,7 +1428,7 @@ know](#adding-a-framework-cgg-does-not-know).
   sanitizer awareness, and no branch-condition analysis. Use it to bound
   where to look, never to conclude something is exploitable.
 - Dead-code signal coverage is very uneven across languages. `visibility` is
-  extracted for 7 of 45 plugins, real attributes for 9, and value-reference
+  extracted for 7 of 46 plugins, real attributes for 9, and value-reference
   capture for 11. Every report prints a per-language capability table so a "no"
   column is visible before the findings are.
 

@@ -38,6 +38,17 @@ use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
 
+use tree_sitter_language::LanguageFn;
+
+unsafe extern "C" {
+    fn tree_sitter_lean() -> *const ();
+}
+/// Raw binding to the vendored Lean 4 grammar's C entry point. The only
+/// published crate (`tree-sitter-lean4`) links the `tree-sitter` core
+/// crate directly and cannot coexist with the workspace runtime; see
+/// `vendor/lean4/PROVENANCE.md`.
+const LEAN_LANGUAGE: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_lean) };
+
 #[derive(Debug)]
 pub struct LeanPlugin;
 
@@ -49,7 +60,7 @@ impl LanguagePlugin for LeanPlugin {
         &[".lean"]
     }
     fn ts_language(&self) -> tree_sitter::Language {
-        tree_sitter_lean4::LANGUAGE.into()
+        LEAN_LANGUAGE.into()
     }
 
     fn extract(
@@ -488,7 +499,7 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
-        p.set_language(&tree_sitter_lean4::LANGUAGE.into()).unwrap();
+        p.set_language(&LEAN_LANGUAGE.into()).unwrap();
         let tree = p.parse(src, None).unwrap();
         LeanPlugin.extract(
             &crate::ExtractCtx::plain(),

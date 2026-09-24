@@ -1,6 +1,6 @@
 # cgg — Python bindings
 
-Offline, deterministic call graphs for 45 languages, in-process.
+Offline, deterministic call graphs for 46 languages, in-process.
 
 ```python
 import cgg

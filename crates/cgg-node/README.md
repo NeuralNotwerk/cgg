@@ -1,6 +1,6 @@
 # cgg — Node.js bindings
 
-Offline, deterministic call graphs for 45 languages, in-process.
+Offline, deterministic call graphs for 46 languages, in-process.
 
 > **Not on npm yet.** `npm install cgg-callgraphgenerator` does **not**
 > work today — the name is reserved for this package but nothing has been

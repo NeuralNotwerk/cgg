@@ -1,7 +1,7 @@
 # cgg-walk — File discovery for cgg
 
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
-offline, deterministic call-graph generator for 45 languages.
+offline, deterministic call-graph generator for 46 languages.
 
 Walks a source tree honouring `.gitignore` plus a built-in deny list,
 classifies what it finds (binary detection, symlink-chain guards), and emits

@@ -1,7 +1,7 @@
 # cgg-format — Output formatters for cgg
 
 An internal crate of [**cgg**](https://github.com/NeuralNotwerk/cgg), an
-offline, deterministic call-graph generator for 45 languages.
+offline, deterministic call-graph generator for 46 languages.
 
 Renders a `Graph` as mermaid (the default), JSON, DOT or GraphML.
 

@@ -8,7 +8,7 @@ cargo install cgg
 cgg ./src -o graph.mmd
 ```
 
-Offline, deterministic, single-binary. **45 languages** via tree-sitter —
+Offline, deterministic, single-binary. **46 languages** via tree-sitter —
 the Smithy, Protobuf, GraphQL, OpenAPI and AsyncAPI descriptor languages
 among them — plus Jupyter notebooks, which route through the Python plugin.
 It makes no network calls, ever.
