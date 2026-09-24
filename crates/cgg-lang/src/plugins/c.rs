@@ -135,6 +135,10 @@ impl<'a> CWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            // `function_definition` is the body. Prototypes stay at the
+            // default `has_body: false`, which is what
+            // `unify_declarations` tells a declaration from a definition.
+            has_body: true,
             ..Default::default()
         });
     }
@@ -339,7 +343,7 @@ mod tests {
         assert!(
             f.definitions
                 .iter()
-                .all(|d| d.variant == DefVariant::FreeFunction)
+                .all(|d| d.variant == DefVariant::FreeFunction && d.has_body)
         );
     }
 
@@ -354,6 +358,18 @@ mod tests {
             .filter(|d| d.simple_name == "add")
             .count();
         assert_eq!(count, 2);
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.simple_name == "add" && !d.has_body),
+            "prototype must stay has_body false"
+        );
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.simple_name == "add" && d.has_body),
+            "function_definition must set has_body"
+        );
     }
 
     #[test]

@@ -482,20 +482,24 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         })
         .collect();
 
-    // A C++ prototype and its out-of-line body are one function. Drop the
-    // prototype before ids are assigned so every later pass — intra-file,
-    // cross-file, dead-code — sees only the body.
+    // A C-family prototype and its out-of-line body are one function.
+    // Drop the prototype before ids are assigned so every later pass —
+    // intra-file, cross-file, dead-code — sees only the body. Covers
+    // C, C++ and Obj-C: a `.h` header parsed as C may declare a
+    // prototype whose body lives in a `.c`, `.cpp` or `.m` file.
+    // Unification keys off `DefRecord::has_body`, which those plugins
+    // set from the grammar node.
     {
-        let mut cpp_facts: Vec<&mut FileFacts> = Vec::new();
+        let mut c_family_facts: Vec<&mut FileFacts> = Vec::new();
         for result in &mut results {
             if let FileOutcome::Analyzed(fr) = result
-                && fr.lang == "cpp"
+                && cgg_core::same_family(&fr.lang, "c")
                 && let Some(facts) = fr.facts.as_mut()
             {
-                cpp_facts.push(facts);
+                c_family_facts.push(facts);
             }
         }
-        cgg_lang::plugins::cpp::unify_declarations(&mut cpp_facts);
+        cgg_lang::plugins::cpp::unify_declarations(&mut c_family_facts);
     }
 
     // --- Sequential merge: assign IDs and build graph ---------------------
