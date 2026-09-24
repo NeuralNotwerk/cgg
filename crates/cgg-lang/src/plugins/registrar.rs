@@ -466,6 +466,7 @@ pub(crate) fn capture(
             }
             out.push(RefRecord {
                 from_macro_arg: false,
+                arity: None,
                 name: s,
                 receiver_hint: STRING_REF_HINT.to_string(),
                 site_line: line,
@@ -620,6 +621,7 @@ fn collect_value_refs(
         if let Some((owner, method)) = class_method_pair(arg, source) {
             out.push(RefRecord {
                 from_macro_arg: false,
+                arity: None,
                 name: format!("{owner}::{method}"),
                 receiver_hint: STRING_REF_HINT.to_string(),
                 site_line: line,
@@ -635,6 +637,7 @@ fn collect_value_refs(
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
                     from_macro_arg: false,
+                    arity: None,
                     name: s,
                     receiver_hint: STRING_REF_HINT.to_string(),
                     site_line: line,
@@ -663,6 +666,7 @@ fn collect_value_refs(
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
                     from_macro_arg: false,
+                    arity: None,
                     name: s,
                     receiver_hint: STRING_REF_HINT.to_string(),
                     site_line: line,
@@ -726,6 +730,7 @@ fn collect_value_refs(
         if out.len() == before {
             out.push(RefRecord {
                 from_macro_arg: false,
+                arity: None,
                 name: last_segment(&callee).to_string(),
                 receiver_hint: VALUE_REF_HINT.to_string(),
                 site_line: line,
@@ -752,6 +757,7 @@ fn collect_value_refs(
             {
                 out.push(RefRecord {
                     from_macro_arg: false,
+                    arity: None,
                     name: owner.to_string(),
                     receiver_hint: VALUE_REF_HINT.to_string(),
                     site_line: line,
@@ -788,6 +794,7 @@ fn collect_value_refs(
     }
     out.push(RefRecord {
         from_macro_arg: false,
+        arity: None,
         name: simple.to_string(),
         receiver_hint: VALUE_REF_HINT.to_string(),
         site_line: line,

@@ -27,6 +27,86 @@ otherwise change the default graph.
   ran clean under AddressSanitizer and UBSan on 4,766 real, mutated and
   pathological inputs. 46 languages.
 
+- **Inline Go route handlers get a node.** `m.Get("/", func() string
+  { … })` — how Martini writes every route — passes a `func_literal`
+  that had no name and so no node, and the route had nothing to point
+  at. Go now mints `handler_at_<line>` for a closure handed to a
+  registrar verb, as JavaScript has since 0.5; `sort.Slice`, goroutines
+  and `defer func(){}()` mint nothing. On `app-pixlserv-martini` the
+  rule enumerates 3 routes where it enumerated 2.
+- **Electron IPC and lifecycle entries.** `ipcMain.handle`/`handleOnce`/
+  `on`/`once`, `ipcRenderer.on`/`once`,
+  `contextBridge.exposeInMainWorld` and `app.on`/`once` are entry points,
+  with the channel as the route (`electron::handle('fonts:list')`).
+  Registrars may now name their receiver, and a receiver path matches
+  on any suffix, so `window.electron.ipcRenderer.on(…)` binds while a
+  jQuery `$(x).on('click', …)` in the same app does not. Electron was a
+  detect-only rule; on `app-marktext-electron` it enumerates 179 entries.
+- **`#include <header.h>` follows headers in the tree.** A build that
+  passes `-I` writes its own headers in angle brackets —
+  `<helper_cuda.h>` across the CUDA samples, `<spdlog/spdlog.h>` in
+  spdlog's tests — and cgg followed only quoted includes, so every call
+  into those headers was unresolved or guessed. A standard, POSIX,
+  Windows or compiler header (`<stdio.h>`, `<sys/types.h>`, `<vector>`,
+  `<immintrin.h>`) is still never followed, even into a vendored copy.
+- **Overload sets bind.** Two same-file candidates with one qualified
+  name — `matrix4::element(int, int)` and its `const` twin, Java's
+  `add(int)`/`add(String)` — were reported `ambiguous-in-file` and the
+  call dropped, although the callee was never in doubt. Worse, the
+  dropped call then reached cross-file resolution, which guessed a
+  same-named method on an *unrelated class*: on Druid,
+  `FunctionTest.testArrayContains` was bound to
+  `ExprEvalTest.assertExpr` rather than its own class's overloads, and
+  9,567 such edges in that one repository are now rebound to the right
+  class. Each overload gets a `medium` edge, bounded by `--fanout-cap`
+  (0 still means never guess) — only in languages that overload (C++,
+  Java, C#, Kotlin, Scala, Swift, Groovy, F#, Solidity, TypeScript,
+  Julia); a name repeated in JavaScript, Python or C is a different
+  function in another scope or `#ifdef` arm and stays ambiguous. In the
+  clause languages — Erlang,
+  Elixir, Haskell — same-name definitions are the clauses of one
+  function, or of one function per arity (`f/1` and `f/2`), so the call
+  binds once, at `high`, to the first clause of the function whose arity
+  it passes; Erlang and Elixir calls now record their arity (a pipe
+  `x |> f(a)` counts the piped value).
+
+### Fixed
+
+- **Seven frameworks were never detected on real applications**, each
+  for a different extraction gap, and each now detected on the corpus
+  app that uses it:
+  - OCaml qualified names (`Dream.run`, `Alcotest.check`) record their
+    top module as a use, so a library used without `open` is seen —
+    dream, alcotest.
+  - Erlang `-include_lib("eunit/include/eunit.hrl")` is recorded —
+    eunit.
+  - JavaScript `export … from 'm'` and `x = require('m')` assigned to an
+    existing binding are imports — sails.
+  - PowerShell `Import-Module (Join-Path … -ChildPath 'X.psm1')` records
+    the child path — DSC resources, 82 entries on NetworkingDsc.
+  - Padrino and Puma are detected from `config/apps.rb` and
+    `config/puma.rb`, which is how an app declares them when the gem is
+    only in the Gemfile.
+  - An import pinned to a version (`https://deno.land/x/oak@v12.1.0/mod.ts`,
+    `jsr:@oak/oak@^17`) matches its unpinned prefix; `@` in first position
+    still opens an npm scope — oak.
+  cmdliner's corpus evidence moved from opam, which vendors it under the
+  module name `OpamCmdliner`, to ocaml-ci and ocaml.org, which use it
+  directly.
+- **Elixir one-line definitions were misnamed.** `def g, do: f(1)` was
+  extracted as a function named `g, do: f`, so nothing could call it;
+  guarded heads (`def h(a) when a > 0`) are named from the call, not the
+  guard. Test `one_line_and_guarded_defs_are_named_and_calls_carry_arity`.
+- **`#include "../x.h"` resolves.** The joined path
+  `src/net/../common/util.h` matched no indexed file, and the `..` also
+  defeated the suffix fallback, so every include that climbed a
+  directory contributed nothing. Paths are normalised lexically; test
+  `c_parent_relative_include_resolves_to_the_named_header`. The same
+  lookup serves Dart, Solidity and Nix relative imports and Bash
+  `source`, so `import '../src/common.dart'` resolves too — on Flutter,
+  `getLocalEngineArguments` and `tick` in the tool and framework tests
+  were unreachable from every test that imported them this way.
+
 ### Known limitations
 
 - Lean dot-projections (`xs.foldl f`) and applications of names bound
@@ -34,6 +114,17 @@ otherwise change the default graph.
   guesses; cgg does not elaborate Lean types. Macro and notation
   expansion and typeclass-method dispatch need the Lean kernel and are
   reported as unresolved.
+
+### Compatibility
+
+- Calls written inside an inline Go route handler (`router.GET("/x",
+  func(c *gin.Context) { … })`) and inside an Electron IPC or lifecycle
+  closure are now edges from the minted `handler_at_<line>` node, not
+  from the function that registered the route — the registering function
+  does not make those calls; the framework does, per request. This is
+  how JavaScript and TypeScript route closures have been attributed
+  since 0.5. The handler is reached from its `<framework-entry>` node
+  (the route), not from the registering function.
 
 ### Changed
 

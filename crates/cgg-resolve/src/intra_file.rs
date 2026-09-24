@@ -77,8 +77,19 @@ fn is_method_variant(v: DefVariant) -> bool {
 /// Run the intra-file linker over a single file.
 ///
 /// `def_ids` must contain entries for every `(facts.file, idx)` pair
-/// where `idx` is a valid index into `facts.definitions`.
+/// where `idx` is a valid index into `facts.definitions`. Overload sets
+/// are bounded by the default fan-out cap; [`link_file_with_cap`] takes
+/// the run's `--fanout-cap`.
 pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
+    link_file_with_cap(facts, def_ids, crate::cross_file::DEFAULT_FANOUT_CAP)
+}
+
+/// [`link_file`] with an explicit fan-out cap for overload sets.
+pub fn link_file_with_cap(
+    facts: &FileFacts,
+    def_ids: &DefIdMap,
+    fanout_cap: usize,
+) -> LinkOutcome {
     let mut out = LinkOutcome::default();
     let resolver_id = ResolverId::new("intra-file");
 
@@ -341,6 +352,56 @@ pub fn link_file(facts: &FileFacts, def_ids: &DefIdMap) -> LinkOutcome {
                     weight: 1,
                 });
             }
+            // Every candidate carries one qualified name: an overload set
+            // (`matrix4::element(int, int)` and its `const` twin, Java's
+            // `add(int)` / `add(String)`). The callee is known; only the
+            // overload is not, so the call binds to each at Medium rather
+            // than being dropped as ambiguous. Bounded by the fan-out cap
+            // like any other guess, so `--fanout-cap 0` still never guesses.
+            [(_, first), rest @ ..]
+                if src.is_some()
+                    && binds_same_name_set(&facts.language)
+                    && rest
+                        .iter()
+                        .all(|(_, d)| d.qualified_name == first.qualified_name) =>
+            {
+                let (targets, confidence) = if is_clause_language(&facts.language) {
+                    clause_targets(&facts.language, &candidates, rref.arity)
+                } else {
+                    (
+                        candidates.iter().map(|(i, _)| *i).collect::<Vec<u32>>(),
+                        Confidence::Medium,
+                    )
+                };
+                // One certain callee is not a guess; the cap bounds guesses.
+                if confidence != Confidence::High && targets.len() > fanout_cap {
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        src,
+                        facts.file,
+                        rref.site_line,
+                        rref.site_byte,
+                        rref.name.clone(),
+                        rref.receiver_hint.clone(),
+                        UnresolvedReason::FanoutCapExceeded {
+                            candidates: targets.len() as u32,
+                        },
+                    ));
+                    continue;
+                }
+                let src_id = src.expect("guarded above");
+                for cand_idx in targets {
+                    out.edges.push(CallEdge {
+                        src: src_id,
+                        dst: def_ids[&(facts.file, cand_idx)],
+                        site_line: rref.site_line,
+                        site_byte: rref.site_byte,
+                        confidence,
+                        via: Via::Direct,
+                        resolver: resolver_id.clone(),
+                        weight: 1,
+                    });
+                }
+            }
             _ => {
                 let mut rec = AuditUnresolvedCall::new(
                     src,
@@ -377,6 +438,125 @@ fn enclosing_def_index(facts: &FileFacts, rref: &RefRecord) -> Option<usize> {
         }
     }
     best.map(|(i, _)| i)
+}
+
+/// Languages where two same-file definitions sharing a qualified name are
+/// one callee: overloads (Java, C++, C#, Kotlin, Scala, Swift, Groovy,
+/// F#, Solidity, TypeScript overload signatures), multiple-dispatch
+/// methods (Julia), or clauses (see [`is_clause_language`]). Everywhere
+/// else a repeated name is a different function in another scope or a
+/// redefinition — `lookahead1W` twice in one minified bundle, a Python
+/// `def` in both arms of an `if` — and binding all of them would be a
+/// guess dressed as a fact, so those stay `ambiguous-in-file`.
+fn binds_same_name_set(language: &str) -> bool {
+    is_clause_language(language)
+        || matches!(
+            language,
+            "java"
+                | "cpp"
+                | "csharp"
+                | "kotlin"
+                | "scala"
+                | "swift"
+                | "groovy"
+                | "fsharp"
+                | "solidity"
+                | "typescript"
+                | "julia"
+        )
+}
+
+/// Languages that define one function as several clauses, each extracted
+/// as its own definition under one qualified name. Same-name candidates
+/// there are not overloads to guess between: they are one function
+/// (Haskell equations), or one function per arity (Erlang/Elixir `f/1`
+/// and `f/2`, which the call's argument count tells apart).
+fn is_clause_language(language: &str) -> bool {
+    matches!(language, "erlang" | "elixir" | "haskell")
+}
+
+/// The clauses a call in a clause language binds to: the first clause of
+/// each function it can reach. Erlang/Elixir candidates are narrowed to
+/// the call's arity when both are known; if that leaves nothing, the
+/// arities are unknowable here and every function stays. One function
+/// left is a certain callee — `High`; several arities left is a guess.
+fn clause_targets(
+    language: &str,
+    candidates: &[(u32, &DefRecord)],
+    arity: Option<u32>,
+) -> (Vec<u32>, Confidence) {
+    let arity_of = |d: &DefRecord| -> Option<u32> {
+        if language == "haskell" {
+            // Every equation of a Haskell function has the same arity.
+            return Some(0);
+        }
+        clause_arity(&d.signature_hint, &d.simple_name)
+    };
+    let mut pool: Vec<(u32, &DefRecord)> = candidates.to_vec();
+    if let Some(a) = arity {
+        let narrowed: Vec<(u32, &DefRecord)> = pool
+            .iter()
+            .copied()
+            .filter(|(_, d)| arity_of(d) == Some(a))
+            .collect();
+        if !narrowed.is_empty() {
+            pool = narrowed;
+        }
+    }
+    // First clause (lowest byte) per arity; `None` arities group together.
+    let mut firsts: Vec<(Option<u32>, u32, u32)> = Vec::new();
+    for (idx, d) in &pool {
+        let a = arity_of(d);
+        match firsts.iter_mut().find(|(fa, _, _)| *fa == a) {
+            Some(slot) if d.start_byte < slot.2 => {
+                slot.1 = *idx;
+                slot.2 = d.start_byte;
+            }
+            Some(_) => {}
+            None => firsts.push((a, *idx, d.start_byte)),
+        }
+    }
+    firsts.sort_by_key(|(_, _, b)| *b);
+    let confidence = if firsts.len() == 1 {
+        Confidence::High
+    } else {
+        Confidence::Medium
+    };
+    (firsts.into_iter().map(|(_, i, _)| i).collect(), confidence)
+}
+
+/// The arity a clause's signature declares: `f(A, B) -> …` is 2, Elixir's
+/// paren-less `def g, do: …` is 0. `None` when the hint does not show it.
+fn clause_arity(hint: &str, name: &str) -> Option<u32> {
+    let ident = |c: char| c.is_alphanumeric() || c == '_' || c == '?' || c == '!';
+    // The name as a whole word: `f` in `def f(a)` is not the `f` of `def`.
+    let at = hint.match_indices(name).map(|(i, _)| i).find(|&i| {
+        !hint[..i].chars().next_back().is_some_and(ident)
+            && !hint[i + name.len()..]
+                .chars()
+                .next()
+                .is_some_and(|c| ident(c) && c != '?' && c != '!')
+    })? + name.len();
+    let rest = &hint[at..];
+    let Some(body) = rest.strip_prefix('(') else {
+        return (!name.is_empty()).then_some(0);
+    };
+    let (mut depth, mut commas, mut any) = (1u32, 0u32, false);
+    for c in body.chars() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(if any { commas + 1 } else { 0 });
+                }
+            }
+            ',' if depth == 1 => commas += 1,
+            c if !c.is_whitespace() => any = true,
+            _ => {}
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -481,6 +661,102 @@ mod tests {
             UnresolvedReason::NoCandidateInFile
         );
         assert_eq!(out.unresolved[0].name, "baz");
+    }
+
+    #[test]
+    fn an_overload_set_binds_every_overload_at_medium() {
+        // `matrix4::element(int, int)` and its `const` twin: one callee,
+        // unknown overload. Dropping it as ambiguous lost every call.
+        let defs = vec![
+            mk_def("caller", "m::caller", DefVariant::FreeFunction, (0, 50)),
+            mk_def(
+                "element",
+                "matrix4::element",
+                DefVariant::InherentMethod,
+                (50, 80),
+            ),
+            mk_def(
+                "element",
+                "matrix4::element",
+                DefVariant::InherentMethod,
+                (80, 110),
+            ),
+        ];
+        let facts = facts_with_lang("cpp", defs, vec![mk_ref("element", 10)]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert!(out.unresolved.is_empty(), "{:?}", out.unresolved);
+        let dsts: Vec<_> = out.edges.iter().map(|e| e.dst).collect();
+        assert_eq!(dsts, vec![CallableId::new(1), CallableId::new(2)]);
+        assert!(out.edges.iter().all(|e| e.confidence == Confidence::Medium));
+        // `--fanout-cap 0` means never guess, overloads included.
+        let capped = link_file_with_cap(&facts, &map, 0);
+        assert!(capped.edges.is_empty());
+        assert_eq!(
+            capped.unresolved[0].reason,
+            UnresolvedReason::FanoutCapExceeded { candidates: 2 }
+        );
+    }
+
+    #[test]
+    fn erlang_clauses_bind_once_to_the_function_of_the_calls_arity() {
+        // `f(0) -> …; f(N) -> …` is one function `f/1`; `f(A, B)` is a
+        // different function `f/2`. `f(1)` reaches the first clause of
+        // `f/1`, certainly, and nothing of `f/2`.
+        let clause = |sig: &str, span: (u32, u32)| {
+            let mut d = mk_def("f", "m:f", DefVariant::FreeFunction, span);
+            d.signature_hint = sig.to_string();
+            d
+        };
+        let defs = vec![
+            mk_def("g", "m:g", DefVariant::FreeFunction, (0, 50)),
+            clause("f(0) -> zero", (50, 70)),
+            clause("f(N) -> N", (70, 90)),
+            clause("f(A, B) -> A + B", (90, 110)),
+        ];
+        let mut r = mk_ref("f", 10);
+        r.arity = Some(1);
+        let facts = facts_with_lang("erlang", defs, vec![r]);
+        let map = mk_map(&facts);
+        let out = link_file_with_cap(&facts, &map, 0);
+        assert!(out.unresolved.is_empty(), "{:?}", out.unresolved);
+        assert_eq!(out.edges.len(), 1);
+        assert_eq!(out.edges[0].dst, CallableId::new(1));
+        assert_eq!(out.edges[0].confidence, Confidence::High);
+    }
+
+    #[test]
+    fn clause_arity_reads_the_signature() {
+        assert_eq!(clause_arity("f(A, {B, C}) -> x", "f"), Some(2));
+        assert_eq!(clause_arity("g() -> f(1)", "g"), Some(0));
+        assert_eq!(clause_arity("def g, do: f(1)", "g"), Some(0));
+        assert_eq!(clause_arity("def f(a), do", "f"), Some(1));
+    }
+
+    #[test]
+    fn a_repeated_name_in_a_language_without_overloading_stays_ambiguous() {
+        // Two `lookahead1W` in one minified bundle are two scopes, not
+        // an overload set.
+        let defs = vec![
+            mk_def("caller", "caller", DefVariant::FreeFunction, (0, 50)),
+            mk_def(
+                "lookahead1W",
+                "lookahead1W",
+                DefVariant::FreeFunction,
+                (50, 80),
+            ),
+            mk_def(
+                "lookahead1W",
+                "lookahead1W",
+                DefVariant::FreeFunction,
+                (80, 110),
+            ),
+        ];
+        let facts = facts_with_lang("javascript", defs, vec![mk_ref("lookahead1W", 10)]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert!(out.edges.is_empty());
+        assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
     }
 
     #[test]

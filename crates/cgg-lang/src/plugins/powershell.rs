@@ -238,7 +238,21 @@ impl<'a> PowerShellWalker<'a> {
         }
         // `Import-Module X` is a command.
         if name.eq_ignore_ascii_case("import-module") {
-            if let Some(path) = self.first_command_argument(node) {
+            // `Import-Module -Name (Join-Path -Path $p -ChildPath 'DscResource.Common')`
+            // names its module only inside the computed path: take the
+            // `-ChildPath` literal. Every dsccommunity resource imports its
+            // helpers this way.
+            let computed = self.child_kind(node, "command_elements").and_then(|e| {
+                let t = self.text(e);
+                let i = t.find("-ChildPath")?;
+                let rest = t[i + "-ChildPath".len()..].trim_start();
+                let q = rest.chars().next().filter(|c| *c == '\'' || *c == '"')?;
+                let body = &rest[1..];
+                let end = body.find(q)?;
+                let lit = body[..end].trim();
+                (!lit.is_empty()).then(|| lit.to_string())
+            });
+            if let Some(path) = computed.or_else(|| self.first_command_argument(node)) {
                 self.facts.imports.push(ImportRecord {
                     kind: "import-module".into(),
                     path,
@@ -514,6 +528,20 @@ class Service {
         assert!(
             f.imports.iter().any(|i| i.kind == "dot-source"),
             "imports: {:?}",
+            f.imports
+        );
+    }
+
+    #[test]
+    fn computed_import_module_path_records_the_child_path() {
+        let f = extract(
+            "$modulePath = Split-Path -Path $PSScriptRoot -Parent\nImport-Module -Name (Join-Path -Path $modulePath -ChildPath 'DscResource.Common')\n",
+        );
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "import-module" && i.path == "DscResource.Common"),
+            "{:?}",
             f.imports
         );
     }

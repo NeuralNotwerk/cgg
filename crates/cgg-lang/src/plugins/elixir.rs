@@ -152,9 +152,27 @@ impl<'a> ElixirWalker<'a> {
         // def name(...) do ... end
         // The name is typically the second child (after "def")
         if let Some(name_node) = node.child(1) {
-            let head_text = self.text(name_node);
-            // Extract function name from head (e.g., "foo" or "foo(a, b)")
-            let name = head_text.split('(').next().unwrap_or("").trim().to_string();
+            // The head is the first argument of `def`: `foo`, `foo(a, b)`
+            // or `foo(a) when a > 0`. Taking the whole argument list's
+            // text named the one-line form `def g, do: f(1)` "g, do: f".
+            let mut head = name_node;
+            if head.kind() == "arguments"
+                && let Some(first) = head.named_child(0)
+            {
+                head = first;
+            }
+            if head.kind() == "binary_operator"
+                && let Some(left) = head.child_by_field_name("left")
+            {
+                head = left;
+            }
+            let head_text = self.text(head);
+            let name = head_text
+                .split(['(', ',', ' ', '\n'])
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string();
             if name.is_empty() {
                 return;
             }
@@ -227,6 +245,7 @@ impl<'a> ElixirWalker<'a> {
                 receiver_hint,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
+                arity: Some(call_arity(node)),
                 ..Default::default()
             });
             self.record_registrar(node, &context);
@@ -433,6 +452,7 @@ impl<'a> ElixirWalker<'a> {
             context: context.to_string(),
             route: route.to_string(),
             kwargs: Vec::new(),
+            arity: None,
         });
     }
 
@@ -505,6 +525,25 @@ fn is_function_name(s: &str) -> bool {
         && s.chars().any(|c| c.is_alphanumeric())
 }
 
+/// The arity an Elixir call reaches: its arguments, plus one when it is
+/// the right-hand side of a pipe (`x |> f(a)` calls `f/2`).
+fn call_arity(call: Node) -> u32 {
+    let mut n = 0;
+    let mut c = call.walk();
+    for child in call.named_children(&mut c) {
+        if child.kind() == "arguments" {
+            n = child.named_child_count() as u32;
+        }
+    }
+    let piped = call.parent().is_some_and(|p| {
+        p.kind() == "binary_operator"
+            && p.child_by_field_name("operator")
+                .is_some_and(|o| o.kind() == "|>")
+            && p.child_by_field_name("right").map(|r| r.id()) == Some(call.id())
+    });
+    n + u32::from(piped)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -524,6 +563,27 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn one_line_and_guarded_defs_are_named_and_calls_carry_arity() {
+        let f = extract(
+            "defmodule M do\n  def g, do: f(1)\n  def h(a) when a > 0, do: a |> f(2)\nend\n",
+        );
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert!(names.contains(&"g") && names.contains(&"h"), "{names:?}");
+        let arities: Vec<Option<u32>> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "f")
+            .map(|r| r.arity)
+            .collect();
+        // `f(1)` is f/1; `a |> f(2)` is f/2.
+        assert_eq!(arities, vec![Some(1), Some(2)]);
     }
 
     #[test]

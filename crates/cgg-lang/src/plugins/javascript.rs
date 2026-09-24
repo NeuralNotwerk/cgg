@@ -147,6 +147,12 @@ impl<'a> JsWalker<'a> {
                 return;
             }
             "export_statement" => {
+                // `export * as oak from "…/oak/mod.ts"` / `export { x } from
+                // "m"` re-export a module, and are the only place some
+                // modules name a dependency (Deno's `deps.ts` convention).
+                if node.child_by_field_name("source").is_some() {
+                    self.record_import(node);
+                }
                 // Walk into the exported declaration.
                 self.walk_children(node);
                 return;
@@ -155,6 +161,7 @@ impl<'a> JsWalker<'a> {
                 // Handle `exports.foo = function() {}` and
                 // `module.exports.foo = function() {}` patterns (CJS).
                 self.try_record_exports_assign(node);
+                self.try_record_require_assign(node);
                 self.walk_children(node);
                 return;
             }
@@ -381,6 +388,53 @@ impl<'a> JsWalker<'a> {
                 ..Default::default()
             });
         }
+    }
+
+    /// `sails = require('sails')` — a `require` assigned to a variable
+    /// declared earlier (commonly inside `try { … }` so a missing optional
+    /// dependency can be reported). Same import as the declaration form.
+    fn try_record_require_assign(&mut self, node: Node) {
+        let Some(expr) = node.named_child(0) else {
+            return;
+        };
+        if expr.kind() != "assignment_expression" {
+            return;
+        }
+        let (Some(left), Some(right)) = (
+            expr.child_by_field_name("left"),
+            expr.child_by_field_name("right"),
+        ) else {
+            return;
+        };
+        if left.kind() != "identifier" || right.kind() != "call_expression" {
+            return;
+        }
+        if right.child_by_field_name("function").map(|f| self.text(f)) != Some("require")
+        {
+            return;
+        }
+        let Some(args) = right.child_by_field_name("arguments") else {
+            return;
+        };
+        let mut c = args.walk();
+        let path = args
+            .children(&mut c)
+            .find(|a| a.kind() == "string")
+            .map(|a| {
+                self.text(a)
+                    .trim_matches(|c| c == '\'' || c == '"')
+                    .to_string()
+            });
+        let Some(path) = path.filter(|p| !p.is_empty()) else {
+            return;
+        };
+        self.facts.imports.push(ImportRecord {
+            kind: "import".into(),
+            path,
+            alias: self.text(left).to_string(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     fn try_record_require(&mut self, node: Node) {
@@ -763,6 +817,7 @@ impl<'a> JsWalker<'a> {
             });
             self.facts.references.push(RefRecord {
                 from_macro_arg: false,
+                arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,
@@ -885,5 +940,18 @@ class Service {
             .collect();
         assert!(refs.contains(&("greet", "")), "got: {refs:?}");
         assert!(refs.contains(&("run", "obj")), "got: {refs:?}");
+    }
+
+    #[test]
+    fn export_from_and_assigned_require_are_imports() {
+        let f = extract(
+            "export * as oak from 'https://deno.land/x/oak@v12.1.0/mod.ts';\nvar sails;\ntry { sails = require('sails'); } catch (e) {}\n",
+        );
+        let paths: Vec<_> = f.imports.iter().map(|i| i.path.as_str()).collect();
+        assert!(
+            paths.contains(&"https://deno.land/x/oak@v12.1.0/mod.ts"),
+            "{paths:?}"
+        );
+        assert!(paths.contains(&"sails"), "{paths:?}");
     }
 }

@@ -526,7 +526,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2680 callables, 6155 edges, 1609 cross-file, 167ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2710 callables, 6247 edges, 1619 cross-file, 185ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -596,7 +596,7 @@ flowchart LR
   N56["cgg_resolve::dispatch::inheritance_fanout"]
   N57["cgg_resolve::ffi::link_ffi"]
   N58["cgg_resolve::frameworks::detect"]
-  N59["cgg_resolve::intra_file::link_file"]
+  N59["cgg_resolve::intra_file::link_file_with_cap"]
   N60["cgg_resolve::names::owner_from_qn"]
   N61["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
   N62["cgg_resolve::type_hints::field_index"]

@@ -304,6 +304,13 @@ pub struct RefRecord {
     /// dropped, once, and only on a crate-wide-unique simple name.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub from_macro_arg: bool,
+
+    /// How many arguments the call passes, where the language makes a
+    /// function's arity part of its identity — Erlang's `f/1` and `f/2`
+    /// are different functions that share a name. `None` when unknown or
+    /// irrelevant. Only the Erlang and Elixir plugins set it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arity: Option<u32>,
 }
 
 /// The two-phase AST pass output for a single file.

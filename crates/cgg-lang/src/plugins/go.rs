@@ -163,6 +163,7 @@ impl<'a> Walker<'a> {
                     let extra =
                         super::registrar::capture(&self.ctx, node, self.source, &context);
                     self.facts.references.extend(extra);
+                    self.extract_inline_handler(node, &context);
                 }
                 self.walk_children(node);
                 return;
@@ -180,6 +181,54 @@ impl<'a> Walker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// Shape C — a handler written in place: `m.Get("/", func() string
+    /// { … })`. Martini's README writes every route this way, and a
+    /// `func_literal` has no name, so without a node here the route has
+    /// nothing to point at. The body's calls are already attributed to
+    /// the enclosing function; this adds the node the entry names.
+    ///
+    /// Gated on a registrar verb and the registration shape, as in the
+    /// JavaScript plugin, so `sort.Slice(xs, func…)`, goroutines and
+    /// `defer func(){}()` mint nothing.
+    fn extract_inline_handler(&mut self, node: Node, context: &str) {
+        if !self
+            .ctx
+            .is_registrar_verb(super::registrar::last_segment(context))
+        {
+            return;
+        }
+        let Some(route) = super::registrar::is_registration_shape(node, self.source)
+        else {
+            return;
+        };
+        for closure in super::registrar::inline_closures(node) {
+            let line = (closure.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            self.facts.definitions.push(cgg_core::DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: format!("{}.{simple}", self.pkg),
+                variant: cgg_core::DefVariant::NamedClosure,
+                start_line: line,
+                end_line: (closure.end_position().row as u32) + 1,
+                start_byte: closure.start_byte() as u32,
+                end_byte: closure.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(closure)),
+                visibility: String::new(),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(cgg_core::RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: closure.start_byte() as u32,
+                context: context.to_string(),
+                route: route.clone(),
+                ..Default::default()
+            });
+        }
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -568,6 +617,27 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn inline_route_handler_gets_a_node() {
+        let f = extract(
+            "package main\n\nfunc main() {\n\tm := martini.Classic()\n\tm.Get(\"/\", func() string {\n\t\treturn render()\n\t})\n\tsort.Slice(xs, func(i, j int) bool { return xs[i] < xs[j] })\n}\n",
+        );
+        let synth: Vec<_> = f
+            .definitions
+            .iter()
+            .filter(|d| d.attributes.iter().any(|a| a == "synthetic"))
+            .collect();
+        assert_eq!(synth.len(), 1, "{:?}", f.definitions);
+        assert_eq!(synth[0].qualified_name, "main.handler_at_5");
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "handler_at_5")
+            .expect("value ref to the handler");
+        assert_eq!(r.context, "m.Get");
+        assert_eq!(r.route, "/");
     }
 
     #[test]

@@ -179,6 +179,53 @@ fn shape_c_anonymous_handler_still_gets_its_route_named() {
 }
 
 #[test]
+fn shape_c_go_inline_martini_route_is_an_entry() {
+    // Martini's README writes every route as an inline `func_literal`,
+    // which had no node, so the rule could enumerate nothing.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.go",
+        "package main\n\nimport \"github.com/go-martini/martini\"\n\n\
+         func main() {\n\tm := martini.Classic()\n\
+         \tm.Get(\"/hello\", func() string { return greet() })\n\tm.Run()\n}\n\
+         func greet() string { return \"hi\" }\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(g.contains("network::martini::get('/hello')"), "{g}");
+}
+
+#[test]
+fn electron_ipc_handlers_are_entries_and_other_on_calls_are_not() {
+    // `ipcMain.handle` / `ipcRenderer.on` are Electron's entry points,
+    // reached through a qualified receiver even when it is written
+    // `window.electron.ipcRenderer`. A bare `$(x).on('click')` in the
+    // same app is not IPC and must not be claimed.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.js",
+        "const { app, ipcMain } = require('electron');\n\
+         ipcMain.handle('fonts:list', async () => listFonts());\n\
+         app.on('ready', () => boot());\n\
+         function listFonts() { return []; }\nfunction boot() {}\n",
+    );
+    write(
+        tmp.path(),
+        "renderer.js",
+        "const { shell } = require('electron');\n\
+         window.electron.ipcRenderer.on('mt::saved', () => refresh());\n\
+         $('#x').on('click', () => refresh());\n\
+         function refresh() {}\n",
+    );
+    let (g, _) = run(tmp.path(), &[]);
+    assert!(g.contains("electron::handle('fonts:list')"), "{g}");
+    assert!(g.contains("electron::on('ready')"), "{g}");
+    assert!(g.contains("electron::on('mt::saved')"), "{g}");
+    assert!(!g.contains("electron::on('click')"), "{g}");
+}
+
+#[test]
 fn ordinary_callbacks_do_not_mint_synthesized_handlers() {
     // The gate that keeps a test suite from minting a node per block:
     // `describe('...', () => {})` has exactly the shape of a route

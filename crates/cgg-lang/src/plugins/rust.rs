@@ -1086,6 +1086,7 @@ impl<'a> Walker<'a> {
                     // resolver retry name-only, once, if the qualified
                     // lookup fails outright.
                     from_macro_arg: true,
+                    arity: None,
                     ..Default::default()
                 });
             }
@@ -1299,6 +1300,7 @@ impl<'a> Walker<'a> {
             // real route lost its path.
             self.facts.references.push(RefRecord {
                 from_macro_arg: false,
+                arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,

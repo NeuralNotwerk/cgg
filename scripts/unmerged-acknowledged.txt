@@ -5,3 +5,4 @@
 SergeBakharev/cgg py-fanout — closed PR #6, superseded by #7 (merged 2026-09-23)
 cybersharkvin/cgg pr3-fixups — PR #3 follow-ups; every commit is already on main (git cherry: 0 unique)
 joestump/cgg add-claude-skill — early draft of skills/cgg/SKILL.md; superseded by the skill on main
+NathanHowell/cgg feat/lean4-support — landed on main as e687ad2 (feature, authored by Nathan Howell) plus a2ca6b7/206e3b8 (grammar vendored, fixes); the branch still carries the [patch.crates-io] git fork that cannot be published

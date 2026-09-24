@@ -84,7 +84,7 @@ use cgg_lang::{
     detect::{DetectVerdict, LanguageDetector},
     parser::ParserPool,
 };
-use cgg_resolve::intra_file::{DefIdMap, link_file};
+use cgg_resolve::intra_file::{DefIdMap, link_file_with_cap};
 use cgg_walk::{WalkConfig, walk};
 
 /// Every language id cgg can analyze, in registry order.
@@ -705,7 +705,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         all_facts
             .par_iter()
             .map(|facts| {
-                let outcome = link_file(facts, &def_ids);
+                let outcome =
+                    link_file_with_cap(facts, &def_ids, opts.fanout_cap as usize);
                 let aliases = FileAliases::from_facts(facts);
                 let mut per_file_aliases = std::collections::HashMap::new();
                 per_file_aliases.insert(facts.file, aliases);

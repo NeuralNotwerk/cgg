@@ -332,6 +332,7 @@ impl<'a> ClojureWalker<'a> {
                     }
                     out.push(RefRecord {
                         from_macro_arg: false,
+                        arity: None,
                         name: s,
                         receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
                         site_line: line,
@@ -355,6 +356,7 @@ impl<'a> ClojureWalker<'a> {
                     named_target = true;
                     out.push(RefRecord {
                         from_macro_arg: false,
+                        arity: None,
                         name: t.to_string(),
                         receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                         site_line: line,
@@ -420,6 +422,7 @@ impl<'a> ClojureWalker<'a> {
         });
         out.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: simple,
             receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
             site_line: line,

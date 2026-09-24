@@ -985,6 +985,27 @@ pub fn resolve(
                             );
                         }
                     }
+                    // `#include <helper_cuda.h>` names a file in the tree
+                    // whenever the build passes `-I` — CUDA samples,
+                    // `<spdlog/spdlog.h>` in spdlog's own tests — and the
+                    // suffix fallback finds it. A standard or platform
+                    // header never does, and following one into a
+                    // vendored libc copy would bind `strlen` to whichever
+                    // copy sorts first, so those stay unfollowed.
+                    "system-include"
+                        if matches!(lang.as_str(), "c" | "cpp" | "objc")
+                            && !is_platform_header(imp.path.trim()) =>
+                    {
+                        collect_include_defs(
+                            imp.path.trim(),
+                            facts,
+                            &include_by_exact,
+                            &include_by_last,
+                            &mut direct_imports,
+                            8,
+                            &mut include_visited,
+                        );
+                    }
                     "source" => {
                         // Bash: `source ./lib.sh` — same semantics as
                         // C #include: all definitions from the sourced
@@ -1992,6 +2013,178 @@ fn cpp_override_set(
     out
 }
 
+/// A C/C++ standard, POSIX or OS header: `<stdio.h>`, `<vector>`,
+/// `<sys/types.h>`, `<windows.h>`. These are provided by the toolchain,
+/// never by the tree being analysed, even when the tree vendors a copy.
+fn is_platform_header(path: &str) -> bool {
+    const PREFIXES: &[&str] = &[
+        "sys/",
+        "bits/",
+        "linux/",
+        "asm/",
+        "asm-generic/",
+        "netinet/",
+        "arpa/",
+        "net/",
+        "mach/",
+        "mach-o/",
+        "gnu/",
+        "machine/",
+        "libkern/",
+        "os/",
+        "xlocale/",
+    ];
+    const NAMES: &[&str] = &[
+        // C11/C17/C23
+        "assert.h",
+        "complex.h",
+        "ctype.h",
+        "errno.h",
+        "fenv.h",
+        "float.h",
+        "inttypes.h",
+        "iso646.h",
+        "limits.h",
+        "locale.h",
+        "math.h",
+        "setjmp.h",
+        "signal.h",
+        "stdalign.h",
+        "stdarg.h",
+        "stdatomic.h",
+        "stdbit.h",
+        "stdbool.h",
+        "stdckdint.h",
+        "stddef.h",
+        "stdint.h",
+        "stdio.h",
+        "stdlib.h",
+        "stdnoreturn.h",
+        "string.h",
+        "tgmath.h",
+        "threads.h",
+        "time.h",
+        "uchar.h",
+        "wchar.h",
+        "wctype.h",
+        // POSIX and common libc extensions
+        "aio.h",
+        "alloca.h",
+        "cpio.h",
+        "dirent.h",
+        "dlfcn.h",
+        "endian.h",
+        "err.h",
+        "execinfo.h",
+        "fcntl.h",
+        "features.h",
+        "fmtmsg.h",
+        "fnmatch.h",
+        "ftw.h",
+        "getopt.h",
+        "glob.h",
+        "grp.h",
+        "iconv.h",
+        "ifaddrs.h",
+        "langinfo.h",
+        "libgen.h",
+        "libintl.h",
+        "link.h",
+        "malloc.h",
+        "memory.h",
+        "monetary.h",
+        "mqueue.h",
+        "ndbm.h",
+        "netdb.h",
+        "nl_types.h",
+        "paths.h",
+        "poll.h",
+        "pthread.h",
+        "pwd.h",
+        "regex.h",
+        "sched.h",
+        "search.h",
+        "semaphore.h",
+        "spawn.h",
+        "strings.h",
+        "stropts.h",
+        "syslog.h",
+        "tar.h",
+        "termios.h",
+        "ucontext.h",
+        "ulimit.h",
+        "unistd.h",
+        "utime.h",
+        "utmp.h",
+        "utmpx.h",
+        "wordexp.h",
+        "elf.h",
+        "byteswap.h",
+        "error.h",
+        "sysexits.h",
+        // Windows
+        "windows.h",
+        "winsock.h",
+        "winsock2.h",
+        "ws2tcpip.h",
+        "windef.h",
+        "winbase.h",
+        "winuser.h",
+        "winnt.h",
+        "winerror.h",
+        "tchar.h",
+        "io.h",
+        "process.h",
+        "direct.h",
+        "conio.h",
+        "shlobj.h",
+        "shellapi.h",
+        "objbase.h",
+        "intrin.h",
+        "crtdbg.h",
+        // Compiler intrinsics
+        "immintrin.h",
+        "emmintrin.h",
+        "xmmintrin.h",
+        "pmmintrin.h",
+        "tmmintrin.h",
+        "smmintrin.h",
+        "nmmintrin.h",
+        "wmmintrin.h",
+        "x86intrin.h",
+        "arm_neon.h",
+        "cpuid.h",
+    ];
+    let p = path.trim().trim_matches(['<', '>']);
+    // `<vector>`, `<cstdio>`, `<QtWidgets>`: an extensionless name is a
+    // C++ standard or framework umbrella header, not a file in the tree.
+    if !p.rsplit('/').next().unwrap_or(p).contains('.') {
+        return true;
+    }
+    PREFIXES.iter().any(|pre| p.starts_with(pre)) || NAMES.contains(&p)
+}
+
+/// Resolve `.` and `..` components without touching the filesystem. A
+/// `..` that would climb above the path's first component is kept.
+fn normalize_lexically(p: &std::path::Path) -> std::path::PathBuf {
+    use std::path::Component;
+    let mut out = std::path::PathBuf::new();
+    for c in p.components() {
+        match c {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if matches!(out.components().next_back(), Some(Component::Normal(_))) {
+                    out.pop();
+                } else {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
 /// Collect definitions from an included header file and add them as
 /// direct imports. Transitively follows `#include` directives in the
 /// header up to `depth` levels.
@@ -2035,7 +2228,10 @@ fn collect_include_defs(
         .path
         .parent()
         .unwrap_or(std::path::Path::new(""));
-    let resolved = includer_dir.join(include_path);
+    // Lexically normalised: `#include "../common/util.h"` joined onto
+    // `src/net` is `src/net/../common/util.h`, which matches no indexed
+    // path exactly, and the suffix fallback cannot match `../` either.
+    let resolved = normalize_lexically(&includer_dir.join(include_path));
     // Find the matching FileFacts by path suffix (handles both
     // absolute and relative paths in the index).
     //
@@ -2059,10 +2255,21 @@ fn collect_include_defs(
         .copied()
         .or_else(|| {
             let last = std::path::Path::new(include_path).file_name()?;
+            // `Path::ends_with` never matches a `..` component, so the
+            // suffix is the include path with its leading `./`/`../`s off.
+            let suffix: std::path::PathBuf = std::path::Path::new(include_path)
+                .components()
+                .skip_while(|c| {
+                    matches!(
+                        c,
+                        std::path::Component::CurDir | std::path::Component::ParentDir
+                    )
+                })
+                .collect();
             include_by_last
                 .get(last)?
                 .iter()
-                .find(|f| f.path.ends_with(include_path))
+                .find(|f| f.path.ends_with(&suffix))
                 .copied()
         });
     let Some(target) = target else { return };
@@ -2091,7 +2298,9 @@ fn collect_include_defs(
     }
     // Transitively follow includes in the target.
     for imp in &target.imports {
-        if imp.kind == "include" {
+        if imp.kind == "include"
+            || (imp.kind == "system-include" && !is_platform_header(imp.path.trim()))
+        {
             collect_include_defs(
                 imp.path.trim(),
                 target,

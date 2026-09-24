@@ -2530,3 +2530,100 @@ fn parenthesised_from_import_binds_at_high_confidence_past_the_fanout_cap() {
         "a called function must not be reported unreferenced:\n{text}"
     );
 }
+
+#[test]
+fn c_parent_relative_include_resolves_to_the_named_header() {
+    // `#include "../common/util.h"` from `src/` names `common/util.h`.
+    // Unnormalised, the joined path `src/../common/util.h` matched no
+    // file and the `..` defeated the suffix fallback, so the call went
+    // unresolved. The decoy shares the suffix and sorts first; the exact
+    // path must still win.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "aaa/common/util.h",
+        b"int twice(int x) { return x + x; }\n",
+    );
+    write(
+        tmp.path(),
+        "common/util.h",
+        b"int twice(int x) { return 2 * x; }\n",
+    );
+    write(
+        tmp.path(),
+        "src/main.c",
+        b"#include \"../common/util.h\"\nint run(void) { return twice(3); }\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let path_of = |id: &str| {
+        let c = &g["callables"][id];
+        g["files"][c["file"].as_str().unwrap()]["path"]
+            .as_str()
+            .unwrap()
+            .replace('\\', "/")
+    };
+    let targets: Vec<String> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| g["callables"][e["src"].as_str().unwrap()]["simple_name"] == "run")
+        .map(|e| path_of(e["dst"].as_str().unwrap()))
+        .collect();
+    assert_eq!(targets.len(), 1, "{targets:?}");
+    assert!(
+        targets[0].ends_with("common/util.h") && !targets[0].contains("aaa"),
+        "{targets:?}"
+    );
+}
+
+#[test]
+fn angle_include_follows_an_in_tree_header_but_not_a_vendored_libc() {
+    // `#include <helper_cuda.h>` with `-I Common` names a header in the
+    // tree; the call binds to it. `<stdio.h>` is the toolchain's even
+    // when the tree vendors a copy, so `printf` must not bind there.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Common/helper_cuda.h",
+        b"static inline int checkErrors(int e) { return e; }\n",
+    );
+    write(
+        tmp.path(),
+        "vendor/libc/stdio.h",
+        b"int printf(const char *f) { return 0; }\n",
+    );
+    write(
+        tmp.path(),
+        "samples/main.c",
+        b"#include <stdio.h>\n#include <helper_cuda.h>\nint run(void) { printf(\"x\"); return checkErrors(1); }\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let targets: Vec<&str> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| g["callables"][e["src"].as_str().unwrap()]["simple_name"] == "run")
+        .map(|e| {
+            g["callables"][e["dst"].as_str().unwrap()]["simple_name"]
+                .as_str()
+                .unwrap()
+        })
+        .collect();
+    assert_eq!(targets, vec!["checkErrors"], "{targets:?}");
+}

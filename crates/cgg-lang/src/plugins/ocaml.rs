@@ -65,6 +65,19 @@ impl<'a> OcamlWalker<'a> {
                 self.extract_module(node);
                 self.walk_children(node);
             }
+            // `Alcotest.run`, `Dream.get`, `Cmdliner.Cmd.v`: OCaml reaches a
+            // library through a qualified name, no `open` needed, so the
+            // top module of every qualified path is recorded (once per file)
+            // as a `module-use` import. It is what framework detection keys
+            // on; the resolver ignores the kind.
+            "value_path"
+            | "constructor_path"
+            | "field_path"
+            | "type_constructor_path"
+            | "module_path" => {
+                self.record_module_use(node);
+                self.walk_children(node);
+            }
             "open_statement" | "open_module" => {
                 self.extract_import(node);
                 self.walk_children(node);
@@ -101,6 +114,48 @@ impl<'a> OcamlWalker<'a> {
             {
                 self.module = self.text(child).to_string();
                 break;
+            }
+        }
+    }
+
+    fn record_module_use(&mut self, node: Node) {
+        let mut n = node;
+        // Descend to the outermost module_name: `A.B.c` -> `A`.
+        loop {
+            let mut next = None;
+            for i in 0..n.child_count() {
+                if let Some(child) = n.child(i as u32)
+                    && matches!(
+                        child.kind(),
+                        "module_path" | "extended_module_path" | "module_name"
+                    )
+                {
+                    next = Some(child);
+                    break;
+                }
+            }
+            match next {
+                Some(c) if c.kind() == "module_name" => {
+                    let m = self.text(c).to_string();
+                    if !m.is_empty()
+                        && !self
+                            .facts
+                            .imports
+                            .iter()
+                            .any(|i| i.kind == "module-use" && i.path == m)
+                    {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "module-use".to_string(),
+                            path: m,
+                            alias: String::new(),
+                            site_line: (c.start_position().row as u32) + 1,
+                            site_byte: c.start_byte() as u32,
+                        });
+                    }
+                    return;
+                }
+                Some(c) => n = c,
+                None => return,
             }
         }
     }
@@ -235,5 +290,19 @@ mod tests {
         let f = extract("open Printf\n\nlet go () = ()\n");
         let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.contains(&"Printf"), "got: {paths:?}");
+    }
+
+    #[test]
+    fn qualified_names_record_their_top_module_once() {
+        let f = extract(
+            "let t = Alcotest.run \"x\" [] ;; let u = Alcotest.check ;; let v = Cmdliner.Cmd.v i t\n",
+        );
+        let uses: Vec<_> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "module-use")
+            .map(|i| i.path.as_str())
+            .collect();
+        assert_eq!(uses, ["Alcotest", "Cmdliner"], "{:?}", f.imports);
     }
 }

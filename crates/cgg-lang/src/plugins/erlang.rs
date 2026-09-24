@@ -69,6 +69,29 @@ impl<'a> ErlangWalker<'a> {
                 self.record_import(node);
                 self.walk_children(node);
             }
+            // `-include_lib("eunit/include/eunit.hrl").` is how an Erlang
+            // module pulls in a library's macros — for eunit, the only
+            // evidence the module is a test suite.
+            "pp_include_lib" | "pp_include" => {
+                if let Some(file) = node.child_by_field_name("file") {
+                    let path = self.text(file).trim_matches('"').to_string();
+                    if !path.is_empty() {
+                        self.facts.imports.push(ImportRecord {
+                            kind: if node.kind() == "pp_include_lib" {
+                                "include_lib"
+                            } else {
+                                "include"
+                            }
+                            .to_string(),
+                            path,
+                            alias: String::new(),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                self.walk_children(node);
+            }
             // `-behaviour(gen_server).` is how Erlang declares that a
             // module implements an OTP contract, and it is the ONLY
             // evidence of it — the callbacks are ordinary exported
@@ -213,11 +236,16 @@ impl<'a> ErlangWalker<'a> {
                 String::new()
             };
 
+            // `f(A, B)` is `f/2`; the arity is part of the callee's name.
+            let arity = node
+                .child_by_field_name("args")
+                .map(|a| a.named_child_count() as u32);
             self.facts.references.push(RefRecord {
                 name,
                 receiver_hint,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
+                arity,
                 ..Default::default()
             });
         }
@@ -251,5 +279,19 @@ mod tests {
         let f = extract(src);
         assert!(!f.definitions.is_empty(), "Expected definitions, got none");
         assert_eq!(f.definitions[0].simple_name, "greet");
+    }
+
+    #[test]
+    fn include_lib_is_recorded() {
+        let f = extract(
+            "-module(m).\n-include_lib(\"eunit/include/eunit.hrl\").\nf() -> ok.\n",
+        );
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "include_lib" && i.path == "eunit/include/eunit.hrl"),
+            "{:?}",
+            f.imports
+        );
     }
 }

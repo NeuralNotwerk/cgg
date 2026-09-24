@@ -64,6 +64,17 @@ pub struct ExtractCtx<'a> {
     language: &'a str,
 }
 
+/// The verb a registrar gates on, lowercased. A rule may name the
+/// receiver too (`ipcMain.handle`) so that the resolver can tell Electron
+/// IPC from every other `.handle(…)`; the extraction gate sees only the
+/// callee's last segment, so that is what it must be keyed on.
+fn registrar_verb(v: &str) -> String {
+    v.rsplit(['.', ':'])
+        .next()
+        .unwrap_or(v)
+        .to_ascii_lowercase()
+}
+
 /// The built-in registrar verbs, lowercased once per process.
 ///
 /// Still a global, and legitimately so: it is a cache of a compile-time
@@ -74,7 +85,7 @@ fn builtin_verbs() -> &'static std::collections::HashSet<String> {
     SET.get_or_init(|| {
         cgg_core::frameworks::rules::registrar_verbs()
             .iter()
-            .map(|v| v.to_ascii_lowercase())
+            .map(|v| registrar_verb(v))
             .collect()
     })
 }
@@ -102,7 +113,7 @@ fn builtin_verbs_for(
                 }
                 m.entry(spec.language)
                     .or_default()
-                    .extend(spec.registrars.iter().map(|v| v.to_ascii_lowercase()));
+                    .extend(spec.registrars.iter().map(|v| registrar_verb(v)));
             }
             m
         })

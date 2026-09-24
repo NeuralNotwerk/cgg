@@ -418,7 +418,7 @@ impl Detection {
 fn prefix_keys(path: &str) -> impl Iterator<Item = &str> {
     std::iter::once(path).chain(
         path.char_indices()
-            .filter(|(_, c)| matches!(c, '.' | '/' | ':' | '\\'))
+            .filter(|&(i, c)| matches!(c, '.' | '/' | ':' | '\\') || (c == '@' && i > 0))
             .map(move |(i, _)| &path[..i]),
     )
 }
@@ -435,7 +435,11 @@ fn import_matches(path: &str, prefix: &str) -> bool {
         return true;
     }
     if let Some(rest) = p.strip_prefix(prefix) {
-        return rest.starts_with(['.', '/', ':', '\\']);
+        // `@` is a version pin (`https://deno.land/x/oak@v12.1.0/mod.ts`,
+        // `jsr:@oak/oak@^17`), except in first position, where it opens
+        // an npm scope and is part of the name.
+        return rest.starts_with(['.', '/', ':', '\\'])
+            || (!prefix.is_empty() && rest.starts_with('@'));
     }
     // Rust `use axum::routing::get` arrives as `axum::routing::get`;
     // Go module paths may carry a `/v2` major-version suffix.
@@ -577,10 +581,20 @@ impl<'a> RegistrarIndex<'a> {
                     .entry(verb.to_ascii_lowercase())
                     .or_default()
                     .push((f, r));
-                // A rule may name the whole receiver path
-                // (`Route::get`), which the old scan also accepted.
+                // A rule may name the receiver path (`Route::get`,
+                // `ipcMain.handle`). Key every receiver-qualified suffix,
+                // so `electron.ipcMain.handle` answers to `ipcMain.handle`
+                // exactly as `ipcMain.handle` does.
                 let full = r.context.to_ascii_lowercase();
-                if full != verb.to_ascii_lowercase() {
+                let verb_len = verb.len();
+                for (i, _) in full.match_indices(['.', ':']) {
+                    let suffix = &full[i + 1..];
+                    // The first `:` of a `::` is not a boundary.
+                    if suffix.len() > verb_len && !suffix.starts_with(':') {
+                        by_verb.entry(suffix.to_string()).or_default().push((f, r));
+                    }
+                }
+                if full.len() > verb_len {
                     by_verb.entry(full).or_default().push((f, r));
                 }
             }
@@ -1623,6 +1637,8 @@ mod tests {
             "github.com/go-chi/chi/v5",
             "node:worker_threads",
             "@nestjs/schedule",
+            "https://deno.land/x/oak@v12.1.0/mod.ts",
+            "jsr:@oak/oak@^17",
             "package:flutter/material.dart",
             "System.Web.Mvc",
             "a",
@@ -1638,6 +1654,9 @@ mod tests {
             "node",
             "node:worker_threads",
             "@nestjs",
+            "https://deno.land/x/oak",
+            "jsr:@oak/oak",
+            "@oak/oak",
             "package:flutter",
             "System.Web",
             "a",
@@ -1689,6 +1708,17 @@ mod tests {
         // The whole point of the gate: a lookalike must not activate a
         // rule that would then claim every `get` in the file.
         assert!(!import_matches("flasky", "flask"));
+        // A version pin after the name is a boundary; a scope `@` is not.
+        assert!(import_matches(
+            "https://deno.land/x/oak@v12.1.0/mod.ts",
+            "https://deno.land/x/oak"
+        ));
+        assert!(import_matches("jsr:@oak/oak@^17", "jsr:@oak/oak"));
+        assert!(!import_matches(
+            "https://deno.land/x/oakland@1/mod.ts",
+            "https://deno.land/x/oak"
+        ));
+        assert!(!import_matches("@oak/oak", ""));
         assert!(!import_matches("nextcloud", "next"));
         assert!(!import_matches("expresso", "express"));
     }
@@ -1827,6 +1857,7 @@ mod tests {
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "listUsers".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: 4,
@@ -1856,6 +1887,7 @@ mod tests {
         let mut bare = facts_with_import("rust", "s.rs", "axum");
         bare.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "name".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: 3,
@@ -1871,6 +1903,7 @@ mod tests {
         let mut free = facts_with_import("rust", "s.rs", "axum");
         free.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "name".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: 3,
@@ -1893,6 +1926,7 @@ mod tests {
         let mut f = facts_with_import("rust", "s.rs", "axum");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "user_id".into(),
             receiver_hint: STRING_REF_HINT.to_string(),
             site_line: 3,
@@ -1940,6 +1974,7 @@ mod tests {
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "listUsers".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: 4,
@@ -1971,6 +2006,7 @@ mod tests {
         let mut f = facts_with_import("python", "ui.py", "kivy");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            arity: None,
             name: "on_mouse_pos".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: 4,
