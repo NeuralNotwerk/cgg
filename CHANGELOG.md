@@ -162,6 +162,25 @@ otherwise change the default graph.
   single-language, so duck-typed fan-out is unchanged. Only the C
   family is enabled.
 
+- **Content-detection for `.h` headers.** A `.h` file is parsed with the
+  C++ grammar when its first 8 KiB, after comments and string literals
+  are removed, contains `namespace`, `template<`, a class or struct
+  base list, an access specifier, `using`, `enum class`, `constexpr`,
+  `noexcept`, `::`, a C++ standard-library include (`<vector>`,
+  `<string>`, `<experimental/filesystem>`), or an include path
+  containing `++` (`<bits/stdc++.h>`). The sibling-file heuristic
+  remains the fallback. `extern "C"` is not a trigger, and neither is a
+  keyword inside a comment or a string.
+
+### Fixed
+
+- **Prototype unification covers C and Objective-C bodies.**
+  `unify_declarations` keys off `has_body`, which only the C++ plugin
+  set. C function definitions and Objective-C method and function
+  definitions now set it, so a `.h` prototype parsed as C is dropped
+  when the `.c` or `.m` body is in the tree. Quoted Objective-C
+  `#import`s are recorded as `include` and followed like `#include`.
+
 ## [0.9.1] - 2026-09-24
 
 Fixes the 0.9.0 known issue. The graph is unchanged: every one of the
