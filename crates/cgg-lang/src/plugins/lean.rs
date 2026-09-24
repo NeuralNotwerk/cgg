@@ -33,7 +33,7 @@
 
 use std::path::Path;
 
-use cgg_core::{ids::FileId, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord};
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
 use tree_sitter::{Node, Tree};
 
 use crate::LanguagePlugin;
@@ -77,6 +77,7 @@ impl LanguagePlugin for LeanPlugin {
             facts: &mut facts,
             ns_stack: Vec::new(),
             pending_attrs: Vec::new(),
+            bound: std::collections::HashSet::new(),
         };
         w.visit(tree.root_node());
         facts
@@ -146,6 +147,10 @@ struct LeanWalker<'a> {
     /// while the wrapped declaration is visited so `push_def` can attach
     /// them, then cleared.
     pending_attrs: Vec<String>,
+    /// Names the declaration being visited binds in its signature
+    /// (`(hprob : …)`, `{κ : …}`, `[inst : …]`). An unqualified reference to
+    /// one of them is the local, never a same-named declaration elsewhere.
+    bound: std::collections::HashSet<String>,
 }
 
 impl<'a> LeanWalker<'a> {
@@ -186,8 +191,14 @@ impl<'a> LeanWalker<'a> {
             let txt = self.text(child);
             match prev_end {
                 Some(pe) => {
+                    // A dotted name is written without spaces (`Cert.sosDeg10`):
+                    // the identifiers are joined only when exactly one `.`
+                    // separates them. Any `.` in the gap was too loose — in
+                    // `theorem t : ((xs.f i).2 : Nat) = … := rfl` the gap between
+                    // the name and the body's `rfl` contains dots, and the node
+                    // was named `t.rfl` (128 declarations in Batteries).
                     let gap = self.source.get(pe..child.start_byte()).unwrap_or(&[]);
-                    if gap.contains(&b'.') {
+                    if gap == b"." {
                         cur.push('.');
                         cur.push_str(txt);
                     } else {
@@ -228,7 +239,9 @@ impl<'a> LeanWalker<'a> {
             // aliases to `definition`) but shape identically enough — a
             // leading name identifier, optional body — that
             // `extract_definition` handles all four.
-            "definition" | "constant" | "opaque" | "axiom" => self.extract_definition(node),
+            "definition" | "constant" | "opaque" | "axiom" => {
+                self.extract_definition(node)
+            }
             "structure" => self.extract_structure(node),
             "inductive" | "class_inductive" => self.extract_inductive(node),
             "example" => self.record(node, false),
@@ -282,7 +295,14 @@ impl<'a> LeanWalker<'a> {
         }
     }
 
-    fn push_def(&mut self, name: &str, qualified: String, variant: DefVariant, node: Node, sig: String) {
+    fn push_def(
+        &mut self,
+        name: &str,
+        qualified: String,
+        variant: DefVariant,
+        node: Node,
+        sig: String,
+    ) {
         self.facts.definitions.push(DefRecord {
             simple_name: name.to_string(),
             qualified_name: qualified,
@@ -303,7 +323,14 @@ impl<'a> LeanWalker<'a> {
         // Only the leading modifier keywords matter; cap the scan to ~48 bytes.
         // Lean source is full of multi-byte Unicode (ℝ, ℕ, ₀); floor_char_boundary
         // both clamps past-the-end and steps back to a char boundary.
-        let head = &t[..t.floor_char_boundary(48)];
+        // `str::floor_char_boundary` is only stable since 1.91; the
+        // workspace MSRV is lower. Lean source is dense with multi-byte
+        // glyphs (ℝ, ℕ, ₀), so the cut must land on a char boundary.
+        let cut = (0..=t.len().min(48))
+            .rev()
+            .find(|&i| t.is_char_boundary(i))
+            .unwrap_or(0);
+        let head = &t[..cut];
         if head.contains("private") {
             "private".to_string()
         } else if head.contains("protected") {
@@ -332,7 +359,23 @@ impl<'a> LeanWalker<'a> {
         if is_instance {
             self.pending_attrs.push("instance".to_string());
         }
-        if let Some(dotted) = self.dotted_groups(node).into_iter().next() {
+        // The name follows the keyword directly. When a binder or the type
+        // comes first (`instance [Ord β] : C := inferInstance`), the
+        // declaration is anonymous and the first identifier belongs to the
+        // body — it must not become the name.
+        let named = self.first_ident(node).is_some_and(|id| {
+            let gap = self
+                .source
+                .get(node.start_byte()..id.start_byte())
+                .unwrap_or(&[]);
+            !gap.iter().any(|b| matches!(b, b'[' | b'(' | b'{' | b':'))
+        });
+        if let Some(dotted) = self
+            .dotted_groups(node)
+            .into_iter()
+            .next()
+            .filter(|_| named)
+        {
             // `simple_name` must be the last path segment (`sosDeg10`, not
             // `Cert.sosDeg10`) to match how call sites are recorded: a
             // dotted reference like `Cert.sosDeg10` splits into
@@ -352,8 +395,37 @@ impl<'a> LeanWalker<'a> {
         }
         // Body call sites (bare identifiers — the name, binders, type
         // annotations — are not recorded; only application/projection/
-        // tactic references are).
+        // tactic references are). References to the declaration's own
+        // binders are the locals, not declarations elsewhere.
+        let bound = self.binder_names(node);
+        let outer = std::mem::replace(&mut self.bound, bound);
         self.record(node, false);
+        self.bound = outer;
+    }
+
+    /// Names introduced by the binders of `decl`'s signature.
+    fn binder_names(&self, decl: Node) -> std::collections::HashSet<String> {
+        let mut out = self.bound.clone();
+        let mut stack = vec![decl];
+        while let Some(n) = stack.pop() {
+            if matches!(
+                n.kind(),
+                "explicit_binder" | "implicit_binder" | "instance_binder"
+            ) {
+                // The names precede the `:`; the type after it is not bound.
+                for c in child_nodes(n) {
+                    if c.kind() == ":" {
+                        break;
+                    }
+                    if is_ident(c.kind()) {
+                        out.insert(self.text(c).to_string());
+                    }
+                }
+                continue;
+            }
+            stack.extend(child_nodes(n));
+        }
+        out
     }
 
     fn extract_structure(&mut self, node: Node) {
@@ -391,7 +463,13 @@ impl<'a> LeanWalker<'a> {
                 if let Some(cnode) = self.first_ident(child) {
                     let ctor = self.text(cnode).to_string();
                     let q = self.qn(&format!("{type_name}.{ctor}"));
-                    self.push_def(&ctor, q, DefVariant::Constructor, cnode, String::new());
+                    self.push_def(
+                        &ctor,
+                        q,
+                        DefVariant::Constructor,
+                        cnode,
+                        String::new(),
+                    );
                 }
             }
         }
@@ -402,6 +480,9 @@ impl<'a> LeanWalker<'a> {
 
     fn push_ref(&mut self, name: &str, receiver: &str, node: Node) {
         if name.is_empty() || name == "_" {
+            return;
+        }
+        if receiver.is_empty() && self.bound.contains(name) {
             return;
         }
         self.facts.references.push(RefRecord {
@@ -493,6 +574,38 @@ impl<'a> LeanWalker<'a> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_binder_name_is_the_local_not_a_declaration_elsewhere() {
+        // `hprob` is bound by the lemma's own signature; applying it is not a
+        // call to some other declaration that happens to be named `hprob`.
+        let src = "lemma use_it (hprob : P) (X : Nat) : Q := by\n  exact foo hprob X\n";
+        let f = extract(src);
+        let names: Vec<_> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(names.contains(&"foo"), "{names:?}");
+        assert!(
+            !names.contains(&"hprob") && !names.contains(&"X"),
+            "{names:?}"
+        );
+    }
+
+    #[test]
+    fn a_proof_term_is_not_part_of_the_declaration_name() {
+        let src = "theorem coe_snd [BEq α] {xs : List α} :\n    ((xs.idx i).2 : Nat) = xs.count i := rfl\ninstance : Inhabited Foo := inferInstance\ninstance [Ord β] : Cmp (on f) := inferInstance\n";
+        let f = extract(src);
+        let names: Vec<_> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.contains(&"coe_snd"), "{names:?}");
+        assert!(
+            !names
+                .iter()
+                .any(|n| n.ends_with(".rfl") || n.ends_with("inferInstance")),
+            "{names:?}"
+        );
+    }
     use super::*;
     use std::path::PathBuf;
     use tree_sitter::Parser;
@@ -597,7 +710,10 @@ open Nat List
             .iter()
             .map(|i| (i.kind.as_str(), i.path.as_str()))
             .collect();
-        assert!(imports.contains(&("import", "Mathlib.Data.List.Basic")), "got {imports:?}");
+        assert!(
+            imports.contains(&("import", "Mathlib.Data.List.Basic")),
+            "got {imports:?}"
+        );
         // `open Nat List` is two separate opened namespaces, not "Nat.List".
         assert!(imports.contains(&("open", "Nat")), "got {imports:?}");
         assert!(imports.contains(&("open", "List")), "got {imports:?}");
@@ -653,11 +769,23 @@ theorem t (n : Nat) : n + 0 = n := by
 "#,
         );
         let names: Vec<&str> = facts.references.iter().map(|r| r.name.as_str()).collect();
-        assert!(names.contains(&"add_zero_eq"), "bare rw lemma missed: {names:?}");
-        assert!(names.contains(&"mul_one_eq"), "←-prefixed rw lemma missed: {names:?}");
-        assert!(names.contains(&"dotted_eq"), "dotted rewrite lemma missed: {names:?}");
+        assert!(
+            names.contains(&"add_zero_eq"),
+            "bare rw lemma missed: {names:?}"
+        );
+        assert!(
+            names.contains(&"mul_one_eq"),
+            "←-prefixed rw lemma missed: {names:?}"
+        );
+        assert!(
+            names.contains(&"dotted_eq"),
+            "dotted rewrite lemma missed: {names:?}"
+        );
         // The `at h` target is a local hypothesis, not a lemma.
-        assert!(!names.contains(&"h"), "rewrite `at` target leaked: {names:?}");
+        assert!(
+            !names.contains(&"h"),
+            "rewrite `at` target leaked: {names:?}"
+        );
     }
 
     #[test]
@@ -673,10 +801,19 @@ theorem t (n : Nat) : n * 1 = n := by
 "#,
         );
         let names: Vec<&str> = facts.references.iter().map(|r| r.name.as_str()).collect();
-        assert!(names.contains(&"foo_eq"), "simp-only lemma missed: {names:?}");
-        assert!(names.contains(&"mem_def"), "dotted simp-only lemma missed: {names:?}");
+        assert!(
+            names.contains(&"foo_eq"),
+            "simp-only lemma missed: {names:?}"
+        );
+        assert!(
+            names.contains(&"mem_def"),
+            "dotted simp-only lemma missed: {names:?}"
+        );
         // `only` is a tactic modifier, not a lemma reference.
-        assert!(!names.contains(&"only"), "`only` modifier leaked: {names:?}");
+        assert!(
+            !names.contains(&"only"),
+            "`only` modifier leaked: {names:?}"
+        );
     }
 
     #[test]
@@ -701,12 +838,32 @@ def plain : Nat := 1
                 .map(|d| d.attributes.clone())
                 .unwrap_or_default()
         };
-        assert!(attrs("foo_eq").contains(&"@[simp]".to_string()), "{:?}", attrs("foo_eq"));
-        assert!(attrs("bar").contains(&"@[simp]".to_string()), "{:?}", attrs("bar"));
-        assert!(attrs("bar").contains(&"@[reducible]".to_string()), "{:?}", attrs("bar"));
-        assert!(attrs("instAddFoo").contains(&"instance".to_string()), "{:?}", attrs("instAddFoo"));
+        assert!(
+            attrs("foo_eq").contains(&"@[simp]".to_string()),
+            "{:?}",
+            attrs("foo_eq")
+        );
+        assert!(
+            attrs("bar").contains(&"@[simp]".to_string()),
+            "{:?}",
+            attrs("bar")
+        );
+        assert!(
+            attrs("bar").contains(&"@[reducible]".to_string()),
+            "{:?}",
+            attrs("bar")
+        );
+        assert!(
+            attrs("instAddFoo").contains(&"instance".to_string()),
+            "{:?}",
+            attrs("instAddFoo")
+        );
         // A plain decl carries no attributes (and the marker does not leak).
-        assert!(attrs("plain").is_empty(), "attrs leaked onto plain decl: {:?}", attrs("plain"));
+        assert!(
+            attrs("plain").is_empty(),
+            "attrs leaked onto plain decl: {:?}",
+            attrs("plain")
+        );
     }
 
     #[test]
