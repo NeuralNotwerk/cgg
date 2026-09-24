@@ -136,7 +136,7 @@ def manifest() -> list[dict]:
 def unverified() -> dict[str, str]:
     """Rules explicitly declared to have no application in the corpus."""
     text = BENCH_SH.read_text()
-    m = re.search(r"APPS_UNVERIFIED=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    m = re.search(r"APPS_UNVERIFIED=\(\n?(.*?)^\)", text, re.DOTALL | re.MULTILINE)
     if not m:
         return {}
     out: dict[str, str] = {}

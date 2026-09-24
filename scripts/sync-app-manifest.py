@@ -61,6 +61,42 @@ def enumerating_ids() -> set[str]:
     return out
 
 
+def existing_claims() -> dict[str, list[str]]:
+    """The claims APPS carries now, per app, before this run rewrites it."""
+    text = BENCH.read_text()
+    m = re.search(r"APPS=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    out: dict[str, list[str]] = {}
+    for line in m.group(1).splitlines() if m else []:
+        p = line.strip().strip('"').split("|")
+        if len(p) >= 3 and not p[0].startswith("#"):
+            out[p[0]] = [c for c in p[2].split(",") if c]
+    return out
+
+
+def merge_claims(
+    measured: list[str], old: list[str], need: set[str], enum: set[str]
+) -> list[str]:
+    """Measured claims, plus every old claim this script cannot measure.
+
+    Only rules in `need` (declared matcher lists) are measured into
+    `~`/plain claims, so a detect-only rule (`~beego`, a `gap` string and
+    no matchers) or a marker-only rule (`solidity-public`, keyed on the
+    `public` keyword with `detect: NONE`) can never come back from a
+    measurement. Rewriting the list from the measurement alone erased 231
+    such hand-maintained claims and the 1,495-entry `solidity-public`
+    claim in one run. A rule outside `need` that did enumerate here is
+    measured truth and is claimed plainly.
+    """
+    out = list(measured) + sorted(e for e in enum - need)
+    have = {c.lstrip("~") for c in out}
+    for c in old:
+        base = c.lstrip("~")
+        if base not in need and base not in have:
+            out.append(c)
+            have.add(base)
+    return out
+
+
 def apps() -> list[tuple[str, str]]:
     text = BENCH.read_text()
     m = re.search(r"APPS=\(\s*\n(.*?)\n\)", text, re.DOTALL)
@@ -152,6 +188,7 @@ def main() -> None:
 
     need = enumerating_ids()
     rows = apps()
+    previous = existing_claims()
     claims: dict[str, list[str]] = {}
     covered: set[str] = set()
 
@@ -163,7 +200,7 @@ def main() -> None:
             print(f"  {name:<30} FAILED: {err}", file=sys.stderr)
             continue
         mine = sorted(enum & need) + sorted(f"~{s}" for s in (seen & need))
-        claims[name] = mine
+        claims[name] = merge_claims(mine, previous.get(name, []), need, enum)
         covered |= (enum | seen) & need
         print(
             f"  {name:<30} {len(enum & need):>3} enumerated, "
@@ -227,13 +264,24 @@ def main() -> None:
         )
 
     text = BENCH.read_text()
-    lines = []
-    for name, url in rows:
-        c = ",".join(claims.get(name) or [])
-        lines.append(f'    "{name}|{url}|{c}"')
+
+    # Rewrite each entry's claim field in place. Regenerating the block
+    # from `rows` dropped every comment inside it — the notes that say
+    # why a framework's own repository stays in the corpus.
+    def rewrite(block: str) -> str:
+        out = []
+        for line in block.split("\n"):
+            p = line.strip().strip('"').split("|")
+            if line.strip().startswith('"') and len(p) >= 3 and p[0] in claims:
+                c = ",".join(claims[p[0]])
+                out.append(f'    "{p[0]}|{p[1]}|{c}"')
+            else:
+                out.append(line)
+        return "\n".join(out)
+
     text, n_apps = re.subn(
-        r"(APPS=\(\s*\n).*?(\n\))",
-        lambda m: m.group(1) + "\n".join(lines) + m.group(2),
+        r"(APPS=\(\s*\n)(.*?)(\n\))",
+        lambda m: m.group(1) + rewrite(m.group(2)) + m.group(3),
         text,
         count=1,
         flags=re.DOTALL,
@@ -257,12 +305,15 @@ def main() -> None:
         f'— see the language-corpus note above"'
         for o in orphans
     ]
+    # An empty list is written as `APPS_UNVERIFIED=(` + `)` with nothing
+    # between: a blank line there let a lazy `\n\)` match run on into the
+    # next array (REPO_DIR) and read its rows as framework ids.
     text, n_un = re.subn(
-        r"(APPS_UNVERIFIED=\(\s*\n).*?(\n\))",
-        lambda m: m.group(1) + "\n".join(un) + m.group(2),
+        r"APPS_UNVERIFIED=\(.*?^\)",
+        lambda m: "APPS_UNVERIFIED=(\n" + "".join(u + "\n" for u in un) + ")",
         text,
         count=1,
-        flags=re.DOTALL,
+        flags=re.DOTALL | re.MULTILINE,
     )
     if n_un != 1:
         sys.exit(

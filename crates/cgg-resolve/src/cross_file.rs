@@ -2164,6 +2164,11 @@ fn is_platform_header(path: &str) -> bool {
     PREFIXES.iter().any(|pre| p.starts_with(pre)) || NAMES.contains(&p)
 }
 
+/// Whether a path has a `.` or `..` segment (`./x.h`, `../x.h`, `a/../b`).
+fn has_dot_segment(path: &str) -> bool {
+    path.split(['/', '\\']).any(|seg| seg == "." || seg == "..")
+}
+
 /// Resolve `.` and `..` components without touching the filesystem. A
 /// `..` that would climb above the path's first component is kept.
 fn normalize_lexically(p: &std::path::Path) -> std::path::PathBuf {
@@ -2231,7 +2236,17 @@ fn collect_include_defs(
     // Lexically normalised: `#include "../common/util.h"` joined onto
     // `src/net` is `src/net/../common/util.h`, which matches no indexed
     // path exactly, and the suffix fallback cannot match `../` either.
-    let resolved = normalize_lexically(&includer_dir.join(include_path));
+    // Only a path with a `.`/`..` segment needs it: this runs once per
+    // include/require edge of the transitive closure, and allocating a
+    // normalised copy of every path cost 1.1s on Metabase's Clojure
+    // `require` graph.
+    let dotted = has_dot_segment(include_path);
+    let joined = includer_dir.join(include_path);
+    let resolved = if dotted {
+        normalize_lexically(&joined)
+    } else {
+        joined
+    };
     // Find the matching FileFacts by path suffix (handles both
     // absolute and relative paths in the index).
     //
@@ -2257,6 +2272,13 @@ fn collect_include_defs(
             let last = std::path::Path::new(include_path).file_name()?;
             // `Path::ends_with` never matches a `..` component, so the
             // suffix is the include path with its leading `./`/`../`s off.
+            let candidates = include_by_last.get(last)?;
+            if !dotted {
+                return candidates
+                    .iter()
+                    .find(|f| f.path.ends_with(include_path))
+                    .copied();
+            }
             let suffix: std::path::PathBuf = std::path::Path::new(include_path)
                 .components()
                 .skip_while(|c| {
@@ -2266,8 +2288,7 @@ fn collect_include_defs(
                     )
                 })
                 .collect();
-            include_by_last
-                .get(last)?
+            candidates
                 .iter()
                 .find(|f| f.path.ends_with(&suffix))
                 .copied()

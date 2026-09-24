@@ -526,7 +526,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2756 callables, 6406 edges, 1651 cross-file, 178ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2757 callables, 6407 edges, 1651 cross-file, 168ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -1250,51 +1250,52 @@ with whatever else that machine is doing.
 
 | Project | Language | Callables | Edges | Cross-file | Time |
 | ------- | -------- | --------- | ----- | ---------- | ---- |
-| ripgrep | rust | 2,771 | 7,008 | 53% | 152ms |
-| flask | python | 391 | 304 | 40% | 41ms |
-| express | javascript | 95 | 115 | 17% | 10ms |
-| zod | typescript | 1,701 | 2,327 | 68% | 183ms |
-| fzf | go | 1,056 | 5,839 | 52% | 132ms |
-| gson | java | 942 | 1,738 | 61% | 51ms |
-| okio | kotlin | 3,716 | 20,475 | 89% | 118ms |
-| jq | c | 1,077 | 6,324 | 75% | 80ms |
-| nlohmann/json | cpp | 1,279 | 2,672 | 63% | 93ms |
-| serilog | csharp | 824 | 446 | 67% | 74ms |
-| acme.sh | bash | 1,437 | 3,907 | 0% | 120ms |
-| jekyll | ruby | 902 | 1,242 | 63% | 37ms |
-| laravel | php | 13,828 | 4,324 | 88% | 472ms |
-| AFNetworking | objc | 299 | 96 | 5% | 69ms |
-| ggplot2 | r | 946 | 419 | 3% | 60ms |
-| Alamofire | swift | 829 | 727 | 36% | 58ms |
-| kong | lua | 2,782 | 2,927 | 21% | 142ms |
-| flame | dart | 1,591 | 9 | 0% | 78ms |
-| play | scala | 1,997 | 1,339 | 37% | 158ms |
-| terraform-vpc | hcl | 1,779 | 0 | — | 85ms |
-| http.zig | zig | 486 | 777 | 48% | 63ms |
-| gradle | groovy | 1,290 | 1,483 | 70% | 256ms |
-| Flux.jl | julia | 490 | 218 | 2% | 26ms |
-| mojolicious | perl | 1,127 | 1,711 | 50% | 100ms |
-| phoenix | elixir | 1,595 | 1,439 | 10% | 59ms |
-| otp/stdlib | erlang | 17,271 | 12,509 | 27% | 232ms |
-| stdlib | fortran | 335 | 181 | 4% | 67ms |
-| ring | clojure | 209 | 212 | 8% | 14ms |
-| pandoc | haskell | 21,115 | 18,276 | 49% | 347ms |
-| dune | ocaml | 21,224 | 10,560 | 35% | 334ms |
-| PowerShellGet | powershell | 62 | 23 | 0% | 52ms |
-| openzeppelin-contracts | solidity | 3,183 | 3,601 | 66% | 81ms |
-| Paket | fsharp | 1,865 | 4,386 | 46% | 160ms |
-| bazel-skylib | starlark | 93 | 44 | 0% | 12ms |
-| CMake/Modules | cmake | 946 | 866 | 9% | 402ms |
-| home-manager | nix | 1,072 | 1,158 | 30% | 136ms |
-| picorv32 | verilog | 79 | 84 | 0% | 107ms |
-| UVVM | vhdl | 1,036 | 0 | — | 178ms |
-| xv6 | asm | 22 | 4 | 0% | 10ms |
-| xv6 (c+asm) | c,asm | 491 | 2,040 | 83% | 29ms |
-| Carvera_Controller | kivy | 642 | 0 | — | 170ms |
-| smithy/protocol-tests | smithy | 827 | 1,374 | 49% | 66ms |
-| grpc-proto | proto | 269 | 314 | 28% | 13ms |
-| graphql-schema | graphql | 1,623 | 5,722 | 0% | 185ms |
-| OpenAPI-Specification | openapi | 132 | 334 | 0% | 39ms |
+| ripgrep | rust | 2,771 | 7,008 | 53% | 196ms |
+| flask | python | 391 | 304 | 40% | 44ms |
+| express | javascript | 96 | 115 | 17% | 11ms |
+| zod | typescript | 1,701 | 2,437 | 64% | 172ms |
+| fzf | go | 1,056 | 5,839 | 52% | 146ms |
+| gson | java | 942 | 1,781 | 58% | 53ms |
+| okio | kotlin | 3,716 | 20,676 | 88% | 152ms |
+| jq | c | 787 | 6,258 | 76% | 68ms |
+| nlohmann/json | cpp | 1,279 | 7,521 | 77% | 99ms |
+| serilog | csharp | 824 | 611 | 48% | 66ms |
+| acme.sh | bash | 1,437 | 3,907 | 0% | 129ms |
+| jekyll | ruby | 902 | 1,242 | 63% | 40ms |
+| laravel | php | 13,828 | 4,324 | 88% | 467ms |
+| AFNetworking | objc | 288 | 93 | 5% | 59ms |
+| ggplot2 | r | 946 | 419 | 3% | 66ms |
+| Alamofire | swift | 829 | 934 | 28% | 63ms |
+| kong | lua | 2,782 | 2,927 | 21% | 168ms |
+| flame | dart | 1,591 | 9 | 0% | 71ms |
+| play | scala | 1,997 | 1,435 | 32% | 168ms |
+| terraform-vpc | hcl | 1,779 | 0 | — | 76ms |
+| http.zig | zig | 486 | 777 | 48% | 61ms |
+| gradle | groovy | 1,290 | 1,486 | 67% | 250ms |
+| Flux.jl | julia | 490 | 1,001 | 0% | 36ms |
+| mojolicious | perl | 1,127 | 1,711 | 50% | 110ms |
+| phoenix | elixir | 1,595 | 1,328 | 5% | 75ms |
+| otp/stdlib | erlang | 17,271 | 21,426 | 12% | 232ms |
+| stdlib | fortran | 335 | 181 | 4% | 63ms |
+| ring | clojure | 209 | 212 | 8% | 13ms |
+| pandoc | haskell | 21,115 | 18,165 | 48% | 388ms |
+| dune | ocaml | 21,224 | 10,560 | 35% | 345ms |
+| PowerShellGet | powershell | 62 | 23 | 0% | 61ms |
+| openzeppelin-contracts | solidity | 3,183 | 4,333 | 61% | 88ms |
+| Paket | fsharp | 1,865 | 4,377 | 44% | 186ms |
+| Batteries | lean | 2,335 | 7,472 | 59% | 135ms |
+| bazel-skylib | starlark | 93 | 44 | 0% | 10ms |
+| CMake/Modules | cmake | 946 | 866 | 9% | 376ms |
+| home-manager | nix | 1,072 | 1,162 | 30% | 144ms |
+| picorv32 | verilog | 79 | 84 | 0% | 105ms |
+| UVVM | vhdl | 1,036 | 0 | — | 162ms |
+| xv6 | asm | 22 | 4 | 0% | 11ms |
+| xv6 (c+asm) | c,asm | 344 | 1,983 | 85% | 29ms |
+| Carvera_Controller | kivy | 642 | 0 | — | 201ms |
+| smithy/protocol-tests | smithy | 827 | 1,374 | 49% | 64ms |
+| grpc-proto | proto | 269 | 314 | 28% | 22ms |
+| graphql-schema | graphql | 1,623 | 5,722 | 0% | 163ms |
+| OpenAPI-Specification | openapi | 132 | 334 | 0% | 47ms |
 | asyncapi/spec | asyncapi | 279 | 374 | 7% | 15ms |
 
 ## Dead code

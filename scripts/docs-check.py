@@ -556,7 +556,7 @@ def check_framework_apps() -> None:
     # declaration is the point: it is greppable and reviewable, where a
     # missing app is not.
     unverified: set[str] = set()
-    mu = re.search(r"APPS_UNVERIFIED=\(\s*\n(.*?)\n\)", text, re.DOTALL)
+    mu = re.search(r"APPS_UNVERIFIED=\(\n?(.*?)^\)", text, re.DOTALL | re.MULTILINE)
     if mu:
         for line in mu.group(1).splitlines():
             line = line.strip().strip('"')
