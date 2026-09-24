@@ -235,12 +235,14 @@ pub struct DefRecord {
 
     /// This definition has a function body (or is `= default` / `= delete`).
     ///
-    /// A C++ header prototype and the out-of-line definition in a `.cpp`
-    /// are the same function. The driver drops the prototype when exactly
-    /// one body with the same qualified name and parameter list exists, so
-    /// callers land on the node whose span contains the calls. A pure
-    /// declaration — nothing in the tree defines it — stays, with this
-    /// flag false. Not copied onto the graph.
+    /// A C-family header prototype and the out-of-line definition are the
+    /// same function. The driver drops the prototype when a body with the
+    /// same qualified name and parameter list exists, so callers land on
+    /// the node whose span contains the calls. A pure declaration —
+    /// nothing in the tree defines it — stays, with this flag false. The
+    /// C, C++ and Objective-C plugins set it from the grammar node;
+    /// `..Default::default()` leaves it false and the prototype is never
+    /// absorbed. Not copied onto the graph.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub has_body: bool,
 }

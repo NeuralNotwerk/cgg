@@ -100,6 +100,7 @@ impl<'a> ObjcWalker<'a> {
                         signature_hint: super::extract_signature(self.text(node)),
                         visibility: String::new(),
                         attributes: Vec::new(),
+                        has_body: true,
                         ..Default::default()
                     });
                 }
@@ -128,19 +129,29 @@ impl<'a> ObjcWalker<'a> {
                 return;
             }
             "preproc_include" | "preproc_import" => {
-                let path_node = node.child_by_field_name("path");
-                if let Some(p) = path_node {
-                    let path = self.text(p).trim_matches('"').to_string();
-                    if !path.is_empty() {
-                        self.facts.imports.push(ImportRecord {
-                            kind: "import".into(),
-                            path,
-                            alias: String::new(),
-                            site_line: (node.start_position().row as u32) + 1,
-                            site_byte: node.start_byte() as u32,
-                        });
-                    }
+                // Quoted `#import "Foo.h"` is a project include, the same
+                // edge the C/C++ plugins record as kind `include`. Angle
+                // brackets stay `system-include` and keep their raw text:
+                // framework rules match the literal `<UIKit` prefix.
+                let Some(p) = node.child_by_field_name("path") else {
+                    return;
+                };
+                let raw = self.text(p).trim_matches('"');
+                if raw.is_empty() {
+                    return;
                 }
+                let kind = match p.kind() {
+                    "string_literal" | "string_content" => "include",
+                    "system_lib_string" => "system-include",
+                    _ => "import",
+                };
+                self.facts.imports.push(ImportRecord {
+                    kind: kind.into(),
+                    path: raw.to_string(),
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
                 return;
             }
             _ => {}
@@ -196,6 +207,9 @@ impl<'a> ObjcWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            // `@implementation` methods are bodies. A declaration in an
+            // `@interface` stays a prototype so unification can absorb it.
+            has_body: node.kind() == "method_definition",
             ..Default::default()
         });
     }
@@ -225,11 +239,9 @@ mod tests {
     fn class_methods() {
         let src = "@implementation Service\n- (void)run { [self helper]; }\n+ (instancetype)create { return [[Service alloc] init]; }\n@end\n";
         let f = extract(src);
-        assert!(
-            f.definitions.iter().any(
-                |d| d.simple_name == "run" && d.variant == DefVariant::InherentMethod
-            )
-        );
+        assert!(f.definitions.iter().any(|d| d.simple_name == "run"
+            && d.variant == DefVariant::InherentMethod
+            && d.has_body));
         assert!(
             f.definitions
                 .iter()
@@ -251,6 +263,28 @@ mod tests {
             f.references
                 .iter()
                 .any(|r| r.name == "create" && r.receiver_hint == "Helper")
+        );
+    }
+
+    #[test]
+    fn import_directive_captured() {
+        let src = "#import \"Foo.h\"\n#import <UIKit/UIKit.h>\n";
+        let f = extract(src);
+        let quoted = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "include")
+            .expect("quoted import is an include");
+        assert_eq!(quoted.path, "Foo.h");
+        let sys = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "system-include")
+            .expect("angle-bracket import is a system include");
+        assert!(
+            sys.path.contains("UIKit"),
+            "framework rules match this path: {}",
+            sys.path
         );
     }
 }

@@ -1052,13 +1052,15 @@ fn immediate_class(qual: Node, source: &[u8]) -> Option<String> {
     }
 }
 
-/// Drop a C++ prototype when the tree also contains its body.
+/// Drop a C-family prototype when the tree also contains its body.
 ///
-/// Header `void Robot::on_gcode_received(void*);` and
-/// `Robot.cpp`'s definition are one function. Keeping both makes every
-/// resolved call land on the prototype, which has no outgoing edges,
-/// while the body — which has them — has no callers. A prototype is
-/// removed when any body shares its qualified name and parameter list.
+/// Header `void Robot::on_gcode_received(void*);` and `Robot.cpp`'s
+/// definition are one function, and so are a `.h` parsed as C and the
+/// `.c` or `.m` file that defines it. Keeping both makes every resolved
+/// call land on the prototype, which has no outgoing edges, while the
+/// body — which has them — has no callers. A definition counts as a
+/// body only when `has_body` is set. A prototype is removed when any
+/// body shares its qualified name and parameter list.
 /// Two overloads stay apart because the parameter lists differ. Two
 /// bodies of one signature (a test stub beside the real definition)
 /// both stay; only the prototype goes. Anonymous-namespace definitions
@@ -1073,7 +1075,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     let mut bodies: std::collections::HashMap<String, Vec<Body>> =
         std::collections::HashMap::new();
     for (file_idx, facts) in files.iter().enumerate() {
-        if facts.language != "cpp" {
+        if !cgg_core::same_family(&facts.language, "c") {
             continue;
         }
         for (def_idx, def) in facts.definitions.iter().enumerate() {
@@ -1097,7 +1099,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     let mut unified: Vec<(usize, String, String)> = Vec::new();
     let mut merges: Vec<(usize, usize, bool, Vec<String>)> = Vec::new();
     for (file_idx, facts) in files.iter().enumerate() {
-        if facts.language != "cpp" {
+        if !cgg_core::same_family(&facts.language, "c") {
             continue;
         }
         for (def_idx, def) in facts.definitions.iter().enumerate() {
@@ -1182,7 +1184,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     let drop_set: std::collections::HashSet<(usize, usize)> =
         drop_at.into_iter().collect();
     for (file_idx, facts) in files.iter_mut().enumerate() {
-        if facts.language != "cpp" {
+        if !cgg_core::same_family(&facts.language, "c") {
             continue;
         }
         let mut i = 0usize;
@@ -2136,6 +2138,109 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
             .find(|i| i.kind == "system-include")
             .expect("system include recorded");
         assert_eq!(sys.path, "stdio.h");
+    }
+
+    fn extract_c(file: u32, src: &str, path: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_c::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        super::super::c::CPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(file),
+            &PathBuf::from(path),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// A C header prototype is dropped when a C body file defines the
+    /// same function. Runs the C plugin: unification only sees a body
+    /// when that plugin sets `has_body`.
+    #[test]
+    fn c_header_prototype_is_unified_with_c_body() {
+        let mut header = extract_c(
+            0,
+            "size_t qlz_decompress(const char *src, void *dst);\n",
+            "/tmp/__cgg_test__/quicklz.h",
+        );
+        let mut body = extract_c(
+            1,
+            "size_t qlz_decompress(const char *source, void *destination) { return 0; }\n",
+            "/tmp/__cgg_test__/quicklz.c",
+        );
+        assert!(
+            header
+                .definitions
+                .iter()
+                .any(|d| d.simple_name == "qlz_decompress" && !d.has_body),
+            "C prototype must be extracted with has_body false"
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.simple_name == "qlz_decompress" && d.has_body),
+            "C function_definition must be extracted with has_body true"
+        );
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.is_empty(),
+            "C header prototype should be absorbed by C body; left: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            header
+                .unified_decls
+                .iter()
+                .any(|(s, _)| s == "qlz_decompress"),
+            "header must keep the name so #include still reaches the body: {:?}",
+            header.unified_decls
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.simple_name == "qlz_decompress" && d.has_body),
+            "C body should keep its definition"
+        );
+    }
+
+    /// The body may be compiled as C++. The header is still the C plugin.
+    #[test]
+    fn c_header_prototype_is_unified_with_cpp_body() {
+        let mut header = extract_c(
+            0,
+            "size_t qlz_decompress(const char *src, void *dst);\n",
+            "/tmp/__cgg_test__/quicklz.h",
+        );
+        let mut body = extract_at(
+            "size_t qlz_decompress(const char *source, void *destination) { return 0; }\n",
+            "/tmp/__cgg_test__/quicklz.cpp",
+        );
+        assert_eq!(body.language, "cpp");
+        unify_declarations(&mut [&mut header, &mut body]);
+        assert!(
+            header.definitions.is_empty(),
+            "C prototype should be absorbed by the C++ body; left: {:?}",
+            header
+                .definitions
+                .iter()
+                .map(|d| &d.qualified_name)
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            header
+                .unified_decls
+                .iter()
+                .any(|(s, _)| s == "qlz_decompress")
+        );
+        assert!(
+            body.definitions
+                .iter()
+                .any(|d| d.has_body && d.simple_name == "qlz_decompress")
+        );
     }
 }
 
