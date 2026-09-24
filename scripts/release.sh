@@ -32,6 +32,9 @@
 #   --skip-perf        skip the corpus comparison (slow; needs a corpus).
 #   --quick            gates only. For "is it broken right now".
 #   --out DIR          where artifacts land. Default: target/release-prep.
+#   --allow-unmerged   release although open PRs / fork branches hold work
+#                      not on main (scripts/unmerged-inventory.sh). Say why
+#                      in the release notes.
 #
 set -uo pipefail
 
@@ -44,6 +47,7 @@ BASELINE=""
 SKIP_AI=0
 SKIP_PERF=0
 QUICK=0
+ALLOW_UNMERGED="${CGG_ALLOW_UNMERGED:-0}"
 OUT="$ROOT/target/release-prep"
 
 while [ $# -gt 0 ]; do
@@ -55,6 +59,7 @@ while [ $# -gt 0 ]; do
         --skip-ai)   SKIP_AI=1; shift ;;
         --skip-perf) SKIP_PERF=1; shift ;;
         --quick)     QUICK=1; SKIP_PERF=1; SKIP_AI=1; shift ;;
+        --allow-unmerged) ALLOW_UNMERGED=1; shift ;;
         -h|--help)   sed -n '2,40p' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
@@ -122,6 +127,19 @@ fi
 # =====================================================================
 step "1. gates"
 # =====================================================================
+# Outstanding work first: a release is a decision about ALL of it. 0.9.0
+# shipped without a finished Lean 4 plugin that sat on a contributor fork,
+# because only the PR list was checked.
+if have gh; then
+    if [ "$ALLOW_UNMERGED" = 1 ]; then
+        scripts/unmerged-inventory.sh > "$OUT/unmerged.log" 2>&1
+        warn "unmerged work acknowledged (--allow-unmerged) — see $OUT/unmerged.log and name it in the notes"
+    else
+        gate "no unmerged work (PRs, forks, branches)" scripts/unmerged-inventory.sh
+    fi
+else
+    fail "gh not available — cannot check open PRs and fork branches"
+fi
 gate "build (release)"        cargo build --release -p cgg
 gate "test (workspace)"       cargo test --workspace
 gate "clippy"                 cargo clippy --workspace --all-targets -- -D warnings
@@ -182,6 +200,35 @@ for p in pathlib.Path(".").glob("*.toml"):
 if bad:
     print("\n".join(bad)); sys.exit(1)
 '
+
+# Packaging, exactly as each registry will receive it. A tree that builds
+# and tests clean can still be unpublishable: `[patch]` is dropped from a
+# packaged crate, so a grammar patched to a git fork builds here and fails
+# `cargo install` for every user (the Lean 4 branch, 2026-09). These gates
+# run what the release workflow will run, before a tag makes it permanent.
+#
+# Crates: package every publishable crate together and VERIFY — each is
+# rebuilt in isolation against crates.io, the way `cargo install` builds it.
+gate "package crates (verified)" cargo package --workspace --allow-dirty \
+    --exclude cgg-py --exclude cgg-ffi --exclude cgg-node
+# npm: the root package and every platform package pack with their files.
+if have npm; then
+    gate "npm pack (root + 5 platforms)" sh -c '
+        for d in crates/cgg-node crates/cgg-node/npm/*/; do
+            (cd "$d" && npm pack --dry-run --ignore-scripts >/dev/null) || { echo "npm pack failed: $d"; exit 1; }
+        done'
+else
+    warn "npm not available — npm pack check skipped"
+fi
+# Python: the sdist PyPI receives builds, and twine accepts its metadata.
+if have uvx; then
+    gate "python sdist + twine check" sh -c '
+        d=$(mktemp -d) &&
+        uvx --quiet maturin sdist -m crates/cgg-py/Cargo.toml -o "$d" &&
+        uvx --quiet twine check "$d"/*.tar.gz; r=$?; rm -rf "$d"; exit $r'
+else
+    warn "uvx not available — python sdist check skipped"
+fi
 
 [ "$QUICK" = 1 ] && step "quick mode: skipping measurement and prose"
 

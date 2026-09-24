@@ -9,6 +9,32 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Changed
+
+- **Releases are gated on outstanding work and on packaging.** 0.9.0
+  shipped without a finished Lean 4 plugin that sat on a contributor's
+  fork as a branch, because only open pull requests were checked, and
+  that plugin could not have been published as it stood: its grammar was
+  patched to a git fork through `[patch.crates-io]`, which is dropped
+  from a packaged crate, so the release would have succeeded while
+  `cargo install cgg` failed for every user. Now:
+  - `scripts/unmerged-inventory.sh` lists open PRs, unmerged branches and
+    every contributor fork's branches ahead of `main`; `scripts/release.sh`
+    fails on any not acknowledged in `scripts/unmerged-acknowledged.txt`.
+  - docs-check **check 14** rejects a `[patch]`/`[replace]` section or a
+    git dependency in any Cargo manifest, on every commit.
+  - `scripts/release.sh` packages every publishable crate and verifies it
+    against crates.io, packs the root and five platform npm packages, and
+    builds the Python sdist through `twine check`.
+  - The release workflow verifies the crates in a job that PyPI and npm
+    publishing wait on, and after publishing requires every npm platform
+    package — not only the root — to be served before it reports success
+    (on 0.9.1 the 105 MB `linux-x64-gnu` package lagged the root, and a
+    fresh `npm install` skipped it).
+  - `scripts/compare-release.py` honours `CGG_REPO_TIMEOUT` and
+    `CGG_TOTAL_BUDGET` like every other corpus script, and names any
+    repository the budget excluded.
+
 ## [0.9.1] - 2026-09-24
 
 Fixes the 0.9.0 known issue. The graph is unchanged: every one of the

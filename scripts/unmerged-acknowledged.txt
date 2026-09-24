@@ -1,0 +1,7 @@
+# Work deliberately NOT in a release, one per line: `<owner>/<repo> <branch>`
+# or `#<pr>`, then ` — ` and the reason. scripts/unmerged-inventory.sh
+# prints these as acknowledged instead of failing on them. Remove a line
+# when the work lands or the branch is deleted.
+SergeBakharev/cgg py-fanout — closed PR #6, superseded by #7 (merged 2026-09-23)
+cybersharkvin/cgg pr3-fixups — PR #3 follow-ups; every commit is already on main (git cherry: 0 unique)
+joestump/cgg add-claude-skill — early draft of skills/cgg/SKILL.md; superseded by the skill on main

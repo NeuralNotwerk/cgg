@@ -361,9 +361,26 @@ jobs:
           fi
           echo "all publish credentials present"
 
+  # Every publishable crate packaged and VERIFIED — rebuilt in isolation
+  # against crates.io, the way `cargo install cgg` builds it — before any
+  # registry receives anything. crates.io publishes last, so without this a
+  # crate that cannot build (a `[patch]` that does not travel with the
+  # package, a git dependency) would fail only after PyPI and npm had
+  # already shipped the version.
+  package-verify:
+    name: crates package-verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Package and verify every publishable crate
+        run: >-
+          cargo package --workspace
+          --exclude cgg-py --exclude cgg-ffi --exclude cgg-node
+
   publish:
     name: publish
-    needs: [preflight, wheels, sdist, binaries, node]
+    needs: [preflight, package-verify, wheels, sdist, binaries, node]
     runs-on: ubuntu-latest
     # Only on a tag. A manual run builds and tests everything but
     # publishes nothing, so the matrix is safe to exercise any time.
@@ -492,6 +509,24 @@ jobs:
             echo "::error::npm still reports $PUBLISHED after publishing $LOCAL (5 minutes)"
             exit 1
           }
+
+          # The platform packages too. On 0.9.1 the root was visible while
+          # the 105 MB linux-x64-gnu package was not, and `npm install`
+          # silently skipped the missing optional dependency — `require()`
+          # then failed with "Cannot find native binding". A release is not
+          # installable until every platform package it pins is served.
+          for pkg in $(node -p "Object.keys(require('./package.json').optionalDependencies).join(' ')"); do
+            for attempt in $(seq 1 20); do
+              V="$(npm view "$pkg@$LOCAL" version 2>/dev/null || true)"
+              [ "$V" = "$LOCAL" ] && break
+              sleep 15
+            done
+            [ "$V" = "$LOCAL" ] || {
+              echo "::error::npm does not serve $pkg@$LOCAL after 5 minutes"
+              exit 1
+            }
+            echo "npm serves $pkg@$LOCAL"
+          done
 
   # crates.io goes LAST, and only if every other registry already
   # succeeded.

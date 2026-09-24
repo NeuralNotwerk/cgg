@@ -953,6 +953,54 @@ def check_node_index_version() -> None:
         )
 
 
+def check_publishable_manifests() -> None:
+    """Check 14 — every Cargo manifest is publishable as written.
+
+    `[patch]` and `[replace]` are ignored when a crate is packaged, so a
+    patch that makes the workspace build does not travel with the crate:
+    the published `cgg-lang` would depend on whatever crates.io serves,
+    and `cargo install cgg` would fail for every user while the release
+    itself succeeded. A git dependency cannot be published at all. The
+    Lean 4 branch needed `tree-sitter-lean4` patched to a git fork; the
+    fix is to vendor the grammar (as Smithy and Kivy do), and this check
+    is what makes the next such dependency fail at commit time instead of
+    at `cargo install`.
+    """
+    import tomllib
+
+    manifests = [
+        REPO_ROOT / "Cargo.toml",
+        *sorted((REPO_ROOT / "crates").glob("*/Cargo.toml")),
+    ]
+    for m in manifests:
+        rel = m.relative_to(REPO_ROOT)
+        doc = tomllib.loads(m.read_text())
+        for key in ("patch", "replace"):
+            if key in doc:
+                fail(
+                    f"{rel} has a [{key}] section (check 14) — it is dropped when "
+                    "the crate is published, so users would build against the "
+                    "unpatched dependency. Vendor the dependency instead "
+                    "(crates/cgg-lang/vendor/, see plugins/smithy.rs)."
+                )
+        tables = []
+        for sect in ("dependencies", "dev-dependencies", "build-dependencies"):
+            tables.append((sect, doc.get(sect, {})))
+        tables.append(
+            ("workspace.dependencies", doc.get("workspace", {}).get("dependencies", {}))
+        )
+        for tname, cfg in doc.get("target", {}).items():
+            for sect in ("dependencies", "dev-dependencies", "build-dependencies"):
+                tables.append((f"target.{tname}.{sect}", cfg.get(sect, {})))
+        for sect, deps in tables:
+            for name, spec in deps.items():
+                if isinstance(spec, dict) and "git" in spec:
+                    fail(
+                        f"{rel} [{sect}] {name} is a git dependency (check 14) — "
+                        "crates.io rejects it. Vendor it or use a published version."
+                    )
+
+
 def check_skill_docs_check_count() -> None:
     """A skill counting docs-check's checks must match how many exist."""
     actual = len(re.findall(r"^def check_", Path(__file__).read_text(), re.MULTILINE))
@@ -997,6 +1045,7 @@ def main() -> None:
     check_changelog()
     check_skill_publish_claims()
     check_node_index_version()
+    check_publishable_manifests()
     check_skill_docs_check_count()
     print("[docs-check] ok")
 

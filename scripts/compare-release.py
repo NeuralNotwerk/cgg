@@ -69,6 +69,15 @@ def ctags_langs() -> dict[str, tuple[str, str, str]]:
     return out
 
 
+# Bounded like every other corpus script (see CLAUDE.md, "Corpus runs are
+# time-bounded"). Each cgg invocation is capped per repo, and the sweep as
+# a whole stops starting new repositories once the budget is spent; those
+# are named in the output rather than silently left out.
+REPO_TIMEOUT = float(os.environ.get("CGG_REPO_TIMEOUT", "300"))
+TOTAL_BUDGET = float(os.environ.get("CGG_TOTAL_BUDGET", "3600"))
+STARTED = time.monotonic()
+
+
 def run(binary: Path, repo: Path, extra: list[str]) -> tuple[float, str]:
     tmp = Path(tempfile.mkdtemp(prefix="cgg-cmp-"))
     try:
@@ -84,7 +93,7 @@ def run(binary: Path, repo: Path, extra: list[str]) -> tuple[float, str]:
             ],
             capture_output=True,
             text=True,
-            timeout=1800,
+            timeout=REPO_TIMEOUT,
             check=False,
         )
         return (time.monotonic() - start) * 1000, proc.stderr
@@ -174,6 +183,9 @@ def main() -> None:
 
     def measure(repo: Path) -> dict:
         name = repo.name
+        if time.monotonic() - STARTED > TOTAL_BUDGET:
+            print(f"  BUDGET EXHAUSTED — skipped {name}", file=sys.stderr, flush=True)
+            return {"repo": name, "skipped": "budget"}
         run(old, repo, [])  # warm the page cache; discarded
         ta1, sa1 = run(old, repo, [])
         tb1, sb1 = run(new, repo, [])
@@ -212,10 +224,18 @@ def main() -> None:
     # identical concurrency, so contention biases both equally. Keep
     # `--jobs 1` for numbers being published.
     rows = []
+    skipped: list[str] = []
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         for row in pool.map(measure, repos):
             done += 1
+            if "skipped" in row:
+                skipped.append(row["repo"])
+                print(
+                    f"[{done}/{len(repos)}] {row['repo']:<28} SKIPPED ({row['skipped']})",
+                    flush=True,
+                )
+                continue
             ga, gb = row["old"], row["new"]
             rows.append(row)
             print(
@@ -230,6 +250,12 @@ def main() -> None:
     if args.out:
         Path(args.out).write_text(json.dumps(rows, indent=1))
     print(f"\ndone: {len(rows)} repos", flush=True)
+    if skipped:
+        # Named, never averaged in: a repo past the budget is excluded.
+        print(
+            f"NOT MEASURED (budget {TOTAL_BUDGET:.0f}s): {len(skipped)} — {', '.join(skipped)}",
+            flush=True,
+        )
 
     # --- what `--skip-minified` did on THIS build ----------------------
     #
