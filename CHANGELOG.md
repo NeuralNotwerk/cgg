@@ -9,6 +9,32 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Added
+
+- **Lean 4.** `.lean` files: `def`/`theorem`/`lemma`/`abbrev`/`instance`/
+  `axiom`/`opaque`/`constant` declarations, structures and inductives
+  (fields and constructors), function application and dot-projection
+  calls, and the lemma references inside tactic blocks (`exact`,
+  `apply`, `simp [..]`, `rw [..]`). Cross-file resolution follows
+  `import`/`open`; `@[simp]`/`@[ext]` attributes and an `instance` marker
+  are recorded so dead-code reporting can treat implicitly used
+  declarations as live. Contributed by Nathan Howell. The grammar is
+  vendored (`crates/cgg-lang/vendor/lean4`), because the published
+  crate's `links = "tree-sitter"` cannot coexist with the workspace
+  runtime; before landing, a dotted-name bug that named 128 Batteries
+  declarations `….rfl`, anonymous instances named after their body, and
+  references to a declaration's own binders were fixed, and the grammar
+  ran clean under AddressSanitizer and UBSan on 4,766 real, mutated and
+  pathological inputs. 46 languages.
+
+### Known limitations
+
+- Lean dot-projections (`xs.foldl f`) and applications of names bound
+  inside tactic proofs are resolved by name, so they are `medium`
+  guesses; cgg does not elaborate Lean types. Macro and notation
+  expansion and typeclass-method dispatch need the Lean kernel and are
+  reported as unresolved.
+
 ### Changed
 
 - **Releases are gated on outstanding work and on packaging.** 0.9.0
