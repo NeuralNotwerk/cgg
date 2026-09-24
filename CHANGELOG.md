@@ -70,6 +70,29 @@ otherwise change the default graph.
   it passes; Erlang and Elixir calls now record their arity (a pipe
   `x |> f(a)` counts the piped value).
 
+- **C ↔ C++ ↔ Obj-C cross-language resolution.** A qualified-name
+  lookup that misses in the caller's language tries the other languages
+  in `cgg_core::lang_family`, so a C++ file that `#include`s a C header
+  resolves the call to the function defined in the `.c` file, and the
+  reverse. The simple-name and owner-method indexes stay
+  single-language, so duck-typed fan-out is unchanged. Only the C
+  family is enabled. Contributed by Serge Bakharev (#9).
+
+- **Content-detection for `.h` headers.** A `.h` file is parsed with the
+  C++ grammar when its first 8 KiB, after comments and string literals
+  are removed, contains `namespace`, `template<`, a class or struct
+  base list, an access specifier, `using`, `enum class`, `constexpr`,
+  `noexcept`, `::`, a C++ standard-library include (`<vector>`,
+  `<string>`, `<experimental/filesystem>`), or an include path
+  containing `++` (`<bits/stdc++.h>`). The sibling-file heuristic
+  remains the fallback. `extern "C"` is not a trigger, and neither is a
+  keyword inside a comment or a string. Contributed by Serge Bakharev
+  (#9). Across the corpus this and the entry above add 61k edges and 5k
+  nodes; what they remove is what the C grammar invented from C++
+  headers — member initialisers read as calls (`f0_`, `value_`,
+  `nSize_`), `static_assert`/`throw`/`move` as functions, and
+  in-class declarations as free functions.
+
 ### Fixed
 
 - **Seven frameworks were never detected on real applications**, each
@@ -107,6 +130,14 @@ otherwise change the default graph.
   `getLocalEngineArguments` and `tick` in the tool and framework tests
   were unreachable from every test that imported them this way.
 
+- **Prototype unification covers C and Objective-C bodies.**
+  `unify_declarations` keys off `has_body`, which only the C++ plugin
+  set. C function definitions and Objective-C method and function
+  definitions now set it, so a `.h` prototype parsed as C is dropped
+  when the `.c` or `.m` body is in the tree. Quoted Objective-C
+  `#import`s are recorded as `include` and followed like `#include`.
+  Contributed by Serge Bakharev (#9).
+
 ### Known limitations
 
 - Lean dot-projections (`xs.foldl f`) and applications of names bound
@@ -125,6 +156,11 @@ otherwise change the default graph.
   how JavaScript and TypeScript route closures have been attributed
   since 0.5. The handler is reached from its `<framework-entry>` node
   (the route), not from the registering function.
+- A `.h` header that is now parsed as C++ no longer takes part in C's
+  global same-name guessing: a C function it calls binds through its
+  `#include` chain or not at all. The guesses this removes were mostly
+  wrong — CUDA's `rendercheck_gl.h` had `glBindBuffer` bound to the
+  `.c` files of two unrelated Tegra samples.
 
 ### Changed
 
@@ -151,35 +187,6 @@ otherwise change the default graph.
   - `scripts/compare-release.py` honours `CGG_REPO_TIMEOUT` and
     `CGG_TOTAL_BUDGET` like every other corpus script, and names any
     repository the budget excluded.
-
-### Added
-
-- **C ↔ C++ ↔ Obj-C cross-language resolution.** A qualified-name
-  lookup that misses in the caller's language tries the other languages
-  in `cgg_core::lang_family`, so a C++ file that `#include`s a C header
-  resolves the call to the function defined in the `.c` file, and the
-  reverse. The simple-name and owner-method indexes stay
-  single-language, so duck-typed fan-out is unchanged. Only the C
-  family is enabled.
-
-- **Content-detection for `.h` headers.** A `.h` file is parsed with the
-  C++ grammar when its first 8 KiB, after comments and string literals
-  are removed, contains `namespace`, `template<`, a class or struct
-  base list, an access specifier, `using`, `enum class`, `constexpr`,
-  `noexcept`, `::`, a C++ standard-library include (`<vector>`,
-  `<string>`, `<experimental/filesystem>`), or an include path
-  containing `++` (`<bits/stdc++.h>`). The sibling-file heuristic
-  remains the fallback. `extern "C"` is not a trigger, and neither is a
-  keyword inside a comment or a string.
-
-### Fixed
-
-- **Prototype unification covers C and Objective-C bodies.**
-  `unify_declarations` keys off `has_body`, which only the C++ plugin
-  set. C function definitions and Objective-C method and function
-  definitions now set it, so a `.h` prototype parsed as C is dropped
-  when the `.c` or `.m` body is in the tree. Quoted Objective-C
-  `#import`s are recorded as `include` and followed like `#include`.
 
 ## [0.9.1] - 2026-09-24
 
