@@ -9,6 +9,16 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Added
+
+- **C ↔ C++ ↔ Obj-C cross-language resolution.** A qualified-name
+  lookup that misses in the caller's language tries the other languages
+  in `cgg_core::lang_family`, so a C++ file that `#include`s a C header
+  resolves the call to the function defined in the `.c` file, and the
+  reverse. The simple-name and owner-method indexes stay
+  single-language, so duck-typed fan-out is unchanged. Only the C
+  family is enabled.
+
 ## [0.9.1] - 2026-09-24
 
 Fixes the 0.9.0 known issue. The graph is unchanged: every one of the
