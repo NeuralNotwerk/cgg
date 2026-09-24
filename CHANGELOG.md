@@ -7,7 +7,54 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
-## [Unreleased]
+## [0.10.0] - 2026-09-24
+
+A minor release because the default graph moves substantially. Over the
+282-directory corpus it has **5,892,455 edges against 0.9.1's
+5,515,949 (+6.8%) and 2,698,195 callables against 2,688,642**. Every
+edge and node 0.9.1 had that 0.10.0 lacks was traced to a mechanism
+before release: guesses replaced by a certain binding (Java, Scala,
+Kotlin, Haskell and Erlang calls that had been bound to a same-named
+function in an unrelated class or module), calls now attributed to an
+inline route handler's node, what the C grammar invented from C++
+headers, C prototypes merged into their bodies, and untyped C++
+receivers whose candidate sets grew past `--fanout-cap`. The largest
+single gain is Erlang, where every call into a multi-clause function was
+dropped as ambiguous until now (+143k edges on OTP).
+
+### Performance
+
+Paired A/B against 0.9.1 over the whole corpus (`scripts/perf-compare.sh
+v0.9.1 3`, median of 3 per repository): **304,836 ms → 307,744 ms,
++1.0%**, inside the 1–1.5% noise floor the script reports for its own
+total. Like-for-like apart from the new default work: overload and
+clause binding, following in-tree `#include <…>` headers, and PR 9's
+cross-language lookups all add edges, and the run is 6.8% more edges
+for 1.0% more time.
+
+The machine was loaded throughout (load average 5.6–8.9 from unrelated
+resident services), which inflates per-repository deltas; the five
+repositories that moved by more than ~150 ms in that run were
+re-measured paired at `--jobs 1`, median of 5:
+
+| repository | 0.9.1 | 0.10.0 | Δ |
+| --- | ---: | ---: | ---: |
+| app-bamboobsc-struts | 10,752 ms | 10,869 ms | +1.1% |
+| app-rn-expensify | 19,008 ms | 19,669 ms | +3.5% |
+| app-metabase-compojure | 33,066 ms | 34,639 ms | +4.8% |
+| php-laravel | 8,556 ms | 8,501 ms | −0.6% |
+| smithy-protocol-tests | 6,202 ms | 6,276 ms | +1.2% |
+
+None exceeds 5%. The two largest are not new edges (Metabase gains 75,
+Expensify 22); `--profile` puts Metabase's in `xfile::import-table`, and
+splitting the repository puts all of it in the JavaScript frontend
+(436 ms → 1,050 ms; the Clojure backend is flat). The JavaScript plugin
+now records `export … from 'm'` and assigned `require('m')` as imports,
+and each import's module becomes a path fragment that the import table
+tests against **every file of the language** — a scan that is quadratic
+in file count and predates this release, now run with more fragments.
+Replacing it with an index is the follow-up. `cargo test --workspace`:
+8.9 s warm.
 
 ### Added
 
@@ -187,6 +234,17 @@ otherwise change the default graph.
   - `scripts/compare-release.py` honours `CGG_REPO_TIMEOUT` and
     `CGG_TOTAL_BUDGET` like every other corpus script, and names any
     repository the budget excluded.
+- **`scripts/sync-app-manifest.py` no longer erases what it cannot
+  measure.** It only measures rules with matcher lists, and rewrote each
+  app's claims from that measurement alone, so one run dropped 231
+  hand-maintained detect-only claims (`~beego`, `~ktor`, …) and the
+  marker-only `solidity-public` claim — 1,495 entries on OpenZeppelin —
+  and deleted every comment inside `APPS`. It now keeps claims for rules
+  outside its measurement, claims a marker-only rule it saw enumerate,
+  and rewrites entries in place. An empty `APPS_UNVERIFIED=( )` is
+  parsed correctly by it, `docs-check.py` and `framework-coverage.py`;
+  a lazy `\n\)` match had run on into the next array. Every
+  enumerating rule now has a real application: 155 of 155.
 
 ## [0.9.1] - 2026-09-24
 
