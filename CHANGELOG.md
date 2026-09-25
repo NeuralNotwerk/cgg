@@ -7,7 +7,13 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
-## [Unreleased]
+## [0.10.1] - 2026-09-25
+
+Adds `--locations` (#10, Serge Bakharev) and fixes how mermaid and
+GraphML labels are escaped. The graph is unchanged: callables, edges and
+dead-code findings are identical to 0.10.0 on all 282 corpus
+repositories. Default *rendered* mermaid changes in 30 of them, and
+GraphML in one, only where a label was misread (see *Fixed*).
 
 ### Added
 
@@ -86,6 +92,33 @@ otherwise change the default graph.
   U+FFFD, and every corpus GraphML document parses. Regression test:
   `control_characters_do_not_break_the_document` in
   `crates/cgg-format/src/graphml.rs`.
+
+### Performance
+
+Like for like: the pipeline code is the same in both releases. The
+default path changes only in the formatters: one flag test per edge,
+and an escape that walks each label once instead of three `replace`
+passes. `scripts/release.sh` against v0.10.0, `--jobs 1`, all 282
+corpus repositories. Load average was 8–11 on a 64-core host shared
+with a running vLLM server:
+
+| | v0.10.0 | 0.10.1 |
+| --- | --- | --- |
+| total wall | 293.6 s | 298.0 s (+1.5%) |
+| median per-repo delta | — | +0.3% |
+| repos faster | — | 137 of 282 |
+| graphs identical | — | 282 of 282 |
+
+23 repositories over 150 ms moved by more than 5%, the largest being
+`app-ocamlorg-dream` at +30.2%. Each was re-sampled as three
+interleaved pairs, keeping the minimum of each binary. 19 came back
+within ±4.3%. `app-ocamlorg-dream` measured +4.6% and
+`app-metabase-compojure` +2.5%, on runs of 15 s and 34 s. `java-gson`
+(+8.1%), `app-jupyterhub-tornado` (+7.5%) and `app-terminus-hanami`
+(−8.9%) each moved by exactly one 50 ms step of the re-sampler's timer.
+With no code change in the pipeline, we read all of it as noise on a
+loaded machine, not a regression. `cargo test --workspace` takes 8.7 s
+on a warm build and `docs-check.py` 0.2 s.
 
 ## [0.10.0] - 2026-09-24
 
