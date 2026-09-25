@@ -296,23 +296,69 @@ impl GraphFormatter for MermaidFormatter {
     }
 }
 
-/// Escape characters that mermaid treats specially inside `["..."]`.
-/// `"` collides with the bracket delimiter; `<`/`>` can be misread as
-/// HTML. Keep everything else as-is — mermaid tolerates colons and `::`.
+/// Escape a label for a quoted mermaid slot (`["..."]` or `|"..."|`).
+///
+/// Every rule here was checked by rendering with mermaid-cli:
+///
+/// - `"` would close the quote, and mermaid has no escape for it inside
+///   one, so it becomes `'`.
+/// - `<` and `>` are read as HTML (`lt<gt>` renders as `lt`).
+/// - `&` before a letter, digit or `#` can start an HTML entity, which
+///   the renderer decodes even without its `;` (`amp&amp.py` renders as
+///   `amp&.py`), so it becomes `&amp;`. `& ` and `&'` are left alone.
+/// - A line break becomes a space. Mermaid renders one inside quotes,
+///   but a label spanning lines splits a statement across lines, and
+///   agents and tools read mermaid a line at a time (`grep -- '-->'`).
+///   Some extracted names carry one: a C prototype's wrapped parameter
+///   list, a Clojure form.
+/// - `#name;` and `#123;` are mermaid entity codes, decoded before
+///   display (`x#quot;y` renders as `x"y`). The `#` is written as `#35;`,
+///   which decodes back to a literal `#`. A `#` that does not start one
+///   (`C#`, `Foo#bar`) is left alone, so ordinary labels keep their bytes.
+/// - A leading backtick turns the label into a markdown string. When
+///   that string is not well formed — F#'s ``` ``double ticks`` ```, an
+///   unclosed tick — mermaid rejects the **whole diagram**; when it is,
+///   the ticks vanish. It is written as `#96;`.
+///
+/// `|`, `\`, `::` and the rest need nothing inside quotes, and escaping
+/// them anyway shows the escape to the reader.
 fn mermaid_escape(s: &str) -> String {
-    s.replace('"', "'")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
+    let mut out = String::with_capacity(s.len());
+    for (i, c) in s.char_indices() {
+        match c {
+            '"' => out.push('\''),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '&' if s[i + 1..]
+                .bytes()
+                .next()
+                .is_some_and(|b| b.is_ascii_alphanumeric() || b == b'#') =>
+            {
+                out.push_str("&amp;")
+            }
+            '\n' | '\r' => out.push(' '),
+            '#' if starts_entity(&s[i + 1..]) => out.push_str("#35;"),
+            '`' if i == 0 => out.push_str("#96;"),
+            c => out.push(c),
+        }
+    }
+    out
 }
 
-/// A location label, quoted, so a path with a space survives the `|…|`
-/// slot. `|` and `"` inside the path would end the slot early.
+/// Whether `rest` (what follows a `#`) completes a mermaid entity code:
+/// one or more word characters, then `;`.
+fn starts_entity(rest: &str) -> bool {
+    let word = rest
+        .bytes()
+        .take_while(|b| b.is_ascii_alphanumeric() || *b == b'_')
+        .count();
+    word > 0 && rest.as_bytes().get(word) == Some(&b';')
+}
+
+/// A location label, quoted so a path with a space survives the `|…|`
+/// slot, and escaped like a node label.
 fn mermaid_edge_label(body: &str) -> String {
-    let escaped = body
-        .replace('\\', "\\\\")
-        .replace('"', "'")
-        .replace('|', "\\|");
-    format!("|\"{escaped}\"|")
+    format!("|\"{}\"|", mermaid_escape(body))
 }
 
 #[cfg(test)]
@@ -602,6 +648,62 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("N0 -->|entry| N1"), "got:\n{s}");
         assert!(!s.contains("t.rs:"), "got:\n{s}");
+    }
+
+    /// Each case was rendered with mermaid-cli before and after: the
+    /// right-hand side is what displays as the left-hand side.
+    #[test]
+    fn labels_escape_what_mermaid_would_misread() {
+        let cases = [
+            // Inside quotes `|` and `\` need nothing; escaping them
+            // showed the escape (`p\|q`, `back\\slash`).
+            ("./p|q.py:2", "./p|q.py:2"),
+            (r"./back\slash.py:2", r"./back\slash.py:2"),
+            // Read as HTML: `lt<gt>` displayed as `lt`.
+            ("lt<gt>", "lt&lt;gt&gt;"),
+            // Entities decode even without `;`: `amp&amp.py` showed `amp&.py`.
+            ("amp&amp.py", "amp&amp;amp.py"),
+            ("&#35;", "&amp;#35;35;"),
+            ("<&'a T as X>", "&lt;&'a T as X&gt;"),
+            ("a & b", "a & b"),
+            // No escape for `"` inside a quoted label.
+            ("a\"b", "a'b"),
+            // One statement per line.
+            ("nl\nx\r", "nl x "),
+            // Entity codes are decoded: `x#quot;y` displayed as `x"y`.
+            ("x#quot;y", "x#35;quot;y"),
+            ("x#35;y", "x#35;35;y"),
+            // A `#` that starts no entity keeps its bytes.
+            ("C#", "C#"),
+            ("Foo#bar", "Foo#bar"),
+            ("a#b c;", "a#b c;"),
+            // A leading backtick makes a markdown string; F#'s double
+            // ticks made mermaid reject the whole diagram.
+            ("`does a thing`", "#96;does a thing`"),
+            ("``does a thing``", "#96;`does a thing``"),
+            ("T.`does a thing`", "T.`does a thing`"),
+        ];
+        for (raw, want) in cases {
+            assert_eq!(mermaid_escape(raw), want, "escaping {raw:?}");
+        }
+        assert_eq!(mermaid_edge_label("./p|q.py:2"), r#"|"./p|q.py:2"|"#);
+    }
+
+    #[test]
+    fn a_hostile_path_stays_on_one_edge_statement() {
+        let mut g = mk_graph();
+        g.files.get_mut(&FileId::new(0)).unwrap().path =
+            PathBuf::from("dir/\"odd\"\n<name>|#quot;.rs");
+        let mut buf = Vec::new();
+        MermaidFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(
+            s.contains(r#"N0 -->|"dir/'odd' &lt;name&gt;|#35;quot;.rs:1"| N1"#),
+            "got:\n{s}"
+        );
     }
 
     #[test]

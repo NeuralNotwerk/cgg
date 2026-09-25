@@ -30,7 +30,62 @@ otherwise change the default graph.
   `locations=` on `cgg.analyze()` and the render methods in Python,
   `locations` on the Node options and `toMermaid` / `toDot` /
   `toGraphml`, and `"locations"` in the C ABI's options JSON — no new
-  exported symbol.
+  exported symbol. Contributed by Serge Bakharev (#10).
+
+### Fixed
+
+> **Since mermaid output existed, a label that began with a backtick
+> could make mermaid reject the entire default diagram.** A quoted
+> mermaid label that starts with `` ` `` is parsed as a markdown string.
+> F#'s ``` ``double-tick`` ``` names and an unclosed tick are not well
+> formed, and mermaid then refuses the whole document, not the one node.
+> Over the 282-repository corpus this made the default diagram
+> unrenderable for **4 repositories** — `fsharp-paket` (1,248 such
+> labels), `app-fsautocomplete-expecto`, `app-orleans-samples` and
+> `app-riffraff-play` — and dropped the ticks from 15 labels in
+> `r-ggplot2`, `app-tweetconf-shiny` and `rust-bat`. Checked by rendering
+> each repository's affected labels with mermaid-cli before and after.
+> The graph was never affected; `-t json`, DOT and GraphML were not
+> either.
+
+- **Mermaid labels are escaped for everything mermaid-cli misreads.**
+  Node and edge labels now share one escape, `mermaid_escape`:
+  - A leading backtick is written `#96;` (above).
+  - `&` before a letter, digit or `#` becomes `&amp;`. The renderer
+    decodes HTML entities even without their `;`, so a file named
+    `amp&amp.py` displayed as `amp&.py`.
+  - `#name;` and `#123;` are mermaid entity codes. Their `#` is written
+    `#35;`, so `x#quot;y` no longer displays as `x"y`. A `#` that starts
+    no code (`C#`, `Foo#bar`) keeps its bytes.
+  - A line break becomes a space. Mermaid does render a break inside
+    quotes, so this changes no picture. It keeps each statement on one
+    line for tools and agents that read mermaid a line at a time.
+    900 labels carry one, most of them a C/C++ prototype's wrapped
+    parameter list or a Clojure form (`zig-zig` 625, `app-metabase-compojure`
+    91, `dart-flutter` 88).
+
+  The same escape fixes the new `--locations` edge labels. As merged,
+  their escape wrote `\|` and `\\`, which mermaid displays literally
+  (`p\|q.py`, `back\\slash.py`), and left `<`/`>` raw, so `lt<gt>.py`
+  displayed as `lt.py`.
+
+  Default mermaid changes in 30 of 282 corpus repositories: 1,300
+  leading-tick labels, 900 multi-line labels and 136 `&` labels. To
+  confirm that nothing else changed, each repository's new diagram was
+  re-derived from its 0.10.0 diagram by applying only these rules, and
+  all 30 match byte for byte. Regression tests:
+  `labels_escape_what_mermaid_would_misread` and
+  `a_hostile_path_stays_on_one_edge_statement` in
+  `crates/cgg-format/src/mermaid.rs`.
+- **GraphML no longer emits characters XML cannot carry.** XML 1.0 has no
+  form for most C0 control characters, so a parser rejects the whole
+  document on the first one. A callable or file whose name contains one,
+  which is legal on Linux, made every GraphML run over that tree
+  unreadable. `erlang-otp` hits this: a test fixture function named
+  `c0_bad_name_` + U+0001 + `_test`. These characters are now written as
+  U+FFFD, and every corpus GraphML document parses. Regression test:
+  `control_characters_do_not_break_the_document` in
+  `crates/cgg-format/src/graphml.rs`.
 
 ## [0.10.0] - 2026-09-24
 

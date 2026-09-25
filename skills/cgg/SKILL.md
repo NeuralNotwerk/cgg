@@ -272,7 +272,10 @@ flowchart LR
 Note the mermaid escaping: the emitted label is `&lt;framework-entry&gt;`,
 not `<framework-entry>`. Match on the *unescaped* form in `--filter`
 (patterns run against qualified names, before escaping) but on the
-escaped form if you grep cgg's own output.
+escaped form if you grep cgg's own output. The other rewrites: `"`
+becomes `'`, `&` before a letter, digit or `#` becomes `&amp;`, the `#`
+of a `#name;` sequence becomes `#35;`, a leading backtick becomes
+`#96;`, and a line break becomes a space.
 
 These are **INFERRED, not observed** — nothing in the source says the
 call happens; cgg says so itself in the `%%` banner above the graph.

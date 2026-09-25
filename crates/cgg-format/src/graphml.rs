@@ -218,11 +218,29 @@ impl GraphFormatter for GraphmlFormatter {
     }
 }
 
+/// Escape text for an XML attribute or element body.
+///
+/// XML 1.0 cannot carry most C0 control characters at all, not even as
+/// a character reference, and a parser rejects the whole document on
+/// the first one. A file named with one (legal on Linux) used to make
+/// every GraphML run over its tree unreadable, so they become U+FFFD.
+/// Tab, line feed and carriage return are legal and are kept.
 fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\t' | '\n' | '\r' => out.push(c),
+            c if (c as u32) < 0x20 || c == '\u{FFFE}' || c == '\u{FFFF}' => {
+                out.push('\u{FFFD}')
+            }
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -274,6 +292,14 @@ mod tests {
         assert!(s.contains("<graphml"));
         assert!(s.contains("foo&lt;T&gt;"));
         assert!(!s.contains("site_file"), "locations are opt-in:\n{s}");
+    }
+
+    /// XML 1.0 cannot carry a C0 control character in any form, so a
+    /// file named with one made the whole document unparseable.
+    #[test]
+    fn control_characters_do_not_break_the_document() {
+        assert_eq!(xml_escape("c\u{1}d\te"), "c\u{FFFD}d\te");
+        assert_eq!(xml_escape("a&<\">"), "a&amp;&lt;&quot;&gt;");
     }
 
     #[test]
