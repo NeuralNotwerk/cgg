@@ -75,6 +75,11 @@ pub struct cgg_graph {
     /// renders all four formats, and `short` is only the default for
     /// mermaid.
     node_ids: Option<cgg_format::NodeIds>,
+    /// Whether [`cgg_graph_render`] should annotate mermaid, DOT and
+    /// GraphML with each call's file and line. JSON ignores it. Carried
+    /// on the handle, like `node_ids`, so the options JSON is the only
+    /// way in — the ABI does not gain a parameter.
+    locations: bool,
 }
 
 /// Hand a `String` to C as an owned NUL-terminated buffer.
@@ -188,6 +193,7 @@ pub unsafe extern "C" fn cgg_analyze(
             Ok(outcome) => Box::into_raw(Box::new(cgg_graph {
                 outcome,
                 node_ids: opts.node_ids,
+                locations: opts.locations,
             })),
         }
     })
@@ -248,6 +254,7 @@ pub unsafe extern "C" fn cgg_graph_render(
             &g.outcome.graph,
             fmt,
             cgg_format::NodeIds::resolve(g.node_ids, fmt),
+            g.locations,
         ))
     })
 }
@@ -504,6 +511,39 @@ mod tests {
         assert!(g.is_null());
         let err = err.expect("a bad option must report an error");
         assert!(err.contains("node_ids") || err.contains("ordinal"), "{err}");
+    }
+
+    /// `locations` is an options-JSON field, same as `node_ids`. The
+    /// handle carries it into the render; JSON is not the format under
+    /// test here.
+    #[test]
+    fn locations_cross_as_an_option_and_survive_to_render() {
+        let mermaid = |json: &str| {
+            let (g, _) = analyze(json);
+            assert!(!g.is_null());
+            let mut err = ptr::null_mut();
+            let f = CString::new("mermaid").unwrap();
+            let s = take(unsafe { cgg_graph_render(g, f.as_ptr(), &mut err) });
+            unsafe { cgg_graph_free(g) };
+            s
+        };
+        let plain = mermaid(r#"{"paths":["../cgg-walk"]}"#);
+        let located = mermaid(r#"{"paths":["../cgg-walk"],"locations":true}"#);
+        assert!(
+            !plain.contains(".rs:"),
+            "the default diagram must not carry a file:line label"
+        );
+        assert!(
+            located.contains(".rs:"),
+            "want a file and line on an arrow:\n{}",
+            &located[..located.len().min(800)]
+        );
+        let arrows = |s: &str| s.lines().filter(|l| l.contains("-->")).count();
+        assert_eq!(
+            arrows(&plain),
+            arrows(&located),
+            "locations must not add or drop arrows"
+        );
     }
 
     /// `jobs` is observable, so it is testable — the same reason

@@ -243,6 +243,35 @@ def test_mermaid_node_ids_short_is_the_explicit_default(tree: Path) -> None:
     assert g.to_mermaid(node_ids="short") == g.to_mermaid()
 
 
+def test_locations_match_the_cli(tree: Path) -> None:
+    binary = _cli()
+    if not binary.exists():
+        pytest.skip(f"cgg binary not built at {binary}")
+    g = cgg.analyze(tree)
+    proc = subprocess.run(
+        [str(binary), str(tree), "-t", "mermaid", "--locations"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert g.to_mermaid(locations=True) == proc.stdout
+    assert g.to_mermaid() != g.to_mermaid(locations=True)
+    dot = subprocess.run(
+        [str(binary), str(tree), "-t", "dot", "--locations"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert g.to_dot(locations=True) == dot.stdout
+    graphml = subprocess.run(
+        [str(binary), str(tree), "-t", "graphml", "--locations"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert g.to_graphml(locations=True) == graphml.stdout
+
+
 def test_mermaid_node_ids_rejects_anything_else(tree: Path) -> None:
     g = cgg.analyze(tree)
     with pytest.raises(ValueError, match="short"):

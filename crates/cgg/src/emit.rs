@@ -22,15 +22,25 @@ use crate::outcome::{Emission, RunOutcome};
 
 /// The formatter for `f`, naming its nodes under `ids`. One factory, so
 /// a fifth output format is one edit rather than two.
-fn formatter(f: OutputFormat, ids: NodeIds) -> Box<dyn GraphFormatter> {
+///
+/// `locations` is ignored for JSON: that document already carries
+/// `site_line` on every edge. The caller warns; this does not change
+/// the bytes.
+fn formatter(f: OutputFormat, ids: NodeIds, locations: bool) -> Box<dyn GraphFormatter> {
     match f {
-        OutputFormat::Mermaid => Box::new(MermaidFormatter::with_node_ids(ids)),
+        OutputFormat::Mermaid => {
+            Box::new(MermaidFormatter::with_node_ids(ids).with_locations(locations))
+        }
         // JSON takes no scheme: its ids are the content-derived identity
         // `--from-graph` replays, not a rendering choice. See
         // `OutputFormat::node_ids_are_identity`.
         OutputFormat::Json => Box::new(JsonFormatter::new()),
-        OutputFormat::Dot => Box::new(DotFormatter::with_node_ids(ids)),
-        OutputFormat::Graphml => Box::new(GraphmlFormatter::with_node_ids(ids)),
+        OutputFormat::Dot => {
+            Box::new(DotFormatter::with_node_ids(ids).with_locations(locations))
+        }
+        OutputFormat::Graphml => {
+            Box::new(GraphmlFormatter::with_node_ids(ids).with_locations(locations))
+        }
     }
 }
 
@@ -74,11 +84,21 @@ fn graph(cli: &Cli, graph: &Graph) -> Result<()> {
              rendering choice. Emitting hashed ids."
         );
     }
+    // JSON already records the call site. Applying the flag there would
+    // either duplicate it or, worse, look like it had when the document
+    // is what it always was.
+    if cli.locations && format.node_ids_are_identity() && !cli.quiet {
+        eprintln!(
+            "warning: --locations does not apply to -t {format}; every edge \
+             already carries site_line, and the caller's file is \
+             callables[src].file. Emitting the document unchanged."
+        );
+    }
     let dest = primary_sink(cli);
     let mut sink = open_sink(&dest)?;
     // Streams into the sink rather than going through `graph_to_string`,
     // which would buffer the whole rendering first.
-    formatter(format, ids).render(graph, &mut sink)?;
+    formatter(format, ids, cli.locations).render(graph, &mut sink)?;
     Ok(())
 }
 
@@ -88,16 +108,24 @@ fn graph(cli: &Cli, graph: &Graph) -> Result<()> {
 /// ends have to agree on what a mermaid id looks like, and they do by
 /// construction if none of them owns the choice.
 pub fn graph_to_string(g: &Graph, format: OutputFormat) -> String {
-    graph_to_string_with(g, format, format.default_node_ids())
+    graph_to_string_with(g, format, format.default_node_ids(), false)
 }
 
 /// Render a graph to a `String` under an explicit node-id scheme.
-pub fn graph_to_string_with(g: &Graph, format: OutputFormat, ids: NodeIds) -> String {
+///
+/// `locations` annotates mermaid, DOT and GraphML with each call's file
+/// and line. JSON ignores it: that document already has the fields.
+pub fn graph_to_string_with(
+    g: &Graph,
+    format: OutputFormat,
+    ids: NodeIds,
+    locations: bool,
+) -> String {
     // Seeded so a large graph does not walk up through ~22 doubling
     // reallocations. Rough: mermaid averages a few dozen bytes per node.
     let mut buf = Vec::with_capacity((g.callables.len() + g.edges.len()) * 48);
     // Formatters only fail on a failing writer, and `Vec` cannot fail.
-    formatter(format, ids)
+    formatter(format, ids, locations)
         .render(g, &mut buf)
         .expect("formatters cannot fail writing to a Vec");
     String::from_utf8(buf).expect("formatters emit UTF-8")

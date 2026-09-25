@@ -623,11 +623,26 @@ impl Graph {
     /// tokens. Pass `node_ids="hash"` for the content-derived base36 ids
     /// that `to_json()` carries, which is what you want if you are
     /// correlating the two or diffing diagrams across revisions.
-    #[pyo3(signature = (node_ids = None))]
-    fn to_mermaid(&self, py: Python<'_>, node_ids: Option<&str>) -> PyResult<String> {
+    ///
+    /// `locations=True` labels each arrow with the caller's file and
+    /// every call's line (`src/lib.rs:42,88`). Off by default, so the
+    /// string matches `cgg -t mermaid` with no extra flag. A rolled-up
+    /// arrow keeps its `Nx` count: it has no single site.
+    #[pyo3(signature = (node_ids = None, locations = false))]
+    fn to_mermaid(
+        &self,
+        py: Python<'_>,
+        node_ids: Option<&str>,
+        locations: bool,
+    ) -> PyResult<String> {
         let ids = parse_node_ids(node_ids, OutputFormat::Mermaid)?;
         Ok(py.detach(|| {
-            cgg::emit::graph_to_string_with(&self.inner, OutputFormat::Mermaid, ids)
+            cgg::emit::graph_to_string_with(
+                &self.inner,
+                OutputFormat::Mermaid,
+                ids,
+                locations,
+            )
         }))
     }
 
@@ -637,13 +652,35 @@ impl Graph {
     }
 
     /// Graphviz DOT.
-    fn to_dot(&self, py: Python<'_>) -> String {
-        py.detach(|| cgg::emit::graph_to_string(&self.inner, OutputFormat::Dot))
+    ///
+    /// `locations=True` labels each edge with the caller's file and the
+    /// line of every call, the same text `--locations` puts on `-t dot`.
+    #[pyo3(signature = (locations = false))]
+    fn to_dot(&self, py: Python<'_>, locations: bool) -> String {
+        py.detach(|| {
+            cgg::emit::graph_to_string_with(
+                &self.inner,
+                OutputFormat::Dot,
+                OutputFormat::Dot.default_node_ids(),
+                locations,
+            )
+        })
     }
 
     /// GraphML, for Gephi / yEd / networkx.
-    fn to_graphml(&self, py: Python<'_>) -> String {
-        py.detach(|| cgg::emit::graph_to_string(&self.inner, OutputFormat::Graphml))
+    ///
+    /// `locations=True` adds `site_file` and `site_line` on each edge
+    /// that is one call in a real source file.
+    #[pyo3(signature = (locations = false))]
+    fn to_graphml(&self, py: Python<'_>, locations: bool) -> String {
+        py.detach(|| {
+            cgg::emit::graph_to_string_with(
+                &self.inner,
+                OutputFormat::Graphml,
+                OutputFormat::Graphml.default_node_ids(),
+                locations,
+            )
+        })
     }
 
     /// The graph as a plain `dict` — the escape hatch for anything the
@@ -810,6 +847,7 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     rollup_by = None,
     rollup_format = "mermaid",
     node_ids = None,
+    locations = false,
     from_graph = None,
 ))]
 #[allow(clippy::too_many_arguments)]
@@ -844,6 +882,7 @@ fn analyze(
     rollup_by: Option<&str>,
     rollup_format: &str,
     node_ids: Option<&str>,
+    locations: bool,
     from_graph: Option<PathBuf>,
 ) -> PyResult<Graph> {
     let opts = cgg::RunOptions {
@@ -897,6 +936,10 @@ fn analyze(
             .map(str::parse)
             .transpose()
             .map_err(PyValueError::new_err)?,
+        // Same reason as `node_ids`: `--rollup` measures rendered bytes,
+        // and a location label is larger than a bare arrow. The render
+        // methods take it again; this only sizes the budget.
+        locations,
         from_graph,
     };
 

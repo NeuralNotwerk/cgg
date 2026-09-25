@@ -4,7 +4,7 @@
 //!
 //! ```text
 //! cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
-//!               [--node-ids short|hash]
+//!               [--node-ids short|hash] [--locations]
 //!               [--filter PATTERN]... [-n N]
 //!               [--max-paths N]
 //!               [--rollup BUDGET] [--rollup-by LEVEL]
@@ -68,6 +68,18 @@ pub struct Cli {
     /// reads back rather than a rendering choice.
     #[arg(long = "node-ids", value_enum, value_name = "SCHEME")]
     pub node_ids: Option<NodeIdsArg>,
+
+    /// Annotate each call with the file and line where it occurs.
+    ///
+    /// Off by default, so mermaid, DOT and GraphML stay byte-identical.
+    /// Mermaid and DOT still draw one arrow per caller/callee pair and
+    /// list every site on it (`src/lib.rs:42,88`). A rolled-up arrow has
+    /// no single site and keeps its `Nx` count, as does an edge whose
+    /// caller is synthetic. Does not apply to `-t json`, which already
+    /// records `site_line` on every edge; asking for it there warns
+    /// rather than changing the document.
+    #[arg(long = "locations", action = ArgAction::SetTrue)]
+    pub locations: bool,
 
     /// Filter callables by pattern. Repeatable. Regex by default; prefix
     /// with `glob:` to use glob syntax. Matched against fully-qualified

@@ -1561,7 +1561,11 @@ pub(crate) fn apply_rollup(
     // a third larger, and a budget measured against the numbered form
     // would let the emitted one sail past it.
     let ids = cgg_format::NodeIds::resolve(opts.node_ids, format);
-    let render = move |g: &Graph| emit::graph_to_string_with(g, format, ids);
+    // `--locations` enlarges mermaid, DOT and GraphML. JSON already
+    // carries the call site, and its formatter ignores the flag, so
+    // measuring a JSON budget with it on changes nothing.
+    let locations = opts.locations;
+    let render = move |g: &Graph| emit::graph_to_string_with(g, format, ids, locations);
     // A fresh allocator, not the pipeline's: `replay` has no pipeline and
     // must take the identical path, and group ids draw from their own
     // hash domain either way.

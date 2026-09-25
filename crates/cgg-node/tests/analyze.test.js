@@ -288,3 +288,17 @@ test("toMermaid matches the CLI, both schemes", { skip: !haveBin }, async () => 
     cli([TREE, "-t", "mermaid", "--node-ids", "hash"]),
   );
 });
+
+test("locations match the CLI", { skip: !haveBin }, async () => {
+  const g = await cgg.analyze(TREE);
+  assert.strictEqual(
+    g.toMermaid(null, true),
+    cli([TREE, "-t", "mermaid", "--locations"]),
+  );
+  assert.notStrictEqual(g.toMermaid(), g.toMermaid(null, true));
+  assert.strictEqual(g.toDot(true), cli([TREE, "-t", "dot", "--locations"]));
+  assert.strictEqual(
+    g.toGraphml(true),
+    cli([TREE, "-t", "graphml", "--locations"]),
+  );
+});

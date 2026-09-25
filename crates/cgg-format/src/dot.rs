@@ -1,5 +1,6 @@
 //! DOT (Graphviz) formatter.
 
+use crate::locations::SiteList;
 use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
@@ -30,6 +31,9 @@ fn via_dot(via: &Via) -> (&'static str, &'static str) {
 #[derive(Debug)]
 pub struct DotFormatter {
     node_ids: NodeIds,
+    /// Print each call's file and line. Off by default so an ordinary
+    /// diagram is byte-identical to one from before the flag existed.
+    locations: bool,
 }
 
 impl Default for DotFormatter {
@@ -42,11 +46,20 @@ impl DotFormatter {
     pub fn new() -> Self {
         Self {
             node_ids: OutputFormat::Dot.default_node_ids(),
+            locations: false,
         }
     }
 
     pub fn with_node_ids(node_ids: NodeIds) -> Self {
-        Self { node_ids }
+        Self {
+            node_ids,
+            locations: false,
+        }
+    }
+
+    pub fn with_locations(mut self, locations: bool) -> Self {
+        self.locations = locations;
+        self
     }
 }
 
@@ -95,6 +108,10 @@ impl GraphFormatter for DotFormatter {
         let mut order: Vec<(CallableId, CallableId, &str, &str)> = Vec::new();
         let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
+        let mut sites: std::collections::HashMap<
+            (CallableId, CallableId, &str),
+            SiteList,
+        > = std::collections::HashMap::new();
         for edge in &graph.edges {
             let (tag, style) = via_dot(&edge.via);
             let key = (edge.src, edge.dst, tag);
@@ -107,14 +124,32 @@ impl GraphFormatter for DotFormatter {
             if first {
                 order.push((key.0, key.1, tag, style));
             }
+            if self.locations {
+                sites.entry(key).or_default().observe(graph, edge);
+            }
         }
         for (src, dst, tag, style) in order {
             let n = counts[&(src, dst, tag)];
-            let label = match (tag.is_empty(), n > 1) {
-                (true, false) => String::new(),
-                (true, true) => format!("{n}x"),
-                (false, false) => tag.to_string(),
-                (false, true) => format!("{tag} {n}x"),
+            // A complete site list replaces the count. An incomplete one
+            // (rolled up, or a synthetic caller) keeps `Nx`.
+            let located = self
+                .locations
+                .then(|| sites.get(&(src, dst, tag)).and_then(SiteList::label))
+                .flatten();
+            let label = if let Some(loc) = located {
+                let body = if tag.is_empty() {
+                    loc
+                } else {
+                    format!("{tag} {loc}")
+                };
+                dot_escape(&body)
+            } else {
+                match (tag.is_empty(), n > 1) {
+                    (true, false) => String::new(),
+                    (true, true) => format!("{n}x"),
+                    (false, false) => tag.to_string(),
+                    (false, true) => format!("{tag} {n}x"),
+                }
             };
             let (src, dst) = (namer.name(src), namer.name(dst));
             if label.is_empty() && style.is_empty() {
@@ -212,6 +247,20 @@ mod tests {
         // Single edge: no count label.
         assert!(s.contains("n0 -> n1;"), "got:\n{s}");
         assert!(!s.contains("label=\"1x\""));
+    }
+
+    #[test]
+    fn locations_list_every_site() {
+        let g = mk_graph_with_edges(&[(0, 1, 5), (0, 1, 50)]);
+        let mut buf = Vec::new();
+        DotFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        // Both edges are line 1 in this fixture; each site is listed.
+        assert!(s.contains("n0 -> n1 [label=\"a.rs:1,1\"];"), "got:\n{s}");
+        assert!(!s.contains("2x"), "got:\n{s}");
     }
 
     #[test]

@@ -93,6 +93,18 @@ pub struct RunOptions {
     /// default onto every later rendering.
     pub node_ids: Option<cgg_format::NodeIds>,
 
+    /// Annotate mermaid, DOT and GraphML with each call's file and line.
+    ///
+    /// Presentation, and it would live on `Cli` alone but for `--rollup`:
+    /// a location label is larger than a bare arrow, so a budget measured
+    /// without it would let the emitted document sail past. JSON ignores
+    /// it — that document already carries `site_line` — and the CLI says
+    /// so rather than pretending the flag changed the bytes.
+    ///
+    /// Off by default. An ordinary rendering is byte-identical to one
+    /// from before the flag existed.
+    pub locations: bool,
+
     /// Re-query a graph saved by an earlier `-t json` run instead of
     /// walking source.
     ///
@@ -176,6 +188,7 @@ impl Default for RunOptions {
             rollup_by: None,
             rollup_format: crate::OutputFormat::Mermaid,
             node_ids: None,
+            locations: false,
             from_graph: None,
             fanout_cap: cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32,
             ignore_file: None,
@@ -274,6 +287,10 @@ impl From<&crate::cli::Cli> for RunOptions {
             // Read below as `node_ids` — presentation, except that the
             // `--rollup` budget is measured against the rendering.
             node_ids,
+            // Read below as `locations` — presentation, except that the
+            // `--rollup` budget is measured against the rendering, and a
+            // location label is larger than a bare arrow.
+            locations,
 
             // --- I/O and presentation: consumed by `crate::emit`. ---
             output: _,
@@ -304,6 +321,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             rollup_by: *rollup_by,
             rollup_format: (*format).into(),
             node_ids: node_ids.map(Into::into),
+            locations: *locations,
             from_graph: from_graph.clone(),
             fanout_cap: *fanout_cap,
             ignore_file: ignore_file.clone(),

@@ -452,10 +452,15 @@ into a single arrow with a multiplicity label — e.g.
 `nk6rdns31fh -> n1a7yv3q0ebt [label="18x"];` in dot. The bare arrow form
 is used when the count is 1. When an edge also carries a `Via` tag the
 label slot holds both, space-separated: `-->|std 9x|`, `-->|ref 10x|`.
-JSON and GraphML still emit one edge per call site (with
-`site_line`/`site_byte`) so programmatic consumers don't lose
-call-frequency information — on the run above, 60 mermaid arrows
-against 91 JSON/GraphML edges.
+JSON and GraphML still emit one edge per call site so programmatic
+consumers don't lose call-frequency information — on the run above, 60
+mermaid arrows against 91 JSON/GraphML edges. JSON carries
+`site_line`/`site_byte` on each edge (the file is the caller's, via
+`callables[src].file`). GraphML does not, unless you pass
+`--locations`, which also labels the collapsed mermaid and DOT arrows
+with every site (`-->|"src/lib.rs:42,88"|`). A rolled-up arrow keeps
+its `Nx` count: it has no single line. `--locations` does not apply
+to `-t json` and says so.
 
 If an edge you expected is missing, check the audit sidecar. It is a
 **JSON array of events**, not an object, so select the event first:

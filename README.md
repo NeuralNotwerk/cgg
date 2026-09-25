@@ -94,7 +94,7 @@ external diff drivers, textconv): a checkout's `.git/config` cannot make
 
 ```text
 cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
-              [--node-ids short|hash]
+              [--node-ids short|hash] [--locations]
               [--filter PATTERN]... [--since REVSPEC]
               [-n N] [--max-paths N] [--fanout-cap N]
               [--rollup BUDGET] [--rollup-by LEVEL]
@@ -124,6 +124,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `-t` | mermaid | Output format: `mermaid`, `json`, `dot`, `graphml` |
 | `-o` | stdout | Output file (use `-` for stdout) |
 | `--node-ids` | `short` for mermaid, `hash` elsewhere | How nodes are named: `short` numbers them `N0`, `N1`, … in graph order; `hash` uses the content-derived base36 id (`Cu7kwiat260`). A mermaid id repeats on every edge that touches its node, so numbering cuts **20.5% of the bytes** across the 164-repo benchmark corpus, and more of the tokens — on this repo's own tree, 275,772 -> 209,237 bytes but 127,536 -> 80,360 tokens, **-37.0%** measured with `o200k_base`. Use `hash` to diff two revisions' diagrams or line one up against `-t json`. Does not apply to `-t json`, whose ids are the identity `--from-graph` reads back; asking for it there warns rather than silently doing nothing |
+| `--locations` | off | Annotate each call with the file and line where it occurs. Mermaid and DOT keep one arrow per caller/callee pair and list every site on it (`-->\|"src/lib.rs:42,88"\|`, `label="src/lib.rs:42,88"`). A `via` tag stays in front (`std src/lib.rs:42`). A rolled-up arrow has no single site and keeps its `Nx` count, as does an edge from a synthetic caller. Does not apply to `-t json`, which already records `site_line` on every edge and the caller's file on the source callable; asking for it there warns rather than changing the document. `--rollup` measures its budget against this rendering |
 | `--filter` | (none) | Regex on qualified names; prefix `glob:` for glob |
 | `--since` | (none) | Add functions touched by `git diff <revspec>` as filter seeds (e.g. `HEAD~5`, `main..HEAD`) |
 | `-n` | -1 (full) | Hop depth around filter matches; `0` = full paths |

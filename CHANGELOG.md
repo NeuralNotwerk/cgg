@@ -7,6 +7,31 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
+## [Unreleased]
+
+### Added
+
+- **`--locations`.** Mermaid, DOT and GraphML can name the file and line
+  of each call. Off by default.
+  Mermaid and DOT still draw one arrow per caller/callee pair and list
+  every site on it (`-->|"src/lib.rs:42,88"|`, `label="src/lib.rs:42,88"`);
+  a `via` tag stays in front (`std src/lib.rs:42`). GraphML keeps one
+  edge per call site and adds `site_file` and `site_line`. A rolled-up
+  arrow has no single site and keeps its `Nx` count, as does an edge
+  from a synthetic caller — the marker's line is on the edge, but the
+  edge does not carry the marker's file. `-t json` already records
+  `site_line` on every edge and the caller's file on the source
+  callable; asking for `--locations` there warns rather than changing
+  the document. The flag lives on `RunOptions` because `--rollup`
+  measures its budget against the rendered document, and a location
+  label is larger than a bare arrow.
+
+  Reachable from all four front ends: `--locations` on the CLI,
+  `locations=` on `cgg.analyze()` and the render methods in Python,
+  `locations` on the Node options and `toMermaid` / `toDot` /
+  `toGraphml`, and `"locations"` in the C ABI's options JSON — no new
+  exported symbol.
+
 ## [0.10.0] - 2026-09-24
 
 A minor release because the default graph moves substantially. Over the

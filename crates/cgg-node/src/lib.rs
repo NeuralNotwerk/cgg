@@ -84,6 +84,14 @@ pub struct AnalyzeOptions {
     /// (`toMermaid("hash")`) or the budget describes a document you never
     /// asked for.
     pub node_ids: Option<String>,
+    /// Annotate mermaid, DOT and GraphML with each call's file and line.
+    ///
+    /// Only `rollup` reads this during analysis: the budget is measured
+    /// against the rendered document, and a location label is larger than
+    /// a bare arrow. Pass the same value to `toMermaid` / `toDot` /
+    /// `toGraphml`, or the budget describes a document you never asked for.
+    /// JSON already carries the call site and ignores it.
+    pub locations: Option<bool>,
     /// Replay a graph written by an earlier `toJson()` / `-t json` run
     /// instead of analyzing source. Pass `[]` for the paths.
     pub from_graph: Option<String>,
@@ -297,6 +305,7 @@ fn build_options(
                     .map_err(|e: String| Error::new(Status::InvalidArg, e))?,
             ),
         },
+        locations: o.locations.unwrap_or(false),
         from_graph: o.from_graph.map(Into::into),
         ..d
     })
@@ -482,13 +491,22 @@ impl Graph {
     /// tokens. Pass `"hash"` for the content-derived base36 ids that
     /// `toJson()` carries, if you are correlating the two or diffing
     /// diagrams across revisions.
+    ///
+    /// Pass `locations: true` to label each arrow with the caller's file
+    /// and every call's line. Off by default. A rolled-up arrow keeps
+    /// its count: it has no single site.
     #[napi]
-    pub fn to_mermaid(&self, node_ids: Option<String>) -> Result<String> {
+    pub fn to_mermaid(
+        &self,
+        node_ids: Option<String>,
+        locations: Option<bool>,
+    ) -> Result<String> {
         let ids = parse_node_ids(node_ids.as_deref(), OutputFormat::Mermaid)?;
         Ok(cgg::emit::graph_to_string_with(
             &self.outcome.graph,
             OutputFormat::Mermaid,
             ids,
+            locations.unwrap_or(false),
         ))
     }
 
@@ -504,15 +522,31 @@ impl Graph {
     }
 
     /// Render as Graphviz DOT.
+    ///
+    /// `locations` labels each edge with the caller's file and every
+    /// call's line. Off by default.
     #[napi]
-    pub fn to_dot(&self) -> String {
-        cgg::emit::graph_to_string(&self.outcome.graph, OutputFormat::Dot)
+    pub fn to_dot(&self, locations: Option<bool>) -> String {
+        cgg::emit::graph_to_string_with(
+            &self.outcome.graph,
+            OutputFormat::Dot,
+            OutputFormat::Dot.default_node_ids(),
+            locations.unwrap_or(false),
+        )
     }
 
     /// Render as GraphML.
+    ///
+    /// `locations` adds `site_file` and `site_line` on each edge that is
+    /// one call in a real source file. Off by default.
     #[napi]
-    pub fn to_graphml(&self) -> String {
-        cgg::emit::graph_to_string(&self.outcome.graph, OutputFormat::Graphml)
+    pub fn to_graphml(&self, locations: Option<bool>) -> String {
+        cgg::emit::graph_to_string_with(
+            &self.outcome.graph,
+            OutputFormat::Graphml,
+            OutputFormat::Graphml.default_node_ids(),
+            locations.unwrap_or(false),
+        )
     }
 }
 

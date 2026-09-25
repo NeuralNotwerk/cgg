@@ -461,6 +461,7 @@ fn the_rollup_budget_follows_the_node_id_scheme() {
             &graph,
             cgg::OutputFormat::Mermaid,
             ids,
+            false,
         ))
     };
     let short = tokens(cgg_format::NodeIds::Short);

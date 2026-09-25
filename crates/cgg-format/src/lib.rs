@@ -10,6 +10,7 @@
 pub mod dot;
 pub mod graphml;
 pub mod json;
+mod locations;
 pub mod mermaid;
 pub mod node_ids;
 

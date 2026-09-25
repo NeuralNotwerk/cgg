@@ -36,8 +36,12 @@ export declare class Graph {
    * tokens. Pass `"hash"` for the content-derived base36 ids that
    * `toJson()` carries, if you are correlating the two or diffing
    * diagrams across revisions.
+   *
+   * Pass `locations: true` to label each arrow with the caller's file
+   * and every call's line. Off by default. A rolled-up arrow keeps
+   * its count: it has no single site.
    */
-  toMermaid(nodeIds?: string | undefined | null): string
+  toMermaid(nodeIds?: string | undefined | null, locations?: boolean | undefined | null): string
   /**
    * Render as `cgg.graph.v2` JSON.
    *
@@ -47,10 +51,20 @@ export declare class Graph {
    * timings and ARE byte-identical.
    */
   toJson(): string
-  /** Render as Graphviz DOT. */
-  toDot(): string
-  /** Render as GraphML. */
-  toGraphml(): string
+  /**
+   * Render as Graphviz DOT.
+   *
+   * `locations` labels each edge with the caller's file and every
+   * call's line. Off by default.
+   */
+  toDot(locations?: boolean | undefined | null): string
+  /**
+   * Render as GraphML.
+   *
+   * `locations` adds `site_file` and `site_line` on each edge that is
+   * one call in a real source file. Off by default.
+   */
+  toGraphml(locations?: boolean | undefined | null): string
 }
 
 /**
@@ -139,6 +153,16 @@ export interface AnalyzeOptions {
    * asked for.
    */
   nodeIds?: string
+  /**
+   * Annotate mermaid, DOT and GraphML with each call's file and line.
+   *
+   * Only `rollup` reads this during analysis: the budget is measured
+   * against the rendered document, and a location label is larger than
+   * a bare arrow. Pass the same value to `toMermaid` / `toDot` /
+   * `toGraphml`, or the budget describes a document you never asked for.
+   * JSON already carries the call site and ignores it.
+   */
+  locations?: boolean
   /**
    * Replay a graph written by an earlier `toJson()` / `-t json` run
    * instead of analyzing source. Pass `[]` for the paths.

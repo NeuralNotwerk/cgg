@@ -533,3 +533,72 @@ fn node_ids_warns_for_json_instead_of_silently_doing_nothing() {
         "--node-ids moved the JSON edges"
     );
 }
+
+/// `--locations` names every call on the one collapsed arrow. The same
+/// fixture without the flag must not grow a path: the default document
+/// stays what it was.
+#[test]
+fn locations_annotate_calls_and_leave_the_default_alone() {
+    let tmp = fixture();
+    let plain = render(tmp.path(), &["-t", "mermaid"]);
+    assert!(
+        !plain.contains("m.py:"),
+        "the default mermaid diagram must not carry locations:\n{plain}"
+    );
+    let located = render(tmp.path(), &["-t", "mermaid", "--locations"]);
+    // The path is whatever the graph stored for the file — absolute here,
+    // because the fixture directory was passed as an absolute path. The
+    // contract under test is the line list, on one arrow.
+    assert!(
+        located.contains(r#"m.py:5,5"|"#),
+        "both calls to helper are on line 5:\n{located}"
+    );
+    assert!(
+        !located.contains("|2x|"),
+        "the lines replace the count:\n{located}"
+    );
+
+    let dot = render(tmp.path(), &["-t", "dot", "--locations"]);
+    assert!(dot.contains(r#"m.py:5,5""#), "got:\n{dot}");
+
+    let graphml = render(tmp.path(), &["-t", "graphml", "--locations"]);
+    assert!(
+        graphml.contains(r#"attr.name="site_file""#),
+        "got:\n{graphml}"
+    );
+    let sites = graphml.matches(r#"<data key="site_line">5</data>"#).count();
+    assert_eq!(sites, 2, "one attribute per call site:\n{graphml}");
+
+    let bare = render(tmp.path(), &["-t", "graphml"]);
+    assert!(
+        !bare.contains("site_file"),
+        "graphml without the flag must not declare the keys:\n{bare}"
+    );
+}
+
+/// JSON already has the call site. The flag says so and does not rewrite
+/// the edges.
+#[test]
+fn locations_warns_for_json_instead_of_silently_doing_nothing() {
+    let tmp = fixture();
+    let out = tmp.path().join("g.json");
+    let assert = cgg()
+        .arg(tmp.path())
+        .args(["-t", "json", "--locations", "-o"])
+        .arg(&out)
+        .assert()
+        .success();
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
+    assert!(
+        stderr.contains("--locations does not apply to -t json"),
+        "want a warning, got:\n{stderr}"
+    );
+    let with_flag: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&out).unwrap()).unwrap();
+    let plain: serde_json::Value =
+        serde_json::from_str(&render(tmp.path(), &["-t", "json"])).unwrap();
+    assert_eq!(
+        with_flag["edges"], plain["edges"],
+        "--locations rewrote the JSON edges"
+    );
+}

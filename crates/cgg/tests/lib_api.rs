@@ -440,6 +440,7 @@ fn cli_analysis_flags_all_reach_run_options() {
         "target",
         "--since",
         "HEAD~2",
+        "--locations",
     ])
     .expect("parses");
 
@@ -467,6 +468,7 @@ fn cli_analysis_flags_all_reach_run_options() {
     assert!(o.include_tests);
     assert_eq!(o.why_live, ["target"]);
     assert_eq!(o.since.as_deref(), Some("HEAD~2"));
+    assert!(o.locations);
 
     // `--why-live` and `--dead-code` both imply dead-code mode.
     assert!(o.dead_mode());

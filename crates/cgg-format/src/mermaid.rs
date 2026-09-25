@@ -11,6 +11,7 @@ use cgg_core::Graph;
 use cgg_core::graph::Via;
 use cgg_core::ids::CallableId;
 
+use crate::locations::SiteList;
 use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 
@@ -42,6 +43,9 @@ fn via_tag(via: &Via) -> &'static str {
 #[derive(Debug)]
 pub struct MermaidFormatter {
     node_ids: NodeIds,
+    /// Print each call's file and line. Off by default so an ordinary
+    /// diagram is byte-identical to one from before the flag existed.
+    locations: bool,
 }
 
 impl Default for MermaidFormatter {
@@ -54,11 +58,20 @@ impl MermaidFormatter {
     pub fn new() -> Self {
         Self {
             node_ids: OutputFormat::Mermaid.default_node_ids(),
+            locations: false,
         }
     }
 
     pub fn with_node_ids(node_ids: NodeIds) -> Self {
-        Self { node_ids }
+        Self {
+            node_ids,
+            locations: false,
+        }
+    }
+
+    pub fn with_locations(mut self, locations: bool) -> Self {
+        self.locations = locations;
+        self
     }
 }
 
@@ -218,6 +231,12 @@ impl GraphFormatter for MermaidFormatter {
         let mut order: Vec<(CallableId, CallableId, &str)> = Vec::new();
         let mut counts: std::collections::HashMap<(CallableId, CallableId, &str), u32> =
             std::collections::HashMap::new();
+        // `HashMap::new` does not allocate. Entries are inserted only
+        // when `--locations` is on, so the default diagram pays nothing.
+        let mut sites: std::collections::HashMap<
+            (CallableId, CallableId, &str),
+            SiteList,
+        > = std::collections::HashMap::new();
         for edge in &graph.edges {
             let key = (edge.src, edge.dst, via_tag(&edge.via));
             // `weight`, not `1`: an ordinary edge stands for one call
@@ -231,14 +250,33 @@ impl GraphFormatter for MermaidFormatter {
             if first {
                 order.push(key);
             }
+            if self.locations {
+                sites.entry(key).or_default().observe(graph, edge);
+            }
         }
         for (src, dst, tag) in order {
             let n = counts[&(src, dst, tag)];
-            let label = match (tag.is_empty(), n > 1) {
-                (true, false) => String::new(),
-                (true, true) => format!("|{n}x|"),
-                (false, false) => format!("|{tag}|"),
-                (false, true) => format!("|{tag} {n}x|"),
+            // A complete site list replaces the count: the lines are the
+            // detail `Nx` was standing in for. An incomplete list (a
+            // rolled-up edge, a synthetic caller) keeps `Nx`.
+            let located = self
+                .locations
+                .then(|| sites.get(&(src, dst, tag)).and_then(SiteList::label))
+                .flatten();
+            let label = if let Some(loc) = located {
+                let body = if tag.is_empty() {
+                    loc
+                } else {
+                    format!("{tag} {loc}")
+                };
+                mermaid_edge_label(&body)
+            } else {
+                match (tag.is_empty(), n > 1) {
+                    (true, false) => String::new(),
+                    (true, true) => format!("|{n}x|"),
+                    (false, false) => format!("|{tag}|"),
+                    (false, true) => format!("|{tag} {n}x|"),
+                }
             };
             let (src, dst) = (namer.name(src), namer.name(dst));
             if label.is_empty() {
@@ -265,6 +303,16 @@ fn mermaid_escape(s: &str) -> String {
     s.replace('"', "'")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+/// A location label, quoted, so a path with a space survives the `|…|`
+/// slot. `|` and `"` inside the path would end the slot early.
+fn mermaid_edge_label(body: &str) -> String {
+    let escaped = body
+        .replace('\\', "\\\\")
+        .replace('"', "'")
+        .replace('|', "\\|");
+    format!("|\"{escaped}\"|")
 }
 
 #[cfg(test)]
@@ -475,6 +523,85 @@ mod tests {
         assert_eq!(arrows, 1, "got:\n{s}");
         // The bare-arrow form must not appear when a label is required.
         assert!(!s.contains("N0 --> N1"), "got:\n{s}");
+    }
+
+    #[test]
+    fn locations_list_every_site_on_the_one_arrow() {
+        let mut g = mk_graph();
+        g.add_edge(CallEdge {
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 9,
+            site_byte: 40,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+            weight: 1,
+        });
+        let mut buf = Vec::new();
+        MermaidFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        // mk_graph's edge is line 1; the one added here is line 9.
+        assert!(
+            s.contains(r#"N0 -->|"t.rs:1,9"| N1"#),
+            "want both lines on one arrow:\n{s}"
+        );
+        assert!(
+            !s.contains("|2x|"),
+            "the count must not stand in for the lines:\n{s}"
+        );
+    }
+
+    #[test]
+    fn locations_keep_the_count_when_there_is_no_single_site() {
+        let mut g = mk_graph();
+        g.edges.clear();
+        g.add_edge(CallEdge {
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 0,
+            site_byte: 0,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+            weight: 4,
+        });
+        let mut buf = Vec::new();
+        MermaidFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("N0 -->|4x| N1"), "got:\n{s}");
+        assert!(!s.contains("t.rs:"), "an aggregate edge has no line:\n{s}");
+    }
+
+    #[test]
+    fn locations_skip_a_synthetic_caller() {
+        let mut g = mk_graph();
+        g.callables.get_mut(&CallableId::new(0)).unwrap().synthetic = true;
+        g.edges.clear();
+        g.add_edge(CallEdge {
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 7,
+            site_byte: 1,
+            confidence: Confidence::Low,
+            via: Via::FrameworkEntry("flask".into()),
+            resolver: ResolverId::new("framework-entry"),
+            weight: 1,
+        });
+        let mut buf = Vec::new();
+        MermaidFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains("N0 -->|entry| N1"), "got:\n{s}");
+        assert!(!s.contains("t.rs:"), "got:\n{s}");
     }
 
     #[test]

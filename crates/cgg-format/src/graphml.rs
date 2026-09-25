@@ -1,5 +1,6 @@
 //! GraphML formatter.
 
+use crate::locations::concrete_site;
 use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
 use cgg_core::Graph;
@@ -24,6 +25,9 @@ fn via_slug(via: &Via) -> &'static str {
 #[derive(Debug)]
 pub struct GraphmlFormatter {
     node_ids: NodeIds,
+    /// Print each call's file and line. Off by default so an ordinary
+    /// document is byte-identical to one from before the flag existed.
+    locations: bool,
 }
 
 impl Default for GraphmlFormatter {
@@ -36,11 +40,20 @@ impl GraphmlFormatter {
     pub fn new() -> Self {
         Self {
             node_ids: OutputFormat::Graphml.default_node_ids(),
+            locations: false,
         }
     }
 
     pub fn with_node_ids(node_ids: NodeIds) -> Self {
-        Self { node_ids }
+        Self {
+            node_ids,
+            locations: false,
+        }
+    }
+
+    pub fn with_locations(mut self, locations: bool) -> Self {
+        self.locations = locations;
+        self
     }
 }
 
@@ -89,6 +102,24 @@ impl GraphFormatter for GraphmlFormatter {
             writeln!(
                 out,
                 r#"  <key id="weight" for="edge" attr.name="weight" attr.type="int"/>"#
+            )?;
+        }
+        // Declared only when an edge will carry them. An ordinary graph,
+        // and a locations run whose every edge is an aggregate, stay free
+        // of keys nothing uses.
+        let any_site = self.locations
+            && graph
+                .edges
+                .iter()
+                .any(|e| concrete_site(graph, e).is_some());
+        if any_site {
+            writeln!(
+                out,
+                r#"  <key id="site_file" for="edge" attr.name="site_file" attr.type="string"/>"#
+            )?;
+            writeln!(
+                out,
+                r#"  <key id="site_line" for="edge" attr.name="site_line" attr.type="int"/>"#
             )?;
         }
         writeln!(out, r#"  <graph id="G" edgedefault="directed">"#)?;
@@ -142,7 +173,20 @@ impl GraphFormatter for GraphmlFormatter {
             } else {
                 format!(r#"<data key="weight">{}</data>"#, edge.weight)
             };
-            if via.is_empty() && weight.is_empty() {
+            let site = if self.locations {
+                concrete_site(graph, edge)
+            } else {
+                None
+            };
+            let site_data = match site {
+                Some(site) => format!(
+                    r#"<data key="site_file">{}</data><data key="site_line">{}</data>"#,
+                    xml_escape(&site.path),
+                    site.line
+                ),
+                None => String::new(),
+            };
+            if via.is_empty() && weight.is_empty() && site_data.is_empty() {
                 writeln!(
                     out,
                     r#"    <edge id="e{}" source="{}" target="{}"/>"#,
@@ -158,12 +202,13 @@ impl GraphFormatter for GraphmlFormatter {
                 };
                 writeln!(
                     out,
-                    r#"    <edge id="e{}" source="{}" target="{}">{}{}</edge>"#,
+                    r#"    <edge id="e{}" source="{}" target="{}">{}{}{}</edge>"#,
                     i,
                     namer.name(edge.src),
                     namer.name(edge.dst),
                     via_data,
-                    weight
+                    weight,
+                    site_data
                 )?;
             }
         }
@@ -183,7 +228,10 @@ fn xml_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cgg_core::graph::{CallableKind, CallableNode, FileRecord, Graph};
+    use cgg_core::graph::{
+        CallEdge, CallableKind, CallableNode, Confidence, FileRecord, Graph, Via,
+    };
+    use cgg_core::ids::ResolverId;
     use cgg_core::ids::{CallableId, FileId};
     use std::path::PathBuf;
 
@@ -225,5 +273,54 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("<graphml"));
         assert!(s.contains("foo&lt;T&gt;"));
+        assert!(!s.contains("site_file"), "locations are opt-in:\n{s}");
+    }
+
+    #[test]
+    fn locations_add_file_and_line_per_edge() {
+        let mut g = Graph::new();
+        g.add_file(FileRecord {
+            id: FileId::new(0),
+            path: PathBuf::from("a.rs"),
+            language: "rust".into(),
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(0),
+            qualified_name: "a".into(),
+            file: FileId::new(0),
+            kind: CallableKind::Function,
+            ..Default::default()
+        });
+        g.add_callable(CallableNode {
+            id: CallableId::new(1),
+            qualified_name: "b".into(),
+            file: FileId::new(0),
+            kind: CallableKind::Function,
+            ..Default::default()
+        });
+        g.add_edge(CallEdge {
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 12,
+            site_byte: 40,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+            weight: 1,
+        });
+        let mut buf = Vec::new();
+        GraphmlFormatter::new()
+            .with_locations(true)
+            .render(&g, &mut buf)
+            .unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert!(s.contains(r#"attr.name="site_file""#), "got:\n{s}");
+        assert!(
+            s.contains(
+                r#"<data key="site_file">a.rs</data><data key="site_line">12</data>"#
+            ),
+            "got:\n{s}"
+        );
     }
 }
