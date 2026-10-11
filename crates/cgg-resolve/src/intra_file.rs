@@ -306,7 +306,11 @@ pub fn link_file_with_cap(
             // Two impls of one trait on one type (`PartialOrd` and
             // `PartialOrd<i32>`) both provide the method; inside one of
             // them, `self.partial_cmp(other)` is that impl's — its argument
-            // types are the ones in scope. One-sided like the rest.
+            // types are the ones in scope. One-sided like the rest. A
+            // prefix that is a path suffix of the other names the same
+            // type: a C++ in-class declaration is `(anonymous)::Target::f`
+            // while its out-of-line definition is `Target::f`, and
+            // narrowing to one would drop the definition.
             if candidates.len() > 1
                 && let Some(prefix) = enclosing.and_then(|i| {
                     crate::names::split_last_segment(&facts.definitions[i].qualified_name)
@@ -318,7 +322,7 @@ pub fn link_file_with_cap(
                     .copied()
                     .filter(|(_, d)| {
                         crate::names::split_last_segment(&d.qualified_name)
-                            .is_some_and(|(p, _)| p == prefix)
+                            .is_some_and(|(p, _)| same_type_prefix(p, prefix))
                     })
                     .collect();
                 if same_impl.len() == 1 {
@@ -467,6 +471,38 @@ pub fn link_file_with_cap(
     }
 
     out
+}
+
+/// Whether two owner prefixes name the same type: equal, or equal once
+/// `(anonymous)` segments and a trailing type-argument list are dropped
+/// and one is a path suffix of the other (`(anonymous)::Target` and
+/// `Target`; `cm::PathResolver::(anonymous)::Impl` and
+/// `cm::PathResolver::Impl<Policy>`). A Rust `<A as Trait<X>>` segment
+/// keeps its arguments — they are what tells two impls apart.
+fn same_type_prefix(a: &str, b: &str) -> bool {
+    if a == b {
+        return true;
+    }
+    if a.contains(" as ") || b.contains(" as ") {
+        return false;
+    }
+    fn norm(p: &str) -> Vec<&str> {
+        let mut segs: Vec<&str> = p
+            .split("::")
+            .flat_map(|s| s.split('.'))
+            .filter(|s| *s != "(anonymous)")
+            .collect();
+        if let Some(last) = segs.last_mut()
+            && !last.starts_with('<')
+            && let Some(i) = last.find('<')
+        {
+            *last = &last[..i];
+        }
+        segs
+    }
+    let (a, b) = (norm(a), norm(b));
+    let (short, long) = if a.len() <= b.len() { (a, b) } else { (b, a) };
+    !short.is_empty() && long.ends_with(&short)
 }
 
 /// Return the index of the smallest definition whose byte range
@@ -728,6 +764,45 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
         assert_eq!(out.edges[0].dst, map[&(facts.file, 1)]);
+    }
+
+    // C++: the in-class declaration is `(anonymous)::Target::f`, the
+    // out-of-line definition `Target::f`. Same type — the own-block
+    // tie-break must not drop the definition (cmake `DumpDebugger`).
+    #[test]
+    fn self_call_keeps_declaration_and_out_of_line_definition() {
+        let defs = vec![
+            mk_def(
+                "f",
+                "(anonymous)::Target::f",
+                DefVariant::InherentMethod,
+                (0, 10),
+            ),
+            mk_def(
+                "dump",
+                "(anonymous)::Target::dump",
+                DefVariant::InherentMethod,
+                (10, 100),
+            ),
+            mk_def("f", "Target::f", DefVariant::InherentMethod, (100, 200)),
+        ];
+        let mut r = mk_ref("f", 50);
+        r.receiver_hint = "this".into();
+        let facts = facts_with(defs, vec![r]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        // Not narrowed to the declaration alone: both survive (and with
+        // two candidates the site is left to the cross-file pass).
+        assert!(out.edges.is_empty(), "{:?}", out.edges);
+        assert!(same_type_prefix(
+            "cm::PathResolver::(anonymous)::Impl",
+            "cm::PathResolver::Impl<Policy>"
+        ));
+        assert!(!same_type_prefix(
+            "m::<T as PartialOrd>",
+            "m::<T as PartialOrd<i32>>"
+        ));
+        assert!(!same_type_prefix("a.Outer.Builder", "a.Other.Builder"));
     }
 
     #[test]
