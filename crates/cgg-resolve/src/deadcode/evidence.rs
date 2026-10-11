@@ -76,6 +76,13 @@ impl<'a> UnresolvedIndex<'a> {
         }
     }
 
+    /// How many genuinely unresolved call sites use this simple name.
+    pub(crate) fn sites_named(&self, language: &str, name: &str) -> u32 {
+        self.by_name
+            .get(&(language, name))
+            .map_or(0, |v| v.len() as u32)
+    }
+
     /// Evidence that this callable may in fact be called, from sites the
     /// resolver failed to place.
     pub(crate) fn evidence_for(

@@ -7,6 +7,63 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
+## [Unreleased]
+
+Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. **The
+default graph changes** (minor bump): measured against 0.10.1 over the
+282-repository corpus, 26 repositories change — all Rust except two
+Python ones (below) — Rust edges +3,506 net, high-confidence dead-code
+findings 26,873 → 26,008. `zig-zig` times out at 120 s on both binaries
+(pre-existing). Performance is not yet measured with `perf-compare.sh`.
+
+### Fixed
+
+> **Since path calls existed, `extcrate::f()` was name-matched to any
+> workspace `f`.** A one-segment path receiver (`serde_json`) carries no
+> `::`, so step 4c never saw it and step 5 duck-typed it: on one
+> 23-crate workspace 450 `serde_json::from_str` sites bound to local
+> `FromStr` impls. `RefRecord::path_receiver` now marks path receivers.
+
+- Turbofish callees (`f::<T>()`, `x.parse::<u8>()`) produced no reference
+  and no unresolved record.
+- `trait_impl_target` was empty for any impl whose type has generics or a
+  lifetime (`<Printer<'_> as Output>`), and kept a truncated generic for
+  generic traits, so `--dynamic-dispatch` never reached those impls.
+- An in-workspace module head (`mod jobs;` + `jobs::Runner::spawn()`) and
+  a `use crate::…` import were judged external.
+- `Arc::new(a::B::new())` typed the local as `Arc`; `x: Arc<Mutex<dyn T>>`
+  typed the parameter as `Arc`. Both now see through wrapper chains, and
+  a lock guard (`x.lock()`) types as its contents.
+- Rust locals were file-wide last-write-wins; now the `let` in scope.
+- `async fn` methods got no `self.<field>` facts; a field typed by the
+  struct's generic parameter now uses its trait bound; `Option<T>`/`Vec<T>`
+  fields are no longer typed as `T`.
+- Receivers are normalized: struct literals read as their type path,
+  parens/`?`/`.await` peeled, multi-line receivers joined; inside macros
+  `self.x.m()` keeps `self`.
+- A bare call no longer binds to an `async` method (Rust, Python). This is
+  the Python change: py-falcon and py-litestar lose wrong fan-out edges
+  (`list(data)` → a repository's `list` method) and gain high single ones.
+
+### Changed
+
+- Over-cap Rust fan-out made entirely of one workspace trait's impls binds
+  to the trait declaration instead of being dropped.
+- Item-position invocations of same-file `macro_rules!` are expanded
+  (no-repetition arms); generated callables are `synthetic`.
+- Dead code: new `implemented-trait-surface` evidence and
+  `value-position`/`attribute-string` screens (serde attribute strings,
+  functions passed as values in macros) cap a finding at medium; an
+  `IntoResponse`/`Responder` impl is a root when its type is returned
+  unwrapped; `def_variant` is filled in; `--why-live` explains a doubted
+  trait declaration.
+
+### Added
+
+- `--guess-unique-names` (opt-in; Python `guess_unique_names`, Node
+  `guessUniqueNames`): bind an unplaced Rust call to a globally unique
+  name at `low`, resolver `cross-file:name-unique`.
+
 ## [0.10.1] - 2026-09-25
 
 Adds `--locations` (#10, Serge Bakharev) and fixes how mermaid and

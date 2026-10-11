@@ -78,9 +78,9 @@ fn unsupported(opts: &RunOptions) -> Vec<(&'static str, &'static str)> {
              not part of the graph document; re-run the analysis with them on",
         ));
     }
-    if opts.dynamic_dispatch || opts.reference_edges {
+    if opts.dynamic_dispatch || opts.reference_edges || opts.guess_unique_names {
         out.push((
-            "--dynamic-dispatch / --reference-edges",
+            "--dynamic-dispatch / --reference-edges / --guess-unique-names",
             "adds edges during resolution; re-run the analysis with them on",
         ));
     }

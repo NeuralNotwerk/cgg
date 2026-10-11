@@ -111,7 +111,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--ignore-names PATTERN]... [--ignore-attributes PATTERN]...
               [--why-live PATTERN]... [--fail-on-dead]
               [--include-external] [--include-stdlib]
-              [--dynamic-dispatch] [--reference-edges]
+              [--dynamic-dispatch] [--reference-edges] [--guess-unique-names]
               [--no-entry-nodes] [--framework-coverage] [--profile]
               [--no-graph] [--report-unreferenced]
               [--jobs N] [--lang rust,python,...]
@@ -156,6 +156,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--include-stdlib` | off | Surface standard-library calls as deduplicated leaf "exit nodes" (edges tagged `std`) |
 | `--dynamic-dispatch` | off | Emit interface/trait declaration → implementation fan-out edges (tagged `dyn`, low confidence) |
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
+| `--guess-unique-names` | off | Rust: bind a call nothing else placed when exactly one callable carries its name — `low` confidence, resolver `cross-file:name-unique`. Never for std names, typed or `self` receivers, external paths, or test helpers from production code |
 | `--no-entry-nodes` | off | Suppress synthesized `<framework-entry>` nodes. **Entry nodes are ON by default** |
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
 | `--no-graph` | off | Suppress the graph output, leaving only the report. With `--dead-code-format json` the report takes stdout |
@@ -527,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(2789 callables, 6531 edges, 1691 cross-file, 182ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(2924 callables, 7190 edges, 2013 cross-file, 223ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -564,50 +565,53 @@ flowchart LR
   N23["cgg::query::apply_query"]
   N24["cgg::query::apply_exclusions"]
   N25["cgg::since::resolve_since"]
-  N26["cgg::stable_ids::StableIds::new"]
-  N27["cgg::stable_ids::StableIds::file"]
-  N28["cgg::stable_ids::StableIds::callable"]
-  N29["cgg_core::external::FileAliases::from_facts"]
-  N30["cgg_core::external::classify_external"]
-  N31["cgg_core::external::build_known_names"]
-  N32["cgg_core::graph::Graph::new"]
-  N33["cgg_core::graph::Graph::add_callable"]
-  N34["cgg_core::graph::Graph::add_file"]
-  N35["cgg_core::graph::Graph::add_edge"]
-  N36["cgg_core::lang_family::same_family"]
-  N37["cgg_core::profile::enable"]
-  N38["cgg_core::profile::span"]
-  N39["cgg_core::testfile::classify_test_file"]
-  N40["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  N41["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  N42["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
-  N43["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  N44["cgg_lang::longest_line_bytes"]
-  N45["cgg_lang::LanguagePlugin::max_line_bytes"]
-  N46["cgg_lang::PluginRegistry::with_v1_plugins"]
-  N47["cgg_lang::notebook::extract_python_source"]
-  N48["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N49["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
-  N50["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N51["cgg_lang::parser::exceeds_depth"]
-  N52["cgg_lang::plugins::cpp::unify_declarations"]
-  N53["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N54["cgg_resolve::cross_file::resolve"]
-  N55["cgg_resolve::descriptor::link_descriptors"]
-  N56["cgg_resolve::dispatch::fanout"]
-  N57["cgg_resolve::dispatch::inheritance_fanout"]
-  N58["cgg_resolve::ffi::link_ffi"]
-  N59["cgg_resolve::frameworks::detect"]
-  N60["cgg_resolve::intra_file::link_file_with_cap"]
-  N61["cgg_resolve::names::owner_from_qn"]
-  N62["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N63["cgg_resolve::type_hints::field_index"]
-  N64["cgg_resolve::type_hints::type_alias_index"]
-  N65["cgg_resolve::type_hints::macro_index"]
-  N66["cgg_resolve::type_hints::resolve_macro_types"]
-  N67["cgg_resolve::type_hints::build_return_type_map"]
-  N68["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N69["cgg_walk::walk"]
+  N26["cgg::stable_ids::id_path"]
+  N27["cgg::stable_ids::id_roots"]
+  N28["cgg::stable_ids::StableIds::new"]
+  N29["cgg::stable_ids::StableIds::file"]
+  N30["cgg::stable_ids::StableIds::callable"]
+  N31["cgg_core::external::FileAliases::from_facts"]
+  N32["cgg_core::external::classify_external"]
+  N33["cgg_core::external::build_known_names"]
+  N34["cgg_core::graph::Graph::new"]
+  N35["cgg_core::graph::Graph::add_callable"]
+  N36["cgg_core::graph::Graph::add_file"]
+  N37["cgg_core::graph::Graph::add_edge"]
+  N38["cgg_core::ids::FileId::new"]
+  N39["cgg_core::lang_family::same_family"]
+  N40["cgg_core::profile::enable"]
+  N41["cgg_core::profile::span"]
+  N42["cgg_core::testfile::classify_test_file"]
+  N43["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  N44["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N45["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
+  N46["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  N47["cgg_lang::longest_line_bytes"]
+  N48["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N49["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N50["cgg_lang::notebook::extract_python_source"]
+  N51["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N52["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  N53["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N54["cgg_lang::parser::exceeds_depth"]
+  N55["cgg_lang::plugins::cpp::unify_declarations"]
+  N56["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N57["cgg_resolve::cross_file::resolve"]
+  N58["cgg_resolve::descriptor::link_descriptors"]
+  N59["cgg_resolve::dispatch::fanout"]
+  N60["cgg_resolve::dispatch::inheritance_fanout"]
+  N61["cgg_resolve::ffi::link_ffi"]
+  N62["cgg_resolve::frameworks::detect"]
+  N63["cgg_resolve::intra_file::link_file_with_cap"]
+  N64["cgg_resolve::names::owner_from_qn"]
+  N65["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N66["cgg_resolve::type_hints::field_index"]
+  N67["cgg_resolve::type_hints::type_alias_index"]
+  N68["cgg_resolve::type_hints::macro_index"]
+  N69["cgg_resolve::type_hints::resolve_macro_types"]
+  N70["cgg_resolve::type_hints::build_return_type_map"]
+  N71["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N72["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -626,89 +630,92 @@ flowchart LR
   N3 --> N10
   N3 --> N9
   N3 --> N8
-  N49 --> N49
+  N52 --> N52
   N3 --> N20
   N3 --> N1
   N3 --> N0
-  N3 --> N42
-  N3 --> N37
-  N3 --> N69
-  N3 --> N46
-  N3 --> N40
-  N3 --> N48
-  N3 --> N26
-  N3 --> N32
-  N3 --> N41
-  N3 --> N47
-  N3 -->|18x| N38
-  N3 -->|2x| N50
   N3 --> N45
-  N3 --> N53
-  N3 --> N44
+  N3 --> N40
+  N3 --> N72
   N3 --> N49
-  N3 --> N51
   N3 --> N43
-  N3 --> N36
-  N3 --> N52
-  N3 --> N27
-  N3 --> N39
-  N3 --> N34
-  N3 --> N61
+  N3 --> N51
   N3 --> N28
-  N3 --> N33
-  N3 --> N67
-  N3 --> N62
-  N3 --> N63
+  N3 --> N27
+  N3 --> N34
+  N3 --> N44
+  N3 --> N50
+  N3 -->|18x| N41
+  N3 -->|2x| N53
+  N3 --> N48
+  N3 --> N56
+  N3 --> N47
+  N3 --> N52
+  N3 --> N54
+  N3 --> N46
+  N3 --> N38
+  N3 --> N39
+  N3 --> N55
+  N3 --> N26
+  N3 --> N29
+  N3 --> N42
+  N3 --> N36
+  N3 --> N64
+  N3 --> N30
+  N3 --> N35
+  N3 --> N70
   N3 --> N65
   N3 --> N66
-  N3 --> N64
   N3 --> N68
+  N3 --> N69
+  N3 --> N67
+  N3 --> N71
+  N3 --> N33
+  N3 --> N63
   N3 --> N31
-  N3 --> N60
-  N3 --> N29
-  N3 --> N30
-  N3 --> N54
-  N3 --> N58
-  N3 --> N55
-  N3 --> N59
-  N3 --> N56
-  N3 -->|2x| N35
+  N3 --> N32
   N3 --> N57
+  N3 --> N61
+  N3 --> N58
+  N3 --> N62
+  N3 --> N59
+  N3 -->|2x| N37
+  N3 --> N60
   N3 -->|5x| N21
   N3 --> N25
   N3 -->|2x| N22
   N3 --> N23
   N3 --> N24
-  N8 --> N38
-  N8 --> N26
+  N8 --> N41
+  N8 --> N28
   N8 -->|3x| N22
   N8 --> N21
-  N9 --> N46
+  N9 --> N49
   N9 --> N22
   N9 --> N21
   N10 --> N22
-  N15 -->|2x| N27
-  N15 -->|2x| N34
-  N15 --> N28
-  N15 --> N33
+  N15 -->|2x| N29
+  N15 -->|2x| N36
+  N15 --> N30
   N15 --> N35
-  N16 --> N27
-  N16 --> N34
-  N16 --> N28
-  N16 --> N33
+  N15 --> N37
+  N16 --> N29
+  N16 --> N36
+  N16 --> N30
   N16 --> N35
-  N23 --> N32
-  N52 -->|3x| N36
-  N54 -->|6x| N38
-  N54 -->|5x| N61
-  N54 --> N36
-  N55 -->|2x| N61
-  N56 --> N61
-  N57 -->|3x| N61
-  N58 --> N36
-  N59 -->|10x| N38
-  N60 -->|5x| N61
-  N68 -->|3x| N38
+  N16 --> N37
+  N23 --> N34
+  N55 -->|3x| N39
+  N57 -->|6x| N41
+  N57 -->|5x| N64
+  N57 --> N39
+  N58 -->|2x| N64
+  N59 --> N64
+  N60 -->|3x| N64
+  N61 --> N39
+  N62 -->|10x| N41
+  N63 -->|5x| N64
+  N71 -->|3x| N41
 ```
 <!-- cgg:end:self -->
 
@@ -983,6 +990,13 @@ with in-degree zero is not an incomplete graph but a false claim. See
 - `--reference-edges` — when a function is passed *by name* as a value
   (`register(handler)`), emit a reference edge distinct from a call
   edge, so it no longer reads as dead code. Edges tagged `ref`.
+- `--guess-unique-names` — Rust only. A call the resolver could not place
+  whose name exactly one callable in the tree carries is bound to it as a
+  `low`-confidence edge, resolver `cross-file:name-unique`. A guess, not a
+  resolution, which is why it is off by default: it refuses
+  standard-library names, `self`/typed receivers (a typed miss never
+  degrades to name matching), paths into external crates, and test-module
+  helpers called from production code.
 
 ## Framework entry points
 

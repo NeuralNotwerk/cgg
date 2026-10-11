@@ -85,6 +85,7 @@ negative.
   excludePartial, excludeGlob, excludeRegex,
   lang, jobs, ignoreFile, since, roots,
   skipMinified, includeExternal, includeStdlib, dynamicDispatch, referenceEdges,
+  guessUniqueNames,
   entryNodes, includeTests,
   deadCode, deadCodeConfidence, ignoreNames, ignoreAttributes,
 }

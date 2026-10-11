@@ -146,6 +146,223 @@ fn vis_token(node: &CallableNode) -> String {
     .to_string()
 }
 
+/// The plugin's finer definition variant, keyed the way a node is
+/// located. Empty when the graph was read back without facts.
+fn def_variants(
+    facts: &[FileFacts],
+) -> std::collections::HashMap<(cgg_core::ids::FileId, u32), cgg_core::DefVariant> {
+    facts
+        .iter()
+        .flat_map(|f| {
+            f.definitions
+                .iter()
+                .map(move |d| ((f.file, d.start_byte), d.variant))
+        })
+        .collect()
+}
+
+/// Where the source names a callable without cgg drawing an edge:
+/// [`cgg_core::NameMention`]s, and same-file value references
+/// (`x.map(to_ms)`) the resolver declined to bind — it never binds a
+/// named closure, because an edge into one would manufacture a call.
+///
+/// Resolved relative to the naming file, never by simple name across the
+/// workspace: `default_true` is defined once per module that needs it, and
+/// one module's attribute must not vouch for another module's dead twin.
+/// A bare name matches in its own file, or through a `use` in the naming
+/// file that imports it; a path matches by qualified-name suffix, so
+/// `Vec::is_empty` never reaches a workspace `MultiIndex::is_empty`.
+#[derive(Default)]
+struct Mentions<'a> {
+    /// (file, bare name) -> screens, one per site
+    bare: std::collections::HashMap<(cgg_core::ids::FileId, &'a str), Vec<&'static str>>,
+    /// bare name -> (naming file, screen), for the `use` route
+    files_naming:
+        std::collections::HashMap<&'a str, Vec<(cgg_core::ids::FileId, &'static str)>>,
+    /// last path segment -> (path, screen)
+    paths: std::collections::HashMap<&'a str, Vec<(&'a str, &'static str)>>,
+    /// file -> its imports
+    imports:
+        std::collections::HashMap<cgg_core::ids::FileId, &'a [cgg_core::ImportRecord]>,
+}
+
+impl<'a> Mentions<'a> {
+    fn build(facts: &'a [FileFacts]) -> Self {
+        let mut m = Mentions::default();
+        for f in facts {
+            m.imports.insert(f.file, &f.imports);
+            let values = f
+                .references
+                .iter()
+                .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+                .map(|r| (r.name.as_str(), "value-ref"));
+            let named = f.name_mentions.iter().map(|n| {
+                let screen = if n.via.starts_with("attr:") {
+                    "attribute-string"
+                } else {
+                    "value-position"
+                };
+                (n.name.as_str(), screen)
+            });
+            for (name, screen) in values.chain(named) {
+                let path = name
+                    .trim_start_matches("crate::")
+                    .trim_start_matches("self::")
+                    .trim_start_matches("super::");
+                if let Some((_, last)) = path.rsplit_once("::") {
+                    m.paths.entry(last).or_default().push((path, screen));
+                } else {
+                    m.bare.entry((f.file, path)).or_default().push(screen);
+                    m.files_naming
+                        .entry(path)
+                        .or_default()
+                        .push((f.file, screen));
+                }
+            }
+        }
+        m
+    }
+
+    fn evidence_for(&self, nd: &CallableNode) -> Vec<Evidence> {
+        let name = nd.simple_name.as_str();
+        let mut hits: BTreeMap<&'static str, u32> = BTreeMap::new();
+        // A plain value reference the resolver left unbound names a
+        // callable it refuses to bind — a named closure (`x.map(to_ms)`).
+        // For anything else the likelier reading is a same-named
+        // variable, which must not cost a real finding its band.
+        let closure = nd.kind == CallableKind::Closure;
+        let hit = |screen: &'static str, hits: &mut BTreeMap<&'static str, u32>| {
+            let screen = match screen {
+                "value-ref" if !closure => return,
+                "value-ref" => "value-position",
+                s => s,
+            };
+            *hits.entry(screen).or_insert(0) += 1;
+        };
+        for s in self.bare.get(&(nd.file, name)).into_iter().flatten() {
+            hit(s, &mut hits);
+        }
+        // Named in another file that imports it: `use a::b::name;` or
+        // `use a::b::{x, name};`.
+        let suffix = format!("::{name}");
+        for (file, screen) in self.files_naming.get(name).into_iter().flatten() {
+            if *file == nd.file || !nd.qualified_name.ends_with(&suffix) {
+                continue;
+            }
+            let imported = self.imports.get(file).is_some_and(|imps| {
+                imps.iter().any(|i| {
+                    i.path
+                        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                        .any(|w| w == name)
+                })
+            });
+            if imported {
+                hit(screen, &mut hits);
+            }
+        }
+        for (path, screen) in self.paths.get(name).into_iter().flatten() {
+            if nd.qualified_name == *path
+                || nd.qualified_name.ends_with(&format!("::{path}"))
+            {
+                hit(screen, &mut hits);
+            }
+        }
+        hits.into_iter()
+            .map(|(screen, sites)| Evidence::NameCollidesWithScreenedSite {
+                screen: screen.into(),
+                sites,
+            })
+            .collect()
+    }
+}
+
+/// Which trait declarations the workspace implements, and which of their
+/// implementations something calls directly. Built once, sorted where it
+/// is iterated, so `--jobs` cannot change an answer.
+struct TraitSurfaces<'a> {
+    /// (language, trait, method) -> implementations of that method.
+    impls: std::collections::HashMap<(&'a str, &'a str, &'a str), Vec<CallableId>>,
+    /// (language, trait) -> number of implementing methods.
+    implemented: std::collections::HashMap<(&'a str, &'a str), u32>,
+    /// Callables with at least one incoming edge that is not the
+    /// declaration -> impl fan-out itself.
+    called: std::collections::HashSet<CallableId>,
+}
+
+impl<'a> TraitSurfaces<'a> {
+    fn build(graph: &'a Graph) -> Self {
+        let mut impls: std::collections::HashMap<(&str, &str, &str), Vec<CallableId>> =
+            std::collections::HashMap::new();
+        let mut implemented: std::collections::HashMap<(&str, &str), u32> =
+            std::collections::HashMap::new();
+        for c in graph.callables.values() {
+            if let Some(t) = c.trait_impl_target.as_deref() {
+                impls
+                    .entry((c.language.as_str(), t, c.simple_name.as_str()))
+                    .or_default()
+                    .push(c.id);
+                *implemented.entry((c.language.as_str(), t)).or_insert(0) += 1;
+            }
+        }
+        let called = graph
+            .edges
+            .iter()
+            .filter(|e| !matches!(e.via, Via::Dynamic))
+            .map(|e| e.dst)
+            .collect();
+        TraitSurfaces {
+            impls,
+            implemented,
+            called,
+        }
+    }
+
+    /// [`Evidence::ImplementedTraitSurface`] for `nd` when it is a method
+    /// declared on a trait the workspace implements, and something shows
+    /// that method being dispatched to. Requires the declaration itself
+    /// in the graph (an inherent method or an impl never qualifies), so
+    /// a bare-name collision with an external trait cannot trigger it.
+    fn evidence_for(
+        &self,
+        nd: &CallableNode,
+        variant: Option<&cgg_core::DefVariant>,
+        unresolved: &UnresolvedIndex<'_>,
+    ) -> Option<Evidence> {
+        if nd.trait_impl_target.is_some() || nd.qualified_name.contains(" as ") {
+            return None;
+        }
+        if matches!(
+            variant,
+            Some(
+                cgg_core::DefVariant::InherentMethod | cgg_core::DefVariant::FreeFunction
+            )
+        ) {
+            return None;
+        }
+        let owner = crate::names::owner_from_qn(&nd.qualified_name)?;
+        let lang = nd.language.as_str();
+        let impls = *self.implemented.get(&(lang, owner))?;
+        let method_impls = self
+            .impls
+            .get(&(lang, owner, nd.simple_name.as_str()))
+            .map_or(&[][..], |v| v.as_slice());
+        let called_impls = method_impls
+            .iter()
+            .filter(|c| self.called.contains(c))
+            .count() as u32;
+        let unresolved_sites = unresolved.sites_named(lang, &nd.simple_name);
+        if called_impls == 0 && unresolved_sites == 0 {
+            return None;
+        }
+        Some(Evidence::ImplementedTraitSurface {
+            trait_name: owner.to_string(),
+            impls,
+            unresolved_sites,
+            called_impls,
+        })
+    }
+}
+
 /// Whether a callable may ever be reported.
 fn is_candidate(node: &cgg_core::graph::CallableNode) -> bool {
     // Synthesized exit nodes are not source. Destructors are invoked by
@@ -177,6 +394,11 @@ pub fn analyze(
                 .map(move |d| (f.language.as_str(), d.name.as_str()))
         })
         .collect();
+
+    let variants = def_variants(facts);
+
+    let surfaces = TraitSurfaces::build(graph);
+    let mentions = Mentions::build(facts);
 
     let node_at = |i: u32| graph.callables.get_index(i as usize).map(|(_, v)| v);
     let lang_at = |i: u32| node_at(i).map(|nd| nd.language.clone()).unwrap_or_default();
@@ -347,6 +569,19 @@ pub fn analyze(
             });
         }
         ev.extend(unresolved.evidence_for(graph, nd));
+        if let Some(e) = surfaces.evidence_for(
+            nd,
+            variants.get(&(nd.file, nd.start_byte)),
+            &unresolved,
+        ) {
+            ev.push(e);
+        }
+        ev.extend(mentions.evidence_for(nd));
+        if let Some(m) = nd.attributes.iter().find_map(|a| a.strip_prefix("macro:")) {
+            ev.push(Evidence::MacroGenerated {
+                macro_name: m.to_string(),
+            });
+        }
         if dyn_named.contains(&(nd.language.as_str(), nd.simple_name.as_str())) {
             ev.push(Evidence::NameCollidesWithScreenedSite {
                 screen: "reflection".into(),
@@ -414,7 +649,19 @@ pub fn analyze(
         }
 
         ev.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-        ev.dedup_by(|a, b| a.slug() == b.slug());
+        // One entry per kind — except screened-site evidence, where each
+        // screen is a different reason (and `external` carries no cap
+        // while `value-position` does, so collapsing them lost the cap).
+        ev.dedup_by(|a, b| {
+            a.slug() == b.slug()
+                && match (a, b) {
+                    (
+                        Evidence::NameCollidesWithScreenedSite { screen: x, .. },
+                        Evidence::NameCollidesWithScreenedSite { screen: y, .. },
+                    ) => x == y,
+                    _ => true,
+                }
+        });
 
         let signals_complete = m.map(|m| m.signals_complete()).unwrap_or(false);
         let confidence = evidence::derive_confidence(
@@ -440,7 +687,10 @@ pub fn analyze(
             simple_name: nd.simple_name.clone(),
             language: lang,
             kind: nd.kind,
-            def_variant: String::new(),
+            def_variant: variants
+                .get(&(nd.file, nd.start_byte))
+                .map(|v| v.as_str().to_string())
+                .unwrap_or_default(),
             file: nd.file,
             path: graph
                 .files
@@ -700,6 +950,9 @@ pub fn why_live(
     // proof from a test.
     let prod = search(&adjacency, graph, &root_set.production);
     let any = search(&adjacency, graph, &all_roots);
+    let surfaces = TraitSurfaces::build(graph);
+    let unresolved = UnresolvedIndex::build(graph, &[]);
+    let variants = def_variants(facts);
 
     let mut out = Vec::new();
     for &target in targets {
@@ -771,6 +1024,15 @@ pub fn why_live(
             Confidence::High => 2,
         });
 
+        let dispatch_surface = (status == "dead")
+            .then(|| {
+                surfaces.evidence_for(
+                    node,
+                    variants.get(&(node.file, node.start_byte)),
+                    &unresolved,
+                )
+            })
+            .flatten();
         out.push(LivenessProof {
             target,
             target_qualified_name: node.qualified_name.clone(),
@@ -778,6 +1040,7 @@ pub fn why_live(
             root: root_record,
             hops,
             weakest_link,
+            dispatch_surface,
         });
     }
     out
@@ -998,6 +1261,158 @@ mod tests {
         assert_eq!(r.disclaimer, cgg_core::deadcode::DEAD_CODE_DISCLAIMER);
         assert!(r.best_effort);
         assert!(r.summary.review_required);
+    }
+
+    /// `trait Store { fn put(); }` + `impl Store for Disk`, with the
+    /// dispatch fan-out edge `--dead-code` adds. `main` calls nothing.
+    fn trait_surface_graph() -> Graph {
+        let mut decl = vis_node(1, "crate::Store::put", "put", "", Vis::Private);
+        decl.kind = CallableKind::Method;
+        let mut imp = vis_node(2, "crate::<Disk as Store>::put", "put", "", Vis::Private);
+        imp.trait_impl_target = Some("Store".into());
+        let mut g = graph_with(vec![node(0, "crate::main", "main", "rust"), decl, imp]);
+        let mut e = testutil::edge(1, 2);
+        e.via = Via::Dynamic;
+        g.edges.push(e);
+        g
+    }
+
+    fn decl_finding(r: &DeadCodeReport) -> &DeadCodeFinding {
+        r.findings
+            .iter()
+            .find(|f| f.qualified_name == "crate::Store::put")
+            .expect("the declaration is reported")
+    }
+
+    // F2: a trait declaration is the dispatch surface. Its callers bind
+    // through `dyn Store`, which the graph records as edges into the
+    // impls, so its own in-degree of zero is not evidence of anything —
+    // once something shows the method being dispatched to.
+    #[test]
+    fn an_implemented_trait_declaration_with_dispatch_evidence_is_capped() {
+        // Holding a trait object is not calling it: no site, no direct
+        // call into an impl -> the declaration is genuinely unreferenced.
+        let g = trait_surface_graph();
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        let f = decl_finding(&r);
+        assert_eq!(f.confidence, Confidence::High, "{:?}", f.evidence);
+        assert!(
+            !f.evidence
+                .iter()
+                .any(|e| e.slug() == "implemented-trait-surface")
+        );
+
+        // A same-name call the resolver could not place.
+        let mut g = trait_surface_graph();
+        g.unresolved.push(cgg_core::audit::AuditUnresolvedCall::new(
+            Some(CallableId::new(0)),
+            cgg_core::ids::FileId::new(0),
+            3,
+            30,
+            "put".into(),
+            "store".into(),
+            cgg_core::audit::UnresolvedReason::NoCandidateInFile,
+        ));
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        let f = decl_finding(&r);
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e.slug() == "implemented-trait-surface")
+        );
+
+        // An ordinary call into an implementation.
+        let mut g = trait_surface_graph();
+        link(&mut g, 0, 2);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        assert_eq!(decl_finding(&r).confidence, Confidence::Medium);
+    }
+
+    #[test]
+    fn why_live_names_the_dispatch_surface_the_report_doubts() {
+        let mut g = trait_surface_graph();
+        link(&mut g, 0, 2);
+        let p = why_live(&g, &[], &opts_rust_full(), &[CallableId::new(1)]);
+        assert_eq!(p[0].status, "dead");
+        assert_eq!(
+            p[0].dispatch_surface.as_ref().map(|e| e.slug()),
+            Some("implemented-trait-surface")
+        );
+        // No dispatch evidence: a plain dead proof, nothing added.
+        let p = why_live(
+            &trait_surface_graph(),
+            &[],
+            &opts_rust_full(),
+            &[CallableId::new(1)],
+        );
+        assert!(p[0].dispatch_surface.is_none());
+    }
+
+    // F5: an attribute string names a helper relative to its own file —
+    // one module's `default = "default_true"` must not vouch for another
+    // module's dead `default_true`, and a path (`Vec::is_empty`) matches
+    // by qualified-name suffix, never by simple name.
+    #[test]
+    fn attribute_string_mentions_cap_only_what_they_name() {
+        let mut other = vis_node(
+            2,
+            "crate::b::default_true",
+            "default_true",
+            "",
+            Vis::Private,
+        );
+        other.file = cgg_core::ids::FileId::new(1);
+        let g = {
+            let mut g = graph_with(vec![
+                node(0, "crate::main", "main", "rust"),
+                vis_node(
+                    1,
+                    "crate::a::default_true",
+                    "default_true",
+                    "",
+                    Vis::Private,
+                ),
+                other,
+                vis_node(
+                    3,
+                    "crate::MultiIndex::is_empty",
+                    "is_empty",
+                    "",
+                    Vis::Private,
+                ),
+            ]);
+            g.add_file(cgg_core::graph::FileRecord {
+                id: cgg_core::ids::FileId::new(1),
+                path: "b.rs".into(),
+                language: "rust".into(),
+                ..Default::default()
+            });
+            g
+        };
+        let mut fa = FileFacts::new(cgg_core::ids::FileId::new(0), "a.rs".into(), "rust");
+        for (name, via) in [
+            ("default_true", "attr:default"),
+            ("Vec::is_empty", "attr:skip_serializing_if"),
+        ] {
+            fa.name_mentions.push(cgg_core::NameMention {
+                name: name.into(),
+                via: via.into(),
+                site_line: 1,
+                site_byte: 0,
+            });
+        }
+        let r = analyze(&g, &[], &[fa], &opts_rust_full());
+        let conf = |qn: &str| {
+            r.findings
+                .iter()
+                .find(|f| f.qualified_name == qn)
+                .map(|f| f.confidence)
+                .unwrap()
+        };
+        assert_eq!(conf("crate::a::default_true"), Confidence::Medium);
+        assert_eq!(conf("crate::b::default_true"), Confidence::High);
+        assert_eq!(conf("crate::MultiIndex::is_empty"), Confidence::High);
     }
 
     #[test]

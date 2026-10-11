@@ -26,6 +26,7 @@ pub mod graph;
 pub mod ids;
 pub mod lang_family;
 pub mod profile;
+pub mod rust_types;
 pub mod stdlib;
 pub mod testfile;
 pub mod version;
@@ -47,8 +48,8 @@ pub use external::{
 };
 pub use facts::{
     ClassDecl, ClassFieldDecl, DefRecord, DefVariant, DynUse, ExportRecord, FieldType,
-    FileFacts, ImportRecord, LocalType, MacroAlias, MemberPtrTake, RefRecord,
-    STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT, Vis,
+    FileFacts, ImportRecord, LocalType, MacroAlias, MemberPtrTake, NameMention,
+    RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT, Vis,
     first_template_arg, looks_like_type_name,
 };
 pub use frameworks::{

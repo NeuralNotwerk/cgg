@@ -835,6 +835,7 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     include_stdlib = false,
     dynamic_dispatch = false,
     reference_edges = false,
+    guess_unique_names = false,
     entry_nodes = true,
     include_tests = false,
     dead_code = false,
@@ -870,6 +871,7 @@ fn analyze(
     include_stdlib: bool,
     dynamic_dispatch: bool,
     reference_edges: bool,
+    guess_unique_names: bool,
     entry_nodes: bool,
     include_tests: bool,
     dead_code: bool,
@@ -904,6 +906,7 @@ fn analyze(
         include_stdlib,
         dynamic_dispatch,
         reference_edges,
+        guess_unique_names,
         // The one inversion, done here so it is done exactly once.
         no_entry_nodes: !entry_nodes,
         // The detail flag only widens a notice the CLI prints; the data

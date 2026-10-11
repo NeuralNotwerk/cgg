@@ -74,6 +74,18 @@ impl LanguagePlugin for RustPlugin {
             site_line: 1,
             site_byte: 0,
         });
+        // A dependency renamed in Cargo.toml (`common = { package =
+        // "nkb-common" }`) is written `common::f()` in source; recorded as
+        // `use nkb_common as common` so the resolver sees the real crate.
+        for (alias, package) in cargo_dependency_renames(path) {
+            facts.imports.push(ImportRecord {
+                kind: "use".into(),
+                path: package,
+                alias,
+                site_line: 1,
+                site_byte: 0,
+            });
+        }
         let mut scope: Vec<ScopeSegment> = vec![ScopeSegment::Crate(crate_root)];
         for seg in module_segments {
             scope.push(ScopeSegment::Mod(seg));
@@ -84,6 +96,14 @@ impl LanguagePlugin for RustPlugin {
             scope,
             struct_fields: std::collections::HashMap::new(),
             bases: Vec::new(),
+            // Most files define no macro; skip the extra tree walk.
+            macros: if mentions_macro_rules(source) {
+                collect_macro_defs(tree.root_node(), source)
+            } else {
+                std::collections::HashMap::new()
+            },
+            expanding: false,
+            parser: None,
         };
         walker.walk(tree.root_node());
         // Post-pass: emit synthetic LocalTypes of the form
@@ -92,6 +112,9 @@ impl LanguagePlugin for RustPlugin {
         // `self.store.foo()` to `ChunkStore::foo()` etc.
         let struct_fields = std::mem::take(&mut walker.struct_fields);
         emit_self_field_local_types(&mut facts, &struct_fields);
+        facts
+            .classes
+            .extend(rust_type_links(tree.root_node(), source));
 
         if ctx.deadcode_signals {
             facts.unreachable =
@@ -241,6 +264,148 @@ fn crate_dir_for(path: &Path) -> Option<(String, std::path::PathBuf)> {
     None
 }
 
+/// `(alias, package)` for every dependency of the file's crate that is
+/// renamed (`alias = { package = "real-name", … }`, the table form
+/// `[dependencies.alias]` + `package = …`, and `alias = { workspace = true
+/// }` against a rename in the workspace root's `[workspace.dependencies]`).
+/// Package names are returned as crate roots (`-` -> `_`).
+fn cargo_dependency_renames(path: &Path) -> Vec<(String, String)> {
+    let Some((_, crate_dir)) = crate_dir_for(path) else {
+        return Vec::new();
+    };
+    let Ok(text) = std::fs::read_to_string(crate_dir.join("Cargo.toml")) else {
+        return Vec::new();
+    };
+    let (mut renames, inherited) = parse_dependency_renames(&text, false);
+    // `[lib] name = "app_lib"`: the binary in the same package calls its
+    // own library as `app_lib::run()`.
+    if let Some(lib) = section_value(&text, "lib", "name")
+        && let Some(pkg) = extract_package_name(&text)
+    {
+        let (lib, pkg) = (lib.replace('-', "_"), pkg.replace('-', "_"));
+        if lib != pkg {
+            renames.push((lib, pkg));
+        }
+    }
+    if !inherited.is_empty() {
+        // Nearest ancestor manifest that declares `[workspace]`.
+        let mut dir = crate_dir.parent();
+        while let Some(d) = dir {
+            if let Ok(root) = std::fs::read_to_string(d.join("Cargo.toml"))
+                && root.lines().any(|l| l.trim() == "[workspace]")
+            {
+                let (ws, _) = parse_dependency_renames(&root, true);
+                renames.extend(ws.into_iter().filter(|(a, _)| inherited.contains(a)));
+                break;
+            }
+            dir = d.parent();
+        }
+    }
+    renames.sort();
+    renames.dedup();
+    renames
+}
+
+/// `key = "value"` inside `[section]`.
+fn section_value(text: &str, section: &str, key: &str) -> Option<String> {
+    let mut inside = false;
+    for line in text.lines() {
+        let t = line.split('#').next().unwrap_or("").trim();
+        if let Some(h) = t.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
+            inside = h.trim() == section;
+            continue;
+        }
+        if inside
+            && let Some((k, v)) = t.split_once('=')
+            && k.trim() == key
+        {
+            let v = v.trim().strip_prefix('"')?;
+            return Some(v[..v.find('"')?].to_string());
+        }
+    }
+    None
+}
+
+/// Renames declared in one manifest's dependency tables, plus the aliases
+/// that inherit their spec from the workspace (`{ workspace = true }`).
+/// `workspace` selects `[workspace.dependencies]` instead of the crate's
+/// own tables.
+fn parse_dependency_renames(
+    text: &str,
+    workspace: bool,
+) -> (Vec<(String, String)>, Vec<String>) {
+    // `key = "value"`, at any occurrence of `key` followed by `=`
+    // (`path = "../package-x"` must not hide a later `package = "…"`).
+    let quoted = |v: &str, key: &str| -> Option<String> {
+        v.match_indices(key).find_map(|(i, _)| {
+            let before_ok = v[..i]
+                .chars()
+                .next_back()
+                .is_none_or(|c| !(c.is_alphanumeric() || c == '_' || c == '-'));
+            let rest = v[i + key.len()..]
+                .trim_start()
+                .strip_prefix('=')?
+                .trim_start();
+            let rest = rest.strip_prefix('"')?;
+            before_ok.then(|| rest[..rest.find('"').unwrap_or(rest.len())].to_string())
+        })
+    };
+    let is_dep_table = |h: &str| {
+        if workspace {
+            h == "workspace.dependencies"
+        } else {
+            h.ends_with("dependencies") && !h.starts_with("workspace.")
+        }
+    };
+    let (mut out, mut inherited) = (Vec::new(), Vec::new());
+    let mut section = String::new();
+    // `[dependencies.alias]`: the alias whose table we are in.
+    let mut table_alias: Option<String> = None;
+    for line in text.lines() {
+        let t = line.split('#').next().unwrap_or("").trim();
+        if t.is_empty() {
+            continue;
+        }
+        if let Some(h) = t.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
+            let h = h.trim();
+            table_alias = None;
+            section.clear();
+            if let Some((tab, alias)) = h.rsplit_once('.')
+                && is_dep_table(tab)
+            {
+                table_alias = Some(alias.trim_matches('"').to_string());
+            } else {
+                section = h.to_string();
+            }
+            continue;
+        }
+        if let Some(alias) = &table_alias {
+            if t.starts_with("package")
+                && let Some(pkg) = quoted(t, "package")
+            {
+                out.push((alias.replace('-', "_"), pkg.replace('-', "_")));
+            }
+            continue;
+        }
+        if !is_dep_table(&section) {
+            continue;
+        }
+        let Some((alias, spec)) = t.split_once('=') else {
+            continue;
+        };
+        let alias = alias.trim().trim_matches('"').replace('-', "_");
+        if let Some(pkg) = quoted(spec, "package") {
+            let pkg = pkg.replace('-', "_");
+            if pkg != alias {
+                out.push((alias, pkg));
+            }
+        } else if spec.contains("workspace") && spec.contains("true") {
+            inherited.push(alias);
+        }
+    }
+    (out, inherited)
+}
+
 /// Best-effort extraction of `name = "…"` from a `[package]` section.
 /// No full TOML parse to keep the plugin's dependency footprint small.
 fn extract_package_name(text: &str) -> Option<String> {
@@ -313,6 +478,15 @@ struct Walker<'a> {
     /// it. An inherent `impl Type` pushes an empty entry so the depth
     /// always mirrors the scope stack.
     bases: Vec<Vec<String>>,
+    /// This file's own `macro_rules!` definitions that the expander can
+    /// handle, by name. Only same-file definitions are expanded: a macro
+    /// defined in the tree is code cgg can read, while `env!`/`concat!`/
+    /// crates.io macros are not, and are never expanded by accident.
+    macros: std::collections::HashMap<String, super::rust_macro::MacroDef>,
+    /// Set inside an expansion, so an expansion never expands again.
+    expanding: bool,
+    /// One parser for every expansion in the file, made on first use.
+    parser: Option<tree_sitter::Parser>,
 }
 
 impl<'a> Walker<'a> {
@@ -324,12 +498,30 @@ impl<'a> Walker<'a> {
         let kind = node.kind();
 
         match kind {
+            // `#[serde(default = "default_hops")]` names a function that
+            // serde calls; recorded as a mention (never an edge) and the
+            // attribute is then walked exactly as before.
+            "attribute_item" | "inner_attribute_item" => {
+                self.record_attr_mentions(node);
+            }
             // `mod foo { ... }` / `mod foo;`
             "mod_item" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // A declared module is in scope by name wherever its file
+                // lives (`#[path = "../scripts/x.rs"] mod perf;`), so a call
+                // through it is never a call into an external crate.
+                if !name.is_empty() && !self.expanding {
+                    self.facts.imports.push(ImportRecord {
+                        kind: "use".into(),
+                        path: format!("self::{name}"),
+                        alias: name.clone(),
+                        site_line: node.start_position().row as u32 + 1,
+                        site_byte: node.start_byte() as u32,
+                    });
+                }
                 if !name.is_empty() {
                     self.scope.push(ScopeSegment::Mod(name));
                 }
@@ -423,6 +615,12 @@ impl<'a> Walker<'a> {
             "macro_invocation" => {
                 if let Some(r) = self.ref_from_macro_invocation(node) {
                     self.facts.references.push(r);
+                }
+                // An item-position invocation of a macro defined in this
+                // file is expanded: what it generates becomes callables,
+                // and its calls are attributed to them.
+                if self.expand_item_macro(node) {
+                    return;
                 }
                 self.refs_from_token_tree(node);
                 self.walk_children(node);
@@ -629,30 +827,80 @@ impl<'a> Walker<'a> {
         // Look for `Foo::new`, `Foo::builder`, `Foo::default`, `Foo::from`
         if func.kind() == "scoped_identifier" || func.kind() == "field_expression" {
             let text = self.text(func);
-            if let Some(pos) = text.find("::") {
-                let type_part = &text[..pos];
-                let assoc_fn = &text[pos + 2..];
-                if type_part.starts_with(char::is_uppercase) && !type_part.contains('<') {
+            if let Some((type_part, wrapper_name, assoc_fn)) = ctor_type_of(text) {
+                let (type_part, wrapper_name, assoc_fn) =
+                    (type_part.as_str(), wrapper_name.as_str(), assoc_fn.as_str());
+                // `FormatBuilder::new().build()`: a chain headed by a
+                // builder ends in the type it builds, which this syntax
+                // does not name. (`Client::builder()...build()` is headed
+                // by the product and still types as it.)
+                // Only a chain that ends in the finishing call: builder
+                // steps (`TarballBuilder::new().add_file(..)`) return the
+                // builder itself.
+                // The last method that is not `unwrap`/`expect`/`ok`
+                // (`FormatBuilder::new().build().unwrap()` finishes too).
+                let mut last = func;
+                let mut method = self.text_field(last);
+                while matches!(
+                    method,
+                    Some("unwrap" | "expect" | "ok" | "unwrap_or_default")
+                ) && let Some(call) = last.child_by_field_name("value")
+                    && call.kind() == "call_expression"
+                    && let Some(f) = call.child_by_field_name("function")
+                    && f.kind() == "field_expression"
+                {
+                    last = f;
+                    method = self.text_field(last);
+                }
+                let finishes = method.is_some_and(|m| {
+                    matches!(m, "build" | "finish" | "done" | "create" | "try_build")
+                        || m.starts_with("build_")
+                });
+                if func.kind() == "field_expression"
+                    && wrapper_name.ends_with("Builder")
+                    && finishes
+                {
+                    return;
+                }
+                // `let b = Handler::builder(..);` binds the builder, not a
+                // `Handler` (only a `…builder()…build()` chain is one).
+                if func.kind() == "scoped_identifier" && assoc_fn == "builder" {
+                    return;
+                }
+                {
                     // `Arc::new(<inner>)` / `Rc::from(<inner>)` etc. forward every
                     // method call to <inner> via Deref, so typing the local as the
                     // wrapper hides <inner>'s own methods from step 4's owner
                     // lookup and the call site is screened as stdlib. See through
                     // it when <inner>'s own constructor syntax names a type.
                     if matches!(assoc_fn, "new" | "from")
-                        && is_deref_transparent_wrapper(type_part)
+                        && is_deref_transparent_wrapper(wrapper_name)
                     {
-                        if let Some(inner_type) = self.inner_wrapped_type(call) {
+                        let locked = is_lock_wrapper(wrapper_name);
+                        if let Some((inner_type, inner_locked)) =
+                            self.inner_wrapped_type(call, 3)
+                        {
+                            if locked || inner_locked {
+                                self.facts.local_types.push(cgg_core::LocalType {
+                                    var_name: format!("{var_name}{GUARD_SUFFIX}"),
+                                    type_name: inner_type.clone(),
+                                    scope_byte: node.start_byte() as u32,
+                                });
+                            }
                             self.facts.local_types.push(cgg_core::LocalType {
                                 var_name,
                                 type_name: inner_type,
                                 scope_byte: node.start_byte() as u32,
                             });
-                            return;
                         }
-                        // <inner> isn't a `Type::assoc_fn()` call we can read —
-                        // fall through to the old behaviour (type as the wrapper).
+                        // <inner> isn't a `Type::assoc_fn()` call we can read.
+                        // Typing the local as the wrapper (`Arc`) turned a
+                        // duck-resolvable lowercase receiver into a std type
+                        // with no methods of interest — the site was lost
+                        // to the tool's own typing. Leave it untyped.
+                        return;
                     } else if assoc_fn == "clone"
-                        && is_deref_transparent_wrapper(type_part)
+                        && is_deref_transparent_wrapper(wrapper_name)
                     {
                         // `Arc::clone(&x)` / `Rc::clone(&x)` — same value as `x`,
                         // so it carries `x`'s already-known type, if any.
@@ -697,6 +945,11 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// The `field` (method name) of a `field_expression`.
+    fn text_field(&self, node: Node) -> Option<&str> {
+        node.child_by_field_name("field").map(|f| self.text(f))
+    }
+
     /// Peel `?`, `.await`, `.unwrap()`, `.expect(..)` off an expression so a
     /// call wrapped in one of these can still be read. Loops so chained forms
     /// (`foo()?.unwrap()`, rare but cheap to handle) unwrap fully.
@@ -735,7 +988,13 @@ impl<'a> Walker<'a> {
 
     /// `call` is `W::new(..)` / `W::from(..)`; read the type named by its
     /// first argument's own `Type::assoc_fn()` constructor syntax, if any.
-    fn inner_wrapped_type(&self, call: Node) -> Option<String> {
+    /// Wrappers nest (`Arc::new(Mutex::new(Store::new()))`) — up to
+    /// `depth` of them are seen through. A path-qualified inner
+    /// (`nkb_rules::Scheduler::new`) keeps its path, so the resolver can
+    /// match it in full rather than by bare owner name.
+    /// The bool is whether a lock (`Mutex`/`RwLock`/`RefCell`) was among
+    /// the wrappers seen through.
+    fn inner_wrapped_type(&self, call: Node, depth: u8) -> Option<(String, bool)> {
         let args = call.child_by_field_name("arguments")?;
         let mut cursor = args.walk();
         let first_arg = args.named_children(&mut cursor).next()?;
@@ -747,14 +1006,16 @@ impl<'a> Walker<'a> {
         if func.kind() != "scoped_identifier" && func.kind() != "field_expression" {
             return None;
         }
-        let text = self.text(func);
-        let pos = text.find("::")?;
-        let type_part = &text[..pos];
-        if type_part.starts_with(char::is_uppercase) && !type_part.contains('<') {
-            Some(type_part.to_string())
-        } else {
-            None
+        let (type_part, last, assoc_fn) = ctor_type_of(self.text(func))?;
+        if is_deref_transparent_wrapper(&last) {
+            if depth == 0 || !matches!(assoc_fn.as_str(), "new" | "from") {
+                return None;
+            }
+            return self
+                .inner_wrapped_type(inner, depth - 1)
+                .map(|(t, locked)| (t, locked || is_lock_wrapper(&last)));
         }
+        Some((type_part, false))
     }
 
     /// `call` is `W::clone(<arg>)`; read `<arg>`'s bare identifier name, so
@@ -983,15 +1244,43 @@ impl<'a> Walker<'a> {
     /// deliberate over-approximation: an extra edge can only mark
     /// something as used, which is the safe direction.
     fn refs_from_token_tree(&mut self, node: Node) {
-        let mut stack = vec![node];
-        while let Some(n) = stack.pop() {
+        // Each group carries whether it is a call's argument list — a
+        // group directly after an identifier (`map(…)`), not the macro's
+        // own top-level arguments, where a bare identifier is nearly
+        // always a variable (`format!("{}", name)`).
+        let mut stack = vec![(node, false)];
+        while let Some((n, call_args)) = stack.pop() {
             let mut cur = n.walk();
             let kids: Vec<Node> = n.children(&mut cur).collect();
             for (i, k) in kids.iter().enumerate() {
                 if k.kind() == "token_tree" {
-                    stack.push(*k);
+                    let after_ident = i > 0 && kids[i - 1].kind() == "identifier";
+                    stack.push((*k, after_ident));
                 }
                 if k.kind() != "identifier" && k.kind() != "scoped_identifier" {
+                    continue;
+                }
+                // A function passed as a value inside a macro's arguments
+                // — `format!("{}", x.map(iso_day))`. Outside a macro this
+                // is a value reference; inside one the token tree gives no
+                // expression to bind, so it is recorded as a mention: the
+                // dead-code report's reason to doubt, never an edge.
+                if call_args
+                    && i > 0
+                    && matches!(kids[i - 1].kind(), "(" | ",")
+                    && kids
+                        .get(i + 1)
+                        .is_some_and(|nx| matches!(nx.kind(), ")" | ","))
+                {
+                    let name = self.text(*k).to_string();
+                    if name.starts_with(|c: char| c.is_lowercase() || c == '_') {
+                        self.facts.name_mentions.push(cgg_core::NameMention {
+                            name,
+                            via: "macro-arg".into(),
+                            site_line: k.start_position().row as u32 + 1,
+                            site_byte: k.start_byte() as u32,
+                        });
+                    }
                     continue;
                 }
                 // `foo (` — the next token must open a group.
@@ -1051,9 +1340,30 @@ impl<'a> Walker<'a> {
                         None => String::new(),
                     }
                 } else if i >= 2
-                    && ((kids[i - 1].kind() == "." && kids[i - 2].kind() == "identifier")
-                        || kids[i - 1].kind() == "::")
+                    && kids[i - 1].kind() == "."
+                    && kids[i - 2].kind() == "self"
                 {
+                    // `self . method (` — `self` lexes as its own kind, and
+                    // dropping it made the call read as a bare `method()`.
+                    "self".to_string()
+                } else if i >= 2
+                    && kids[i - 1].kind() == "."
+                    && kids[i - 2].kind() == "identifier"
+                {
+                    // `self . signal . notified (` inside `select!`/`info!`:
+                    // the receiver is the whole `.`-chain, not its last
+                    // field — `signal` alone names no binding at all, and
+                    // `self.signal` is what the self-field types answer.
+                    // Only a chain rooted at `self`: `h.how` has no such
+                    // answer, and its last field (`how`) is what the
+                    // name-shape heuristics already resolve.
+                    let chain = dotted_path_back_from(&kids, i - 2, self.source);
+                    if chain.starts_with("self.") {
+                        chain
+                    } else {
+                        path_back_from(&kids, i - 2, self.source)
+                    }
+                } else if i >= 2 && kids[i - 1].kind() == "::" {
                     path_back_from(&kids, i - 2, self.source)
                 } else {
                     String::new()
@@ -1074,6 +1384,8 @@ impl<'a> Walker<'a> {
                     } else {
                         receiver_hint
                     };
+                let dot_call =
+                    receiver_hint.is_empty() && i > 0 && kids[i - 1].kind() == ".";
                 self.facts.references.push(RefRecord {
                     name,
                     site_line: k.start_position().row as u32 + 1,
@@ -1086,11 +1398,147 @@ impl<'a> Walker<'a> {
                     // resolver retry name-only, once, if the qualified
                     // lookup fails outright.
                     from_macro_arg: true,
+                    // `… ) . build (`: a method call whose receiver did not
+                    // survive token-tree reconstruction.
+                    dot_call,
                     arity: None,
                     ..Default::default()
                 });
             }
         }
+    }
+
+    /// Expand `node` (a `macro_invocation`) in place when it sits where
+    /// items go and names a `macro_rules!` of this file whose arms the
+    /// expander handles. The expansion is extracted with the current
+    /// module scope, then folded back into the file:
+    ///
+    /// * every generated definition is tagged `macro:<name>`: reachable by
+    ///   path and owner but not by name alone, never rooted as an implicit
+    ///   trait impl, and reported dead at no more than medium;
+    /// * spans are remapped into disjoint slices of the invocation, so a
+    ///   call inside a generated fn is attributed to that fn and the
+    ///   `(file, start_byte)` keys stay unique;
+    /// * lines all point at the invocation, the code a reader can open.
+    ///
+    /// Returns `false` — and changes nothing — whenever the expansion
+    /// cannot be produced or parsed, or there is no room in the span.
+    fn expand_item_macro(&mut self, node: Node) -> bool {
+        if self.expanding || self.macros.is_empty() {
+            return false;
+        }
+        let at_item = |n: Node| matches!(n.kind(), "source_file" | "declaration_list");
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        let item_position = at_item(parent)
+            || (parent.kind() == "expression_statement"
+                && parent.parent().is_some_and(at_item));
+        if !item_position {
+            return false;
+        }
+        let Some(name_node) = node.child_by_field_name("macro") else {
+            return false;
+        };
+        let Some(def) = self.macros.get(self.text(name_node)) else {
+            return false;
+        };
+        let Some(args) = node
+            .children(&mut node.walk())
+            .find(|c| c.kind() == "token_tree")
+            .map(|t| self.text(t))
+            .filter(|t| t.len() >= 2)
+        else {
+            return false;
+        };
+        let Some(expanded) = super::rust_macro::expand(def, &args[1..args.len() - 1])
+        else {
+            return false;
+        };
+        if self.parser.is_none() {
+            let mut p = tree_sitter::Parser::new();
+            if p.set_language(&tree_sitter_rust::LANGUAGE.into()).is_err() {
+                return false;
+            }
+            self.parser = Some(p);
+        }
+        let Some(tree) = self.parser.as_mut().and_then(|p| p.parse(&expanded, None))
+        else {
+            return false;
+        };
+        if tree.root_node().has_error() {
+            return false;
+        }
+        let mut sub = FileFacts::new(self.facts.file, self.facts.path.clone(), "rust");
+        let mut sub_fields = std::collections::HashMap::new();
+        {
+            let mut w = Walker {
+                source: expanded.as_bytes(),
+                facts: &mut sub,
+                scope: self.scope.clone(),
+                struct_fields: std::collections::HashMap::new(),
+                bases: self.bases.clone(),
+                macros: std::collections::HashMap::new(),
+                expanding: true,
+                parser: None,
+            };
+            w.walk(tree.root_node());
+            std::mem::swap(&mut sub_fields, &mut w.struct_fields);
+        }
+        let (s, e) = (node.start_byte() as u32, node.end_byte() as u32);
+        let line = node.start_position().row as u32 + 1;
+        let n = sub.definitions.len() as u32;
+        // Slot 0 (the invocation's first byte) belongs to no generated
+        // definition, so a call outside every one keeps the caller it had.
+        let k = if n == 0 {
+            1
+        } else {
+            (e - s).saturating_sub(1) / n
+        };
+        if n > 0 && k == 0 {
+            return false;
+        }
+        let orig: Vec<(u32, u32)> = sub
+            .definitions
+            .iter()
+            .map(|d| (d.start_byte, d.end_byte))
+            .collect();
+        let slot = |i: u32| {
+            let a = s + 1 + i * k;
+            (a, if i + 1 == n { e } else { a + k })
+        };
+        // The innermost generated definition containing an expansion byte.
+        let owner_of = |b: u32| {
+            orig.iter()
+                .enumerate()
+                .filter(|(_, (a, z))| *a <= b && b < *z)
+                .min_by_key(|(_, (a, z))| z - a)
+                .map(|(i, _)| i as u32)
+        };
+        let remap = |b: u32| owner_of(b).map_or(s, |i| slot(i).0);
+        let macro_name = self.text(name_node).to_string();
+        for (i, mut d) in std::mem::take(&mut sub.definitions).into_iter().enumerate() {
+            let (a, z) = slot(i as u32);
+            d.start_byte = a;
+            d.end_byte = z;
+            d.start_line = line;
+            d.end_line = line;
+            d.attributes.push(format!("macro:{macro_name}"));
+            self.facts.definitions.push(d);
+        }
+        for mut r in std::mem::take(&mut sub.references) {
+            r.site_byte = remap(r.site_byte);
+            r.site_line = line;
+            self.facts.references.push(r);
+        }
+        for mut lt in std::mem::take(&mut sub.local_types) {
+            lt.scope_byte = remap(lt.scope_byte);
+            self.facts.local_types.push(lt);
+        }
+        for (k, v) in sub_fields {
+            self.struct_fields.entry(k).or_insert(v);
+        }
+        true
     }
 
     fn ref_from_macro_invocation(&self, node: Node) -> Option<RefRecord> {
@@ -1173,6 +1621,34 @@ impl<'a> Walker<'a> {
         if body.kind() != "field_declaration_list" {
             return;
         }
+        // The struct's own type parameters. A field typed `V` names no
+        // owner anywhere; when `V` carries exactly one real trait bound
+        // (`struct Memory<V: VectorIndex>`, or a `where` clause) the bound
+        // is the type its methods dispatch through, otherwise the field
+        // is left untyped so its call sites keep their written receiver.
+        let mut generics: std::collections::HashMap<String, Option<String>> =
+            std::collections::HashMap::new();
+        let mut generic_src = String::new();
+        if let Some(tp) = node.child_by_field_name("type_parameters") {
+            let t = self.text(tp);
+            generic_src.push_str(
+                t.strip_prefix('<')
+                    .and_then(|t| t.strip_suffix('>'))
+                    .unwrap_or(t),
+            );
+        }
+        for child in node.named_children(&mut node.walk()) {
+            if child.kind() == "where_clause" {
+                generic_src.push(',');
+                generic_src.push_str(self.text(child).trim_start_matches("where"));
+            }
+        }
+        for (param, bound) in rust_generic_bounds(&generic_src) {
+            let slot = generics.entry(param).or_insert(None);
+            if bound.is_some() {
+                *slot = bound;
+            }
+        }
         let mut fields: Vec<(String, String)> = Vec::new();
         for child in body.named_children(&mut body.walk()) {
             if child.kind() != "field_declaration" {
@@ -1190,8 +1666,31 @@ impl<'a> Walker<'a> {
             // `Option<…>` / `Vec<…>` so the resolver sees a bare
             // nominal type to look up. This is a heuristic — anything
             // we can't simplify is left as-is and falls back to no-op.
-            let ftype_s = simplify_rust_type(self.text(ftype));
+            let raw = self.text(ftype);
+            let mut ftype_s = simplify_rust_type(raw);
+            if let Some(bound) = generics.get(&ftype_s) {
+                let Some(bound) = bound else { continue };
+                ftype_s = bound.clone();
+            }
+            // `Backend::Ticks`: an associated type of a type parameter names
+            // no type cgg can look up.
+            if ftype_s.contains("::")
+                && ftype_s
+                    .split("::")
+                    .next()
+                    .is_some_and(|head| generics.contains_key(head))
+            {
+                continue;
+            }
             if !fname_s.is_empty() && !ftype_s.is_empty() {
+                // `Arc<Mutex<Store>>`: `self.x.lock()` hands back the
+                // `Store` through its guard.
+                let guarded = ["Mutex<", "RwLock<", "RefCell<"]
+                    .iter()
+                    .any(|w| raw.contains(w));
+                if guarded {
+                    fields.push((format!("{fname_s}{GUARD_SUFFIX}"), ftype_s.clone()));
+                }
                 fields.push((fname_s, ftype_s));
             }
         }
@@ -1201,7 +1700,16 @@ impl<'a> Walker<'a> {
     }
 
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
-        let callee = node.child_by_field_name("function")?;
+        let mut callee = node.child_by_field_name("function")?;
+        // A turbofish callee — `f::<T>(…)`, `x.parse::<u32>()`,
+        // `a::b::<T>(…)` — is a `generic_function` wrapping the callee
+        // proper. Unwrap it and record the call exactly as the
+        // un-turbofished form; falling through to `_ => None` dropped
+        // the call with no reference and no unresolved record, so the
+        // callee read as never-referenced with nothing in the audit.
+        if callee.kind() == "generic_function" {
+            callee = callee.child_by_field_name("function")?;
+        }
         // Skip enum-variant constructors that look like calls but aren't
         // function calls in any useful graph-edge sense: `Ok(x)`,
         // `Err(e)`, `Some(v)`. Filtering here (rather than in
@@ -1213,6 +1721,7 @@ impl<'a> Walker<'a> {
                 return None;
             }
         }
+        let path_receiver = callee.kind() == "scoped_identifier";
         let (name, receiver_hint) = match callee.kind() {
             "identifier" => (self.text(callee).to_string(), String::new()),
             "field_expression" => {
@@ -1220,7 +1729,7 @@ impl<'a> Walker<'a> {
                 let field = callee.child_by_field_name("field")?;
                 let recv = callee
                     .child_by_field_name("value")
-                    .map(|n| self.text(n).to_string())
+                    .map(|n| self.receiver_text(n))
                     .unwrap_or_default();
                 (self.text(field).to_string(), recv)
             }
@@ -1242,11 +1751,105 @@ impl<'a> Walker<'a> {
         let start_line = (node.start_position().row as u32) + 1;
         Some(RefRecord {
             name,
+            path_receiver: path_receiver && !receiver_hint.is_empty(),
             receiver_hint,
             site_line: start_line,
             site_byte: node.start_byte() as u32,
             ..Default::default()
         })
+    }
+
+    /// Serde attribute keys whose string value is a path to a function
+    /// serde calls — the allowlist the serde rule's own gap text names.
+    /// Everything else in an attribute string (`rename`, `alias`, doc
+    /// text) is data and is ignored.
+    fn record_attr_mentions(&mut self, node: Node) {
+        const KEYS: &[&str] = &[
+            "default",
+            "deserialize_with",
+            "serialize_with",
+            "skip_serializing_if",
+            "getter",
+            "with",
+        ];
+        let text = self.text(node).to_string();
+        let Some(body) = text
+            .find("serde(")
+            .filter(|i| {
+                text[..*i]
+                    .trim_end()
+                    .trim_start_matches("#!")
+                    .trim_start_matches('#')
+                    .trim_start_matches('[')
+                    .trim()
+                    .is_empty()
+            })
+            .map(|i| &text[i + "serde(".len()..])
+        else {
+            return;
+        };
+        let site_line = node.start_position().row as u32 + 1;
+        let site_byte = node.start_byte() as u32;
+        let mut rest = body;
+        while let Some(eq) = rest.find('=') {
+            let key = rest[..eq]
+                .trim_end()
+                .rsplit(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .next()
+                .unwrap_or("");
+            let after = rest[eq + 1..].trim_start();
+            let Some(value) = after.strip_prefix('"').and_then(|v| v.split_once('"'))
+            else {
+                rest = &rest[eq + 1..];
+                continue;
+            };
+            let (path, tail) = value;
+            if KEYS.contains(&key) && !path.is_empty() {
+                let names: Vec<String> = if key == "with" {
+                    vec![format!("{path}::serialize"), format!("{path}::deserialize")]
+                } else {
+                    vec![path.to_string()]
+                };
+                for name in names {
+                    self.facts.name_mentions.push(cgg_core::NameMention {
+                        name,
+                        via: format!("attr:{key}"),
+                        site_line,
+                        site_byte,
+                    });
+                }
+            }
+            rest = tail;
+        }
+    }
+
+    /// The receiver hint for `value.method(..)`: the receiver's source
+    /// text, except where that text cannot name anything. Parentheses,
+    /// `?` and `.await` are peeled (`(x).m()`, `x.lock().await.m()` reads
+    /// as `x.lock().m()`); a struct literal (`admin_jobs::Runner { .. }
+    /// .spawn()`) is its type's path, `::` kept so the resolver can tell a
+    /// workspace path from an external one; and a receiver split across
+    /// lines (`self\n    .vec_index`) is joined, since nothing downstream
+    /// matches a hint with the source's indentation inside it.
+    fn receiver_text(&self, mut node: Node) -> String {
+        for _ in 0..4 {
+            match node.kind() {
+                "parenthesized_expression" | "try_expression" | "await_expression" => {
+                    let Some(inner) = node.named_child(0) else {
+                        break;
+                    };
+                    node = inner;
+                }
+                "struct_expression" => {
+                    if let Some(name) = node.child_by_field_name("name") {
+                        return join_lines(self.text(name));
+                    }
+                    break;
+                }
+                _ => break,
+            }
+        }
+        join_lines(self.text(node))
     }
 
     /// Capture functions passed *by name* as arguments — `register(f)`,
@@ -1300,6 +1903,8 @@ impl<'a> Walker<'a> {
             // real route lost its path.
             self.facts.references.push(RefRecord {
                 from_macro_arg: false,
+                path_receiver: false,
+                dot_call: false,
                 arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
@@ -1328,9 +1933,16 @@ fn emit_self_field_local_types(
         .definitions
         .iter()
         .filter(|d| {
+            // `async fn` in an impl is classified `AsyncFunction` (async
+            // replaces the scope-derived variant), which left every async
+            // method — all of `#[async_trait]` — with no self-field facts.
+            // A free async fn's qualified name ends in a module, which
+            // never matches a struct below.
             matches!(
                 d.variant,
-                cgg_core::DefVariant::InherentMethod | cgg_core::DefVariant::TraitMethod
+                cgg_core::DefVariant::InherentMethod
+                    | cgg_core::DefVariant::TraitMethod
+                    | cgg_core::DefVariant::AsyncFunction
             )
         })
         .map(|d| (d.start_byte, d.qualified_name.clone()))
@@ -1353,26 +1965,92 @@ fn emit_self_field_local_types(
     }
 }
 
+/// `V: VectorIndex + Send, T, 'a, const N: usize` -> each type parameter
+/// with its one non-marker trait bound (`None` when it has zero or
+/// several). Bounds are reduced to the bare trait name.
+fn rust_generic_bounds(src: &str) -> Vec<(String, Option<String>)> {
+    const MARKERS: &[&str] = &[
+        "Send",
+        "Sync",
+        "Sized",
+        "?Sized",
+        "Unpin",
+        "Clone",
+        "Copy",
+        "Debug",
+        "Default",
+        "Eq",
+        "PartialEq",
+        "Ord",
+        "PartialOrd",
+        "Hash",
+        "Display",
+    ];
+    let mut parts = Vec::new();
+    let (mut depth, mut start) = (0i32, 0usize);
+    for (i, c) in src.char_indices() {
+        match c {
+            '<' | '(' => depth += 1,
+            '>' | ')' => depth -= 1,
+            ',' if depth == 0 => {
+                parts.push(&src[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    parts.push(&src[start..]);
+    let mut out = Vec::new();
+    for part in parts {
+        let part = part.trim();
+        if part.is_empty() || part.starts_with('\'') || part.starts_with("const ") {
+            continue;
+        }
+        let (name, bounds) = part.split_once(':').unwrap_or((part, ""));
+        let name = name.trim();
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            continue;
+        }
+        let real: Vec<&str> = bounds
+            .split('+')
+            .map(|b| b.trim())
+            .filter(|b| !b.is_empty() && !b.starts_with('\''))
+            .map(|b| b.split('<').next().unwrap_or(b).trim())
+            .map(|b| b.rsplit("::").next().unwrap_or(b))
+            .filter(|b| !MARKERS.contains(b))
+            .collect();
+        let bound = (real.len() == 1).then(|| real[0].to_string());
+        out.push((name.to_string(), bound));
+    }
+    out
+}
+
 /// Pull the bare owner type out of a Rust qualified name. Handles both
 /// inherent (`crate::mod::Type::method`) and trait-impl
 /// (`crate::mod::<Type as Trait>::method`) forms.
 fn self_type_from_qualified_name(qn: &str) -> Option<String> {
+    // Trait impl: the wrapper opens a segment (`m::<Type<'a> as a::Trait>::f`)
+    // and may contain `::` of its own, so it is located by its ` as `
+    // rather than by splitting on `::`.
+    if let Some(as_pos) = qn.find(" as ") {
+        let open = qn[..as_pos]
+            .rfind("::<")
+            .map(|i| i + 3)
+            .or_else(|| qn.starts_with('<').then_some(1))?;
+        let ty = &qn[open..as_pos];
+        let bare = ty.split('<').next()?.trim();
+        return Some(bare.rsplit("::").next().unwrap_or(bare).to_string());
+    }
     let segs: Vec<&str> = qn.split("::").collect();
     if segs.len() < 2 {
         return None;
     }
-    let owner = segs[segs.len() - 2];
-    if let Some(stripped) = owner.strip_prefix('<') {
-        // `<Type as Trait>` -> `Type`
-        let t = stripped.split(" as ").next()?;
-        return Some(t.trim_end_matches('>').to_string());
-    }
     // Strip generic parameters: `Type<V>` -> `Type`.
-    Some(owner.split('<').next()?.to_string())
+    Some(segs[segs.len() - 2].split('<').next()?.to_string())
 }
 
 /// Lightweight Rust type simplifier: strips references / lifetimes /
-/// one level of common wrapper types so the cross-file resolver sees a
+/// up to three nested pointer/lock wrappers so the cross-file resolver sees a
 /// bare nominal name. Anything ambiguous is returned unchanged — the
 /// resolver will then just fail the lookup (no harm done).
 fn simplify_rust_type(raw: &str) -> String {
@@ -1388,21 +2066,41 @@ fn simplify_rust_type(raw: &str) -> String {
             s = s[space + 1..].trim_start().to_string();
         }
     }
-    // Unwrap one level of a common single-arg wrapper.
-    for wrapper in [
-        "Arc", "Rc", "Box", "Option", "Vec", "RefCell", "Mutex", "RwLock",
-    ] {
-        let prefix = format!("{wrapper}<");
-        if let Some(inner) = s.strip_prefix(&prefix)
-            && let Some(end) = matching_angle(inner)
-        {
-            s = inner[..end].trim().to_string();
+    // Unwrap one level of a common single-arg wrapper — only those whose
+    // contents a direct method call reaches (`Deref`, or a lock guard).
+    // `Option<T>`/`Vec<T>` are deliberately absent: `self.opt.m()` is never
+    // `T::m` — it is the container's own method or an extension trait
+    // implemented FOR the container (`impl Helper for Option<&User>`),
+    // which the owner index finds under `Option`.
+    // Nested (`Arc<Mutex<Store>>`) up to three deep, each level's path
+    // prefix ignored (`std::sync::Arc<…>`, `tokio::sync::Mutex<…>`).
+    for _ in 0..3 {
+        let Some(open) = s.find('<') else { break };
+        let head = &s[..open];
+        let head = head.rsplit("::").next().unwrap_or(head);
+        if !["Arc", "Rc", "Box", "RefCell", "Mutex", "RwLock"].contains(&head) {
             break;
         }
+        let Some(end) = matching_angle(&s[open + 1..]) else {
+            break;
+        };
+        s = s[open + 1..open + 1 + end].trim().to_string();
+        // Strip `dyn ` so `Arc<dyn Trait>` becomes `Trait`.
+        if let Some(rest) = s.strip_prefix("dyn ") {
+            s = rest.trim_start().to_string();
+        }
     }
-    // Strip `dyn ` so `Arc<dyn Trait>` becomes `Trait`.
     if let Some(rest) = s.strip_prefix("dyn ") {
         s = rest.trim_start().to_string();
+    }
+    // `dyn Store + Send + Sync` -> `Store`.
+    if let Some(idx) = s.find(" +") {
+        s.truncate(idx);
+    }
+    // `State<AppState>`-style wrappers keep their one argument: the
+    // resolver tries it when the wrapper itself has no such method.
+    if cgg_core::rust_types::deref_wrapper_split(&s).is_some() {
+        return s.trim().to_string();
     }
     // Drop a trailing generic suffix on the bare type so
     // `HashMap<K, V>` matches the unparameterised callable owner name.
@@ -1457,6 +2155,30 @@ fn path_back_from(kids: &[Node], idx: usize, source: &[u8]) -> String {
     }
     segs.reverse();
     segs.join("::")
+}
+
+/// Like [`path_back_from`], but also walks back over `.` field steps:
+/// `self . inner . field` -> `self.inner.field`, while a `::` step still
+/// joins with `::` (`TrustKind::Network`).
+fn dotted_path_back_from(kids: &[Node], idx: usize, source: &[u8]) -> String {
+    let text_of = |n: Node| n.utf8_text(source).unwrap_or("");
+    let mut out = text_of(kids[idx]).to_string();
+    let mut j = idx;
+    while j >= 2 {
+        let sep = kids[j - 1].kind();
+        let seg = kids[j - 2];
+        if !matches!(sep, "." | "::")
+            || !matches!(
+                seg.kind(),
+                "identifier" | "crate" | "self" | "super" | "Self"
+            )
+        {
+            break;
+        }
+        out = format!("{}{sep}{out}", text_of(seg));
+        j -= 2;
+    }
+    out
 }
 
 /// Macros whose expansion produces no user-callable target and which
@@ -1530,6 +2252,185 @@ fn line_range(node: Node) -> (u32, u32) {
 /// `String`: an earlier change that unwrapped those broke push/iter/clone
 /// classification, because those constructors do NOT forward through Deref
 /// to a single wrapped value the way this list does.
+/// Types a method call on another type reaches, as `ClassDecl`s the
+/// resolver's base chain (`resolve_via_bases`) already follows:
+///
+/// * `impl Deref for Io { type Target = IoRef; }` — `io.encode()` is
+///   `IoRef::encode` when `Io` has none of its own;
+/// * `type RealCollector = Collector<RealSource>;` — a module-level alias
+///   names the aliased type.
+///
+/// A `Deref` target that is the impl's own type parameter is skipped: it
+/// names no type.
+fn rust_type_links(root: Node, source: &[u8]) -> Vec<cgg_core::ClassDecl> {
+    let text = |n: Node| n.utf8_text(source).unwrap_or("").to_string();
+    let bare = |t: &str| -> String {
+        let t = t.trim().trim_start_matches('&').trim();
+        let t = t.split('<').next().unwrap_or(t).trim();
+        t.rsplit("::").next().unwrap_or(t).to_string()
+    };
+    let mut out = Vec::new();
+    let mut stack = vec![root];
+    while let Some(n) = stack.pop() {
+        match n.kind() {
+            "impl_item" => {
+                let is_deref = n
+                    .child_by_field_name("trait")
+                    .is_some_and(|t| bare(&text(t)) == "Deref");
+                if let (true, Some(ty), Some(body)) = (
+                    is_deref,
+                    n.child_by_field_name("type"),
+                    n.child_by_field_name("body"),
+                ) {
+                    let params: Vec<String> = n
+                        .child_by_field_name("type_parameters")
+                        .map(text)
+                        .unwrap_or_default()
+                        .split([',', '<', '>', ':', ' '])
+                        .map(str::to_string)
+                        .collect();
+                    for item in body.named_children(&mut body.walk()) {
+                        if item.kind() == "type_item"
+                            && item
+                                .child_by_field_name("name")
+                                .is_some_and(|nm| text(nm) == "Target")
+                            && let Some(target) = item.child_by_field_name("type")
+                        {
+                            let target = bare(&text(target));
+                            // `Target = T` (the impl's parameter): the type
+                            // derefs to its argument, which the resolver
+                            // reads from the receiver's `Cfg<WebAppConfig>`.
+                            let base = if params.contains(&target) {
+                                "#deref-arg".to_string()
+                            } else {
+                                target
+                            };
+                            if base.starts_with(|c: char| c.is_uppercase() || c == '#') {
+                                out.push(cgg_core::ClassDecl {
+                                    class_qn: bare(&text(ty)),
+                                    base_types: vec![base],
+                                    line: n.start_position().row as u32 + 1,
+                                });
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+            "type_item" => {
+                if let (Some(name), Some(target)) =
+                    (n.child_by_field_name("name"), n.child_by_field_name("type"))
+                {
+                    let target = bare(&text(target));
+                    if target.starts_with(char::is_uppercase) {
+                        out.push(cgg_core::ClassDecl {
+                            class_qn: text(name),
+                            base_types: vec![target],
+                            line: n.start_position().row as u32 + 1,
+                        });
+                    }
+                }
+                continue;
+            }
+            // Trait bodies hold associated types, not aliases.
+            "trait_item" => continue,
+            _ => {}
+        }
+        stack.extend(n.children(&mut n.walk()));
+    }
+    out
+}
+
+/// Whether the source mentions `macro_rules!` at all.
+fn mentions_macro_rules(source: &[u8]) -> bool {
+    source.windows(12).any(|w| w == b"macro_rules!")
+}
+
+/// Every `macro_rules!` in the file the expander can handle, by name.
+fn collect_macro_defs(
+    root: Node,
+    source: &[u8],
+) -> std::collections::HashMap<String, super::rust_macro::MacroDef> {
+    let mut out = std::collections::HashMap::new();
+    let mut stack = vec![root];
+    while let Some(n) = stack.pop() {
+        if n.kind() == "macro_definition" {
+            let name = n
+                .child_by_field_name("name")
+                .and_then(|c| c.utf8_text(source).ok());
+            let text = n.utf8_text(source).unwrap_or("");
+            if let Some(name) = name
+                && let Some(idx) = text.find(['{', '(', '['])
+                && let Some(def) = super::rust_macro::parse_macro_rules(&text[idx..])
+            {
+                out.insert(name.to_string(), def);
+            }
+            continue;
+        }
+        let mut c = n.walk();
+        stack.extend(n.children(&mut c));
+    }
+    out
+}
+
+/// Source text with its line breaks and the indentation after them
+/// removed: `self\n        .vec_index` -> `self.vec_index`. Single-line
+/// text is returned unchanged.
+fn join_lines(text: &str) -> String {
+    if !text.contains('\n') {
+        return text.to_string();
+    }
+    text.lines().map(str::trim).collect()
+}
+
+/// `a::b::Type::new` -> (`a::b::Type`, `Type`, `new`): the constructed
+/// type's path, its last segment, and the associated fn. `None` unless
+/// that last segment looks like a type (uppercase, no generics).
+/// Turbofish segments are dropped first (`Vec::<u8>::new` -> `Vec`). A
+/// method chain is read at its head only — `Client::builder().url(Url::
+/// parse(..)).build` is typed by `Client::builder`, never by a path inside
+/// a later argument.
+fn ctor_type_of(text: &str) -> Option<(String, String, String)> {
+    let mut plain = String::with_capacity(text.len());
+    let mut depth = 0u32;
+    let mut rest = text;
+    while let Some(c) = rest.chars().next() {
+        if depth == 0 && rest.starts_with("::<") {
+            depth = 1;
+            rest = &rest[3..];
+            continue;
+        }
+        match c {
+            '<' if depth > 0 => depth += 1,
+            '>' if depth > 0 => depth -= 1,
+            '(' | '.' | '{' if depth == 0 => break,
+            _ if depth == 0 && c.is_whitespace() => break,
+            _ if depth == 0 => plain.push(c),
+            _ => {}
+        }
+        rest = &rest[c.len_utf8()..];
+    }
+    let pos = plain.rfind("::")?;
+    let (type_part, assoc_fn) = (&plain[..pos], &plain[pos + 2..]);
+    let last = type_part.rsplit("::").next().unwrap_or(type_part);
+    (last.starts_with(char::is_uppercase) && !type_part.contains('<')).then(|| {
+        (
+            type_part.to_string(),
+            last.to_string(),
+            assoc_fn.to_string(),
+        )
+    })
+}
+
+/// Appended to a variable or `self.<field>` name for the type its lock
+/// guard dereferences to (`x.lock()` -> `x#guard`). Never valid Rust, so
+/// it cannot collide with a real local.
+pub(crate) const GUARD_SUFFIX: &str = "#guard";
+
+fn is_lock_wrapper(name: &str) -> bool {
+    matches!(name, "Mutex" | "RwLock" | "RefCell")
+}
+
 fn is_deref_transparent_wrapper(name: &str) -> bool {
     matches!(
         name,
@@ -1873,6 +2774,323 @@ fn boot() {
             "local_types: {:?}",
             f.local_types
         );
+    }
+
+    // F10: `Arc::new(a::B::new())` typed the local as `Arc` — a std
+    // wrapper with no methods of interest — whenever the inner constructor
+    // was path-qualified, and the call site that was duck-resolvable while
+    // untyped became unresolvable. Nested wrappers are seen through; an
+    // unreadable inner leaves the local untyped instead of `Arc`.
+    #[test]
+    fn let_type_sees_through_wrappers_or_stays_untyped() {
+        let src = r#"
+fn boot() {
+    let s = Arc::new(nkb_rules::Scheduler::new(1));
+    let st = Arc::new(Mutex::new(Store::new()));
+    let o = Arc::new(make_thing());
+    let c = Client::builder().url(Url::parse("x")).build();
+    let v = Vec::<u8>::with_capacity(4);
+    let h = http::HeaderMap::new();
+}
+"#;
+        let f = extract(src);
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.as_str())
+        };
+        assert_eq!(ty("s"), Some("nkb_rules::Scheduler"), "{:?}", f.local_types);
+        assert_eq!(ty("st"), Some("Store"), "{:?}", f.local_types);
+        assert_eq!(ty("o"), None, "{:?}", f.local_types);
+        assert_eq!(ty("c"), Some("Client"), "{:?}", f.local_types);
+        assert_eq!(ty("v"), Some("Vec"), "{:?}", f.local_types);
+        assert_eq!(ty("h"), Some("http::HeaderMap"), "{:?}", f.local_types);
+    }
+
+    // F1: async impl methods got no `self.<field>` facts at all, and a
+    // field typed by the struct's own generic parameter named no owner.
+    #[test]
+    fn async_methods_get_self_field_types_and_generics_use_their_bound() {
+        let src = r#"
+struct Memory<V: VectorIndex + Send, W> where W: Clone + Store {
+    vec_index: V,
+    other: W,
+    plain: Box<dyn Engine>,
+    free: T,
+}
+impl<V: VectorIndex + Send, W> Memory<V, W> {
+    async fn recall(&self) { self.vec_index.search(); }
+}
+"#;
+        let f = extract(src);
+        let mut got: Vec<(&str, &str)> = f
+            .local_types
+            .iter()
+            .filter(|l| l.var_name.starts_with("self."))
+            .map(|l| (l.var_name.as_str(), l.type_name.as_str()))
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            [
+                ("self.free", "T"),
+                ("self.other", "Store"),
+                ("self.plain", "Engine"),
+                ("self.vec_index", "VectorIndex"),
+            ]
+        );
+    }
+
+    // F4: receivers reach the resolver as text it can match — a struct
+    // literal as its type path, parens/`?`/`.await` peeled, a receiver
+    // split across lines joined — and lock-wrapped bindings record the
+    // type their guard dereferences to.
+    #[test]
+    fn receiver_hints_are_normalized_and_guards_typed() {
+        let src = r#"
+struct H { st: Arc<RwLock<Store>>, plain: Index }
+impl H {
+    async fn go(&self) {
+        admin_jobs::Runner { gate: 1 }
+            .spawn();
+        (self.plain).len_of();
+        self.st.write().await.put();
+        self
+            .plain
+            .search();
+        let m = Arc::new(Mutex::new(Store::new()));
+    }
+}
+"#;
+        let f = extract(src);
+        let hint = |name: &str| {
+            f.references
+                .iter()
+                .find(|r| r.name == name)
+                .map(|r| r.receiver_hint.as_str())
+                .unwrap_or_else(|| panic!("no ref {name}: {:?}", f.references))
+        };
+        assert_eq!(hint("spawn"), "admin_jobs::Runner");
+        assert_eq!(hint("len_of"), "self.plain");
+        assert_eq!(hint("put"), "self.st.write()");
+        assert_eq!(hint("search"), "self.plain");
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.as_str())
+        };
+        assert_eq!(ty("self.st#guard"), Some("Store"));
+        assert_eq!(ty("self.plain#guard"), None);
+        assert_eq!(ty("m#guard"), Some("Store"));
+        assert_eq!(ty("m"), Some("Store"));
+    }
+
+    // F5/F13: names cgg cannot turn into edges are still recorded —
+    // serde attribute strings (allowlisted keys only) and functions passed
+    // as values inside macro call arguments.
+    #[test]
+    fn serde_attribute_strings_and_macro_arg_values_are_mentions() {
+        let src = r#"
+#[derive(Deserialize)]
+struct Q {
+    #[serde(default = "default_hops", rename = "not_a_fn")]
+    hops: u32,
+    #[serde(skip_serializing_if = "Vec::is_empty", with = "humantime_serde")]
+    v: Vec<u32>,
+    #[doc = "default = \"nope\""]
+    w: u32,
+}
+fn f(x: Option<i64>, name: &str) {
+    let s = format!("{} {}", name, x.map(iso_day).unwrap_or_default());
+}
+"#;
+        let f = extract(src);
+        let got: Vec<(&str, &str)> = f
+            .name_mentions
+            .iter()
+            .map(|m| (m.name.as_str(), m.via.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("default_hops", "attr:default"),
+                ("Vec::is_empty", "attr:skip_serializing_if"),
+                ("humantime_serde::serialize", "attr:with"),
+                ("humantime_serde::deserialize", "attr:with"),
+                ("iso_day", "macro-arg"),
+            ]
+        );
+    }
+
+    // F9: an item-position invocation of a same-file `macro_rules!`
+    // generates callables — tagged with the macro, each with its
+    // own slice of the invocation's span so calls inside it are attributed
+    // to it. An invocation inside a function body is not an item position.
+    #[test]
+    fn same_file_item_macros_are_expanded_into_synthetic_callables() {
+        let src = r#"
+macro_rules! new_id {
+    ($name:ident, $prefix:literal) => {
+        pub struct $name(pub String);
+        impl $name {
+            pub fn new() -> Self { Self(make($prefix)) }
+            pub fn as_str(&self) -> &str { &self.0 }
+        }
+    };
+}
+new_id!(DocId, "doc");
+fn body() { new_id!(Inner, "x"); }
+"#;
+        let f = extract(src);
+        let generated: Vec<&cgg_core::DefRecord> = f
+            .definitions
+            .iter()
+            .filter(|d| d.attributes.iter().any(|a| a == "macro:new_id"))
+            .collect();
+        let names: Vec<&str> = generated
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(names.iter().any(|n| n.ends_with("DocId::new")), "{names:?}");
+        assert!(
+            names.iter().any(|n| n.ends_with("DocId::as_str")),
+            "{names:?}"
+        );
+        assert!(!names.iter().any(|n| n.contains("Inner")), "{names:?}");
+        assert!(
+            generated
+                .iter()
+                .all(|d| !d.attributes.iter().any(|a| a == "synthetic"))
+        );
+        let mut starts: Vec<u32> = generated.iter().map(|d| d.start_byte).collect();
+        starts.sort();
+        starts.dedup();
+        assert_eq!(starts.len(), generated.len(), "spans must not collide");
+        // `make(..)` inside `new` lands inside `new`'s slice.
+        let new = generated.iter().find(|d| d.simple_name == "new").unwrap();
+        let make = f
+            .references
+            .iter()
+            .find(|r| r.name == "make")
+            .expect("make ref");
+        assert!(new.start_byte <= make.site_byte && make.site_byte < new.end_byte);
+    }
+
+    // F9c: a `.`-chain receiver inside a macro keeps its `self` prefix.
+    #[test]
+    fn macro_token_tree_dot_chain_keeps_self() {
+        let f = extract("fn t(){ info!(q = self.signal.quiet_for_secs(), \"x\"); }");
+        let r = f
+            .references
+            .iter()
+            .find(|r| r.name == "quiet_for_secs")
+            .unwrap_or_else(|| panic!("{:?}", f.references));
+        assert_eq!(r.receiver_hint, "self.signal");
+    }
+
+    #[test]
+    fn macro_token_tree_self_method_keeps_self() {
+        let f = extract("fn t(){ json!({ \"url\": self.get_url(host) }); }");
+        let r = f.references.iter().find(|r| r.name == "get_url").unwrap();
+        assert_eq!(r.receiver_hint, "self");
+    }
+
+    #[test]
+    fn lib_target_name_and_mod_declarations_are_in_scope() {
+        assert_eq!(
+            section_value(
+                "[package]\nname = \"clash-verge\"\n[lib]\nname = \"app_lib\"\n",
+                "lib",
+                "name"
+            ),
+            Some("app_lib".to_string())
+        );
+        let f = extract("#[path = \"../x.rs\"] mod perf; fn main() { perf::run(); }");
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.path == "self::perf" && i.alias == "perf"),
+            "{:?}",
+            f.imports
+        );
+    }
+
+    #[test]
+    fn cargo_dependency_renames_are_parsed() {
+        let crate_toml = r#"
+[package]
+name = "server"
+[dependencies]
+common = { package = "nkb-common", path = "../common" }
+serde = "1"
+plain = { path = "../plain" }
+shared = { workspace = true }
+[dev-dependencies.fixtures]
+package = "test-fixtures"
+path = "../fx"
+"#;
+        let (renames, inherited) = parse_dependency_renames(crate_toml, false);
+        assert_eq!(
+            renames,
+            [
+                ("common".to_string(), "nkb_common".to_string()),
+                ("fixtures".to_string(), "test_fixtures".to_string())
+            ]
+        );
+        assert_eq!(inherited, ["shared"]);
+        let ws = "[workspace]\n[workspace.dependencies]\nshared = { package = \"nkb-shared\", path = \"x\" }\n";
+        let (ws_renames, _) = parse_dependency_renames(ws, true);
+        assert_eq!(
+            ws_renames,
+            [("shared".to_string(), "nkb_shared".to_string())]
+        );
+    }
+
+    #[test]
+    fn builder_chain_is_not_typed_as_the_builder() {
+        let f = extract(
+            "fn t(){ let a = FormatBuilder::new().build(); let b = FormatBuilder::new(); let c = Client::builder().url(u).build(); let d = FormatBuilder::new().build().unwrap(); let e = TarballBuilder::new().add(x); let h = Handler::builder(); }",
+        );
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.as_str())
+        };
+        assert_eq!(ty("a"), None);
+        assert_eq!(ty("b"), Some("FormatBuilder"));
+        assert_eq!(ty("c"), Some("Client"));
+        assert_eq!(ty("d"), None);
+        assert_eq!(ty("e"), Some("TarballBuilder"));
+        assert_eq!(ty("h"), None);
+    }
+
+    // Types a call reaches through: a `Deref` target (or the impl's own
+    // argument), and a module-level type alias. A macro method call whose
+    // receiver was lost is flagged so it is not read as a bare call.
+    #[test]
+    fn deref_targets_aliases_and_dot_calls() {
+        let src = r#"
+impl Deref for Io { type Target = IoRef; fn deref(&self) -> &IoRef { &self.0 } }
+impl<T> Deref for Cfg<T> { type Target = T; fn deref(&self) -> &T { &self.0 } }
+type Real = Collector<Source>;
+trait Tr { type Assoc = Foo; }
+fn t() { assert!(make().build(x)); }
+"#;
+        let f = extract(src);
+        let links: Vec<(&str, &str)> = f
+            .classes
+            .iter()
+            .map(|c| (c.class_qn.as_str(), c.base_types[0].as_str()))
+            .collect();
+        assert!(links.contains(&("Io", "IoRef")), "{links:?}");
+        assert!(links.contains(&("Cfg", "#deref-arg")), "{links:?}");
+        assert!(links.contains(&("Real", "Collector")), "{links:?}");
+        assert_eq!(links.len(), 3, "{links:?}");
+        let build = f.references.iter().find(|r| r.name == "build").unwrap();
+        assert!(build.dot_call && build.receiver_hint.is_empty());
     }
 
     #[test]
@@ -2338,5 +3556,22 @@ fn worker() {}
             "a turbofish-mangled receiver must be dropped to bare, not emitted; got {:?}",
             f.references
         );
+    }
+
+    // Turbofish callees (`generic_function`) were dropped with no
+    // reference and no unresolved record, so `f::<T>()`'s callee read as
+    // never-referenced and the audit held no trace of the call.
+    #[test]
+    fn turbofish_callee_is_recorded_like_the_plain_call() {
+        let src = "fn t(){ call_llm_typed::<Foo>(a); m::parse_it::<u8>(); x.collect::<Vec<_>>(); }";
+        let f = extract(src);
+        let got: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(got.contains(&("call_llm_typed", "")), "got {got:?}");
+        assert!(got.contains(&("parse_it", "m")), "got {got:?}");
+        assert!(got.contains(&("collect", "x")), "got {got:?}");
     }
 }

@@ -326,6 +326,16 @@ pub struct Cli {
     #[arg(long = "reference-edges", action = ArgAction::SetTrue)]
     pub reference_edges: bool,
 
+    /// Bind a Rust call the resolver could not place when exactly one
+    /// callable in the tree carries its name, as a `low`-confidence edge
+    /// tagged `cross-file:name-unique`. Off by default: a unique name is
+    /// evidence, not proof. Never applied to standard-library names, to a
+    /// typed receiver whose type lacks the method, to `self`, to a path
+    /// into an external crate, or to a test-module helper from
+    /// production code.
+    #[arg(long = "guess-unique-names", action = ArgAction::SetTrue)]
+    pub guess_unique_names: bool,
+
     /// Report callables that nothing in the analyzed source appears to
     /// call, marking them `unreferenced` in the normal graph output.
     ///

@@ -399,10 +399,11 @@ pub fn propagate_types_with_fields(
     // leaked version called `to_string()` too — so this costs nothing; the
     // strings are simply freed now.
     let cpp = facts.language == "cpp";
+    let rust = facts.language == "rust";
     let param_store: Vec<(u32, String, String)> = facts
         .definitions
         .iter()
-        .flat_map(|d| collect_param_types(d, cpp))
+        .flat_map(|d| collect_param_types(d, cpp, rust))
         .collect();
     // Key: (enclosing_start_byte, variable_name) -> type_name. Last write
     // wins, exactly as the repeated `map.insert` did.
@@ -433,6 +434,12 @@ pub fn propagate_types_with_fields(
             local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
         }
     }
+
+    let rust_lets = if rust {
+        RustLets::build(facts)
+    } else {
+        RustLets::default()
+    };
 
     // Pass 2c: "is `fn_name` called bare, before this site?" — answered
     // by scanning at first, by a map once scanning stops being cheaper.
@@ -520,6 +527,33 @@ pub fn propagate_types_with_fields(
             continue;
         }
 
+        // A lock guard (`x.lock()`, `self.store.write().unwrap()`) derefs
+        // to what the lock holds; the plugin and the parameter parser
+        // record that type under `<base>#guard` wherever a declared type
+        // went through `Mutex`/`RwLock`/`RefCell`.
+        if rust && let Some(base) = rust_guard_base(rh) {
+            let key = format!("{base}{GUARD_SUFFIX}");
+            let enc = enclosing_def(facts, rref.site_byte);
+            let ty = if base.starts_with("self.") {
+                enc.and_then(|e| {
+                    self_field_map.get(&(e.start_byte, key.as_str())).copied()
+                })
+            } else {
+                enc.and_then(|e| type_map.get(&(e.start_byte, key.as_str())).copied())
+                    .or_else(|| {
+                        rust_lets.visible(
+                            &key,
+                            rref.site_byte,
+                            enc.map(|d| (d.start_byte, d.end_byte)),
+                        )
+                    })
+            };
+            if let Some(ty) = ty {
+                rewrites.push((i, ty.to_string()));
+            }
+            continue;
+        }
+
         // Special-case `self.<field>` BEFORE the dot/colon filter
         // below — the field's type comes from the per-method scoped
         // self_field_map populated by the Rust and Python extractors.
@@ -550,7 +584,13 @@ pub fn propagate_types_with_fields(
             }
         }
 
-        if rh.starts_with(char::is_uppercase) || rh.contains("::") || rh.contains('.') {
+        // A path receiver (`config::load()`) names a module or crate,
+        // never a variable, even when a local of the same name exists.
+        if rh.starts_with(char::is_uppercase)
+            || rh.contains("::")
+            || rh.contains('.')
+            || rref.path_receiver
+        {
             continue;
         }
 
@@ -575,8 +615,24 @@ pub fn propagate_types_with_fields(
         // differ (PHP records none), and scoping them changed resolution
         // in every language on the corpus, losing 1,698 high-confidence
         // edges outside C/C++.
+        //
+        // Rust's `scope_byte` is the `let` statement itself, so it can be
+        // scoped too: the latest `let` before the site whose enclosing
+        // callable also encloses the site. File-wide last-write-wins
+        // retyped every `map` in a file as the external `http::HeaderMap`
+        // once one test wrote `let map = http::HeaderMap::new()`, and the
+        // local `HeaderMap`'s own calls stopped resolving. A site with no
+        // visible `let` keeps the file-wide answer it always had.
         let local_ty = if cpp {
             lookup_local_type(facts, rref.site_byte, rh)
+        } else if rust {
+            rust_lets
+                .visible(
+                    rh,
+                    rref.site_byte,
+                    enclosing.map(|d| (d.start_byte, d.end_byte)),
+                )
+                .or_else(|| local_type_map.get(rh).copied())
         } else {
             local_type_map.get(rh).copied()
         };
@@ -654,7 +710,11 @@ pub fn propagate_types_with_fields(
 /// Returns owned strings rather than writing borrowed ones into a map: the
 /// caller needs them to outlive its borrow of `facts`, and owning them
 /// there is what lets the caller free them. See the call site.
-fn collect_param_types(def: &DefRecord, cpp: bool) -> Vec<(u32, String, String)> {
+fn collect_param_types(
+    def: &DefRecord,
+    cpp: bool,
+    rust: bool,
+) -> Vec<(u32, String, String)> {
     let mut out = Vec::new();
     // Parse parameter types from signature_hint.
     // Patterns we recognize:
@@ -689,7 +749,19 @@ fn collect_param_types(def: &DefRecord, cpp: bool) -> Vec<(u32, String, String)>
         }
 
         // Try "name: Type" pattern (Rust, Python, TS, Kotlin)
-        if let Some((name, ty)) = parse_colon_param(param) {
+        let colon = if rust {
+            parse_colon_param_rust(param)
+        } else {
+            parse_colon_param(param).map(|(n, t)| (n, t, false))
+        };
+        if let Some((name, ty, locked)) = colon {
+            if locked {
+                out.push((
+                    def.start_byte,
+                    format!("{name}{GUARD_SUFFIX}"),
+                    ty.to_string(),
+                ));
+            }
             out.push((def.start_byte, name.to_string(), ty.to_string()));
             continue;
         }
@@ -709,6 +781,107 @@ fn collect_param_types(def: &DefRecord, cpp: bool) -> Vec<(u32, String, String)>
         }
     }
     out
+}
+
+/// Mirrors the Rust plugin's guard marker: `x#guard` is the type `x`'s
+/// lock guard dereferences to.
+const GUARD_SUFFIX: &str = "#guard";
+
+/// Smart pointers and locks whose contents a method call reaches —
+/// through `Deref`, or through the guard `lock()`/`read()`/`borrow()`
+/// hands back. A parameter typed as one of these is, for resolving its
+/// methods, the type inside.
+const RUST_WRAPPERS: &[&str] = &[
+    "Arc", "Rc", "Box", "Pin", "Mutex", "RwLock", "RefCell", "Cell", "ArcSwap",
+];
+
+/// Rust `name: Type`, seeing through wrapper chains: `x: Arc<Mutex<dyn
+/// Reporter>>` is a `Reporter`, not an `Arc`. The generic `parse_colon_param`
+/// cuts at the first `<`, which typed every such parameter as the std
+/// wrapper — a type with no methods of interest, so its call sites became
+/// unresolvable. Paths are kept (`a::Store`): the resolver needs them to
+/// tell a workspace type from an external one. Up to three wrappers deep.
+fn parse_colon_param_rust(param: &str) -> Option<(&str, &str, bool)> {
+    let (name, _) = parse_colon_param(param)?;
+    let (_, rest) = param.split_once(':')?;
+    let mut ty = rest.trim();
+    let mut locked = false;
+    for _ in 0..=3 {
+        ty = ty.trim_start_matches('&').trim_start();
+        if ty.starts_with('\'') {
+            ty = ty.split_once(' ').map_or(ty, |(_, t)| t).trim_start();
+        }
+        for kw in ["mut ", "dyn ", "impl "] {
+            ty = ty.strip_prefix(kw).unwrap_or(ty).trim_start();
+        }
+        let Some(open) = ty.find('<') else { break };
+        let head = &ty[..open];
+        if !RUST_WRAPPERS.contains(&head.rsplit("::").next().unwrap_or(head)) {
+            break;
+        }
+        let Some(close) = ty.rfind('>') else { break };
+        if close <= open {
+            break;
+        }
+        locked |= matches!(
+            head.rsplit("::").next().unwrap_or(head),
+            "Mutex" | "RwLock" | "RefCell"
+        );
+        ty = &ty[open + 1..close];
+    }
+    // `State<AppState>`: kept whole, see `deref_wrapper_split`.
+    if cgg_core::rust_types::deref_wrapper_split(ty.trim()).is_some() {
+        return Some((name, ty.trim(), locked));
+    }
+    // `dyn Store + Send + 'static` -> `Store`; `Store<T>` -> `Store`.
+    let ty = ty
+        .split(['<', '[', ',', ')', '+'])
+        .next()
+        .unwrap_or(ty)
+        .trim();
+    if ty.is_empty()
+        || is_primitive(ty)
+        || !ty
+            .rsplit("::")
+            .next()
+            .is_some_and(|l| l.starts_with(char::is_uppercase))
+    {
+        return None;
+    }
+    Some((name, ty, locked))
+}
+
+/// `x.lock()`, `self.inner.write().unwrap()`, `cell.borrow_mut()` -> the
+/// receiver the guard was taken from (`x`, `self.inner`, `cell`). `None`
+/// for anything else. The plugin peels `.await`/`?` off a receiver before
+/// it gets here.
+fn rust_guard_base(rh: &str) -> Option<&str> {
+    let mut rh = rh;
+    if let Some(stripped) = rh.strip_suffix(".unwrap()") {
+        rh = stripped;
+    } else if let Some(idx) = rh.rfind(".expect(")
+        && rh.ends_with(')')
+    {
+        rh = &rh[..idx];
+    }
+    const GUARDS: &[&str] = &[
+        ".lock()",
+        ".read()",
+        ".write()",
+        ".borrow()",
+        ".borrow_mut()",
+        ".try_lock()",
+        ".try_read()",
+        ".try_write()",
+        ".blocking_lock()",
+    ];
+    let base = GUARDS.iter().find_map(|g| rh.strip_suffix(g))?;
+    let plain = base
+        .strip_prefix("self.")
+        .unwrap_or(base)
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_');
+    (plain && !base.is_empty()).then_some(base)
 }
 
 fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
@@ -969,6 +1142,59 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
         map.insert(ty.to_lowercase(), ty.to_string());
     }
     map
+}
+
+/// Rust `let` bindings by name, each with the span of the innermost
+/// callable it was declared in, sorted by position. Built once per file.
+#[derive(Default)]
+struct RustLets<'a> {
+    by_name: HashMap<&'a str, Vec<RustLet<'a>>>,
+}
+
+/// `(let position, enclosing callable span, type)`.
+type RustLet<'a> = (u32, Option<(u32, u32)>, &'a str);
+
+impl<'a> RustLets<'a> {
+    fn build(facts: &'a FileFacts) -> Self {
+        let mut by_name: HashMap<&'a str, Vec<RustLet<'a>>> = HashMap::new();
+        for lt in &facts.local_types {
+            if lt.var_name.starts_with("self.") {
+                continue;
+            }
+            let span =
+                enclosing_def(facts, lt.scope_byte).map(|d| (d.start_byte, d.end_byte));
+            by_name.entry(lt.var_name.as_str()).or_default().push((
+                lt.scope_byte,
+                span,
+                lt.type_name.as_str(),
+            ));
+        }
+        for v in by_name.values_mut() {
+            // Stable: equal positions keep extraction order, and the last
+            // of them wins below exactly as the file-wide map's did.
+            v.sort_by_key(|(b, _, _)| *b);
+        }
+        RustLets { by_name }
+    }
+
+    /// The type of the latest `let name` before `site` that is in scope
+    /// there: declared inside a callable that also contains `site` (the
+    /// site's own, or one it is nested in — a closure sees its parent's
+    /// locals). `None` when no such `let` exists.
+    fn visible(
+        &self,
+        name: &str,
+        site: u32,
+        site_fn: Option<(u32, u32)>,
+    ) -> Option<&'a str> {
+        let lets = self.by_name.get(name)?;
+        site_fn?;
+        lets.iter()
+            .rev()
+            .filter(|(b, _, _)| *b <= site)
+            .find(|(_, span, _)| span.is_some_and(|(s, e)| s <= site && site < e))
+            .map(|(_, _, ty)| *ty)
+    }
 }
 
 fn lookup_local_type<'a>(
@@ -1288,6 +1514,9 @@ mod tests {
             },
         ];
         let mut facts = mk_facts(defs, refs);
+        // Rust is scoped too since its `scope_byte` is the `let` itself
+        // (`rust_locals_resolve_to_the_let_in_scope`); this guards the rest.
+        facts.language = "java".into();
         facts.local_types.push(cgg_core::LocalType {
             var_name: "stream".into(),
             type_name: "StreamOutput".into(),
@@ -1427,6 +1656,93 @@ mod tests {
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "self");
+    }
+
+    // F10, annotation side: `parse_colon_param` cut at the first `<`, so
+    // `Arc<Mutex<dyn Reporter>>` typed the parameter as `Arc`.
+    #[test]
+    fn rust_params_see_through_wrapper_chains() {
+        let sig = "async fn drive(reporter: Arc<Mutex<dyn Reporter + Send>>, \
+                   p: &mut dyn Printer, s: Arc<rules::Scheduler>, n: Box<u32>)";
+        let defs = vec![mk_def("app::drive", sig, 0, 400)];
+        let r = |name: &str, hint: &str, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let refs = vec![
+            r("update", "reporter", 300),
+            r("print", "p", 310),
+            r("spawn", "s", 320),
+            r("pow", "n", 330),
+        ];
+        let mut facts = mk_facts(defs, refs);
+        propagate_types(&mut facts);
+        let hints: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(hints, ["Reporter", "Printer", "rules::Scheduler", "n"]);
+    }
+
+    // A lock guard derefs to what the lock holds: `reporter.lock()` on
+    // `reporter: Arc<Mutex<dyn Reporter>>` is a `Reporter`. A guard taken
+    // from something not declared through a lock is left alone.
+    #[test]
+    fn rust_lock_guards_type_as_their_contents() {
+        let sig = "async fn drive(reporter: Arc<Mutex<dyn Reporter>>, file: File)";
+        let defs = vec![mk_def("app::drive", sig, 0, 400)];
+        let r = |hint: &str, byte| RefRecord {
+            name: "update".into(),
+            receiver_hint: hint.into(),
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let refs = vec![
+            r("reporter.lock()", 300),
+            r("reporter.lock().unwrap()", 310),
+            r("file.read()", 320),
+        ];
+        let mut facts = mk_facts(defs, refs);
+        propagate_types(&mut facts);
+        let hints: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(hints, ["Reporter", "Reporter", "file.read()"]);
+    }
+
+    // Rust locals are scoped: the latest visible `let` wins, not the last
+    // one written anywhere in the file.
+    #[test]
+    fn rust_locals_resolve_to_the_let_in_scope() {
+        let defs = vec![
+            mk_def("m::a", "fn a()", 0, 100),
+            mk_def("m::b", "fn b()", 100, 200),
+        ];
+        let r = |byte| RefRecord {
+            name: "get".into(),
+            receiver_hint: "map".into(),
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![r(50), r(150)]);
+        for (ty, at) in [("HeaderMap", 10), ("http::HeaderMap", 110)] {
+            facts.local_types.push(LocalType {
+                var_name: "map".into(),
+                type_name: ty.into(),
+                scope_byte: at,
+            });
+        }
+        propagate_types(&mut facts);
+        assert_eq!(facts.references[0].receiver_hint, "HeaderMap");
+        assert_eq!(facts.references[1].receiver_hint, "http::HeaderMap");
     }
 
     #[test]

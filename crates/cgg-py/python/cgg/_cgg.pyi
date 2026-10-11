@@ -160,6 +160,7 @@ def analyze(
     include_stdlib: bool = ...,
     dynamic_dispatch: bool = ...,
     reference_edges: bool = ...,
+    guess_unique_names: bool = ...,
     entry_nodes: bool = ...,
     include_tests: bool = ...,
     dead_code: bool = ...,

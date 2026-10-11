@@ -74,6 +74,28 @@ fn is_method_variant(v: DefVariant) -> bool {
     )
 }
 
+/// `async` replaces the scope-derived variant (`AsyncFunction` for an
+/// `async fn` in an `impl` as much as for a free one), so the variant
+/// alone cannot say "method". The qualified name can: an owner that is a
+/// type — capitalised, or a `<T as Trait>` wrapper — makes it one.
+fn is_async_method(d: &DefRecord) -> bool {
+    if d.variant != DefVariant::AsyncFunction {
+        return false;
+    }
+    let qn = d.qualified_name.as_str();
+    let prefix = qn
+        .strip_suffix(d.simple_name.as_str())
+        .unwrap_or(qn)
+        .trim_end_matches([':', '.']);
+    if prefix.ends_with('>') {
+        return true;
+    }
+    prefix
+        .rsplit(['.', ':'])
+        .next()
+        .is_some_and(|owner| owner.starts_with(|c: char| c.is_uppercase()))
+}
+
 /// Run the intra-file linker over a single file.
 ///
 /// `def_ids` must contain entries for every `(facts.file, idx)` pair
@@ -162,9 +184,13 @@ pub fn link_file_with_cap(
         // Java and C# do resolve a bare name to a method and must not
         // be filtered.
         let mut methods_out_of_scope = 0u32;
-        if rref.receiver_hint.is_empty() && bare_call_is_never_a_method(&facts.language) {
+        if rref.receiver_hint.is_empty()
+            && !rref.dot_call
+            && bare_call_is_never_a_method(&facts.language)
+        {
             let before = candidates.len();
-            candidates.retain(|(_, d)| !is_method_variant(d.variant));
+            candidates
+                .retain(|(_, d)| !is_method_variant(d.variant) && !is_async_method(d));
             methods_out_of_scope = (before - candidates.len()) as u32;
         }
 
@@ -275,6 +301,28 @@ pub fn link_file_with_cap(
                     .collect();
                 if !strict.is_empty() {
                     candidates = strict;
+                }
+            }
+            // Two impls of one trait on one type (`PartialOrd` and
+            // `PartialOrd<i32>`) both provide the method; inside one of
+            // them, `self.partial_cmp(other)` is that impl's — its argument
+            // types are the ones in scope. One-sided like the rest.
+            if candidates.len() > 1
+                && let Some(prefix) = enclosing.and_then(|i| {
+                    crate::names::split_last_segment(&facts.definitions[i].qualified_name)
+                        .map(|(p, _)| p)
+                })
+            {
+                let same_impl: Vec<(u32, &DefRecord)> = candidates
+                    .iter()
+                    .copied()
+                    .filter(|(_, d)| {
+                        crate::names::split_last_segment(&d.qualified_name)
+                            .is_some_and(|(p, _)| p == prefix)
+                    })
+                    .collect();
+                if same_impl.len() == 1 {
+                    candidates = same_impl;
                 }
             }
         } else if !rh.is_empty() {
@@ -645,6 +693,41 @@ mod tests {
         assert_eq!(e.dst, CallableId::new(1));
         assert_eq!(e.confidence, Confidence::High);
         assert_eq!(e.resolver.as_str(), "intra-file");
+    }
+
+    // Two `PartialOrd` impls on one type: inside one of them,
+    // `self.partial_cmp(..)` is that impl's own method.
+    #[test]
+    fn self_call_prefers_the_callers_own_impl_block() {
+        let a = "m::<T as PartialOrd>";
+        let b = "m::<T as PartialOrd<i32>>";
+        let defs = vec![
+            mk_def(
+                "partial_cmp",
+                &format!("{a}::partial_cmp"),
+                DefVariant::TraitMethod,
+                (0, 100),
+            ),
+            mk_def(
+                "partial_cmp",
+                &format!("{b}::partial_cmp"),
+                DefVariant::TraitMethod,
+                (100, 200),
+            ),
+            mk_def(
+                "gt",
+                &format!("{b}::gt"),
+                DefVariant::TraitMethod,
+                (200, 300),
+            ),
+        ];
+        let mut r = mk_ref("partial_cmp", 250);
+        r.receiver_hint = "self".into();
+        let facts = facts_with(defs, vec![r]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
+        assert_eq!(out.edges[0].dst, map[&(facts.file, 1)]);
     }
 
     #[test]

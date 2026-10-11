@@ -817,6 +817,8 @@ impl<'a> JsWalker<'a> {
             });
             self.facts.references.push(RefRecord {
                 from_macro_arg: false,
+                path_receiver: false,
+                dot_call: false,
                 arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),

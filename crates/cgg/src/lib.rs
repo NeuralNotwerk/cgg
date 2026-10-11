@@ -796,6 +796,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             &all_facts,
             opts.fanout_cap as usize,
             opts.dynamic_dispatch,
+            opts.guess_unique_names,
         )
     };
     for e in &cf_out.edges {
@@ -2286,19 +2287,40 @@ fn synthesize_entry_nodes(
 /// names. The bare trait name (last path segment) is returned so it
 /// matches a trait declaration's owner.
 fn trait_impl_target_from_qn(qn: &str) -> Option<String> {
-    let open = qn.find('<')?;
-    let rest = &qn[open + 1..];
-    let close = rest.find('>')?;
-    let inner = &rest[..close];
-    let as_pos = inner.find(" as ")?;
-    let trait_part = inner[as_pos + 4..].trim();
-    Some(
-        trait_part
-            .rsplit("::")
-            .next()
-            .unwrap_or(trait_part)
-            .to_string(),
-    )
+    // The wrapper opens a segment (`m::<A as T>::f`, or the qn's start)
+    // and is matched by depth: the implementing type can carry its own
+    // angle brackets (`<Printer<'_> as Output>`, `<Option<Scheme> as
+    // Detector>`), and taking the first `>` stopped inside them — those
+    // impls got no target, and `--dynamic-dispatch` never reached them.
+    let start = if qn.starts_with('<') {
+        0
+    } else {
+        qn.find("::<")? + 2
+    };
+    let wrapper = &qn[start..];
+    let (mut depth, mut as_pos) = (0usize, None);
+    let mut end = None;
+    for (i, c) in wrapper.char_indices() {
+        match c {
+            '<' => depth += 1,
+            '>' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    end = Some(i);
+                    break;
+                }
+            }
+            ' ' if depth == 1 && as_pos.is_none() && wrapper[i..].starts_with(" as ") => {
+                as_pos = Some(i);
+            }
+            _ => {}
+        }
+    }
+    let trait_part = wrapper[as_pos? + 4..end?].trim();
+    // `From<Cpuid>` -> `From`; `std::fmt::Display` -> `Display`.
+    let trait_path = trait_part.split('<').next().unwrap_or(trait_part).trim();
+    let name = trait_path.rsplit("::").next().unwrap_or(trait_path);
+    (!name.is_empty()).then(|| name.to_string())
 }
 
 /// Deduplicate edges: keep only one edge per (src, dst, site_byte)
@@ -2431,4 +2453,41 @@ fn group_unresolved_by_module(
     // Ties break on the module name so the order is stable.
     out.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.module.cmp(&b.module)));
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::trait_impl_target_from_qn as target;
+
+    #[test]
+    fn trait_impl_target_survives_angle_brackets_in_the_implementing_type() {
+        assert_eq!(
+            target("m::<Disk as Storage>::put").as_deref(),
+            Some("Storage")
+        );
+        // The first `>` closes the implementing type's own generics, not
+        // the wrapper: these impls used to get no target at all, so
+        // `--dynamic-dispatch` never reached them.
+        assert_eq!(
+            target("bat::printer::<SimplePrinter<'_> as Printer>::print_header")
+                .as_deref(),
+            Some("Printer")
+        );
+        assert_eq!(
+            target("bat::theme::<Option<ColorScheme> as ColorSchemeDetector>::detect")
+                .as_deref(),
+            Some("ColorSchemeDetector")
+        );
+        // A generic trait is named bare, matching its declaration's owner.
+        assert_eq!(
+            target("vmm::<E as std::convert::From<kvm::Error>>::from").as_deref(),
+            Some("From")
+        );
+        assert_eq!(
+            target("<A as b::Handler<T>>::call").as_deref(),
+            Some("Handler")
+        );
+        assert_eq!(target("crate::Store<T>::get"), None);
+        assert_eq!(target("crate::free_fn"), None);
+    }
 }

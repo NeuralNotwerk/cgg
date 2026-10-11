@@ -114,6 +114,11 @@ export interface AnalyzeOptions {
   includeStdlib?: boolean
   dynamicDispatch?: boolean
   referenceEdges?: boolean
+  /**
+   * Bind an unplaced Rust call whose name is unique in the tree, at
+   * `low` confidence. Off by default.
+   */
+  guessUniqueNames?: boolean
   /** `true` (the default) mints `<framework-entry>` nodes. */
   entryNodes?: boolean
   includeTests?: boolean

@@ -39,6 +39,7 @@ pub mod r;
 pub(crate) mod registrar;
 pub mod ruby;
 pub mod rust;
+mod rust_macro;
 pub mod scala;
 pub mod smithy;
 pub mod solidity;

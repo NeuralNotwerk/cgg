@@ -1857,6 +1857,8 @@ mod tests {
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "listUsers".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
@@ -1887,6 +1889,8 @@ mod tests {
         let mut bare = facts_with_import("rust", "s.rs", "axum");
         bare.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "name".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
@@ -1903,6 +1907,8 @@ mod tests {
         let mut free = facts_with_import("rust", "s.rs", "axum");
         free.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "name".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
@@ -1926,6 +1932,8 @@ mod tests {
         let mut f = facts_with_import("rust", "s.rs", "axum");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "user_id".into(),
             receiver_hint: STRING_REF_HINT.to_string(),
@@ -1974,6 +1982,8 @@ mod tests {
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "listUsers".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
@@ -2006,6 +2016,8 @@ mod tests {
         let mut f = facts_with_import("python", "ui.py", "kivy");
         f.references.push(RefRecord {
             from_macro_arg: false,
+            path_receiver: false,
+            dot_call: false,
             arity: None,
             name: "on_mouse_pos".into(),
             receiver_hint: VALUE_REF_HINT.to_string(),

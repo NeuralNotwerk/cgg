@@ -208,11 +208,24 @@ pub fn render_text(
             if !why.is_empty() {
                 writeln!(out, "    why:  {}", why.join(", "))?;
             }
-            let risk: Vec<&str> = f
+            // A screen or trait name is the part a reviewer acts on:
+            // `attribute-string` says "look for a serde attribute",
+            // `external` says "a same-named third-party call".
+            let risk: Vec<String> = f
                 .evidence
                 .iter()
                 .filter(|e| e.polarity() == cgg_core::deadcode::Polarity::Lowers)
-                .map(|e| e.slug())
+                .map(|e| match e {
+                    cgg_core::deadcode::Evidence::NameCollidesWithScreenedSite {
+                        screen,
+                        ..
+                    } => format!("{}:{screen}", e.slug()),
+                    cgg_core::deadcode::Evidence::ImplementedTraitSurface {
+                        trait_name,
+                        ..
+                    } => format!("{}:{trait_name}", e.slug()),
+                    _ => e.slug().to_string(),
+                })
                 .collect();
             if !risk.is_empty() {
                 writeln!(out, "    risk: {}", risk.join(", "))?;
@@ -326,6 +339,21 @@ pub fn render_why_live(proofs: &[LivenessProof], out: &mut dyn Write) -> io::Res
                     out,
                     "  This is the same claim the report makes, shown as a derivation."
                 )?;
+                if let Some(cgg_core::deadcode::Evidence::ImplementedTraitSurface {
+                    trait_name,
+                    impls,
+                    unresolved_sites,
+                    called_impls,
+                }) = &p.dispatch_surface
+                {
+                    writeln!(
+                        out,
+                        "  BUT this declares trait `{trait_name}` ({impls} implementing \
+                         method(s)), and the method is dispatched to: {unresolved_sites} \
+                         unplaced same-name call site(s), {called_impls} directly-called \
+                         impl(s). Callers bind to the impls, not to this declaration."
+                    )?;
+                }
             }
         }
         writeln!(out)?;

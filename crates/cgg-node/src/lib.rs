@@ -53,6 +53,9 @@ pub struct AnalyzeOptions {
     pub include_stdlib: Option<bool>,
     pub dynamic_dispatch: Option<bool>,
     pub reference_edges: Option<bool>,
+    /// Bind an unplaced Rust call whose name is unique in the tree, at
+    /// `low` confidence. Off by default.
+    pub guess_unique_names: Option<bool>,
     /// `true` (the default) mints `<framework-entry>` nodes.
     pub entry_nodes: Option<bool>,
     pub include_tests: Option<bool>,
@@ -274,6 +277,7 @@ fn build_options(
         include_stdlib: o.include_stdlib.unwrap_or(false),
         dynamic_dispatch: o.dynamic_dispatch.unwrap_or(false),
         reference_edges: o.reference_edges.unwrap_or(false),
+        guess_unique_names: o.guess_unique_names.unwrap_or(false),
         // Inverted on purpose; see `AnalyzeOptions::entry_nodes`.
         no_entry_nodes: !o.entry_nodes.unwrap_or(true),
         include_tests: o.include_tests.unwrap_or(false),

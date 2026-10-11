@@ -46,7 +46,8 @@ const BLIND_SPOTS: &[(&str, &[&str])] = &[
         "rust",
         &[
             "calls inside macro arguments (format!, writeln!, vec!, assert_eq!)",
-            "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")])",
+            "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")]) — serde's are recorded as doubt, never as edges",
+            "functions passed as values inside macro arguments (format!(\"{}\", x.map(f))) — recorded as doubt, never as edges",
         ],
     ),
     (

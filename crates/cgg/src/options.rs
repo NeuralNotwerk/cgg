@@ -137,6 +137,9 @@ pub struct RunOptions {
     pub dynamic_dispatch: bool,
     /// Emit edges for functions passed by name as values.
     pub reference_edges: bool,
+    /// Bind an unplaced Rust call whose name is unique in the tree, at
+    /// `low` confidence (`--guess-unique-names`).
+    pub guess_unique_names: bool,
     /// Suppress synthesized `<framework-entry>` nodes. Negative sense
     /// to match the flag; entry nodes are ON by default.
     pub no_entry_nodes: bool,
@@ -199,6 +202,7 @@ impl Default for RunOptions {
             include_stdlib: false,
             dynamic_dispatch: false,
             reference_edges: false,
+            guess_unique_names: false,
             no_entry_nodes: false,
             framework_coverage: false,
             dead_code: false,
@@ -275,6 +279,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             no_entry_nodes,
             framework_coverage,
             reference_edges,
+            guess_unique_names,
             dead_code,
             dead_code_confidence,
             ignore_names,
@@ -332,6 +337,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             include_stdlib: *include_stdlib,
             dynamic_dispatch: *dynamic_dispatch,
             reference_edges: *reference_edges,
+            guess_unique_names: *guess_unique_names,
             no_entry_nodes: *no_entry_nodes,
             framework_coverage: *framework_coverage,
             dead_code: *dead_code,

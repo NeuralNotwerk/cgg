@@ -72,6 +72,204 @@ fn trait_of_impl_qn(qn: &str) -> Option<String> {
     Some(bare.rsplit("::").next().unwrap_or(bare).to_string())
 }
 
+/// Base recorded by the Rust plugin for a type whose `Deref::Target` is
+/// its own type parameter. Mirrors `cgg-lang`'s `rust_type_links`.
+const DEREF_TO_ARG: &str = "#deref-arg";
+
+/// Callables defined in the `candidates` files whose path contains any of
+/// `fragments`, by simple name, in file order.
+///
+/// The hottest loop of a large single-language tree (files x files path
+/// scans — 70 s of a 90 s `--jobs 1` run on a 56k-callable PHP repo), kept
+/// out of line so its code generation does not depend on how large the
+/// enclosing resolver grows: inlined into `resolve`, the same unchanged
+/// scan measured 4–9% slower or faster from one build to the next.
+#[inline(never)]
+fn scoped_candidates(
+    fragments: &[String],
+    candidates: &[(FileId, String)],
+    def_cids: &HashMap<FileId, Vec<(&str, CallableId)>>,
+) -> HashMap<String, Vec<CallableId>> {
+    let mut out: HashMap<String, Vec<CallableId>> = HashMap::new();
+    for (fid, fpath) in candidates {
+        if !fragments.iter().any(|frag| fpath.contains(frag.as_str())) {
+            continue;
+        }
+        for (simple, cid) in def_cids.get(fid).map(Vec::as_slice).unwrap_or(&[]) {
+            out.entry((*simple).to_string()).or_default().push(*cid);
+        }
+    }
+    out
+}
+
+/// The `T` of a wasm-bindgen extern method `fn m(this: &T, …)`.
+fn wasm_bindgen_method_owner(c: &cgg_core::graph::CallableNode) -> Option<String> {
+    if !c
+        .attributes
+        .iter()
+        .any(|a| a.contains("wasm_bindgen") && a.contains("method"))
+    {
+        return None;
+    }
+    let params = c.signature_hint.split_once('(')?.1;
+    let first = params.split([',', ')']).next()?.trim();
+    let ty = first
+        .strip_prefix("this")?
+        .trim_start()
+        .strip_prefix(':')?
+        .trim();
+    let ty = ty.trim_start_matches('&').trim_start_matches("mut ").trim();
+    let ty = ty.split('<').next()?.trim();
+    let ty = ty.rsplit("::").next()?;
+    ty.starts_with(char::is_uppercase).then(|| ty.to_string())
+}
+
+/// `--guess-unique-names`: the one callable named `r.name`, when binding
+/// to it is a defensible guess. Every refusal mirrors a rule the default
+/// resolver already keeps:
+///
+/// * a standard-library name (`iter`, `join`, `map_err`) is almost never
+///   the workspace's one same-named method;
+/// * `self`/`Self` and a typed receiver (uppercase — a type whose own
+///   lookup already failed) never degrade to name matching;
+/// * a path whose head is an external crate is a call into that crate —
+///   judged on crate-root membership, so a hint that carries no `::` is
+///   no loophole;
+/// * a test-module helper is no production caller's target, and the
+///   candidate must be reachable from the caller at all.
+#[allow(clippy::too_many_arguments)]
+fn unique_name_guess(
+    graph: &Graph,
+    r: &cgg_core::RefRecord,
+    caller_file: FileId,
+    caller_qn: Option<&str>,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    rust_path_heads: &RustPathVocab,
+    workspace_owner_names: &std::collections::HashSet<String>,
+    direct_imports: &HashMap<String, Vec<String>>,
+    module_aliases: &HashMap<String, String>,
+) -> Option<CallableId> {
+    if r.receiver_hint == cgg_core::VALUE_REF_HINT
+        || r.receiver_hint == cgg_core::STRING_REF_HINT
+    {
+        return None;
+    }
+    let [cid] = by_simple
+        .get(&("rust".to_string(), r.name.clone()))?
+        .as_slice()
+    else {
+        return None;
+    };
+    if cgg_core::stdlib::stdlib_names("rust")
+        .is_some_and(|std| std.contains(r.name.as_str()))
+    {
+        return None;
+    }
+    let rh = r.receiver_hint.as_str();
+    if matches!(rh, "self" | "Self") || rh.starts_with(char::is_uppercase) {
+        return None;
+    }
+    let head = rh
+        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .next()
+        .unwrap_or("");
+    let path_like = r.path_receiver || rh.starts_with(&format!("{head}::"));
+    if !head.is_empty()
+        && path_like
+        && is_external_rust_head(
+            head,
+            rust_path_heads,
+            workspace_owner_names,
+            direct_imports,
+            module_aliases,
+            caller_qn,
+        )
+    {
+        return None;
+    }
+    let in_tests = |qn: &str| {
+        qn.split("::")
+            .any(|seg| seg == "tests" || seg.ends_with("_tests"))
+    };
+    let target = graph.callables.get(cid)?;
+    if in_tests(&target.qualified_name) && !caller_qn.is_some_and(in_tests) {
+        return None;
+    }
+    rust_candidate_reachable(graph, *cid, caller_file, caller_qn, direct_imports)
+        .then_some(*cid)
+}
+
+/// F6: the one in-graph declaration `T::name` when every candidate is an
+/// implementation of workspace trait `T` (or that declaration itself).
+///
+/// The trait is read from `trait_impl_target` or, failing that, the
+/// `<X as T>` wrapper in the qualified name. Candidates in test modules
+/// (`tests`, `store_tests`) are left out of the vote — a stub impl there
+/// says nothing about production dispatch — and synthetic closures never
+/// vote. Any inherent method (no wrapper, not the declaration) makes the
+/// set heterogeneous: an inherent `in_flight` and a trait's `in_flight`
+/// share the name and the owner index, and are different calls. `None`
+/// unless exactly one declaration exists, so a std trait (no declaration
+/// node) keeps the cap.
+fn homogeneous_trait_declaration(
+    graph: &Graph,
+    cids: &[CallableId],
+    name: &str,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Option<CallableId> {
+    let is_test_module = |qn: &str| {
+        crate::names::split_last_segment(qn).is_some_and(|(prefix, _)| {
+            prefix
+                .split("::")
+                .any(|seg| seg == "tests" || seg.ends_with("_tests"))
+        })
+    };
+    let mut trait_name: Option<String> = None;
+    let mut impls = 0usize;
+    for c in cids {
+        let node = graph.callables.get(c)?;
+        let qn = node.qualified_name.as_str();
+        if qn.contains("closure_at_") || qn.contains("async_at_") || is_test_module(qn) {
+            continue;
+        }
+        let t = node
+            .trait_impl_target
+            .clone()
+            .or_else(|| trait_of_impl_qn(qn));
+        let t = match t {
+            Some(t) => {
+                impls += 1;
+                t
+            }
+            // Not an impl: only the trait's own declaration may stand here.
+            None => owner_from_qn(qn)?.to_string(),
+        };
+        match &trait_name {
+            None => trait_name = Some(t),
+            Some(prev) if *prev == t => {}
+            Some(_) => return None,
+        }
+    }
+    let t = trait_name?;
+    if impls == 0 {
+        return None;
+    }
+    let decls: Vec<CallableId> = by_owner_method
+        .get(&("rust".to_string(), t, name.to_string()))?
+        .iter()
+        .copied()
+        .filter(|c| {
+            graph.callables.get(c).is_some_and(|n| {
+                !n.qualified_name.contains(" as ") && n.trait_impl_target.is_none()
+            })
+        })
+        .collect();
+    match decls.as_slice() {
+        [d] => Some(*d),
+        _ => None,
+    }
+}
+
 /// True when `qn` is `…::Trait::m` with no impl wrapper and `Trait` is
 /// one of `traits` — a declaration some sibling candidate implements.
 fn is_trait_declaration_of(qn: &str, traits: &[String]) -> bool {
@@ -396,6 +594,7 @@ pub fn resolve(
     facts: &[FileFacts],
     fanout_cap: usize,
     dynamic_dispatch: bool,
+    guess_unique_names: bool,
 ) -> CrossFileOutput {
     // Edges already emitted by `intra_file`, keyed for O(1) lookup.
     //
@@ -466,6 +665,16 @@ pub fn resolve(
     // against this full-path index instead of `by_owner_method`.
     let mut by_full_owner_method: HashMap<(String, String, String), Vec<CallableId>> =
         HashMap::new();
+    // Trait impls for an instantiated or std type, keyed by the type's
+    // BASE name: `<Option<&User> as Helper>::id` under `Option`, and the
+    // std-type impls `by_owner_method` refuses (see `STD_CORE_TYPES`). A
+    // *path* call (`String::from(..)`) must never reach them, but a
+    // *value* typed as the base (`self.user.id()`, `user: Option<&User>`)
+    // calling a method the type has no inherent version of can only mean
+    // such an extension trait — step 4 consults this index for exactly
+    // that case, after every exact owner lookup has missed.
+    let mut std_owner_trait_impls: HashMap<(String, String, String), Vec<CallableId>> =
+        HashMap::new();
     // Types the workspace itself declares, by bare name, from their
     // inherent methods (`Mutex::new` in a crate that defines its own
     // `Mutex`). A local trait impl for such a type is the type's own
@@ -484,17 +693,43 @@ pub fn resolve(
         .collect();
     for c in graph.callables.values() {
         by_qn.insert((c.language.clone(), c.qualified_name.clone()), c.id);
-        by_simple
-            .entry((c.language.clone(), c.simple_name.clone()))
-            .or_default()
-            .push(c.id);
-        if let Some(owner) = owner_from_qn(&c.qualified_name)
-            && (!is_std_type_local_trait_impl(&c.language, &c.qualified_name)
+        // Callables a macro expansion generated are reachable by path and
+        // by owner, never by name alone: a template stamped out once per
+        // newtype would otherwise multiply every same-named candidate set
+        // (14 generated `from`s pushing a 5-candidate set over the cap).
+        let macro_generated = c.attributes.iter().any(|a| a.starts_with("macro:"));
+        if !macro_generated {
+            by_simple
+                .entry((c.language.clone(), c.simple_name.clone()))
+                .or_default()
+                .push(c.id);
+        }
+        if let Some(owner) = owner_from_qn(&c.qualified_name) {
+            let key = (c.language.clone(), owner.to_string(), c.simple_name.clone());
+            let base = owner.split('<').next().unwrap_or(owner).trim();
+            if base != owner
+                || is_std_type_local_trait_impl(&c.language, &c.qualified_name)
+            {
+                std_owner_trait_impls
+                    .entry((c.language.clone(), base.to_string(), c.simple_name.clone()))
+                    .or_default()
+                    .push(c.id);
+            }
+            if !is_std_type_local_trait_impl(&c.language, &c.qualified_name)
                 || workspace_inherent_owners
-                    .contains(&(c.language.clone(), owner.to_string())))
+                    .contains(&(c.language.clone(), owner.to_string()))
+            {
+                by_owner_method.entry(key).or_default().push(c.id);
+            }
+        }
+        // A wasm-bindgen `#[wasm_bindgen(method)] fn m(this: &T, …)` in an
+        // `extern` block is `T::m` to every caller (`storage.m()`), though
+        // its qualified name is the module's.
+        if c.language == "rust"
+            && let Some(owner) = wasm_bindgen_method_owner(c)
         {
             by_owner_method
-                .entry((c.language.clone(), owner.to_string(), c.simple_name.clone()))
+                .entry((c.language.clone(), owner, c.simple_name.clone()))
                 .or_default()
                 .push(c.id);
         }
@@ -531,13 +766,42 @@ pub fn resolve(
     // text. The nested-module case is instead handled by resolving the
     // receiver's head through the file's own `use` imports first
     // (`workspace_head`).
-    let mut rust_path_heads: std::collections::HashSet<String> =
-        std::collections::HashSet::new();
+    //
+    // Module paths are the other half of the vocabulary: every proper
+    // prefix of a Rust qualified name, cut before the first segment
+    // carrying `<` so a trait-impl wrapper's embedded paths (the
+    // AMENDMENT 2 trap above) never enter it. A one-segment head that
+    // is not a crate root is still in-workspace when the caller's own
+    // module (or an ancestor) declares a child module by that name —
+    // `mod admin_jobs;` + `admin_jobs::CascadeRunner { .. }.spawn()` with
+    // no `use` — which is how rustc resolves a relative path.
+    let mut rust_path_heads = RustPathVocab::default();
     for (lang_key, qn) in by_qn.keys() {
-        if lang_key == "rust"
-            && let Some(head) = qn.split("::").next()
-        {
-            rust_path_heads.insert(head.to_string());
+        if lang_key != "rust" {
+            continue;
+        }
+        if let Some(head) = qn.split("::").next() {
+            rust_path_heads.crate_roots.insert(head.to_string());
+        }
+        // Every plain segment is a path prefix except the callable's own
+        // name — which is only among them when no wrapper cut the list.
+        let segs = rust_plain_segments(qn);
+        let last = if segs.len() < qn.split("::").count() {
+            segs.len()
+        } else {
+            segs.len().saturating_sub(1)
+        };
+        for i in 1..=last {
+            rust_path_heads.module_paths.insert(segs[..i].join("::"));
+        }
+    }
+    // A crate made only of re-exports (`salvo`'s `lib.rs`) contributes no
+    // qualified name, but every one of its files records its crate root.
+    for f in facts.iter().filter(|f| f.language == "rust") {
+        for i in f.imports.iter().filter(|i| i.kind == "crate-root") {
+            if i.path != "crate" {
+                rust_path_heads.crate_roots.insert(i.path.clone());
+            }
         }
     }
 
@@ -630,6 +894,9 @@ pub fn resolve(
             let Some(owner) = owner_from_qn(&d.qualified_name) else {
                 continue;
             };
+            // Keyed by the bare type: `impl Trait for Tuple<'_>` declares
+            // `Tuple<'_>`'s bases, and a receiver names `Tuple`.
+            let owner = owner.split('<').next().unwrap_or(owner).trim();
             let slot = bases_by_owner
                 .entry((f.language.clone(), owner.to_string()))
                 .or_default();
@@ -702,6 +969,25 @@ pub fn resolve(
     // index reproduces that. The corpus caught it as -9,331 nodes and
     // edges across 34 repos. Any future index has to be proven against
     // the full corpus before it replaces this scan.
+    // Each file's definitions as `(simple name, id)`, resolved through
+    // `by_qn` once. The scoped scan below visits a matching file once per
+    // *referencing* file, and probing `by_qn` there allocated two strings
+    // per definition per visit — O(files²) allocations on a large tree.
+    let def_cids: HashMap<FileId, Vec<(&str, CallableId)>> = facts
+        .iter()
+        .map(|f| {
+            let ids = f
+                .definitions
+                .iter()
+                .filter_map(|d| {
+                    by_qn
+                        .get(&(f.language.clone(), d.qualified_name.clone()))
+                        .map(|cid| (d.simple_name.as_str(), *cid))
+                })
+                .collect();
+            (f.file, ids)
+        })
+        .collect();
     let mut files_by_lang: HashMap<&str, Vec<(FileId, String)>> = HashMap::new();
     for f in facts {
         files_by_lang
@@ -1339,27 +1625,7 @@ pub fn resolve(
                     .get(lang.as_str())
                     .map(Vec::as_slice)
                     .unwrap_or(&[]);
-                for (fid, fpath) in candidates {
-                    if !path_fragments
-                        .iter()
-                        .any(|frag| fpath.contains(frag.as_str()))
-                    {
-                        continue;
-                    }
-                    if let Some(target) = facts_by_id.get(fid) {
-                        for d in &target.definitions {
-                            if let Some(cid) = by_qn
-                                .get(&(lang.clone(), d.qualified_name.clone()))
-                                .copied()
-                            {
-                                scoped_simple
-                                    .entry(d.simple_name.clone())
-                                    .or_default()
-                                    .push(cid);
-                            }
-                        }
-                    }
-                }
+                scoped_simple = scoped_candidates(&path_fragments, candidates, &def_cids);
             }
 
             drop(_sp_imports);
@@ -1522,6 +1788,7 @@ pub fn resolve(
                     &by_simple,
                     &by_owner_method,
                     &by_full_owner_method,
+                    &std_owner_trait_impls,
                     &reexports,
                     &bases_by_owner,
                     &known_owners,
@@ -1574,6 +1841,7 @@ pub fn resolve(
                                 &by_simple,
                                 &by_owner_method,
                                 &by_full_owner_method,
+                                &std_owner_trait_impls,
                                 &reexports,
                                 &bases_by_owner,
                                 &known_owners,
@@ -1591,6 +1859,33 @@ pub fn resolve(
                         .inspect(|_| untyped_fallback = true),
                     other => other,
                 };
+                // `--guess-unique-names`: a Rust site nothing placed, whose
+                // name exactly one callable in the tree carries. Opt-in and
+                // `low`, because a unique name is evidence, not proof.
+                let mut guessed = false;
+                let resolved = match resolved {
+                    None if guess_unique_names
+                        && lang == "rust"
+                        && capped == 0
+                        && !super_recv
+                        && !no_ctor =>
+                    {
+                        unique_name_guess(
+                            graph,
+                            r,
+                            facts.file,
+                            caller_qn,
+                            &by_simple,
+                            &rust_path_heads,
+                            &workspace_owner_names,
+                            &direct_imports,
+                            &module_aliases,
+                        )
+                        .map(|cid| vec![cid])
+                        .inspect(|_| guessed = true)
+                    }
+                    other => other,
+                };
                 // An unambiguous binding is not a guess. A bare name
                 // bound by `from x import y` in this very file, or a
                 // module alias resolving to exactly one callable, is as
@@ -1600,6 +1895,7 @@ pub fn resolve(
                 // with more than one candidate stays `medium`: that is
                 // fan-out, and fan-out is a hypothesis.
                 let confidence = match &resolved {
+                    _ if guessed => Confidence::Low,
                     _ if untyped_fallback => Confidence::Medium,
                     Some(cids)
                         if cids.len() == 1
@@ -1632,7 +1928,11 @@ pub fn resolve(
                                 site_byte: r.site_byte,
                                 confidence,
                                 via: Via::Direct,
-                                resolver: resolver_id.clone(),
+                                resolver: if guessed {
+                                    ResolverId::new("cross-file:name-unique")
+                                } else {
+                                    resolver_id.clone()
+                                },
                                 weight: 1,
                             });
                         }
@@ -2484,6 +2784,7 @@ fn try_resolve_ref(
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
     by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
     by_full_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    std_owner_trait_impls: &HashMap<(String, String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
     bases_by_owner: &HashMap<(String, String), Vec<String>>,
     known_owners: &std::collections::HashSet<(String, String)>,
@@ -2495,7 +2796,7 @@ fn try_resolve_ref(
     // First path segments seen in Rust qualified names (see its
     // construction in `resolve`) — used to tell an unresolved workspace
     // path from an external crate before falling into step 5's fan-out.
-    rust_path_heads: &std::collections::HashSet<String>,
+    rust_path_heads: &RustPathVocab,
     workspace_owner_names: &std::collections::HashSet<String>,
     // Set to the candidate count when the fan-out cap rejected a
     // non-empty set, so the caller can record the drop instead of
@@ -2769,6 +3070,14 @@ fn try_resolve_ref(
             }
         }
         let rh = rh_buf.as_str();
+        // `State<AppState>` (see `deref_wrapper_split`): steps 4/4c judge
+        // the wrapper; its argument is tried only after the wrapper misses.
+        let deref_inner = if lang == "rust" {
+            cgg_core::rust_types::deref_wrapper_split(rh)
+        } else {
+            None
+        };
+        let rh = deref_inner.map_or(rh, |(outer, _)| outer);
 
         // Step 4: Type-qualified method call (Issue 2).
         // When receiver_hint is a type name (e.g. "MermaidFormatter"),
@@ -2824,6 +3133,7 @@ fn try_resolve_ref(
                     workspace_owner_names,
                     direct_imports,
                     module_aliases,
+                    caller_qn,
                 );
             if external {
                 if let Some(cids) = by_full_owner_method.get(&(
@@ -2908,16 +3218,87 @@ fn try_resolve_ref(
                         return Some(cids);
                     }
                 }
-                for owner in owners {
+                for owner in &owners {
                     if let Some(cids) = by_owner_method.get(&(
                         lang.to_string(),
-                        owner.to_string(),
+                        (*owner).to_string(),
                         r.name.clone(),
                     )) && !cids.is_empty()
                     {
                         return Some(cids.clone());
                     }
                 }
+                if lang == "rust"
+                    && !r.path_receiver
+                    && !cgg_core::stdlib::stdlib_names(lang)
+                        .is_some_and(|std| std.contains(r.name.as_str()))
+                    && let Some(cids) = std_owner_trait_impls.get(&(
+                        lang.to_string(),
+                        crate::names::normalize_owner(rh).to_string(),
+                        r.name.clone(),
+                    ))
+                    && !cids.is_empty()
+                {
+                    return Some(cids.clone());
+                }
+            }
+        }
+
+        // Step 4a: Rust `self.m()` the intra-file linker could not place —
+        // the method lives in another `impl` block of the caller's own
+        // type, in another file. An exact owner lookup on that type (and
+        // its traits' defaults), never a name match: impl blocks live in
+        // the type's crate, so only that crate's `Owner::m` qualifies.
+        if lang == "rust"
+            && rh == "self"
+            && let Some(cq) = caller_qn
+            && let Some(owner) = owner_from_qn(cq)
+        {
+            let owner = owner.split('<').next().unwrap_or(owner).trim();
+            let krate = cq.split("::").next().unwrap_or("");
+            let same_crate = |c: &CallableId| {
+                graph
+                    .callables
+                    .get(c)
+                    .is_some_and(|n| n.qualified_name.split("::").next() == Some(krate))
+            };
+            let own: Vec<CallableId> = by_owner_method
+                .get(&(lang.to_string(), owner.to_string(), r.name.clone()))
+                .map(|v| v.iter().copied().filter(same_crate).collect())
+                .unwrap_or_default();
+            if !own.is_empty() {
+                return Some(own);
+            }
+            if let Some(cids) =
+                resolve_via_bases(lang, owner, &r.name, by_owner_method, bases_by_owner)
+            {
+                return Some(cids);
+            }
+            return None;
+        }
+
+        // Step 4b: an external wrapper with one type argument — axum's
+        // `State<AppState>`, actix's `web::Data<AppState>` — dereferences
+        // to it, so a method the wrapper lacks is the argument's. Still a
+        // typed lookup (the owner index), never name matching, and never
+        // when the wrapper is a workspace type cgg can see the methods of.
+        if let Some((outer, inner)) = deref_inner {
+            let outer_last = outer.rsplit("::").next().unwrap_or(outer);
+            let inner_last = inner.rsplit("::").next().unwrap_or(inner);
+            // A workspace wrapper qualifies when it declares `Deref` to its
+            // own type argument (`impl<T> Deref for Cfg<T> { type Target = T }`).
+            let derefs_to_arg = bases_by_owner
+                .get(&(lang.to_string(), outer_last.to_string()))
+                .is_some_and(|b| b.iter().any(|x| x == DEREF_TO_ARG));
+            if (!workspace_owner_names.contains(outer_last) || derefs_to_arg)
+                && let Some(cids) = by_owner_method.get(&(
+                    lang.to_string(),
+                    inner_last.to_string(),
+                    r.name.clone(),
+                ))
+                && !cids.is_empty()
+            {
+                return Some(cids.clone());
             }
         }
 
@@ -2934,14 +3315,26 @@ fn try_resolve_ref(
         // `crate` path step 3c could not fully resolve, e.g. because
         // `caller_qn` was unknown) still falls through to step 5
         // unchanged.
+        //
+        // A one-segment path receiver (`serde_json::from_str`, receiver
+        // `serde_json`) carries no `::` of its own; `path_receiver` is
+        // what tells it apart from a variable (`parser.from_str`). Left
+        // to step 5 it fanned out to every workspace `from_str`.
+        //
+        // A file outside any Cargo crate has crate root `crate`: with no
+        // manifest there is no crate graph to judge a one-segment head by.
         if lang == "rust"
-            && rh.contains("::")
+            && (rh.contains("::")
+                || r.path_receiver
+                    && !matches!(rh, "self" | "super" | "crate")
+                    && !caller_qn.is_some_and(|q| q.starts_with("crate::")))
             && is_external_rust_head(
                 rh.split("::").next().unwrap_or(""),
                 rust_path_heads,
                 workspace_owner_names,
                 direct_imports,
                 module_aliases,
+                caller_qn,
             )
         {
             return None;
@@ -3001,6 +3394,33 @@ fn try_resolve_ref(
                     })
                     .collect();
                 let cids = if fits.is_empty() { cids } else { fits };
+                // Over the cap, a set that is entirely one workspace trait's
+                // implementations is not a guess among unrelated methods:
+                // it is a dispatch through that trait, and the call's
+                // target is the trait's declaration. Bind there (one
+                // edge; `--dynamic-dispatch` carries it on to the impls)
+                // rather than drop the site — dropping left the
+                // declaration in-degree 0 however many sites called it.
+                //
+                // Only for a receiver that is a variable or a field path
+                // (`src`, `s.vec_index`): the result of a call chain
+                // (`s.parse().context(..)`) has a type cgg never saw, and
+                // the method is as likely an external extension trait's
+                // (anyhow's `Context`) as the workspace trait's.
+                if lang == "rust"
+                    && cids.len() > fanout_cap
+                    && rh
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+                    && let Some(decl) = homogeneous_trait_declaration(
+                        graph,
+                        &cids,
+                        &r.name,
+                        by_owner_method,
+                    )
+                {
+                    return Some(vec![decl]);
+                }
                 // A receiver recovered from a macro token tree is one the
                 // extractor could not type the way it does an ordinary
                 // call. Measured: every false addition from this path sat
@@ -3179,10 +3599,11 @@ fn workspace_head<'a>(
 /// lookup and step 4c so both apply the identical rule.
 fn is_external_rust_head(
     raw_head: &str,
-    rust_path_heads: &std::collections::HashSet<String>,
+    rust_path_heads: &RustPathVocab,
     workspace_owner_names: &std::collections::HashSet<String>,
     direct_imports: &HashMap<String, Vec<String>>,
     module_aliases: &HashMap<String, String>,
+    caller_qn: Option<&str>,
 ) -> bool {
     let head = crate::names::normalize_owner(raw_head);
     let effective = crate::names::normalize_owner(workspace_head(
@@ -3193,12 +3614,68 @@ fn is_external_rust_head(
     if matches!(effective, "std" | "core" | "alloc") {
         return true;
     }
+    // `use crate::channel::pool;` makes `pool`'s effective head `crate`
+    // — relative path keywords are in-workspace by definition.
+    if matches!(effective, "crate" | "self" | "super") {
+        return false;
+    }
     // A receiver's first segment is not always a crate: an enum-variant
     // or associated-const receiver leads with the TYPE (`TrustKind` in
     // `TrustKind::Network`). Such a head is in-workspace whenever the
     // workspace declares a type by that name, and treating it as
     // external would refuse the prefix-owner tries that resolve it.
-    !rust_path_heads.contains(effective) && !workspace_owner_names.contains(effective)
+    // `use a::b::*;` makes every child of `a::b` nameable bare.
+    let via_glob = || {
+        direct_imports.get("*").is_some_and(|globs| {
+            globs.iter().any(|g| {
+                g.strip_suffix("::*").is_some_and(|base| {
+                    rust_path_heads
+                        .module_paths
+                        .contains(&format!("{base}::{head}"))
+                })
+            })
+        })
+    };
+    !rust_path_heads.crate_roots.contains(effective)
+        && !workspace_owner_names.contains(effective)
+        && rust_module_head_path(head, caller_qn, rust_path_heads).is_none()
+        && !via_glob()
+}
+
+/// What cgg knows about Rust path vocabulary in this workspace: the
+/// crate roots it indexed and every module path beneath them. Built
+/// sorted-insensitive (a set, only ever probed), so `--jobs` cannot
+/// change an answer.
+#[derive(Default)]
+struct RustPathVocab {
+    crate_roots: std::collections::HashSet<String>,
+    module_paths: std::collections::HashSet<String>,
+}
+
+/// The `::`-segments of a Rust qualified name up to (not including) the
+/// first one carrying `<` — a generic owner (`Type<T>`) or a trait-impl
+/// wrapper (`<A as b::Trait>`), whose embedded paths are not modules.
+fn rust_plain_segments(qn: &str) -> Vec<&str> {
+    qn.split("::").take_while(|s| !s.contains('<')).collect()
+}
+
+/// The full module path a relative one-segment `head` names from inside
+/// `caller_qn`, when the caller's module or one of its ancestors
+/// declares a child by that name. Innermost first: that is the scope
+/// rustc consults.
+fn rust_module_head_path(
+    head: &str,
+    caller_qn: Option<&str>,
+    vocab: &RustPathVocab,
+) -> Option<String> {
+    if head.is_empty() || matches!(head, "self" | "super" | "crate" | "Self") {
+        return None;
+    }
+    let segs = rust_plain_segments(caller_qn?);
+    (1..segs.len()).rev().find_map(|i| {
+        let candidate = format!("{}::{head}", segs[..i].join("::"));
+        vocab.module_paths.contains(&candidate).then_some(candidate)
+    })
 }
 
 /// Look up `qn` in the callable index, following Rust `pub use`
@@ -3289,7 +3766,7 @@ fn enclosing_callable_id(
 mod tests {
     /// `resolve` at the default fan-out cap.
     fn resolve_default(g: &Graph, f: &[FileFacts]) -> CrossFileOutput {
-        resolve(g, f, DEFAULT_FANOUT_CAP, false)
+        resolve(g, f, DEFAULT_FANOUT_CAP, false, false)
     }
 
     use super::*;
@@ -4365,6 +4842,590 @@ mod tests {
              Foo::from_str just because it is the only from_str in the \
              workspace — other_crate is not a crate cgg ever indexed, so \
              this can only be an external call. Got edges: {:?}",
+            out.edges
+        );
+    }
+
+    // A one-segment path receiver (`serde_json::from_str(..)`, receiver
+    // `serde_json`) has no `::` of its own, so step 4c never saw it and
+    // step 5 treated the crate name as a variable: every external
+    // `serde_json::from_str` fanned out to the workspace's `FromStr`
+    // impls (450 false edges on one 23-crate workspace).
+    #[test]
+    fn rust_one_segment_external_path_receiver_produces_no_edge() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "foo.rs", "rust"));
+        g.add_file(mk_file(1, "caller.rs", "rust"));
+        g.add_callable(mk_callable(
+            0,
+            "from_str",
+            "crate_x::Foo::from_str",
+            0,
+            "rust",
+            (0, 40),
+        ));
+        g.add_callable(mk_callable(
+            1,
+            "run",
+            "crate_x::caller::run",
+            1,
+            "rust",
+            (30, 120),
+        ));
+        let foo_facts = facts_for(
+            0,
+            "foo.rs",
+            "rust",
+            vec![mk_def(
+                "from_str",
+                "crate_x::Foo::from_str",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let mk_ref = |path_receiver| RefRecord {
+            name: "from_str".into(),
+            receiver_hint: "serde_json".into(),
+            path_receiver,
+            site_line: 5,
+            site_byte: 60,
+            ..Default::default()
+        };
+        let caller = |r| {
+            facts_for(
+                1,
+                "caller.rs",
+                "rust",
+                vec![mk_def(
+                    "run",
+                    "crate_x::caller::run",
+                    DefVariant::FreeFunction,
+                    (30, 120),
+                )],
+                vec![r],
+                vec![],
+            )
+        };
+        let out = resolve_default(&g, &[foo_facts.clone(), caller(mk_ref(true))]);
+        assert!(
+            out.edges.is_empty(),
+            "serde_json::from_str bound locally: {:?}",
+            out.edges
+        );
+        // The same text as a VALUE receiver (`serde_json.from_str()`, a
+        // variable) is still duck-typed exactly as before.
+        let out = resolve_default(&g, &[foo_facts, caller(mk_ref(false))]);
+        assert_eq!(
+            out.edges.len(),
+            1,
+            "value receivers keep step 5: {:?}",
+            out.edges
+        );
+    }
+
+    // F11: `mod admin_jobs;` + `admin_jobs::CascadeRunner::spawn()` with no
+    // `use` names a child module of the caller's crate. Step 4c judged the
+    // head external (it is not a crate root) and returned before the
+    // owner index — which holds the right callee — was consulted.
+    #[test]
+    fn rust_in_workspace_module_head_is_not_external() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "admin_jobs.rs", "rust"));
+        g.add_file(mk_file(1, "main.rs", "rust"));
+        let qn = "srv::admin_jobs::<CascadeRunner as Job>::spawn";
+        g.add_callable(mk_callable(0, "spawn", qn, 0, "rust", (0, 40)));
+        g.add_callable(mk_callable(1, "main", "srv::main", 1, "rust", (30, 120)));
+        let jobs = facts_for(
+            0,
+            "admin_jobs.rs",
+            "rust",
+            vec![mk_def("spawn", qn, DefVariant::TraitMethod, (0, 40))],
+            vec![],
+            vec![],
+        );
+        let main = facts_for(
+            1,
+            "main.rs",
+            "rust",
+            vec![mk_def(
+                "main",
+                "srv::main",
+                DefVariant::FreeFunction,
+                (30, 120),
+            )],
+            vec![RefRecord {
+                name: "spawn".into(),
+                receiver_hint: "admin_jobs::CascadeRunner".into(),
+                path_receiver: true,
+                site_line: 5,
+                site_byte: 60,
+                ..Default::default()
+            }],
+            vec![],
+        );
+        let out = resolve_default(&g, &[jobs, main]);
+        assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
+    }
+
+    // A value typed as an instantiated container (`user: Option<&User>`)
+    // reaches a local extension trait implemented FOR that container,
+    // keyed under the impl's base owner. A path call never does.
+    #[test]
+    fn rust_value_typed_as_container_reaches_its_extension_trait_impl() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "user.rs", "rust"));
+        g.add_file(mk_file(1, "caller.rs", "rust"));
+        let qn = "k::user::<Option<&User> as UserHelper>::person_id";
+        g.add_callable(mk_callable(0, "person_id", qn, 0, "rust", (0, 40)));
+        g.add_callable(mk_callable(
+            1,
+            "run",
+            "k::caller::run",
+            1,
+            "rust",
+            (30, 120),
+        ));
+        let defs = facts_for(
+            0,
+            "user.rs",
+            "rust",
+            vec![mk_def("person_id", qn, DefVariant::TraitMethod, (0, 40))],
+            vec![],
+            vec![],
+        );
+        let caller = |path_receiver| {
+            facts_for(
+                1,
+                "caller.rs",
+                "rust",
+                vec![mk_def(
+                    "run",
+                    "k::caller::run",
+                    DefVariant::FreeFunction,
+                    (30, 120),
+                )],
+                vec![RefRecord {
+                    name: "person_id".into(),
+                    receiver_hint: "Option".into(),
+                    path_receiver,
+                    site_line: 5,
+                    site_byte: 60,
+                    ..Default::default()
+                }],
+                vec![],
+            )
+        };
+        let out = resolve_default(&g, &[defs.clone(), caller(false)]);
+        assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
+        let out = resolve_default(&g, &[defs, caller(true)]);
+        assert!(
+            out.edges.is_empty(),
+            "Option::person_id(..) path: {:?}",
+            out.edges
+        );
+    }
+
+    // F6: six `VectorIndex` impls of `score_set` exceed the cap of 5, but
+    // they are one trait's implementations — the site is a dispatch
+    // through that trait and binds to its declaration rather than being
+    // dropped. One inherent method in the set, or a call-chain receiver,
+    // keeps the cap.
+    #[test]
+    fn over_cap_homogeneous_trait_set_binds_to_the_declaration() {
+        let build = |extra_inherent: bool, hint: &str| {
+            let mut g = Graph::new();
+            g.add_file(mk_file(0, "idx.rs", "rust"));
+            g.add_file(mk_file(1, "caller.rs", "rust"));
+            let mut defs = vec![];
+            let mut add = |id: u32, qn: String, variant, target: Option<&str>| {
+                let mut c =
+                    mk_callable(id, "score_set", &qn, 0, "rust", (id * 50, id * 50 + 40));
+                c.trait_impl_target = target.map(str::to_string);
+                g.add_callable(c);
+                defs.push(mk_def("score_set", &qn, variant, (id * 50, id * 50 + 40)));
+            };
+            add(
+                0,
+                "k::VectorIndex::score_set".into(),
+                DefVariant::TraitMethod,
+                None,
+            );
+            for i in 1..=6 {
+                add(
+                    i,
+                    format!("k::<B{i} as VectorIndex>::score_set"),
+                    DefVariant::TraitMethod,
+                    Some("VectorIndex"),
+                );
+            }
+            if extra_inherent {
+                add(
+                    7,
+                    "k::Cache::score_set".into(),
+                    DefVariant::InherentMethod,
+                    None,
+                );
+            }
+            g.add_callable(mk_callable(
+                20,
+                "run",
+                "k::caller::run",
+                1,
+                "rust",
+                (30, 120),
+            ));
+            let idx = facts_for(0, "idx.rs", "rust", defs, vec![], vec![]);
+            let caller = facts_for(
+                1,
+                "caller.rs",
+                "rust",
+                vec![mk_def(
+                    "run",
+                    "k::caller::run",
+                    DefVariant::FreeFunction,
+                    (30, 120),
+                )],
+                vec![RefRecord {
+                    name: "score_set".into(),
+                    receiver_hint: hint.into(),
+                    site_line: 5,
+                    site_byte: 60,
+                    ..Default::default()
+                }],
+                vec![],
+            );
+            (g, vec![idx, caller])
+        };
+        let (g, f) = build(false, "s.vec_index");
+        let out = resolve_default(&g, &f);
+        assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
+        assert_eq!(out.edges[0].dst, CallableId::new(0));
+        let (g, f) = build(true, "s.vec_index");
+        assert!(resolve_default(&g, &f).edges.is_empty());
+        let (g, f) = build(false, "s.index()");
+        assert!(resolve_default(&g, &f).edges.is_empty());
+    }
+
+    // F7: `--guess-unique-names` binds an unplaced site to the one callable
+    // carrying its name, at `low`, under a distinct resolver tag — and only
+    // when asked. A stdlib name, a typed receiver and an external path
+    // never guess.
+    #[test]
+    fn unique_name_guess_is_opt_in_low_and_guarded() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "req.rs", "rust"));
+        g.add_file(mk_file(1, "caller.rs", "rust"));
+        for (id, name, qn) in [
+            (0, "with_purpose", "k::req::CompletionRequest::with_purpose"),
+            (1, "iter", "k::req::Bag::iter"),
+        ] {
+            let mut c = mk_callable(id, name, qn, 0, "rust", (id * 50, id * 50 + 40));
+            c.visibility = "pub".into();
+            g.add_callable(c);
+        }
+        g.add_callable(mk_callable(
+            5,
+            "run",
+            "k::caller::run",
+            1,
+            "rust",
+            (30, 400),
+        ));
+        let defs = facts_for(
+            0,
+            "req.rs",
+            "rust",
+            vec![
+                mk_def(
+                    "with_purpose",
+                    "k::req::CompletionRequest::with_purpose",
+                    DefVariant::InherentMethod,
+                    (0, 40),
+                ),
+                mk_def(
+                    "iter",
+                    "k::req::Bag::iter",
+                    DefVariant::InherentMethod,
+                    (50, 90),
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        let r = |name: &str, hint: &str, path_receiver, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            path_receiver,
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let caller = facts_for(
+            1,
+            "caller.rs",
+            "rust",
+            vec![mk_def(
+                "run",
+                "k::caller::run",
+                DefVariant::FreeFunction,
+                (30, 400),
+            )],
+            vec![
+                r("with_purpose", "{ build() }", false, 60),
+                r("iter", "bag", false, 70),
+                r("with_purpose", "Other", false, 80),
+                r("with_purpose", "ext_crate", true, 90),
+            ],
+            vec![],
+        );
+        let facts = [defs, caller];
+        assert!(
+            resolve(&g, &facts, DEFAULT_FANOUT_CAP, false, false)
+                .edges
+                .is_empty()
+        );
+        let out = resolve(&g, &facts, DEFAULT_FANOUT_CAP, false, true);
+        assert_eq!(out.edges.len(), 1, "{:?}", out.edges);
+        assert_eq!(out.edges[0].site_byte, 60);
+        assert_eq!(out.edges[0].confidence, Confidence::Low);
+        assert_eq!(out.edges[0].resolver.as_str(), "cross-file:name-unique");
+    }
+
+    // An external wrapper with one argument (`State<AppState>`) derefs to
+    // it: a method the wrapper lacks is looked up on the argument. A
+    // `Sender<Msg>` does not, and a renamed crate / glob-imported module
+    // head is in-workspace.
+    #[test]
+    fn rust_deref_wrapper_and_glob_and_renamed_heads() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "state.rs", "rust"));
+        g.add_file(mk_file(1, "caller.rs", "rust"));
+        let defs = [
+            (0, "pool", "k::state::AppState::pool"),
+            (1, "send", "k::state::Msg::send"),
+            (2, "run", "k::jobs::Runner::run"),
+            (3, "go", "k::util::go"),
+        ];
+        let mut def_records = vec![];
+        for (id, name, qn) in defs {
+            g.add_callable(mk_callable(
+                id,
+                name,
+                qn,
+                0,
+                "rust",
+                (id * 50, id * 50 + 40),
+            ));
+            def_records.push(mk_def(
+                name,
+                qn,
+                DefVariant::InherentMethod,
+                (id * 50, id * 50 + 40),
+            ));
+        }
+        g.add_callable(mk_callable(9, "main", "app::main", 1, "rust", (30, 400)));
+        let r = |name: &str, hint: &str, path_receiver, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            path_receiver,
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let imp = |path: &str, alias: &str| ImportRecord {
+            kind: "use".into(),
+            path: path.into(),
+            alias: alias.into(),
+            site_line: 1,
+            site_byte: 0,
+        };
+        let caller = facts_for(
+            1,
+            "caller.rs",
+            "rust",
+            vec![mk_def(
+                "main",
+                "app::main",
+                DefVariant::FreeFunction,
+                (30, 400),
+            )],
+            vec![
+                r("pool", "State<AppState>", false, 60),
+                r("send", "Sender<Msg>", false, 70),
+                r("run", "jobs::Runner", true, 80),
+                r("go", "u", true, 90),
+            ],
+            vec![imp("k::*", "*"), imp("k", "u")],
+        );
+        let facts = [
+            facts_for(0, "state.rs", "rust", def_records, vec![], vec![]),
+            caller,
+        ];
+        let out = resolve_default(&g, &facts);
+        let mut hit: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
+        hit.sort();
+        assert_eq!(hit, [60, 80, 90], "{:?}", out.edges);
+    }
+
+    // A crate made only of re-exports contributes no qualified name, but
+    // its crate-root record still makes it a workspace crate; and a file
+    // outside any Cargo crate (`crate::…`) is never judged by one-segment
+    // path heads.
+    #[test]
+    fn rust_reexport_only_crate_and_manifestless_files_are_not_external() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "extra.rs", "rust"));
+        g.add_file(mk_file(1, "main.rs", "rust"));
+        g.add_file(mk_file(2, "salvo_lib.rs", "rust"));
+        g.add_callable(mk_callable(
+            0,
+            "max_size",
+            "salvo_extra::size_limiter::max_size",
+            0,
+            "rust",
+            (0, 40),
+        ));
+        g.add_callable(mk_callable(1, "main", "app::main", 1, "rust", (30, 400)));
+        let crate_root = |c: &str| ImportRecord {
+            kind: "crate-root".into(),
+            path: c.into(),
+            alias: String::new(),
+            site_line: 1,
+            site_byte: 0,
+        };
+        let mut reexport = crate_root("salvo_extra::size_limiter");
+        reexport.kind = "pub-use".into();
+        let r = RefRecord {
+            name: "max_size".into(),
+            receiver_hint: "size_limiter".into(),
+            path_receiver: true,
+            site_line: 5,
+            site_byte: 60,
+            ..Default::default()
+        };
+        let mut imp = crate_root("salvo::size_limiter");
+        imp.kind = "use".into();
+        let facts = [
+            facts_for(
+                0,
+                "extra.rs",
+                "rust",
+                vec![mk_def(
+                    "max_size",
+                    "salvo_extra::size_limiter::max_size",
+                    DefVariant::FreeFunction,
+                    (0, 40),
+                )],
+                vec![],
+                vec![crate_root("salvo_extra")],
+            ),
+            facts_for(
+                1,
+                "main.rs",
+                "rust",
+                vec![mk_def(
+                    "main",
+                    "app::main",
+                    DefVariant::FreeFunction,
+                    (30, 400),
+                )],
+                vec![r],
+                vec![crate_root("app"), imp],
+            ),
+            facts_for(
+                2,
+                "salvo_lib.rs",
+                "rust",
+                vec![],
+                vec![],
+                vec![crate_root("salvo"), reexport],
+            ),
+        ];
+        let out = resolve_default(&g, &facts);
+        assert_eq!(out.edges.len(), 1, "{:?} {:?}", out.edges, out.unresolved);
+    }
+
+    // A wasm-bindgen extern method is its `this` type's method, and a
+    // `self.m()` whose impl block sits in another file of the same crate
+    // binds by exact owner — never to another crate's same-named owner.
+    #[test]
+    fn rust_wasm_bindgen_methods_and_cross_file_self_calls() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "sys.rs", "rust"));
+        g.add_file(mk_file(1, "conn.rs", "rust"));
+        g.add_file(mk_file(2, "caller.rs", "rust"));
+        let mut tx = mk_callable(
+            0,
+            "transaction",
+            "sys::storage::transaction",
+            0,
+            "rust",
+            (0, 40),
+        );
+        tx.attributes = vec!["#[wasm_bindgen(method, catch)]".into()];
+        tx.signature_hint = "pub fn transaction(this: &DurableObjectStorage) -> R".into();
+        g.add_callable(tx);
+        g.add_callable(mk_callable(
+            1,
+            "is_ready",
+            "k::conn::Connection::is_ready",
+            1,
+            "rust",
+            (0, 40),
+        ));
+        g.add_callable(mk_callable(
+            2,
+            "is_ready",
+            "other::Connection::is_ready",
+            1,
+            "rust",
+            (50, 90),
+        ));
+        g.add_callable(mk_callable(
+            3,
+            "handle",
+            "k::handlers::Connection::handle",
+            2,
+            "rust",
+            (30, 400),
+        ));
+        let r = |name: &str, hint: &str, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let facts = [
+            facts_for(0, "sys.rs", "rust", vec![], vec![], vec![]),
+            facts_for(1, "conn.rs", "rust", vec![], vec![], vec![]),
+            facts_for(
+                2,
+                "caller.rs",
+                "rust",
+                vec![mk_def(
+                    "handle",
+                    "k::handlers::Connection::handle",
+                    DefVariant::InherentMethod,
+                    (30, 400),
+                )],
+                vec![
+                    r("transaction", "DurableObjectStorage", 60),
+                    r("is_ready", "self", 70),
+                ],
+                vec![],
+            ),
+        ];
+        let out = resolve_default(&g, &facts);
+        let mut got: Vec<(u32, CallableId)> =
+            out.edges.iter().map(|e| (e.site_byte, e.dst)).collect();
+        got.sort();
+        assert_eq!(
+            got,
+            [(60, CallableId::new(0)), (70, CallableId::new(1))],
+            "{:?}",
             out.edges
         );
     }

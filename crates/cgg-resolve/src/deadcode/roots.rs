@@ -352,6 +352,71 @@ fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
 /// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
 /// caller; matching is left to the caller so this module stays free of
 /// regex/glob policy.
+/// Web-framework traits whose method the framework calls on a handler's
+/// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
+const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
+
+/// Generic wrappers that convert themselves (`Json<T>` serializes `T`; it
+/// never calls `T`'s own conversion) or that are not responses at all.
+/// A type named only inside one of these is not handed to the framework.
+const SELF_CONVERTING_WRAPPERS: &[&str] = &[
+    "Json", "Html", "Form", "Xml", "Sse", "Protobuf", "Msgpack", "Cbor", "Vec",
+    "HashMap", "BTreeMap", "HashSet", "Box", "Arc", "Rc", "Cow",
+];
+
+/// Every type name a Rust function's return type mentions outside a
+/// [`SELF_CONVERTING_WRAPPERS`] generic: `-> Result<Json<A>, AppError>`
+/// yields `Result`, `AppError` — never `A`.
+fn rust_returned_types(graph: &Graph) -> HashSet<String> {
+    let mut out = HashSet::new();
+    for c in graph.callables.values() {
+        if c.language != "rust" {
+            continue;
+        }
+        let Some((_, ret)) = c.signature_hint.split_once("->") else {
+            continue;
+        };
+        let ret = ret.split(" where ").next().unwrap_or(ret);
+        let mut stack: Vec<String> = Vec::new();
+        let mut word = String::new();
+        let flush = |word: &mut String, stack: &[String], out: &mut HashSet<String>| {
+            if !word.is_empty() {
+                let wrapped = stack
+                    .iter()
+                    .any(|g| SELF_CONVERTING_WRAPPERS.contains(&g.as_str()));
+                if !wrapped && word.starts_with(char::is_uppercase) {
+                    out.insert(word.clone());
+                }
+            }
+        };
+        let mut last = String::new();
+        for ch in ret.chars() {
+            if ch.is_alphanumeric() || ch == '_' {
+                word.push(ch);
+                continue;
+            }
+            if ch == ':' {
+                // `a::b::C` — only the last segment names the type.
+                word.clear();
+                continue;
+            }
+            flush(&mut word, &stack, &mut out);
+            if !word.is_empty() {
+                last = std::mem::take(&mut word);
+            }
+            match ch {
+                '<' => stack.push(std::mem::take(&mut last)),
+                '>' => {
+                    stack.pop();
+                }
+                _ => last.clear(),
+            }
+        }
+        flush(&mut word, &stack, &mut out);
+    }
+    out
+}
+
 pub(crate) fn discover(
     graph: &Graph,
     facts: &[FileFacts],
@@ -360,6 +425,7 @@ pub(crate) fn discover(
 ) -> RootSet {
     let mut set = RootSet::default();
     let mut seen: HashSet<CallableId> = HashSet::new();
+    let returned_unwrapped = rust_returned_types(graph);
 
     // --- Rule: synthesized framework entry nodes -------------------------
     //
@@ -566,8 +632,38 @@ pub(crate) fn discover(
             continue;
         }
 
-        // Trait methods invoked by syntax, an operator, or a derive.
+        // A web framework's response conversion (`IntoResponse`,
+        // `Responder`) is invoked by the framework on whatever a handler
+        // returns — but only on the type actually returned. `Result<_,
+        // AppError>` hands `AppError` to it; `Json<Resp>` hands it `Json`,
+        // and `Resp`'s own impl is never called. So the impl is a root only
+        // when some function's return type names its type outside a
+        // wrapper that has a conversion of its own.
         if lang == "rust"
+            && node
+                .trait_impl_target
+                .as_deref()
+                .is_some_and(|t| RESPONSE_TRAITS.contains(&t))
+            && let Some(ty) = crate::names::owner_from_qn(&node.qualified_name)
+            && returned_unwrapped.contains(ty)
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::FrameworkCallback,
+                "rust:returned-response",
+                format!("`{ty}` is returned by a handler; the framework converts it"),
+                &mut seen,
+            );
+            continue;
+        }
+
+        // Trait methods invoked by syntax, an operator, or a derive. Not
+        // for an impl a macro stamped out: rooting every generated
+        // `Display`/`From` would make the whole generated surface — and
+        // whatever it calls — live whether or not anything uses it.
+        if lang == "rust"
+            && !node.attributes.iter().any(|a| a.starts_with("macro:"))
             && let Some(t) = &node.trait_impl_target
         {
             // `trait_impl_target` keeps generic arguments, so
@@ -853,6 +949,33 @@ mod tests {
         let set = discover(&graph_with(vec![n]), &[], &[], &[]);
         assert_eq!(set.records.len(), 1, "From<...> should match From");
         assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
+    }
+
+    // F8: a response conversion is a root only for a type some function
+    // returns unwrapped. `Result<_, AppError>` hands `AppError` to axum;
+    // `Json<Resp>` hands it `Json`, so `Resp`'s own impl stays reportable.
+    #[test]
+    fn response_conversion_is_rooted_only_for_types_returned_unwrapped() {
+        let mut err = node(
+            0,
+            "s::<AppError as IntoResponse>::into_response",
+            "into_response",
+            "rust",
+        );
+        err.trait_impl_target = Some("IntoResponse".into());
+        let mut resp = node(
+            1,
+            "s::<Resp as IntoResponse>::into_response",
+            "into_response",
+            "rust",
+        );
+        resp.trait_impl_target = Some("IntoResponse".into());
+        let mut h = node(2, "s::handler", "handler", "rust");
+        h.signature_hint = "async fn handler() -> Result<Json<Resp>, AppError>".into();
+        let set = discover(&graph_with(vec![err, resp, h]), &[], &[], &[]);
+        let rooted: Vec<u32> = set.records.iter().map(|r| r.id.as_u32()).collect();
+        assert!(rooted.contains(&0), "{rooted:?}");
+        assert!(!rooted.contains(&1), "{rooted:?}");
     }
 
     #[test]

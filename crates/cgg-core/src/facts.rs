@@ -63,6 +63,24 @@ pub enum DefVariant {
 }
 
 impl DefVariant {
+    /// The variant as its serialized (snake_case) name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DefVariant::FreeFunction => "free_function",
+            DefVariant::InherentMethod => "inherent_method",
+            DefVariant::TraitMethod => "trait_method",
+            DefVariant::TraitDefaultMethod => "trait_default_method",
+            DefVariant::AsyncFunction => "async_function",
+            DefVariant::Constructor => "constructor",
+            DefVariant::Destructor => "destructor",
+            DefVariant::NamedClosure => "named_closure",
+            DefVariant::NamedLambda => "named_lambda",
+            DefVariant::StaticMethod => "static_method",
+            DefVariant::ClassMethod => "class_method",
+            DefVariant::Property => "property",
+        }
+    }
+
     pub fn to_callable_kind(self) -> CallableKind {
         match self {
             DefVariant::FreeFunction | DefVariant::AsyncFunction => {
@@ -145,6 +163,26 @@ pub struct DynUse {
     /// The identifier-shaped literal.
     pub name: String,
     /// The construct that named it (`getattr`, `send`, `forName`).
+    pub via: String,
+    pub site_line: u32,
+    pub site_byte: u32,
+}
+
+/// A callable *named* somewhere cgg cannot turn into an edge: a function
+/// passed as a value inside a macro's arguments (`format!("{}",
+/// x.map(iso_day))`), or a path written in an attribute string
+/// (`#[serde(default = "default_hops")]`).
+///
+/// Suppression-only, like [`DynUse`]: it never becomes an edge and never
+/// reaches the unresolved buckets. The dead-code report uses it to say
+/// "this callable is named here, so cgg may be blind to its caller" —
+/// resolved relative to the naming file, never by simple name across the
+/// workspace, because helper names like `default_true` repeat per module.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NameMention {
+    /// The name or path as written (`iso_day`, `Vec::is_empty`).
+    pub name: String,
+    /// What named it: `macro-arg`, or `attr:<key>` (`attr:default`).
     pub via: String,
     pub site_line: u32,
     pub site_byte: u32,
@@ -307,6 +345,22 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub from_macro_arg: bool,
 
+    /// Set when `receiver_hint` is a *path* the call was written through
+    /// (Rust `serde_json::from_str`, receiver `serde_json`) rather than a
+    /// value (`parser.from_str`). A one-segment path carries no `::` of
+    /// its own, so without this the resolver cannot tell an external
+    /// crate head from a local variable and fans the call out by name
+    /// to every same-named method in the workspace.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub path_receiver: bool,
+
+    /// Set when the call is a method call (`… . name (`) whose receiver
+    /// the extractor could not recover — a chain inside a macro's tokens.
+    /// An empty `receiver_hint` then does not mean a bare call, so the
+    /// bare-call rule (a bare name is never a method) must not apply.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub dot_call: bool,
+
     /// How many arguments the call passes, where the language makes a
     /// function's arity part of its identity — Erlang's `f/1` and `f/2`
     /// are different functions that share a name. `None` when unknown or
@@ -352,6 +406,10 @@ pub struct FileFacts {
     /// Suppression-only; never becomes an edge.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dyn_uses: Vec<DynUse>,
+    /// Callables named where no edge can be drawn (macro arguments,
+    /// attribute strings). Suppression-only; never becomes an edge.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub name_mentions: Vec<NameMention>,
     /// Statements that control flow cannot reach.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unreachable: Vec<UnreachableRegion>,
@@ -491,6 +549,7 @@ impl FileFacts {
             member_ptr_takes: Vec::new(),
             exports: Vec::new(),
             dyn_uses: Vec::new(),
+            name_mentions: Vec::new(),
             unreachable: Vec::new(),
             class_fields: Vec::new(),
             classes: Vec::new(),
