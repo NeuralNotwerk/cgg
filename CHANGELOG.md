@@ -7,14 +7,44 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
-## [Unreleased]
+## [0.10.2] - 2026-10-11
 
-Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. **The
-default graph changes** (minor bump): measured against 0.10.1 over the
-282-repository corpus, 26 repositories change — all Rust except two
-Python ones (below) — Rust edges +3,506 net, high-confidence dead-code
-findings 26,873 → 26,008. `zig-zig` times out at 120 s on both binaries
-(pre-existing). Performance is not yet measured with `perf-compare.sh`.
+Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. A bugfix
+release: every graph change is a wrong edge removed or a missed edge
+found, and the one new flag is opt-in. **The default graph changes**
+(see *Compatibility*): measured against 0.10.1 over the
+282-repository corpus, 25 repositories change: net edges Rust +5,027,
+Java +9 (a builder-method tie-break), Python −29 (below). Every dropped
+edge was checked: 923 path calls into external crates or std that had been
+name-matched to workspace functions (`serde_json` 437, `mpsc` 129,
+cortex-m `debug` 58, `serde_yaml`, `hex`, `toml`, `diesel::update`, …),
+326 methods on receivers of external type, 508 fan-out sets narrowed, 319
+retargeted, 291 confidence or resolver changes, 25 other. High-confidence
+dead-code findings fall 26,873 → 26,018 (on one 23-crate workspace,
+105 → 17). Pre-existing, not chased: a `Type::f()` call is still read as
+a constructor; `zig-zig` exceeds 60 s under `--dead-code` on both binaries.
+
+### Compatibility
+
+- Shipped as a patch although edges are dropped: each dropped edge was a
+  wrong one (a call into an external crate or std, or a duck-typed match
+  the receiver's type rules out). Consumers diffing graphs across the
+  upgrade will see Rust fan-out shrink and ~5,000 new Rust edges.
+- Macro-generated callables (`macro:<name>`) are new nodes in Rust trees
+  that define and invoke a `macro_rules!` in the same file.
+
+### Performance
+
+`perf-compare.sh 17b89f3 3`, all 282 repositories, none excluded: total
+286.6 s → 267.5 s (−6.7%), median per repository 0.0% (133 faster, 125
+slower), median of the 48 repositories over 1 s −1.2%. The total is
+three large non-Rust trees, re-sampled at 7 interleaved runs with
+byte-identical graphs: `hcl-terraform-aws` (mostly Go) 28.7 s → 18.2 s,
+`scala-spark` 13.9 s → 9.5 s. The import-path scan visits each matching
+file once per referencing file and used to clone two strings per
+definition per visit; definitions are now resolved to ids once. Rust
+repositories are flat within noise (ripgrep +1.4%, axum +0.9%, lemmy
++0.4%, vaultwarden +1.4%; ntex +6.9% on a 262 ms run at load 7.5).
 
 ### Fixed
 
@@ -41,6 +71,20 @@ findings 26,873 → 26,008. `zig-zig` times out at 120 s on both binaries
 - Receivers are normalized: struct literals read as their type path,
   parens/`?`/`.await` peeled, multi-line receivers joined; inside macros
   `self.x.m()` keeps `self`.
+- Cargo dependency renames (`foo = { package = "bar" }`, including
+  `workspace = true` renames) and `[lib] name` aliases, glob imports,
+  `mod x;` declarations and re-export-only crates now count as
+  in-workspace path heads.
+- External extractor wrappers (`State<AppState>`) and workspace `Deref`
+  wrappers resolve methods on their inner type; type aliases and `Deref`
+  targets feed the owner index.
+- wasm-bindgen extern methods are indexed under their `this: &T` owner
+  (a one-parameter signature lost its closing `)`).
+- `self.m()` resolves to the exact owner across files of one crate, and a
+  `self`/`this` call with candidates in several impl blocks prefers the
+  caller's own block (also fixes a Java builder ambiguity).
+- A builder chain is typed as the builder only when it does not end in
+  `build`/`finish`/`create`/… ; a bare `X::builder()` is left untyped.
 - A bare call no longer binds to an `async` method (Rust, Python). This is
   the Python change: py-falcon and py-litestar lose wrong fan-out edges
   (`list(data)` → a repository's `list` method) and gain high single ones.
@@ -50,7 +94,9 @@ findings 26,873 → 26,008. `zig-zig` times out at 120 s on both binaries
 - Over-cap Rust fan-out made entirely of one workspace trait's impls binds
   to the trait declaration instead of being dropped.
 - Item-position invocations of same-file `macro_rules!` are expanded
-  (no-repetition arms); generated callables are `synthetic`.
+  (no-repetition arms). Generated callables are real call targets tagged
+  `macro:<name>`, kept out of by-name fan-out and implicit-trait rooting,
+  and reported dead at no more than medium (`macro-generated`).
 - Dead code: new `implemented-trait-surface` evidence and
   `value-position`/`attribute-string` screens (serde attribute strings,
   functions passed as values in macros) cap a finding at medium; an
