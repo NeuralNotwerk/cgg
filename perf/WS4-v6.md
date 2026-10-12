@@ -24,3 +24,8 @@ runs: median of 5, alternating; load: 7.68, 7.47, 9.32
 |---|---|---|---|---|---|
 | app-gin-photoprism | 1144 | 1135 | -9 | -0.8 | noise(<1s) |
 | app-ghcli-cobra | 517 | 526 | +9 | +1.7 | noise(<1s) |
+| hcl-terraform-aws | 17615 | 17522 | -93 | -0.5 | noise(<1s) |
+| app-druid-jaxrs | 8284 | 8281 | -3 | -0.0 | noise(<1s) |
+
+total: 27560 ms -> 27464 ms (-96 ms, -0.3%)
+elapsed: 331s

@@ -46,6 +46,7 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 | WS11 | Optional/union/wrapper annotation typing (Python, TS, Kotlin, Swift) | C3 | pending | | |
 | WS12 | Macro analogs: C/C++ function-defining macros; Elixir/Clojure quoted defs | C4, A11 | pending | | |
 | WS13 | Rust leftovers: macro invocation sites credited; `Type::f()` constructor reading | C6 | pending | | |
+| WS14 | Scope model beyond Py/JS/TS/Go (proposed 2026-10-12, run right after WS4): locals/params shadow imports in every language; import/module tables for Dart, Zig (@import aliases, file-as-struct), OCaml (open, module aliases), PHP (namespace/use), Ruby, Scala, Swift, Elixir (alias/import), Perl (use), Lua (require); file's own declarations before any cross-file choice | A1/A4 generalization; WS4 residuals (OCaml/Zig/Dart/F# collision choices, JS local-binding name-match) | pending | | Profile (v7, full corpus, share of edges at high = scope-backed): Go 79, TS 64, Py 49, JS 48, C 57, Erlang 93, OCaml 65, Zig 37, Scala 37, Rust 35, Kotlin 33, C++ 26, Java 21, PHP 17, Perl 17, C# 14, Dart 6 (logs/WS4-review/profile_new.json) |
 
 ## Pending CLAUDE.md edits
 (none — WS1's were applied in 8507bf7; orchestrator applies future ones itself, user's edits are committed)
@@ -70,3 +71,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 12:47: tick — WS4 agent active; A/B v4 running (ab/WS4-v4; v1–v3 done). Diff 15 files +2069/-40 (new cgg-resolve/src/modules.rs). Load avg 30 (A/B parallel 6 + standing services).
 - 2026-10-12 15:05: WS4 agent reported (ab/WS4-v5: −241,918 / +86,242, 193 repos; perf all <1s). Orchestrator review: NOT committable — Step 0c over-refuses (Go self-shadow ~2.2k, module-level value receivers, pkg.F() result types, TS alias/Deno/workspace-subpath resolution, chains), Go generic receivers lose owner, qn-collision change adds wrong Erlang/OCaml fan-out. Details logs/WS4-review/REVIEW.md. Agent resumed with the list.
 - 2026-10-12 16:40: WS4 v7 precision audit by orchestrator (≈220 sampled sites judged vs source): removals ~95% correct, adds ~93% correct (Go/Java/Py/TS/JS adds 53/54). New items R9–R16 appended to logs/WS4-review/REVIEW.md and sent to agent.
+- 2026-10-12 16:55: user asked whether call parentage/scoping is good enough. Measured: no — scope-backed (high) share of edges ranges 6% (Dart) to 79% (Go); the rest are name guesses. Added WS14 (scope model for remaining languages), to run right after WS4.
