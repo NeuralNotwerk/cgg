@@ -691,6 +691,12 @@ pub fn resolve(
             owner_from_qn(&c.qualified_name).map(|o| (c.language.clone(), o.to_string()))
         })
         .collect();
+    // Kotlin extension functions (`fun Foo.ext()`), by the file that
+    // declares them, and as a set. See step 0b of `try_resolve_ref`.
+    let mut kotlin_ext_by_file: HashMap<(FileId, String), Vec<CallableId>> =
+        HashMap::new();
+    let mut kotlin_ext_ids: std::collections::HashSet<CallableId> =
+        std::collections::HashSet::new();
     for c in graph.callables.values() {
         by_qn.insert((c.language.clone(), c.qualified_name.clone()), c.id);
         // Callables a macro expansion generated are reachable by path and
@@ -703,6 +709,15 @@ pub fn resolve(
                 .entry((c.language.clone(), c.simple_name.clone()))
                 .or_default()
                 .push(c.id);
+        }
+        if c.language == "kotlin"
+            && is_kotlin_extension(&c.signature_hint, &c.simple_name)
+        {
+            kotlin_ext_by_file
+                .entry((c.file, c.simple_name.clone()))
+                .or_default()
+                .push(c.id);
+            kotlin_ext_ids.insert(c.id);
         }
         if let Some(owner) = owner_from_qn(&c.qualified_name) {
             let key = (c.language.clone(), owner.to_string(), c.simple_name.clone());
@@ -905,6 +920,64 @@ pub fn resolve(
             }
         }
     }
+
+    let mut kotlin_extensions = KotlinExtensions {
+        by_file: kotlin_ext_by_file,
+        ids: kotlin_ext_ids,
+        ..KotlinExtensions::default()
+    };
+    if facts.iter().any(|f| f.language == "kotlin") {
+        for f in facts.iter().filter(|f| f.language == "kotlin") {
+            kotlin_extensions.file_scope.insert(
+                f.file,
+                (
+                    f.packages.first().cloned().unwrap_or_default(),
+                    f.imports
+                        .iter()
+                        .map(|i| i.path.trim().to_string())
+                        .collect(),
+                ),
+            );
+        }
+        for c in graph.callables.values() {
+            if c.language != "kotlin" || c.kind == CallableKind::Constructor {
+                continue;
+            }
+            let pkg = kotlin_extensions
+                .file_scope
+                .get(&c.file)
+                .map(|(p, _)| p.as_str())
+                .unwrap_or("");
+            let top_level = if pkg.is_empty() {
+                c.qualified_name == c.simple_name
+            } else {
+                c.qualified_name.len() == pkg.len() + 1 + c.simple_name.len()
+                    && c.qualified_name.starts_with(pkg)
+                    && c.qualified_name.ends_with(c.simple_name.as_str())
+            };
+            if !top_level {
+                continue;
+            }
+            if kotlin_extensions.ids.contains(&c.id) {
+                kotlin_extensions
+                    .top_level_pkg
+                    .insert(c.id, pkg.to_string());
+            } else {
+                kotlin_extensions.top_level_fns.insert(c.id);
+            }
+        }
+    }
+
+    // Languages whose plugin records every class declaration, bodiless
+    // ones included (`FileFacts::classes`). Only there does an
+    // inheritance chain that finds nothing prove the method is outside the
+    // tree: elsewhere a class with no methods carries no bases, and the
+    // chain stops at it although the method lives one level further up.
+    let class_record_langs: std::collections::BTreeSet<String> = facts
+        .iter()
+        .filter(|f| !f.classes.is_empty())
+        .map(|f| f.language.clone())
+        .collect();
 
     // Build a re-export map (Rust only, for now). Every `pub use` in a
     // file that lives under an identifiable crate makes that symbol
@@ -1810,6 +1883,8 @@ pub fn resolve(
                     fanout_cap,
                     &rust_path_heads,
                     &workspace_owner_names,
+                    &class_record_langs,
+                    &kotlin_extensions,
                     &mut capped,
                     &mut no_ctor,
                 )
@@ -1867,6 +1942,8 @@ pub fn resolve(
                                 fanout_cap,
                                 &rust_path_heads,
                                 &workspace_owner_names,
+                                &class_record_langs,
+                                &kotlin_extensions,
                                 &mut c2,
                                 &mut n2,
                             )
@@ -1922,6 +1999,24 @@ pub fn resolve(
                                 || !r.receiver_hint.is_empty()
                                     && module_aliases
                                         .contains_key(r.receiver_hint.as_str())) =>
+                    {
+                        Confidence::High
+                    }
+                    // The same evidence for a Kotlin extension the file
+                    // imports by name: `"…".toHttpUrl()` after `import
+                    // okhttp3.HttpUrl.Companion.toHttpUrl`.
+                    Some(cids)
+                        if cids.len() == 1
+                            && lang == "kotlin"
+                            && !r.receiver_hint.is_empty()
+                            && kotlin_extensions.ids.contains(&cids[0])
+                            && graph.callables.get(&cids[0]).is_some_and(|c| {
+                                direct_imports.get(&r.name).is_some_and(|qns| {
+                                    qns.iter().any(|q| {
+                                        kotlin_import_path(q) == c.qualified_name
+                                    })
+                                })
+                            }) =>
                     {
                         Confidence::High
                     }
@@ -2677,6 +2772,135 @@ fn collect_include_defs(
     }
 }
 
+/// Kotlin extension functions, indexed for [`kotlin_extension_in_scope`]
+/// and [`KotlinExtensions::receiver_call_target`].
+#[derive(Default)]
+struct KotlinExtensions {
+    /// (declaring file, simple name) → extensions, in graph order.
+    by_file: HashMap<(FileId, String), Vec<CallableId>>,
+    ids: std::collections::HashSet<CallableId>,
+    /// Top-level extensions → the package that declares them.
+    top_level_pkg: HashMap<CallableId, String>,
+    /// Top-level Kotlin functions that are not extensions. The plugin
+    /// files them as methods once the file has a package, so they are
+    /// told apart by their qualified name (`<package>.<name>`).
+    top_level_fns: std::collections::HashSet<CallableId>,
+    /// Kotlin file → (its package, its import paths).
+    file_scope: HashMap<FileId, (String, std::collections::HashSet<String>)>,
+}
+
+impl KotlinExtensions {
+    /// Whether `cid` can be what a Kotlin receiver call (`x.f()`) from
+    /// `caller_file` reaches. Only a member or an extension is ever called
+    /// through a receiver, so a top-level function that is not an extension
+    /// never is. An extension is, only where Kotlin resolves it: declared
+    /// in the calling file, imported by name, or top-level in the caller's
+    /// own package or one it imports with `*` — a test helper `fun
+    /// List<LikeModel>.isEqualTo(…)` in a package the caller never imports
+    /// is not a candidate for `assertThat(x).isEqualTo(y)`.
+    fn receiver_call_target(
+        &self,
+        graph: &Graph,
+        cid: CallableId,
+        caller_file: FileId,
+        direct_imports: &HashMap<String, Vec<String>>,
+    ) -> bool {
+        if !self.ids.contains(&cid) {
+            return !self.top_level_fns.contains(&cid);
+        }
+        let Some(c) = graph.callables.get(&cid) else {
+            return true;
+        };
+        if c.file == caller_file
+            || direct_imports.get(&c.simple_name).is_some_and(|qns| {
+                qns.iter()
+                    .any(|q| kotlin_import_path(q) == c.qualified_name)
+            })
+        {
+            return true;
+        }
+        let Some(pkg) = self.top_level_pkg.get(&cid) else {
+            return false;
+        };
+        self.file_scope
+            .get(&caller_file)
+            .is_some_and(|(own, imports)| own == pkg || imports.contains(pkg))
+    }
+}
+
+/// Whether a Kotlin declaration's signature declares an extension:
+/// `fun Foo.ext(`, `private fun <T> List<T>.ext(`, `suspend fun
+/// CoroutineScope.ext(` — a receiver type and a `.` in front of the name.
+fn is_kotlin_extension(sig: &str, name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    // Annotations come first in the signature; the declaration starts
+    // at the `fun` keyword.
+    let Some(fun_at) = sig.match_indices("fun").map(|(i, _)| i).find(|&i| {
+        let before = sig[..i].chars().next_back();
+        let after = sig[i + 3..].chars().next();
+        before.is_none_or(|c| c.is_whitespace())
+            && after.is_some_and(|c| c.is_whitespace() || c == '<')
+    }) else {
+        return false;
+    };
+    let decl = &sig[fun_at + 3..];
+    let Some(at) = decl.find(&format!("{name}(")) else {
+        return false;
+    };
+    decl[..at].trim_end().ends_with('.')
+}
+
+/// Step 0b of `try_resolve_ref`: the Kotlin extension functions named
+/// `r.name` that are in scope at the call — declared in the calling file,
+/// or bound by an explicit import of that name — unless the receiver is a
+/// type the workspace declares a member of that name on.
+fn kotlin_extension_in_scope(
+    r: &cgg_core::RefRecord,
+    caller_file: FileId,
+    ext: &KotlinExtensions,
+    direct_imports: &HashMap<String, Vec<String>>,
+    by_qn: &HashMap<(String, String), CallableId>,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Option<Vec<CallableId>> {
+    if ext.ids.is_empty() {
+        return None;
+    }
+    let rh = r.receiver_hint.trim();
+    let owner = rh.rsplit('.').next().unwrap_or(rh);
+    if owner.starts_with(char::is_uppercase)
+        && by_owner_method
+            .get(&("kotlin".to_string(), owner.to_string(), r.name.clone()))
+            .is_some_and(|c| !c.is_empty())
+    {
+        return None;
+    }
+    let mut out: Vec<CallableId> = ext
+        .by_file
+        .get(&(caller_file, r.name.clone()))
+        .cloned()
+        .unwrap_or_default();
+    for qn in direct_imports.get(&r.name).into_iter().flatten() {
+        if let Some(cid) = by_qn.get(&("kotlin".to_string(), kotlin_import_path(qn)))
+            && ext.ids.contains(cid)
+            && !out.contains(cid)
+        {
+            out.push(*cid);
+        }
+    }
+    (!out.is_empty()).then_some(out)
+}
+
+/// An imported Kotlin path as the plugin names the callable it denotes.
+/// A member of a class's default companion object is imported through it
+/// (`okhttp3.HttpUrl.Companion.toHttpUrl`) but extracted without it
+/// (`okhttp3.HttpUrl.toHttpUrl`): the plugin gives a companion object no
+/// scope of its own.
+fn kotlin_import_path(path: &str) -> String {
+    path.replace(".Companion.", ".")
+}
+
 /// Whether a receiver is Python's `super()` / Ruby's bare `super`.
 ///
 /// It reaches the resolver verbatim, and `super()` starts with a
@@ -2846,6 +3070,10 @@ fn try_resolve_ref(
     // path from an external crate before falling into step 5's fan-out.
     rust_path_heads: &RustPathVocab,
     workspace_owner_names: &std::collections::HashSet<String>,
+    // Languages that record every class declaration (see its
+    // construction in `resolve`).
+    class_record_langs: &std::collections::BTreeSet<String>,
+    kotlin_extensions: &KotlinExtensions,
     // Set to the candidate count when the fan-out cap rejected a
     // non-empty set, so the caller can record the drop instead of
     // leaving the site looking uncalled.
@@ -2875,6 +3103,56 @@ fn try_resolve_ref(
         return None;
     }
 
+    // `super.m()` / `super().m()` names the caller's base types, nothing
+    // else. When the caller's class declares its bases, the call is the
+    // first `m` up that chain (`resolve_via_bases` never looks at the
+    // class itself). Where the plugin records every class, a chain that
+    // finds none has left the tree (`super.onCreate()` in a class
+    // extending a framework type): the call is into the dependency,
+    // refused and recorded by the caller as `super-base-out-of-graph`,
+    // where name matching bound it to every unrelated `onCreate` in the
+    // workspace. Elsewhere a miss, and a class with no recorded bases,
+    // keep the name-matching reading below.
+    if is_super_receiver(&r.receiver_hint)
+        && let Some(own) = caller_qn.and_then(owner_from_qn)
+    {
+        let own = own.split('<').next().unwrap_or(own).trim();
+        if bases_by_owner
+            .get(&(lang.to_string(), own.to_string()))
+            .is_some_and(|b| !b.is_empty())
+        {
+            let found =
+                resolve_via_bases(lang, own, &r.name, by_owner_method, bases_by_owner);
+            if found.is_some() || class_record_langs.contains(lang) {
+                return found;
+            }
+        }
+    }
+
+    // Step 0b: a Kotlin extension function in scope. `expr.ext()` calls an
+    // extension declared in the calling file or brought in by `import
+    // pkg.ext`, whatever the receiver expression is — Kotlin needs no more
+    // to find it, and the receiver's type, which cgg usually does not
+    // know, only decides between it and a member of the same name. A
+    // known receiver type that declares the member keeps it (members win)
+    // through the steps below; otherwise the extension is the reading.
+    // Before receivers other than a plain identifier were recorded, these
+    // calls were read as bare names and reached the extension by name.
+    if lang == "kotlin"
+        && !r.receiver_hint.is_empty()
+        && !is_super_receiver(&r.receiver_hint)
+        && let Some(cids) = kotlin_extension_in_scope(
+            r,
+            caller_file,
+            kotlin_extensions,
+            direct_imports,
+            by_qn,
+            by_owner_method,
+        )
+    {
+        return Some(cids);
+    }
+
     // Step 0: a call written through a dependency — a module, package,
     // namespace or class the file imports from outside the tree, or a
     // bare name imported from one (`external_out` says which). Every step below would match it by
@@ -2891,23 +3169,33 @@ fn try_resolve_ref(
         let declared_by_include = lang == "cpp" && direct_imports.contains_key(&r.name);
         // Java/Kotlin/C# resolve a bare name to a member of the calling
         // class (or an inherited one) before any import, so a static or
-        // function import of the same name does not reach it there.
-        let member_of_caller = r.receiver_hint.is_empty()
+        // function import of the same name does not reach it there — and
+        // the call is that member, not whatever else carries the name.
+        let member_of_caller = if r.receiver_hint.is_empty()
             && matches!(lang, "java" | "kotlin" | "csharp")
-            && caller_qn.and_then(owner_from_qn).is_some_and(|own| {
+        {
+            caller_qn.and_then(owner_from_qn).and_then(|own| {
                 by_owner_method
                     .get(&(lang.to_string(), own.to_string(), r.name.clone()))
-                    .is_some_and(|v| !v.is_empty())
-                    || resolve_via_bases(
-                        lang,
-                        own,
-                        &r.name,
-                        by_owner_method,
-                        bases_by_owner,
-                    )
-                    .is_some()
-            });
-        if !member_of_caller && !declared_by_include {
+                    .filter(|v| !v.is_empty())
+                    .cloned()
+                    .or_else(|| {
+                        resolve_via_bases(
+                            lang,
+                            own,
+                            &r.name,
+                            by_owner_method,
+                            bases_by_owner,
+                        )
+                    })
+            })
+        } else {
+            None
+        };
+        if member_of_caller.is_some() {
+            return member_of_caller;
+        }
+        if !declared_by_include {
             *external_out = Some(module);
             return None;
         }
@@ -3593,6 +3881,20 @@ fn try_resolve_ref(
                                 *c,
                                 caller_file,
                                 caller_qn,
+                                direct_imports,
+                            )
+                        })
+                        .collect()
+                } else if lang == "kotlin" {
+                    // Likewise a Kotlin candidate the call cannot reach: an
+                    // extension out of the caller's scope, or a top-level
+                    // function that is not an extension at all.
+                    cids.into_iter()
+                        .filter(|c| {
+                            kotlin_extensions.receiver_call_target(
+                                graph,
+                                *c,
+                                caller_file,
                                 direct_imports,
                             )
                         })
@@ -4795,6 +5097,29 @@ mod tests {
     // in the graph, the unfixed code's fan-out is ambiguous (width 2) and
     // emits both; the fix's exact `by_qn` lookup after rewriting `super`
     // is unaffected by the decoy and still emits exactly one edge.
+    #[test]
+    fn kotlin_extension_signatures_are_recognised() {
+        assert!(is_kotlin_extension("fun String.shout(): String", "shout"));
+        assert!(is_kotlin_extension(
+            "@Suppress(\"x\") private fun <T> List<T>.firstUpper(n: Int)",
+            "firstUpper"
+        ));
+        assert!(is_kotlin_extension("suspend fun CoroutineScope.go()", "go"));
+        assert!(is_kotlin_extension("fun Foo?.orEmpty()", "orEmpty"));
+        // Near misses: a plain function, a member, a parameter of a
+        // function type with a receiver.
+        assert!(!is_kotlin_extension(
+            "fun shout(s: String): String",
+            "shout"
+        ));
+        assert!(!is_kotlin_extension("override fun toString()", "toString"));
+        assert!(!is_kotlin_extension(
+            "fun run(block: Foo.() -> Unit)",
+            "run"
+        ));
+        assert!(!is_kotlin_extension("", "x"));
+    }
+
     #[test]
     fn rust_super_receiver_rewritten_via_caller_module() {
         let mut g = Graph::new();

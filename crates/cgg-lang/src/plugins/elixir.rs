@@ -447,6 +447,7 @@ impl<'a> ElixirWalker<'a> {
             from_macro_arg: false,
             path_receiver: false,
             dot_call: false,
+            arrow: false,
             name,
             receiver_hint: hint.to_string(),
             site_line: line,

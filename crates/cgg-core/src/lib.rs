@@ -47,10 +47,10 @@ pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
-    ClassDecl, ClassFieldDecl, DefRecord, DefVariant, DynUse, ExportRecord, FieldType,
-    FileFacts, ImportRecord, LocalType, MacroAlias, MemberPtrTake, NameMention,
-    RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT, Vis,
-    first_template_arg, looks_like_type_name,
+    ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DefRecord, DefVariant, DynUse, ExportRecord,
+    FieldType, FileFacts, ImportRecord, LocalType, MacroAlias, MemberPtrTake,
+    NameMention, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT,
+    Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

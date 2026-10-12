@@ -603,6 +603,24 @@ impl<'a> Walker<'a> {
         });
     }
 
+    /// A call's receiver as source text, with an attribute chain rebuilt
+    /// from its parts: `(self\n    .repo\n    .quux())` has receiver
+    /// `self.repo`, exactly as the one-line `self.repo.quux()` does. The
+    /// raw text kept the line break and indentation, so the self-field
+    /// lookup missed and the call fell through to duck typing (FINDINGS
+    /// A7). Anything that is not an attribute chain keeps its text.
+    fn receiver_text(&self, n: Node) -> String {
+        if n.kind() == "attribute"
+            && let (Some(obj), Some(attr)) = (
+                n.child_by_field_name("object"),
+                n.child_by_field_name("attribute"),
+            )
+        {
+            return format!("{}.{}", self.receiver_text(obj), self.text(attr));
+        }
+        self.text(n).to_string()
+    }
+
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
         let (name, receiver) = match func.kind() {
@@ -612,7 +630,7 @@ impl<'a> Walker<'a> {
                 let attr = func.child_by_field_name("attribute")?;
                 let recv = func
                     .child_by_field_name("object")
-                    .map(|n| self.text(n).to_string())
+                    .map(|n| self.receiver_text(n))
                     .unwrap_or_default();
                 (self.text(attr).to_string(), recv)
             }
@@ -1383,6 +1401,41 @@ class C:
             .find(|r| r.name == "open")
             .expect("open");
         assert_eq!(open.receiver_hint, "self.controller");
+    }
+
+    #[test]
+    fn a_wrapped_attribute_chain_receiver_matches_the_one_line_form() {
+        // FINDINGS A7: the receiver was the object's raw text, line
+        // breaks and indentation included, so `self\n.repo` missed the
+        // `self.repo` field type and fell through to duck typing.
+        let f = extract(
+            "class A:\n    def m(self):\n        (self\n            .repo  # why\n            .quux())\n\
+             \x20       (self.inner\n            .repo\n            .quux())\n\
+             \x20       self.repo.quux()\n",
+        );
+        let recv: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "quux")
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(recv, vec!["self.repo", "self.inner.repo", "self.repo"]);
+    }
+
+    #[test]
+    fn a_receiver_that_is_not_an_attribute_chain_keeps_its_text() {
+        // Near miss: calls, subscripts, literals and parenthesised
+        // receivers are recorded as written, as before.
+        let f = extract(
+            "def f(x):\n    x.a(1, 2).m()\n    x[0].m()\n    \"s\".m()\n    (x).m()\n    x.a().b.m()\n",
+        );
+        let recv: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "m")
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(recv, vec!["x.a(1, 2)", "x[0]", "\"s\"", "(x)", "x.a().b"]);
     }
 
     #[test]

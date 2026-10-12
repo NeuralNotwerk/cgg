@@ -1905,6 +1905,7 @@ impl<'a> Walker<'a> {
                 from_macro_arg: false,
                 path_receiver: false,
                 dot_call: false,
+                arrow: false,
                 arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),

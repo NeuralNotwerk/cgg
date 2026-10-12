@@ -78,6 +78,70 @@ otherwise change the default graph.
   and TypeScript's `private` is compile-time only — so their findings
   stay capped at `medium` and the new evidence only orders findings
   within a band.
+- **A generic parameter is typed as the generic, never as one of its type
+  arguments** (FINDINGS A2; every language that types parameters).
+  Parameter lists were split on every comma, so `Map<String, Handler> h`
+  read as two parameters and typed `h` as `Handler` (`h.get()` →
+  `Handler.get` at `high`), `Repo<String, Integer> r` as `Integer` and
+  `std::map<std::string, Handler>` as `Handler>`. A list is now split only
+  between parameters — respecting `<>`, `()`, `[]`, `{}`, string literals
+  and `->`/`=>` — and a generic parameter is its outer type, named as
+  `name: Map<K, V>` and Java/Kotlin generic locals already were (a
+  one-argument `Box<String>` is `Box`, not the malformed `Box<String`, so
+  it now resolves through the file's imports). The parameter list itself
+  is found structurally: the first parenthesised group that is not an
+  annotation's (`@SuppressWarnings("x")`), an attribute's (`[HttpGet("x")]`,
+  `#[DataProvider('p')]`) or a keyword's (Rust `pub(crate)`, C/C++
+  `__attribute__((…))`, `decltype(…)`). It used to run from the first `(`
+  to the last `)`, so the parameters of a method behind an annotation
+  argument, and the first parameter of every Rust `pub(crate)` function,
+  were never typed. Dart's named and optional groups (`{Type a}`,
+  `[Type a]`) are opened up.
+- C++: a class template is its own type (`QMap<Key, Handler>` → `QMap`,
+  `std::vector<Widget>` → `vector`), and a call through `->` on a variable
+  declared as one reaches its first argument (`sk_sp<DisplayList> dl;
+  dl->Dispatch()` → `DisplayList::Dispatch`, whatever the smart pointer is
+  called). Every template, containers included, used to be read as its
+  first argument for every call, so `widgets.size()` reached
+  `Widget::size` and `dl.reset()` `DisplayList::reset`. The plugin marks
+  `->` calls (`RefRecord::arrow`) and records the pointee under a `#deref`
+  local / field / parameter entry.
+- **Kotlin records a call's receiver whatever its shape** (FINDINGS A3).
+  Only a plain identifier was kept: `this.x.m()`, `a.b.m()`, `Foo().m()`,
+  `x.a().b()`, `(…).m()`, `x!!.m()`, `super.m()` and package-qualified calls
+  got an empty receiver and were resolved as bare names —
+  `other.stream.close()` bound to the enclosing class's own `close` at
+  `high`, `super.onCreate()` to the override itself. Receivers are now
+  rebuilt from the tree the way the other plugins record theirs (`a.b`,
+  `this.x`, `x.a()`, `(…)`), without line breaks and with argument lists
+  (often whole lambda bodies) elided; `x!!` is `x`; a constructor call
+  `Foo(…)` is its type, as `val x = Foo(…)` is typed; `this@Outer` is
+  `Outer`. `kotlinx.coroutines.runBlocking { }` and `File(p).readText()`
+  now reach the external-module refusal.
+- Kotlin extension functions. `expr.ext()` resolves to an extension in
+  scope — declared in the calling file or imported by name, also through a
+  companion object (`okhttp3.HttpUrl.Companion.toHttpUrl`) — unless the
+  receiver's known type declares that member; a single import-bound
+  extension is `high`. Duck-typed fan-out no longer offers an extension the
+  caller cannot see (another package, not imported) nor a top-level
+  function that is not an extension. A superclass written as a constructor
+  call (`: Base()`) or a delegation (`I by x`) is recorded as a base, and
+  every class and object as a class record, so inherited methods resolve.
+- **`super.m()` / `super().m()` resolves through the caller's declared
+  base chain** (every language whose plugin records bases). It was
+  name-matched onto every same-named method except the caller's own:
+  `super.onCreate()` reached every workspace `onCreate`. Where the plugin
+  records every class (Python, Kotlin), a chain that leaves the tree is
+  refused as `super-base-out-of-graph`; elsewhere a miss keeps the old
+  reading.
+- Java, Kotlin, C#: a bare call to a member the calling class declares or
+  inherits, whose name the file also imports from a dependency, is that
+  member — not every same-named callable in the tree.
+- Kotlin visibility is read from the `visibility_modifier` token, as Java
+  and C# now are: an annotation argument no longer hides `private`.
+- Python: a receiver chain wrapped over lines (`(self\n  .repo\n
+  .quux())`) is rebuilt as `self.repo`, keeping the self-field type the
+  one-line form has (FINDINGS A7).
 
 ### Compatibility
 
@@ -104,10 +168,10 @@ otherwise change the default graph.
   were filed as resolver gaps (fan-out cap, candidates elsewhere) are now
   `external`. High-confidence dead findings rise by 36 (Java 34, C# 2):
   each one's only callers were the removed wrong edges.
-- Not covered: Kotlin `kotlinx.coroutines.runBlocking {}` and
-  `File(x).readText()` (the Kotlin plugin records no receiver for these,
-  FINDINGS A3); a local variable shadowing an import of the same name is
-  read as the import; JS aliases defined only in bundler config
+- Not covered: a local variable shadowing an import of the same name is
+  read as the import (Kotlin `kotlinx.coroutines.runBlocking {}` and
+  `File(x).readText()`, listed here before, are covered by the receiver
+  work below); JS aliases defined only in bundler config
   (webpack/babel) without a tsconfig/deno entry or a directory of the same
   name; a call chained off an imported *function* (`verify(mock).run()`,
   a tagged template `` sql`…`.execute() ``) keeps its old duck-typed
@@ -128,6 +192,46 @@ otherwise change the default graph.
   page handlers, Guice `@Provides`, visitor methods, a Kotlin subclass); a
   genuinely unused protected helper now reports at `medium`. TypeScript,
   JavaScript and Kotlin: no finding changes band.
+- Parameter typing, C++ templates, Kotlin receivers and extensions,
+  `super`, Python wrapped receivers (FINDINGS A2, A3, A7): **the default
+  graph changes.** Full corpus, 283 repositories (`hcl-terraform-aws`
+  excluded: it times out on both sides; `zig-zig` from a re-run, its
+  dead-code pass times out on both sides): 43,449 edges removed (2,632
+  `high`), 24,121 added (2,411 `high`), 3,477 re-scored, in 123
+  repositories. Kotlin −37,725 / +12,895 (2,867 re-scored): calls on
+  chained, multi-line, constructed, literal, parenthesised and `!!`
+  receivers that had been bound as bare names; out-of-scope extensions and
+  self- or sibling-bound `super` calls removed; constructed receivers
+  (+2,249), in-scope extensions (+3,622), inherited members and `super`
+  bases added, and the remaining chained receivers duck-typed like
+  Java's and Python's. Java −4,242 / +5,048: `super` resolved through the
+  base chain (+2,871 / −997), generic parameters typed as the generic
+  (resolution through the import instead of every same-named nested
+  class, −1,783; same-file `medium` → `high` intra-file), comma generics
+  (+889 / −376), parameters behind an annotation argument (+1,167 / −819).
+  Python +2,827 / −906 and JavaScript/TypeScript +495 / −83: `super`
+  calls. C++ +1,806 / −405: templates read as themselves on `.`, pointee on
+  `->`. C# +754, PHP +125: parameters behind an attribute. Go +62: a
+  `<-chan` parameter no longer mis-slices the signature. Rust +48 / −20:
+  `pub(crate)` parameters typed. Every class was sampled; the removed
+  edges are calls bound by a coincidence of name.
+- Dead code: high-confidence findings rise by 66 (Java +68, Rust +3,
+  Python −5). The Java ones are lifecycle callbacks (26 `@PreDestroy` /
+  `@PostConstruct`), overrides of an external contract (17), method
+  reference targets (3) and members reached only through untyped
+  receivers, plus one serialization hook: each was `medium` only because
+  an unrelated `super.x()` or same-named site sat unresolved, which the
+  report counts as a possible caller. The Rust three are Rocket `Fairing::info` impls whose only
+  caller was a wrong duck-typed edge. Framework roots for these are FINDINGS
+  B2/B3/B4. The 5 Python findings leaving `high` are now reached through
+  `super()`.
+- Not covered: a receiver typed as an external type loses calls to a
+  workspace extension of that type in C# (extension methods) and Solidity
+  (`using L for T`), as Kotlin's did before; a nullable `Foo?` parameter
+  (Dart, C#) is typed `Foo?` and resolves nothing (FINDINGS C3); a C++
+  parameter of a namespace-qualified type (`const ns::Foo& x`) is still
+  read by the `name: Type` parser and never typed; a C++ smart pointer
+  with no `->` in sight (`out.get()->m()`) is not followed.
 
 ## [0.10.2] - 2026-10-11
 

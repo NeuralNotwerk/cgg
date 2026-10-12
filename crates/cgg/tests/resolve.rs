@@ -2748,3 +2748,294 @@ fn js_dependency_call_is_external_but_a_workspace_package_resolves() {
     assert_eq!(dsts, vec!["fetchAll".to_string()]);
     assert_eq!(ext, vec![("post".to_string(), "axios".to_string())]);
 }
+
+/// FINDINGS A2, end to end: a generic parameter is typed as the generic,
+/// never as one of its type arguments. `Map<String, Handler> h` typed `h`
+/// as `Handler` (the piece after the comma) and `h.get()` bound to
+/// `Handler.get` at high; `Repo<String, Integer> r` typed `r` as `Integer`.
+#[test]
+fn a_generic_parameter_is_never_typed_as_its_type_argument() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "p/A.java",
+        concat!(
+            "package p;\nimport java.util.Map;\n",
+            "class Handler { Object get(String k) { return null; } }\n",
+            "class Repo<K, V> { int quux() { return 1; } }\n",
+            "class Other { int quux() { return 2; } }\n",
+            "public class A {\n    void lookup(Map<String, Handler> h) { h.get(\"a\"); }\n",
+            "    void typed(Repo<String, Integer> r) { r.quux(); }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (lookup, _) = edges_and_external(tmp.path(), "p.A.lookup");
+    assert!(lookup.is_empty(), "Map.get is not Handler.get: {lookup:?}");
+    let (typed, _) = edges_and_external(tmp.path(), "p.A.typed");
+    assert_eq!(typed, vec!["p.Repo.quux"]);
+}
+
+/// FINDINGS A7, end to end: a receiver chain wrapped over several lines
+/// resolves exactly like the one-line form — through the self-field type,
+/// not by duck typing onto every same-named method.
+#[test]
+fn a_wrapped_python_self_chain_keeps_its_field_type() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.py",
+        concat!(
+            "class Repo:\n    def quux(self): return 1\n",
+            "class Other:\n    def quux(self): return 2\n",
+            "class A:\n    def __init__(self):\n        self.repo = Repo()\n",
+            "    def multi(self):\n        (self\n            .repo\n            .quux())\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "a.A.multi");
+    assert_eq!(dsts, vec!["a.Repo.quux"]);
+}
+
+/// FINDINGS A3, end to end: a Kotlin call with a receiver other than a
+/// plain identifier is a receiver call, never a bare one. A constructed
+/// receiver is its type; `super` is the base; a package-qualified call
+/// and a call on a constructed dependency type are external.
+#[test]
+fn kotlin_receivers_are_never_read_as_bare_calls() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/Model.kt",
+        concat!(
+            "package com.acme.model\nopen class Base { open fun greet() { } }\n",
+            "class Widget { fun paint() { } }\n",
+            "object Registry {\n    fun lookup(k: String): Widget = Widget()\n}\n",
+            "fun runBlocking(b: () -> Unit) { }\n",
+            "class Texts { fun readText(): String = \"\" }\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "src/App.kt",
+        concat!(
+            "package com.acme.app\nimport com.acme.model.Base\nimport com.acme.model.Widget\n",
+            "import com.acme.model.Registry\nimport java.io.File\nimport kotlinx.coroutines.delay\n",
+            "class Screen : Base() {\n    fun paint() { }\n    override fun greet() {\n",
+            "        super.greet()\n        Widget().paint()\n",
+            "        Registry.lookup(\"b\").paint()\n",
+            "        kotlinx.coroutines.runBlocking { }\n        File(\"x\").readText()\n",
+            "    }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, ext) = edges_and_external(tmp.path(), "com.acme.app.Screen.greet");
+    assert_eq!(
+        dsts,
+        vec![
+            "com.acme.model.Base.greet",
+            "com.acme.model.Registry.lookup",
+            "com.acme.model.Widget",
+            "com.acme.model.Widget.paint",
+        ],
+        "no edge to Screen.paint / Screen.greet / the workspace runBlocking or readText"
+    );
+    assert!(
+        ext.contains(&("runBlocking".into(), "kotlinx.coroutines".into())),
+        "{ext:?}"
+    );
+    assert!(
+        ext.contains(&("readText".into(), "java.io".into())),
+        "{ext:?}"
+    );
+}
+
+/// `super.m()` resolves through the caller's declared bases — across a
+/// bodiless intermediate class — and, in a language whose plugin records
+/// every class, a chain that leaves the tree is refused instead of being
+/// name-matched onto unrelated workspace methods.
+#[test]
+fn super_resolves_through_the_declared_base_chain() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "App.kt",
+        concat!(
+            "package app\nimport android.app.Application\n",
+            "class Other { fun onCreate() { } }\n",
+            "class MyApp : Application() {\n    override fun onCreate() { super.onCreate() }\n}\n",
+            "open class Base { open fun start() { } }\nopen class Mid : Base()\n",
+            "class Leaf : Mid() {\n    override fun start() { super.start() }\n}\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "net.py",
+        concat!(
+            "import torch.nn as nn\nclass Other:\n    def forward(self, x): return x\n",
+            "class Net(nn.Module):\n    def forward(self, x):\n        return super().forward(x)\n",
+        )
+        .as_bytes(),
+    );
+    let (my_app, _) = edges_and_external(tmp.path(), "app.MyApp.onCreate");
+    assert!(my_app.is_empty(), "external base: {my_app:?}");
+    let (leaf, _) = edges_and_external(tmp.path(), "app.Leaf.start");
+    assert_eq!(leaf, vec!["app.Base.start"]);
+    let (net, _) = edges_and_external(tmp.path(), "net.Net.forward");
+    assert!(net.is_empty(), "external base: {net:?}");
+}
+
+/// A Kotlin extension function in scope — declared in the calling file or
+/// imported by name — is what `expr.ext()` calls, whatever the receiver
+/// expression; a receiver of a known type that declares the member keeps
+/// the member.
+#[test]
+fn kotlin_extension_calls_resolve_through_their_scope() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/Ext.kt",
+        concat!(
+            "package com.acme.util\nfun String.shout(): String = this\n",
+            "class Other { fun shout(): String = \"\" }\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "src/Use.kt",
+        concat!(
+            "package com.acme.app\nimport com.acme.util.shout\n",
+            "class Box { fun firstUpper(): String = \"\" }\n",
+            "class UseIt {\n    private fun List<String>.firstUpper(): String = \"\"\n",
+            "    fun go(items: List<String>, b: Box) {\n",
+            "        items.map { it }.firstUpper()\n",
+            "        items.first().shout()\n",
+            "        b.firstUpper()\n",
+            "    }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "com.acme.app.UseIt.go");
+    assert_eq!(
+        dsts,
+        vec![
+            "com.acme.app.Box.firstUpper",
+            "com.acme.app.UseIt.firstUpper",
+            "com.acme.util.shout",
+        ],
+        "the import is the extension, not Other.shout; b.firstUpper() is Box's member"
+    );
+}
+
+/// Duck typing offers a Kotlin extension function only where Kotlin can
+/// see it: same file, imported by name, or top-level in the caller's
+/// package or a `*`-imported one. `assertThat(x).isEqualTo(y)` (AssertJ)
+/// is not a workspace `List<Int>.isEqualTo` from a package never imported.
+#[test]
+fn kotlin_duck_typing_offers_only_extensions_in_scope() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/Utils.kt",
+        concat!(
+            "package com.acme.utils\nfun List<Int>.isEqualTo(x: Int): Boolean = true\n",
+            "fun String.shout(): String = this\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "src/NotImported.kt",
+        concat!(
+            "package com.acme.reader\nimport org.assertj.core.api.Assertions.assertThat\n",
+            "fun check() { assertThat(1).isEqualTo(1) }\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "src/StarImported.kt",
+        concat!(
+            "package com.acme.app\nimport com.acme.utils.*\n",
+            "fun go(xs: List<String>) { xs.first().shout() }\n",
+        )
+        .as_bytes(),
+    );
+    // A top-level function that is not an extension is never reached
+    // through a receiver; a member of the same name still may be.
+    write(
+        tmp.path(),
+        "src/Free.kt",
+        concat!(
+            "package com.acme.dates
+private fun zork(a: Int, b: Int) { }
+",
+            "class Tracker { fun zork(x: Int) { } }
+fun make() = listOf(1)
+",
+            "fun use() { val l = make(); l.zork(1) }
+",
+        )
+        .as_bytes(),
+    );
+    let (check, _) = edges_and_external(tmp.path(), "com.acme.reader.check");
+    assert!(check.is_empty(), "out of scope: {check:?}");
+    let (go, _) = edges_and_external(tmp.path(), "com.acme.app.go");
+    assert_eq!(go, vec!["com.acme.utils.shout"]);
+    let (used, _) = edges_and_external(tmp.path(), "com.acme.dates.use");
+    assert_eq!(
+        used,
+        vec!["com.acme.dates.Tracker.zork", "com.acme.dates.make"]
+    );
+}
+
+/// A bare call to a member the calling class inherits beats an import of
+/// the same name from a dependency (Kotlin/Java resolve members first), and
+/// it is that member — not every other callable sharing the name. Kotlin
+/// records a superclass written as a constructor call (`: BaseUnitTest()`).
+#[test]
+fn a_bare_call_to_an_inherited_member_is_that_member() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/Base.kt",
+        b"package org.acme\nopen class BaseUnitTest { protected fun test(block: () -> Unit) { block() } }\n",
+    );
+    write(
+        tmp.path(),
+        "src/Other.kt",
+        b"package org.acme.other\nfun test(x: Int) { }\n",
+    );
+    write(
+        tmp.path(),
+        "src/MyTest.kt",
+        concat!(
+            "package org.acme.t\nimport app.cash.turbine.test\nimport org.acme.BaseUnitTest\n",
+            "class MyTest : BaseUnitTest() {\n    fun check() { test { } }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "org.acme.t.MyTest.check");
+    assert_eq!(dsts, vec!["org.acme.BaseUnitTest.test"]);
+}
+
+/// A Kotlin extension declared in a companion object is imported through
+/// it (`HttpUrl.Companion.toHttpUrl`) and resolves to the extension.
+#[test]
+fn a_companion_imported_kotlin_extension_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/HttpUrl.kt",
+        b"package okhttp3\nclass HttpUrl {\n    companion object {\n        fun String.toHttpUrl(): HttpUrl = HttpUrl()\n    }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "src/Use.kt",
+        b"package app\nimport okhttp3.HttpUrl.Companion.toHttpUrl\nfun go() { \"https://x\".toHttpUrl() }\n",
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "app.go");
+    assert_eq!(dsts, vec!["okhttp3.HttpUrl.toHttpUrl"]);
+}

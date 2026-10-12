@@ -361,6 +361,14 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub dot_call: bool,
 
+    /// Set when the call is written through `->` (`recv->name()`, C/C++):
+    /// the receiver is dereferenced. A receiver declared as a class
+    /// template then reaches what its `operator->` returns — the template's
+    /// first argument, recorded under [`DEREF_SUFFIX`] — while `recv.name()`
+    /// reaches the template itself.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub arrow: bool,
+
     /// How many arguments the call passes, where the language makes a
     /// function's arity part of its identity — Erlang's `f/1` and `f/2`
     /// are different functions that share a name. `None` when unknown or
@@ -595,11 +603,53 @@ pub fn looks_like_type_name(s: &str) -> bool {
         .is_some_and(|c| c.is_uppercase())
 }
 
+/// The last `::` segment of a C++ type name that is outside every
+/// template argument list: `std::map<std::string, H>` → `map<std::string,
+/// H>`, `Foo<Bar>::Inner` → `Inner`. A plain `rsplit("::")` lands inside
+/// the argument list of the first and reads it as `string, H>`.
+pub fn last_scope_segment(s: &str) -> &str {
+    let mut depth = 0i32;
+    let mut start = 0usize;
+    let bytes = s.as_bytes();
+    let mut i = 0usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'<' => depth += 1,
+            b'>' => depth -= 1,
+            b':' if depth == 0 && bytes.get(i + 1) == Some(&b':') => {
+                start = i + 2;
+                i += 1;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    s[start..].trim()
+}
+
+/// Key suffix under which a C/C++ variable or field declared as a class
+/// template records the type its `operator->` reaches: `p#deref` is the
+/// `Kernel` of `std::unique_ptr<Kernel> p`, used only for `p->m()`. The
+/// variable's own type stays under its plain name, so `p.reset()` is never
+/// read as a call on `Kernel`.
+pub const DEREF_SUFFIX: &str = "#deref";
+
+/// The first template argument of a C++ class-template type — `Kernel` of
+/// `std::unique_ptr<Kernel>`, `DisplayList` of `sk_sp<DisplayList>`,
+/// `Widget` of `std::vector<Widget>` — or `None` for a type that is not a
+/// template. It is what `x->m()` reaches when `x` is declared with that
+/// type (only a pointer-like template has an `operator->`), and never the
+/// type of `x` itself.
+///
+/// Shared between the extraction plugin (`cpp.rs`) and the resolver
+/// (`type_hints.rs`).
+pub fn template_pointee(s: &str) -> Option<&str> {
+    first_template_arg(last_scope_segment(s))
+}
+
 /// First template argument of `unique_ptr<Kernel, Deleter>` → `Kernel`.
 ///
-/// Shared between the extraction plugin (`nominal_type` in `cpp.rs`)
-/// and the resolver (`nominal_type_token` in `type_hints.rs`), both of
-/// which peel `shared_ptr<T>` / `unique_ptr<T>` to the pointed-to type.
+/// See [`template_pointee`] for what a caller should read it as.
 pub fn first_template_arg(s: &str) -> Option<&str> {
     let open = s.find('<')?;
     let mut depth = 0i32;
@@ -626,6 +676,34 @@ mod tests {
     use super::*;
     use crate::ids::FileId;
     use std::path::PathBuf;
+
+    #[test]
+    fn the_last_scope_segment_is_read_outside_template_arguments() {
+        assert_eq!(
+            last_scope_segment("std::map<std::string, H>"),
+            "map<std::string, H>"
+        );
+        assert_eq!(last_scope_segment("Foo<Bar>::Inner"), "Inner");
+        assert_eq!(last_scope_segment("Widget"), "Widget");
+        assert_eq!(last_scope_segment("::g::Widget"), "Widget");
+    }
+
+    #[test]
+    fn a_template_pointee_is_its_first_argument() {
+        assert_eq!(template_pointee("std::unique_ptr<Kernel>"), Some("Kernel"));
+        assert_eq!(template_pointee("unique_ptr<Kernel, Del>"), Some("Kernel"));
+        assert_eq!(template_pointee("sk_sp<DisplayList>"), Some("DisplayList"));
+        assert_eq!(
+            template_pointee("Microsoft::WRL::ComPtr<IFoo>"),
+            Some("IFoo")
+        );
+        assert_eq!(
+            template_pointee("std::map<std::string, H>"),
+            Some("std::string")
+        );
+        assert_eq!(template_pointee("Foo<Bar>::Inner"), None);
+        assert_eq!(template_pointee("Kernel"), None);
+    }
 
     #[test]
     fn variant_to_callable_kind_mapping() {

@@ -16,8 +16,8 @@
 use std::path::Path;
 
 use cgg_core::{
-    DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, MacroAlias, MemberPtrTake,
-    RefRecord, first_template_arg, ids::FileId,
+    DEREF_SUFFIX, DefRecord, DefVariant, FieldType, FileFacts, ImportRecord, MacroAlias,
+    MemberPtrTake, RefRecord, ids::FileId, last_scope_segment, template_pointee,
 };
 use tree_sitter::{Node, Tree};
 
@@ -433,43 +433,69 @@ impl<'a> CppWalker<'a> {
         let Some(owner) = self.class_stack.last().cloned() else {
             return;
         };
-        let Some(ty) = node
-            .child_by_field_name("type")
-            .and_then(|t| nominal_type(self.text(t)))
-        else {
+        let Some(raw) = node.child_by_field_name("type").map(|t| self.text(t)) else {
             return;
         };
+        let (ty, pointee) = (nominal_type(raw), pointee_type(raw));
+        if ty.is_none() && pointee.is_none() {
+            return;
+        }
         for declarator in declarator_fields(node) {
             let Some(field) = variable_name(declarator, self.source) else {
                 continue;
             };
-            self.facts.field_types.push(FieldType {
-                owner: owner.clone(),
-                field,
-                type_name: ty.clone(),
-            });
+            if let Some(p) = pointee
+                .as_ref()
+                .filter(|_| !is_pointer_declarator(declarator))
+            {
+                self.facts.field_types.push(FieldType {
+                    owner: owner.clone(),
+                    field: format!("{field}{DEREF_SUFFIX}"),
+                    type_name: p.clone(),
+                });
+            }
+            if let Some(ty) = &ty {
+                self.facts.field_types.push(FieldType {
+                    owner: owner.clone(),
+                    field,
+                    type_name: ty.clone(),
+                });
+            }
         }
     }
 
     /// `Kernel* kernel = new Kernel()` and other block/file declarations.
     /// A function prototype has no variable name and is skipped.
     fn record_local(&mut self, node: Node) {
-        let Some(ty) = node
-            .child_by_field_name("type")
-            .and_then(|t| nominal_type(self.text(t)))
-        else {
+        let Some(raw) = node.child_by_field_name("type").map(|t| self.text(t)) else {
             return;
         };
+        let (ty, pointee) = (nominal_type(raw), pointee_type(raw));
+        if ty.is_none() && pointee.is_none() {
+            return;
+        }
         let scope_byte = node.start_byte() as u32;
         for declarator in declarator_fields(node) {
             let Some(var_name) = variable_name(declarator, self.source) else {
                 continue;
             };
-            self.facts.local_types.push(cgg_core::LocalType {
-                var_name,
-                type_name: ty.clone(),
-                scope_byte,
-            });
+            if let Some(p) = pointee
+                .as_ref()
+                .filter(|_| !is_pointer_declarator(declarator))
+            {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name: format!("{var_name}{DEREF_SUFFIX}"),
+                    type_name: p.clone(),
+                    scope_byte,
+                });
+            }
+            if let Some(ty) = &ty {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name,
+                    type_name: ty.clone(),
+                    scope_byte,
+                });
+            }
         }
     }
 
@@ -636,6 +662,10 @@ impl<'a> CppWalker<'a> {
             return;
         };
         let func = unwrap_parens(func);
+        let arrow = func.kind() == "field_expression"
+            && func
+                .child_by_field_name("operator")
+                .is_some_and(|op| op.kind() == "->");
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "field_expression" => {
@@ -683,6 +713,7 @@ impl<'a> CppWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             path_receiver,
+            arrow,
             ..Default::default()
         });
     }
@@ -999,9 +1030,33 @@ fn inner_declarator(node: Node) -> Option<Node> {
 /// `const StreamOutput*` / `std::string` → `StreamOutput` / `string`,
 /// dropping a result that is not a nominal type (`int`, `void`).
 ///
-/// `std::unique_ptr<Kernel>` and `shared_ptr<const StreamOutput>` peel
-/// to the pointed-to type: the field hop needs `Kernel`, not the wrapper.
+/// A class template is its own type: `QMap<Key, Handler>` → `QMap`,
+/// `std::unique_ptr<Kernel>` → `unique_ptr` (dropped). What `->` reaches
+/// through it is [`pointee_type`]'s answer, recorded separately, so a
+/// variable is never typed as one of its type arguments.
 fn nominal_type(raw: &str) -> Option<String> {
+    let s = strip_cv(raw);
+    let s = s.trim_matches(|c: char| c == '*' || c == '&' || c.is_whitespace());
+    let s = last_scope_segment(s);
+    let s = s.split('<').next().unwrap_or(s).trim();
+    let s = s.trim_matches(|c: char| c == '*' || c == '&');
+    if s.is_empty() || !s.starts_with(|c: char| c.is_uppercase()) {
+        return None;
+    }
+    Some(s.to_string())
+}
+
+/// What `x->m()` reaches when `x` is declared with the class template
+/// `raw`: its first argument (`std::unique_ptr<Kernel>`, `sk_sp<Kernel>`,
+/// `shared_ptr<const Kernel>` → `Kernel`). `None` for a non-template,
+/// which `->` reaches only through a pointer declarator, i.e. as itself.
+fn pointee_type(raw: &str) -> Option<String> {
+    let s = strip_cv(raw);
+    let s = s.trim_matches(|c: char| c == '*' || c == '&' || c.is_whitespace());
+    template_pointee(s).and_then(nominal_type)
+}
+
+fn strip_cv(raw: &str) -> &str {
     let mut s = raw.trim();
     loop {
         let next = s.trim_start();
@@ -1012,23 +1067,28 @@ fn nominal_type(raw: &str) -> Option<String> {
         {
             s = rest;
         } else {
-            s = next;
-            break;
+            return next;
         }
     }
-    let s = s.trim_matches(|c: char| c == '*' || c == '&' || c.is_whitespace());
-    let s = s.rsplit("::").next().unwrap_or(s).trim();
-    if let Some(arg) = first_template_arg(s)
-        && let Some(inner) = nominal_type(arg)
-    {
-        return Some(inner);
+}
+
+/// Whether a declarator declares a raw pointer (`*p`, `*p = …`), through
+/// which `->` reaches the declared type itself.
+fn is_pointer_declarator(node: Node) -> bool {
+    let mut n = node;
+    loop {
+        match n.kind() {
+            "pointer_declarator" => return true,
+            "init_declarator"
+            | "reference_declarator"
+            | "attributed_declarator"
+            | "parenthesized_declarator" => match inner_declarator(n) {
+                Some(inner) => n = inner,
+                None => return false,
+            },
+            _ => return false,
+        }
     }
-    let s = s.split('<').next().unwrap_or(s).trim();
-    let s = s.trim_matches(|c: char| c == '*' || c == '&');
-    if s.is_empty() || !s.starts_with(|c: char| c.is_uppercase()) {
-        return None;
-    }
-    Some(s.to_string())
 }
 
 /// Rightmost `name` field. `math::Calc::add` nests qualified identifiers,
@@ -1805,16 +1865,20 @@ void init() {
         let wrapped = extract(
             "class Kernel { std::unique_ptr<StreamOutput> out; shared_ptr<const Robot> robot; };\n",
         );
+        // A smart pointer's pointee is what `->` reaches; it is recorded
+        // under `#deref`, the field's own type (`unique_ptr`) is not a
+        // nominal type.
         let out = wrapped
             .field_types
             .iter()
-            .find(|t| t.field == "out")
+            .find(|t| t.field == "out#deref")
             .expect("unique_ptr field");
         assert_eq!(out.type_name, "StreamOutput");
+        assert!(!wrapped.field_types.iter().any(|t| t.field == "out"));
         let robot = wrapped
             .field_types
             .iter()
-            .find(|t| t.field == "robot")
+            .find(|t| t.field == "robot#deref")
             .expect("shared_ptr field");
         assert_eq!(robot.type_name, "Robot");
         let refs: Vec<(&str, &str)> = f
@@ -1827,6 +1891,52 @@ void init() {
             refs.contains(&("printf", "kernel->streams")),
             "refs: {refs:?}"
         );
+    }
+
+    #[test]
+    fn a_template_field_or_local_is_its_own_type_and_derefs_to_its_argument() {
+        // A container is its own type, so `widgets.size()` is not a call on
+        // `Widget`; `->` through a template (only a smart pointer has one)
+        // reaches its first argument, recorded under `#deref`. A raw
+        // pointer declarator derefs to the declared type itself.
+        let f = extract(
+            "class Panel {\n  std::vector<Widget> widgets;\n  QMap<Key, Handler> handlers;\n  \
+             sk_sp<Robot> robot;\n  QSharedPointer<Kernel> kernel;\n  QList<Item>* items;\n};\n\
+             void f() { std::map<std::string, Handler> m; QList<Widget> list; }\n",
+        );
+        let field = |name: &str| {
+            f.field_types
+                .iter()
+                .find(|t| t.field == name)
+                .map(|t| t.type_name.as_str())
+        };
+        assert_eq!(field("widgets"), None);
+        assert_eq!(field("handlers"), Some("QMap"));
+        assert_eq!(field("robot"), None);
+        assert_eq!(field("robot#deref"), Some("Robot"));
+        assert_eq!(field("kernel"), Some("QSharedPointer"));
+        assert_eq!(field("kernel#deref"), Some("Kernel"));
+        assert_eq!(field("items"), Some("QList"));
+        assert_eq!(field("items#deref"), None);
+        let local = |name: &str| {
+            f.local_types
+                .iter()
+                .find(|t| t.var_name == name)
+                .map(|t| t.type_name.as_str())
+        };
+        assert_eq!(local("m"), None);
+        assert_eq!(local("list"), Some("QList"));
+    }
+
+    #[test]
+    fn an_arrow_call_is_marked() {
+        let f = extract("void f(P p) { p->a(); p.b(); q->r->c(); }\n");
+        let arrows: Vec<(&str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.arrow))
+            .collect();
+        assert_eq!(arrows, vec![("a", true), ("b", false), ("c", true)]);
     }
 
     #[test]

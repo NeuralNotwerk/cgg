@@ -13,7 +13,9 @@
 //! lets the intra-file linker match `x.method()` against
 //! `Foo::method` / `Foo.method`.
 
-use cgg_core::{DefRecord, FileFacts, first_template_arg};
+use cgg_core::{
+    DEREF_SUFFIX, DefRecord, FileFacts, last_scope_segment, template_pointee,
+};
 use std::collections::HashMap;
 
 /// `return_types`, pre-indexed by the lowercased return type.
@@ -519,9 +521,15 @@ pub fn propagate_types_with_fields(
         // resolve is left as written — a partial type would name the
         // wrong receiver.
         if facts.language == "cpp" && (rh.contains("->") || rh.contains('.')) {
-            if let Some(ty) =
-                member_chain_type(rh, facts, rref.site_byte, &type_map, fields, macros)
-            {
+            if let Some(ty) = member_chain_type(
+                rh,
+                rref.arrow,
+                facts,
+                rref.site_byte,
+                &type_map,
+                fields,
+                macros,
+            ) {
                 rewrites.push((i, ty));
             }
             continue;
@@ -600,9 +608,17 @@ pub fn propagate_types_with_fields(
             enclosing_def(facts, rref.site_byte)
         };
 
+        // `p->f()` on a C++ variable declared as a class template reaches
+        // what its `operator->` returns, recorded under `p#deref`; `p.f()`
+        // and a raw pointer's `p->f()` reach the declared type itself.
+        let deref_key = (cpp && rref.arrow).then(|| format!("{rh}{DEREF_SUFFIX}"));
+
         // Strategy 1: parameter type annotations
         if let Some(enc) = enclosing
-            && let Some(&ty) = type_map.get(&(enc.start_byte, rh))
+            && let Some(&ty) = deref_key
+                .as_deref()
+                .and_then(|k| type_map.get(&(enc.start_byte, k)))
+                .or_else(|| type_map.get(&(enc.start_byte, rh)))
         {
             rewrites.push((i, ty.to_string()));
             continue;
@@ -624,7 +640,10 @@ pub fn propagate_types_with_fields(
         // local `HeaderMap`'s own calls stopped resolving. A site with no
         // visible `let` keeps the file-wide answer it always had.
         let local_ty = if cpp {
-            lookup_local_type(facts, rref.site_byte, rh)
+            deref_key
+                .as_deref()
+                .and_then(|k| lookup_local_type(facts, rref.site_byte, k))
+                .or_else(|| lookup_local_type(facts, rref.site_byte, rh))
         } else if rust {
             rust_lets
                 .visible(
@@ -730,19 +749,15 @@ fn collect_param_types(
         return out;
     }
 
-    // Find the parameter list between parens
-    let Some(open) = sig.find('(') else {
+    let Some(params_str) = param_list(sig) else {
         return out;
     };
-    let Some(close) = sig.rfind(')') else {
-        return out;
-    };
-    if close <= open {
-        return out;
-    }
-    let params_str = &sig[open + 1..close];
 
-    for param in params_str.split(',') {
+    // Only a comma outside every bracket separates two parameters. A
+    // split on every comma read `Map<String, Handler> h` as a parameter
+    // `Map<String` and a parameter `Handler> h`, typing `h` as one of its
+    // own type arguments (FINDINGS A2).
+    for param in param_pieces(params_str, rust) {
         let param = param.trim();
         if param.is_empty() {
             continue;
@@ -771,16 +786,202 @@ fn collect_param_types(
         // defaults; every other plugin keeps the parser it was written
         // against, because the C++ one rejects `ContainerBuilder $container`
         // and cost PHP its typed receivers corpus-wide.
-        let parsed = if cpp {
-            parse_type_first_param_cpp(param)
-        } else {
-            parse_type_first_param(param)
-        };
-        if let Some((name, ty)) = parsed {
+        if cpp {
+            if let Some((name, ty, pointee)) = parse_type_first_param_cpp(param) {
+                if let Some(p) = pointee {
+                    out.push((
+                        def.start_byte,
+                        format!("{name}{DEREF_SUFFIX}"),
+                        p.to_string(),
+                    ));
+                }
+                if let Some(ty) = ty {
+                    out.push((def.start_byte, name.to_string(), ty.to_string()));
+                }
+            }
+        } else if let Some((name, ty)) = parse_type_first_param(param) {
             out.push((def.start_byte, name.to_string(), ty.to_string()));
         }
     }
     out
+}
+
+/// The text inside a signature's parameter list: the first parenthesised
+/// group at the top level that is not an annotation's argument list
+/// (`@SuppressWarnings("x")`, `@get:JvmName("y")`; a C# `[Attr(…)]` or PHP
+/// `#[…]` is skipped as a bracketed group) nor a keyword's (Rust
+/// `pub(crate)`, C/C++ `__attribute__((…))`, `decltype(…)`, see
+/// [`is_modifier_args`]). It used to be everything from
+/// the first `(` to the last `)`, which started inside a leading
+/// annotation; only splitting on every comma, which this replaces, ever
+/// recovered the parameters behind it. A list that never closes (a
+/// truncated signature) runs to the last `)`, as it did.
+fn param_list(sig: &str) -> Option<&str> {
+    let bytes = sig.as_bytes();
+    let mut depth = 0u32; // `[` / `{` nesting
+    let mut i = 0usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            // Only `"`: a `'` is a Rust lifetime as often as a quote.
+            b'"' => {
+                i = skip_quoted(bytes, i);
+                continue;
+            }
+            b'[' | b'{' => depth += 1,
+            b']' | b'}' => depth = depth.saturating_sub(1),
+            b'(' if depth == 0 => {
+                let close = matching_paren(bytes, i);
+                if !is_modifier_args(&sig[..i]) {
+                    let end = close.or_else(|| sig.rfind(')').filter(|&c| c > i))?;
+                    return Some(&sig[i + 1..end]);
+                }
+                match close {
+                    Some(c) => i = c,
+                    None => return None,
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Keywords whose parenthesised argument can stand in front of a
+/// parameter list: Rust's visibility restriction, C/C++ attributes and
+/// type operators.
+const MODIFIER_KEYWORDS: &[&str] = &[
+    "pub",
+    "__attribute__",
+    "__declspec",
+    "alignas",
+    "_Alignas",
+    "decltype",
+    "__typeof__",
+];
+
+/// Whether the text in front of a `(` makes the group a modifier's
+/// arguments rather than a parameter list: an annotation name (`@Name`,
+/// `@a.b.Name`, `@get:Name`) or one of [`MODIFIER_KEYWORDS`].
+fn is_modifier_args(before: &str) -> bool {
+    let head = before.trim_end();
+    let name_start = head
+        .char_indices()
+        .rev()
+        .find(|&(_, c)| !(c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '$')))
+        .map_or(0, |(i, c)| i + c.len_utf8());
+    if name_start < head.len() && MODIFIER_KEYWORDS.contains(&&head[name_start..]) {
+        return true;
+    }
+    name_start > 0 && name_start < head.len() && head[..name_start].ends_with('@')
+}
+
+/// Index of the `)` closing the `(` at `open`, skipping string literals
+/// and nested brackets of every kind but `<>` (an operator in a default
+/// value as often as a bracket).
+fn matching_paren(bytes: &[u8], open: usize) -> Option<usize> {
+    let mut depth = 0u32;
+    let mut i = open;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'"' => {
+                i = skip_quoted(bytes, i);
+                continue;
+            }
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return (bytes[i] == b')').then_some(i);
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Index just past the `"` string literal starting at `at`, honouring
+/// backslash escapes; the end of input if it never closes.
+fn skip_quoted(bytes: &[u8], at: usize) -> usize {
+    let quote = bytes[at];
+    let mut i = at + 1;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' => i += 2,
+            c if c == quote => return i + 1,
+            _ => i += 1,
+        }
+    }
+    bytes.len()
+}
+
+/// `s` cut at every character `is_sep` accepts that is not nested inside
+/// `<…>`, `(…)`, `[…]`, `{…}` or a string literal. Empty pieces are kept;
+/// callers skip them.
+///
+/// A `>` that is the second half of an arrow (`->`, `=>`) closes nothing,
+/// and `<<` / `<=` are operators (in a default value), not openers. `>>`
+/// needs no special case: it closes two levels, as it does in
+/// `Box<Map<K, V>>`. A closer with nothing open is ignored, so an
+/// unbalanced default value (`x = a > b`) cannot drive the depth negative
+/// and glue the following parameters together.
+///
+/// A `"` always opens a string. A `'` does only outside Rust, where it
+/// marks a lifetime (`&'a T`), and only in value position (after `=`, an
+/// opening bracket, a comma, a colon, or at the start): `x'` is a primed
+/// identifier in Haskell-family languages, not a quote.
+fn split_top_level(s: &str, is_sep: impl Fn(char) -> bool, rust: bool) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut depth = 0u32;
+    let mut start = 0usize;
+    let mut prev: Option<char> = None;
+    // Last character that was not whitespace, for the quote rule.
+    let mut prev_solid: Option<char> = None;
+    let mut chars = s.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        match c {
+            '"' => {
+                skip_string(&mut chars, '"');
+            }
+            '\'' if !rust
+                && prev_solid
+                    .is_none_or(|p| matches!(p, '=' | '(' | '[' | '{' | ',' | ':')) =>
+            {
+                skip_string(&mut chars, '\'');
+            }
+            '<' if chars.peek().is_some_and(|&(_, n)| n == '<' || n == '=') => {
+                chars.next();
+            }
+            '<' | '(' | '[' | '{' => depth += 1,
+            '>' if matches!(prev, Some('-' | '=')) => {}
+            '>' | ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            c if depth == 0 && is_sep(c) => {
+                out.push(&s[start..i]);
+                start = i + c.len_utf8();
+            }
+            _ => {}
+        }
+        prev = Some(c);
+        if !c.is_whitespace() {
+            prev_solid = Some(c);
+        }
+    }
+    out.push(&s[start..]);
+    out
+}
+
+/// Advance past a string literal whose opening `quote` was just read,
+/// honouring backslash escapes. An unterminated literal runs to the end.
+fn skip_string(chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>, quote: char) {
+    while let Some((_, c)) = chars.next() {
+        if c == '\\' {
+            chars.next();
+        } else if c == quote {
+            return;
+        }
+    }
 }
 
 /// Mirrors the Rust plugin's guard marker: `x#guard` is the type `x`'s
@@ -912,10 +1113,66 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
     Some((name, ty))
 }
 
-/// The pre-0.9 parser, kept verbatim for every language except C++.
+/// The parameters of a parameter list: its top-level comma-separated
+/// pieces, with a piece that is wholly one `{…}` or `[…]` group — Dart's
+/// named (`{Type a, Type b}`) and optional positional (`[Type a]`)
+/// parameters — opened up into the parameters it holds.
+fn param_pieces(params: &str, rust: bool) -> Vec<&str> {
+    let mut out = Vec::new();
+    for piece in split_top_level(params, |c| c == ',', rust) {
+        let t = piece.trim();
+        let wrapped = matches!(
+            (t.as_bytes().first(), t.as_bytes().last()),
+            (Some(b'{'), Some(b'}')) | (Some(b'['), Some(b']'))
+        ) && matching_group(t.as_bytes()) == Some(t.len() - 1);
+        if wrapped {
+            out.extend(split_top_level(&t[1..t.len() - 1], |c| c == ',', rust));
+        } else {
+            out.push(piece);
+        }
+    }
+    out
+}
+
+/// Index of the bracket closing the `{`/`[` that opens `bytes`.
+fn matching_group(bytes: &[u8]) -> Option<usize> {
+    let mut depth = 0u32;
+    let mut i = 0usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'"' => {
+                i = skip_quoted(bytes, i);
+                continue;
+            }
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Whitespace-separated words of a parameter, a bracketed type argument
+/// list staying one word: `Map<String, Handler> h` is `Map<String,
+/// Handler>` and `h`.
+fn param_words(param: &str) -> Vec<&str> {
+    split_top_level(param, char::is_whitespace, false)
+        .into_iter()
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+/// The pre-0.9 parser for every language except C++, reading words
+/// bracket-aware (see [`param_words`]).
 fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
     // "Service x" or "final Service x" or "Service<T> x"
-    let parts: Vec<&str> = param.split_whitespace().collect();
+    let parts = param_words(param);
     if parts.len() < 2 {
         return None;
     }
@@ -928,7 +1185,11 @@ fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
     } else {
         (0, parts.len() - 1)
     };
-    let ty = parts[ty_idx].trim_end_matches(['<', '>']);
+    // `Map<String, Handler>` is a `Map`: the declared type is the generic
+    // itself, never one of its arguments, and it is named without them —
+    // as `parse_colon_param` names `m: Map<K, V>`, and as the Java and
+    // Kotlin plugins name a generic local.
+    let ty = parts[ty_idx].split('<').next().unwrap_or("").trim();
     let name = parts[name_idx];
     if ty.is_empty() || name.is_empty() {
         return None;
@@ -942,11 +1203,16 @@ fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
     Some((name, ty))
 }
 
-fn parse_type_first_param_cpp(param: &str) -> Option<(&str, &str)> {
+/// `(name, declared type, pointee)` of a C++ parameter. The declared type
+/// is the class itself (`QMap<Key, H> m` → `QMap`); the pointee is what
+/// `m->f()` reaches — a class template's first argument (`sk_sp<Kernel>`,
+/// `std::unique_ptr<Kernel>` → `Kernel`), or nothing for a raw pointer,
+/// through which `->` reaches the declared type.
+fn parse_type_first_param_cpp(param: &str) -> Option<(&str, Option<&str>, Option<&str>)> {
     // "Service x", "final Service x", "Service<T> x",
     // "const StreamOutput *stream", "Module* module".
     let param = strip_default_suffix(param);
-    let parts: Vec<&str> = param.split_whitespace().collect();
+    let parts = param_words(param);
     let mut start = 0;
     while start < parts.len() && is_param_modifier(parts[start]) {
         start += 1;
@@ -954,12 +1220,22 @@ fn parse_type_first_param_cpp(param: &str) -> Option<(&str, &str)> {
     if parts.len() - start < 2 {
         return None;
     }
-    let ty = nominal_type_token(parts[start])?;
     let name = param_name_token(parts.last()?)?;
-    if is_primitive(ty) {
+    let ty_tok = parts[start];
+    let ty = nominal_type_token(ty_tok).filter(|t| !is_primitive(t));
+    let raw_pointer =
+        ty_tok.ends_with('*') || parts[start + 1..].iter().any(|w| w.contains('*'));
+    let pointee = if raw_pointer {
+        None
+    } else {
+        template_pointee(ty_tok.trim_end_matches(['*', '&']))
+            .and_then(nominal_type_token)
+            .filter(|t| !is_primitive(t))
+    };
+    if ty.is_none() && pointee.is_none() {
         return None;
     }
-    Some((name, ty))
+    Some((name, ty, pointee))
 }
 
 fn strip_default_suffix(param: &str) -> &str {
@@ -996,14 +1272,24 @@ fn is_param_modifier(tok: &str) -> bool {
     )
 }
 
+/// `Widget*` → `Widget`, `QMap<Key, Handler>` → `QMap`,
+/// `std::unique_ptr<Kernel>` → `unique_ptr` (dropped: not a nominal type).
+/// A class template is its own type, never one of its arguments; what
+/// `->` reaches through it is recorded separately (see
+/// [`parse_type_first_param_cpp`]).
 fn nominal_type_token(tok: &str) -> Option<&str> {
-    let tok = tok.trim_matches(|c: char| c == '*' || c == '&');
-    let tok = tok.rsplit("::").next().unwrap_or(tok);
-    if let Some(arg) = first_template_arg(tok)
-        && let Some(inner) = nominal_type_token(arg)
+    let mut tok = tok.trim_matches(|c: char| c == '*' || c == '&').trim();
+    // A pointee arrives with its qualifiers (`shared_ptr<const Robot>`),
+    // which the word-level modifier skip never saw.
+    while let Some(rest) = tok
+        .strip_prefix("const ")
+        .or_else(|| tok.strip_prefix("volatile "))
     {
-        return Some(inner);
+        tok = rest.trim_start();
     }
+    // `std::map<std::string, H>`'s last scope segment is `map<…>`, not the
+    // `string, H>` a plain `rsplit("::")` lands on.
+    let tok = last_scope_segment(tok);
     let tok = tok.split('<').next().unwrap_or(tok).trim();
     let tok = tok.trim_matches(|c: char| c == '*' || c == '&');
     if tok.is_empty() || !tok.starts_with(char::is_uppercase) {
@@ -1030,44 +1316,71 @@ fn param_name_token(tok: &str) -> Option<&str> {
 /// later piece must be a field of the type so far.
 fn member_chain_type(
     rh: &str,
+    arrow: bool,
     facts: &FileFacts,
     site_byte: u32,
     type_map: &HashMap<(u32, &str), &str>,
     fields: &HashMap<String, HashMap<String, String>>,
     macros: &HashMap<String, String>,
 ) -> Option<String> {
-    let (base, rest) = if rh.contains("->") {
-        let mut parts = rh.split("->");
-        (parts.next()?.trim(), parts.collect::<Vec<_>>())
-    } else {
-        let mut parts = rh.split('.');
-        (parts.next()?.trim(), parts.collect::<Vec<_>>())
-    };
-    if rest.is_empty() {
+    // Each piece with the operator that follows it: `a->b.c` is `a` `->`,
+    // `b` `.`, then `c` followed by the call's own operator. A piece
+    // followed by `->` is dereferenced: declared as a class template, it
+    // reaches its `#deref` type (see `DEREF_SUFFIX`).
+    let mut pieces: Vec<(&str, bool)> = Vec::new();
+    let mut rest = rh;
+    loop {
+        let arrow_at = rest.find("->");
+        let dot_at = rest.find('.');
+        let (at, len, deref) = match (arrow_at, dot_at) {
+            (Some(a), Some(d)) if a < d => (a, 2, true),
+            (Some(a), None) => (a, 2, true),
+            (_, Some(d)) => (d, 1, false),
+            (None, None) => break,
+        };
+        pieces.push((rest[..at].trim(), deref));
+        rest = &rest[at + len..];
+    }
+    pieces.push((rest.trim(), arrow));
+    if pieces.len() < 2 {
         return None;
     }
+    let (base, base_deref) = pieces[0];
     let enclosing = enclosing_def(facts, site_byte);
+    let deref_name = |n: &str| format!("{n}{DEREF_SUFFIX}");
     let mut ty = if base == "this" {
         enclosing.and_then(|d| {
             crate::names::owner_from_qn(&d.qualified_name).map(str::to_string)
         })?
     } else if let Some(enc) = enclosing
-        && let Some(&param_ty) = type_map.get(&(enc.start_byte, base))
+        && let Some(&param_ty) = base_deref
+            .then(|| deref_name(base))
+            .and_then(|k| type_map.get(&(enc.start_byte, k.as_str())).copied())
+            .as_ref()
+            .or_else(|| type_map.get(&(enc.start_byte, base)))
     {
         param_ty.to_string()
-    } else if let Some(local_ty) = lookup_local_type(facts, site_byte, base) {
+    } else if let Some(local_ty) = base_deref
+        .then(|| deref_name(base))
+        .and_then(|k| lookup_local_type(facts, site_byte, &k))
+        .or_else(|| lookup_local_type(facts, site_byte, base))
+    {
         local_ty.to_string()
     } else if let Some(macro_ty) = macros.get(base) {
         macro_ty.clone()
     } else {
         return None;
     };
-    for field in rest {
-        let field = field.trim();
+    for &(field, deref) in &pieces[1..] {
         if !is_plain_ident(field) {
             return None;
         }
-        ty = fields.get(&ty)?.get(field)?.clone();
+        let of_ty = fields.get(&ty)?;
+        ty = deref
+            .then(|| of_ty.get(&deref_name(field)))
+            .flatten()
+            .or_else(|| of_ty.get(field))?
+            .clone();
     }
     if ty.starts_with(char::is_uppercase) {
         Some(ty)
@@ -1607,6 +1920,292 @@ mod tests {
         let mut facts = mk_facts(defs, refs);
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "Helper");
+    }
+
+    /// `(name, type)` pairs `collect_param_types` reads off `sig`.
+    fn params(sig: &str, cpp: bool, rust: bool) -> Vec<(String, String)> {
+        let d = mk_def("f", sig, 0, 10);
+        collect_param_types(&d, cpp, rust)
+            .into_iter()
+            .map(|(_, n, t)| (n, t))
+            .collect()
+    }
+
+    fn pairs(v: &[(&str, &str)]) -> Vec<(String, String)> {
+        v.iter()
+            .map(|(n, t)| ((*n).to_string(), (*t).to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn a_generic_parameter_is_its_generic_type_not_an_argument() {
+        // FINDINGS A2: the list was split on every comma, so the piece
+        // after the comma inside `<…>` read as a parameter of the
+        // argument's type — `h` typed `Handler`, `r` typed `Integer`.
+        // Java / C# (type-first).
+        assert_eq!(
+            params(
+                "void lookup(Map<String, Handler> h, Helper x)",
+                false,
+                false
+            ),
+            pairs(&[("h", "Map"), ("x", "Helper")])
+        );
+        assert_eq!(
+            params("void g(Repo<String, Integer> r)", false, false),
+            pairs(&[("r", "Repo")])
+        );
+        assert_eq!(
+            params(
+                "void g(final Box<Map<String, Integer>> b, Crate c)",
+                false,
+                false
+            ),
+            pairs(&[("b", "Box"), ("c", "Crate")])
+        );
+        assert_eq!(
+            params(
+                "void Lookup(Dictionary<string, Handler> handlers)",
+                false,
+                false
+            ),
+            pairs(&[("handlers", "Dictionary")])
+        );
+        // `name: Type` languages already cut at `<`; the phantom second
+        // piece is gone, and a function type's own parameters (`b: B`)
+        // are not this function's.
+        assert_eq!(
+            params(
+                "function f(handlers: Map<string, Handler>, cb: (a: A, b: B) => void, x: Foo)",
+                false,
+                false
+            ),
+            pairs(&[("handlers", "Map"), ("cb", "(a: A"), ("x", "Foo")])
+        );
+        // A comma or bracket inside a string default splits nothing.
+        assert_eq!(
+            params(
+                "def f(self, m: Dict[str, Foo], sep=\",<\", y: Bar)",
+                false,
+                false
+            ),
+            pairs(&[("m", "Dict"), ("y", "Bar")])
+        );
+    }
+
+    #[test]
+    fn a_cpp_template_parameter_is_never_typed_as_its_argument() {
+        // `std::map<std::string, Handler>` used to type `handlers` as
+        // `Handler>` (the piece after the comma). A class template is its
+        // own type; what `->` reaches through it is a separate `#deref`
+        // entry, read only for `p->f()`.
+        assert_eq!(
+            params("void f(QMap<Key, Handler> handlers, Widget w)", true, false),
+            pairs(&[
+                ("handlers#deref", "Key"),
+                ("handlers", "QMap"),
+                ("w", "Widget")
+            ])
+        );
+        assert_eq!(
+            params("void f(vector<Widget> ws)", true, false),
+            pairs(&[("ws#deref", "Widget")])
+        );
+        assert_eq!(
+            params(
+                "void f(unique_ptr<Handler> h, const sk_sp<Kernel>& k, QSharedPointer<Kernel> q)",
+                true,
+                false
+            ),
+            pairs(&[
+                ("h#deref", "Handler"),
+                ("k#deref", "Kernel"),
+                ("q#deref", "Kernel"),
+                ("q", "QSharedPointer"),
+            ])
+        );
+        // A raw pointer to a template: `->` reaches the template itself.
+        assert_eq!(
+            params("void f(QMap<Key, Handler>* m)", true, false),
+            pairs(&[("m", "QMap")])
+        );
+        // The scope path is read outside the argument list.
+        assert_eq!(nominal_type_token("Foo<Bar>::Inner&"), Some("Inner"));
+        assert_eq!(nominal_type_token("std::map<std::string, Handler>"), None);
+        assert_eq!(nominal_type_token("std::shared_ptr<const Robot>"), None);
+        assert_eq!(nominal_type_token("const Robot"), Some("Robot"));
+    }
+
+    #[test]
+    fn a_cpp_arrow_call_reaches_the_pointee_and_a_dot_call_the_template() {
+        let defs = vec![mk_def(
+            "run",
+            "void run(sk_sp<DisplayList> dl, QSharedPointer<Kernel> k)",
+            0,
+            200,
+        )];
+        let call = |name: &str, recv: &str, byte: u32, arrow: bool| RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_line: 2,
+            site_byte: byte,
+            arrow,
+            ..Default::default()
+        };
+        let refs = vec![
+            call("Dispatch", "dl", 40, true),
+            call("reset", "dl", 60, false),
+            call("start", "k", 80, true),
+            call("data", "k", 100, false),
+        ];
+        let mut facts = mk_facts(defs, refs);
+        facts.language = "cpp".into();
+        propagate_types(&mut facts);
+        let hints: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        // `dl.reset()` is the smart pointer's own method: left untyped,
+        // never read as `DisplayList::reset`.
+        assert_eq!(hints, vec!["DisplayList", "dl", "Kernel", "QSharedPointer"]);
+    }
+
+    #[test]
+    fn rust_parameters_split_only_between_parameters() {
+        // A wrapper chain whose innermost type has two arguments used to
+        // be cut inside it, leaving `Arc` (not even unwrapped).
+        assert_eq!(
+            params(
+                "fn f(s: Arc<RwLock<HashMap<String, Session>>>, cb: impl Fn(A, B) -> C, h: &Helper)",
+                false,
+                true
+            ),
+            pairs(&[
+                ("s#guard", "HashMap"),
+                ("s", "HashMap"),
+                ("cb", "Fn(A"),
+                ("h", "Helper"),
+            ])
+        );
+        // Lifetimes are not quotes.
+        assert_eq!(
+            params("fn f<'a>(x: &'a Foo<'a, T>, y: Bar)", false, true),
+            pairs(&[("x", "Foo"), ("y", "Bar")])
+        );
+    }
+
+    #[test]
+    fn plain_parameter_lists_are_unchanged() {
+        // Near miss: no brackets, nothing to respect.
+        assert_eq!(
+            params("public void run(Service x, final Helper y)", false, false),
+            pairs(&[("x", "Service"), ("y", "Helper")])
+        );
+        assert_eq!(
+            params("fun run(x: Service, y: Helper)", false, false),
+            pairs(&[("x", "Service"), ("y", "Helper")])
+        );
+        assert_eq!(
+            params(
+                "void shout(const StreamOutput *stream, Module* module)",
+                true,
+                false
+            ),
+            pairs(&[("stream", "StreamOutput"), ("module", "Module")])
+        );
+    }
+
+    #[test]
+    fn the_parameter_list_is_found_behind_annotations() {
+        // An annotation's argument list used to open the "parameter list".
+        assert_eq!(
+            param_list(
+                "@SuppressWarnings(\"x\") private <T> Object f(Object a, AttributeEntry<T> e)"
+            ),
+            Some("Object a, AttributeEntry<T> e")
+        );
+        assert_eq!(
+            params(
+                "@SuppressWarnings(\"deprecation\") private <T> Object f(Object a, AttributeEntry<T> entry)",
+                false,
+                false
+            ),
+            pairs(&[("a", "Object"), ("entry", "AttributeEntry")])
+        );
+        assert_eq!(
+            param_list("@get:JvmName(\"y\") @Deprecated(\"(z\") fun g(x: Foo)"),
+            Some("x: Foo")
+        );
+        assert_eq!(
+            param_list("[HttpGet(\"{id}\")] public IActionResult Get(int id)"),
+            Some("int id")
+        );
+        assert_eq!(
+            param_list("fn f<'a>(x: &'a Foo) -> impl Fn(A)"),
+            Some("x: &'a Foo")
+        );
+        assert_eq!(
+            param_list("pub(crate) async fn f(h: &Helper, c: &Data<Ctx>)"),
+            Some("h: &Helper, c: &Data<Ctx>")
+        );
+        assert_eq!(param_list("pub(in crate::a) fn g(x: X)"), Some("x: X"));
+        assert_eq!(
+            param_list("__attribute__((noinline)) static void h(Foo* f)"),
+            Some("Foo* f")
+        );
+        assert_eq!(
+            param_list("def f(self, a=(1, 2), b: Foo = None)"),
+            Some("self, a=(1, 2), b: Foo = None")
+        );
+        // Near miss: no parameter list at all.
+        assert_eq!(param_list("class Foo"), None);
+    }
+
+    #[test]
+    fn dart_named_and_optional_parameter_groups_hold_parameters() {
+        assert_eq!(
+            params(
+                "Foo make(Bar b, {FileSystem fs, Logger? log, Terminal Function(Platform)? t})",
+                false,
+                false
+            ),
+            pairs(&[
+                ("b", "Bar"),
+                ("fs", "FileSystem"),
+                ("log", "Logger?"),
+                ("t", "Terminal")
+            ])
+        );
+        assert_eq!(
+            params("void f([Baz z])", false, false),
+            pairs(&[("z", "Baz")])
+        );
+        // Near miss: a destructuring pattern with a type is one parameter.
+        assert_eq!(
+            params("fn f([a, b]: [u8; 2], c: Cfg)", false, true),
+            pairs(&[("c", "Cfg")])
+        );
+    }
+
+    #[test]
+    fn split_top_level_respects_brackets_strings_and_arrows() {
+        let s = |x: &str, rust: bool| -> Vec<String> {
+            split_top_level(x, |c| c == ',', rust)
+                .into_iter()
+                .map(|p| p.trim().to_string())
+                .collect()
+        };
+        assert_eq!(s("a: A<B, C>, d: D", false), vec!["a: A<B, C>", "d: D"]);
+        assert_eq!(s("a: A<B<C, D>>, e", false), vec!["a: A<B<C, D>>", "e"]);
+        assert_eq!(s("f: (A, B) -> C, g", true), vec!["f: (A, B) -> C", "g"]);
+        assert_eq!(s("f: (a, b) => c, g", false), vec!["f: (a, b) => c", "g"]);
+        assert_eq!(s("x = \"a,b\", y", false), vec!["x = \"a,b\"", "y"]);
+        assert_eq!(s("x = ',', y", false), vec!["x = ','", "y"]);
+        assert_eq!(s("x = a << 2, y", false), vec!["x = a << 2", "y"]);
+        assert_eq!(s("x = a > b, y", false), vec!["x = a > b", "y"]);
+        assert_eq!(s("x: &'a A, y: &'b B", true), vec!["x: &'a A", "y: &'b B"]);
+        assert_eq!(s("x' y, z", false), vec!["x' y", "z"]);
     }
 
     #[test]
