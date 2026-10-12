@@ -45,7 +45,9 @@ cargo build --release -p cgg --quiet
 # neurosymbolic_kb) picks up the same code we're about to commit.
 # Honors CGG_INSTALL_DIR; defaults to ~/.local/bin which is on the
 # user's PATH. Uses `install` so the new binary appears atomically.
-CGG_INSTALL_DIR="${CGG_INSTALL_DIR:-$HOME/.local/bin}"
+# `-`, not `:-`: an explicitly empty CGG_INSTALL_DIR="" is the documented
+# opt-out and must not fall back to the default.
+CGG_INSTALL_DIR="${CGG_INSTALL_DIR-$HOME/.local/bin}"
 if [[ -n "$CGG_INSTALL_DIR" ]]; then
     if [[ ! -d "$CGG_INSTALL_DIR" ]]; then
         echo "[cgg pre-commit] creating $CGG_INSTALL_DIR"
