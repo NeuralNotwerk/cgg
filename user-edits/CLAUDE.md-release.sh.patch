@@ -1,0 +1,29 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 0308f88..f48a43b 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -58,6 +58,12 @@ cd crates/cgg-node && node --test tests/*.test.js
+ # Never commits, tags or pushes — it prints the commands and stops.
+ ./scripts/release.sh --purpose "what this release is for"
+ 
++# After every release (once the tag is pushed): upgrade every local cgg —
++# PATH copies, binaries listed in ~/.config/cgg/local-installs (copies other
++# projects stage), the in-repo Python venv and Node module — and verify each
++# reports the new version. release.sh prints this as its last step.
++./scripts/upgrade-local.sh
++
+ # Install the project pre-commit hook (test + release build + README regen)
+ ./scripts/install-hooks.sh
+ 
+diff --git a/scripts/release.sh b/scripts/release.sh
+index 4f1dc39..00a9f79 100755
+--- a/scripts/release.sh
++++ b/scripts/release.sh
+@@ -498,6 +498,7 @@ into CHANGELOG.md and README.md yourself, then:
+   git tag -a "v$VERSION" -m "cgg $VERSION"
+   git push origin main && git push origin "v$VERSION"
+   gh release create "v$VERSION" --title "..." --notes-file $OUT/RELEASE-NOTES.md
++  scripts/upgrade-local.sh    # every local cgg (PATH, staged copies, py/node) to $VERSION
+ 
+ The drafts are drafts. Read them against $OUT/facts.md before shipping —
+ this script can check that a number was measured, not that a sentence is

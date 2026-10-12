@@ -54,3 +54,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12: tracker created; baseline bins/cgg-0.10.2 (= 5b4bdec); harness null test 0 diffs (5 repos); sensitivity 0.10.0->0.10.2 reproduces nkb 105->17 high.
 - 2026-10-12 01:00: WS1 started; before = bins/WS1-before (0.10.2). Cron c84238a3 every 2h at :17.
 - 2026-10-12 01:10: user: commit+push after every fix set (failing NVMe). Pushed remediate/cross-language (=5b4bdec) and remediation-state to origin+backup.
+- 2026-10-12 01:20: user approved committing their own CLAUDE.md/release.sh/upgrade-local.sh edits to main + push. Hook-skipping commit was denied; do it WITH the hook (worktree target/main-wt, already applied) between WS1 and WS2 so the build does not skew WS1 perf. Backup in user-edits/.
