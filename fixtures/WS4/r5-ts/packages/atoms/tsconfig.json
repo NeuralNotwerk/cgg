@@ -1,0 +1,1 @@
+{ "compilerOptions": { "paths": { "@calcom/lib": ["../lib"], "@calcom/lib/*": ["../lib/*"] } } }

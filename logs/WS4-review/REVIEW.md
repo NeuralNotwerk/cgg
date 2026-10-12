@@ -105,3 +105,58 @@ Python `filter()`/`open()`→methods; PHP builtins→methods; Rust `update`
 Go external-typed receivers (fiber Ctx/App); JS/TS calcom/4minitz test-mock
 decoys; 681 low framework-entry edges in expensify bundled actions (event
 handler registrations, acceptable).
+
+# Round 2: orchestrator precision audit of ab/WS4-v7 (2026-10-12 ~16:40)
+Method: random per-site samples (audit_sample.py, reason_sample.py), each judged
+against source. Removed-edge samples ~125 sites: ~6 correct edges lost (~5%).
+Added-edge samples ~97 sites: ~7 wrong (~7%, mostly Dart/OCaml). Go/Java/Python/
+TS/JS adds 53/54 correct. R1–R8 confirmed fixed in samples (Go self-shadow,
+values, generic receivers; TS tsconfig alias targets).
+
+New regressions / gaps to fix:
+R9  Go: a parameter/local that shadows an import alias. go-hertz
+    pkg/app/server/hertz_test.go:870 `c.JSON(...)` with param `c *app.RequestContext`
+    while the file imports `c "…/pkg/app/client"` → refused as
+    not-in-imported-module; correct edge app.RequestContext.JSON lost. Locals and
+    params shadow package names (any language with Step 0c).
+R10 Java: bare call to an OVERLOADED method reached through a workspace base or a
+    static wildcard import is not bound (old wrong edges removed, right one never
+    added): druid sql/src/test/java/org/apache/druid/sql/calcite/
+    CalciteArraysQueryTest.java:6512 testQuery, CalciteParameterQueryTest.java:392
+    aggregators, CalciteJoinQueryTest.java:4247 dimensions (all on
+    BaseCalciteQueryTest); gradle StandardJavadocDocletOptions.java:140
+    addBooleanOption (CoreJavadocOptions, 2 overloads). Single-overload inherited
+    methods DO bind (newScanQueryBuilder) — suspect qn_collisions treating
+    overloads as ambiguity. scala-play ServerCookieEncoder.java:78
+    `add(buf, name, value)` with `import static …CookieUtil.*` → CookieUtil.add
+    (3 overloads) now FALSE dead-HIGH ×2.
+R11 Deno/npm package `exports` maps: deno-std expect/_matchers.ts:264
+    `@std/assert/instance-of` → assert/deno.json exports {"./instance-of":
+    "./instance_of.ts"}; correct high edge refused. Follow deno.json /
+    package.json `exports` subpaths.
+R12 Audit labels: calls into EXTERNAL packages recorded as
+    not-in-imported-module instead of external-module (TS: `lexical`,
+    `next/navigation`, `@storybook/test`, `react-native-reanimated`; Go: `reflect`
+    in hcl-terraform-aws ec2 vpc_security_group_test.go:476).
+R13 Zig (outside brief): file-local alias `const addRunArtifact =
+    link.addRunArtifact;` (zig-zig test/link/macho.zig:1587) now binds
+    std.Build.addRunArtifact (was correct: test/link/link.zig); nested-struct
+    `pack(...)` (src/link/Wasm.zig:2411, own GlobalImportId.pack at 2396) now →
+    lib/std/crypto/ml_dsa.zig. A file's own declarations and file-local aliases
+    must win before any cross-file collision choice.
+R14 Erlang: explicit `asn1ct_gen_per:gen_dec_prim(...)` (lib/asn1/src/
+    asn1ct_constructed_per.erl:826) gains asn1ct_gen_ber_bin_v2:gen_dec_prim — a
+    different module name. Never bind `m:f` to a module other than m.
+R15 F#: fsharp-paket tests/Paket.Tests/Resolver/PropertyTests.fs:98
+    `PackageName "P7"` → same-dir static member PackageTypes.PackageName (wrong)
+    instead of src/Paket.Core/Common/Domain.fs PackageName. Same-dir preference
+    must not pick a type's member for a bare call.
+R16 Dart: `expect(...)` in engine/src/flutter/tools/pkg/engine_build_configs/test/*
+    (imports external package:test) now → engine/src/flutter/shell/common/
+    fixtures/shell_test.dart expect (4/4 sampled adds; ~393 adds). Replaced an
+    equally wrong edge, but the new choice is an unrelated fixture; do not add
+    edges by "nearest file" when the caller imports nothing that declares the name.
+Residual (not blocking, record in report): OCaml local `let rec go` / module
+    aliases swap one wrong cross-file target for another (src/fiber/src/
+    stream.ml:174); JS bare call through a local/param (`knex(...)`, `debug(...)`)
+    still name-matched cross-file (pre-existing).
