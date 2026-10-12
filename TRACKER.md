@@ -64,3 +64,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 07:25: user's CLAUDE.md/release.sh/upgrade-local.sh committed to main WITH hook (dcb9876), pushed origin+backup; merged into remediate/cross-language (a905e94, README self-stats conflict → ours); worktree target/main-wt removed. WS1 CLAUDE.md notes applied (8507bf7). Branch pushed.
 - 2026-10-12 07:30: WS2 started; before = bins/WS2-before (= 8507bf7 build). PROTOCOL rule 7 added (no approval-needing commands in agents).
 - 2026-10-12 08:25: WS2 COMMITTED b019a00, pushed origin+backup (orchestrator verified: 0 graph diffs, 19,317 high→medium only, samples match classes). WS3 started; before = bins/WS3-before (= b019a00 build).
+- 2026-10-12 08:47: tick — WS3 agent active; v1 A/B done, v2 A/B running (ab/WS3-v2).

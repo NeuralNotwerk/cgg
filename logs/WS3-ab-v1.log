@@ -1,0 +1,70 @@
+old=target/remediation/bins/WS3-before
+new=target/remediation/bins/WS3-after-v1
+repos=283 elapsed=430s
+excluded (timeout/error, NOT diffed): 1
+  hcl-terraform-aws: graph rc old=124 new=124
+repos changed: 62
+  app-avalonia-samples: edges 3713->3716 (-0 +3 ~0) callables 2357->2357 unresolved 1684->1681 files 309->309 deadhigh 37->37 
+  app-bamboobsc-struts: edges 73039->73272 (-30 +263 ~2) callables 32005->32005 unresolved 132908->132675 files 2065->2065 deadhigh 3->3 
+  app-bambufarm-vaadin: edges 1164->1164 (-0 +0 ~0) callables 579->579 unresolved 270->266 files 58->58 deadhigh 15->15 
+  app-cloudflare-workers: edges 3554->3556 (-0 +2 ~0) callables 2152->2152 unresolved 2079->2079 files 228->228 deadhigh 75->75 
+  app-cuda-samples: edges 12360->12374 (-3 +17 ~5) callables 6783->6783 unresolved 4672->4670 files 575->575 deadhigh 0->0 
+  app-dataverse-jsf: edges 84417->84536 (-8 +127 ~5) callables 19756->19756 unresolved 32864->32540 files 1750->1750 deadhigh 60->60 
+  app-diaspora-sidekiq: edges 4219->4224 (-0 +5 ~0) callables 2915->2915 unresolved 17477->17472 files 1136->1136 deadhigh 0->0 
+  app-druid-jaxrs: edges 370439->370562 (-97 +220 ~68) callables 92216->92216 unresolved 156606->153337 files 9932->9932 deadhigh 333->332 
+  app-eshop-aspnet: edges 864->863 (-1 +0 ~0) callables 2576->2576 unresolved 567->568 files 542->542 deadhigh 34->34 
+  app-flinkplatform-flink: edges 6974->6974 (-0 +0 ~0) callables 8194->8194 unresolved 30910->30896 files 405->405 deadhigh 3->3 
+  app-fsautocomplete-expecto: edges 4102->4106 (-0 +4 ~0) callables 2522->2522 unresolved 2891->2889 files 378->378 deadhigh 0->0 
+  app-ghost-express: edges 40779->40782 (-0 +3 ~0) callables 20786->20786 unresolved 96445->96444 files 6018->6018 deadhigh 0->0 
+  app-ghostty-zig: edges 20258->20258 (-0 +0 ~0) callables 9687->9687 unresolved 49731->49730 files 1114->1114 deadhigh 0->0 
+  app-gin-photoprism: edges 61678->61727 (-0 +49 ~0) callables 11966->11966 unresolved 45913->45884 files 2763->2763 deadhigh 0->0 
+  app-immich-nestjs: edges 15024->14999 (-45 +20 ~3) callables 9467->9467 unresolved 21289->21259 files 1981->1981 deadhigh 2->2 
+  app-jabref-javafx: edges 73324->73302 (-61 +39 ~16) callables 21972->21972 unresolved 34883->33732 files 3037->3037 deadhigh 271->271 
+  app-kapua-camel: edges 62756->62747 (-101 +92 ~7) callables 26559->26559 unresolved 26377->26001 files 4501->4501 deadhigh 248->248 
+  app-kori-ktorclient: edges 40498->40316 (-255 +73 ~51) callables 17145->17145 unresolved 81944->81596 files 358->358 deadhigh 0->0 
+  app-kotlinconf-ktor: edges 2059->2026 (-62 +29 ~17) callables 1049->1049 unresolved 280->280 files 276->276 deadhigh 0->0 
+  app-ksql-kafkastreams: edges 83516->83648 (-257 +389 ~33) callables 28306->28306 unresolved 42970->41268 files 3147->3147 deadhigh 284->284 
+  app-kythe-bazel: edges 22485->22544 (-7 +66 ~8) callables 13609->13609 unresolved 9439->9396 files 1715->1715 deadhigh 18->18 
+  app-lemmy-actix: edges 10062->10056 (-81 +75 ~0) callables 2330->2330 unresolved 7362->7368 files 572->572 deadhigh 94->95 
+  app-libchecker-gradle: edges 18880->17180 (-2392 +692 ~261) callables 7181->7181 unresolved 2950->3846 files 1052->1052 deadhigh 1->1 
+  app-marquez-dropwizard: edges 11575->11577 (-0 +2 ~0) callables 3461->3461 unresolved 5677->5667 files 631->631 deadhigh 13->13 
+  app-nextcloud-android: edges 24992->22879 (-2605 +492 ~101) callables 10667->10667 unresolved 8550->9234 files 1245->1245 deadhigh 170->170 
+  app-orleans-samples: edges 12591->12592 (-2 +3 ~0) callables 20843->20843 unresolved 19449->19448 files 3171->3171 deadhigh 570->570 
+  app-pydantic-core: edges 16440->16459 (-0 +19 ~4) callables 4174->4174 unresolved 7311->7304 files 249->249 deadhigh 102->102 
+  app-quack-oak: edges 950->948 (-4 +2 ~0) callables 856->856 unresolved 2141->2134 files 488->488 deadhigh 0->0 
+  app-rails-mastodon: edges 12379->12380 (-0 +1 ~0) callables 12565->12565 unresolved 51154->51153 files 4158->4158 deadhigh 0->0 
+  app-rn-expensify: edges 96549->96540 (-11 +2 ~0) callables 41867->41867 unresolved 202660->202648 files 8706->8706 deadhigh 0->0 
+  app-salvo-examples: edges 36228->36229 (-0 +1 ~4) callables 18013->18013 unresolved 45437->45437 files 447->447 deadhigh 94->94 
+  app-smoothieware-cpp: edges 11121->11124 (-0 +3 ~0) callables 3967->3967 unresolved 2052->2052 files 552->552 deadhigh 0->0 
+  app-spring-mall: edges 28863->28863 (-0 +0 ~0) callables 14265->14265 unresolved 1550->1544 files 528->528 deadhigh 9->9 
+  app-storm-starter: edges 59221->59269 (-24 +72 ~8) callables 31121->31121 unresolved 39651->38135 files 2163->2163 deadhigh 474->473 
+  app-swate-saturn: edges 11896->11893 (-3 +0 ~0) callables 5030->5030 unresolved 6760->6763 files 649->649 deadhigh 0->0 
+  app-symfony-demo: edges 30->27 (-3 +0 ~0) callables 245->245 unresolved 147->150 files 60->60 deadhigh 0->0 
+  app-symfony-messenger: edges 22143->22109 (-34 +0 ~0) callables 56877->56877 unresolved 153801->153835 files 11230->11230 deadhigh 0->0 
+  app-thingsboard-concurrent: edges 150433->150483 (-46 +96 ~17) callables 49346->49346 unresolved 92503->91529 files 6599->6599 deadhigh 175->175 
+  app-tigerbeetle-zig: edges 23740->23742 (-0 +2 ~0) callables 6314->6314 unresolved 22281->22279 files 411->411 deadhigh 17->17 
+  app-unity-boat: edges 495->496 (-0 +1 ~0) callables 661->661 unresolved 103->102 files 89->89 deadhigh 51->51 
+  app-waybar-catch2: edges 4140->4139 (-1 +0 ~2) callables 2091->2091 unresolved 1952->1954 files 288->288 deadhigh 0->0 
+  app-wordpress-android: edges 118658->114977 (-8853 +5172 ~4620) callables 40571->40571 unresolved 26497->28820 files 4259->4259 deadhigh 134->134 
+  cmake-kitware: edges 125924->125928 (-7 +11 ~6) callables 37076->37076 unresolved 117718->117711 files 16047->16047 deadhigh 0->0 
+  csharp-newtonsoft: edges 45290->45382 (-34 +126 ~0) callables 11718->11718 unresolved 18950->18912 files 950->950 deadhigh 246->249 
+  dart-flutter: edges 733178->732999 (-643 +464 ~39) callables 84515->84515 unresolved 429082->428726 files 10771->10771 deadhigh 29->29 
+  erlang-otp: edges 491740->491878 (-73 +211 ~2) callables 269754->269754 unresolved 440779->440631 files 5652->5652 deadhigh 3->3 
+  fsharp-paket: edges 8796->8798 (-1 +3 ~0) callables 3894->3894 unresolved 4758->4756 files 494->494 deadhigh 3->3 
+  groovy-gradle: edges 171192->169350 (-4015 +2173 ~523) callables 107058->107058 unresolved 260984->256207 files 24272->24272 deadhigh 926->926 
+  java-gson: edges 11461->11446 (-15 +0 ~3) callables 3398->3398 unresolved 2921->2912 files 266->266 deadhigh 20->20 
+  java-okhttp: edges 42699->35402 (-11467 +4170 ~388) callables 7950->7950 unresolved 6882->10423 files 647->647 deadhigh 2->2 
+  java-spring-batch: edges 24343->24370 (-6 +33 ~3) callables 10639->10639 unresolved 10552->10445 files 1682->1682 deadhigh 6->6 
+  kotlin-okio: edges 22392->23349 (-1036 +1993 ~30) callables 4456->4456 unresolved 7191->7628 files 356->356 deadhigh 1->1 
+  neurosymbolic_kb: edges 15186->15176 (-18 +8 ~5) callables 6302->6302 unresolved 24934->24945 files 274->274 deadhigh 17->17 
+  py-robyn: edges 2008->2012 (-0 +4 ~0) callables 1924->1924 unresolved 1791->1791 files 220->220 deadhigh 37->37 
+  rust-bat: edges 1994->1983 (-11 +0 ~0) callables 1972->1972 unresolved 2179->2188 files 178->178 deadhigh 4->4 
+  rust-ntex: edges 20589->20593 (-22 +26 ~0) callables 5299->5299 unresolved 14472->14488 files 309->309 deadhigh 325->325 
+  rust-ripgrep: edges 8061->8075 (-1 +15 ~0) callables 2973->2973 unresolved 7032->7027 files 108->108 deadhigh 71->71 
+  scala-play: edges 24354->24376 (-10 +32 ~15) callables 12701->12701 unresolved 20425->20282 files 1617->1617 deadhigh 25->25 
+  scala-spark: edges 222011->222010 (-1 +0 ~2) callables 102388->102388 unresolved 586468->586341 files 9201->9201 deadhigh 212->212 
+  smithy-protocol-tests: edges 77285->77245 (-198 +158 ~21) callables 23479->23479 unresolved 37390->36388 files 3663->3663 deadhigh 148->148 
+  ts-zod: edges 2421->2423 (-0 +2 ~0) callables 1703->1703 unresolved 5701->5700 files 410->410 deadhigh 0->0 
+  zig-zig: edges 235856->235960 (-56 +160 ~47) callables 355430->355430 unresolved 242520->242373 files 17350->17350 deadhigh -> dead rc old=124 new=124
+by language: see by_language.tsv
+
