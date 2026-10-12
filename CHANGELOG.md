@@ -49,6 +49,35 @@ otherwise change the default graph.
   a macro (`MACRO std::string to_string(…)` named `std::string
   to_string`) is matched by the scope it really sits in, read back from
   its signature, so `std::to_string(i)` no longer binds to it.
+- **Java and C# visibility is read from the grammar's modifier nodes**,
+  not from the signature text cut at the first `(`. An annotation or
+  attribute argument (`@SuppressWarnings("x") public void f()`,
+  `[Obsolete("x")] public void F()`), or a comment containing `(` between
+  the annotations and the modifier, ended that cut early: a public method
+  read as package-private (Java) or private (C#), which the dead-code
+  report took as corroboration (`private-visibility`) and ranked `high`.
+  Interface members without a modifier are now public, as JLS 9.4 and the
+  C# spec say; an explicit `private` interface member (Java 9, C# 8)
+  stays private, and a class body nested inside an interface keeps class
+  rules. A Java enum constructor without a modifier is private (JLS
+  8.9.2). A C# property accessor without its own modifier takes its
+  property's accessibility instead of reading as private.
+- **A `protected` member no longer reaches `high` dead-code confidence**
+  (Java, C#, Kotlin, TypeScript). It contributed no visibility evidence,
+  and because a never-referenced finding starts at `high`, it sat in the
+  top band exactly like private code — although any subtype, including
+  one outside the analyzed tree, may call it. It now carries the
+  `public-visibility` evidence (token `protected`), which caps it at
+  `medium`. The text report's `risk:` line now prints that evidence with
+  its token (`public-visibility:protected`, `public-visibility:pub`).
+- TypeScript (and JavaScript, which shares the walker) record class-member
+  visibility: `private`, `protected`, `public`, and `#name` (private); a
+  class member without a modifier is public, while free functions and
+  object-literal methods stay undetermined. Neither plugin claims the
+  visibility signal — module-level `export` visibility is not modelled,
+  and TypeScript's `private` is compile-time only — so their findings
+  stay capped at `medium` and the new evidence only orders findings
+  within a band.
 
 ### Compatibility
 
@@ -83,6 +112,22 @@ otherwise change the default graph.
   name; a call chained off an imported *function* (`verify(mock).run()`,
   a tagged template `` sql`…`.execute() ``) keeps its old duck-typed
   reading.
+- Visibility (Java, C#, TypeScript; `protected`): **the default graph
+  does not change** — full corpus, 283 repositories, 0 edges added,
+  removed or re-scored (`hcl-terraform-aws` excluded: it times out on both
+  sides). High-confidence dead findings fall by 19,317, every one to
+  `medium`, and none rises. Java −16,770: 8,445 modifier-less interface
+  members, 4,186 public methods behind an annotation argument or a
+  comment, 4,076 protected members (3,585 of them `@Override`), 63
+  protected members behind an annotation argument. C# −2,547: 1,256
+  interface members, 141 public and 15 protected members behind an
+  attribute argument, 1,135 protected members (1,063 `override`).
+  `app-spring-mall` falls from 1,087 to 9 (its MyBatis mapper interfaces)
+  and `java-spring-batch` from 299 to 6. Most non-override protected
+  members sampled are invoked by a framework or through dispatch (ASP.NET
+  page handlers, Guice `@Provides`, visitor methods, a Kotlin subclass); a
+  genuinely unused protected helper now reports at `medium`. TypeScript,
+  JavaScript and Kotlin: no finding changes band.
 
 ## [0.10.2] - 2026-10-11
 

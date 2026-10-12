@@ -528,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(3015 callables, 7495 edges, 2040 cross-file, 190ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(3036 callables, 7568 edges, 2040 cross-file, 254ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -1483,7 +1483,9 @@ flight.
   known.
 - **Visibility and attribute extraction beyond the current set.**
   `visibility` is extracted for rust, solidity, go, python, java,
-  csharp and kotlin; real attributes for rust, python, java, csharp,
+  csharp and kotlin (typescript and javascript record class-member
+  visibility — `private`/`protected`/`#name` — but not module-level
+  `export`, so they do not claim the signal); real attributes for rust, python, java, csharp,
   javascript, typescript, php, kotlin and cpp (CUDA qualifiers). Each further language
   raises the confidence ceiling for its findings.
 - **Unreachable-code detection for constant conditions.** `if (false)`

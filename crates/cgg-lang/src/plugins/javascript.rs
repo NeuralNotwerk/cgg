@@ -262,7 +262,12 @@ impl<'a> JsWalker<'a> {
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
+            // Deliberately no language-native token: the dead-code
+            // capability table reads a non-empty `visibility` as "this
+            // language extracts visibility", and only class members are
+            // covered here — module-level visibility (`export`) is not.
             visibility: String::new(),
+            vis: class_member_vis(node),
             // TypeScript decorators (`@Get('/users')`) are shape A and
             // carry the whole NestJS routing surface.
             attributes: super::attrs::collect_with_preceding(node, self.source),
@@ -843,6 +848,44 @@ fn line_range(n: Node) -> (u32, u32) {
     )
 }
 
+/// Visibility of a `method_definition`, read from the grammar.
+///
+/// Only a class member has one: TypeScript's `accessibility_modifier`
+/// (`public`/`protected`/`private`), or an ECMAScript `#name`, which is
+/// private at runtime as well. A class member with neither is public —
+/// the language default in both TypeScript and JavaScript. A method in
+/// an object literal has no visibility of its own (what the object is
+/// exported or assigned as decides it), so it stays `Vis::Unknown`, as
+/// does every free function: this plugin does not model module-level
+/// visibility.
+///
+/// TypeScript's `private`/`protected` are compile-time only — bracket
+/// access (`obj["m"]`) and `as any` reach them — which is one reason the
+/// TypeScript plugin still does not declare the visibility signal, and
+/// its dead-code findings stay capped below `High`.
+fn class_member_vis(node: Node) -> cgg_core::Vis {
+    if node.parent().map(|p| p.kind()) != Some("class_body") {
+        return cgg_core::Vis::Unknown;
+    }
+    let modifier = node
+        .children(&mut node.walk())
+        .find(|c| c.kind() == "accessibility_modifier")
+        .and_then(|m| m.child(0))
+        .map(|t| t.kind());
+    match modifier {
+        Some("private") => cgg_core::Vis::Private,
+        Some("protected") => cgg_core::Vis::Protected,
+        Some("public") => cgg_core::Vis::Public,
+        _ if node
+            .child_by_field_name("name")
+            .is_some_and(|n| n.kind() == "private_property_identifier") =>
+        {
+            cgg_core::Vis::Private
+        }
+        _ => cgg_core::Vis::Public,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -917,6 +960,28 @@ class Service {
                 .iter()
                 .any(|d| d.qualified_name == "Service.run")
         );
+    }
+
+    #[test]
+    fn class_member_visibility_follows_private_names() {
+        // The walker is shared with TypeScript; JavaScript's only access
+        // syntax is the ECMAScript `#name`, and a class member without
+        // one is public. Object-literal methods and functions stay
+        // unknown.
+        use cgg_core::Vis;
+        let src = "class S {\n  #hidden() {}\n  shown() {}\n}\nconst o = { m() {} };\nfunction g() {}\n";
+        let f = extract(src);
+        let vis = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap()
+                .vis
+        };
+        assert_eq!(vis("#hidden"), Vis::Private);
+        assert_eq!(vis("shown"), Vis::Public);
+        assert_eq!(vis("m"), Vis::Unknown);
+        assert_eq!(vis("g"), Vis::Unknown);
     }
 
     #[test]

@@ -260,7 +260,7 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            vis: csharp_vis(&super::extract_signature(self.text(node))),
+            vis: csharp_vis(node),
             // Verbatim, so `[HttpGet("/users")]` keeps its route.
             attributes: super::attrs::collect(node, self.source),
             base_types: self.bases.last().cloned().unwrap_or_default(),
@@ -398,27 +398,68 @@ fn line_range(n: Node) -> (u32, u32) {
     (s, e)
 }
 
-/// Project the declaration's modifier keywords onto the shared
+/// Does this declaration carry the modifier keyword `kw`?
+///
+/// Each `modifier` child wraps one keyword token; matching the token
+/// rather than the text means an attribute argument
+/// (`[Obsolete("x")] public void F()`) can neither fake a modifier nor
+/// hide one.
+fn has_modifier(node: Node, kw: &str) -> bool {
+    node.children(&mut node.walk())
+        .filter(|c| c.kind() == "modifier")
+        .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == kw))
+}
+
+/// Project the declaration's access modifiers onto the shared
 /// vocabulary. The *absent* case is the interesting one and differs per
-/// language, which is exactly why this normalization belongs in the
-/// plugin: here it is `Vis::Private`.
-fn csharp_vis(modifiers: &str) -> cgg_core::Vis {
-    // Only the tokens *before* the parameter list are modifiers, and
-    // they must match whole words: a parameter named `publicId` is not
-    // a `public` modifier.
-    let head = modifiers.split('(').next().unwrap_or(modifiers);
-    let toks: Vec<&str> = head.split_whitespace().collect();
-    let m = |k: &str| toks.contains(&k);
-    if m("public") {
-        cgg_core::Vis::Public
-    } else if m("protected") {
-        cgg_core::Vis::Protected
-    } else if m("private") {
-        cgg_core::Vis::Private
-    } else if m("internal") {
-        cgg_core::Vis::Internal
-    } else {
-        cgg_core::Vis::Private
+/// language — and, in C#, per enclosing declaration — which is exactly
+/// why this normalization belongs in the plugin.
+///
+/// Read from the `modifier` nodes. It used to be read from the signature
+/// text cut at the first `(`, which an attribute argument ends early:
+/// `[Obsolete("x")] public void F()` read as private, and so as
+/// corroborated dead code.
+fn csharp_vis(node: Node) -> cgg_core::Vis {
+    // `protected internal` and `private protected` both reach subtypes,
+    // so `protected` wins over the keyword it is combined with.
+    if has_modifier(node, "public") {
+        return cgg_core::Vis::Public;
+    }
+    if has_modifier(node, "protected") {
+        return cgg_core::Vis::Protected;
+    }
+    if has_modifier(node, "private") {
+        return cgg_core::Vis::Private;
+    }
+    if has_modifier(node, "internal") {
+        return cgg_core::Vis::Internal;
+    }
+    let parent = node.parent();
+    match parent.map(|p| p.kind()) {
+        // An accessor without its own modifier has the accessibility of
+        // the property, indexer or event that declares it
+        // (`accessor_list` → declaration).
+        Some("accessor_list") => parent
+            .and_then(|l| l.parent())
+            .map(csharp_vis)
+            .unwrap_or(cgg_core::Vis::Private),
+        // Interface members are public unless they say otherwise (C# 8
+        // lets a default-implemented member be `private`/`protected`,
+        // handled above). Only the interface's own body counts; a type
+        // nested inside it has a body of its own.
+        Some("declaration_list")
+            if parent
+                .and_then(|l| l.parent())
+                .is_some_and(|d| d.kind() == "interface_declaration") =>
+        {
+            cgg_core::Vis::Public
+        }
+        // Class, struct and record members default to private, and so
+        // do declarations that cannot carry an access modifier at all:
+        // local functions, static constructors, finalizers, and explicit
+        // interface implementations (`void IFoo.Bar()`), which are
+        // reachable only through the interface.
+        _ => cgg_core::Vis::Private,
     }
 }
 
@@ -555,5 +596,117 @@ namespace A.B.C {
         let scoped =
             extract("namespace Acme.Web;\npublic class App { public void Run() {} }\n");
         assert_eq!(scoped.packages, vec!["Acme.Web"]);
+    }
+
+    fn vis_of(f: &FileFacts, qn_suffix: &str) -> cgg_core::Vis {
+        f.definitions
+            .iter()
+            .find(|d| d.qualified_name.ends_with(qn_suffix))
+            .unwrap_or_else(|| panic!("{qn_suffix} not extracted"))
+            .vis
+    }
+
+    #[test]
+    fn an_attribute_argument_does_not_hide_the_access_modifier() {
+        // FINDINGS B1: the signature was cut at the first `(`, which here
+        // is the attribute's, so every modifier after it was lost and the
+        // method read as private — corroborated dead code.
+        use cgg_core::Vis;
+        let f = extract(
+            "class X {\n\
+             \x20 [Obsolete(\"x\")]\n  public void Pub() {}\n\
+             \x20 [Obsolete(\"x\", false)] protected void Prot() {}\n\
+             \x20 [Obsolete(\"x\")] internal void Intl() {}\n\
+             \x20 [Obsolete(\"x\")] private void Priv() {}\n\
+             \x20 [Obsolete(\"x\")] void Dflt() {}\n\
+             }\n",
+        );
+        assert_eq!(vis_of(&f, ".Pub"), Vis::Public);
+        assert_eq!(vis_of(&f, ".Prot"), Vis::Protected);
+        assert_eq!(vis_of(&f, ".Intl"), Vis::Internal);
+        // Near-misses: an explicit `private`, or no modifier at all,
+        // behind the same attribute must not change.
+        assert_eq!(vis_of(&f, ".Priv"), Vis::Private);
+        assert_eq!(vis_of(&f, ".Dflt"), Vis::Private);
+    }
+
+    #[test]
+    fn modifier_words_outside_modifier_nodes_are_not_modifiers() {
+        use cgg_core::Vis;
+        let f = extract(
+            "class X {\n  void A(string publicId) {}\n  [Named(\"public\")] void B() {}\n}\n",
+        );
+        assert_eq!(vis_of(&f, ".A"), Vis::Private);
+        assert_eq!(vis_of(&f, ".B"), Vis::Private);
+    }
+
+    #[test]
+    fn combined_access_modifiers_reach_subtypes() {
+        use cgg_core::Vis;
+        let f = extract(
+            "class X {\n  protected internal void A() {}\n  private protected void B() {}\n}\n",
+        );
+        assert_eq!(vis_of(&f, ".A"), Vis::Protected);
+        assert_eq!(vis_of(&f, ".B"), Vis::Protected);
+    }
+
+    #[test]
+    fn interface_members_without_a_modifier_are_public() {
+        use cgg_core::Vis;
+        let f = extract(
+            "public interface IRepo {\n\
+             \x20 void FindAll();\n\
+             \x20 [Obsolete(\"x\")] void Annotated();\n\
+             \x20 void WithBody() {}\n\
+             \x20 private void Helper() {}\n\
+             \x20 protected void Hook() {}\n\
+             \x20 int Count { get; }\n\
+             \x20 class Nested { void Inner() {} }\n\
+             }\n",
+        );
+        assert_eq!(vis_of(&f, "IRepo.FindAll"), Vis::Public);
+        assert_eq!(vis_of(&f, "IRepo.Annotated"), Vis::Public);
+        assert_eq!(vis_of(&f, "IRepo.WithBody"), Vis::Public);
+        assert_eq!(vis_of(&f, "IRepo.get"), Vis::Public);
+        // An explicit modifier still wins in an interface.
+        assert_eq!(vis_of(&f, "IRepo.Helper"), Vis::Private);
+        assert_eq!(vis_of(&f, "IRepo.Hook"), Vis::Protected);
+        // Near-miss: a type nested in the interface has class rules.
+        assert_eq!(vis_of(&f, "Nested.Inner"), Vis::Private);
+    }
+
+    #[test]
+    fn class_struct_and_record_members_default_to_private() {
+        use cgg_core::Vis;
+        let f = extract(
+            "class C { void M() {} }\n\
+             struct S { void M() {} }\n\
+             record R(int X) { void M() {} }\n\
+             class Impl : IRepo { void IRepo.FindAll() {} }\n",
+        );
+        assert_eq!(vis_of(&f, "C.M"), Vis::Private);
+        assert_eq!(vis_of(&f, "S.M"), Vis::Private);
+        assert_eq!(vis_of(&f, "R.M"), Vis::Private);
+        // An explicit interface implementation carries no modifier and
+        // keeps its old reading here; dispatch to it is FINDINGS B2.
+        assert_eq!(vis_of(&f, "Impl.FindAll"), Vis::Private);
+    }
+
+    #[test]
+    fn an_accessor_takes_its_property_accessibility_unless_it_has_its_own() {
+        use cgg_core::Vis;
+        let f = extract(
+            "class C {\n  public int P { get; private set; }\n  int Q { get; set; }\n}\n",
+        );
+        let acc = |name: &str, line: u32| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == name && d.start_line == line)
+                .unwrap_or_else(|| panic!("{name}@{line}"))
+                .vis
+        };
+        assert_eq!(acc("get", 2), Vis::Public);
+        assert_eq!(acc("set", 2), Vis::Private);
+        assert_eq!(acc("get", 3), Vis::Private);
     }
 }

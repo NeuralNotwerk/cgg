@@ -261,6 +261,10 @@ pub enum Evidence {
     /// the analyzed tree is not the whole world, and the consumers that
     /// make an exported symbol worth keeping are the ones cgg cannot
     /// see. The mirror image of [`Evidence::PrivateVisibility`].
+    ///
+    /// Also carried by a `protected` member (`token: "protected"`): any
+    /// subtype may call it, a subtype may be declared outside the
+    /// analyzed tree, and cgg models no subtype graph to rule one out.
     PublicVisibility { token: String },
 
     // ---- raising: corroboration ----

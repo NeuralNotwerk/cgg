@@ -133,6 +133,69 @@ class Service {
     }
 
     #[test]
+    fn class_member_visibility_is_read_from_the_grammar() {
+        // FINDINGS C5: TypeScript recorded no visibility at all.
+        use cgg_core::Vis;
+        let src = r#"
+export class Service {
+  constructor(private readonly name: string) {}
+  private hidden(): void {}
+  protected hook(): void {}
+  public shown(): void {}
+  plain(): void {}
+  #hard(): void {}
+  @Decorated("public")
+  private decorated(): void {}
+  private static make(): void {}
+  private get value(): string { return ""; }
+}
+class Singleton { private constructor() {} }
+"#;
+        let f = extract(src);
+        let vis = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .unwrap_or_else(|| panic!("{qn} not extracted"))
+                .vis
+        };
+        assert_eq!(vis("Service.hidden"), Vis::Private);
+        assert_eq!(vis("Service.hook"), Vis::Protected);
+        assert_eq!(vis("Service.shown"), Vis::Public);
+        // No modifier: public, the language default for class members.
+        assert_eq!(vis("Service.plain"), Vis::Public);
+        // ECMAScript private name.
+        assert_eq!(vis("Service.#hard"), Vis::Private);
+        // A decorator argument is not a modifier.
+        assert_eq!(vis("Service.decorated"), Vis::Private);
+        assert_eq!(vis("Service.make"), Vis::Private);
+        assert_eq!(vis("Service.value"), Vis::Private);
+        // A parameter property's `private` belongs to the field, not to
+        // the constructor.
+        assert_eq!(vis("Service.constructor"), Vis::Public);
+        assert_eq!(vis("Singleton.constructor"), Vis::Private);
+        // The native token stays empty, so the capability table does not
+        // read class members as module-level visibility support.
+        assert!(f.definitions.iter().all(|d| d.visibility.is_empty()));
+    }
+
+    #[test]
+    fn functions_and_object_methods_have_no_visibility() {
+        // Near-miss: module-level visibility (`export`) is not modelled,
+        // and an object literal's method has none of its own.
+        let src = "export function f(): void {}\nfunction g(): void {}\nconst h = (): void => {};\nconst o = { m(): void {} };\n";
+        let f = extract(src);
+        for name in ["f", "g", "h", "m"] {
+            let d = f
+                .definitions
+                .iter()
+                .find(|d| d.simple_name == name)
+                .unwrap_or_else(|| panic!("{name} not extracted"));
+            assert_eq!(d.vis, cgg_core::Vis::Unknown, "{name}");
+        }
+    }
+
+    #[test]
     fn import_from_captured() {
         let src =
             "import { helper } from './utils';\nimport type { Config } from './types';\n";

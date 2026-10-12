@@ -221,7 +221,7 @@ impl<'a> JavaWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            vis: java_vis(&super::extract_signature(self.text(node))),
+            vis: java_vis(node),
             // Verbatim: `@GetMapping("/users")` keeps its route, which
             // `attribute_key` would discard and an entry node needs.
             attributes: {
@@ -362,39 +362,60 @@ impl<'a> JavaWalker<'a> {
     }
 }
 
-/// Project the declaration's modifier keywords onto the shared
-/// vocabulary. The *absent* case is the interesting one and differs per
-/// language, which is exactly why this normalization belongs in the
-/// plugin: here it is `Vis::Internal`.
-/// Does this declaration carry the `native` modifier?
+/// Does this declaration's `modifiers` node carry the keyword token
+/// `kw` (`native`, `public`, …)?
 ///
-/// Matched on the modifier token itself rather than by searching the
-/// text, so an annotation such as `@NativeQuery` cannot be mistaken for
-/// one.
-fn has_native_modifier(node: Node) -> bool {
+/// Matched on the grammar's keyword token rather than by searching the
+/// text, so an annotation such as `@NativeQuery`, or an annotation
+/// argument such as `@SuppressWarnings("unchecked")` standing in front
+/// of `public`, can neither fake a modifier nor hide one.
+fn has_modifier(node: Node, kw: &str) -> bool {
     node.children(&mut node.walk())
         .filter(|c| c.kind() == "modifiers")
-        .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == "native"))
+        .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == kw))
 }
 
-fn java_vis(modifiers: &str) -> cgg_core::Vis {
-    // Only the tokens *before* the parameter list are modifiers, and
-    // they must match whole words: a parameter named `publicId` is not
-    // a `public` modifier.
-    let head = modifiers.split('(').next().unwrap_or(modifiers);
-    let toks: Vec<&str> = head.split_whitespace().collect();
-    let m = |k: &str| toks.contains(&k);
-    if m("public") {
-        cgg_core::Vis::Public
-    } else if m("protected") {
-        cgg_core::Vis::Protected
-    } else if m("private") {
-        cgg_core::Vis::Private
-    } else {
+/// Does this declaration carry the `native` modifier?
+fn has_native_modifier(node: Node) -> bool {
+    has_modifier(node, "native")
+}
+
+/// Project the declaration's access modifier onto the shared
+/// vocabulary. The *absent* case is the interesting one and differs per
+/// language — and, in Java, per enclosing declaration — which is exactly
+/// why this normalization belongs in the plugin.
+///
+/// Read from the `modifiers` node's keyword tokens. It used to be read
+/// from the signature text cut at the first `(`, which an annotation
+/// argument ends early: `@SuppressWarnings("x") public void f()` read as
+/// package-private, and so as corroborated dead code.
+fn java_vis(node: Node) -> cgg_core::Vis {
+    if has_modifier(node, "public") {
+        return cgg_core::Vis::Public;
+    }
+    if has_modifier(node, "protected") {
+        return cgg_core::Vis::Protected;
+    }
+    if has_modifier(node, "private") {
+        return cgg_core::Vis::Private;
+    }
+    match node.parent().map(|p| p.kind()) {
+        // JLS 9.4: a method declared in an interface body without
+        // `private` is implicitly public (and `protected` is a compile
+        // error there). JLS 9.6.1 says the same of annotation-type
+        // elements. Only the *direct* body counts: a class body nested
+        // inside an interface — an anonymous class in a default method —
+        // follows class rules again.
+        Some("interface_body" | "annotation_type_body") => cgg_core::Vis::Public,
+        // JLS 8.9.2: an enum constructor with no access modifier is
+        // private. Enum *methods* follow class rules (below).
+        Some("enum_body_declarations") if node.kind() == "constructor_declaration" => {
+            cgg_core::Vis::Private
+        }
         // Java has no `internal` keyword — that is Kotlin and C#. An
-        // absent modifier means package-private, which is exactly
-        // `Vis::Internal`, so the fallback covers it.
-        cgg_core::Vis::Internal
+        // absent modifier in a class, enum or record body means
+        // package-private, which is exactly `Vis::Internal`.
+        _ => cgg_core::Vis::Internal,
     }
 }
 
@@ -536,5 +557,101 @@ mod tests {
     fn package_is_recorded() {
         let f = extract("package com.acme.util;\nclass A { void m() {} }\n");
         assert_eq!(f.packages, vec!["com.acme.util"]);
+    }
+
+    fn vis_of(f: &FileFacts, name: &str) -> cgg_core::Vis {
+        f.definitions
+            .iter()
+            .find(|d| d.simple_name == name)
+            .unwrap_or_else(|| panic!("{name} not extracted"))
+            .vis
+    }
+
+    #[test]
+    fn an_annotation_argument_does_not_hide_the_access_modifier() {
+        // FINDINGS B1: the signature was cut at the first `(`, which here
+        // is the annotation's, so every modifier after it was lost and
+        // the method read as package-private — corroborated dead code.
+        let f = extract(
+            "class X {\n\
+             \x20 @SuppressWarnings(\"unchecked\")\n  public void pub() {}\n\
+             \x20 @Deprecated(since = \"1\", forRemoval = false) protected void prot() {}\n\
+             \x20 @SuppressWarnings(\"unused\")\n  private void priv() {}\n\
+             \x20 @SuppressWarnings(\"unused\")\n  void pkg() {}\n\
+             }\n",
+        );
+        use cgg_core::Vis;
+        assert_eq!(vis_of(&f, "pub"), Vis::Public);
+        assert_eq!(vis_of(&f, "prot"), Vis::Protected);
+        // Near-misses: an explicit `private`, or no modifier at all,
+        // behind the same annotation must not change.
+        assert_eq!(vis_of(&f, "priv"), Vis::Private);
+        assert_eq!(vis_of(&f, "pkg"), Vis::Internal);
+    }
+
+    #[test]
+    fn modifier_words_outside_the_modifiers_node_are_not_modifiers() {
+        use cgg_core::Vis;
+        let f = extract(
+            "class X {\n\
+             \x20 void a(String publicId) {}\n\
+             \x20 @Named(\"public\") void b() {}\n\
+             }\n",
+        );
+        assert_eq!(vis_of(&f, "a"), Vis::Internal);
+        assert_eq!(vis_of(&f, "b"), Vis::Internal);
+    }
+
+    #[test]
+    fn interface_members_without_a_modifier_are_implicitly_public() {
+        // JLS 9.4 — abstract, default and static interface methods alike.
+        use cgg_core::Vis;
+        let f = extract(
+            "interface Repo {\n\
+             \x20 void findAll();\n\
+             \x20 @SuppressWarnings(\"x\") void annotated();\n\
+             \x20 default void dflt() {}\n\
+             \x20 static void stat() {}\n\
+             \x20 private void helper() {}\n\
+             }\n\
+             class Outer { interface Inner { void nested(); } }\n",
+        );
+        assert_eq!(vis_of(&f, "findAll"), Vis::Public);
+        assert_eq!(vis_of(&f, "annotated"), Vis::Public);
+        assert_eq!(vis_of(&f, "dflt"), Vis::Public);
+        assert_eq!(vis_of(&f, "stat"), Vis::Public);
+        assert_eq!(vis_of(&f, "nested"), Vis::Public);
+        // Java 9 private interface methods stay private.
+        assert_eq!(vis_of(&f, "helper"), Vis::Private);
+    }
+
+    #[test]
+    fn class_bodies_inside_an_interface_follow_class_rules() {
+        // Near-miss: only the interface's *own* body makes members
+        // public. An anonymous class in a default method is a class.
+        use cgg_core::Vis;
+        let f = extract(
+            "interface I {\n  default void make() {\n    Object o = new Object() { void anon() {} };\n  }\n}\n",
+        );
+        assert_eq!(vis_of(&f, "make"), Vis::Public);
+        assert_eq!(vis_of(&f, "anon"), Vis::Internal);
+    }
+
+    #[test]
+    fn enum_and_record_members_follow_class_rules() {
+        // Enum and record methods have no implicit-public rule; an enum
+        // constructor with no modifier is private (JLS 8.9.2).
+        use cgg_core::Vis;
+        let f = extract(
+            "enum Color {\n  RED(1);\n  Color(int x) {}\n  void m() {}\n  public void p() {}\n}\n\
+             record Point(int x) {\n  void r() {}\n}\n\
+             class K {\n  K() {}\n}\n",
+        );
+        assert_eq!(vis_of(&f, "Color"), Vis::Private);
+        assert_eq!(vis_of(&f, "m"), Vis::Internal);
+        assert_eq!(vis_of(&f, "p"), Vis::Public);
+        assert_eq!(vis_of(&f, "r"), Vis::Internal);
+        // A class constructor with no modifier is package-private.
+        assert_eq!(vis_of(&f, "K"), Vis::Internal);
     }
 }

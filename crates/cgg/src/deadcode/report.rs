@@ -224,6 +224,12 @@ pub fn render_text(
                         trait_name,
                         ..
                     } => format!("{}:{trait_name}", e.slug()),
+                    // `public-visibility:protected` — the entry also
+                    // covers protected members, and the slug alone
+                    // would call them public.
+                    cgg_core::deadcode::Evidence::PublicVisibility { token } => {
+                        format!("{}:{token}", e.slug())
+                    }
                     _ => e.slug().to_string(),
                 })
                 .collect();

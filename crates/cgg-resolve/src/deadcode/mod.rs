@@ -637,15 +637,21 @@ pub fn analyze(
                 token: vis_token(nd),
             }),
             // Exported, so a caller may live in code cgg never saw.
-            Vis::Public => ev.push(Evidence::PublicVisibility {
+            // `Protected` is in the same position: any subtype may call
+            // it, a subtype may be declared outside the analyzed tree, and
+            // cgg models no subtype graph that could rule one out. Saying
+            // nothing would not be neutral — a never-referenced finding
+            // *starts* at High, so silence left a protected member in the
+            // top band exactly like a private one. The token keeps
+            // `protected` visible to a reader.
+            Vis::Public | Vis::Protected => ev.push(Evidence::PublicVisibility {
                 token: vis_token(nd),
             }),
-            // `Protected` reaches out-of-tree subtypes but not arbitrary
-            // callers, and cgg models no subtype graph; `Unknown` means
-            // the plugin never determined it. Claiming either direction
-            // for these would be a guess, which is why `Vis::escapes_unit`
-            // — true for `Unknown` — is deliberately not used here.
-            Vis::Protected | Vis::Unknown => {}
+            // The plugin never determined it. Claiming either direction
+            // would be a guess, which is why `Vis::escapes_unit` — true
+            // for `Unknown` — is deliberately not used here; a language
+            // that determines none is capped by `LanguageLacksVisibility`.
+            Vis::Unknown => {}
         }
 
         ev.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
@@ -1545,10 +1551,9 @@ mod tests {
         let g = graph_with(vec![
             node(0, "crate::main", "main", "rust"),
             vis_node(1, "crate::inherited", "inherited", "", Vis::Unknown),
-            vis_node(2, "crate::guarded", "guarded", "protected", Vis::Protected),
         ]);
         let r = analyze(&g, &[], &[], &opts_rust_full());
-        assert_eq!(r.findings.len(), 2);
+        assert_eq!(r.findings.len(), 1);
         for f in &r.findings {
             assert!(
                 !f.evidence.iter().any(|e| matches!(
@@ -1559,6 +1564,39 @@ mod tests {
                 f.simple_name
             );
         }
+    }
+
+    #[test]
+    fn a_protected_callable_cannot_reach_high() {
+        // A subtype may call it, and a subtype may be declared outside
+        // the analyzed tree. Before, `Protected` added no evidence at
+        // all, and since a never-referenced finding starts at High that
+        // left it in the top band beside private code.
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::guarded", "guarded", "", Vis::Protected),
+            vis_node(2, "crate::hidden", "hidden", "", Vis::Private),
+        ]);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        let f = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "guarded")
+            .unwrap();
+        assert_eq!(f.confidence, Confidence::Medium);
+        assert!(matches!(
+            f.evidence.iter().find(|e| e.slug() == "public-visibility"),
+            Some(Evidence::PublicVisibility { token }) if token == "protected",
+        ));
+        // Never corroborated as if it were private.
+        assert!(!f.evidence.iter().any(|e| e.slug() == "private-visibility"));
+        // Near-miss: the private sibling keeps the top band.
+        let p = r
+            .findings
+            .iter()
+            .find(|f| f.simple_name == "hidden")
+            .unwrap();
+        assert_eq!(p.confidence, Confidence::High);
     }
 
     #[test]
