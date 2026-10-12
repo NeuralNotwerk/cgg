@@ -1,0 +1,6 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+app-ghost-express	43488	43488	0	0	0	20786	20786	103064	103064	6018	6018	0	0	
+go-caddy	9074	9074	0	0	0	3165	3165	4773	4773	327	327	0	0	
+java-gson	11478	11478	0	0	0	3398	3398	3876	3876	266	266	42	42	
+neurosymbolic_kb	15187	15187	0	0	0	6302	6302	24934	24934	274	274	17	17	
+py-falcon	9814	9814	0	0	0	4065	4065	5843	5843	272	272	9	9	

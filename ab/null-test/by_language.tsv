@@ -1,0 +1,14 @@
+lang	edges_dropped	edges_added	edges_delta	callables_delta	unresolved_delta	files_delta	deadhigh_delta
+bash	0	0	0	0	0	0	0
+c	0	0	0	0	0	0	0
+cpp	0	0	0	0	0	0	0
+go	0	0	0	0	0	0	0
+java	0	0	0	0	0	0	0
+javascript	0	0	0	0	0	0	0
+php	0	0	0	0	0	0	0
+proto	0	0	0	0	0	0	0
+python	0	0	0	0	0	0	0
+rust	0	0	0	0	0	0	0
+skip:binary	0	0	0	0	0	0	0
+skip:builtin	0	0	0	0	0	0	0
+typescript	0	0	0	0	0	0	0

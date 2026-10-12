@@ -1,0 +1,8 @@
+old=/storage/cgg/target/release-prep/cgg-baseline
+new=bins/cgg-0.10.2
+repos=2 elapsed=2s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 2
+  neurosymbolic_kb: edges 15318->15187 (-676 +545 ~93) callables 6246->6302 unresolved 24618->24934 files 274->274 deadhigh 105->17 
+  py-falcon: edges 9837->9814 (-23 +0 ~8) callables 4065->4065 unresolved 5843->5843 files 272->272 deadhigh 9->9 
+by language: see by_language.tsv
