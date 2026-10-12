@@ -33,8 +33,8 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 
 | # | Workstream | Findings | Status | Commit | Notes |
 |---|---|---|---|---|---|
-| WS1 | External module/package heads never name-matched to workspace (all langs w/ imports); no high promotion for external alias | A1 | in progress (agent launched 2026-10-12 01:00) | | |
-| WS2 | Java/C# visibility (annotation args, implicit-public interface members, protected evidence); TS visibility capture | B1, C5-TS | pending | | |
+| WS1 | External module/package heads never name-matched to workspace (all langs w/ imports); no high promotion for external alias | A1 | DONE 2026-10-12 | 02780c3 (+433e266 hook fix, 8507bf7 docs) | A/B ab/WS1-v7: -146,535 / +208 edges, 36 new dead-high (all wrong callers); perf/WS1-v7.md -0.9%, all <1s. Residuals: Kotlin receiver-less runBlocking/File(x).readText → WS3; import shadowed by local; webpack/babel-only JS aliases; chained off imported fn (sql`…`.execute()); gtest-style template owner fan-out; C++ qn folds return type (`std::string to_string`) → WS8 |
+| WS2 | Java/C# visibility (annotation args, implicit-public interface members, protected evidence); TS visibility capture | B1, C5-TS | in progress | | |
 | WS3 | Param-list splitting respects generics; Kotlin receiver construction; Python multi-line self receiver | A2, A3, A7 | pending | | |
 | WS4 | Module-qualified calls bind by module, not bare name (JS/TS namespace/require, Python/Go decoys); bare call never binds to a method (PHP, Perl) | A4, A5, A6 | pending | | |
 | WS5 | Interface dispatch beyond Rust: impl->decl link from base types, F2/F6 analogs, override evidence, variable/generic receivers as doubt, decl nodes for TS/Swift/Scala/Dart | B2 | pending | | |
@@ -48,7 +48,7 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 | WS13 | Rust leftovers: macro invocation sites credited; `Type::f()` constructor reading | C6 | pending | | |
 
 ## Pending CLAUDE.md edits
-(none yet)
+(none — WS1's were applied in 8507bf7; orchestrator applies future ones itself, user's edits are committed)
 
 ## Log
 - 2026-10-12: tracker created; baseline bins/cgg-0.10.2 (= 5b4bdec); harness null test 0 diffs (5 repos); sensitivity 0.10.0->0.10.2 reproduces nkb 105->17 high.
@@ -59,3 +59,7 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 04:50: WS1 agent stalled again (02:47) on 'rm -rf … && graph_ab' — calls needing approval hang forever in a background agent. Orchestrator runs the v2 A/B itself (ab/WS1-v2); agent to be resumed for classification/perf/report with 'no rm -rf, no nohup'.
 - 2026-10-12 05:10: WS1 v2 A/B (orchestrator): 283 repos, excl hcl-terraform-aws + zig-zig (timeout old AND new — zig near 60s cap, check later), dropped java 54684 kotlin 8422 py 8096 go 5987 ts 5890 js 3462 cpp 1242 cs 1201; added 31 (cpp). Orchestrator spot-checks: drops correct (external heads, static imports, FQN stdlib, C# namespace visibility); 36 new dead-high trace to correct drops (remaining = interface decls → WS2/WS5). REGRESSION: 31 added cpp-nlohmann std::to_string/std::swap → workspace 'std::string to_string' high. Agent resumed to fix + v3 A/B + perf + changelog.
 - 2026-10-12 06:47: tick — WS1 agent active, on iteration v7 (A/B ab/WS1-v7 running, gates green: 1095 tests, clippy, fmt, docs-check). perf/WS1.md exists.
+- 2026-10-12 07:05: WS1 COMMITTED 02780c3 and pushed (origin+backup). Orchestrator re-verified the terraform class (58,597 Go drops): tests import external terraform-plugin-testing/knownvalue, the workspace one is aliased tfknownvalue → all wrong edges.
+- 2026-10-12 07:05: hook bug found: `${CGG_INSTALL_DIR:-…}` ignored the documented CGG_INSTALL_DIR="" opt-out and installed the WS1 build to ~/.local/bin/cgg for ~1 min. Restored the 0.10.2 release (cmp-verified; glitch copy untouched). Fixed in 433e266 (`-` not `:-`), verified by the next commit.
+- 2026-10-12 07:25: user's CLAUDE.md/release.sh/upgrade-local.sh committed to main WITH hook (dcb9876), pushed origin+backup; merged into remediate/cross-language (a905e94, README self-stats conflict → ours); worktree target/main-wt removed. WS1 CLAUDE.md notes applied (8507bf7). Branch pushed.
+- 2026-10-12 07:30: WS2 started; before = bins/WS2-before (= 8507bf7 build). PROTOCOL rule 7 added (no approval-needing commands in agents).

@@ -18,15 +18,21 @@ pointers — line numbers drift, re-locate by symbol).
    "fix" one name.
 3. Do not chase latency deviations under 1 second.
 4. Do not edit /storage/cgg/CLAUDE.md, scripts/release.sh or
-   scripts/upgrade-local.sh (the user has uncommitted edits there). If
-   CLAUDE.md prose becomes wrong because of your change, write the needed
-   edit into your final report under "CLAUDE.md edits needed".
+   scripts/upgrade-local.sh. If CLAUDE.md prose becomes wrong because of
+   your change, write the needed edit into your final report under
+   "CLAUDE.md edits needed"; the orchestrator applies it.
 5. Do not commit, push, tag, or switch branches. The orchestrator reviews
    and commits. Leave your changes in the working tree.
 6. Keep the default graph deterministic at any --jobs (build new indexes
    sorted / in input order). Never manufacture an edge from a string.
    Prefer refusing a wrong edge over guessing; a dropped site must stay
    recorded as unresolved with a reason (never silent).
+7. NEVER run a command that needs interactive approval: no `rm -rf`, no
+   `nohup`, no `( … &)` subshells, no `git` writes. In a background agent
+   such a call hangs forever (WS1 lost ~3h to this). To redo an output
+   dir, write to a NEW name (ab/<WS>-v2, -v3 …) instead of deleting. For
+   anything longer than ~9 min (the A/B), use the Bash tool's
+   `run_in_background: true` and wait for its completion notice.
 
 ## Steps
 1. BEFORE binary: target/remediation/bins/<WS>-before already exists (the
