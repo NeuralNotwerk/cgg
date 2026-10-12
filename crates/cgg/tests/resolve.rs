@@ -2627,3 +2627,124 @@ fn angle_include_follows_an_in_tree_header_but_not_a_vendored_libc() {
         .collect();
     assert_eq!(targets, vec!["checkErrors"], "{targets:?}");
 }
+
+/// Edges out of `src_qn` (by destination qualified name) and the
+/// external-bucket records of the run, from `-t json -o` and its audit.
+fn edges_and_external(dir: &Path, src_qn: &str) -> (Vec<String>, Vec<(String, String)>) {
+    let out = dir.join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(dir)
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let mut dsts: Vec<String> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| qn(&e["src"]) == src_qn)
+        .map(|e| qn(&e["dst"]))
+        .collect();
+    dsts.sort();
+    let audit: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(dir.join("g.json.audit.json")).unwrap())
+            .unwrap();
+    let mut ext = Vec::new();
+    for ev in audit.as_array().unwrap() {
+        for u in ev["external_calls"].as_array().into_iter().flatten() {
+            if u["reason"]["stage"] == "external-module" {
+                ext.push((
+                    u["name"].as_str().unwrap().to_string(),
+                    u["reason"]["detail"]["module"]
+                        .as_str()
+                        .unwrap()
+                        .to_string(),
+                ));
+            }
+        }
+        assert!(
+            ev["unresolved_calls"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .all(|u| u["reason"]["stage"] != "external-module"),
+            "an external-module site is filed as external, never unresolved"
+        );
+    }
+    ext.sort();
+    (dsts, ext)
+}
+
+/// FINDINGS A1, end to end: a Go import outside the tree's `go.mod`
+/// module is a dependency — `uuid.NewString()` must not bind to a
+/// workspace `IDs.NewString` — while a same-module package resolves.
+#[test]
+fn go_call_into_a_module_outside_go_mod_is_external() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", b"module example.com/app\n\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "util/util.go",
+        b"package util\n\ntype IDs struct{}\n\nfunc (i IDs) NewString() string { return \"\" }\n",
+    );
+    write(
+        tmp.path(),
+        "jobs/jobs.go",
+        b"package jobs\n\nfunc Spawn() int { return 1 }\n",
+    );
+    write(
+        tmp.path(),
+        "main.go",
+        b"package main\n\nimport (\n\t\"example.com/app/jobs\"\n\t\"github.com/google/uuid\"\n)\n\n\
+          func Run() string {\n\tjobs.Spawn()\n\treturn uuid.NewString()\n}\n",
+    );
+    let (dsts, ext) = edges_and_external(tmp.path(), "main.Run");
+    assert_eq!(dsts, vec!["jobs.Spawn".to_string()]);
+    assert_eq!(
+        ext,
+        vec![(
+            "NewString".to_string(),
+            "github.com/google/uuid".to_string()
+        )]
+    );
+}
+
+/// FINDINGS A1, end to end: an npm dependency's default export is not a
+/// workspace function of the same name; a monorepo package (named by a
+/// `package.json` in the tree) still is the workspace's.
+#[test]
+fn js_dependency_call_is_external_but_a_workspace_package_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "packages/net/package.json",
+        b"{\"name\": \"@acme/net\", \"version\": \"1.0.0\"}",
+    );
+    write(
+        tmp.path(),
+        "packages/net/index.js",
+        b"export function fetchAll(u) { return u; }\n",
+    );
+    write(
+        tmp.path(),
+        "app/util.js",
+        b"export function post(u) { return u; }\n",
+    );
+    write(
+        tmp.path(),
+        "app/main.js",
+        b"import axios from 'axios';\nimport net from '@acme/net';\n\
+          export function run() {\n  axios.post('/u');\n  net.fetchAll('/v');\n}\n",
+    );
+    let (dsts, ext) = edges_and_external(tmp.path(), "run");
+    assert_eq!(dsts, vec!["fetchAll".to_string()]);
+    assert_eq!(ext, vec![("post".to_string(), "axios".to_string())]);
+}

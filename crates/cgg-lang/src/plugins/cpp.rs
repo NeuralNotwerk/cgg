@@ -178,6 +178,33 @@ impl<'a> CppWalker<'a> {
                 self.record_object_macro(node);
                 return;
             }
+            "namespace_alias_definition" => {
+                // `namespace fs = std::filesystem;` — `fs::exists(p)` is a
+                // call into `std::filesystem`. Recorded with the imports
+                // (not the type aliases, whose run-wide index rewrites
+                // receivers by bare name) so the resolver reads a
+                // qualified call's head through it: whether `fs::` names a
+                // workspace namespace is decided on the target.
+                let mut c = node.walk();
+                let parts: Vec<Node> = node.named_children(&mut c).collect();
+                if let (Some(n), Some(t)) = (parts.first(), parts.last())
+                    && parts.len() >= 2
+                {
+                    let alias = self.text(*n).trim().to_string();
+                    let target =
+                        self.text(*t).trim().trim_start_matches("::").to_string();
+                    if !alias.is_empty() && !target.is_empty() {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "namespace-alias".into(),
+                            path: target,
+                            alias,
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                return;
+            }
             "alias_declaration" => {
                 // `using Rect = TRect<float>;`
                 if let (Some(n), Some(t)) = (
@@ -646,11 +673,16 @@ impl<'a> CppWalker<'a> {
         if name.is_empty() {
             return;
         }
+        // `ns::f()` / `Type::f()` is written through a scope path, never
+        // a variable: a one-segment receiver carries no `::` of its own,
+        // and this is what tells `boost::split` from `obj.split`.
+        let path_receiver = func.kind() == "qualified_identifier" && !recv.is_empty();
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            path_receiver,
             ..Default::default()
         });
     }
@@ -2240,6 +2272,38 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
             body.definitions
                 .iter()
                 .any(|d| d.has_body && d.simple_name == "qlz_decompress")
+        );
+    }
+
+    #[test]
+    fn qualified_calls_are_path_receivers_and_aliases_are_recorded() {
+        let src = "namespace fs = std::filesystem;\n\
+                   void f(Obj o) { boost::split(v, s); a::b::c(); o.split(); ::g(); }\n";
+        let f = extract(src);
+        let by = |n: &str| f.references.iter().find(|r| r.name == n).unwrap();
+        let boost = f
+            .references
+            .iter()
+            .find(|r| r.name == "split" && r.receiver_hint == "boost")
+            .unwrap();
+        assert!(boost.path_receiver);
+        let member = f
+            .references
+            .iter()
+            .find(|r| r.name == "split" && r.receiver_hint == "o")
+            .unwrap();
+        assert!(!member.path_receiver, "a variable receiver is not a path");
+        assert!(by("c").path_receiver);
+        assert_eq!(by("c").receiver_hint, "a::b");
+        assert!(!by("g").path_receiver, "global scope has no head");
+        let alias = f
+            .imports
+            .iter()
+            .find(|i| i.kind == "namespace-alias")
+            .expect("namespace alias recorded");
+        assert_eq!(
+            (alias.alias.as_str(), alias.path.as_str()),
+            ("fs", "std::filesystem")
         );
     }
 }

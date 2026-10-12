@@ -80,6 +80,11 @@ impl LanguagePlugin for GoPlugin {
             site_byte: 0,
         });
 
+        // The module path(s) this file is importable under, so the
+        // resolver can tell `example.com/app/internal/jobs` (workspace)
+        // from `github.com/google/uuid` (a dependency).
+        facts.packages = super::manifest::go_module_names(path);
+
         let mut w = Walker {
             ctx: *ctx,
             source,

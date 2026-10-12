@@ -83,6 +83,9 @@ impl<'a> KtWalker<'a> {
                     .map(|n| self.text(n).replace(" ", "").replace("\n", ""))
                     .unwrap_or_default();
                 if !name.is_empty() {
+                    if !self.facts.packages.contains(&name) {
+                        self.facts.packages.push(name.clone());
+                    }
                     // The identifier node already joins its
                     // simple_identifier children with dots, which is the
                     // separator we want, so the text is used as-is.
@@ -484,5 +487,11 @@ mod tests {
             "refs: {:?}",
             f.references
         );
+    }
+
+    #[test]
+    fn package_is_recorded() {
+        let f = extract("package com.acme.util\n\nfun helper() {}\n");
+        assert_eq!(f.packages, vec!["com.acme.util"]);
     }
 }

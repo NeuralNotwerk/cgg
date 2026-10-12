@@ -1034,6 +1034,11 @@ pub fn resolve(
     // only into its own output. Collecting in parallel and concatenating
     // in input order keeps the edge sequence identical to the serial
     // form, which the determinism test in crates/cgg/tests pins.
+    // What the tree declares as its own modules / packages / namespaces,
+    // so a call through an import of a dependency is never name-matched
+    // onto a workspace callable (FINDINGS A1; see `heads`).
+    let vocab = crate::heads::WorkspaceVocab::build(graph, facts);
+
     drop(_sp_idx);
     let _sp_loop = cgg_core::profile::span("xfile::parallel-loop");
     let per_file: Vec<CrossFileOutput> = facts
@@ -1628,6 +1633,8 @@ pub fn resolve(
                 scoped_simple = scoped_candidates(&path_fragments, candidates, &def_cids);
             }
 
+            let heads = crate::heads::FileHeads::build(facts, &vocab);
+
             drop(_sp_imports);
             let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
             for r in &facts.references {
@@ -1774,12 +1781,16 @@ pub fn resolve(
                 let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                 let mut capped = 0u32;
                 let mut no_ctor = false;
+                let mut external: Option<String> = None;
                 let super_recv = is_super_receiver(&r.receiver_hint);
                 let resolved = try_resolve_ref(
                     graph,
                     facts.file,
                     &lang,
                     r,
+                    &heads,
+                    &vocab,
+                    &mut external,
                     &direct_imports,
                     &module_aliases,
                     &unqualified_prefixes,
@@ -1828,11 +1839,15 @@ pub fn resolve(
                             let mut r2 = r.clone();
                             r2.receiver_hint = orig.clone();
                             let (mut c2, mut n2) = (0u32, false);
+                            let mut e2: Option<String> = None;
                             try_resolve_ref(
                                 graph,
                                 facts.file,
                                 &lang,
                                 &r2,
+                                &heads,
+                                &vocab,
+                                &mut e2,
                                 &direct_imports,
                                 &module_aliases,
                                 &unqualified_prefixes,
@@ -1856,7 +1871,10 @@ pub fn resolve(
                                 &mut n2,
                             )
                         })
-                        .inspect(|_| untyped_fallback = true),
+                        .inspect(|_| {
+                            untyped_fallback = true;
+                            external = None;
+                        }),
                     other => other,
                 };
                 // `--guess-unique-names`: a Rust site nothing placed, whose
@@ -1936,6 +1954,30 @@ pub fn resolve(
                                 weight: 1,
                             });
                         }
+                    }
+                } else if let Some(module) = external {
+                    // A call into a dependency that shares a name with
+                    // workspace callables. Recorded with the import it was
+                    // attributed to — the driver files it in the external
+                    // bucket, replacing the intra-file record of the site,
+                    // so it is neither silent nor counted twice. A name no
+                    // workspace callable carries changed nothing and keeps
+                    // the intra-file record as it was.
+                    if by_simple
+                        .get(&(lang.clone(), r.name.clone()))
+                        .is_some_and(|c| !c.is_empty())
+                    {
+                        let mut u = AuditUnresolvedCall::new(
+                            enclosing,
+                            facts.file,
+                            r.site_line,
+                            r.site_byte,
+                            r.name.clone(),
+                            r.receiver_hint.clone(),
+                            UnresolvedReason::ExternalModule { module },
+                        );
+                        u.name_screen_applied = Some("external".to_string());
+                        out.unresolved.push(u);
                     }
                 } else if capped > 0 {
                     // A drop is never silent. Without this the call site
@@ -2776,6 +2818,12 @@ fn try_resolve_ref(
     caller_file: FileId,
     lang: &str,
     r: &cgg_core::RefRecord,
+    // The calling file's import bindings judged against the workspace
+    // (FINDINGS A1). `external_out` is set when the call is refused
+    // because it is written through a dependency.
+    heads: &crate::heads::FileHeads,
+    vocab: &crate::heads::WorkspaceVocab,
+    external_out: &mut Option<String>,
     direct_imports: &HashMap<String, Vec<String>>,
     module_aliases: &HashMap<String, String>,
     unqualified_prefixes: &[String],
@@ -2825,6 +2873,44 @@ fn try_resolve_ref(
             return Some(cids.clone());
         }
         return None;
+    }
+
+    // Step 0: a call written through a dependency — a module, package,
+    // namespace or class the file imports from outside the tree, or a
+    // bare name imported from one (`external_out` says which). Every step below would match it by
+    // NAME against the workspace (`requests.post` -> `app.util.post`,
+    // `StringUtils.isBlank` -> a local `StringUtils`), which is a
+    // coincidence of spelling, not a call. The exact-path steps cannot
+    // succeed for it either: nothing in the tree lives under that path.
+    if let Some(module) = heads.external_head(lang, r, vocab) {
+        // C++: a namespace opened through a macro (`namespace
+        // KWSYS_NAMESPACE {`, `ASMJIT_BEGIN_SUB_NAMESPACE(a64)`) never
+        // appears in a qualified name, so its head looks undeclared. A name
+        // the file's in-tree include closure declares may be that
+        // namespace's member, and keeps the reading cgg had before.
+        let declared_by_include = lang == "cpp" && direct_imports.contains_key(&r.name);
+        // Java/Kotlin/C# resolve a bare name to a member of the calling
+        // class (or an inherited one) before any import, so a static or
+        // function import of the same name does not reach it there.
+        let member_of_caller = r.receiver_hint.is_empty()
+            && matches!(lang, "java" | "kotlin" | "csharp")
+            && caller_qn.and_then(owner_from_qn).is_some_and(|own| {
+                by_owner_method
+                    .get(&(lang.to_string(), own.to_string(), r.name.clone()))
+                    .is_some_and(|v| !v.is_empty())
+                    || resolve_via_bases(
+                        lang,
+                        own,
+                        &r.name,
+                        by_owner_method,
+                        bases_by_owner,
+                    )
+                    .is_some()
+            });
+        if !member_of_caller && !declared_by_include {
+            *external_out = Some(module);
+            return None;
+        }
     }
 
     // Step 1: direct import match — `foo()` where `foo` was
@@ -3200,6 +3286,14 @@ fn try_resolve_ref(
                         }
                     }
                 }
+                // C#: a bare type name (`Path`, or a local typed `Path`)
+                // reaches only types in namespaces the file can see — its
+                // own and enclosing ones, its `using`s, every `global
+                // using`. A same-named class elsewhere in the tree that the
+                // file never imports is not the callee: `Path.Combine`
+                // under `using System.IO` is `System.IO.Path`'s.
+                let cs_scoped = lang == "csharp" && !rh.contains('.');
+                let mut cs_hidden = false;
                 // An inherited method is declared on a base, not on the
                 // class the receiver names. Tried after every direct owner
                 // match below, so a subclass override always wins.
@@ -3225,8 +3319,32 @@ fn try_resolve_ref(
                         r.name.clone(),
                     )) && !cids.is_empty()
                     {
+                        if cs_scoped {
+                            let seen: Vec<CallableId> = cids
+                                .iter()
+                                .copied()
+                                .filter(|c| {
+                                    graph.callables.get(c).is_none_or(|n| {
+                                        heads.cs_candidate_visible(
+                                            vocab,
+                                            n.file,
+                                            &n.qualified_name,
+                                        )
+                                    })
+                                })
+                                .collect();
+                            if seen.is_empty() {
+                                cs_hidden = true;
+                                continue;
+                            }
+                            return Some(seen);
+                        }
                         return Some(cids.clone());
                     }
+                }
+                if cs_hidden {
+                    *external_out = Some(rh.to_string());
+                    return None;
                 }
                 if lang == "rust"
                     && !r.path_receiver
@@ -7185,5 +7303,420 @@ mod tests {
             vec![CallableId::new(1)],
             "fan-out must stay inside C++; edges: {dsts:?}"
         );
+    }
+
+    // ---- FINDINGS A1: external module / package heads ----------------
+
+    /// One target callable per entry `(path, qualified name, packages)`
+    /// plus a caller file whose single callable `caller_qn` (with the
+    /// given bases) holds `refs`; returns the destination qualified names
+    /// and the reasons of every unresolved record.
+    fn ext_case(
+        lang: &str,
+        targets: &[(&str, &str, &[&str])],
+        caller: (&str, &str, &[&str], &[&str]),
+        refs: Vec<RefRecord>,
+        imports: Vec<ImportRecord>,
+        extra: Vec<FileFacts>,
+    ) -> (Vec<String>, Vec<UnresolvedReason>) {
+        let simple = |qn: &str| qn.rsplit(['.', ':']).next().unwrap().to_string();
+        let mut g = Graph::new();
+        let mut facts = Vec::new();
+        for (i, (path, qn, pk)) in targets.iter().enumerate() {
+            let id = i as u32;
+            g.add_file(mk_file(id, path, lang));
+            g.add_callable(mk_callable(id, &simple(qn), qn, id, lang, (0, 40)));
+            let mut f = facts_for(
+                id,
+                path,
+                lang,
+                vec![mk_def(&simple(qn), qn, DefVariant::FreeFunction, (0, 40))],
+                vec![],
+                vec![],
+            );
+            f.packages = pk.iter().map(|s| s.to_string()).collect();
+            facts.push(f);
+        }
+        let (cpath, cqn, cpk, cbases) = caller;
+        let cid = targets.len() as u32;
+        g.add_file(mk_file(cid, cpath, lang));
+        g.add_callable(mk_callable(cid, &simple(cqn), cqn, cid, lang, (30, 400)));
+        let mut def = mk_def(&simple(cqn), cqn, DefVariant::InherentMethod, (30, 400));
+        def.base_types = cbases.iter().map(|s| s.to_string()).collect();
+        let mut f = facts_for(cid, cpath, lang, vec![def], refs, imports);
+        f.packages = cpk.iter().map(|s| s.to_string()).collect();
+        facts.push(f);
+        facts.extend(extra);
+        let out = resolve_default(&g, &facts);
+        let dsts = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(cid))
+            .map(|e| g.callables[&e.dst].qualified_name.clone())
+            .collect();
+        (dsts, out.unresolved.into_iter().map(|u| u.reason).collect())
+    }
+
+    fn call(name: &str, recv: &str) -> RefRecord {
+        RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_line: 5,
+            site_byte: 60,
+            ..Default::default()
+        }
+    }
+
+    fn import(kind: &str, path: &str, alias: &str) -> ImportRecord {
+        ImportRecord {
+            kind: kind.into(),
+            path: path.into(),
+            alias: alias.into(),
+            site_line: 1,
+            site_byte: 0,
+        }
+    }
+
+    fn external(module: &str) -> UnresolvedReason {
+        UnresolvedReason::ExternalModule {
+            module: module.into(),
+        }
+    }
+
+    #[test]
+    fn python_external_module_head_is_never_name_matched() {
+        // `import requests; requests.post()` must not reach a workspace
+        // `post` the file never imported — it was HIGH before.
+        let t: &[(&str, &str, &[&str])] = &[("app/util.py", "app.util.post", &[])];
+        let caller = ("app/main.py", "app.main.run", &[][..], &[][..]);
+        let (dsts, why) = ext_case(
+            "python",
+            t,
+            caller,
+            vec![call("post", "requests")],
+            vec![import("import", "requests", "")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("requests")]);
+        // Near miss: the same call through a workspace module alias.
+        let (dsts, _) = ext_case(
+            "python",
+            t,
+            caller,
+            vec![call("post", "u")],
+            vec![import("import", "app.util", "u")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["app.util.post".to_string()]);
+    }
+
+    #[test]
+    fn python_name_imported_from_a_dependency_does_not_bind_bare() {
+        let t: &[(&str, &str, &[&str])] = &[("app/a.py", "app.a.post", &[])];
+        let caller = ("app/main.py", "app.main.run", &[][..], &[][..]);
+        let (dsts, why) = ext_case(
+            "python",
+            t,
+            caller,
+            vec![call("post", "")],
+            vec![import("from-import", "requests", "post")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("requests")]);
+        let (dsts, _) = ext_case(
+            "python",
+            t,
+            caller,
+            vec![call("post", "")],
+            vec![import("from-import", "app.a", "post")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["app.a.post".to_string()]);
+    }
+
+    #[test]
+    fn js_dependency_head_refused_workspace_package_kept() {
+        let caller = ("src/main.js", "main", &[][..], &[][..]);
+        let (dsts, why) = ext_case(
+            "javascript",
+            &[("src/util.js", "post", &[])],
+            caller,
+            vec![call("post", "axios")],
+            vec![import("from-import", "axios", "default as axios")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("axios")]);
+        // A bare specifier naming a package.json in the tree is the
+        // workspace's (a monorepo package).
+        let (dsts, _) = ext_case(
+            "javascript",
+            &[("packages/net/index.js", "post", &["@acme/net"])],
+            caller,
+            vec![call("post", "net")],
+            vec![import("from-import", "@acme/net", "default as net")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["post".to_string()]);
+    }
+
+    #[test]
+    fn go_import_outside_every_module_is_external() {
+        let caller = ("main.go", "main.run", &["example.com/app"][..], &[][..]);
+        let (dsts, why) = ext_case(
+            "go",
+            &[("util/util.go", "util.IDs.NewString", &["example.com/app"])],
+            caller,
+            vec![call("NewString", "uuid")],
+            vec![import("import", "github.com/google/uuid", "")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("github.com/google/uuid")]);
+        // Same-module package: resolves exactly as before.
+        let (dsts, _) = ext_case(
+            "go",
+            &[(
+                "internal/jobs/jobs.go",
+                "jobs.SpawnJob",
+                &["example.com/app"],
+            )],
+            caller,
+            vec![call("SpawnJob", "jobs")],
+            vec![import("import", "example.com/app/internal/jobs", "")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["jobs.SpawnJob".to_string()]);
+    }
+
+    #[test]
+    fn java_type_imported_from_a_dependency_is_not_the_local_class() {
+        let t: &[(&str, &str, &[&str])] = &[(
+            "src/com/acme/util/StringUtils.java",
+            "com.acme.util.StringUtils.isBlank",
+            &["com.acme.util"],
+        )];
+        let caller = (
+            "src/com/acme/App.java",
+            "com.acme.App.run",
+            &["com.acme"][..],
+            &[][..],
+        );
+        let (dsts, why) = ext_case(
+            "java",
+            t,
+            caller,
+            vec![call("isBlank", "StringUtils")],
+            vec![import(
+                "import",
+                "org.apache.commons.lang3.StringUtils",
+                "StringUtils",
+            )],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("org.apache.commons.lang3")]);
+        let (dsts, _) = ext_case(
+            "java",
+            t,
+            caller,
+            vec![call("isBlank", "StringUtils")],
+            vec![import("import", "com.acme.util.StringUtils", "StringUtils")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["com.acme.util.StringUtils.isBlank".to_string()]);
+    }
+
+    #[test]
+    fn java_package_qualified_receiver_outside_the_tree_is_external() {
+        let caller = (
+            "src/com/acme/App.java",
+            "com.acme.App.run",
+            &["com.acme"][..],
+            &[][..],
+        );
+        let (dsts, why) = ext_case(
+            "java",
+            &[(
+                "src/com/acme/util/Helpers.java",
+                "com.acme.util.Helpers.compare",
+                &["com.acme.util"],
+            )],
+            caller,
+            vec![call("compare", "java.lang.Integer")],
+            vec![],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("java.lang")]);
+        // A fully-qualified workspace class keeps resolving.
+        let (dsts, _) = ext_case(
+            "java",
+            &[(
+                "src/com/acme/jobs/Runner.java",
+                "com.acme.jobs.Runner.spawnJob",
+                &["com.acme.jobs"],
+            )],
+            caller,
+            vec![call("spawnJob", "com.acme.jobs.Runner")],
+            vec![],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["com.acme.jobs.Runner.spawnJob".to_string()]);
+    }
+
+    #[test]
+    fn java_static_import_does_not_hide_an_inherited_member() {
+        // `import static org.junit.Assert.check;` but the caller's base
+        // class declares `check`: a member wins over a static import.
+        let (dsts, _) = ext_case(
+            "java",
+            &[(
+                "src/com/acme/Base.java",
+                "com.acme.Base.check",
+                &["com.acme"],
+            )],
+            (
+                "src/com/acme/Child.java",
+                "com.acme.Child.run",
+                &["com.acme"],
+                &["Base"],
+            ),
+            vec![call("check", "")],
+            vec![import("from-import", "org.junit.Assert.check", "check")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["com.acme.Base.check".to_string()]);
+    }
+
+    #[test]
+    fn csharp_type_name_reaches_only_visible_namespaces() {
+        let t: &[(&str, &str, &[&str])] =
+            &[("Util.cs", "Acme.Util.Path.Combine", &["Acme.Util"])];
+        let caller = ("App.cs", "Acme.App.Run", &["Acme"][..], &[][..]);
+        // `using System.IO;` + `Path.Combine` is System.IO.Path's.
+        let (dsts, why) = ext_case(
+            "csharp",
+            t,
+            caller,
+            vec![call("Combine", "Path")],
+            vec![import("using", "System.IO", "")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("Path")]);
+        // Imported by a `using`, or by a `global using` anywhere.
+        let (dsts, _) = ext_case(
+            "csharp",
+            t,
+            caller,
+            vec![call("Combine", "Path")],
+            vec![import("using", "Acme.Util", "")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["Acme.Util.Path.Combine".to_string()]);
+        let mut globals =
+            facts_for(9, "GlobalUsings.cs", "csharp", vec![], vec![], vec![]);
+        globals.imports = vec![import("using", "global using Acme.Util", "")];
+        let (dsts, _) = ext_case(
+            "csharp",
+            t,
+            caller,
+            vec![call("Combine", "Path")],
+            vec![],
+            vec![globals],
+        );
+        assert_eq!(dsts, vec!["Acme.Util.Path.Combine".to_string()]);
+    }
+
+    #[test]
+    fn csharp_fully_qualified_system_receiver_is_external() {
+        let (dsts, why) = ext_case(
+            "csharp",
+            &[("Util.cs", "Acme.Util.Path.GetTempPath", &["Acme.Util"])],
+            ("App.cs", "Acme.App.Run", &["Acme"], &[]),
+            vec![call("GetTempPath", "System.IO.Path")],
+            vec![import("using", "System", "")],
+            vec![],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("System")]);
+    }
+
+    #[test]
+    fn cpp_namespace_declared_nowhere_is_external() {
+        let t: &[(&str, &str, &[&str])] = &[("src/util.cpp", "acme::split", &[])];
+        let caller = ("src/main.cpp", "main", &[][..], &[][..]);
+        let path_call = |recv: &str| RefRecord {
+            path_receiver: true,
+            ..call("split", recv)
+        };
+        let (dsts, why) =
+            ext_case("cpp", t, caller, vec![path_call("boost")], vec![], vec![]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("boost")]);
+        // A workspace namespace, directly or through a namespace alias.
+        let (dsts, _) =
+            ext_case("cpp", t, caller, vec![path_call("acme")], vec![], vec![]);
+        assert_eq!(dsts, vec!["acme::split".to_string()]);
+        let (dsts, _) = ext_case(
+            "cpp",
+            t,
+            caller,
+            vec![path_call("a")],
+            vec![import("namespace-alias", "acme", "a")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["acme::split".to_string()]);
+        // A variable receiver is not a scope path, whatever its name.
+        let (dsts, _) = ext_case(
+            "cpp",
+            t,
+            caller,
+            vec![call("split", "boost")],
+            vec![],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["acme::split".to_string()]);
+    }
+
+    #[test]
+    fn cpp_macro_namespace_member_reached_through_an_include_is_kept() {
+        // `namespace KWSYS_NAMESPACE {` is spelled `cmsys::` at the call
+        // site; no qualified name carries `cmsys`.
+        let t: &[(&str, &str, &[&str])] =
+            &[("src/kwsys/Tools.hxx", "KWSYS_NAMESPACE::Tools::Exists", &[])];
+        let caller = ("src/main.cpp", "main", &[][..], &[][..]);
+        let path_call = |recv: &str| RefRecord {
+            path_receiver: true,
+            ..call("Exists", recv)
+        };
+        // A class on the path (`Tools`) is the tree's: kept.
+        let (dsts, _) = ext_case(
+            "cpp",
+            t,
+            caller,
+            vec![path_call("cmsys::Tools")],
+            vec![],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["KWSYS_NAMESPACE::Tools::Exists".to_string()]);
+        // The member is declared in the file's include closure: kept.
+        let (dsts, _) = ext_case(
+            "cpp",
+            t,
+            caller,
+            vec![path_call("cmsys")],
+            vec![import("include", "kwsys/Tools.hxx", "")],
+            vec![],
+        );
+        assert_eq!(dsts, vec!["KWSYS_NAMESPACE::Tools::Exists".to_string()]);
+        // Neither: the head is undeclared and the call refused.
+        let (dsts, why) =
+            ext_case("cpp", t, caller, vec![path_call("cmsys")], vec![], vec![]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("cmsys")]);
     }
 }

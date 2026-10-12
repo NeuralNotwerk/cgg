@@ -55,6 +55,10 @@ impl LanguagePlugin for JavaScriptPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "javascript");
+        // The names this file is imported under (`@acme/core`, a tsconfig
+        // `paths` alias), so a bare specifier can be told apart from a
+        // dependency's.
+        facts.packages = super::manifest::js_module_names(path);
         let mut w = JsWalker {
             ctx: *ctx,
             source,

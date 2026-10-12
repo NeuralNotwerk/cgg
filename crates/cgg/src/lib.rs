@@ -811,11 +811,69 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     metrics.edges += cf_out.edges.len() as u64;
     graph.edges.extend(cf_out.edges);
 
+    // A call the cross-file pass refused because it is written through
+    // a dependency (`UnresolvedReason::ExternalModule`) is external, not
+    // a resolver gap. Intra-file already filed the site in one of the
+    // three buckets with a generic reason; the refusal replaces that
+    // record in the external bucket (a stdlib reading stands), so the
+    // site is explained once, by its import, and never counted twice.
+    let (cf_external, cf_unresolved): (Vec<_>, Vec<_>) =
+        cf_out.unresolved.into_iter().partition(|u| {
+            matches!(
+                u.reason,
+                cgg_core::audit::UnresolvedReason::ExternalModule { .. }
+            )
+        });
+    {
+        let mut moved_out_of_unresolved: HashSet<(FileId, u32, String)> = HashSet::new();
+        for u in cf_external {
+            let Some(&i) = rec_idx.get(&u.file) else {
+                continue;
+            };
+            let rec = &mut file_records[i];
+            let same = |c: &cgg_core::audit::AuditUnresolvedCall| {
+                c.site_byte == u.site_byte && c.name == u.name
+            };
+            if rec.stdlib_calls.iter().any(same) {
+                continue;
+            }
+            let lang = graph
+                .files
+                .get(&u.file)
+                .map(|f| f.language.clone())
+                .unwrap_or_default();
+            let before = rec.unresolved_calls.len();
+            rec.unresolved_calls.retain(|c| !same(c));
+            let moved = (before - rec.unresolved_calls.len()) as u64;
+            if moved > 0 {
+                metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(moved);
+                if let Some(b) = metrics.by_language.get_mut(&lang) {
+                    b.unresolved = b.unresolved.saturating_sub(moved);
+                }
+                moved_out_of_unresolved.insert((u.file, u.site_byte, u.name.clone()));
+            }
+            if let Some(e) = rec.external_calls.iter_mut().find(|c| same(c)) {
+                e.reason = u.reason.clone();
+            } else {
+                rec.external_calls.push(u);
+                metrics.external_calls += 1;
+                if let Some(b) = metrics.by_language.get_mut(&lang) {
+                    b.external += 1;
+                }
+            }
+        }
+        if !moved_out_of_unresolved.is_empty() {
+            graph.unresolved.retain(|c| {
+                !moved_out_of_unresolved.contains(&(c.file, c.site_byte, c.name.clone()))
+            });
+        }
+    }
+
     // Module-scope value references the cross-file pass could not turn
     // into an edge. They are folded into the same bucket intra-file
     // fills so the dead-code name correlation sees them, and into the
     // per-file audit records so `--metrics` still explains every site.
-    for u in &cf_out.unresolved {
+    for u in &cf_unresolved {
         if let Some(rec) = file_records.iter_mut().find(|r| r.file == u.file) {
             rec.unresolved_calls.push(u.clone());
         }
@@ -825,8 +883,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             b.unresolved += 1;
         }
     }
-    metrics.unresolved_calls += cf_out.unresolved.len() as u64;
-    graph.unresolved.extend(cf_out.unresolved);
+    metrics.unresolved_calls += cf_unresolved.len() as u64;
+    graph.unresolved.extend(cf_unresolved);
 
     // --- Phase 3d: FFI linker (cross-language edges) ----------------------
     let ffi_out = {

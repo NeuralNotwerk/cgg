@@ -7,6 +7,83 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
+## [Unreleased]
+
+### Fixed
+
+- **A call written through a dependency is no longer name-matched onto a
+  workspace callable** (Python, JavaScript, TypeScript, Go, Java, Kotlin,
+  C#, C++). 0.10.2 taught the Rust resolver that `serde_json::from_str`
+  is not the workspace's `from_str`; every other language with an import
+  table still bound such calls by name — through duck-typed fan-out, the
+  owner-type index, or the bare-name fallbacks — and often at `high`:
+  `import requests; requests.post()` → a local `app.util.post`,
+  `uuid.NewString()` → a local `IDs.NewString`, `StringUtils.isBlank()`
+  (Apache import) → a local `StringUtils`, a Mockito `verify()`/`when()`
+  static import → a workspace `verify`/`when`, `ImmutableList.Builder`
+  `.build()` → every workspace `Builder.build`, `boost::split` /
+  `spdlog::error` → local functions. Whether an import is the
+  workspace's is decided structurally from what the tree declares: Python
+  module paths and relative imports; `package.json` / `deno.json` names
+  and tsconfig `paths` aliases (and `@/`, `~`, `#`, `$` path aliases);
+  `go.mod` module paths (with local `replace`s and vendored directories);
+  Java/Kotlin `package` declarations; C# namespaces (a bare type name now
+  reaches only namespaces the file can see — its own and enclosing ones,
+  its `using`s, every `global using`); C++ scopes in qualified names,
+  type and namespace aliases, and the file's include closure (so a
+  namespace opened through a macro, `cmsys::`, keeps resolving). A call
+  chained off a dependency (`requests.get(u).json()`) is refused only
+  when the head is the module itself, never off an imported function
+  (`verify(mock).run()`). Plugins now record the package / namespace /
+  manifest names (`FileFacts::packages`), C++ marks `ns::f()` as a path
+  receiver and records `namespace fs = …` aliases.
+- A refused site is recorded, never silent: new unresolved reason
+  `external-module` (`{"module": …}`), filed in the per-file *external*
+  bucket in place of the intra-file record, so it is counted once.
+- C++: a scope-qualified call (`ns::f()`, `ctype<char>::f()`) binds only
+  to a definition declared in that scope — exact path suffix, template
+  arguments included, unnamed namespaces transparent, or the constructor
+  `ns::Klass::Klass` — never to a member of a class inside the scope
+  (`ranges::begin` is not `ranges::drop_view::begin`, `ui::IsText(role)`
+  is not `ui::AXNode::IsText`). A declaration the grammar mis-split under
+  a macro (`MACRO std::string to_string(…)` named `std::string
+  to_string`) is matched by the scope it really sits in, read back from
+  its signature, so `std::to_string(i)` no longer binds to it.
+
+### Compatibility
+
+- **The default graph changes.** Full corpus, 283 repositories:
+  146,535 edges removed, 208 added. Removed by language: Go 64,584
+  (58,597 in `hcl-terraform-aws`, mostly `knownvalue.StringExact` from
+  `terraform-plugin-testing` bound to the provider's own `knownvalue`
+  package), Java 54,684, Kotlin 8,422, Python 8,096, TypeScript 5,389,
+  JavaScript 3,125, C# 1,201, C++ 1,034. Every removed edge class was
+  checked by pattern and sampled: calls into a dependency or the standard
+  library bound by name, plus — C++ — free-function calls that had bound
+  to a same-named class member. Exceptions: 330 removed edges inside
+  bundled or minified files (`*.min.js`, webpack bundles) whose
+  dependency sources are inlined, and 6 C++ edges demoted high → medium
+  whose target's qualified name is mis-split beyond reading back. The 208
+  added C++ edges are the right targets those calls now reach: the free
+  function or constructor a member had shadowed (`ui::IsTableColumn`,
+  `chrono::day::day`), exact template specializations
+  (`external_constructor<value_t::array>::construct`), functions in an
+  unnamed namespace (`kythe::(anonymous)::main`), and calls a bogus
+  receiver rewrite had hidden (`date::format`, `dap::Error`, nlohmann's
+  own `std::swap` specialization).
+- Graph-level `unresolved` falls by 477,946: calls into dependencies that
+  were filed as resolver gaps (fan-out cap, candidates elsewhere) are now
+  `external`. High-confidence dead findings rise by 36 (Java 34, C# 2):
+  each one's only callers were the removed wrong edges.
+- Not covered: Kotlin `kotlinx.coroutines.runBlocking {}` and
+  `File(x).readText()` (the Kotlin plugin records no receiver for these,
+  FINDINGS A3); a local variable shadowing an import of the same name is
+  read as the import; JS aliases defined only in bundler config
+  (webpack/babel) without a tsconfig/deno entry or a directory of the same
+  name; a call chained off an imported *function* (`verify(mock).run()`,
+  a tagged template `` sql`…`.execute() ``) keeps its old duck-typed
+  reading.
+
 ## [0.10.2] - 2026-10-11
 
 Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. A bugfix

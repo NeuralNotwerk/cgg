@@ -203,6 +203,16 @@ pub enum UnresolvedReason {
     ///
     /// [`NoEnclosingCallable`]: UnresolvedReason::NoEnclosingCallable
     ValueRefNoEnclosing,
+    /// The call's receiver or bare name comes from a module, package,
+    /// namespace or class the calling file imports from *outside* the
+    /// analyzed tree — `requests.post()` after `import requests`,
+    /// `uuid.NewString()` for a module outside every workspace `go.mod`,
+    /// `boost::split()` where no workspace file declares `boost`. The
+    /// workspace has same-named callables, and binding the call to one of
+    /// them by name would be a coincidence, not a call; the site is
+    /// recorded in the external bucket instead. `module` is the import
+    /// (or namespace head) the call was attributed to.
+    ExternalModule { module: String },
     /// Any other / legacy reason, preserving the original text.
     Other(String),
 }
@@ -232,6 +242,7 @@ pub const KNOWN_UNRESOLVED_STAGES: &[&str] = &[
     "super-base-out-of-graph",
     "value-ref-ambiguous",
     "value-ref-no-enclosing",
+    "external-module",
     "other",
 ];
 
@@ -265,6 +276,7 @@ impl UnresolvedReason {
             UnresolvedReason::SuperBaseOutOfGraph => "super-base-out-of-graph",
             UnresolvedReason::ValueRefAmbiguous { .. } => "value-ref-ambiguous",
             UnresolvedReason::ValueRefNoEnclosing => "value-ref-no-enclosing",
+            UnresolvedReason::ExternalModule { .. } => "external-module",
             UnresolvedReason::Other(s) => s.as_str(),
         }
     }
@@ -798,7 +810,7 @@ mod tests {
     /// and the arm's index must then be admitted here or the length
     /// assertion fails. Two checks, because the arm alone only proves
     /// the *match* is exhaustive — not that the vec holds an instance.
-    const UNRESOLVED_REASON_VARIANTS: usize = 13;
+    const UNRESOLVED_REASON_VARIANTS: usize = 14;
 
     /// One instance of every `UnresolvedReason` variant.
     fn every_unresolved_reason() -> Vec<UnresolvedReason> {
@@ -815,6 +827,9 @@ mod tests {
             UnresolvedReason::SuperBaseOutOfGraph,
             UnresolvedReason::ValueRefAmbiguous { candidates: 2 },
             UnresolvedReason::ValueRefNoEnclosing,
+            UnresolvedReason::ExternalModule {
+                module: "requests".into(),
+            },
             UnresolvedReason::Other("legacy-thing".into()),
         ];
         // Compile-time exhaustiveness check, then a runtime one: every
@@ -836,6 +851,7 @@ mod tests {
                 UnresolvedReason::ValueRefAmbiguous { .. } => 10,
                 UnresolvedReason::ValueRefNoEnclosing => 11,
                 UnresolvedReason::Other(_) => 12,
+                UnresolvedReason::ExternalModule { .. } => 13,
             };
             seen.insert(idx);
         }

@@ -54,6 +54,7 @@ impl LanguagePlugin for TypeScriptPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "typescript");
+        facts.packages = super::manifest::js_module_names(path);
         let mut w = JsWalker::new(*ctx, source, &mut facts);
         w.walk(tree.root_node());
         let mut out = facts;

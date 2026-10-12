@@ -330,6 +330,24 @@ pub fn link_file_with_cap(
                 }
             }
         } else if !rh.is_empty() {
+            // A C++ scope-qualified call (`std::to_string(i)`) names a
+            // namespace or class path. A declaration the grammar mis-split
+            // under a macro carries its return type in its qualified name
+            // (`MACRO std::string to_string(…)` read as the name
+            // `std::string to_string`), so its apparent owner, `std`, is
+            // not a scope at all; such a candidate qualifies only when the
+            // scope it really sits in (its name minus the return type the
+            // signature shows) is the one the call names.
+            let cpp_path = facts.language == "cpp" && rref.path_receiver;
+            if cpp_path {
+                candidates.retain(|(_, d)| {
+                    is_scope_path_qn(d)
+                        || misparsed_scope(d).is_some_and(|s| {
+                            let s = without_anonymous(&format!("{s}::"));
+                            s == format!("{rh}::") || s.ends_with(&format!("::{rh}::"))
+                        })
+                });
+            }
             // Explicit qualifier names the owner. Try a strict owner match
             // first (disambiguates `Parser::new` vs `Cursor::new`); only
             // if that yields nothing fall back to the looser "any path
@@ -342,6 +360,26 @@ pub fn link_file_with_cap(
                 .collect();
             if !strict.is_empty() {
                 candidates = strict;
+            } else if cpp_path {
+                // `ns::f()` is `f` declared in the scope the call spells —
+                // `a::b::f`, `ctype<char>::f` — never a member of a class
+                // inside it (`ranges::begin` is not
+                // `ranges::drop_view::begin`); the one deeper reading is a
+                // constructor, `ns::Klass(…)` entering `ns::Klass::Klass`.
+                let direct = format!("{rh}::{}", rref.name);
+                let ctor = format!("{rh}::{}::{}", rref.name, rref.name);
+                candidates.retain(|(_, d)| {
+                    // A mis-split candidate already proved its real scope
+                    // above; its qualified name ends in `RetType name`.
+                    if !is_scope_path_qn(d) {
+                        return true;
+                    }
+                    let qn = without_anonymous(&d.qualified_name);
+                    [direct.as_str(), ctor.as_str()].iter().any(|path| {
+                        qn == *path
+                            || qn.strip_suffix(path).is_some_and(|p| p.ends_with("::"))
+                    })
+                });
             } else {
                 candidates.retain(|(_, d)| {
                     d.qualified_name.split("::").any(|seg| seg == rh)
@@ -471,6 +509,55 @@ pub fn link_file_with_cap(
     }
 
     out
+}
+
+/// A qualified name that is a scope path ending in the definition's own
+/// name (`ns::Type::f`, `f`), as opposed to one whose last segment is not
+/// the name at all (`std::string to_string`, a return type swallowed into
+/// the declarator).
+fn is_scope_path_qn(d: &DefRecord) -> bool {
+    let (qn, name) = (d.qualified_name.as_str(), d.simple_name.as_str());
+    qn == name || qn.strip_suffix(name).is_some_and(|p| p.ends_with("::"))
+}
+
+/// For a qualified name built from a mis-split declarator — `scope::` +
+/// `RetType name` — the scope the definition really sits in: the longest
+/// prefix whose remainder (`RetType name`) is what the signature shows,
+/// starting at a token boundary, right before `name(`.
+/// `__libdispatch::__chunk_partitions __partition_chunks` with signature
+/// `… __chunk_partitions __partition_chunks(…)` sits in `__libdispatch`;
+/// `std::string to_string` with signature `… std::string to_string(…)`
+/// sits in the global scope (`string to_string` follows `::` there, not a
+/// token boundary). `None` when it cannot be read back.
+fn misparsed_scope(d: &DefRecord) -> Option<&str> {
+    let (qn, name) = (d.qualified_name.as_str(), d.simple_name.as_str());
+    if !qn.ends_with(name) || is_scope_path_qn(d) {
+        return None;
+    }
+    let collapse = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    let sig = collapse(&d.signature_hint);
+    let declarator_in_sig = |decl: &str| {
+        let decl = collapse(decl);
+        let needle = format!("{decl}(");
+        decl.contains(' ')
+            && sig.match_indices(&needle).any(|(at, _)| {
+                sig[..at]
+                    .chars()
+                    .next_back()
+                    .is_none_or(|c| c.is_whitespace())
+            })
+    };
+    qn.match_indices("::")
+        .map(|(i, _)| (&qn[..i], &qn[i + 2..]))
+        .chain(std::iter::once(("", qn)))
+        .find(|(_, decl)| declarator_in_sig(decl))
+        .map(|(scope, _)| scope)
+}
+
+/// `a::(anonymous)::b` → `a::b`: an unnamed namespace's members are found
+/// by qualified lookup through the enclosing one.
+fn without_anonymous(qn: &str) -> String {
+    qn.replace("(anonymous)::", "")
 }
 
 /// Whether two owner prefixes name the same type: equal, or equal once
@@ -1120,5 +1207,142 @@ mod tests {
             0,
             "value refs must never reach the unresolved bucket"
         );
+    }
+
+    /// `std::to_string(i)` must not bind to a declaration the grammar
+    /// mis-split under a macro into the qualified name `std::string
+    /// to_string`; a real `namespace std { void swap(..) }` still binds.
+    #[test]
+    fn cpp_scope_qualified_call_needs_a_scope_path_target() {
+        let defs = vec![
+            mk_def("caller", "caller", DefVariant::FreeFunction, (0, 100)),
+            mk_def(
+                "to_string",
+                "std::string to_string",
+                DefVariant::FreeFunction,
+                (100, 200),
+            ),
+            mk_def("swap", "std::swap", DefVariant::FreeFunction, (200, 300)),
+        ];
+        let call = |name: &str| RefRecord {
+            name: name.into(),
+            receiver_hint: "std".into(),
+            site_line: 1,
+            site_byte: 50,
+            path_receiver: true,
+            ..Default::default()
+        };
+        let facts = facts_with_lang("cpp", defs, vec![call("to_string"), call("swap")]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let dsts: Vec<_> = out.edges.iter().map(|e| e.dst).collect();
+        assert_eq!(
+            dsts,
+            vec![map[&(FileId::new(0), 2)]],
+            "only std::swap binds"
+        );
+    }
+
+    /// The mis-split shape with the scope in front of the return type
+    /// (`ns::RetType name`) still binds a call qualified by that scope; a
+    /// member of a class inside the scope does not, a constructor does.
+    #[test]
+    fn cpp_scope_qualified_call_reads_the_real_scope() {
+        let mut part = mk_def(
+            "partition",
+            "pd::chunks partition",
+            DefVariant::FreeFunction,
+            (100, 200),
+        );
+        part.signature_hint = "EXPORT chunks partition(long n)".into();
+        let defs = vec![
+            mk_def("caller", "caller", DefVariant::FreeFunction, (0, 100)),
+            part,
+            mk_def(
+                "begin",
+                "ranges::drop_view::begin",
+                DefVariant::InherentMethod,
+                (200, 300),
+            ),
+            mk_def(
+                "Error",
+                "dap::Error::Error",
+                DefVariant::Constructor,
+                (300, 400),
+            ),
+            mk_def(
+                "table",
+                "std::ctype<char>::table",
+                DefVariant::StaticMethod,
+                (400, 500),
+            ),
+        ];
+        let call = |name: &str, recv: &str, byte: u32| RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_line: 1,
+            site_byte: byte,
+            path_receiver: true,
+            ..Default::default()
+        };
+        let refs = vec![
+            call("partition", "pd", 10),
+            call("begin", "ranges", 20),
+            call("Error", "dap", 30),
+            call("table", "ctype<char>", 40),
+        ];
+        let facts = facts_with_lang("cpp", defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let dsts: Vec<_> = out.edges.iter().map(|e| e.dst).collect();
+        assert_eq!(
+            dsts,
+            vec![
+                map[&(FileId::new(0), 1)],
+                map[&(FileId::new(0), 3)],
+                map[&(FileId::new(0), 4)]
+            ],
+            "pd::partition, the dap::Error constructor and ctype<char>::table \
+             bind; ranges::begin does not"
+        );
+    }
+
+    #[test]
+    fn misparsed_scope_reads_the_scope_in_front_of_the_return_type() {
+        let def = |qn: &str, name: &str, sig: &str| {
+            let mut d = mk_def(name, qn, DefVariant::FreeFunction, (0, 1));
+            d.signature_hint = sig.into();
+            d
+        };
+        let cases = [
+            (
+                "std::string to_string",
+                "to_string",
+                "TPL std::string to_string(const J& j)",
+                Some(""),
+            ),
+            (
+                "__libdispatch::__chunk_partitions __partition_chunks",
+                "__partition_chunks",
+                "EXPORT __chunk_partitions __partition_chunks(long n) noexcept",
+                Some("__libdispatch"),
+            ),
+            (
+                "cpp::enable_if_t<is_big_int_v<T>, int>\ncountr_zero",
+                "countr_zero",
+                "LIBC_INLINE constexpr cpp::enable_if_t<is_big_int_v<T>, int> countr_zero(T v)",
+                Some(""),
+            ),
+            (
+                "__merge::merge_result<A,\n B> __merge_impl",
+                "__merge_impl",
+                "inline merge_result<A, B> __merge_impl(I f)",
+                Some("__merge"),
+            ),
+            ("ns::f", "f", "void f()", None),
+        ];
+        for (qn, name, sig, want) in cases {
+            assert_eq!(misparsed_scope(&def(qn, name, sig)), want, "{qn}");
+        }
     }
 }

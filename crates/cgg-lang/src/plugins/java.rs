@@ -92,8 +92,11 @@ impl<'a> JavaWalker<'a> {
                         c.kind() == "scoped_identifier" || c.kind() == "identifier"
                     })
                 }) {
-                    self.scope
-                        .push(self.text(name).replace(';', "").trim().to_string());
+                    let pkg = self.text(name).replace(';', "").trim().to_string();
+                    if !pkg.is_empty() && !self.facts.packages.contains(&pkg) {
+                        self.facts.packages.push(pkg.clone());
+                    }
+                    self.scope.push(pkg);
                 }
                 return;
             }
@@ -527,5 +530,11 @@ mod tests {
                 .any(|d| d.simple_name == "create"
                     && d.variant == DefVariant::StaticMethod)
         );
+    }
+
+    #[test]
+    fn package_is_recorded() {
+        let f = extract("package com.acme.util;\nclass A { void m() {} }\n");
+        assert_eq!(f.packages, vec!["com.acme.util"]);
     }
 }

@@ -442,6 +442,21 @@ pub struct FileFacts {
     /// only add precision, never drop a call 0.8.5 resolved.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub untyped_receivers: Vec<(u32, String, String)>,
+    /// Package / namespace / module names under which this file's code
+    /// is importable by the rest of the tree, as the language's own
+    /// declarations or manifests state them: the Java or Kotlin
+    /// `package`, every C# `namespace` the file declares (nested blocks
+    /// joined), the `module` path of the Go file's enclosing `go.mod`
+    /// (and of every module a local `replace` points into the tree), the
+    /// `name` of the JS/TS file's enclosing `package.json`.
+    ///
+    /// The resolver unions them across the run to tell an import of a
+    /// workspace package from one of an external dependency — a call
+    /// through the latter is never name-matched onto a workspace
+    /// callable. Empty for languages that need no declaration (Python
+    /// and C++ are judged from file paths and qualified names).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub packages: Vec<String>,
 }
 
 /// A class-level `name = Type(...)` assignment.
@@ -556,6 +571,7 @@ impl FileFacts {
             unified_decls: Vec::new(),
             type_aliases: Vec::new(),
             untyped_receivers: Vec::new(),
+            packages: Vec::new(),
         }
     }
 

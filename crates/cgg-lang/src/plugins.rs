@@ -26,6 +26,7 @@ pub mod kivy;
 pub mod kotlin;
 pub mod lean;
 pub mod lua;
+pub(crate) mod manifest;
 pub mod nix;
 pub mod objc;
 pub mod ocaml;

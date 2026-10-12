@@ -112,6 +112,23 @@ impl<'a> Walker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !name.is_empty() {
+                    // The full namespace, nested blocks joined, so the
+                    // resolver knows which namespaces the workspace
+                    // declares — including a file-scoped one, whose
+                    // members' qualified names do not carry it.
+                    let mut full: Vec<&str> = self
+                        .scope
+                        .iter()
+                        .filter_map(|s| match s {
+                            Scope::Namespace(n) => Some(n.as_str()),
+                            Scope::Type(_) => None,
+                        })
+                        .collect();
+                    full.push(name.as_str());
+                    let full = full.join(".");
+                    if !self.facts.packages.contains(&full) {
+                        self.facts.packages.push(full);
+                    }
                     self.scope.push(Scope::Namespace(name));
                     self.walk_children(node);
                     self.scope.pop();
@@ -526,5 +543,17 @@ namespace A.B.C {
         // text of the name field which includes the dots already.
         assert!(names.iter().any(|n| n.ends_with(".T.M")), "got: {names:?}");
         assert!(names.iter().any(|n| n.contains("A.B.C")), "got: {names:?}");
+    }
+
+    #[test]
+    fn declared_namespaces_are_recorded_in_full() {
+        let f = extract(
+            "namespace A.B { namespace C { class T { void M() {} } } }\n\
+             namespace D { }\n",
+        );
+        assert_eq!(f.packages, vec!["A.B", "A.B.C", "D"]);
+        let scoped =
+            extract("namespace Acme.Web;\npublic class App { public void Run() {} }\n");
+        assert_eq!(scoped.packages, vec!["Acme.Web"]);
     }
 }
