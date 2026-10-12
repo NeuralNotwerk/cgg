@@ -67,3 +67,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 08:47: tick — WS3 agent active; v1 A/B done, v2 A/B running (ab/WS3-v2).
 - 2026-10-12 10:47: tick — WS3 agent active, iterating (A/B v9 running). Diff 16 files +2006/-154 (type_hints 695, kotlin 465, cross_file 353, cpp 186); other plugins only gain a mechanical `arrow: false` field (C++ `->` receivers).
 - 2026-10-12 11:40: WS3 COMMITTED bc64d1b + docs 22795af, pushed origin+backup (orchestrator verified Kotlin: dropped high = super/literal self-edges; added high = real extension calls; added medium duck mixed). WS4 started; before = bins/WS4-before (= 22795af build).
+- 2026-10-12 12:47: tick — WS4 agent active; A/B v4 running (ab/WS4-v4; v1–v3 done). Diff 15 files +2069/-40 (new cgg-resolve/src/modules.rs). Load avg 30 (A/B parallel 6 + standing services).
