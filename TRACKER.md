@@ -65,3 +65,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 07:30: WS2 started; before = bins/WS2-before (= 8507bf7 build). PROTOCOL rule 7 added (no approval-needing commands in agents).
 - 2026-10-12 08:25: WS2 COMMITTED b019a00, pushed origin+backup (orchestrator verified: 0 graph diffs, 19,317 high→medium only, samples match classes). WS3 started; before = bins/WS3-before (= b019a00 build).
 - 2026-10-12 08:47: tick — WS3 agent active; v1 A/B done, v2 A/B running (ab/WS3-v2).
+- 2026-10-12 10:47: tick — WS3 agent active, iterating (A/B v9 running). Diff 16 files +2006/-154 (type_hints 695, kotlin 465, cross_file 353, cpp 186); other plugins only gain a mechanical `arrow: false` field (C++ `->` receivers).

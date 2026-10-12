@@ -1,0 +1,9 @@
+old=target/remediation/bins/WS3-before
+new=target/remediation/bins/WS3-after-v8
+repos=3 elapsed=306s
+excluded (timeout/error, NOT diffed): 1
+  hcl-terraform-aws: graph rc old=124 new=124
+repos changed: 2
+  groovy-gradle: edges 171192->169525 (-4988 +3321 ~622) callables 107058->107058 unresolved 260984->254849 files 24272->24272 deadhigh 926->953 
+  zig-zig: edges 235856->235955 (-71 +170 ~53) callables 355430->355430 unresolved 242520->242363 files 17350->17350 deadhigh -> dead rc old=124 new=124
+by language: see by_language.tsv

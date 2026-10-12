@@ -1,0 +1,3 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+groovy-gradle	171192	169525	4988	3321	622	107058	107058	260984	254849	24272	24272	926	953	
+zig-zig	235856	235955	71	170	53	355430	355430	242520	242363	17350	17350			dead rc old=124 new=124
