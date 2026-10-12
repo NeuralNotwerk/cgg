@@ -498,6 +498,7 @@ into CHANGELOG.md and README.md yourself, then:
   git tag -a "v$VERSION" -m "cgg $VERSION"
   git push origin main && git push origin "v$VERSION"
   gh release create "v$VERSION" --title "..." --notes-file $OUT/RELEASE-NOTES.md
+  scripts/upgrade-local.sh    # every local cgg (PATH, staged copies, py/node) to $VERSION
 
 The drafts are drafts. Read them against $OUT/facts.md before shipping —
 this script can check that a number was measured, not that a sentence is

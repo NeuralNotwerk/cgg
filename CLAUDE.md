@@ -58,6 +58,12 @@ cd crates/cgg-node && node --test tests/*.test.js
 # Never commits, tags or pushes — it prints the commands and stops.
 ./scripts/release.sh --purpose "what this release is for"
 
+# After every release (once the tag is pushed): upgrade every local cgg —
+# PATH copies, binaries listed in ~/.config/cgg/local-installs (copies other
+# projects stage), the in-repo Python venv and Node module — and verify each
+# reports the new version. release.sh prints this as its last step.
+./scripts/upgrade-local.sh
+
 # Install the project pre-commit hook (test + release build + README regen)
 ./scripts/install-hooks.sh
 
