@@ -55,3 +55,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 01:00: WS1 started; before = bins/WS1-before (0.10.2). Cron c84238a3 every 2h at :17.
 - 2026-10-12 01:10: user: commit+push after every fix set (failing NVMe). Pushed remediate/cross-language (=5b4bdec) and remediation-state to origin+backup.
 - 2026-10-12 01:20: user approved committing their own CLAUDE.md/release.sh/upgrade-local.sh edits to main + push. Hook-skipping commit was denied; do it WITH the hook (worktree target/main-wt, already applied) between WS1 and WS2 so the build does not skew WS1 perf. Backup in user-edits/.
+- 2026-10-12 02:50: WS1 agent stalled ~1h on a nohup-backgrounded A/B launch that never executed (v1 A/B done: 160 repos changed, all drops, 0 adds). Stopped and resumed with context; told to use Bash run_in_background instead of nohup.
