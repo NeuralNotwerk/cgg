@@ -1,0 +1,3 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+dart-flutter	734736	733200	1536	0	0	84515	84515	430954	429060	10771	10771	110	110	
+erlang-otp	491741	491740	1	0	3	269754	269754	440867	440779	5652	5652	23	23	

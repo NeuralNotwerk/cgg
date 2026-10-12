@@ -1,0 +1,8 @@
+old=target/remediation/bins/WS1-before
+new=target/remediation/bins/WS1-after-v4
+repos=2 elapsed=82s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 2
+  dart-flutter: edges 734736->733200 (-1536 +0 ~0) callables 84515->84515 unresolved 430954->429060 files 10771->10771 deadhigh 110->110 
+  erlang-otp: edges 491741->491740 (-1 +0 ~3) callables 269754->269754 unresolved 440867->440779 files 5652->5652 deadhigh 23->23 
+by language: see by_language.tsv
