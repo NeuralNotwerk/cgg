@@ -1,0 +1,39 @@
+24203	javascript	js-ts-capture:public:public	medium->medium
+21479	csharp	implicit-public-member(no-modifier)	medium->medium
+15373	typescript	js-ts-capture:public:public	medium->medium
+8468	java	implicit-public-member(no-modifier)	high->medium
+6100	java	implicit-public-member(no-modifier)	medium->medium
+5496	javascript	js-ts-capture:public:public	low->low
+4163	java	annotation-args-hid-public	high->medium
+4076	java	protected-cap	high->medium
+3023	java	protected-cap	medium->medium
+1974	typescript	protected-cap	medium->medium
+1704	typescript	js-ts-capture:private:private	medium->medium
+1256	csharp	implicit-public-member(no-modifier)	high->medium
+1135	csharp	protected-cap	high->medium
+1106	java	annotation-args-hid-public	medium->medium
+905	java	token-only internal->private	medium->medium
+507	java	protected-cap	low->low
+475	csharp	token-only private->internal	medium->medium
+345	typescript	js-ts-capture:public:public	low->low
+221	java	implicit-public-member(no-modifier)	low->low
+211	csharp	protected-cap	medium->medium
+178	csharp	protected-cap-from-private:private	medium->medium
+141	csharp	annotation-args-hid-public	medium->medium
+141	csharp	annotation-args-hid-public	high->medium
+103	typescript	protected-cap	low->low
+98	kotlin	protected-cap	medium->medium
+88	csharp	annotation-args-hid-public	low->low
+79	java	annotation-args-hid-public	low->low
+64	javascript	js-ts-capture:private:private	medium->medium
+63	java	protected-cap-from-private:internal	high->medium
+36	java	token-only internal->private	high->high
+30	java	protected-cap-from-private:internal	medium->medium
+23	csharp	implicit-public-member(no-modifier)	low->low
+23	csharp	protected-cap	low->low
+15	csharp	protected-cap-from-private:private	high->medium
+3	csharp	token-only private->internal	low->low
+3	java	protected-cap-from-private:internal	low->low
+1	kotlin	protected-cap	low->low
+1	csharp	token-only private->internal	high->high
+1	typescript	js-ts-capture:private:private	low->low
