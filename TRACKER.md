@@ -73,3 +73,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-12 16:40: WS4 v7 precision audit by orchestrator (≈220 sampled sites judged vs source): removals ~95% correct, adds ~93% correct (Go/Java/Py/TS/JS adds 53/54). New items R9–R16 appended to logs/WS4-review/REVIEW.md and sent to agent.
 - 2026-10-12 16:55: user asked whether call parentage/scoping is good enough. Measured: no — scope-backed (high) share of edges ranges 6% (Dart) to 79% (Go); the rest are name guesses. Added WS14 (scope model for remaining languages), to run right after WS4.
 - 2026-10-12 16:47: tick — WS4 agent active on round 2 (R9–R16), editing modules.rs (JS exports maps), rebuilding; no v8 A/B yet. Diff 16 files +3378/-81.
+- 2026-10-12 19:20: resumed after host crash (NVMe). WS4 round 2 code complete pre-crash (gates green 18:14: fmt, clippy, 1203 tests, docs-check); A/B v8 was interrupted at start. Re-validating tree and re-running v8.

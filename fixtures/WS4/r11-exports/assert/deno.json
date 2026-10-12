@@ -1,0 +1,9 @@
+{
+  "name": "@std/assert",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./instance-of": "./instance_of.ts",
+    "./equals": { "default": "./equals.ts" }
+  }
+}

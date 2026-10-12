@@ -1,0 +1,1 @@
+{ "name": "@std/expect", "exports": { ".": "./mod.ts" } }

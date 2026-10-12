@@ -1,8 +1,8 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 85fd4d3..8b18ae9 100644
+index 85fd4d3..3237b1d 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -142,6 +142,86 @@ otherwise change the default graph.
+@@ -142,6 +142,145 @@ otherwise change the default graph.
  - Python: a receiver chain wrapped over lines (`(self\n  .repo\n
    .quux())`) is rebuilt as `self.repo`, keeping the self-field type the
    one-line form has (FINDINGS A7).
@@ -86,10 +86,69 @@ index 85fd4d3..8b18ae9 100644
 +  fallback through a module alias (`const Type = @import("Type.zig");
 +  Type.fromInterned()` is `Type.zig`'s, an external `matcher.expect()`
 +  none of the workspace's `expect`s).
++- A copy is a file: the overloads or clauses one file declares under a
++  name stay together (a two-arity Erlang function in the caller's
++  directory was dropped as two copies). Copies of the very module a call
++  names (`cerl:f` in the compiler and in two test-data suites) resolve to
++  the one outside test code when neither the caller's file nor its
++  directory holds one.
++- A local shadows an import of the same name. Go records a parameter or
++  `:=` local named like an import binding (`c *app.RequestContext` in a
++  file importing `c ".../client"`) over its scope, and a Python, JS or TS
++  parameter named like an import is the receiver, not the module: such a
++  call keeps the reading it had rather than being refused as a miss in
++  the package (FINDINGS R9).
++- Java and C# resolve a bare name to a member of the calling class or one
++  it inherits before any import (JLS 15.12.1), binding the whole overload
++  set; an import or `import static q.C.*` reaching an overloaded member
++  binds the set too. Overloaded inherited methods (`testQuery` on a
++  shared test base) and statically imported overloads (`CookieUtil.add`)
++  were not bound at all (FINDINGS R10).
++- JS/TS: a package's `exports` map (`package.json`, `deno.json`;
++  conditional targets and `*` patterns) names the file a sub-path
++  specifier reaches (`@std/assert/instance-of` → `instance_of.ts`,
++  FINDINGS R11).
++- External packages are labelled external, not refused (FINDINGS R12). A
++  bare JS/TS specifier is matched only whole and inside the importer's own
++  package (`baseUrl`, `NODE_PATH`) unless it is a path alias (`@/`, `~`,
++  `#`, `$`, a tsconfig `paths` prefix or catch-all `"*"`) or a package the
++  tree names: `next/navigation` no longer reaches a `navigation.ts`, nor
++  `react` another package's `react/` directory. A specifier that names no
++  file is a dependency; so is one matched only by that guess (a test stub
++  of the package) that lacks the name; and a workspace package that
++  re-exports a dependency (`import dayjs from "dayjs"; export default
++  dayjs`, `export * from "@testing-library/react"`) labels the call with
++  the dependency. Go in module mode: an import path no `go.mod` covers is
++  a dependency even when a directory shares its name (`reflect`).
++- JS/TS refusals need a module cgg can read: a value it cannot
++  (`module.exports = { ...x }`, a default export naming a variable,
++  TypeScript `export = make()`) is no proof any name is absent;
++  `module.exports = { ...require('./x') }` re-exports `./x`'s names;
++  `module.exports = require('./m')` and `export = require('./m')` carry
++  `./m`'s value as their own (an instance's class methods resolve); a
++  relative module cgg did not analyze (`types.d.ts`) is decisive only for
++  `mod.f()`; a default-exported class with no constructor is
++  `class-without-explicit-init`.
++- Zig: `const addRunArtifact = link.addRunArtifact;` is recorded (an
++  `alias` import record) and followed to the file `link` is, and a bare
++  name the calling file declares is never bound to another file's copy
++  (FINDINGS R13).
++- Erlang `m:f(…)` names module `m` (FINDINGS R14). The grammar nests the
++  call inside a `remote` node and the plugin had read only the call, so
++  every remote call was a bare `f`: `wxWindow:refreshRect(…)` inside
++  `wxDialog:refreshRect` bound to itself, `lists:map` to a local `map`.
++  The call is now `m:f` with receiver `m` and binds `m`'s `f` only — the
++  function of the call's arity, `high` when that is one — in-file when
++  `m` is the file's own module. Erlang receivers are no longer rewritten
++  by type inference (a `file` receiver had become a `File` some function
++  returns).
++- F#: a bare call never reaches a type's member (FINDINGS R15). Dart: the
++  scoped lookup binds only in a file the caller imports, not in a file
++  whose path merely contains an imported name (FINDINGS R16).
  
  ### Compatibility
  
-@@ -232,6 +312,47 @@ otherwise change the default graph.
+@@ -232,6 +371,47 @@ otherwise change the default graph.
    parameter of a namespace-qualified type (`const ns::Foo& x`) is still
    read by the `name: Type` parser and never typed; a C++ smart pointer
    with no `->` in sight (`out.get()->m()`) is not followed.
@@ -223,8 +282,59 @@ index 099ecc0..97fc88c 100644
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub packages: Vec<String>,
  }
+diff --git a/crates/cgg-lang/src/plugins/erlang.rs b/crates/cgg-lang/src/plugins/erlang.rs
+index ed359a5..642da95 100644
+--- a/crates/cgg-lang/src/plugins/erlang.rs
++++ b/crates/cgg-lang/src/plugins/erlang.rs
+@@ -220,10 +220,25 @@ impl<'a> ErlangWalker<'a> {
+         // call: atom ( ... ) or module:function ( ... )
+         // First child is the function/module reference
+         if let Some(func_node) = node.child(0) {
+-            let name = self.text(func_node).to_string();
++            let mut name = self.text(func_node).to_string();
+             if name.is_empty() {
+                 return;
+             }
++            // `m:f(…)` parses as `remote(module: m, fun: call(f, …))`: the
++            // module is the parent's, and names the callee (`m:f`).
++            if let Some(parent) = node.parent()
++                && parent.kind() == "remote"
++                && parent
++                    .child_by_field_name("fun")
++                    .is_some_and(|f| f.id() == node.id())
++                && let Some(module) = parent
++                    .child_by_field_name("module")
++                    .and_then(|m| m.child_by_field_name("module").or(Some(m)))
++                && module.kind() == "atom"
++                && !name.contains(':')
++            {
++                name = format!("{}:{name}", self.text(module));
++            }
+ 
+             let receiver_hint = if name.contains(':') {
+                 let parts: Vec<&str> = name.split(':').collect();
+@@ -281,6 +296,19 @@ mod tests {
+         assert_eq!(f.definitions[0].simple_name, "greet");
+     }
+ 
++    /// FINDINGS R14: `m:f(…)` names module `m` — the resolver binds it
++    /// to `m`'s `f` only, so the module must reach it as the receiver.
++    #[test]
++    fn a_remote_call_records_its_module_as_the_receiver() {
++        let f = extract("-module(a).\nrun(X) -> other_mod:gen(X), local(X).\n");
++        let refs: Vec<(&str, &str)> = f
++            .references
++            .iter()
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
++            .collect();
++        assert_eq!(refs, vec![("other_mod:gen", "other_mod"), ("local", "")]);
++    }
++
+     #[test]
+     fn include_lib_is_recorded() {
+         let f = extract(
 diff --git a/crates/cgg-lang/src/plugins/go.rs b/crates/cgg-lang/src/plugins/go.rs
-index 2da6f68..d3a480c 100644
+index 2da6f68..b6be70a 100644
 --- a/crates/cgg-lang/src/plugins/go.rs
 +++ b/crates/cgg-lang/src/plugins/go.rs
 @@ -83,7 +83,8 @@ impl LanguagePlugin for GoPlugin {
@@ -387,7 +497,7 @@ index 2da6f68..d3a480c 100644
          // Check if RHS is a func_literal — emit as a callable
          let rhs = if right.kind() == "expression_list" {
              right.child(0)
-@@ -547,6 +626,158 @@ impl<'a> Walker<'a> {
+@@ -547,6 +626,173 @@ impl<'a> Walker<'a> {
          });
      }
  
@@ -415,27 +525,42 @@ index 2da6f68..d3a480c 100644
 +                        t.split('[').next().unwrap_or(t).trim().to_string()
 +                    })
 +                    .unwrap_or_default();
-+                let typed = ty
-+                    .split_once('.')
-+                    .is_some_and(|(pkg, t)| self.imports_bind(pkg) && t.starts_with(char::is_uppercase));
++                let typed = ty.split_once('.').is_some_and(|(pkg, t)| {
++                    self.imports_bind(pkg) && t.starts_with(char::is_uppercase)
++                });
 +                let mut nc = p.walk();
 +                for n in p.children_by_field_name("name", &mut nc) {
 +                    let name = self.text(n).to_string();
 +                    if self.imports_bind(&name) {
-+                        let ty = if typed { ty.clone() } else { LOCAL_SHADOW.to_string() };
++                        let ty = if typed {
++                            ty.clone()
++                        } else {
++                            LOCAL_SHADOW.to_string()
++                        };
 +                        shadows.push((name, ty));
 +                    }
 +                }
 +            }
 +        }
 +        for (name, ty) in shadows {
-+            self.push_scoped_local(name, ty, body.start_byte() as u32, body.end_byte() as u32);
++            self.push_scoped_local(
++                name,
++                ty,
++                body.start_byte() as u32,
++                body.end_byte() as u32,
++            );
 +        }
 +    }
 +
 +    /// A local typed `ty` from `start` to `end` (its block's end, where an
 +    /// untyped entry ends it).
-+    fn push_scoped_local(&mut self, var_name: String, type_name: String, start: u32, end: u32) {
++    fn push_scoped_local(
++        &mut self,
++        var_name: String,
++        type_name: String,
++        start: u32,
++        end: u32,
++    ) {
 +        self.facts.local_types.push(cgg_core::LocalType {
 +            var_name: var_name.clone(),
 +            type_name,
@@ -546,7 +671,7 @@ index 2da6f68..d3a480c 100644
      fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
          let func = node.child_by_field_name("function")?;
          let (name, recv) = match func.kind() {
-@@ -572,6 +803,11 @@ impl<'a> Walker<'a> {
+@@ -572,6 +818,11 @@ impl<'a> Walker<'a> {
      }
  }
  
@@ -558,7 +683,7 @@ index 2da6f68..d3a480c 100644
  fn line_range(n: Node) -> (u32, u32) {
      let s = (n.start_position().row as u32) + 1;
      let e = (n.end_position().row as u32) + 1;
-@@ -624,6 +860,80 @@ mod tests {
+@@ -624,6 +875,117 @@ mod tests {
          )
      }
  
@@ -577,6 +702,43 @@ index 2da6f68..d3a480c 100644
 +            .map(|d| d.qualified_name.as_str())
 +            .collect();
 +        assert_eq!(qns, vec!["ordered.Map.ReplaceKey", "ordered.Map.Len"]);
++    }
++
++    /// FINDINGS R9: a parameter named like an import binding shadows the
++    /// package over the function's body — typed when its type is another
++    /// package's, else `<local>` — and an untyped entry ends it there.
++    #[test]
++    fn a_parameter_shadowing_an_import_is_scoped_to_the_body() {
++        let src = "package main\n\nimport (\n\tc \"example.com/pkg/client\"\n\t\"example.com/pkg/app\"\n)\n\n\
++                   func h(c *app.RequestContext) { c.JSON(200) }\n\
++                   func k(c int) { _ = c }\n\
++                   func u(app int) {}\n";
++        let f = extract(src);
++        let body = |name: &str| {
++            let at = src.find(name).unwrap();
++            let open = at + src[at..].find('{').unwrap();
++            let close = at + src[at..].find('}').unwrap() + 1;
++            (open as u32, close as u32)
++        };
++        let entries: Vec<(&str, &str, u32)> = f
++            .local_types
++            .iter()
++            .map(|t| (t.var_name.as_str(), t.type_name.as_str(), t.scope_byte))
++            .collect();
++        let (h0, h1) = body("func h");
++        let (k0, k1) = body("func k");
++        let (u0, u1) = body("func u");
++        assert_eq!(
++            entries,
++            vec![
++                ("c", "app.RequestContext", h0),
++                ("c", "", h1),
++                ("c", LOCAL_SHADOW, k0),
++                ("c", "", k1),
++                ("app", LOCAL_SHADOW, u0),
++                ("app", "", u1),
++            ]
++        );
 +    }
 +
 +    /// R1: `x, err := x.Open()` types `x` from the end of the statement —
@@ -686,7 +848,7 @@ index 51d40c8..f82592e 100644
      fn method_invocation_captured() {
          let src = "class C { void f() { helper(); obj.run(); } }\n";
 diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
-index ca80aa9..65430fe 100644
+index ca80aa9..88ae23a 100644
 --- a/crates/cgg-lang/src/plugins/javascript.rs
 +++ b/crates/cgg-lang/src/plugins/javascript.rs
 @@ -58,7 +58,10 @@ impl LanguagePlugin for JavaScriptPlugin {
@@ -709,7 +871,7 @@ index ca80aa9..65430fe 100644
          if ctx.deadcode_signals {
              out.unreachable =
                  super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
-@@ -79,6 +83,38 @@ impl LanguagePlugin for JavaScriptPlugin {
+@@ -79,6 +83,42 @@ impl LanguagePlugin for JavaScriptPlugin {
      }
  }
  
@@ -723,7 +885,11 @@ index ca80aa9..65430fe 100644
 +/// `alias`, never `path`: it is where the file lives, not something it
 +/// depends on. The resolver finds a workspace package's root directory
 +/// through it.
-+pub(crate) fn push_package_name(facts: &mut FileFacts, name: Option<String>, exported_as: Vec<String>) {
++pub(crate) fn push_package_name(
++    facts: &mut FileFacts,
++    name: Option<String>,
++    exported_as: Vec<String>,
++) {
 +    if let Some(name) = name {
 +        facts.imports.push(ImportRecord {
 +            kind: "package-name".into(),
@@ -748,7 +914,7 @@ index ca80aa9..65430fe 100644
  pub(crate) struct JsWalker<'a> {
      source: &'a [u8],
      /// Per-run extraction switches; see `crate::ExtractCtx`.
-@@ -156,6 +192,9 @@ impl<'a> JsWalker<'a> {
+@@ -156,6 +196,9 @@ impl<'a> JsWalker<'a> {
                  // modules name a dependency (Deno's `deps.ts` convention).
                  if node.child_by_field_name("source").is_some() {
                      self.record_import(node);
@@ -758,7 +924,7 @@ index ca80aa9..65430fe 100644
                  }
                  // Walk into the exported declaration.
                  self.walk_children(node);
-@@ -166,6 +205,7 @@ impl<'a> JsWalker<'a> {
+@@ -166,6 +209,7 @@ impl<'a> JsWalker<'a> {
                  // `module.exports.foo = function() {}` patterns (CJS).
                  self.try_record_exports_assign(node);
                  self.try_record_require_assign(node);
@@ -766,7 +932,7 @@ index ca80aa9..65430fe 100644
                  self.walk_children(node);
                  return;
              }
-@@ -532,6 +572,32 @@ impl<'a> JsWalker<'a> {
+@@ -532,6 +576,32 @@ impl<'a> JsWalker<'a> {
      }
  
      fn record_import(&mut self, node: Node) {
@@ -799,7 +965,7 @@ index ca80aa9..65430fe 100644
          let source_node = node.child_by_field_name("source").or_else(|| {
              // Fallback: find the string child directly.
              let count = node.child_count();
-@@ -644,6 +710,301 @@ impl<'a> JsWalker<'a> {
+@@ -644,6 +714,334 @@ impl<'a> JsWalker<'a> {
          }
      }
  
@@ -911,6 +1077,25 @@ index ca80aa9..65430fe 100644
 +                // not take a miss through it as proof of absence.
 +                .unwrap_or_else(|| UNKNOWN_EXPORT.to_string());
 +            alias = format!("{name} as default");
++        } else if let Some(eq) = children.iter().position(|n| n.kind() == "=") {
++            // TypeScript `export = value`: CommonJS `module.exports`.
++            let value = children[eq + 1..].iter().find(|n| n.is_named());
++            match value {
++                Some(v) if v.kind() == "identifier" => {
++                    alias = format!("{} as default", self.text(*v));
++                }
++                Some(v) => {
++                    if let Some(name) = self.constructed_class(*v) {
++                        alias = format!("{name} as default");
++                    } else if let Some(path) = self.required_path(*v) {
++                        self.push_reexport(node, path, "*, default".to_string());
++                        return;
++                    } else {
++                        alias = format!("{UNKNOWN_EXPORT} as default");
++                    }
++                }
++                None => {}
++            }
 +        }
 +        if alias.is_empty() {
 +            return;
@@ -986,9 +1171,20 @@ index ca80aa9..65430fe 100644
 +                    let mut c = right.walk();
 +                    for prop in right.children(&mut c) {
 +                        match prop.kind() {
-+                            // `{ ...require('./a') }`: unreadable members.
++                            // `{ ...require('./a') }`: every export of
++                            // `./a`; any other spread is unreadable.
 +                            "spread_element" => {
-+                                items.push(format!("{UNKNOWN_EXPORT} as default"));
++                                let required = prop
++                                    .named_child(0)
++                                    .and_then(|v| self.required_path(v));
++                                match required {
++                                    Some(path) => {
++                                        self.push_reexport(node, path, "*".to_string())
++                                    }
++                                    None => {
++                                        items.push(format!("{UNKNOWN_EXPORT} as default"))
++                                    }
++                                }
 +                            }
 +                            "shorthand_property_identifier" => {
 +                                items.push(self.text(prop).to_string());
@@ -1025,7 +1221,10 @@ index ca80aa9..65430fe 100644
 +                }
 +                _ => {
 +                    if let Some(path) = self.required_path(right) {
-+                        self.push_reexport(node, path, "*".to_string());
++                        // `module.exports = require('./m')`: `./m`'s
++                        // names, and its value (`module.exports = new
++                        // Store()` there) as this module's.
++                        self.push_reexport(node, path, "*, default".to_string());
 +                    } else {
 +                        // `module.exports = makeThing()`: a value cgg
 +                        // cannot read.
@@ -1101,7 +1300,7 @@ index ca80aa9..65430fe 100644
      fn extract_named_fn_child(&mut self, node: Node) {
          // Find any named function_expression direct child
          let count = node.child_count();
-@@ -908,6 +1269,96 @@ mod tests {
+@@ -908,6 +1306,101 @@ mod tests {
          )
      }
  
@@ -1148,7 +1347,7 @@ index ca80aa9..65430fe 100644
 +            "function make() { return {}; }\n\
 +             export default make();\n\
 +             module.exports = make();\n\
-+             module.exports = { ...require('./a'), b };\n",
++             module.exports = { ...require('./a'), ...other, b };\n",
 +        );
 +        let locals: Vec<String> = imports_of(&f, "local-export")
 +            .into_iter()
@@ -1161,6 +1360,11 @@ index ca80aa9..65430fe 100644
 +                "<value> as default".to_string(),
 +                "<value> as default, b".to_string(),
 +            ]
++        );
++        // A spread `require()` re-exports that module's names.
++        assert_eq!(
++            imports_of(&f, "re-export"),
++            vec![("./a".to_string(), "*".to_string())]
 +        );
 +    }
 +
@@ -1191,7 +1395,7 @@ index ca80aa9..65430fe 100644
 +        );
 +        assert_eq!(
 +            imports_of(&f, "re-export"),
-+            pairs(&[("./sub", "* as sub"), ("./proxy", "*")])
++            pairs(&[("./sub", "* as sub"), ("./proxy", "*, default")])
 +        );
 +    }
 +
@@ -1199,7 +1403,7 @@ index ca80aa9..65430fe 100644
      fn function_declarations() {
          let src = "function greet(name) {}\nasync function fetchData() {}\n";
 diff --git a/crates/cgg-lang/src/plugins/manifest.rs b/crates/cgg-lang/src/plugins/manifest.rs
-index ef00ce5..61b1ff1 100644
+index ef00ce5..2d47989 100644
 --- a/crates/cgg-lang/src/plugins/manifest.rs
 +++ b/crates/cgg-lang/src/plugins/manifest.rs
 @@ -20,18 +20,59 @@ use std::path::Path;
@@ -1348,7 +1552,7 @@ index ef00ce5..61b1ff1 100644
              out.extend(json_name(&m));
              if let Some(map) = m.get("imports").and_then(|v| v.as_object()) {
                  for (k, v) in map {
-@@ -134,6 +204,94 @@ pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
+@@ -134,6 +204,108 @@ pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
      }
      out.sort();
      out.dedup();
@@ -1363,13 +1567,20 @@ index ef00ce5..61b1ff1 100644
 +/// package name itself, `"./x"` is `name/x`, a `*` pattern maps the part
 +/// it matches. A conditional target (`{"import": …, "default": …}`) is
 +/// read through its first plain path.
-+fn exports_naming(dir: &Path, manifest: &serde_json::Value, name: &str, file: &Path) -> Vec<String> {
++fn exports_naming(
++    dir: &Path,
++    manifest: &serde_json::Value,
++    name: &str,
++    file: &Path,
++) -> Vec<String> {
 +    fn target(v: &serde_json::Value) -> Option<&str> {
 +        match v {
 +            serde_json::Value::String(s) => Some(s.as_str()),
 +            serde_json::Value::Array(a) => a.iter().find_map(target),
 +            serde_json::Value::Object(o) => {
-+                for key in ["import", "module", "default", "deno", "node", "require", "browser"] {
++                for key in [
++                    "import", "module", "default", "deno", "node", "require", "browser",
++                ] {
 +                    if let Some(t) = o.get(key).and_then(target) {
 +                        return Some(t);
 +                    }
@@ -1387,7 +1598,9 @@ index ef00ce5..61b1ff1 100644
 +            .iter()
 +            .filter_map(|(k, v)| target(v).map(|t| (k.clone(), t)))
 +            .collect(),
-+        other => target(other).map(|t| vec![(".".to_string(), t)]).unwrap_or_default(),
++        other => target(other)
++            .map(|t| vec![(".".to_string(), t)])
++            .unwrap_or_default(),
 +    };
 +    let file = normalize_path(file);
 +    let mut out = Vec::new();
@@ -1407,7 +1620,9 @@ index ef00ce5..61b1ff1 100644
 +                let (tp, ts) = (normalize_path(&dir.join(tp)), ts);
 +                let f = file.to_string_lossy();
 +                let base = tp.to_string_lossy();
-+                if let Some(mid) = f.strip_prefix(base.as_ref()).and_then(|r| r.strip_suffix(ts))
++                if let Some(mid) = f
++                    .strip_prefix(base.as_ref())
++                    .and_then(|r| r.strip_suffix(ts))
 +                {
 +                    out.push(spec_of(&format!("{kp}{mid}{ks}")));
 +                }
@@ -1431,7 +1646,10 @@ index ef00ce5..61b1ff1 100644
 +        match c {
 +            std::path::Component::CurDir => {}
 +            std::path::Component::ParentDir => {
-+                if matches!(out.components().next_back(), Some(std::path::Component::Normal(_))) {
++                if matches!(
++                    out.components().next_back(),
++                    Some(std::path::Component::Normal(_))
++                ) {
 +                    out.pop();
 +                } else {
 +                    out.push("..");
@@ -1443,7 +1661,7 @@ index ef00ce5..61b1ff1 100644
      out
  }
  
-@@ -278,6 +436,31 @@ mod tests {
+@@ -278,6 +450,31 @@ mod tests {
          );
      }
  
@@ -1475,7 +1693,7 @@ index ef00ce5..61b1ff1 100644
      #[test]
      fn go_mod_quoted_module_and_no_false_prefix() {
          assert_eq!(
-@@ -316,7 +499,10 @@ mod tests {
+@@ -316,7 +513,10 @@ mod tests {
              r#"{"compilerOptions": {"paths": {"@shared/*": ["../shared/*"]}}}"#,
          )
          .unwrap();
@@ -1585,7 +1803,7 @@ index 327556b..19dd09a 100644
      /// value), not as calls.
      fn value_refs(f: &FileFacts) -> Vec<&str> {
 diff --git a/crates/cgg-lang/src/plugins/typescript.rs b/crates/cgg-lang/src/plugins/typescript.rs
-index 44af0d1..b36a56a 100644
+index 44af0d1..f5321f9 100644
 --- a/crates/cgg-lang/src/plugins/typescript.rs
 +++ b/crates/cgg-lang/src/plugins/typescript.rs
 @@ -54,10 +54,14 @@ impl LanguagePlugin for TypeScriptPlugin {
@@ -1604,7 +1822,7 @@ index 44af0d1..b36a56a 100644
          // Same passes the JavaScript plugin runs. They were missing
          // here, which meant TypeScript silently produced none of the
          // dead-code signals its `signals()` manifest now declares.
-@@ -91,6 +95,19 @@ mod tests {
+@@ -91,6 +95,47 @@ mod tests {
          )
      }
  
@@ -1621,11 +1839,39 @@ index 44af0d1..b36a56a 100644
 +        assert_eq!(imp, vec![("import", "./cjs", "x")]);
 +    }
 +
++    /// `export = value` is CommonJS `module.exports = value`: a name, a
++    /// required module, or a value cgg cannot read (FINDINGS R12).
++    #[test]
++    fn export_assignment_is_the_default_export() {
++        let records = |src: &str| -> Vec<(String, String, String)> {
++            extract(src)
++                .imports
++                .iter()
++                .filter(|i| i.kind == "local-export" || i.kind == "re-export")
++                .map(|i| (i.kind.clone(), i.path.clone(), i.alias.clone()))
++                .collect()
++        };
++        let own =
++            |k: &str, p: &str, a: &str| (k.to_string(), p.to_string(), a.to_string());
++        assert_eq!(
++            records("function load() {}\nexport = load;\n"),
++            vec![own("local-export", "", "load as default")]
++        );
++        assert_eq!(
++            records("export = require('./impl');\n"),
++            vec![own("re-export", "./impl", "*, default")]
++        );
++        assert_eq!(
++            records("import { make } from './m';\nexport = make();\n"),
++            vec![own("local-export", "", "<value> as default")]
++        );
++    }
++
      #[test]
      fn typed_function_declaration() {
          let src = "function greet(name: string): void {}\nasync function fetch(): Promise<void> {}\n";
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index e27086b..53ec54e 100644
+index e27086b..d089883 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
 @@ -76,6 +76,16 @@ impl<'a> ZigWalker<'a> {
@@ -1660,9 +1906,9 @@ index e27086b..53ec54e 100644
 +        };
 +        let path = self.text(*value).trim();
 +        let plain = path.split('.').count() >= 2
-+            && path
-+                .split('.')
-+                .all(|seg| !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_'));
++            && path.split('.').all(|seg| {
++                !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
++            });
 +        if !plain {
 +            return;
 +        }
@@ -1678,8 +1924,34 @@ index e27086b..53ec54e 100644
      fn walk_children(&mut self, node: Node) {
          let mut c = node.walk();
          if c.goto_first_child() {
+@@ -173,6 +209,25 @@ mod tests {
+         assert!(f.definitions.iter().any(|d| d.simple_name == "main"));
+     }
+ 
++    /// FINDINGS R13: `const addRunArtifact = link.addRunArtifact;` is a
++    /// file-local alias of another file's function; a value that is not
++    /// a plain path is not one.
++    #[test]
++    fn a_member_alias_is_recorded() {
++        let f = extract(
++            "const link = @import(\"link.zig\");\n\
++             const addRunArtifact = link.addRunArtifact;\n\
++             const n = link.items[0];\n",
++        );
++        let aliases: Vec<(&str, &str)> = f
++            .imports
++            .iter()
++            .filter(|i| i.kind == "alias")
++            .map(|i| (i.path.as_str(), i.alias.as_str()))
++            .collect();
++        assert_eq!(aliases, vec![("link.addRunArtifact", "addRunArtifact")]);
++    }
++
+     #[test]
+     fn calls_and_imports() {
+         let f = extract(
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 5122b9a..86b49f1 100644
+index 5122b9a..812e49b 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -697,8 +697,19 @@ pub fn resolve(
@@ -1974,7 +2246,7 @@ index 5122b9a..86b49f1 100644
                  } else if capped > 0 {
                      // A drop is never silent. Without this the call site
                      // is indistinguishable from one that calls nothing —
-@@ -3037,6 +3164,364 @@ fn rust_candidate_reachable(
+@@ -3037,6 +3164,390 @@ fn rust_candidate_reachable(
      true
  }
  
@@ -2020,6 +2292,9 @@ index 5122b9a..86b49f1 100644
 +        })
 +    };
 +    let exact: Vec<CallableId> = uniq.iter().copied().filter(in_module).collect();
++    // Copies of the very module the call names (`cerl:f` in three
++    // `cerl.erl` files), as opposed to same-named callables elsewhere.
++    let module_copies = !exact.is_empty();
 +    if !exact.is_empty() || exact_only {
 +        uniq = exact;
 +    }
@@ -2052,29 +2327,52 @@ index 5122b9a..86b49f1 100644
 +            out.push(group[0]);
 +            continue;
 +        }
++        // A copy is a file: the callables one file declares under the
++        // name (overloads, clauses of one function) stay together.
 +        let file_of = |x: &CallableId| graph.callables.get(x).map(|m| m.file);
-+        let own: Vec<CallableId> = group
++        let mut files: Vec<FileId> = Vec::new();
++        for f in group.iter().filter_map(file_of) {
++            if !files.contains(&f) {
++                files.push(f);
++            }
++        }
++        let near: Vec<FileId> = files
 +            .iter()
 +            .copied()
-+            .filter(|x| file_of(x) == Some(caller_file))
-+            .collect();
-+        let near: Vec<CallableId> = group
-+            .iter()
-+            .copied()
-+            .filter(|x| {
-+                file_of(x)
-+                    .and_then(|f| graph.files.get(&f))
++            .filter(|f| {
++                graph
++                    .files
++                    .get(f)
 +                    .and_then(|f| f.path.parent())
 +                    .map(|p| p.to_path_buf())
 +                    == caller_dir
 +            })
 +            .collect();
++        // A copy kept as test data (`test/…_SUITE_data/src/cerl.erl`) is
++        // called from beside it, which `near` covers; from anywhere else,
++        // the one copy that is not test code.
++        let is_test =
++            |f: &FileId| graph.files.get(f).is_some_and(|f| f.test_role.is_some());
++        let shipped: Vec<FileId> = if module_copies {
++            files.iter().copied().filter(|f| !is_test(f)).collect()
++        } else {
++            Vec::new()
++        };
 +        // One copy the evidence singles out; several in the caller's own
 +        // directory are as ambiguous as several anywhere, and stay unbound.
-+        if let [one] = own.as_slice() {
-+            out.push(*one);
++        let chosen = if let [one] = files.as_slice() {
++            Some(*one)
++        } else if files.contains(&caller_file) {
++            Some(caller_file)
 +        } else if let [one] = near.as_slice() {
-+            out.push(*one);
++            Some(*one)
++        } else if let [one] = shipped.as_slice() {
++            Some(*one)
++        } else {
++            None
++        };
++        if let Some(f) = chosen {
++            out.extend(group.iter().copied().filter(|x| file_of(x) == Some(f)));
 +        }
 +    }
 +    (!out.is_empty()).then_some(out)
@@ -2339,7 +2637,7 @@ index 5122b9a..86b49f1 100644
  fn try_resolve_ref(
      graph: &Graph,
      caller_file: FileId,
-@@ -3052,6 +3537,8 @@ fn try_resolve_ref(
+@@ -3052,6 +3563,8 @@ fn try_resolve_ref(
      module_aliases: &HashMap<String, String>,
      unqualified_prefixes: &[String],
      scoped_simple: &HashMap<String, Vec<CallableId>>,
@@ -2348,7 +2646,7 @@ index 5122b9a..86b49f1 100644
      by_qn: &HashMap<(String, String), CallableId>,
      by_simple: &HashMap<(String, String), Vec<CallableId>>,
      by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
-@@ -3064,6 +3551,8 @@ fn try_resolve_ref(
+@@ -3064,6 +3577,8 @@ fn try_resolve_ref(
      signatures: &HashMap<CallableId, &str>,
      var_types: &HashMap<String, String>,
      caller_qn: Option<&str>,
@@ -2357,7 +2655,7 @@ index 5122b9a..86b49f1 100644
      fanout_cap: usize,
      // First path segments seen in Rust qualified names (see its
      // construction in `resolve`) — used to tell an unresolved workspace
-@@ -3074,6 +3563,19 @@ fn try_resolve_ref(
+@@ -3074,6 +3589,19 @@ fn try_resolve_ref(
      // construction in `resolve`).
      class_record_langs: &std::collections::BTreeSet<String>,
      kotlin_extensions: &KotlinExtensions,
@@ -2377,7 +2675,7 @@ index 5122b9a..86b49f1 100644
      // Set to the candidate count when the fan-out cap rejected a
      // non-empty set, so the caller can record the drop instead of
      // leaving the site looking uncalled.
-@@ -3201,14 +3703,127 @@ fn try_resolve_ref(
+@@ -3201,14 +3729,143 @@ fn try_resolve_ref(
          }
      }
  
@@ -2434,14 +2732,30 @@ index 5122b9a..86b49f1 100644
 +                .map(|v| {
 +                    v.iter()
 +                        .copied()
-+                        .filter(|c| graph.callables.get(c).is_some_and(|n| n.qualified_name == qn))
++                        .filter(|c| {
++                            graph
++                                .callables
++                                .get(c)
++                                .is_some_and(|n| n.qualified_name == qn)
++                        })
 +                        .collect()
 +                })
 +                .unwrap_or_default();
 +            if exact.is_empty() {
 +                return None;
 +            }
-+            return narrow_copies(graph, &exact, caller_file, &[m.to_ascii_lowercase()], false);
++            let found = narrow_copies(
++                graph,
++                &exact,
++                caller_file,
++                &[m.to_ascii_lowercase()],
++                false,
++            )?;
++            // One function per arity: the call's argument count picks it,
++            // and the first clause stands for the function.
++            let found = crate::intra_file::first_clause_per_arity(graph, &found, r.arity);
++            *module_certain = found.len() == 1;
++            return Some(found);
 +        }
 +    }
 +    // JS/TS qualified names carry no module (`spawnJob`, `Runner.start`):
@@ -2509,7 +2823,7 @@ index 5122b9a..86b49f1 100644
              if !cids.is_empty() {
                  return Some(cids);
              }
-@@ -3221,9 +3836,38 @@ fn try_resolve_ref(
+@@ -3221,9 +3878,38 @@ fn try_resolve_ref(
              if let Some(cid) = lookup_with_reexports(lang, target, by_qn, reexports) {
                  return Some(vec![cid]);
              }
@@ -2551,7 +2865,7 @@ index 5122b9a..86b49f1 100644
              }
          }
          // Step 1b: bare-name lookup via unqualified-import prefixes
-@@ -3233,10 +3877,22 @@ fn try_resolve_ref(
+@@ -3233,10 +3919,26 @@ fn try_resolve_ref(
              for joiner in [".", "::"] {
                  let qn = format!("{prefix}{joiner}{}", r.name);
                  if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
@@ -2566,8 +2880,12 @@ index 5122b9a..86b49f1 100644
 +            && by_simple
 +                .get(&(lang.to_string(), r.name.clone()))
 +                .is_some_and(|v| {
-+                    v.iter()
-+                        .any(|c| graph.callables.get(c).is_some_and(|n| n.file == caller_file))
++                    v.iter().any(|c| {
++                        graph
++                            .callables
++                            .get(c)
++                            .is_some_and(|n| n.file == caller_file)
++                    })
 +                })
 +        {
 +            return None;
@@ -2575,7 +2893,7 @@ index 5122b9a..86b49f1 100644
          // Step 1c: scoped by-simple lookup — restricted to callables
          // defined in files whose path matches one of this file's
          // import prefixes. This carries Haskell/OCaml/Dart over the
-@@ -3246,7 +3902,20 @@ fn try_resolve_ref(
+@@ -3246,7 +3948,26 @@ fn try_resolve_ref(
              && !cids.is_empty()
              && cids.len() <= 8
          {
@@ -2592,12 +2910,18 @@ index 5122b9a..86b49f1 100644
 +                // is ambiguous and refused (recorded by the caller). Dart
 +                // imports name files, so only a candidate in one of them
 +                // counts (FINDINGS R16).
-+                return narrow_copies(graph, &reach, caller_file, module_files, lang == "dart");
++                return narrow_copies(
++                    graph,
++                    &reach,
++                    caller_file,
++                    module_files,
++                    lang == "dart",
++                );
 +            }
          }
          // Step 1d: global by-simple fallback. Last resort — only when
          // the file has at least one import and the simple name is
-@@ -3278,6 +3947,13 @@ fn try_resolve_ref(
+@@ -3278,6 +3999,13 @@ fn try_resolve_ref(
                  } else {
                      cids.clone()
                  };
@@ -2611,7 +2935,7 @@ index 5122b9a..86b49f1 100644
                  if !cids.is_empty() {
                      return Some(cids);
                  }
-@@ -3302,12 +3978,28 @@ fn try_resolve_ref(
+@@ -3302,12 +4030,28 @@ fn try_resolve_ref(
              if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
                  return Some(vec![cid]);
              }
@@ -2646,7 +2970,7 @@ index 5122b9a..86b49f1 100644
              }
          }
  
-@@ -3317,7 +4009,7 @@ fn try_resolve_ref(
+@@ -3317,7 +4061,7 @@ fn try_resolve_ref(
          // form.
          let mut rh_buf = r.receiver_hint.trim().to_string();
          let rh = rh_buf.as_str();
@@ -2655,7 +2979,7 @@ index 5122b9a..86b49f1 100644
              // Direct paths in both joiners.
              let direct_dot = format!("{rh}.{}", r.name);
              if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports)
-@@ -6002,9 +6694,13 @@ mod tests {
+@@ -6002,9 +6746,13 @@ mod tests {
              "a.rs",
              "rust",
              vec![mk_def("f", "x::a::f", DefVariant::FreeFunction, (30, 120))],
@@ -2670,7 +2994,7 @@ index 5122b9a..86b49f1 100644
                  site_line: 5,
                  site_byte: 60,
                  ..Default::default()
-@@ -7660,6 +8356,17 @@ mod tests {
+@@ -7660,6 +8408,17 @@ mod tests {
                  vec![],
              );
              f.packages = pk.iter().map(|s| s.to_string()).collect();
@@ -2688,7 +3012,7 @@ index 5122b9a..86b49f1 100644
              facts.push(f);
          }
          let (cpath, cqn, cpk, cbases) = caller;
-@@ -8044,4 +8751,1122 @@ mod tests {
+@@ -8044,4 +8803,1712 @@ mod tests {
          assert!(dsts.is_empty(), "{dsts:?}");
          assert_eq!(why, vec![external("cmsys")]);
      }
@@ -2734,6 +3058,19 @@ index 5122b9a..86b49f1 100644
 +        caller: MFile<'_>,
 +        refs: Vec<RefRecord>,
 +    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
++        module_case_with(lang, files, caller, refs, |_| {})
++    }
++
++    /// [`module_case`] with the caller's facts adjusted before resolving
++    /// (its locals, say).
++    fn module_case_with(
++        lang: &str,
++        files: Vec<MFile<'_>>,
++        caller: MFile<'_>,
++        refs: Vec<RefRecord>,
++        tweak: impl FnOnce(&mut FileFacts),
++    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
++        let mut tweak = Some(tweak);
 +        let mut g = Graph::new();
 +        let mut facts = Vec::new();
 +        let mut all: Vec<MFile<'_>> = files;
@@ -2742,7 +3079,10 @@ index 5122b9a..86b49f1 100644
 +        let mut caller_id = CallableId::new(0);
 +        for (fi, f) in all.into_iter().enumerate() {
 +            let fid = fi as u32;
-+            g.add_file(mk_file(fid, f.path, lang));
++            let mut rec = mk_file(fid, f.path, lang);
++            rec.test_role =
++                cgg_core::classify_test_file(std::path::Path::new(f.path), lang);
++            g.add_file(rec);
 +            let mut defs = Vec::new();
 +            for (di, (qn, kind, sig)) in f.defs.iter().enumerate() {
 +                let id = fid * 100 + di as u32;
@@ -2778,6 +3118,11 @@ index 5122b9a..86b49f1 100644
 +                f.imports,
 +            );
 +            ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
++            if fi == n - 1
++                && let Some(t) = tweak.take()
++            {
++                t(&mut ff);
++            }
 +            facts.push(ff);
 +        }
 +        let out = resolve_default(&g, &facts);
@@ -3810,13 +4155,586 @@ index 5122b9a..86b49f1 100644
 +        );
 +        assert_eq!(refusals(&why), 0, "{why:?}");
 +    }
++
++    // ----------------------------------------------------------------
++    // Round 2 (R9–R16): shadows, overload sets, exports maps, external
++    // labels, Zig own declarations, Erlang `m:f`, F#/Dart bare calls.
++    // ----------------------------------------------------------------
++
++    /// R9 (Go): a parameter or local named like an import binding is the
++    /// receiver inside its scope — `c.JSON()` with `c *app.RequestContext`
++    /// in a file importing `c ".../client"` is not refused as a miss in
++    /// `client`. Outside that scope the import is the receiver again.
++    #[test]
++    fn go_local_shadowing_an_import_alias_is_not_refused() {
++        let files = vec![
++            go_pkg_file(
++                "pkg/app/client/client.go",
++                "client",
++                "example.com/app/pkg/app/client",
++                vec![("client.Do", CallableKind::Function, "func Do()")],
++                vec![],
++            ),
++            go_pkg_file(
++                "pkg/app/ctx.go",
++                "app",
++                "example.com/app/pkg/app",
++                vec![(
++                    "app.RequestContext.JSON",
++                    CallableKind::Method,
++                    "func (c *RequestContext) JSON(code int)",
++                )],
++                vec![],
++            ),
++        ];
++        let caller = go_caller(vec![
++            import("import", "example.com/app/pkg/app/client", "c"),
++            import("import", "example.com/app/pkg/app", ""),
++        ]);
++        let refs = vec![
++            call("JSON", "c"),
++            RefRecord {
++                site_byte: 61,
++                ..call("JSON", "c")
++            },
++        ];
++        let (dsts, why) = module_case_with("go", files, caller, refs, |f| {
++            // `c` is a local over bytes 0..61 only.
++            for (ty, at) in [(LOCAL_SHADOW_MARK, 0), ("", 61)] {
++                f.local_types.push(cgg_core::LocalType {
++                    var_name: "c".into(),
++                    type_name: ty.into(),
++                    scope_byte: at,
++                });
++            }
++        });
++        // Inside the scope: the pre-WS4 reading (the method by name).
++        assert_eq!(
++            dsts,
++            vec![at("app.RequestContext.JSON", "pkg/app/ctx.go")],
++            "{why:?}"
++        );
++        // Near miss: past the scope `c` is the package again, and the
++        // package has no `JSON`.
++        assert_eq!(why, vec![refused("example.com/app/pkg/app/client")]);
++    }
++
++    const LOCAL_SHADOW_MARK: &str = "<local>";
++
++    /// R10 (Java): a bare call to an overloaded method of the caller's
++    /// base class, or of a class imported `import static q.C.*`, binds the
++    /// whole overload set — never an unrelated class's same-named method.
++    #[test]
++    fn java_overload_sets_through_bases_and_static_wildcards() {
++        let m = CallableKind::Method;
++        let files = vec![
++            MFile {
++                path: "src/p/BaseQueryTest.java",
++                defs: vec![
++                    ("p.BaseQueryTest.testQuery", m, "void testQuery(String sql)"),
++                    (
++                        "p.BaseQueryTest.testQuery",
++                        m,
++                        "void testQuery(String sql, int n)",
++                    ),
++                ],
++                imports: vec![],
++                packages: vec!["p"],
++                bases: vec![],
++            },
++            MFile {
++                path: "src/q/CookieUtil.java",
++                defs: vec![
++                    (
++                        "q.CookieUtil.add",
++                        m,
++                        "static void add(StringBuilder b, String n, long v)",
++                    ),
++                    (
++                        "q.CookieUtil.add",
++                        m,
++                        "static void add(StringBuilder b, String n, String v)",
++                    ),
++                ],
++                imports: vec![],
++                packages: vec!["q"],
++                bases: vec![],
++            },
++            MFile {
++                path: "src/r/Other.java",
++                defs: vec![("r.Other.testQuery", m, ""), ("r.Other.add", m, "")],
++                imports: vec![],
++                packages: vec!["r"],
++                bases: vec![],
++            },
++        ];
++        let caller = MFile {
++            path: "src/p/ArraysQueryTest.java",
++            defs: vec![("p.ArraysQueryTest.testArrays", m, "")],
++            imports: vec![import("from-import", "q.CookieUtil", "*")],
++            packages: vec!["p"],
++            bases: vec!["BaseQueryTest"],
++        };
++        let refs = vec![
++            call("testQuery", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("add", "")
++            },
++        ];
++        let (dsts, _) = module_case("java", files, caller, refs);
++        assert_eq!(
++            dsts,
++            vec![
++                at("p.BaseQueryTest.testQuery", "src/p/BaseQueryTest.java"),
++                at("p.BaseQueryTest.testQuery", "src/p/BaseQueryTest.java"),
++                at("q.CookieUtil.add", "src/q/CookieUtil.java"),
++                at("q.CookieUtil.add", "src/q/CookieUtil.java"),
++            ]
++        );
++    }
++
++    /// R11: a package's `exports` map names the file a sub-path specifier
++    /// reaches (`@std/assert/instance-of` → `instance_of.ts`), though no
++    /// file is spelled like it.
++    #[test]
++    fn js_exports_map_subpath_names_its_file() {
++        let files = vec![
++            MFile {
++                path: "assert/instance_of.ts",
++                defs: vec![("assertInstanceOf", CallableKind::Function, "")],
++                imports: vec![
++                    import("package-name", "", "@std/assert"),
++                    import("package-export", "", "@std/assert/instance-of"),
++                ],
++                packages: vec!["@std/assert"],
++                bases: vec![],
++            },
++            mfile("zzz/instance_of.ts", &["assertInstanceOf"], vec![]),
++        ];
++        let caller = mfile(
++            "expect/_matchers.ts",
++            &["toBeInstanceOf"],
++            vec![import(
++                "from-import",
++                "@std/assert/instance-of",
++                "assertInstanceOf",
++            )],
++        );
++        let (dsts, why) = module_case(
++            "typescript",
++            files,
++            caller,
++            vec![call("assertInstanceOf", "")],
++        );
++        assert_eq!(
++            dsts,
++            vec![at("assertInstanceOf", "assert/instance_of.ts")],
++            "{why:?}"
++        );
++    }
++
++    /// R12: a bare specifier names a package unless a path alias says
++    /// otherwise. `next/navigation` is a dependency even when the tree
++    /// has a `next/` directory and a `navigation.ts` elsewhere — external,
++    /// never that file's `redirect`. A workspace package re-exporting a
++    /// dependency (`export default dayjs` of `import dayjs from "dayjs"`)
++    /// labels the call with the dependency. An alias (`@/lib/…`) still
++    /// matches by suffix.
++    #[test]
++    fn js_bare_specifiers_name_packages_not_lookalike_files() {
++        let files = vec![
++            mfile("src/next/config.ts", &["config"], vec![]),
++            mfile("src/lib/navigation.ts", &["redirect"], vec![]),
++            // A lookalike of the dependency's function, never its target.
++            mfile("src/zzz/dayjs.ts", &["dayjs"], vec![]),
++            MFile {
++                path: "packages/dayjs/index.ts",
++                defs: vec![],
++                imports: vec![
++                    import("package-name", "", "@scope/dayjs"),
++                    import("from-import", "dayjs", "default as dayjs"),
++                    import("local-export", "", "dayjs as default"),
++                ],
++                packages: vec!["@scope/dayjs"],
++                bases: vec![],
++            },
++        ];
++        let caller = mfile(
++            "src/app/page.ts",
++            &["page"],
++            vec![
++                import("from-import", "next/navigation", "redirect"),
++                import("from-import", "@scope/dayjs", "default as dayjs"),
++                import("from-import", "@/lib/navigation", "redirect as go"),
++            ],
++        );
++        let refs = vec![
++            call("redirect", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("dayjs", "")
++            },
++            RefRecord {
++                site_byte: 62,
++                ..call("go", "")
++            },
++        ];
++        let (dsts, why) = module_case("typescript", files, caller, refs);
++        assert_eq!(
++            dsts,
++            vec![at("redirect", "src/lib/navigation.ts")],
++            "{why:?}"
++        );
++        assert!(why.contains(&external("next/navigation")), "{why:?}");
++        assert!(why.contains(&external("dayjs")), "{why:?}");
++        assert_eq!(refusals(&why), 0, "{why:?}");
++    }
++
++    /// R12 (Go): in module mode an import path no `go.mod` covers is a
++    /// dependency, even with a package directory of the same name.
++    #[test]
++    fn go_stdlib_import_named_like_a_workspace_directory_is_external() {
++        let files = vec![go_pkg_file(
++            "internal/reflect/reflect.go",
++            "reflect",
++            "example.com/app/internal/reflect",
++            vec![(
++                "reflect.DeepEqual",
++                CallableKind::Function,
++                "func DeepEqual()",
++            )],
++            vec![],
++        )];
++        let caller = go_caller(vec![import("import", "reflect", "")]);
++        let (dsts, why) =
++            module_case("go", files, caller, vec![call("DeepEqual", "reflect")]);
++        assert!(dsts.is_empty(), "{dsts:?}");
++        assert_eq!(why, vec![external("reflect")]);
++    }
++
++    /// JS: a module whose value cgg cannot read (`module.exports = {
++    /// ...spread }`, `export default router` of a local variable) is no
++    /// proof a name is absent; `module.exports = require('./m')` carries
++    /// `./m`'s value, class instance included; a relative module cgg did
++    /// not analyze (`types.d.ts`) refuses only `mod.f()`.
++    #[test]
++    fn js_unreadable_values_are_not_proof_of_absence() {
++        let m = CallableKind::Method;
++        let files = vec![
++            mfile(
++                "core/utils/index.js",
++                &[],
++                vec![import("local-export", "", "<value> as default")],
++            ),
++            mfile(
++                "core/router.js",
++                &[],
++                vec![import("local-export", "", "router as default")],
++            ),
++            MFile {
++                path: "core/importer/import-manager.js",
++                defs: vec![("ImportManager.getExtensions", m, "")],
++                imports: vec![import("local-export", "", "ImportManager as default")],
++                packages: vec![],
++                bases: vec![],
++            },
++            mfile(
++                "core/importer/index.js",
++                &[],
++                vec![import("re-export", "./import-manager", "*, default")],
++            ),
++            mfile("zzz/decoy.js", &["addTable", "get"], vec![]),
++        ];
++        let caller = mfile(
++            "core/migrations/run.js",
++            &["run"],
++            vec![
++                import("from-import", "../utils", "addTable"),
++                import("import", "../router", "router"),
++                import("import", "../importer", "ImportManager"),
++                import("from-import", "../types", "Props"),
++            ],
++        );
++        let refs = vec![
++            call("addTable", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("get", "router")
++            },
++            RefRecord {
++                site_byte: 62,
++                ..call("getExtensions", "ImportManager")
++            },
++            RefRecord {
++                site_byte: 63,
++                ..call("render", "Props")
++            },
++        ];
++        let (dsts, why) = module_case("javascript", files, caller, refs);
++        assert!(
++            dsts.contains(&at(
++                "ImportManager.getExtensions",
++                "core/importer/import-manager.js"
++            )),
++            "{dsts:?}"
++        );
++        assert_eq!(refusals(&why), 0, "{why:?}");
++    }
++
++    /// The near miss of the above: a module whose exports cgg reads in
++    /// full, a default class without a constructor, and a namespace call
++    /// into an unanalyzed relative module are still decisive.
++    #[test]
++    fn js_readable_modules_stay_decisive() {
++        let m = CallableKind::Method;
++        let files = vec![
++            mfile("core/utils/index.js", &["other"], vec![]),
++            MFile {
++                path: "core/templates/email.js",
++                defs: vec![("Email.getPayload", m, "")],
++                imports: vec![import("local-export", "", "Email as default")],
++                packages: vec![],
++                bases: vec![],
++            },
++            mfile("zzz/decoy.js", &["addTable", "dbget"], vec![]),
++        ];
++        let caller = mfile(
++            "core/migrations/run.js",
++            &["run"],
++            vec![
++                import("from-import", "../utils", "addTable"),
++                import("from-import", "../templates/email", "default as Email"),
++                import("import", "../gone", "gone"),
++            ],
++        );
++        let refs = vec![
++            call("addTable", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("Email", "")
++            },
++            RefRecord {
++                site_byte: 62,
++                ..call("dbget", "gone")
++            },
++        ];
++        let (dsts, why) = module_case("javascript", files, caller, refs);
++        assert!(dsts.is_empty(), "{dsts:?}");
++        assert!(why.contains(&refused("../utils")), "{why:?}");
++        assert!(why.contains(&refused("../gone")), "{why:?}");
++        assert!(
++            why.iter()
++                .any(|w| matches!(w, UnresolvedReason::ClassWithoutExplicitInit)),
++            "{why:?}"
++        );
++    }
++
++    /// R13 (Zig): `const addRunArtifact = link.addRunArtifact;` names the
++    /// file `link` is; a name the calling file declares itself is never
++    /// bound to another file's copy.
++    #[test]
++    fn zig_member_aliases_and_own_declarations() {
++        let files = vec![
++            mfile("test/link/link.zig", &["addRunArtifact"], vec![]),
++            mfile("lib/std/Build.zig", &["addRunArtifact", "pack"], vec![]),
++            mfile("lib/std/crypto/ml_dsa.zig", &["pack"], vec![]),
++        ];
++        let caller = mfile(
++            "test/link/macho.zig",
++            &["testAll", "pack"],
++            vec![
++                import("import", "link.zig", "link"),
++                import("import", "std", "std"),
++                import("alias", "link.addRunArtifact", "addRunArtifact"),
++            ],
++        );
++        let refs = vec![
++            call("addRunArtifact", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("pack", "")
++            },
++        ];
++        let (dsts, _) = module_case("zig", files, caller, refs);
++        assert!(
++            dsts.contains(&at("addRunArtifact", "test/link/link.zig")),
++            "{dsts:?}"
++        );
++        assert!(
++            !dsts
++                .iter()
++                .any(|(q, p)| q == "pack" && p != "test/link/macho.zig"),
++            "{dsts:?}"
++        );
++        assert!(
++            !dsts.contains(&at("addRunArtifact", "lib/std/Build.zig")),
++            "{dsts:?}"
++        );
++    }
++
++    /// R14 (Erlang): `m:f(…)` binds module `m`'s `f` — the shipped copy
++    /// when test data keeps another, the clause of the call's arity —
++    /// never another module's `f`.
++    #[test]
++    fn erlang_remote_call_binds_its_module_only() {
++        let files = vec![
++            MFile {
++                path: "lib/asn1/src/asn1ct_gen_per.erl",
++                defs: vec![
++                    (
++                        "asn1ct_gen_per:gen_dec_prim",
++                        CallableKind::Function,
++                        "gen_dec_prim(A) -> a",
++                    ),
++                    (
++                        "asn1ct_gen_per:gen_dec_prim",
++                        CallableKind::Function,
++                        "gen_dec_prim(A, B) -> b",
++                    ),
++                ],
++                imports: vec![],
++                packages: vec![],
++                bases: vec![],
++            },
++            mfile(
++                "lib/dialyzer/test/r9c_SUITE_data/src/asn1/asn1ct_gen_per.erl",
++                &["asn1ct_gen_per:gen_dec_prim"],
++                vec![],
++            ),
++            mfile(
++                "lib/asn1/src/asn1ct_gen_ber_bin_v2.erl",
++                &["asn1ct_gen_ber_bin_v2:gen_dec_prim"],
++                vec![],
++            ),
++        ];
++        let caller = mfile(
++            "lib/ssl/src/user.erl",
++            &["user:run"],
++            vec![import("include", "x.hrl", "")],
++        );
++        let refs = vec![RefRecord {
++            arity: Some(2),
++            ..call("asn1ct_gen_per:gen_dec_prim", "asn1ct_gen_per")
++        }];
++        let (dsts, _) = module_case("erlang", files, caller, refs);
++        assert_eq!(
++            dsts,
++            vec![at(
++                "asn1ct_gen_per:gen_dec_prim",
++                "lib/asn1/src/asn1ct_gen_per.erl"
++            )]
++        );
++    }
++
++    /// R15 (F#): a bare call is never a type's member, wherever that type
++    /// is declared; the opened module's function is.
++    #[test]
++    fn fsharp_bare_call_never_reaches_a_member() {
++        let files = vec![
++            MFile {
++                path: "tests/Resolver/Generators.fs",
++                defs: vec![("PackageTypes.PackageName", CallableKind::Method, "")],
++                imports: vec![],
++                packages: vec![],
++                bases: vec![],
++            },
++            mfile("src/Core/Domain.fs", &["Paket.Domain.PackageName"], vec![]),
++        ];
++        let caller = mfile(
++            "tests/Resolver/PropertyTests.fs",
++            &["PropertyTests.check"],
++            vec![import("open", "Paket.Domain", "")],
++        );
++        let (dsts, _) =
++            module_case("fsharp", files, caller, vec![call("PackageName", "")]);
++        assert!(
++            !dsts.contains(&at(
++                "PackageTypes.PackageName",
++                "tests/Resolver/Generators.fs"
++            )),
++            "{dsts:?}"
++        );
++    }
++
++    /// R16 (Dart): `import 'fixtures.dart' as fixtures;` scopes bare
++    /// names to that file. A same-named function in some other file whose
++    /// path merely contains `fixtures` (`shell/common/fixtures/…`) is not
++    /// it; the imported file's own function is.
++    #[test]
++    fn dart_bare_call_needs_an_imported_file() {
++        let files = vec![
++            mfile(
++                "shell/common/fixtures/shell_test.dart",
++                &["expect", "load"],
++                vec![],
++            ),
++            mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
++        ];
++        let caller = mfile(
++            "tools/pkg/configs/test/loader_test.dart",
++            &["main"],
++            vec![
++                import("import", "package:test/test.dart", ""),
++                import("import", "fixtures.dart", "fixtures"),
++            ],
++        );
++        let refs = vec![
++            call("expect", ""),
++            RefRecord {
++                site_byte: 61,
++                ..call("load", "")
++            },
++        ];
++        let (dsts, _) = module_case("dart", files, caller, refs);
++        assert_eq!(
++            dsts,
++            vec![at("load", "tools/pkg/configs/test/fixtures.dart")],
++            "{dsts:?}"
++        );
++    }
++
++    /// Copies are files: the overloads or clauses one file declares
++    /// under a name stay together; from outside the tests the one copy
++    /// that is not test data is chosen.
++    #[test]
++    fn copies_are_files_and_test_data_is_not_shipped() {
++        let files = vec![
++            mfile("lib/compiler/src/cerl.erl", &["cerl:fold_literal"], vec![]),
++            mfile(
++                "lib/dialyzer/test/opaque_SUITE_data/src/cerl.erl",
++                &["cerl:fold_literal"],
++                vec![],
++            ),
++            mfile(
++                "lib/dialyzer/test/options1_SUITE_data/src/cerl.erl",
++                &["cerl:fold_literal"],
++                vec![],
++            ),
++        ];
++        let caller = mfile("lib/dialyzer/src/dataflow.erl", &["dataflow:run"], vec![]);
++        let (dsts, _) = module_case(
++            "erlang",
++            files,
++            caller,
++            vec![call("cerl:fold_literal", "cerl")],
++        );
++        assert_eq!(
++            dsts,
++            vec![at("cerl:fold_literal", "lib/compiler/src/cerl.erl")]
++        );
++    }
  }
 diff --git a/crates/cgg-resolve/src/heads.rs b/crates/cgg-resolve/src/heads.rs
-index c0e67cf..46317fa 100644
+index c0e67cf..25910df 100644
 --- a/crates/cgg-resolve/src/heads.rs
 +++ b/crates/cgg-resolve/src/heads.rs
-@@ -60,7 +60,7 @@ pub(crate) struct WorkspaceVocab {
-     npm_packages: HashSet<String>,
+@@ -57,10 +57,10 @@ pub(crate) struct WorkspaceVocab {
+     py_names: HashSet<String>,
+     /// JS/TS: package names (`package.json`, `deno.json`) and exact path
+     /// aliases found above analyzed files.
+-    npm_packages: HashSet<String>,
++    pub(crate) npm_packages: HashSet<String>,
      /// JS/TS: path-alias prefixes (tsconfig `"@app/*"` → `@app/`, a
      /// Deno import-map key `"@/"`), sorted.
 -    js_alias_prefixes: Vec<String>,
@@ -3851,6 +4769,15 @@ index c0e67cf..46317fa 100644
          let path = path.trim();
          if path.is_empty() {
              return true;
+@@ -783,7 +783,7 @@ fn bare_scope(s: &str) -> &str {
+ }
+ 
+ /// The npm package a bare specifier names: `@scope/name` or `name`.
+-fn npm_package_of(spec: &str) -> &str {
++pub(crate) fn npm_package_of(spec: &str) -> &str {
+     let mut it = spec.match_indices('/');
+     if spec.starts_with('@') {
+         it.next();
 @@ -818,7 +818,7 @@ fn jvm_package_of(path: &str) -> &str {
  /// The name a Go import binds when it has no alias: the package name,
  /// which by near-universal convention is the last path element without a
@@ -3861,10 +4788,30 @@ index c0e67cf..46317fa 100644
      let mut last = segs.pop().unwrap_or(path);
      let is_major = |s: &str| {
 diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
-index 3d34783..d52286c 100644
+index 3d34783..cd1c5de 100644
 --- a/crates/cgg-resolve/src/intra_file.rs
 +++ b/crates/cgg-resolve/src/intra_file.rs
-@@ -194,6 +194,27 @@ pub fn link_file_with_cap(
+@@ -165,12 +165,17 @@ pub fn link_file_with_cap(
+             continue;
+         }
+ 
+-        // Candidate defs by simple-name match in this file.
++        // Candidate defs by simple-name match in this file — or, for an
++        // Erlang `m:f(…)` naming this file's own module, by qualified name.
++        let erlang_own = facts.language == "erlang" && rref.name.contains(':');
+         let mut candidates: Vec<(u32, &DefRecord)> = facts
+             .definitions
+             .iter()
+             .enumerate()
+-            .filter(|(_, d)| d.simple_name == rref.name)
++            .filter(|(_, d)| {
++                d.simple_name == rref.name
++                    || (erlang_own && d.qualified_name == rref.name)
++            })
+             .map(|(i, d)| (i as u32, d))
+             .collect();
+ 
+@@ -194,6 +199,27 @@ pub fn link_file_with_cap(
              methods_out_of_scope = (before - candidates.len()) as u32;
          }
  
@@ -3892,7 +4839,107 @@ index 3d34783..d52286c 100644
          // Python lexical scope for a bare call. A function nested inside
          // another is visible by name only within it, and the innermost
          // definition shadows outer ones: `_scan()` inside the method that
-@@ -1026,6 +1047,48 @@ mod tests {
+@@ -258,7 +284,13 @@ pub fn link_file_with_cap(
+         // `Self::new`. Only if that yields nothing do we fall back to
+         // the looser "any path segment equals owner" match, which keeps
+         // module-qualified forms reachable.
+-        let rh = rref.receiver_hint.as_str();
++        // An Erlang `m:f` that matched names this module: `m` is the
++        // module, not a receiver to narrow by.
++        let rh = if erlang_own {
++            ""
++        } else {
++            rref.receiver_hint.as_str()
++        };
+         // C++ unqualified name lookup inside a member function searches the
+         // enclosing class before the enclosing namespace: `get_binary(...)`
+         // in `binary_reader::get_bson_binary` is `binary_reader::get_binary`
+@@ -696,6 +728,56 @@ fn clause_targets(
+     (firsts.into_iter().map(|(_, i, _)| i).collect(), confidence)
+ }
+ 
++/// Cross-file Erlang/Elixir candidates (one module's callables under one
++/// qualified name, possibly several files' worth): narrowed to the call's
++/// arity when that leaves any, then the first clause of each function
++/// (per file and arity) — the same reading [`clause_targets`] gives a
++/// call inside the file.
++pub(crate) fn first_clause_per_arity(
++    graph: &cgg_core::graph::Graph,
++    cids: &[cgg_core::ids::CallableId],
++    arity: Option<u32>,
++) -> Vec<cgg_core::ids::CallableId> {
++    let arity_of = |c: &cgg_core::ids::CallableId| {
++        graph
++            .callables
++            .get(c)
++            .and_then(|n| clause_arity(&n.signature_hint, &n.simple_name))
++    };
++    let mut pool: Vec<cgg_core::ids::CallableId> = cids.to_vec();
++    if let Some(a) = arity {
++        let narrowed: Vec<_> = pool
++            .iter()
++            .copied()
++            .filter(|c| arity_of(c) == Some(a))
++            .collect();
++        if !narrowed.is_empty() {
++            pool = narrowed;
++        }
++    }
++    let mut firsts: Vec<(
++        Option<cgg_core::ids::FileId>,
++        Option<u32>,
++        cgg_core::ids::CallableId,
++        u32,
++    )> = Vec::new();
++    for c in pool {
++        let Some(n) = graph.callables.get(&c) else {
++            continue;
++        };
++        let key = (Some(n.file), arity_of(&c));
++        match firsts.iter_mut().find(|(f, a, _, _)| (*f, *a) == key) {
++            Some(slot) if n.start_byte < slot.3 => {
++                slot.2 = c;
++                slot.3 = n.start_byte;
++            }
++            Some(_) => {}
++            None => firsts.push((key.0, key.1, c, n.start_byte)),
++        }
++    }
++    firsts.into_iter().map(|(_, _, c, _)| c).collect()
++}
++
+ /// The arity a clause's signature declares: `f(A, B) -> …` is 2, Elixir's
+ /// paren-less `def g, do: …` is 0. `None` when the hint does not show it.
+ fn clause_arity(hint: &str, name: &str) -> Option<u32> {
+@@ -970,6 +1052,27 @@ mod tests {
+         assert_eq!(out.edges[0].confidence, Confidence::High);
+     }
+ 
++    /// FINDINGS R14: `m:f(…)` written in module `m` is the file's own `f`
++    /// (self-recursion included); `other:f(…)` is never the file's `f`.
++    #[test]
++    fn erlang_remote_call_binds_in_file_only_for_its_own_module() {
++        let mut f = mk_def("f", "m:f", DefVariant::FreeFunction, (0, 50));
++        f.signature_hint = "f(N) -> m:f(N - 1)".into();
++        let defs = vec![f];
++        let mut own = mk_ref("m:f", 10);
++        own.receiver_hint = "m".into();
++        own.arity = Some(1);
++        let mut other = mk_ref("other:f", 20);
++        other.receiver_hint = "other".into();
++        other.arity = Some(1);
++        let facts = facts_with_lang("erlang", defs, vec![own, other]);
++        let map = mk_map(&facts);
++        let out = link_file_with_cap(&facts, &map, 0);
++        let sites: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
++        assert_eq!(sites, vec![10], "{:?}", out.edges);
++        assert_eq!(out.edges[0].dst, CallableId::new(0));
++    }
++
+     #[test]
+     fn clause_arity_reads_the_signature() {
+         assert_eq!(clause_arity("f(A, {B, C}) -> x", "f"), Some(2));
+@@ -1026,6 +1129,48 @@ mod tests {
          assert_eq!(out.unresolved[0].candidates.file_local, 2);
      }
  
@@ -3954,10 +5001,23 @@ index 2da987d..bf4857f 100644
  pub mod stack_graphs_resolver;
  pub mod type_hints;
 diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
-index 56afd6a..8cb490c 100644
+index 56afd6a..ded74f3 100644
 --- a/crates/cgg-resolve/src/type_hints.rs
 +++ b/crates/cgg-resolve/src/type_hints.rs
-@@ -402,10 +402,19 @@ pub fn propagate_types_with_fields(
+@@ -383,6 +383,12 @@ pub fn propagate_types_with_fields(
+     macros: &HashMap<String, String>,
+     aliases: &HashMap<String, String>,
+ ) {
++    // An Erlang receiver is the module atom of `m:f(…)` — never a variable,
++    // so never a value to type. Renaming `file` to a `File` some other
++    // language's function returns would lose the module.
++    if facts.language == "erlang" {
++        return;
++    }
+     // Pass 1: Extract type hints from definition signatures.
+     //
+     // The names and types are slices of `def.signature_hint`, and `facts`
+@@ -402,10 +408,19 @@ pub fn propagate_types_with_fields(
      // strings are simply freed now.
      let cpp = facts.language == "cpp";
      let rust = facts.language == "rust";
@@ -3978,7 +5038,7 @@ index 56afd6a..8cb490c 100644
          .collect();
      // Key: (enclosing_start_byte, variable_name) -> type_name. Last write
      // wins, exactly as the repeated `map.insert` did.
-@@ -432,12 +441,21 @@ pub fn propagate_types_with_fields(
+@@ -432,12 +447,21 @@ pub fn propagate_types_with_fields(
          if lt.var_name.starts_with("self.") {
              self_field_map
                  .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
@@ -4001,7 +5061,7 @@ index 56afd6a..8cb490c 100644
          RustLets::build(facts)
      } else {
          RustLets::default()
-@@ -652,6 +670,18 @@ pub fn propagate_types_with_fields(
+@@ -652,6 +676,18 @@ pub fn propagate_types_with_fields(
                      enclosing.map(|d| (d.start_byte, d.end_byte)),
                  )
                  .or_else(|| local_type_map.get(rh).copied())
@@ -4020,7 +5080,7 @@ index 56afd6a..8cb490c 100644
          } else {
              local_type_map.get(rh).copied()
          };
-@@ -806,6 +836,57 @@ fn collect_param_types(
+@@ -806,6 +842,57 @@ fn collect_param_types(
      out
  }
  
@@ -4078,7 +5138,7 @@ index 56afd6a..8cb490c 100644
  /// The text inside a signature's parameter list: the first parenthesised
  /// group at the top level that is not an annotation's argument list
  /// (`@SuppressWarnings("x")`, `@get:JvmName("y")`; a C# `[Attr(…)]` or PHP
-@@ -1457,6 +1538,13 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
+@@ -1457,6 +1544,13 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
      map
  }
  
@@ -4092,7 +5152,7 @@ index 56afd6a..8cb490c 100644
  /// Rust `let` bindings by name, each with the span of the innermost
  /// callable it was declared in, sorted by position. Built once per file.
  #[derive(Default)]
-@@ -1663,6 +1751,110 @@ mod tests {
+@@ -1663,6 +1757,141 @@ mod tests {
          }
      }
  
@@ -4200,15 +5260,46 @@ index 56afd6a..8cb490c 100644
 +        assert_eq!(got, vec!["pp", "pp.New()", "pp"]);
 +    }
 +
++    /// FINDINGS R14: an Erlang receiver is the module of `m:f(…)`; the
++    /// return-type heuristic that turns a `file` receiver into a `File`
++    /// some function returns never applies to it. The near miss: the same
++    /// shape in another language is still rewritten.
++    #[test]
++    fn erlang_module_receivers_are_never_typed() {
++        let mut ret: HashMap<&str, &str> = HashMap::new();
++        ret.insert("file", "File");
++        let index = ReturnTypeIndex::build(&ret);
++        for (lang, want) in [("erlang", "file"), ("python", "File")] {
++            let defs = vec![mk_def("m:run", "run(Fd) -> ok", 0, 100)];
++            let refs = vec![
++                RefRecord {
++                    name: "file".into(),
++                    site_byte: 10,
++                    ..Default::default()
++                },
++                RefRecord {
++                    name: "file:position".into(),
++                    receiver_hint: "file".into(),
++                    site_byte: 20,
++                    ..Default::default()
++                },
++            ];
++            let mut facts = mk_facts(defs, refs);
++            facts.language = lang.into();
++            propagate_types_with_returns(&mut facts, &index);
++            assert_eq!(facts.references[1].receiver_hint, want, "{lang}");
++        }
++    }
++
      #[test]
      fn param_type_rewrites_receiver() {
          let defs = vec![
 diff --git a/crates/cgg-resolve/src/modules.rs b/crates/cgg-resolve/src/modules.rs
 new file mode 100644
-index 0000000..ba906a6
+index 0000000..d7be508
 --- /dev/null
 +++ b/crates/cgg-resolve/src/modules.rs
-@@ -0,0 +1,2145 @@
+@@ -0,0 +1,2250 @@
 +//! Module-scoped resolution (FINDINGS A4, A5).
 +//!
 +//! A call written through an import of a *workspace* module names that
@@ -4359,6 +5450,8 @@ index 0000000..ba906a6
 +    js_exported: HashMap<&'a str, Vec<FileId>>,
 +    /// JS/TS: path-alias prefixes (tsconfig `paths`, import maps).
 +    js_alias_prefixes: Vec<String>,
++    /// JS/TS: package names and exact aliases the tree declares.
++    js_known_packages: HashSet<String>,
 +    /// Go: every `go.mod` module path the tree declares.
 +    go_modules: Vec<&'a str>,
 +    /// Python: file → (dotted module name, is a package `__init__.py`).
@@ -4399,6 +5492,7 @@ index 0000000..ba906a6
 +    ) -> Self {
 +        let mut ix = ModuleIndex {
 +            js_alias_prefixes: vocab.js_alias_prefixes.clone(),
++            js_known_packages: vocab.npm_packages.clone(),
 +            ..ModuleIndex::default()
 +        };
 +        let mut per_file: HashMap<FileId, Vec<(u32, u32, CallableId)>> = HashMap::new();
@@ -4741,7 +5835,11 @@ index 0000000..ba906a6
 +        // importer's own package (`baseUrl`, `NODE_PATH`): that a
 +        // `navigation.ts` exists somewhere says nothing.
 +        let aliased = self.js_prefix_alias(spec);
-+        let tries = if aliased { segs.len() } else { segs.len().min(1) };
++        let tries = if aliased {
++            segs.len()
++        } else {
++            segs.len().min(1)
++        };
 +        for k in 0..tries {
 +            let suffix = &segs[k..];
 +            let Some(cands) = suffix.last().and_then(|l| self.js_by_last.get(l)) else {
@@ -4751,7 +5849,9 @@ index 0000000..ba906a6
 +            for (key, file) in cands {
 +                // A module never imports itself (`import dayjs from
 +                // "dayjs"` inside the workspace's own `dayjs` package).
-+                if !key.ends_with(suffix) || *file == from || hits.iter().any(|(f, _)| f == file)
++                if !key.ends_with(suffix)
++                    || *file == from
++                    || hits.iter().any(|(f, _)| f == file)
 +                {
 +                    continue;
 +                }
@@ -4795,7 +5895,13 @@ index 0000000..ba906a6
 +    /// (`@/x`, `~/x`, `#x`, `$lib/x`, a tsconfig `paths` prefix, a Deno
 +    /// root-relative `/x`).
 +    fn js_prefix_alias(&self, spec: &str) -> bool {
-+        spec.starts_with(['/', '~', '#', '$'])
++        // A package or exact alias the tree names (`@acme/net` in a
++        // `package.json` of the tree): its head is no directory either.
++        self.js_known_packages.contains(spec)
++            || self
++                .js_known_packages
++                .contains(crate::heads::npm_package_of(spec))
++            || spec.starts_with(['/', '~', '#', '$'])
 +            || spec.starts_with("@/")
 +            || self
 +                .js_alias_prefixes
@@ -4861,15 +5967,16 @@ index 0000000..ba906a6
 +    fn js_declares_class(&self, m: FileId, export: &str) -> bool {
 +        self.js_owners.contains(&(m, export))
 +            || self.js_exports.get(&m).is_some_and(|ex| {
-+                ex.local
-+                    .iter()
-+                    .any(|(e, l)| e == export && self.js_owners.contains(&(m, l.as_str())))
++                ex.local.iter().any(|(e, l)| {
++                    e == export && self.js_owners.contains(&(m, l.as_str()))
++                })
 +            })
 +    }
 +
 +    /// The dependency `m` exports `export` from: `import x from "dep";
 +    /// export default x` (or `export { x }`), `export { x } from "dep"`,
-+    /// where `dep` is a package the tree does not contain.
++    /// `export * from "dep"`, where `dep` is a package the tree does not
++    /// contain. Asked only once the lookup missed.
 +    fn js_export_from_dependency(&self, m: FileId, export: &str) -> Option<String> {
 +        let f = self.facts.get(&m)?;
 +        let ex = self.js_exports.get(&m)?;
@@ -4895,9 +6002,15 @@ index 0000000..ba906a6
 +        }
 +        for imp in f.imports.iter().filter(|i| i.kind == "re-export") {
 +            let spec = imp.path.trim();
++            // `export { x } from "dep"`, or `export * from "dep"` for a
++            // name the module itself does not provide.
 +            let names = imp.alias.split(',').any(|item| {
 +                let item = item.trim();
-+                item != "*" && !item.starts_with("* as ") && split_as(item).1 == export
++                if item == "*" {
++                    export != "default"
++                } else {
++                    !item.starts_with("* as ") && split_as(item).1 == export
++                }
 +            });
 +            if names && unfound(spec) {
 +                return Some(spec.to_string());
@@ -4908,12 +6021,74 @@ index 0000000..ba906a6
 +
 +    /// Whether `m`'s default export is a value cgg could not name
 +    /// (`export default createX()`, `module.exports = makeThing()`).
++    /// So is a default export naming a variable (`const router =
++    /// express.Router(); module.exports = router`), or an import whose
++    /// value is one of those.
 +    fn js_unknown_default(&self, m: FileId) -> bool {
-+        self.js_exports.get(&m).is_some_and(|ex| {
-+            ex.local
++        self.js_unknown_default_at(m, 0)
++    }
++
++    fn js_unknown_default_at(&self, m: FileId, depth: u8) -> bool {
++        if depth > MAX_DEPTH {
++            return false;
++        }
++        let Some(ex) = self.js_exports.get(&m) else {
++            return false;
++        };
++        ex.local
++            .iter()
++            .filter(|(e, _)| e == "default")
++            .any(|(_, l)| self.js_unknown_value(m, l, depth))
++            // `module.exports = require('./m')`: `./m`'s value.
++            || ex
++                .named
 +                .iter()
-+                .any(|(e, l)| e == "default" && l == UNKNOWN_EXPORT)
-+        })
++                .filter(|(e, o, _)| e == "default" && o == "default")
++                .any(|(_, _, files)| {
++                    files
++                        .iter()
++                        .any(|t| self.js_unknown_default_at(*t, depth + 1))
++                })
++    }
++
++    /// Whether the module-level name `l` of `m` is a value cgg cannot
++    /// read: not a function or class `m` declares, and not an import of
++    /// one.
++    fn js_unknown_value(&self, m: FileId, l: &str, depth: u8) -> bool {
++        if l == UNKNOWN_EXPORT {
++            return true;
++        }
++        if !self.js_module_level(m, l).is_empty() || self.js_owners.contains(&(m, l)) {
++            return false;
++        }
++        let Some(f) = self.facts.get(&m) else {
++            return true;
++        };
++        for imp in &f.imports {
++            let orig = match imp.kind.as_str() {
++                "from-import" => imp.alias.split(',').find_map(|item| {
++                    let (o, local) = split_as(item.trim());
++                    (local == l).then_some(Some(o))
++                }),
++                "import" if imp.alias.trim() == l => Some(None),
++                _ => None,
++            };
++            let Some(orig) = orig else { continue };
++            let targets = self.js_resolve(m, imp.path.trim()).files;
++            return match orig {
++                // A namespace / `require()` / default binding: that
++                // module's value.
++                None | Some("default") => targets
++                    .iter()
++                    .any(|(t, _)| self.js_unknown_default_at(*t, depth + 1)),
++                Some(o) => targets.iter().any(|(t, _)| {
++                    self.js_module_level(*t, o).is_empty()
++                        && !self.js_owners.contains(&(*t, o))
++                }),
++            };
++        }
++        // A local variable.
++        true
 +    }
 +
 +    fn js_probe(&self, base: &Path) -> Option<FileId> {
@@ -5609,7 +6784,10 @@ index 0000000..ba906a6
 +                        } else if ty.is_empty()
 +                            && let Some(start) = open.take()
 +                        {
-+                            fm.go_shadow.entry(name.to_string()).or_default().push((start, b));
++                            fm.go_shadow
++                                .entry(name.to_string())
++                                .or_default()
++                                .push((start, b));
 +                        }
 +                    }
 +                }
@@ -5659,11 +6837,14 @@ index 0000000..ba906a6
 +        } else {
 +            leading_ident(rh.strip_prefix("new ").unwrap_or(rh))
 +        };
-+        if lang != "go" && caller_sig.is_some_and(|sig| param_names(sig).iter().any(|p| *p == head)) {
++        if lang != "go" && caller_sig.is_some_and(|sig| param_names(sig).contains(&head))
++        {
 +            return None;
 +        }
 +        match lang {
-+            "javascript" | "typescript" => self.resolve_js(ix, file, r, rh, ctor_names, bases),
++            "javascript" | "typescript" => {
++                self.resolve_js(ix, file, r, rh, ctor_names, bases)
++            }
 +            "python" => self.resolve_py(ix, file, r, rh, bases),
 +            "go" => self.resolve_go(ix, file, r, rh, bases),
 +            _ => None,
@@ -5720,10 +6901,11 @@ index 0000000..ba906a6
 +                    let targets = || b.targets.files.iter().map(|(t, _)| *t);
 +                    if targets().any(|t| ix.js_declares_class(t, &export)) {
 +                        Some(Scoped::NoCtor)
-+                    } else if (export == "default"
-+                        && targets().any(|t| ix.js_unknown_default(t)))
-+                        || targets().any(|t| ix.js_defines_somewhere(t, &export))
-+                    {
++                    } else if targets().any(|t| {
++                        // An unreadable `module.exports` value: its
++                        // properties are unknown too.
++                        ix.js_unknown_default(t) || ix.js_defines_somewhere(t, &export)
++                    }) {
 +                        None
 +                    } else if let Some(dep) =
 +                        targets().find_map(|t| ix.js_export_from_dependency(t, &export))
@@ -5839,7 +7021,20 @@ index 0000000..ba906a6
 +                    && !b.targets.files.iter().any(|(t, _)| {
 +                        ix.js_unknown_default(*t) || ix.js_defines_somewhere(*t, &r.name)
 +                    });
-+                decisive.then(|| ix.js_miss(file, b))
++                if !decisive {
++                    return None;
++                }
++                Some(
++                    match b
++                        .targets
++                        .files
++                        .iter()
++                        .find_map(|(t, _)| ix.js_export_from_dependency(*t, &r.name))
++                    {
++                        Some(dep) => Scoped::External(dep),
++                        None => ix.js_miss(file, b),
++                    },
++                )
 +            }
 +        }
 +    }
@@ -6038,7 +7233,8 @@ index 0000000..ba906a6
 +/// the tree does not contain — a dependency (`next/headers`, `lexical`),
 +/// whatever directory shares its first segment.
 +fn js_unfound(spec: &str) -> Scoped {
-+    let relative = spec.starts_with("./") || spec.starts_with("../") || spec == "." || spec == "..";
++    let relative =
++        spec.starts_with("./") || spec.starts_with("../") || spec == "." || spec == "..";
 +    if relative {
 +        Scoped::Refused(spec.to_string())
 +    } else {
