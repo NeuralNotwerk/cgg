@@ -160,3 +160,37 @@ Residual (not blocking, record in report): OCaml local `let rec go` / module
     aliases swap one wrong cross-file target for another (src/fiber/src/
     stream.ml:174); JS bare call through a local/param (`knex(...)`, `debug(...)`)
     still name-matched cross-file (pre-existing).
+
+# Round 3: orchestrator audit of ab/WS4-v8r (2026-10-12 ~19:45, post-crash rerun)
+v8 binary = bins/WS4-after-v8 (rebuilt post-crash, byte-identical). hcl-terraform-aws
+timed out old AND new (excluded). Accepted: Erlang `m:f` now binding to workspace
+modules (erlang-otp +247k high, rebar3/vernemq: all sampled correct — OTP's own
+lists/io/filename modules are in the tree); Java/C# overload fan-out WITHIN the
+caller's own class (play Results.status, newtonsoft WriteValue): correct.
+
+New regressions (none present in v7; introduced by round 2, likely the R10 fix):
+R17 Java/C#: a bare call fans out to same-named methods of UNRELATED classes.
+    34,430 Java + 1,292 C# adds at sites whose targets span >1 owner class.
+    app-storm-starter storm-client/.../generated/Nimbus.java:52962
+    `_Fields fields = findByThriftId(fieldId);` inside nested `X._Fields` → 220
+    targets (every generated class's `_Fields.findByThriftId`); `unset_aze()` →
+    Nimbus.* and Supervisor.* copies. Bare call scope = enclosing class chain
+    (lexically enclosing classes + their declared bases + static imports), then
+    stop; never a name match across the corpus.
+R18 Java/C#: same-qn COPIES (identical FQN in several modules/samples): kapua
+    simulator-kura/.../proto/KuraPayloadProto.java:811 `hasFloatValue()` binds all
+    3 copies; orleans-samples `Complete(...)`, `InitializeComponent()` → 6–28
+    copies; scala-play docs `new User()` (javaguide/binder/models/User.java:45) →
+    another sbt-test's models.User. The caller's own file/copy wins — "a copy is
+    a file" (as already done for Erlang/Zig in round 2).
+R19 Zig: a file-local `const assert = std.debug.assert;` where the alias target
+    is NOT in the workspace must be external, never name-matched: tigerbeetle
+    7,314 adds `assert(...)` → src/clients/java/src/jni_tests.zig assert (medium).
+    Where the alias path IS in the workspace (zig-zig `const expect =
+    std.testing.expect;` → lib/std/testing.zig) follow the alias, at high, rather
+    than name-matching at medium.
+R20 Java dead-code: +285 findings newly HIGH (groovy-gradle 120, druid 49, smithy
+    32, thingsboard 26, gson 16, spark 16; C# newtonsoft 15). Samples are overrides
+    / interface impls (ImmutableActionSet.EmptySet.addOne, *.configure, destroy,
+    getEnumValue, JProperty.RemoveItemAt). v7 had −6. Find what round 2 removed
+    that used to hold them at medium/low and restore it (or explain each class).
