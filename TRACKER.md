@@ -13,7 +13,12 @@ User rules:
   frameworks and builtins (framework rule tables, stdlib/builtin tables are
   the only place names may appear).
 
-Repo conventions: branch `remediate/cross-language` (local, never pushed).
+Repo conventions: branch `remediate/cross-language`. USER RULE (2026-10-12): after EVERY fix set,
+commit AND push to remotes `origin` and `backup` — the box's NVMe is failing. Also run
+`tools/push_state.sh "<msg>"` after every fix set and every tracker update: it snapshots this
+directory (minus binaries / full graph outputs) onto orphan branch `remediation-state` on both
+remotes. To resume on another box: clone, `git checkout remediate/cross-language`, and
+`git show remediation-state:TRACKER.md`.
 One commit per workstream after review, staging only the workstream's
 files — NEVER stage the user's own uncommitted CLAUDE.md / scripts/release.sh /
 scripts/upgrade-local.sh edits. Commit with `CGG_INSTALL_DIR=""` so an
@@ -48,3 +53,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 ## Log
 - 2026-10-12: tracker created; baseline bins/cgg-0.10.2 (= 5b4bdec); harness null test 0 diffs (5 repos); sensitivity 0.10.0->0.10.2 reproduces nkb 105->17 high.
 - 2026-10-12 01:00: WS1 started; before = bins/WS1-before (0.10.2). Cron c84238a3 every 2h at :17.
+- 2026-10-12 01:10: user: commit+push after every fix set (failing NVMe). Pushed remediate/cross-language (=5b4bdec) and remediation-state to origin+backup.
