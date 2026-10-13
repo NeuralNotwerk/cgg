@@ -20,18 +20,59 @@ use std::path::Path;
 /// (`replace example.com/lib => ../lib`): such a module is built from
 /// source next to this one, not downloaded. Empty when no `go.mod` is
 /// found (a GOPATH-era tree).
-pub(crate) fn go_module_names(path: &Path) -> Vec<String> {
+///
+/// Returned together with the import path of the file's own package:
+/// the `module` path joined with the file's directory relative to the
+/// `go.mod` (`example.com/app` + `internal/jobs`). `None` without a
+/// `go.mod` or a `module` directive. One read of the manifest serves
+/// both.
+pub(crate) fn go_module_info(path: &Path) -> (Vec<String>, Option<String>) {
     let mut dir = path.parent();
     while let Some(d) = dir {
         let gomod = d.join("go.mod");
         if gomod.is_file() {
-            return std::fs::read_to_string(&gomod)
-                .map(|text| parse_go_mod(&text))
-                .unwrap_or_default();
+            let Ok(text) = std::fs::read_to_string(&gomod) else {
+                return (Vec::new(), None);
+            };
+            let package = go_mod_module(&text).map(|module| {
+                let rel: Vec<String> = path
+                    .parent()
+                    .and_then(|p| p.strip_prefix(d).ok())
+                    .map(|r| {
+                        r.components()
+                            .filter_map(|c| match c {
+                                std::path::Component::Normal(s) => {
+                                    Some(s.to_string_lossy().into_owned())
+                                }
+                                _ => None,
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if rel.is_empty() {
+                    module
+                } else {
+                    format!("{module}/{}", rel.join("/"))
+                }
+            });
+            return (parse_go_mod(&text), package);
         }
         dir = d.parent();
     }
-    Vec::new()
+    (Vec::new(), None)
+}
+
+/// The `module` directive of a `go.mod` body.
+fn go_mod_module(text: &str) -> Option<String> {
+    text.lines().find_map(|line| {
+        let line = line.split("//").next().unwrap_or("").trim();
+        let rest = line.strip_prefix("module")?;
+        if !rest.starts_with(char::is_whitespace) {
+            return None;
+        }
+        let m = rest.trim().trim_matches('"');
+        (!m.is_empty()).then(|| m.to_string())
+    })
 }
 
 /// `module` and locally-replaced module paths from a `go.mod` body.
@@ -81,22 +122,41 @@ fn local_replace(spec: &str) -> Option<String> {
     (local && !old.is_empty()).then(|| old.to_string())
 }
 
-/// Names a JS/TS file's code is imported under, besides relative
-/// specifiers:
-///
-/// * the `name` of the nearest `package.json` that declares one — a
-///   nameless manifest (`{"type": "module"}` in a sub-directory) makes no
-///   package, so the walk goes on to the enclosing one;
-/// * the `name` of every `deno.json` / `deno.jsonc` / `jsr.json` above the
-///   file, and each of their import-map keys that maps into the tree
-///   (`"@/": "./src/"`) — a Deno workspace imports its members by name;
-/// * every `compilerOptions.paths` key of the nearest `tsconfig.json` /
-///   `jsconfig.json`, following a relative `extends` chain (`"@app/*"`).
-///
-/// Path-alias keys keep their `*` or trailing `/`; the resolver reads
-/// those as prefixes.
-pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
+/// What a JS/TS file's manifests say about it.
+#[derive(Debug, Default)]
+pub(crate) struct JsModuleInfo {
+    /// Names the file's code is imported under, besides relative
+    /// specifiers:
+    ///
+    /// * the `name` of the nearest `package.json` that declares one — a
+    ///   nameless manifest (`{"type": "module"}` in a sub-directory) makes
+    ///   no package, so the walk goes on to the enclosing one;
+    /// * the `name` of every `deno.json` / `deno.jsonc` / `jsr.json` above
+    ///   the file, and each of their import-map keys that maps into the
+    ///   tree (`"@/": "./src/"`) — a Deno workspace imports its members by
+    ///   name;
+    /// * every `compilerOptions.paths` key of the nearest `tsconfig.json` /
+    ///   `jsconfig.json`, following a relative `extends` chain (`"@app/*"`).
+    ///
+    /// Path-alias keys keep their `*` or trailing `/`; the resolver reads
+    /// those as prefixes.
+    pub(crate) names: Vec<String>,
+    /// The package the file belongs to: the `name` of the nearest
+    /// `package.json` / `deno.json` / `jsr.json` that declares one. Unlike
+    /// `names` — which also carries every ancestor Deno name and the
+    /// tsconfig `paths` keys a file may import through — this is where the
+    /// file's own package root is.
+    pub(crate) own: Option<String>,
+    /// The specifiers that package's `exports` map gives this file
+    /// (`@std/assert/instance-of` for `assert/instance_of.ts` under
+    /// `"./instance-of": "./instance_of.ts"`).
+    pub(crate) exported_as: Vec<String>,
+}
+
+pub(crate) fn js_module_manifest(path: &Path) -> JsModuleInfo {
     let mut out: Vec<String> = Vec::new();
+    let mut own: Option<String> = None;
+    let mut exported_as: Vec<String> = Vec::new();
     let mut npm_done = false;
     let mut ts_done = false;
     let mut dir = path.parent();
@@ -105,6 +165,10 @@ pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
             && let Some(m) = read_jsonc(&d.join("package.json"))
             && let Some(name) = json_name(&m)
         {
+            if own.is_none() {
+                exported_as = exports_naming(d, &m, &name, path);
+                own = Some(name.clone());
+            }
             out.push(name);
             npm_done = true;
         }
@@ -112,6 +176,12 @@ pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
             let Some(m) = read_jsonc(&d.join(f)) else {
                 continue;
             };
+            if let Some(name) = json_name(&m)
+                && own.is_none()
+            {
+                exported_as = exports_naming(d, &m, &name, path);
+                own = Some(name);
+            }
             out.extend(json_name(&m));
             if let Some(map) = m.get("imports").and_then(|v| v.as_object()) {
                 for (k, v) in map {
@@ -134,6 +204,108 @@ pub(crate) fn js_module_names(path: &Path) -> Vec<String> {
     }
     out.sort();
     out.dedup();
+    JsModuleInfo {
+        names: out,
+        own,
+        exported_as,
+    }
+}
+
+/// The specifiers a manifest's `exports` map gives `file`: `"."` is the
+/// package name itself, `"./x"` is `name/x`, a `*` pattern maps the part
+/// it matches. A conditional target (`{"import": …, "default": …}`) is
+/// read through its first plain path.
+fn exports_naming(
+    dir: &Path,
+    manifest: &serde_json::Value,
+    name: &str,
+    file: &Path,
+) -> Vec<String> {
+    fn target(v: &serde_json::Value) -> Option<&str> {
+        match v {
+            serde_json::Value::String(s) => Some(s.as_str()),
+            serde_json::Value::Array(a) => a.iter().find_map(target),
+            serde_json::Value::Object(o) => {
+                for key in [
+                    "import", "module", "default", "deno", "node", "require", "browser",
+                ] {
+                    if let Some(t) = o.get(key).and_then(target) {
+                        return Some(t);
+                    }
+                }
+                o.values().find_map(target)
+            }
+            _ => None,
+        }
+    }
+    let Some(exports) = manifest.get("exports") else {
+        return Vec::new();
+    };
+    let entries: Vec<(String, &str)> = match exports {
+        serde_json::Value::Object(o) if o.keys().all(|k| k.starts_with('.')) => o
+            .iter()
+            .filter_map(|(k, v)| target(v).map(|t| (k.clone(), t)))
+            .collect(),
+        other => target(other)
+            .map(|t| vec![(".".to_string(), t)])
+            .unwrap_or_default(),
+    };
+    let file = normalize_path(file);
+    let mut out = Vec::new();
+    for (key, t) in entries {
+        if !is_local_target(t) {
+            continue;
+        }
+        let spec_of = |sub: &str| {
+            if sub == "." {
+                name.to_string()
+            } else {
+                format!("{name}/{}", sub.trim_start_matches("./"))
+            }
+        };
+        match (key.split_once('*'), t.split_once('*')) {
+            (Some((kp, ks)), Some((tp, ts))) => {
+                let (tp, ts) = (normalize_path(&dir.join(tp)), ts);
+                let f = file.to_string_lossy();
+                let base = tp.to_string_lossy();
+                if let Some(mid) = f
+                    .strip_prefix(base.as_ref())
+                    .and_then(|r| r.strip_suffix(ts))
+                {
+                    out.push(spec_of(&format!("{kp}{mid}{ks}")));
+                }
+            }
+            _ => {
+                if normalize_path(&dir.join(t)) == file {
+                    out.push(spec_of(&key));
+                }
+            }
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// `.` and `..` resolved without touching the filesystem.
+fn normalize_path(p: &Path) -> std::path::PathBuf {
+    let mut out = std::path::PathBuf::new();
+    for c in p.components() {
+        match c {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                if matches!(
+                    out.components().next_back(),
+                    Some(std::path::Component::Normal(_))
+                ) {
+                    out.pop();
+                } else {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
     out
 }
 
@@ -278,6 +450,31 @@ mod tests {
         );
     }
 
+    /// The import path of a Go file's own package: the `module` path and
+    /// the file's directory below the `go.mod` (FINDINGS A5). The module
+    /// root package is the module path itself.
+    #[test]
+    fn go_package_import_path_from_the_nearest_go_mod() {
+        let tmp = std::env::temp_dir()
+            .join(format!("__cgg_manifest_gopkg_{}", std::process::id()));
+        let sub = tmp.join("internal").join("jobs");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(
+            tmp.join("go.mod"),
+            "// header\nmodule example.com/app\n\nreplace example.com/lib => ../lib\n",
+        )
+        .unwrap();
+        let (mods, deep) = go_module_info(&sub.join("jobs.go"));
+        let (_, root) = go_module_info(&tmp.join("main.go"));
+        std::fs::remove_dir_all(&tmp).ok();
+        assert_eq!(
+            mods,
+            vec!["example.com/app".to_string(), "example.com/lib".to_string()]
+        );
+        assert_eq!(deep.as_deref(), Some("example.com/app/internal/jobs"));
+        assert_eq!(root.as_deref(), Some("example.com/app"));
+    }
+
     #[test]
     fn go_mod_quoted_module_and_no_false_prefix() {
         assert_eq!(
@@ -316,7 +513,10 @@ mod tests {
             r#"{"compilerOptions": {"paths": {"@shared/*": ["../shared/*"]}}}"#,
         )
         .unwrap();
-        let names = js_module_names(&sub.join("index.ts"));
+        let info = js_module_manifest(&sub.join("index.ts"));
+        let (names, own) = (info.names, info.own);
+        // The file's own package: the nearest manifest that names one.
+        assert_eq!(own.as_deref(), Some("@acme/core"));
         std::fs::remove_dir_all(&tmp).ok();
         for want in [
             "@acme/core",

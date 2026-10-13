@@ -165,12 +165,17 @@ pub fn link_file_with_cap(
             continue;
         }
 
-        // Candidate defs by simple-name match in this file.
+        // Candidate defs by simple-name match in this file — or, for an
+        // Erlang `m:f(…)` naming this file's own module, by qualified name.
+        let erlang_own = facts.language == "erlang" && rref.name.contains(':');
         let mut candidates: Vec<(u32, &DefRecord)> = facts
             .definitions
             .iter()
             .enumerate()
-            .filter(|(_, d)| d.simple_name == rref.name)
+            .filter(|(_, d)| {
+                d.simple_name == rref.name
+                    || (erlang_own && d.qualified_name == rref.name)
+            })
             .map(|(i, d)| (i as u32, d))
             .collect();
 
@@ -192,6 +197,27 @@ pub fn link_file_with_cap(
             candidates
                 .retain(|(_, d)| !is_method_variant(d.variant) && !is_async_method(d));
             methods_out_of_scope = (before - candidates.len()) as u32;
+        }
+
+        // Perl resolves a bare sub name in the calling package only:
+        // `zlist($d)` in `package main` is `main::zlist`, never the
+        // `Repo::zlist` declared further up the same file — that one is
+        // reached as `Repo::zlist(…)`, `Repo->zlist`, or through an import
+        // (FINDINGS A6).
+        if rref.receiver_hint.is_empty()
+            && !rref.dot_call
+            && facts.language == "perl"
+            && !rref.name.contains("::")
+            && let Some(caller) = enclosing
+        {
+            let package = |qn: &str| match qn.rsplit_once("::") {
+                Some(("main", _)) | None => String::new(),
+                Some((p, _)) => p.to_string(),
+            };
+            let own = package(&facts.definitions[caller].qualified_name);
+            let before = candidates.len();
+            candidates.retain(|(_, d)| package(&d.qualified_name) == own);
+            methods_out_of_scope += (before - candidates.len()) as u32;
         }
 
         // Python lexical scope for a bare call. A function nested inside
@@ -258,7 +284,13 @@ pub fn link_file_with_cap(
         // `Self::new`. Only if that yields nothing do we fall back to
         // the looser "any path segment equals owner" match, which keeps
         // module-qualified forms reachable.
-        let rh = rref.receiver_hint.as_str();
+        // An Erlang `m:f` that matched names this module: `m` is the
+        // module, not a receiver to narrow by.
+        let rh = if erlang_own {
+            ""
+        } else {
+            rref.receiver_hint.as_str()
+        };
         // C++ unqualified name lookup inside a member function searches the
         // enclosing class before the enclosing namespace: `get_binary(...)`
         // in `binary_reader::get_bson_binary` is `binary_reader::get_binary`
@@ -696,6 +728,56 @@ fn clause_targets(
     (firsts.into_iter().map(|(_, i, _)| i).collect(), confidence)
 }
 
+/// Cross-file Erlang/Elixir candidates (one module's callables under one
+/// qualified name, possibly several files' worth): narrowed to the call's
+/// arity when that leaves any, then the first clause of each function
+/// (per file and arity) — the same reading [`clause_targets`] gives a
+/// call inside the file.
+pub(crate) fn first_clause_per_arity(
+    graph: &cgg_core::graph::Graph,
+    cids: &[cgg_core::ids::CallableId],
+    arity: Option<u32>,
+) -> Vec<cgg_core::ids::CallableId> {
+    let arity_of = |c: &cgg_core::ids::CallableId| {
+        graph
+            .callables
+            .get(c)
+            .and_then(|n| clause_arity(&n.signature_hint, &n.simple_name))
+    };
+    let mut pool: Vec<cgg_core::ids::CallableId> = cids.to_vec();
+    if let Some(a) = arity {
+        let narrowed: Vec<_> = pool
+            .iter()
+            .copied()
+            .filter(|c| arity_of(c) == Some(a))
+            .collect();
+        if !narrowed.is_empty() {
+            pool = narrowed;
+        }
+    }
+    let mut firsts: Vec<(
+        Option<cgg_core::ids::FileId>,
+        Option<u32>,
+        cgg_core::ids::CallableId,
+        u32,
+    )> = Vec::new();
+    for c in pool {
+        let Some(n) = graph.callables.get(&c) else {
+            continue;
+        };
+        let key = (Some(n.file), arity_of(&c));
+        match firsts.iter_mut().find(|(f, a, _, _)| (*f, *a) == key) {
+            Some(slot) if n.start_byte < slot.3 => {
+                slot.2 = c;
+                slot.3 = n.start_byte;
+            }
+            Some(_) => {}
+            None => firsts.push((key.0, key.1, c, n.start_byte)),
+        }
+    }
+    firsts.into_iter().map(|(_, _, c, _)| c).collect()
+}
+
 /// The arity a clause's signature declares: `f(A, B) -> …` is 2, Elixir's
 /// paren-less `def g, do: …` is 0. `None` when the hint does not show it.
 fn clause_arity(hint: &str, name: &str) -> Option<u32> {
@@ -970,6 +1052,27 @@ mod tests {
         assert_eq!(out.edges[0].confidence, Confidence::High);
     }
 
+    /// FINDINGS R14: `m:f(…)` written in module `m` is the file's own `f`
+    /// (self-recursion included); `other:f(…)` is never the file's `f`.
+    #[test]
+    fn erlang_remote_call_binds_in_file_only_for_its_own_module() {
+        let mut f = mk_def("f", "m:f", DefVariant::FreeFunction, (0, 50));
+        f.signature_hint = "f(N) -> m:f(N - 1)".into();
+        let defs = vec![f];
+        let mut own = mk_ref("m:f", 10);
+        own.receiver_hint = "m".into();
+        own.arity = Some(1);
+        let mut other = mk_ref("other:f", 20);
+        other.receiver_hint = "other".into();
+        other.arity = Some(1);
+        let facts = facts_with_lang("erlang", defs, vec![own, other]);
+        let map = mk_map(&facts);
+        let out = link_file_with_cap(&facts, &map, 0);
+        let sites: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
+        assert_eq!(sites, vec![10], "{:?}", out.edges);
+        assert_eq!(out.edges[0].dst, CallableId::new(0));
+    }
+
     #[test]
     fn clause_arity_reads_the_signature() {
         assert_eq!(clause_arity("f(A, {B, C}) -> x", "f"), Some(2));
@@ -1024,6 +1127,48 @@ mod tests {
         assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
         // Evidence is recorded for the regression instrument (Issue 9).
         assert_eq!(out.unresolved[0].candidates.file_local, 2);
+    }
+
+    /// FINDINGS A6, Perl: a bare `zlist($d)` in `package main` is
+    /// `main::zlist`, not the `Repo::zlist` declared above it in the
+    /// same file; inside `package Repo` the same bare call is that sub.
+    #[test]
+    fn a_perl_bare_call_stays_in_its_package() {
+        let defs = vec![
+            mk_def("zlist", "Repo::zlist", DefVariant::FreeFunction, (0, 40)),
+            mk_def(
+                "use_own",
+                "Repo::use_own",
+                DefVariant::FreeFunction,
+                (40, 80),
+            ),
+            mk_def(
+                "zlist2",
+                "main::zlist2",
+                DefVariant::FreeFunction,
+                (80, 100),
+            ),
+            mk_def("top", "main::top", DefVariant::FreeFunction, (100, 200)),
+        ];
+        let refs = vec![
+            mk_ref("zlist", 50),
+            mk_ref("zlist", 120),
+            mk_ref("zlist2", 130),
+        ];
+        let facts = facts_with_lang("perl", defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let bound: Vec<(u32, u32)> = out
+            .edges
+            .iter()
+            .map(|e| (e.site_byte, (e.dst == map[&(FileId::new(0), 0)]) as u32))
+            .collect();
+        // `use_own` -> `Repo::zlist`; `top` -> `main::zlist2` only.
+        assert_eq!(bound, vec![(50, 1), (130, 0)]);
+        assert_eq!(
+            out.unresolved[0].reason,
+            UnresolvedReason::NotInScopeForBareCall { methods: 1 }
+        );
     }
 
     /// A bare identifier does not reach a method, and says so.

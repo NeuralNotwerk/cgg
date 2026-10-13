@@ -57,10 +57,10 @@ pub(crate) struct WorkspaceVocab {
     py_names: HashSet<String>,
     /// JS/TS: package names (`package.json`, `deno.json`) and exact path
     /// aliases found above analyzed files.
-    npm_packages: HashSet<String>,
+    pub(crate) npm_packages: HashSet<String>,
     /// JS/TS: path-alias prefixes (tsconfig `"@app/*"` → `@app/`, a
     /// Deno import-map key `"@/"`), sorted.
-    js_alias_prefixes: Vec<String>,
+    pub(crate) js_alias_prefixes: Vec<String>,
     /// JS/TS: every directory name and file stem of an analyzed file.
     js_names: HashSet<String>,
     /// Go: `go.mod` module paths (and locally replaced modules), sorted.
@@ -194,7 +194,7 @@ impl WorkspaceVocab {
         v
     }
 
-    fn py_workspace(&self, module: &str) -> bool {
+    pub(crate) fn py_workspace(&self, module: &str) -> bool {
         if module.starts_with('.') {
             return true;
         }
@@ -202,7 +202,7 @@ impl WorkspaceVocab {
         head.is_empty() || self.py_names.contains(head)
     }
 
-    fn js_workspace(&self, spec: &str) -> bool {
+    pub(crate) fn js_workspace(&self, spec: &str) -> bool {
         let spec = spec.trim();
         if spec.is_empty() || spec.starts_with('.') || spec.starts_with('/') {
             return true;
@@ -236,7 +236,7 @@ impl WorkspaceVocab {
         !head.is_empty() && !head.contains(':') && self.js_names.contains(head)
     }
 
-    fn go_workspace(&self, path: &str, file_has_module: bool) -> bool {
+    pub(crate) fn go_workspace(&self, path: &str, file_has_module: bool) -> bool {
         let path = path.trim();
         if path.is_empty() {
             return true;
@@ -783,7 +783,7 @@ fn bare_scope(s: &str) -> &str {
 }
 
 /// The npm package a bare specifier names: `@scope/name` or `name`.
-fn npm_package_of(spec: &str) -> &str {
+pub(crate) fn npm_package_of(spec: &str) -> &str {
     let mut it = spec.match_indices('/');
     if spec.starts_with('@') {
         it.next();
@@ -818,7 +818,7 @@ fn jvm_package_of(path: &str) -> &str {
 /// The name a Go import binds when it has no alias: the package name,
 /// which by near-universal convention is the last path element without a
 /// major-version suffix (`…/v2`, `yaml.v3`) or a `go-` prefix.
-fn go_package_name(path: &str) -> String {
+pub(crate) fn go_package_name(path: &str) -> String {
     let mut segs: Vec<&str> = path.split('/').collect();
     let mut last = segs.pop().unwrap_or(path);
     let is_major = |s: &str| {

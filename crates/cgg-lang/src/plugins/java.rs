@@ -257,7 +257,17 @@ impl<'a> JavaWalker<'a> {
         let is_static = text.contains("static ");
 
         if is_static {
-            let alias = path.rsplit('.').next().unwrap_or("").to_string();
+            // `import static a.b.C.*;` imports every static member of `C`:
+            // recorded as `*`, not as the class name, so the resolver can
+            // tell it from `import static a.b.C.m;`.
+            let wildcard = node
+                .children(&mut node.walk())
+                .any(|c| c.kind() == "asterisk");
+            let alias = if wildcard {
+                "*".to_string()
+            } else {
+                path.rsplit('.').next().unwrap_or("").to_string()
+            };
             self.facts.imports.push(ImportRecord {
                 kind: "from-import".into(),
                 path,
@@ -523,6 +533,22 @@ mod tests {
                 .iter()
                 .any(|i| i.kind == "from-import" && i.alias == "abs")
         );
+    }
+
+    /// `import static a.b.C.*;` is recorded with `*`, apart from the
+    /// single-member form, so the resolver can scope a bare call to `C`.
+    #[test]
+    fn static_wildcard_import_is_recorded_as_star() {
+        let f = extract(
+            "import static org.junit.Assert.*;\nimport static a.b.C.m;\nclass X {}\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "from-import")
+            .map(|i| (i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(got, vec![("org.junit.Assert", "*"), ("a.b.C.m", "m")]);
     }
 
     #[test]

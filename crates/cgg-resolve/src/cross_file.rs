@@ -359,6 +359,211 @@ fn push_bare_base(slot: &mut Vec<String>, b: &str) {
     }
 }
 
+/// The classes that name each class as a base, per language: the reverse
+/// of `bases_by_owner`, keyed the same way (bare names), each list sorted.
+/// Only the languages whose bare calls `member_of_calling_class` binds.
+fn derived_index(
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+) -> HashMap<(String, String), Vec<String>> {
+    let mut out: HashMap<(String, String), Vec<String>> = HashMap::new();
+    for ((lang, owner), bases) in bases_by_owner {
+        if !matches!(lang.as_str(), "java" | "csharp") {
+            continue;
+        }
+        for b in bases {
+            out.entry((lang.clone(), b.clone()))
+                .or_default()
+                .push(owner.clone());
+        }
+    }
+    for v in out.values_mut() {
+        v.sort();
+        v.dedup();
+    }
+    out
+}
+
+/// The overrides of `method` below `owners`: the same-named methods the
+/// classes deriving from them (by the recorded bases, transitively,
+/// depth 8) declare, in breadth-first order. A bare call reaching the
+/// declaration in `owners` dispatches at run time to any of them.
+fn overrides_below(
+    lang: &str,
+    owners: &[&str],
+    method: &str,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    derived_by_base: &HashMap<(String, String), Vec<String>>,
+) -> Vec<CallableId> {
+    let mut out: Vec<CallableId> = Vec::new();
+    let mut seen: std::collections::HashSet<&str> = owners.iter().copied().collect();
+    let mut frontier: Vec<&str> = owners.to_vec();
+    for _ in 0..8 {
+        let mut next: Vec<&str> = Vec::new();
+        for t in frontier {
+            let Some(derived) = derived_by_base.get(&(lang.to_string(), t.to_string()))
+            else {
+                continue;
+            };
+            for d in derived {
+                if !seen.insert(d.as_str()) {
+                    continue;
+                }
+                if let Some(v) = by_owner_method.get(&(
+                    lang.to_string(),
+                    d.clone(),
+                    method.to_string(),
+                )) {
+                    for c in v {
+                        if !out.contains(c) {
+                            out.push(*c);
+                        }
+                    }
+                }
+                next.push(d.as_str());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    out
+}
+
+/// Copies of one class (the same qualified owner vendored into several
+/// samples or modules), or same-named classes reached through a base
+/// recorded by its bare name: the group the caller can see. A group is
+/// one owner path in one directory — an overload set, or a C# partial
+/// class split across files beside each other, stays together. The
+/// group sharing the longest directory prefix with the caller wins; a
+/// tie is ambiguous (`None`), never settled by indexing order.
+fn nearest_class_copies(
+    graph: &Graph,
+    cids: &[CallableId],
+    caller_file: FileId,
+) -> Option<Vec<CallableId>> {
+    let dir_of = |f: FileId| {
+        graph
+            .files
+            .get(&f)
+            .and_then(|r| r.path.parent())
+            .map(|p| p.to_path_buf())
+            .unwrap_or_default()
+    };
+    let mut groups: Vec<((String, std::path::PathBuf), Vec<CallableId>)> = Vec::new();
+    for c in cids {
+        let Some(n) = graph.callables.get(c) else {
+            continue;
+        };
+        let owner = crate::names::split_last_segment(&n.qualified_name)
+            .map(|(o, _)| o.to_string())
+            .unwrap_or_default();
+        let key = (owner, dir_of(n.file));
+        match groups.iter_mut().find(|(k, _)| *k == key) {
+            Some((_, v)) => {
+                if !v.contains(c) {
+                    v.push(*c);
+                }
+            }
+            None => groups.push((key, vec![*c])),
+        }
+    }
+    if groups.len() <= 1 {
+        return groups.pop().map(|(_, v)| v);
+    }
+    let caller_dir = dir_of(caller_file);
+    let shared = |d: &std::path::Path| {
+        d.components()
+            .zip(caller_dir.components())
+            .take_while(|(a, b)| a == b)
+            .count()
+    };
+    let best = groups.iter().map(|((_, d), _)| shared(d)).max()?;
+    let mut winners = groups.into_iter().filter(|((_, d), _)| shared(d) == best);
+    let first = winners.next()?;
+    if winners.next().is_some() {
+        return None;
+    }
+    Some(first.1)
+}
+
+/// Java/C#: a bare name is a member of the calling class or one it
+/// inherits before any static import (JLS 15.12.1) — the whole overload
+/// set, wherever in the class's files it is declared.
+///
+/// * The calling class is its qualified owner path, not its bare name:
+///   a nested `X._Fields` reaches its own `_Fields.findByThriftId`, never
+///   every generated class's `_Fields` (FINDINGS R17).
+/// * Copies of the class (one qualified name in several samples) are
+///   narrowed to the caller's copy (`nearest_class_copies`, R18).
+/// * A member that a class derived from the calling class overrides is a
+///   virtual call with several bodies: the member and those overrides, as
+///   the bare-name fan-out bound them before (R20) — never the
+///   declaration alone, which left each override looking uncalled. Over
+///   `--fanout-cap` the call is refused and recorded as capped.
+///
+/// `None`: nothing in the class or its bases; `Some(None)`: refused.
+#[allow(clippy::too_many_arguments)]
+fn member_of_calling_class(
+    graph: &Graph,
+    lang: &str,
+    name: &str,
+    caller_qn: &str,
+    caller_file: FileId,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+    derived_by_base: &HashMap<(String, String), Vec<String>>,
+    fanout_cap: usize,
+    capped: &mut u32,
+) -> Option<Option<Vec<CallableId>>> {
+    let (own_path, _) = crate::names::split_last_segment(caller_qn)?;
+    let own = owner_from_qn(caller_qn)?;
+    let owner_path_of = |c: &CallableId| {
+        graph
+            .callables
+            .get(c)
+            .and_then(|n| crate::names::split_last_segment(&n.qualified_name))
+            .map(|(o, _)| o.to_string())
+    };
+    let direct: Vec<CallableId> = by_owner_method
+        .get(&(lang.to_string(), own.to_string(), name.to_string()))
+        .map(|v| {
+            v.iter()
+                .copied()
+                .filter(|c| owner_path_of(c).as_deref() == Some(own_path))
+                .collect()
+        })
+        .unwrap_or_default();
+    let found = if direct.is_empty() {
+        resolve_via_bases(lang, own, name, by_owner_method, bases_by_owner)?
+    } else {
+        direct
+    };
+    let Some(set) = nearest_class_copies(graph, &found, caller_file) else {
+        return Some(None);
+    };
+    // A member a class derived from the CALLING class overrides is a
+    // virtual call (`this` is the caller's class or below it — never a
+    // sibling): the set is the member and those overrides, bounded by the
+    // fan-out cap like any other several-bodied call; over the cap it is
+    // refused and recorded.
+    let overrides = overrides_below(lang, &[own], name, by_owner_method, derived_by_base);
+    if overrides.is_empty() {
+        return Some(Some(set));
+    }
+    let mut set = set;
+    for c in overrides {
+        if !set.contains(&c) {
+            set.push(c);
+        }
+    }
+    if set.len() > fanout_cap {
+        *capped = set.len() as u32;
+        return Some(None);
+    }
+    Some(Some(set))
+}
+
 fn resolve_via_bases(
     lang: &str,
     owner: &str,
@@ -697,8 +902,19 @@ pub fn resolve(
         HashMap::new();
     let mut kotlin_ext_ids: std::collections::HashSet<CallableId> =
         std::collections::HashSet::new();
+    // `(language, qualified name)` keys more than one callable carries.
+    // `by_qn` keeps only the last of them, so a lookup of such a key by a
+    // *bare* name (see step 2) would be a choice by indexing order; those
+    // lookups consult this set and refuse instead.
+    let mut qn_collisions: std::collections::HashSet<(String, String)> =
+        std::collections::HashSet::new();
     for c in graph.callables.values() {
-        by_qn.insert((c.language.clone(), c.qualified_name.clone()), c.id);
+        let key = (c.language.clone(), c.qualified_name.clone());
+        if let Some(prev) = by_qn.insert(key.clone(), c.id)
+            && prev != c.id
+        {
+            qn_collisions.insert(key);
+        }
         // Callables a macro expansion generated are reachable by path and
         // by owner, never by name alone: a template stamped out once per
         // newtype would otherwise multiply every same-named candidate set
@@ -921,6 +1137,21 @@ pub fn resolve(
         }
     }
 
+    let derived_by_base = derived_index(&bases_by_owner);
+    let mut zig_packages: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
+    for f in graph.files.values().filter(|f| f.language == "zig") {
+        if let Some(stem) = f.path.file_stem() {
+            zig_packages.insert(stem.to_string_lossy().into_owned());
+        }
+        if let Some(dir) = f.path.parent() {
+            for c in dir.components() {
+                if let std::path::Component::Normal(s) = c {
+                    zig_packages.insert(s.to_string_lossy().into_owned());
+                }
+            }
+        }
+    }
     let mut kotlin_extensions = KotlinExtensions {
         by_file: kotlin_ext_by_file,
         ids: kotlin_ext_ids,
@@ -1042,10 +1273,31 @@ pub fn resolve(
     // index reproduces that. The corpus caught it as -9,331 nodes and
     // edges across 34 repos. Any future index has to be proven against
     // the full corpus before it replaces this scan.
-    // Each file's definitions as `(simple name, id)`, resolved through
-    // `by_qn` once. The scoped scan below visits a matching file once per
-    // *referencing* file, and probing `by_qn` there allocated two strings
-    // per definition per visit — O(files²) allocations on a large tree.
+    // Each file's definitions as `(simple name, id)`, resolved once. The
+    // scoped scan below visits a matching file once per *referencing*
+    // file, and resolving there allocated two strings per definition per
+    // visit — O(files²) allocations on a large tree.
+    //
+    // Resolved within the definition's own file: the last callable THAT
+    // file declares under the qualified name (clauses and overloads of one
+    // function share one, as before). It used to go through `by_qn`, which
+    // keeps the last callable per qualified name across the whole tree, so
+    // a definition whose qualified name another file shares (every
+    // same-named JavaScript function, a Zig `assert` copied into a test
+    // case) resolved to that other file's callable — the scoped lookup
+    // then bound the call into a file it had not matched.
+    let mut last_in_file: HashMap<(FileId, &str), CallableId> = HashMap::new();
+    // Every callable one file declares under one qualified name: an
+    // overload set (`add(sb, n, long)`, `add(sb, n, String)`). An exact
+    // lookup that lands on one of them reaches them all.
+    let mut overloads: HashMap<(FileId, &str), Vec<CallableId>> = HashMap::new();
+    for c in graph.callables.values() {
+        last_in_file.insert((c.file, c.qualified_name.as_str()), c.id);
+        overloads
+            .entry((c.file, c.qualified_name.as_str()))
+            .or_default()
+            .push(c.id);
+    }
     let def_cids: HashMap<FileId, Vec<(&str, CallableId)>> = facts
         .iter()
         .map(|f| {
@@ -1053,8 +1305,8 @@ pub fn resolve(
                 .definitions
                 .iter()
                 .filter_map(|d| {
-                    by_qn
-                        .get(&(f.language.clone(), d.qualified_name.clone()))
+                    last_in_file
+                        .get(&(f.file, d.qualified_name.as_str()))
                         .map(|cid| (d.simple_name.as_str(), *cid))
                 })
                 .collect();
@@ -1111,6 +1363,9 @@ pub fn resolve(
     // so a call through an import of a dependency is never name-matched
     // onto a workspace callable (FINDINGS A1; see `heads`).
     let vocab = crate::heads::WorkspaceVocab::build(graph, facts);
+    // Import → file, for calls written through a workspace module
+    // (FINDINGS A4/A5; see `modules`).
+    let modix = crate::modules::ModuleIndex::build(graph, facts, &vocab);
 
     drop(_sp_idx);
     let _sp_loop = cgg_core::profile::span("xfile::parallel-loop");
@@ -1146,7 +1401,12 @@ pub fn resolve(
                 let mut conflicted: std::collections::HashSet<&str> =
                     std::collections::HashSet::new();
                 for lt in &facts.local_types {
-                    if conflicted.contains(lt.var_name.as_str()) {
+                    // An untyped entry only ends a Go variable's scope; a
+                    // `<local>` one only marks a shadowed package name.
+                    if lt.type_name.is_empty()
+                        || lt.type_name.starts_with('<')
+                        || conflicted.contains(lt.var_name.as_str())
+                    {
                         continue;
                     }
                     match var_types.get(&lt.var_name) {
@@ -1198,6 +1458,17 @@ pub fn resolve(
                         // JS/TS: imp.path is relative path; items are
                         // exported names from that file.
                         let module = imp.path.trim();
+                        // `from . import x` / `from ..pkg import y` name a
+                        // module relative to this file's package. Made
+                        // absolute here, the exact lookups below can find
+                        // `pkg.x` instead of missing on `..x` and falling
+                        // to a match by name.
+                        let py_abs = if lang == "python" && module.starts_with('.') {
+                            modix.py_abs(facts.file, module)
+                        } else {
+                            None
+                        };
+                        let module = py_abs.as_deref().unwrap_or(module);
                         for item in imp.alias.split(',') {
                             // Defensive: a plugin that forwards a
                             // parenthesised list verbatim must not
@@ -1210,14 +1481,34 @@ pub fn resolve(
                             if src.is_empty() {
                                 continue;
                             }
-                            let qn = format!("{module}.{src}");
+                            // Java `import static a.b.C.*;`: every static
+                            // member of `C` is in scope unqualified.
+                            if lang == "java" && src == "*" {
+                                unqualified_prefixes.push(module.to_string());
+                                continue;
+                            }
+                            // Java `import static a.b.C.m;` arrives with the
+                            // member already on the path.
+                            let qn = if lang == "java"
+                                && module.rsplit('.').next() == Some(src)
+                            {
+                                module.to_string()
+                            } else {
+                                format!("{module}.{src}")
+                            };
                             direct_imports
                                 .entry(alias.to_string())
                                 .or_default()
                                 .push(qn);
-                            // For JS/TS where definitions don't carry a
-                            // module prefix, also try the bare name.
-                            if module.starts_with('.') || module.starts_with('/') {
+                            // Definitions in some languages carry no
+                            // module prefix, so the bare name is tried
+                            // too. Not for JS/TS: a bare-name lookup there
+                            // returns whichever same-named function was
+                            // indexed last; their imports are followed to
+                            // the file instead (`modules`).
+                            if (module.starts_with('.') || module.starts_with('/'))
+                                && !matches!(lang.as_str(), "javascript" | "typescript")
+                            {
                                 direct_imports
                                     .entry(alias.to_string())
                                     .or_default()
@@ -1325,6 +1616,7 @@ pub fn resolve(
                         // by its leaf name once we've walked the graph;
                         // at resolve time we try `X.Y.<name>` directly.
                         let full = imp.path.trim().to_string();
+                        unqualified_prefixes.push(full.clone());
                         direct_imports
                             .entry("__using_static__".into())
                             .or_default()
@@ -1683,6 +1975,19 @@ pub fn resolve(
             // module prefixes on qualified_name — still get cross-file
             // resolution without resorting to global by-simple noise.
             let mut scoped_simple: HashMap<String, Vec<CallableId>> = HashMap::new();
+            // The modules this file imports, as lowercased path forms
+            // (`data/map`, `lists`, `type.zig`): what tells a same-named
+            // copy in the imported module from one elsewhere.
+            let mut module_files: Vec<String> = Vec::new();
+            for m in unqualified_prefixes.iter().chain(module_aliases.values()) {
+                let m = m.trim().to_ascii_lowercase();
+                if !m.is_empty() {
+                    module_files.push(m.replace('.', "/"));
+                    module_files.push(m);
+                }
+            }
+            module_files.sort();
+            module_files.dedup();
             if !unqualified_prefixes.is_empty()
                 || !direct_imports.is_empty()
                 || !module_aliases.is_empty()
@@ -1707,6 +2012,7 @@ pub fn resolve(
             }
 
             let heads = crate::heads::FileHeads::build(facts, &vocab);
+            let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
 
             drop(_sp_imports);
             let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
@@ -1855,6 +2161,8 @@ pub fn resolve(
                 let mut capped = 0u32;
                 let mut no_ctor = false;
                 let mut external: Option<String> = None;
+                let mut refused_module: Option<String> = None;
+                let mut module_certain = false;
                 let super_recv = is_super_receiver(&r.receiver_hint);
                 let resolved = try_resolve_ref(
                     graph,
@@ -1868,6 +2176,7 @@ pub fn resolve(
                     &module_aliases,
                     &unqualified_prefixes,
                     &scoped_simple,
+                    &module_files,
                     &by_qn,
                     &by_simple,
                     &by_owner_method,
@@ -1875,16 +2184,25 @@ pub fn resolve(
                     &std_owner_trait_impls,
                     &reexports,
                     &bases_by_owner,
+                    &derived_by_base,
+                    &zig_packages,
                     &known_owners,
                     &stub_ids,
                     &signatures,
                     &var_types,
                     caller_qn,
+                    enclosing,
                     fanout_cap,
                     &rust_path_heads,
                     &workspace_owner_names,
                     &class_record_langs,
                     &kotlin_extensions,
+                    &modix,
+                    &file_mods,
+                    &qn_collisions,
+                    &overloads,
+                    &mut refused_module,
+                    &mut module_certain,
                     &mut capped,
                     &mut no_ctor,
                 )
@@ -1915,6 +2233,7 @@ pub fn resolve(
                             r2.receiver_hint = orig.clone();
                             let (mut c2, mut n2) = (0u32, false);
                             let mut e2: Option<String> = None;
+                            let (mut m2, mut mc2) = (None, false);
                             try_resolve_ref(
                                 graph,
                                 facts.file,
@@ -1927,6 +2246,7 @@ pub fn resolve(
                                 &module_aliases,
                                 &unqualified_prefixes,
                                 &scoped_simple,
+                                &module_files,
                                 &by_qn,
                                 &by_simple,
                                 &by_owner_method,
@@ -1934,16 +2254,25 @@ pub fn resolve(
                                 &std_owner_trait_impls,
                                 &reexports,
                                 &bases_by_owner,
+                                &derived_by_base,
+                                &zig_packages,
                                 &known_owners,
                                 &stub_ids,
                                 &signatures,
                                 &var_types,
                                 caller_qn,
+                                enclosing,
                                 fanout_cap,
                                 &rust_path_heads,
                                 &workspace_owner_names,
                                 &class_record_langs,
                                 &kotlin_extensions,
+                                &modix,
+                                &file_mods,
+                                &qn_collisions,
+                                &overloads,
+                                &mut m2,
+                                &mut mc2,
                                 &mut c2,
                                 &mut n2,
                             )
@@ -1992,6 +2321,9 @@ pub fn resolve(
                 let confidence = match &resolved {
                     _ if guessed => Confidence::Low,
                     _ if untyped_fallback => Confidence::Medium,
+                    // Looked up by its exact name in the one module the
+                    // call is written through.
+                    Some(cids) if cids.len() == 1 && module_certain => Confidence::High,
                     Some(cids)
                         if cids.len() == 1
                             && (r.receiver_hint.is_empty()
@@ -2073,6 +2405,25 @@ pub fn resolve(
                         );
                         u.name_screen_applied = Some("external".to_string());
                         out.unresolved.push(u);
+                    }
+                } else if let Some(module) = refused_module {
+                    // Written through a workspace module that provides
+                    // nothing the call names: refused rather than bound to
+                    // a same-named callable elsewhere, and recorded. A name
+                    // no workspace callable carries changed nothing.
+                    if by_simple
+                        .get(&(lang.clone(), r.name.clone()))
+                        .is_some_and(|c| !c.is_empty())
+                    {
+                        out.unresolved.push(AuditUnresolvedCall::new(
+                            enclosing,
+                            facts.file,
+                            r.site_line,
+                            r.site_byte,
+                            r.name.clone(),
+                            r.receiver_hint.clone(),
+                            UnresolvedReason::NotInImportedModule { module },
+                        ));
                     }
                 } else if capped > 0 {
                     // A drop is never silent. Without this the call site
@@ -3037,6 +3388,398 @@ fn rust_candidate_reachable(
     true
 }
 
+/// Callables sharing one qualified name across several files — copies
+/// (an Erlang module vendored in test data, a Zig `assert` repeated in a
+/// test case, OCaml locals named alike) — narrowed by evidence to one: the
+/// copy in the module the file imports (its path, segment-aligned), else
+/// the caller's own file, else the one in its directory. `None`: copies
+/// with no evidence singling one out — ambiguous, so nothing binds. Candidates under
+/// distinct qualified names pass through; when some candidate sits in an
+/// imported module exactly, only those stay.
+fn narrow_copies(
+    graph: &Graph,
+    cids: &[CallableId],
+    caller_file: FileId,
+    module_files: &[String],
+    exact_only: bool,
+) -> Option<Vec<CallableId>> {
+    let mut uniq: Vec<CallableId> = Vec::new();
+    for c in cids {
+        if !uniq.contains(c) {
+            uniq.push(*c);
+        }
+    }
+    let path_of = |c: &CallableId| {
+        graph
+            .callables
+            .get(c)
+            .and_then(|n| graph.files.get(&n.file))
+            .map(|f| f.path.to_string_lossy().to_ascii_lowercase())
+    };
+    let in_module = |c: &CallableId| {
+        path_of(c).is_some_and(|p| {
+            let stem = match p.rsplit_once('.') {
+                Some((st, ext)) if !ext.contains('/') => st,
+                _ => p.as_str(),
+            };
+            module_files.iter().any(|m| {
+                [stem, p.as_str()]
+                    .iter()
+                    .any(|x| *x == m || x.ends_with(&format!("/{m}")))
+            })
+        })
+    };
+    let exact: Vec<CallableId> = uniq.iter().copied().filter(in_module).collect();
+    // Copies of the very module the call names (`cerl:f` in three
+    // `cerl.erl` files), as opposed to same-named callables elsewhere.
+    let module_copies = !exact.is_empty();
+    if !exact.is_empty() || exact_only {
+        uniq = exact;
+    }
+    let caller_dir = graph
+        .files
+        .get(&caller_file)
+        .and_then(|f| f.path.parent().map(|p| p.to_path_buf()));
+    let mut out: Vec<CallableId> = Vec::new();
+    let mut seen_qn: Vec<&str> = Vec::new();
+    for c in &uniq {
+        let Some(n) = graph.callables.get(c) else {
+            continue;
+        };
+        let qn = n.qualified_name.as_str();
+        if seen_qn.contains(&qn) {
+            continue;
+        }
+        seen_qn.push(qn);
+        let group: Vec<CallableId> = uniq
+            .iter()
+            .copied()
+            .filter(|x| {
+                graph
+                    .callables
+                    .get(x)
+                    .is_some_and(|m| m.qualified_name == qn)
+            })
+            .collect();
+        if group.len() == 1 {
+            out.push(group[0]);
+            continue;
+        }
+        // A copy is a file: the callables one file declares under the
+        // name (overloads, clauses of one function) stay together.
+        let file_of = |x: &CallableId| graph.callables.get(x).map(|m| m.file);
+        let mut files: Vec<FileId> = Vec::new();
+        for f in group.iter().filter_map(file_of) {
+            if !files.contains(&f) {
+                files.push(f);
+            }
+        }
+        let near: Vec<FileId> = files
+            .iter()
+            .copied()
+            .filter(|f| {
+                graph
+                    .files
+                    .get(f)
+                    .and_then(|f| f.path.parent())
+                    .map(|p| p.to_path_buf())
+                    == caller_dir
+            })
+            .collect();
+        // A copy kept as test data (`test/…_SUITE_data/src/cerl.erl`) is
+        // called from beside it, which `near` covers; from anywhere else,
+        // the one copy that is not test code.
+        let is_test =
+            |f: &FileId| graph.files.get(f).is_some_and(|f| f.test_role.is_some());
+        let shipped: Vec<FileId> = if module_copies {
+            files.iter().copied().filter(|f| !is_test(f)).collect()
+        } else {
+            Vec::new()
+        };
+        // One copy the evidence singles out; several in the caller's own
+        // directory are as ambiguous as several anywhere, and stay unbound.
+        let chosen = if let [one] = files.as_slice() {
+            Some(*one)
+        } else if files.contains(&caller_file) {
+            Some(caller_file)
+        } else if let [one] = near.as_slice() {
+            Some(*one)
+        } else if let [one] = shipped.as_slice() {
+            Some(*one)
+        } else {
+            None
+        };
+        if let Some(f) = chosen {
+            out.extend(group.iter().copied().filter(|x| file_of(x) == Some(f)));
+        }
+    }
+    (!out.is_empty()).then_some(out)
+}
+
+/// A lookup by a bare qualified name (`f` for a language whose qualified
+/// names carry no module).
+enum BareQn {
+    Found(Vec<CallableId>),
+    /// Several callables carry the name and nothing tells them apart.
+    Ambiguous,
+    Missing,
+}
+
+/// The bare-name fallback through a module alias. One callable carrying
+/// the name binds as before; several are copies, narrowed by the aliased
+/// module's path, the caller's file and directory (`narrow_copies`) —
+/// never picked by the order they were indexed in.
+#[allow(clippy::too_many_arguments)]
+fn bare_qn_lookup(
+    graph: &Graph,
+    lang: &str,
+    name: &str,
+    modules: &[&str],
+    caller_file: FileId,
+    by_qn: &HashMap<(String, String), CallableId>,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    reexports: &HashMap<(String, String), String>,
+    qn_collisions: &std::collections::HashSet<(String, String)>,
+) -> BareQn {
+    if !qn_collisions.contains(&(lang.to_string(), name.to_string())) {
+        return match lookup_with_reexports(lang, name, by_qn, reexports) {
+            Some(cid) => BareQn::Found(vec![cid]),
+            None => BareQn::Missing,
+        };
+    }
+    let copies: Vec<CallableId> = by_simple
+        .get(&(lang.to_string(), name.to_string()))
+        .map(|v| {
+            v.iter()
+                .copied()
+                .filter(|c| {
+                    graph
+                        .callables
+                        .get(c)
+                        .is_some_and(|n| n.qualified_name == name)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut module_files: Vec<String> = Vec::new();
+    for m in modules {
+        let m = m.trim().to_ascii_lowercase();
+        if !m.is_empty() {
+            module_files.push(m.replace('.', "/"));
+            module_files.push(m);
+        }
+    }
+    match narrow_copies(graph, &copies, caller_file, &module_files, false) {
+        Some(cids) => BareQn::Found(cids),
+        None => BareQn::Ambiguous,
+    }
+}
+
+/// What a bare call's scope is judged by: the call, where it is written,
+/// and the calling file's import tables.
+#[derive(Clone, Copy)]
+struct BareScope<'s> {
+    r: &'s cgg_core::RefRecord,
+    caller: Option<CallableId>,
+    caller_file: FileId,
+    caller_qn: Option<&'s str>,
+    module_aliases: &'s HashMap<String, String>,
+    direct_imports: &'s HashMap<String, Vec<String>>,
+    unqualified_prefixes: &'s [String],
+    bases_by_owner: &'s HashMap<(String, String), Vec<String>>,
+}
+
+/// FINDINGS A6. Whether a bare call — no receiver, no `this`/`self::`
+/// qualifier — written inside `caller_qn` can name `cand` unqualified.
+///
+/// * Python, Rust, Go, JS/TS, PHP, F# have no implicit-receiver call
+///   form: a bare name reaches functions, never a method (`collect()` is
+///   not `Dates::collect`; an F# static member needs its type).
+/// * Perl resolves a bare sub name in the caller's own package; another
+///   package's sub needs a qualifier or an import (`via_import`: the
+///   candidate came from a module the file imports, Exporter's way in).
+/// * Go resolves a bare name in the calling package — the files of its
+///   directory — unless the file dot-imports another package.
+/// * Java, C#: a bare name reaches constructors, members a static import
+///   names, and the members of the calling class, the classes enclosing
+///   it, their recorded bases, and — by dispatch — the overrides in
+///   classes derived from them; never a method of an unrelated class.
+/// * Unchanged where the bare-name scope depends on types cgg does not
+///   have: Kotlin (a lambda with receiver, `apply {}`/`with(x) {}`),
+///   Groovy (closure delegates — the Gradle DSL, Spock), Scala (imports
+///   of a value's members), C++ (argument-dependent lookup; namespace
+///   functions are recorded like members); and Swift, Dart, Objective-C,
+///   whose plugins record no base types, so an inherited member cannot be
+///   told from an unrelated one.
+///
+/// A call written with a dot whose receiver the plugin could not capture
+/// (`dot_call`) is not a bare call. Every other language is unchanged.
+fn bare_call_reaches(
+    graph: &Graph,
+    lang: &str,
+    scope: &BareScope<'_>,
+    cand: CallableId,
+    via_import: bool,
+) -> bool {
+    let BareScope {
+        r,
+        caller,
+        caller_file,
+        caller_qn,
+        module_aliases,
+        direct_imports,
+        unqualified_prefixes,
+        bases_by_owner,
+    } = *scope;
+    if r.dot_call {
+        return true;
+    }
+    let Some(c) = graph.callables.get(&cand) else {
+        return true;
+    };
+    // A definition nested in the calling function is in its lexical
+    // scope, whatever its qualified name says (a Rust `fn` inside a
+    // method is named under the method's type).
+    if let Some(outer) = caller.and_then(|id| graph.callables.get(&id))
+        && c.file == outer.file
+        && outer.start_byte <= c.start_byte
+        && c.end_byte <= outer.end_byte
+    {
+        return true;
+    }
+    // A constructor is not a member call: `new Foo(…)` / `Foo(…)` names
+    // its class, and the candidates here carry the call's name.
+    let member = matches!(
+        c.kind,
+        CallableKind::Method | CallableKind::Destructor | CallableKind::Property
+    ) || (lang == "rust" && rust_type_owned(&c.qualified_name));
+    match lang {
+        "python" | "rust" | "javascript" | "typescript" | "php" | "fsharp" => !member,
+        "go" => {
+            let dir = |f: &FileId| graph.files.get(f).and_then(|r| r.path.parent());
+            !member
+                && (module_aliases.contains_key(".") || dir(&c.file) == dir(&caller_file))
+        }
+        "perl" => {
+            via_import
+                || perl_package(&c.qualified_name) == caller_qn.map_or("", perl_package)
+        }
+        "java" | "csharp" => {
+            if !member {
+                return true;
+            }
+            // Named by the file's static imports: `import static a.b.C.m;`,
+            // `import static a.b.C.*;`, C# `using static A.C;`, a Kotlin
+            // import of an object member.
+            if direct_imports
+                .get(&r.name)
+                .is_some_and(|v| v.contains(&c.qualified_name))
+                || crate::names::split_last_segment(&c.qualified_name).is_some_and(
+                    |(owner, _)| unqualified_prefixes.iter().any(|p| p == owner),
+                )
+            {
+                return true;
+            }
+            let Some(caller) = caller_qn else {
+                return false;
+            };
+            let Some((owner_path, _)) =
+                crate::names::split_last_segment(&c.qualified_name)
+            else {
+                return true;
+            };
+            // The calling class or one enclosing it, or a local function
+            // of the caller itself.
+            if caller == owner_path
+                || caller
+                    .strip_prefix(owner_path)
+                    .is_some_and(|r| r.starts_with('.') || r.starts_with("::"))
+            {
+                return true;
+            }
+            // A base of the calling class (or of an enclosing one).
+            let Some(target) = owner_from_qn(&c.qualified_name) else {
+                return true;
+            };
+            // The calling class by its bare name is NOT enough: a partial
+            // class split across files keeps its qualified name (matched
+            // above), while another class of the same bare name — every
+            // generated `_Fields` — is unrelated (FINDINGS R17). Below, a
+            // class counts only when reached through a recorded base.
+            let mut enclosing: Vec<String> = Vec::new();
+            let mut cut = caller;
+            while let Some((prefix, _)) = crate::names::split_last_segment(cut) {
+                if let Some(o) = owner_from_qn(cut) {
+                    enclosing.push(o.to_string());
+                }
+                cut = prefix;
+            }
+            // The classes reached from `start` through at least one
+            // recorded base (bare names, depth 8). A start class is in the
+            // result only if a base chain leads back to it.
+            let ancestors = |start: Vec<String>| {
+                let mut seen: std::collections::BTreeSet<String> =
+                    std::collections::BTreeSet::new();
+                let mut reached: std::collections::BTreeSet<String> =
+                    std::collections::BTreeSet::new();
+                let mut frontier = start;
+                for _ in 0..8 {
+                    let mut next = Vec::new();
+                    for t in std::mem::take(&mut frontier) {
+                        if !seen.insert(t.clone()) {
+                            continue;
+                        }
+                        if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
+                            for b in bases {
+                                reached.insert(b.clone());
+                                next.push(b.clone());
+                            }
+                        }
+                    }
+                    if next.is_empty() {
+                        break;
+                    }
+                    frontier = next;
+                }
+                reached
+            };
+            // Inherited: the candidate's class is a base of the caller's
+            // class or of an enclosing one.
+            if ancestors(enclosing.clone()).contains(target) {
+                return true;
+            }
+            // Dispatched: the candidate's class derives from the caller's
+            // (or an enclosing) class, so the bare call — to a method the
+            // base declares, often abstractly — reaches the override.
+            let below = ancestors(vec![target.to_string()]);
+            enclosing.iter().any(|e| below.contains(e))
+        }
+        _ => true,
+    }
+}
+
+/// A Rust qualified name whose owner is a type (`Type::f`, `<T as
+/// Trait>::f`) rather than a module (`krate::module::f`).
+fn rust_type_owned(qn: &str) -> bool {
+    let Some((prefix, _)) = crate::names::split_last_segment(qn) else {
+        return false;
+    };
+    prefix.ends_with('>')
+        || prefix
+            .rsplit("::")
+            .next()
+            .is_some_and(|o| o.starts_with(|c: char| c.is_uppercase()))
+}
+
+/// The package a Perl sub belongs to: its qualified name minus the sub,
+/// with the implicit `main` spelled as the empty package.
+fn perl_package(qn: &str) -> &str {
+    match qn.rsplit_once("::") {
+        Some(("main", _)) | None => "",
+        Some((p, _)) => p,
+    }
+}
+
 fn try_resolve_ref(
     graph: &Graph,
     caller_file: FileId,
@@ -3052,6 +3795,8 @@ fn try_resolve_ref(
     module_aliases: &HashMap<String, String>,
     unqualified_prefixes: &[String],
     scoped_simple: &HashMap<String, Vec<CallableId>>,
+    // The imported modules as path forms (see `narrow_copies`).
+    module_files: &[String],
     by_qn: &HashMap<(String, String), CallableId>,
     by_simple: &HashMap<(String, String), Vec<CallableId>>,
     by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
@@ -3059,11 +3804,18 @@ fn try_resolve_ref(
     std_owner_trait_impls: &HashMap<(String, String, String), Vec<CallableId>>,
     reexports: &HashMap<(String, String), String>,
     bases_by_owner: &HashMap<(String, String), Vec<String>>,
+    // The reverse of `bases_by_owner` (see `derived_index`).
+    derived_by_base: &HashMap<(String, String), Vec<String>>,
+    // The names a Zig `@import("name")` of a package can resolve to in the
+    // tree: every Zig file's stem and every directory holding Zig files.
+    zig_packages: &std::collections::HashSet<String>,
     known_owners: &std::collections::HashSet<(String, String)>,
     stub_ids: &std::collections::HashSet<CallableId>,
     signatures: &HashMap<CallableId, &str>,
     var_types: &HashMap<String, String>,
     caller_qn: Option<&str>,
+    // The callable the call is written in.
+    caller_id: Option<CallableId>,
     fanout_cap: usize,
     // First path segments seen in Rust qualified names (see its
     // construction in `resolve`) — used to tell an unresolved workspace
@@ -3074,6 +3826,19 @@ fn try_resolve_ref(
     // construction in `resolve`).
     class_record_langs: &std::collections::BTreeSet<String>,
     kotlin_extensions: &KotlinExtensions,
+    // Module-scoped resolution (FINDINGS A4/A5): the run's import→file
+    // index and the calling file's module bindings.
+    modix: &crate::modules::ModuleIndex<'_>,
+    file_mods: &crate::modules::FileModules,
+    // Qualified names more than one callable carries; see `resolve`.
+    qn_collisions: &std::collections::HashSet<(String, String)>,
+    // `(file, qualified name)` → the overload set it declares.
+    overloads: &HashMap<(FileId, &str), Vec<CallableId>>,
+    // Set when the call goes through a workspace module that provides
+    // nothing it can name: the import as written.
+    refused_module: &mut Option<String>,
+    // Set when the binding came from an exact lookup inside the module.
+    module_certain: &mut bool,
     // Set to the candidate count when the fan-out cap rejected a
     // non-empty set, so the caller can record the drop instead of
     // leaving the site looking uncalled.
@@ -3201,14 +3966,145 @@ fn try_resolve_ref(
         }
     }
 
+    // Step 0c: a call written through an import of a workspace module
+    // (`svc.f()`, `legacy.run()`, `helpers.f()`, `pkg.mod.Cls().m()`,
+    // `jobs.NewRunner().M()`) is looked up in the file that module is,
+    // through its re-exports — never by name across the tree. A module
+    // that provides nothing the call can name is a refusal, recorded by
+    // the caller; it does not fall through to the name matching below.
+    if matches!(lang, "javascript" | "typescript" | "python" | "go")
+        && let Some(scoped) = file_mods.resolve(
+            modix,
+            lang,
+            caller_file,
+            r,
+            caller_id
+                .and_then(|id| graph.callables.get(&id))
+                .map(|c| c.signature_hint.as_str()),
+            constructor_names(lang),
+            &|owner: &str, method: &str| {
+                resolve_via_bases(lang, owner, method, by_owner_method, bases_by_owner)
+            },
+        )
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, certain } => {
+                *module_certain = certain;
+                return Some(cids);
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::NoCtor => {
+                *no_ctor = true;
+                return None;
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+        }
+    }
+    // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
+    // the evidence singles out when the module is vendored more than once
+    // — never another module's `f`.
+    if lang == "erlang" && !r.receiver_hint.trim().is_empty() {
+        let m = r.receiver_hint.trim();
+        let simple = r.name.rsplit(':').next().unwrap_or(&r.name);
+        if m.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            let qn = format!("{m}:{simple}");
+            let exact: Vec<CallableId> = by_simple
+                .get(&(lang.to_string(), simple.to_string()))
+                .map(|v| {
+                    v.iter()
+                        .copied()
+                        .filter(|c| {
+                            graph
+                                .callables
+                                .get(c)
+                                .is_some_and(|n| n.qualified_name == qn)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            if exact.is_empty() {
+                return None;
+            }
+            let found = narrow_copies(
+                graph,
+                &exact,
+                caller_file,
+                &[m.to_ascii_lowercase()],
+                false,
+            )?;
+            // One function per arity: the call's argument count picks it,
+            // and the first clause stands for the function.
+            let found = crate::intra_file::first_clause_per_arity(graph, &found, r.arity);
+            *module_certain = found.len() == 1;
+            return Some(found);
+        }
+    }
+    // JS/TS qualified names carry no module (`spawnJob`, `Runner.start`):
+    // every lookup of one below by exact name is a lookup by bare name,
+    // answered by whichever same-named callable was indexed last.
+    let bare_qns = matches!(lang, "javascript" | "typescript");
+
     // Step 1: direct import match — `foo()` where `foo` was
     // imported.
     if r.receiver_hint.is_empty() {
+        let bare_scope = BareScope {
+            r,
+            caller: caller_id,
+            caller_file,
+            caller_qn,
+            module_aliases,
+            direct_imports,
+            unqualified_prefixes,
+            bases_by_owner,
+        };
+        // Java/C#: a bare name is a member of the calling class or one it
+        // inherits before any static import (see `member_of_calling_class`).
+        if matches!(lang, "java" | "csharp")
+            && let Some(caller) = caller_qn
+            && let Some(member) = member_of_calling_class(
+                graph,
+                lang,
+                &r.name,
+                caller,
+                caller_file,
+                by_owner_method,
+                bases_by_owner,
+                derived_by_base,
+                fanout_cap,
+                capped,
+            )
+        {
+            return member;
+        }
+        // An exact Java/C# lookup reaches the overload set it lands in.
+        let with_overloads = |cid: CallableId| -> Vec<CallableId> {
+            if !matches!(lang, "java" | "csharp") {
+                return vec![cid];
+            }
+            graph
+                .callables
+                .get(&cid)
+                .and_then(|c| overloads.get(&(c.file, c.qualified_name.as_str())))
+                .cloned()
+                .unwrap_or_else(|| vec![cid])
+        };
         if let Some(qns) = direct_imports.get(&r.name) {
-            let cids: Vec<_> = qns
-                .iter()
-                .filter_map(|qn| lookup_with_reexports(lang, qn, by_qn, reexports))
-                .collect();
+            let mut cids: Vec<CallableId> = Vec::new();
+            for qn in qns {
+                if let Some(cid) = lookup_with_reexports(lang, qn, by_qn, reexports) {
+                    for c in with_overloads(cid) {
+                        if !cids.contains(&c) {
+                            cids.push(c);
+                        }
+                    }
+                }
+            }
             if !cids.is_empty() {
                 return Some(cids);
             }
@@ -3221,9 +4117,90 @@ fn try_resolve_ref(
             if let Some(cid) = lookup_with_reexports(lang, target, by_qn, reexports) {
                 return Some(vec![cid]);
             }
-            // Try just the name itself as a qualified name
-            if let Some(cid) = lookup_with_reexports(lang, &r.name, by_qn, reexports) {
-                return Some(vec![cid]);
+            // Zig `const assert = std.debug.assert;` (FINDINGS R19): the
+            // alias names a declaration of a module, followed through the
+            // file's other aliases to its `@import`. The declaration found
+            // in that module's file is the call, at the confidence of an
+            // exact lookup. A module the tree does not hold (`std` outside
+            // the Zig repository itself) is a dependency: the call is
+            // external, never matched by name to a workspace `assert`.
+            if lang == "zig"
+                && let Some((path, member)) = target.rsplit_once('.')
+            {
+                let mut full = path.to_string();
+                for _ in 0..4 {
+                    let head = full.split('.').next().unwrap_or("").to_string();
+                    match module_aliases.get(&head) {
+                        Some(m) if m.split('.').next() != Some(head.as_str()) => {
+                            full = format!("{m}{}", &full[head.len()..]);
+                        }
+                        _ => break,
+                    }
+                }
+                let head = full.split('.').next().unwrap_or("");
+                let lower = full.to_ascii_lowercase();
+                let files = [lower.replace('.', "/"), lower.clone()];
+                let same: Vec<CallableId> = by_simple
+                    .get(&(lang.to_string(), member.to_string()))
+                    .map(|v| {
+                        v.iter()
+                            .copied()
+                            .filter(|c| {
+                                graph
+                                    .callables
+                                    .get(c)
+                                    .is_some_and(|n| n.qualified_name == member)
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if let Some(found) =
+                    narrow_copies(graph, &same, caller_file, &files, true)
+                {
+                    *module_certain = true;
+                    return Some(found);
+                }
+                if let Some(import) = module_aliases.get(head) {
+                    let base = import.strip_suffix(".zig").unwrap_or(import);
+                    let base = base.rsplit('/').next().unwrap_or(base);
+                    if !zig_packages.contains(base) {
+                        *external_out = Some(import.clone());
+                        return None;
+                    }
+                }
+            }
+            // Try just the name itself as a qualified name. Several
+            // callables carrying it are narrowed by evidence (see
+            // `narrow_copies`), never picked by order.
+            // Zig `const f = link.g;`: `g` in the file `link` aliases
+            // (`const link = @import("link.zig")`).
+            let (name, module): (&str, String) = match (lang, target.rsplit_once('.')) {
+                ("zig", Some((path, member))) => {
+                    let head = path.split('.').next().unwrap_or(path);
+                    let expanded = module_aliases
+                        .get(head)
+                        .map(|m| format!("{m}{}", &path[head.len()..]))
+                        .unwrap_or_else(|| path.to_string());
+                    (member, expanded)
+                }
+                _ => (r.name.as_str(), target.clone()),
+            };
+            if !bare_qns {
+                match bare_qn_lookup(
+                    graph,
+                    lang,
+                    name,
+                    &[target.as_str(), module.as_str()],
+                    caller_file,
+                    by_qn,
+                    by_simple,
+                    reexports,
+                    qn_collisions,
+                ) {
+                    BareQn::Found(cids) => return Some(cids),
+                    BareQn::Ambiguous => return None,
+                    BareQn::Missing => {}
+                }
             }
         }
         // Step 1b: bare-name lookup via unqualified-import prefixes
@@ -3233,9 +4210,25 @@ fn try_resolve_ref(
             for joiner in [".", "::"] {
                 let qn = format!("{prefix}{joiner}{}", r.name);
                 if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
-                    return Some(vec![cid]);
+                    return Some(with_overloads(cid));
                 }
             }
+        }
+        // Zig resolves a bare name in the file's own containers first; a
+        // name the file declares is never another file's (FINDINGS R13).
+        if lang == "zig"
+            && by_simple
+                .get(&(lang.to_string(), r.name.clone()))
+                .is_some_and(|v| {
+                    v.iter().any(|c| {
+                        graph
+                            .callables
+                            .get(c)
+                            .is_some_and(|n| n.file == caller_file)
+                    })
+                })
+        {
+            return None;
         }
         // Step 1c: scoped by-simple lookup — restricted to callables
         // defined in files whose path matches one of this file's
@@ -3246,7 +4239,26 @@ fn try_resolve_ref(
             && !cids.is_empty()
             && cids.len() <= 8
         {
-            return Some(cids.clone());
+            // FINDINGS A6: only what a bare name can reach from here.
+            let reach: Vec<CallableId> = cids
+                .iter()
+                .copied()
+                .filter(|c| bare_call_reaches(graph, lang, &bare_scope, *c, true))
+                .collect();
+            if !reach.is_empty() {
+                // Copies of one qualified name in several matched files are
+                // narrowed by evidence, never all bound; with none, the call
+                // is ambiguous and refused (recorded by the caller). Dart
+                // imports name files, so only a candidate in one of them
+                // counts (FINDINGS R16).
+                return narrow_copies(
+                    graph,
+                    &reach,
+                    caller_file,
+                    module_files,
+                    lang == "dart",
+                );
+            }
         }
         // Step 1d: global by-simple fallback. Last resort — only when
         // the file has at least one import and the simple name is
@@ -3278,6 +4290,13 @@ fn try_resolve_ref(
                 } else {
                     cids.clone()
                 };
+                // FINDINGS A6: a bare name never reaches a method of an
+                // unrelated type, nor another Perl package's sub. Decided
+                // after the ≤3 test, which stays a property of the name.
+                let cids: Vec<CallableId> = cids
+                    .into_iter()
+                    .filter(|c| bare_call_reaches(graph, lang, &bare_scope, *c, false))
+                    .collect();
                 if !cids.is_empty() {
                     return Some(cids);
                 }
@@ -3302,12 +4321,28 @@ fn try_resolve_ref(
             if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
                 return Some(vec![cid]);
             }
-            // For JS/TS: definitions don't carry a module prefix, so
-            // try bare name as fallback when the module is a relative
-            // path or a short package-like name that doesn't match
-            // any qualified name prefix.
-            if let Some(cid) = lookup_with_reexports(lang, &r.name, by_qn, reexports) {
-                return Some(vec![cid]);
+            // Definitions in some languages don't carry a module prefix,
+            // so try the bare name — only when exactly one callable
+            // carries it. Several is a choice `by_qn` would make by
+            // indexing order (a decoy in `src/zzz/` won). JS/TS module
+            // bindings were settled by step 0c.
+            if !bare_qns {
+                let path = format!("{module}{rest}");
+                match bare_qn_lookup(
+                    graph,
+                    lang,
+                    &r.name,
+                    &[module.as_str(), path.as_str()],
+                    caller_file,
+                    by_qn,
+                    by_simple,
+                    reexports,
+                    qn_collisions,
+                ) {
+                    BareQn::Found(cids) => return Some(cids),
+                    BareQn::Ambiguous => return None,
+                    BareQn::Missing => {}
+                }
             }
         }
 
@@ -3317,7 +4352,7 @@ fn try_resolve_ref(
         // form.
         let mut rh_buf = r.receiver_hint.trim().to_string();
         let rh = rh_buf.as_str();
-        if !rh.is_empty() {
+        if !rh.is_empty() && !bare_qns {
             // Direct paths in both joiners.
             let direct_dot = format!("{rh}.{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports)
@@ -6002,9 +7037,13 @@ mod tests {
             "a.rs",
             "rust",
             vec![mk_def("f", "x::a::f", DefVariant::FreeFunction, (30, 120))],
+            // A method call (`dev.kick()`): the visibility filter is the
+            // same one step 5's fan-out applies. A *bare* `kick()` cannot
+            // name a trait method in Rust at all (FINDINGS A6), so it no
+            // longer reaches the filter this test is about.
             vec![RefRecord {
                 name: "kick".into(),
-                receiver_hint: "".into(),
+                receiver_hint: "dev".into(),
                 site_line: 5,
                 site_byte: 60,
                 ..Default::default()
@@ -7660,6 +8699,17 @@ mod tests {
                 vec![],
             );
             f.packages = pk.iter().map(|s| s.to_string()).collect();
+            // The Go plugin always records the package clause; the
+            // module-scoped lookup keys a package's names by it.
+            if lang == "go" {
+                f.imports.push(ImportRecord {
+                    kind: "package-root".into(),
+                    path: qn.split('.').next().unwrap_or("").into(),
+                    alias: String::new(),
+                    site_line: 1,
+                    site_byte: 0,
+                });
+            }
             facts.push(f);
         }
         let (cpath, cqn, cpk, cbases) = caller;
@@ -8043,5 +9093,1949 @@ mod tests {
             ext_case("cpp", t, caller, vec![path_call("cmsys")], vec![], vec![]);
         assert!(dsts.is_empty(), "{dsts:?}");
         assert_eq!(why, vec![external("cmsys")]);
+    }
+
+    // ----------------------------------------------------------------
+    // FINDINGS A4/A5: calls through a workspace module bind inside it.
+    // FINDINGS A6: a bare call never reaches an unrelated method.
+    // ----------------------------------------------------------------
+
+    /// One file of a module-scoped case.
+    struct MFile<'a> {
+        path: &'a str,
+        /// `(qualified name, kind, signature)` of each callable.
+        defs: Vec<(&'a str, CallableKind, &'a str)>,
+        imports: Vec<ImportRecord>,
+        packages: Vec<&'a str>,
+        bases: Vec<&'a str>,
+    }
+
+    fn mfile<'a>(
+        path: &'a str,
+        defs: &[&'a str],
+        imports: Vec<ImportRecord>,
+    ) -> MFile<'a> {
+        MFile {
+            path,
+            defs: defs
+                .iter()
+                .map(|q| (*q, CallableKind::Function, ""))
+                .collect(),
+            imports,
+            packages: vec![],
+            bases: vec![],
+        }
+    }
+
+    /// Resolve `refs`, written inside the caller's first callable, over
+    /// `files` + `caller`. Returns `(dst qualified name, dst path)` per
+    /// edge and every unresolved reason.
+    fn module_case(
+        lang: &str,
+        files: Vec<MFile<'_>>,
+        caller: MFile<'_>,
+        refs: Vec<RefRecord>,
+    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
+        module_case_with(lang, files, caller, refs, |_| {})
+    }
+
+    /// [`module_case`] with the caller's facts adjusted before resolving
+    /// (its locals, say).
+    fn module_case_with(
+        lang: &str,
+        files: Vec<MFile<'_>>,
+        caller: MFile<'_>,
+        refs: Vec<RefRecord>,
+        tweak: impl FnOnce(&mut FileFacts),
+    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
+        let mut tweak = Some(tweak);
+        let mut g = Graph::new();
+        let mut facts = Vec::new();
+        let mut all: Vec<MFile<'_>> = files;
+        all.push(caller);
+        let n = all.len();
+        let mut caller_id = CallableId::new(0);
+        for (fi, f) in all.into_iter().enumerate() {
+            let fid = fi as u32;
+            let mut rec = mk_file(fid, f.path, lang);
+            rec.test_role =
+                cgg_core::classify_test_file(std::path::Path::new(f.path), lang);
+            g.add_file(rec);
+            let mut defs = Vec::new();
+            for (di, (qn, kind, sig)) in f.defs.iter().enumerate() {
+                let id = fid * 100 + di as u32;
+                let simple = qn.rsplit(['.', ':']).next().unwrap();
+                // The caller's first callable encloses every site.
+                let range = if fi == n - 1 && di == 0 {
+                    (0, 1000)
+                } else {
+                    (2000 + di as u32 * 10, 2005 + di as u32 * 10)
+                };
+                let mut c = mk_callable(id, simple, qn, fid, lang, range);
+                c.kind = *kind;
+                c.signature_hint = (*sig).to_string();
+                g.add_callable(c);
+                if fi == n - 1 && di == 0 {
+                    caller_id = CallableId::new(id);
+                }
+                let variant = match kind {
+                    CallableKind::Method => DefVariant::InherentMethod,
+                    _ => DefVariant::FreeFunction,
+                };
+                let mut d = mk_def(simple, qn, variant, range);
+                d.signature_hint = (*sig).to_string();
+                d.base_types = f.bases.iter().map(|b| b.to_string()).collect();
+                defs.push(d);
+            }
+            let mut ff = facts_for(
+                fid,
+                f.path,
+                lang,
+                defs,
+                if fi == n - 1 { refs.clone() } else { vec![] },
+                f.imports,
+            );
+            ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
+            if fi == n - 1
+                && let Some(t) = tweak.take()
+            {
+                t(&mut ff);
+            }
+            facts.push(ff);
+        }
+        let out = resolve_default(&g, &facts);
+        let dsts = out
+            .edges
+            .iter()
+            .filter(|e| e.src == caller_id)
+            .map(|e| {
+                let c = &g.callables[&e.dst];
+                (
+                    c.qualified_name.clone(),
+                    g.files[&c.file].path.to_string_lossy().into_owned(),
+                )
+            })
+            .collect();
+        (dsts, out.unresolved.into_iter().map(|u| u.reason).collect())
+    }
+
+    fn refused(module: &str) -> UnresolvedReason {
+        UnresolvedReason::NotInImportedModule {
+            module: module.into(),
+        }
+    }
+
+    fn at(qn: &str, path: &str) -> (String, String) {
+        (qn.to_string(), path.to_string())
+    }
+
+    /// The A4 near-miss: two modules export `spawnJob`; a call through
+    /// the namespace import of one binds to that one only, whichever file
+    /// was indexed last — and a named import of the other binds there.
+    #[test]
+    fn js_module_binding_picks_the_imported_file_in_either_order() {
+        for reversed in [false, true] {
+            let mut files = vec![
+                mfile("src/aaa/svc.js", &["spawnJob"], vec![]),
+                mfile("src/zzz/other.js", &["spawnJob"], vec![]),
+            ];
+            if reversed {
+                files.reverse();
+            }
+            let caller = mfile(
+                "src/main.js",
+                &["go"],
+                vec![
+                    import("import", "./aaa/svc", "svc"),
+                    import("from-import", "./zzz/other", "spawnJob as z"),
+                ],
+            );
+            let (dsts, why) = module_case(
+                "javascript",
+                files,
+                caller,
+                vec![call("spawnJob", "svc"), call("z", "")],
+            );
+            assert_eq!(
+                dsts,
+                vec![
+                    at("spawnJob", "src/aaa/svc.js"),
+                    at("spawnJob", "src/zzz/other.js")
+                ],
+                "reversed={reversed}"
+            );
+            assert!(why.is_empty(), "{why:?}");
+        }
+    }
+
+    /// `module.exports = { run, other: impl2 }`, a module that is
+    /// `module.exports = require('./legacy')`, and a decoy defining the
+    /// same names.
+    #[test]
+    fn js_require_follows_commonjs_exports() {
+        let files = vec![
+            mfile(
+                "src/legacy.js",
+                &["run", "impl2"],
+                vec![import("local-export", "", "run, impl2 as other")],
+            ),
+            mfile(
+                "src/proxy.js",
+                &[],
+                vec![import("re-export", "./legacy", "*")],
+            ),
+            mfile("src/zzz/decoy.js", &["run", "other"], vec![]),
+        ];
+        let caller = mfile(
+            "src/main.js",
+            &["go"],
+            vec![
+                import("import", "./legacy", "legacy"),
+                import("import", "./proxy", "proxy"),
+            ],
+        );
+        let (dsts, _) = module_case(
+            "javascript",
+            files,
+            caller,
+            vec![call("other", "legacy"), call("run", "proxy")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at("impl2", "src/legacy.js"), at("run", "src/legacy.js")]
+        );
+    }
+
+    /// A barrel `index.js`: `export *`, `export { helper as h }`. A name
+    /// the barrel does not export is refused, not bound to the decoy.
+    #[test]
+    fn js_barrel_reexports_are_followed_and_a_missing_name_refused() {
+        let files = vec![
+            mfile("src/lib/impl.js", &["f"], vec![]),
+            mfile("src/lib/util.js", &["helper"], vec![]),
+            mfile(
+                "src/lib/index.js",
+                &[],
+                vec![
+                    import("re-export", "./impl", "*"),
+                    import("re-export", "./util", "helper as h"),
+                ],
+            ),
+            mfile("src/decoy.js", &["f", "h", "missing"], vec![]),
+        ];
+        let caller = mfile(
+            "src/main.js",
+            &["go"],
+            vec![import("import", "./lib", "lib")],
+        );
+        let (dsts, why) = module_case(
+            "javascript",
+            files,
+            caller,
+            vec![
+                call("f", "lib"),
+                call("h", "lib"),
+                RefRecord {
+                    site_byte: 70,
+                    ..call("missing", "lib")
+                },
+            ],
+        );
+        assert_eq!(
+            dsts,
+            vec![at("f", "src/lib/impl.js"), at("helper", "src/lib/util.js")]
+        );
+        assert_eq!(why, vec![refused("./lib")]);
+    }
+
+    /// A module whose file is not in the tree: refused, never matched by
+    /// name to a same-named function elsewhere.
+    #[test]
+    fn js_module_without_a_file_is_refused() {
+        let files = vec![mfile("src/zzz/decoy.ts", &["gone"], vec![])];
+        let caller = mfile(
+            "src/main.ts",
+            &["go"],
+            vec![import("import", "./not-analyzed", "m")],
+        );
+        let (dsts, why) =
+            module_case("typescript", files, caller, vec![call("gone", "m")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![refused("./not-analyzed")]);
+    }
+
+    fn py(
+        path: &'static str,
+        module: &'static str,
+        defs: &[(&'static str, CallableKind)],
+    ) -> MFile<'static> {
+        MFile {
+            path,
+            defs: defs.iter().map(|(q, k)| (*q, *k, "")).collect(),
+            imports: vec![],
+            packages: vec![module],
+            bases: vec![],
+        }
+    }
+
+    /// FINDINGS A5, Python: `pkg.sub.jobs.Runner().m()` and `from .
+    /// import helpers; helpers.f()` bind in the module only; a package
+    /// re-export (`from .core import helper` in `__init__.py`) is
+    /// followed; a name the module does not provide is refused.
+    #[test]
+    fn python_module_head_binds_inside_the_module() {
+        let method = CallableKind::Method;
+        let func = CallableKind::Function;
+        let mut init = py("pkg/__init__.py", "pkg", &[]);
+        init.imports = vec![import("from-import", ".core", "helper")];
+        let files = vec![
+            init,
+            py("pkg/core.py", "pkg.core", &[("pkg.core.helper", func)]),
+            py(
+                "pkg/helpers.py",
+                "pkg.helpers",
+                &[("pkg.helpers.helper_fn", func)],
+            ),
+            py(
+                "pkg/sub/jobs.py",
+                "pkg.sub.jobs",
+                &[("pkg.sub.jobs.Runner.start_runner", method)],
+            ),
+            py(
+                "other/decoy.py",
+                "other.decoy",
+                &[
+                    ("other.decoy.helper", func),
+                    ("other.decoy.helper_fn", func),
+                    ("other.decoy.missing", func),
+                    ("other.decoy.Runner.start_runner", method),
+                ],
+            ),
+        ];
+        let mut caller = py("pkg/main.py", "pkg.main", &[("pkg.main.go", func)]);
+        caller.imports = vec![
+            import("import", "pkg", ""),
+            import("from-import", ".", "helpers"),
+        ];
+        let refs = vec![
+            call("helper", "pkg"),
+            RefRecord {
+                site_byte: 61,
+                ..call("start_runner", "pkg.sub.jobs.Runner()")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("helper_fn", "helpers")
+            },
+            RefRecord {
+                site_byte: 63,
+                ..call("missing", "pkg")
+            },
+        ];
+        let (dsts, why) = module_case("python", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("pkg.core.helper", "pkg/core.py"),
+                at("pkg.sub.jobs.Runner.start_runner", "pkg/sub/jobs.py"),
+                at("pkg.helpers.helper_fn", "pkg/helpers.py"),
+            ]
+        );
+        assert_eq!(why, vec![refused("pkg")]);
+    }
+
+    /// FINDINGS A5, Go: the import path decides between two packages of
+    /// one name; a value a package function built (`t, err :=
+    /// util.Open()`) and a parameter of a package type reach that
+    /// package's type, by the function's declared result.
+    #[test]
+    fn go_import_path_decides_between_same_named_packages() {
+        let pkg = |path: &'static str, ip: &str| MFile {
+            path,
+            defs: vec![
+                ("util.F", CallableKind::Function, "func F() int"),
+                ("util.T.M", CallableKind::Method, "func (t *T) M() int"),
+                (
+                    "util.Open",
+                    CallableKind::Function,
+                    "func Open(p string) (*T, error)",
+                ),
+            ],
+            imports: vec![
+                import("package-root", "util", ""),
+                import("package-path", "", ip),
+            ],
+            packages: vec!["example.com/app"],
+            bases: vec![],
+        };
+        for reversed in [false, true] {
+            let mut files = vec![
+                pkg("internal/a/util/util.go", "example.com/app/internal/a/util"),
+                pkg("internal/b/util/util.go", "example.com/app/internal/b/util"),
+            ];
+            if reversed {
+                files.reverse();
+            }
+            let caller = MFile {
+                path: "main.go",
+                defs: vec![("main.main", CallableKind::Function, "func main()")],
+                imports: vec![
+                    import("package-root", "main", ""),
+                    import("import", "example.com/app/internal/a/util", ""),
+                ],
+                packages: vec!["example.com/app"],
+                bases: vec![],
+            };
+            let refs = vec![
+                call("F", "util"),
+                RefRecord {
+                    site_byte: 61,
+                    ..call("M", "util.Open()")
+                },
+                RefRecord {
+                    site_byte: 62,
+                    ..call("M", "util.T")
+                },
+            ];
+            let (dsts, why) = module_case("go", files, caller, refs);
+            let a = "internal/a/util/util.go";
+            assert_eq!(
+                dsts,
+                vec![at("util.F", a), at("util.T.M", a), at("util.T.M", a)],
+                "reversed={reversed}"
+            );
+            assert!(why.is_empty(), "{why:?}");
+        }
+    }
+
+    /// FINDINGS A6, PHP: a bare `collect()` is a function call; the
+    /// method `Dates::collect` is not in scope for it, while a free
+    /// function of the same name is.
+    #[test]
+    fn php_bare_call_reaches_functions_never_methods() {
+        let files = vec![
+            MFile {
+                path: "src/Dates.php",
+                defs: vec![
+                    ("Dates::helper", CallableKind::Method, ""),
+                    ("Dates::collect", CallableKind::Method, ""),
+                ],
+                imports: vec![],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile("src/helpers.php", &["helper"], vec![]),
+        ];
+        let caller = MFile {
+            path: "src/App.php",
+            defs: vec![("App::run", CallableKind::Method, "")],
+            imports: vec![import("use", "App\\Util\\Dates", "")],
+            packages: vec![],
+            bases: vec![],
+        };
+        let refs = vec![
+            call("helper", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("collect", "")
+            },
+        ];
+        let (dsts, _) = module_case("php", files, caller, refs);
+        assert_eq!(dsts, vec![at("helper", "src/helpers.php")]);
+    }
+
+    /// FINDINGS A6, Java: a bare `g()` reaches the calling class's own
+    /// base, never the same-named method of an unrelated class.
+    #[test]
+    fn java_bare_call_reaches_bases_not_unrelated_classes() {
+        let m = CallableKind::Method;
+        let files = vec![
+            MFile {
+                path: "src/p/Base.java",
+                defs: vec![("p.Base.g", m, "")],
+                imports: vec![],
+                packages: vec!["p"],
+                bases: vec![],
+            },
+            MFile {
+                path: "src/p/Other.java",
+                defs: vec![("p.Other.g", m, ""), ("p.Other.h", m, "")],
+                imports: vec![],
+                packages: vec!["p"],
+                bases: vec![],
+            },
+        ];
+        let caller = MFile {
+            path: "src/p/A.java",
+            defs: vec![("p.A.f", m, "")],
+            imports: vec![import("import", "java.util.List", "")],
+            packages: vec!["p"],
+            bases: vec!["Base"],
+        };
+        let refs = vec![
+            call("g", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("h", "")
+            },
+        ];
+        let (dsts, _) = module_case("java", files, caller, refs);
+        assert_eq!(dsts, vec![at("p.Base.g", "src/p/Base.java")]);
+    }
+
+    /// FINDINGS A6, Go: a bare call reaches its own package — the files
+    /// of the calling directory — never a same-named function of another
+    /// package (`setRun` in `secret/set` is not `alias/set`'s).
+    #[test]
+    fn go_bare_call_stays_in_its_package() {
+        let go_file = |path: &'static str| MFile {
+            path,
+            defs: vec![("set.setRun", CallableKind::Function, "func setRun() error")],
+            imports: vec![import("package-root", "set", "")],
+            packages: vec!["example.com/app"],
+            bases: vec![],
+        };
+        for reversed in [false, true] {
+            let mut files = vec![
+                go_file("pkg/cmd/alias/set/set.go"),
+                go_file("pkg/cmd/secret/set/set.go"),
+            ];
+            if reversed {
+                files.reverse();
+            }
+            let caller = MFile {
+                path: "pkg/cmd/secret/set/set_test.go",
+                defs: vec![("set.TestSet", CallableKind::Function, "func TestSet()")],
+                imports: vec![
+                    import("package-root", "set", ""),
+                    import("import", "testing", ""),
+                ],
+                packages: vec!["example.com/app"],
+                bases: vec![],
+            };
+            let (dsts, _) = module_case("go", files, caller, vec![call("setRun", "")]);
+            assert_eq!(
+                dsts,
+                vec![at("set.setRun", "pkg/cmd/secret/set/set.go")],
+                "reversed={reversed}"
+            );
+        }
+    }
+
+    /// A workspace package imported by name (`@std/assert`) is its own
+    /// directory: its entry module (Deno's `mod.ts` here) and that
+    /// module's re-exports, not every file whose path ends in `assert`.
+    #[test]
+    fn js_workspace_package_resolves_through_its_root() {
+        let pkg = |path: &'static str,
+                   defs: &[&'static str],
+                   mut imports: Vec<ImportRecord>| {
+            // The plugin records the package each file belongs to.
+            imports.push(import("package-name", "", "@std/assert"));
+            MFile {
+                path,
+                defs: defs
+                    .iter()
+                    .map(|d| (*d, CallableKind::Function, ""))
+                    .collect(),
+                imports,
+                packages: vec!["@std/assert"],
+                bases: vec![],
+            }
+        };
+        let files = vec![
+            pkg("assert/assert.ts", &["assert"], vec![]),
+            pkg("assert/equals.ts", &["assertEquals"], vec![]),
+            pkg(
+                "assert/mod.ts",
+                &[],
+                vec![import("re-export", "./equals.ts", "*")],
+            ),
+            mfile("expect/_assert_equals.ts", &["assertEquals"], vec![]),
+        ];
+        let caller = mfile(
+            "collections/filter_keys_test.ts",
+            &["test"],
+            vec![import("from-import", "@std/assert", "assertEquals")],
+        );
+        let (dsts, why) =
+            module_case("typescript", files, caller, vec![call("assertEquals", "")]);
+        assert_eq!(dsts, vec![at("assertEquals", "assert/equals.ts")]);
+        assert!(why.is_empty(), "{why:?}");
+    }
+
+    /// `useThing().get()`: a call on what an imported *function* returned
+    /// is not a path into the module, so module-scoped resolution leaves
+    /// it to the resolver's other readings rather than refusing it.
+    #[test]
+    fn a_call_on_an_imported_functions_result_is_not_refused() {
+        let files = vec![mfile("src/hooks.js", &["useThing"], vec![])];
+        let caller = mfile(
+            "src/main.js",
+            &["go"],
+            vec![import("from-import", "./hooks", "useThing")],
+        );
+        let (_, why) =
+            module_case("javascript", files, caller, vec![call("get", "useThing()")]);
+        assert!(
+            !why.iter()
+                .any(|w| matches!(w, UnresolvedReason::NotInImportedModule { .. })),
+            "{why:?}"
+        );
+    }
+
+    /// A6 keeps what Java lets a bare name reach through a static import:
+    /// `import static q.TestUtils.*;` and `import static q.TestUtils.single;`
+    /// name members of another class, and those calls stay bound — the
+    /// single import exactly, though a same-named method exists elsewhere.
+    #[test]
+    fn java_static_imports_reach_members_of_another_class() {
+        let m = CallableKind::Method;
+        let files = vec![
+            MFile {
+                path: "src/q/TestUtils.java",
+                defs: vec![("q.TestUtils.helper", m, ""), ("q.TestUtils.single", m, "")],
+                imports: vec![],
+                packages: vec!["q"],
+                bases: vec![],
+            },
+            MFile {
+                path: "src/r/Other.java",
+                defs: vec![("r.Other.single", m, "")],
+                imports: vec![],
+                packages: vec!["r"],
+                bases: vec![],
+            },
+        ];
+        let caller = MFile {
+            path: "src/p/B.java",
+            defs: vec![("p.B.f", m, "")],
+            imports: vec![
+                import("from-import", "q.TestUtils", "*"),
+                import("from-import", "q.TestUtils.single", "single"),
+            ],
+            packages: vec!["p"],
+            bases: vec![],
+        };
+        let refs = vec![
+            call("helper", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("single", "")
+            },
+        ];
+        let (dsts, _) = module_case("java", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("q.TestUtils.helper", "src/q/TestUtils.java"),
+                at("q.TestUtils.single", "src/q/TestUtils.java"),
+            ]
+        );
+    }
+
+    /// A6 keeps dispatch: a bare `step()` in a base class reaches the
+    /// override in a class derived from it (the base often declares it
+    /// abstractly), never the same-named method of an unrelated class.
+    #[test]
+    fn java_bare_call_reaches_overrides_in_derived_classes() {
+        let m = CallableKind::Method;
+        let files = vec![
+            MFile {
+                path: "src/p/Impl.java",
+                defs: vec![("p.Impl.step", m, "")],
+                imports: vec![],
+                packages: vec!["p"],
+                bases: vec!["Base"],
+            },
+            MFile {
+                path: "src/p/Other.java",
+                defs: vec![("p.Other.step", m, "")],
+                imports: vec![],
+                packages: vec!["p"],
+                bases: vec![],
+            },
+        ];
+        let caller = MFile {
+            path: "src/p/Base.java",
+            defs: vec![("p.Base.run", m, "")],
+            imports: vec![import("import", "java.util.List", "")],
+            packages: vec!["p"],
+            bases: vec![],
+        };
+        let (dsts, _) = module_case("java", files, caller, vec![call("step", "")]);
+        assert_eq!(dsts, vec![at("p.Impl.step", "src/p/Impl.java")]);
+    }
+
+    /// `module.exports = new SettingsHelpers(…)` with the class required
+    /// from another file: a member call through the module is the
+    /// class's method, followed through the import.
+    #[test]
+    fn js_commonjs_instance_export_reaches_its_class() {
+        let files = vec![
+            MFile {
+                path: "svc/helpers/settings-helpers.js",
+                defs: vec![("SettingsHelpers.getEmail", CallableKind::Method, "")],
+                imports: vec![import("local-export", "", "SettingsHelpers as default")],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile(
+                "svc/helpers/index.js",
+                &[],
+                vec![
+                    import("import", "./settings-helpers", "SettingsHelpers"),
+                    import("local-export", "", "SettingsHelpers as default"),
+                ],
+            ),
+            mfile("other/decoy.js", &["getEmail"], vec![]),
+        ];
+        let caller = mfile(
+            "svc/email/wrapper.js",
+            &["go"],
+            vec![import("import", "../helpers", "settingsHelpers")],
+        );
+        let (dsts, why) = module_case(
+            "javascript",
+            files,
+            caller,
+            vec![call("getEmail", "settingsHelpers")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at(
+                "SettingsHelpers.getEmail",
+                "svc/helpers/settings-helpers.js"
+            )]
+        );
+        assert!(why.is_empty(), "{why:?}");
+    }
+
+    /// A path alias that matches the same module in two projects
+    /// (`web/` and its copy `web-old/`) resolves to the one nearest the
+    /// importing file, not to neither.
+    #[test]
+    fn js_alias_prefers_the_module_nearest_the_importer() {
+        let files = vec![
+            mfile("web/src/backend/Api.ts", &["getItems"], vec![]),
+            mfile("web-old/src/backend/Api.js", &["getItems"], vec![]),
+        ];
+        let caller = mfile(
+            "web/src/pages/List.tsx",
+            &["render"],
+            vec![import("import", "@/backend/Api", "Api")],
+        );
+        let (dsts, _) =
+            module_case("typescript", files, caller, vec![call("getItems", "Api")]);
+        assert_eq!(dsts, vec![at("getItems", "web/src/backend/Api.ts")]);
+    }
+
+    // ---- WS4 review classes (R1–R8): refuse only when decisive. ----
+
+    fn go_pkg_file(
+        path: &'static str,
+        pkg: &'static str,
+        ip: &'static str,
+        defs: Vec<(&'static str, CallableKind, &'static str)>,
+        mut extra: Vec<ImportRecord>,
+    ) -> MFile<'static> {
+        let mut imports = vec![
+            import("package-root", pkg, ""),
+            import("package-path", "", ip),
+        ];
+        imports.append(&mut extra);
+        MFile {
+            path,
+            defs,
+            imports,
+            packages: vec!["example.com/app"],
+            bases: vec![],
+        }
+    }
+
+    fn go_caller(imports: Vec<ImportRecord>) -> MFile<'static> {
+        let mut all = vec![import("package-root", "main", "")];
+        all.extend(imports);
+        MFile {
+            path: "main.go",
+            defs: vec![("main.main", CallableKind::Function, "func main()")],
+            imports: all,
+            packages: vec!["example.com/app"],
+            bases: vec![],
+        }
+    }
+
+    fn refusals(why: &[UnresolvedReason]) -> usize {
+        why.iter()
+            .filter(|w| matches!(w, UnresolvedReason::NotInImportedModule { .. }))
+            .count()
+    }
+
+    /// R2 (Go): `ttl.CacheDefault.Int()` goes through a package-level
+    /// variable, so a miss keeps the other readings; `ttl.Missing()` —
+    /// the package itself as the receiver — is still refused.
+    #[test]
+    fn go_package_variable_receiver_is_not_refused() {
+        let files = vec![go_pkg_file(
+            "ttl/ttl.go",
+            "ttl",
+            "example.com/app/ttl",
+            vec![(
+                "ttl.Duration.Int",
+                CallableKind::Method,
+                "func (d Duration) Int() int",
+            )],
+            vec![],
+        )];
+        let caller = go_caller(vec![import("import", "example.com/app/ttl", "")]);
+        let refs = vec![
+            call("Int", "ttl.CacheDefault"),
+            RefRecord {
+                site_byte: 61,
+                ..call("Missing", "ttl")
+            },
+        ];
+        let (dsts, why) = module_case("go", files, caller, refs);
+        // Duck typing (the pre-WS4 reading) still finds `Duration.Int`.
+        assert_eq!(dsts, vec![at("ttl.Duration.Int", "ttl/ttl.go")]);
+        assert_eq!(refusals(&why), 0, "{why:?}");
+    }
+
+    /// R3 (Go): a value a package function returns is typed by the
+    /// function's declared result: a type of another workspace package is
+    /// looked up there, one of a dependency is filed as external.
+    #[test]
+    fn go_result_type_of_another_package_or_a_dependency() {
+        let files = vec![
+            go_pkg_file(
+                "idv/idv.go",
+                "idv",
+                "example.com/app/idv",
+                vec![("idv.Provider.Verify", CallableKind::Method, "")],
+                vec![],
+            ),
+            go_pkg_file(
+                "svc/svc.go",
+                "svc",
+                "example.com/app/svc",
+                vec![
+                    (
+                        "svc.GetIdv",
+                        CallableKind::Function,
+                        "func GetIdv() idv.Provider",
+                    ),
+                    (
+                        "svc.GetStore",
+                        CallableKind::Function,
+                        "func GetStore() (oss.Store, error)",
+                    ),
+                    ("svc.Local.Verify", CallableKind::Method, ""),
+                ],
+                vec![
+                    import("import", "example.com/app/idv", ""),
+                    import("import", "github.com/ext/oss", ""),
+                ],
+            ),
+        ];
+        let caller = go_caller(vec![import("import", "example.com/app/svc", "")]);
+        let refs = vec![
+            call("Verify", "svc.GetIdv()"),
+            RefRecord {
+                site_byte: 61,
+                ..call("Verify", "svc.GetStore()")
+            },
+        ];
+        let (dsts, why) = module_case("go", files, caller, refs);
+        assert_eq!(dsts, vec![at("idv.Provider.Verify", "idv/idv.go")]);
+        assert_eq!(why, vec![external("github.com/ext/oss")]);
+    }
+
+    /// R6 (Go): a bare call is the calling package's own, however many
+    /// other packages declare the name.
+    #[test]
+    fn go_bare_call_binds_in_its_own_package_first() {
+        let mut files = Vec::new();
+        for d in ["a", "b", "c", "d", "e", "f", "g", "h", "i"] {
+            let path: &'static str = match d {
+                "a" => "cmd/a/list/list.go",
+                "b" => "cmd/b/list/list.go",
+                "c" => "cmd/c/list/list.go",
+                "d" => "cmd/d/list/list.go",
+                "e" => "cmd/e/list/list.go",
+                "f" => "cmd/f/list/list.go",
+                "g" => "cmd/g/list/list.go",
+                "h" => "cmd/h/list/list.go",
+                _ => "cmd/i/list/list.go",
+            };
+            files.push(go_pkg_file(
+                path,
+                "list",
+                "example.com/app/cmd/x/list",
+                vec![(
+                    "list.listRun",
+                    CallableKind::Function,
+                    "func listRun() error",
+                )],
+                vec![],
+            ));
+        }
+        let caller = MFile {
+            path: "cmd/a/list/list_test.go",
+            defs: vec![("list.TestList", CallableKind::Function, "func TestList()")],
+            imports: vec![
+                import("package-root", "list", ""),
+                import("import", "testing", ""),
+            ],
+            packages: vec!["example.com/app"],
+            bases: vec![],
+        };
+        let (dsts, _) = module_case("go", files, caller, vec![call("listRun", "")]);
+        assert_eq!(dsts, vec![at("list.listRun", "cmd/a/list/list.go")]);
+    }
+
+    /// R2 (Python): `wif._refresher.stop()` goes through a module-level
+    /// instance — not refused; `wif.missing()` still is.
+    #[test]
+    fn python_module_level_value_receiver_is_not_refused() {
+        let files = vec![
+            py("pkg/__init__.py", "pkg", &[]),
+            py(
+                "pkg/wif.py",
+                "pkg.wif",
+                &[("pkg.wif._Refresher.stop", CallableKind::Method)],
+            ),
+        ];
+        let mut caller = py("main.py", "main", &[("main.go", CallableKind::Function)]);
+        caller.imports = vec![import("from-import", "pkg", "wif")];
+        let refs = vec![
+            call("stop", "wif._refresher"),
+            RefRecord {
+                site_byte: 61,
+                ..call("stop", "wif")
+            },
+        ];
+        let (_, why) = module_case("python", files, caller, refs);
+        assert_eq!(why, vec![refused("pkg.wif")]);
+    }
+
+    /// R2/R4 (JS/TS): a property path (`welcome.api.isActive()`), a
+    /// default export cgg cannot name, and a builder chain off `new X()`
+    /// keep the other readings; `plain.missing()` through a namespace
+    /// binding is still refused.
+    #[test]
+    fn js_values_and_chains_are_not_refused() {
+        let files = vec![
+            mfile("src/welcome.js", &["Api.isActive"], vec![]),
+            mfile(
+                "src/resize.ts",
+                &["createResizeObserver"],
+                vec![import("local-export", "", "<value> as default")],
+            ),
+            mfile("src/plain.js", &["run"], vec![]),
+            mfile(
+                "src/builder.js",
+                &["Builder.withTeam", "Builder.build"],
+                vec![],
+            ),
+            mfile("src/zzz/decoy.js", &["missing"], vec![]),
+        ];
+        let caller = mfile(
+            "src/main.js",
+            &["go"],
+            vec![
+                import("import", "./welcome", "welcome"),
+                import("from-import", "./resize", "default as resizeObserver"),
+                import("import", "./plain", "plain"),
+                import("from-import", "./builder", "Builder"),
+            ],
+        );
+        let refs = vec![
+            call("isActive", "welcome.api"),
+            RefRecord {
+                site_byte: 61,
+                ..call("subscribe", "resizeObserver")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("build", "new Builder({}).withTeam(1)")
+            },
+            RefRecord {
+                site_byte: 63,
+                ..call("missing", "plain")
+            },
+        ];
+        let (_, why) = module_case("javascript", files, caller, refs);
+        assert_eq!(refusals(&why), 1, "{why:?}");
+        assert!(why.contains(&refused("./plain")), "{why:?}");
+    }
+
+    /// R5: an alias whose suffix matches the module in two places binds to
+    /// the one that provides the name; and a package's root comes from the
+    /// files that belong to it, not from another package's tsconfig key of
+    /// the same name.
+    #[test]
+    fn js_alias_copies_and_package_roots() {
+        let mut lib = mfile(
+            "packages/lib/markdown.ts",
+            &["markdownToSafeHTML"],
+            vec![import("package-name", "", "@calcom/lib")],
+        );
+        lib.packages = vec!["@calcom/lib"];
+        let mut atoms = mfile(
+            "packages/atoms/lib/markdown.ts",
+            &["markdownToSafeHTML"],
+            vec![import("package-name", "", "@calcom/atoms")],
+        );
+        atoms.packages = vec!["@calcom/atoms", "@calcom/lib"];
+        let files = vec![
+            lib,
+            atoms,
+            mfile("web/src/support/ui.tsx", &["renderWithProviders"], vec![]),
+            mfile(
+                "web/test/support/ui.tsx",
+                &["mockGetBoundingClientRect"],
+                vec![],
+            ),
+        ];
+        let caller = mfile(
+            "web/src/card.spec.tsx",
+            &["t"],
+            vec![
+                import("from-import", "@calcom/lib/markdown", "markdownToSafeHTML"),
+                import("from-import", "@/support/ui", "mockGetBoundingClientRect"),
+            ],
+        );
+        let refs = vec![
+            call("markdownToSafeHTML", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("mockGetBoundingClientRect", "")
+            },
+        ];
+        let (dsts, why) = module_case("typescript", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("markdownToSafeHTML", "packages/lib/markdown.ts"),
+                at("mockGetBoundingClientRect", "web/test/support/ui.tsx"),
+            ]
+        );
+        assert!(why.is_empty(), "{why:?}");
+    }
+
+    /// R8: copies of one qualified name. The copy in the imported module
+    /// wins (Erlang `-import(lists, …)` is not `lists1`); copies with no
+    /// evidence for one bind nothing (two same-directory OCaml `k`).
+    #[test]
+    fn copies_of_a_name_need_evidence() {
+        let files = vec![
+            mfile("stdlib/lists.erl", &["lists:filter"], vec![]),
+            mfile("test_data/a/lists1.erl", &["lists1:filter"], vec![]),
+            mfile("test_data/b/lists1.erl", &["lists1:filter"], vec![]),
+        ];
+        let caller = mfile(
+            "tools/xref.erl",
+            &["xref:run"],
+            vec![import("import", "lists", "")],
+        );
+        let (dsts, _) = module_case("erlang", files, caller, vec![call("filter", "")]);
+        assert_eq!(dsts, vec![at("lists:filter", "stdlib/lists.erl")]);
+
+        let files = vec![
+            mfile("src/fiber/src/scheduler.ml", &["k"], vec![]),
+            mfile("src/fiber/src/stream.ml", &["k"], vec![]),
+        ];
+        let caller = mfile(
+            "src/fiber/src/core.ml",
+            &["run"],
+            vec![import("open", "Fiber", "")],
+        );
+        let (dsts, _) = module_case("ocaml", files, caller, vec![call("k", "")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+    }
+
+    /// R8 through a module alias: `Type.fromInterned()` with `const Type =
+    /// @import("Type.zig")` is `Type.zig`'s copy; `matcher.expect()` for a
+    /// module no workspace file is binds none of the copies.
+    #[test]
+    fn module_alias_copies_need_evidence() {
+        let files = vec![
+            mfile("src/Type.zig", &["fromInterned"], vec![]),
+            mfile("src/Value.zig", &["fromInterned"], vec![]),
+        ];
+        let caller = mfile(
+            "src/Sema.zig",
+            &["field"],
+            vec![import("import", "Type.zig", "Type")],
+        );
+        let (dsts, _) =
+            module_case("zig", files, caller, vec![call("fromInterned", "Type")]);
+        assert_eq!(dsts, vec![at("fromInterned", "src/Type.zig")]);
+
+        let files = vec![
+            mfile("lib/a/widget_tester.dart", &["expect"], vec![]),
+            mfile("lib/b/shell_test.dart", &["expect"], vec![]),
+        ];
+        let caller = mfile(
+            "test/x_test.dart",
+            &["main"],
+            vec![import("import", "package:matcher/matcher.dart", "matcher")],
+        );
+        let (dsts, _) =
+            module_case("dart", files, caller, vec![call("expect", "matcher")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+    }
+
+    /// `module.exports = { doExport: require('./exporter') }` then
+    /// `m.doExport()` calls the exporter module's default; and a module
+    /// that defines the name somewhere (`this.searchByName = …` in a
+    /// constructor function) is not proof of absence, so the call is not
+    /// refused.
+    #[test]
+    fn js_namespace_member_called_and_nested_definitions() {
+        let files = vec![
+            mfile(
+                "src/exporter/exporter.js",
+                &["exports"],
+                vec![import("local-export", "", "exports as default")],
+            ),
+            mfile(
+                "src/exporter/index.js",
+                &[],
+                vec![import("re-export", "./exporter", "* as doExport")],
+            ),
+            mfile(
+                "src/Card.js",
+                &["CardLibrary.searchByName"],
+                vec![import("local-export", "", "<value> as default")],
+            ),
+            mfile("src/zzz/decoy.js", &["doExport", "searchByName"], vec![]),
+        ];
+        let caller = mfile(
+            "src/backup.js",
+            &["backup"],
+            vec![
+                import("import", "./exporter", "exporter"),
+                import("import", "./Card", "card"),
+            ],
+        );
+        let refs = vec![
+            call("doExport", "exporter"),
+            RefRecord {
+                site_byte: 61,
+                ..call("searchByName", "card")
+            },
+        ];
+        let (dsts, why) = module_case("javascript", files, caller, refs);
+        assert!(
+            dsts.contains(&at("exports", "src/exporter/exporter.js")),
+            "{dsts:?}"
+        );
+        assert_eq!(refusals(&why), 0, "{why:?}");
+    }
+
+    // ----------------------------------------------------------------
+    // Round 2 (R9–R16): shadows, overload sets, exports maps, external
+    // labels, Zig own declarations, Erlang `m:f`, F#/Dart bare calls.
+    // ----------------------------------------------------------------
+
+    /// R9 (Go): a parameter or local named like an import binding is the
+    /// receiver inside its scope — `c.JSON()` with `c *app.RequestContext`
+    /// in a file importing `c ".../client"` is not refused as a miss in
+    /// `client`. Outside that scope the import is the receiver again.
+    #[test]
+    fn go_local_shadowing_an_import_alias_is_not_refused() {
+        let files = vec![
+            go_pkg_file(
+                "pkg/app/client/client.go",
+                "client",
+                "example.com/app/pkg/app/client",
+                vec![("client.Do", CallableKind::Function, "func Do()")],
+                vec![],
+            ),
+            go_pkg_file(
+                "pkg/app/ctx.go",
+                "app",
+                "example.com/app/pkg/app",
+                vec![(
+                    "app.RequestContext.JSON",
+                    CallableKind::Method,
+                    "func (c *RequestContext) JSON(code int)",
+                )],
+                vec![],
+            ),
+        ];
+        let caller = go_caller(vec![
+            import("import", "example.com/app/pkg/app/client", "c"),
+            import("import", "example.com/app/pkg/app", ""),
+        ]);
+        let refs = vec![
+            call("JSON", "c"),
+            RefRecord {
+                site_byte: 61,
+                ..call("JSON", "c")
+            },
+        ];
+        let (dsts, why) = module_case_with("go", files, caller, refs, |f| {
+            // `c` is a local over bytes 0..61 only.
+            for (ty, at) in [(LOCAL_SHADOW_MARK, 0), ("", 61)] {
+                f.local_types.push(cgg_core::LocalType {
+                    var_name: "c".into(),
+                    type_name: ty.into(),
+                    scope_byte: at,
+                });
+            }
+        });
+        // Inside the scope: the pre-WS4 reading (the method by name).
+        assert_eq!(
+            dsts,
+            vec![at("app.RequestContext.JSON", "pkg/app/ctx.go")],
+            "{why:?}"
+        );
+        // Near miss: past the scope `c` is the package again, and the
+        // package has no `JSON`.
+        assert_eq!(why, vec![refused("example.com/app/pkg/app/client")]);
+    }
+
+    const LOCAL_SHADOW_MARK: &str = "<local>";
+
+    /// R10 (Java): a bare call to an overloaded method of the caller's
+    /// base class, or of a class imported `import static q.C.*`, binds the
+    /// whole overload set — never an unrelated class's same-named method.
+    #[test]
+    fn java_overload_sets_through_bases_and_static_wildcards() {
+        let m = CallableKind::Method;
+        let files = vec![
+            MFile {
+                path: "src/p/BaseQueryTest.java",
+                defs: vec![
+                    ("p.BaseQueryTest.testQuery", m, "void testQuery(String sql)"),
+                    (
+                        "p.BaseQueryTest.testQuery",
+                        m,
+                        "void testQuery(String sql, int n)",
+                    ),
+                ],
+                imports: vec![],
+                packages: vec!["p"],
+                bases: vec![],
+            },
+            MFile {
+                path: "src/q/CookieUtil.java",
+                defs: vec![
+                    (
+                        "q.CookieUtil.add",
+                        m,
+                        "static void add(StringBuilder b, String n, long v)",
+                    ),
+                    (
+                        "q.CookieUtil.add",
+                        m,
+                        "static void add(StringBuilder b, String n, String v)",
+                    ),
+                ],
+                imports: vec![],
+                packages: vec!["q"],
+                bases: vec![],
+            },
+            MFile {
+                path: "src/r/Other.java",
+                defs: vec![("r.Other.testQuery", m, ""), ("r.Other.add", m, "")],
+                imports: vec![],
+                packages: vec!["r"],
+                bases: vec![],
+            },
+        ];
+        let caller = MFile {
+            path: "src/p/ArraysQueryTest.java",
+            defs: vec![("p.ArraysQueryTest.testArrays", m, "")],
+            imports: vec![import("from-import", "q.CookieUtil", "*")],
+            packages: vec!["p"],
+            bases: vec!["BaseQueryTest"],
+        };
+        let refs = vec![
+            call("testQuery", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("add", "")
+            },
+        ];
+        let (dsts, _) = module_case("java", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("p.BaseQueryTest.testQuery", "src/p/BaseQueryTest.java"),
+                at("p.BaseQueryTest.testQuery", "src/p/BaseQueryTest.java"),
+                at("q.CookieUtil.add", "src/q/CookieUtil.java"),
+                at("q.CookieUtil.add", "src/q/CookieUtil.java"),
+            ]
+        );
+    }
+
+    /// R11: a package's `exports` map names the file a sub-path specifier
+    /// reaches (`@std/assert/instance-of` → `instance_of.ts`), though no
+    /// file is spelled like it.
+    #[test]
+    fn js_exports_map_subpath_names_its_file() {
+        let files = vec![
+            MFile {
+                path: "assert/instance_of.ts",
+                defs: vec![("assertInstanceOf", CallableKind::Function, "")],
+                imports: vec![
+                    import("package-name", "", "@std/assert"),
+                    import("package-export", "", "@std/assert/instance-of"),
+                ],
+                packages: vec!["@std/assert"],
+                bases: vec![],
+            },
+            mfile("zzz/instance_of.ts", &["assertInstanceOf"], vec![]),
+        ];
+        let caller = mfile(
+            "expect/_matchers.ts",
+            &["toBeInstanceOf"],
+            vec![import(
+                "from-import",
+                "@std/assert/instance-of",
+                "assertInstanceOf",
+            )],
+        );
+        let (dsts, why) = module_case(
+            "typescript",
+            files,
+            caller,
+            vec![call("assertInstanceOf", "")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at("assertInstanceOf", "assert/instance_of.ts")],
+            "{why:?}"
+        );
+    }
+
+    /// R12: a bare specifier names a package unless a path alias says
+    /// otherwise. `next/navigation` is a dependency even when the tree
+    /// has a `next/` directory and a `navigation.ts` elsewhere — external,
+    /// never that file's `redirect`. A workspace package re-exporting a
+    /// dependency (`export default dayjs` of `import dayjs from "dayjs"`)
+    /// labels the call with the dependency. An alias (`@/lib/…`) still
+    /// matches by suffix.
+    #[test]
+    fn js_bare_specifiers_name_packages_not_lookalike_files() {
+        let files = vec![
+            mfile("src/next/config.ts", &["config"], vec![]),
+            mfile("src/lib/navigation.ts", &["redirect"], vec![]),
+            // A lookalike of the dependency's function, never its target.
+            mfile("src/zzz/dayjs.ts", &["dayjs"], vec![]),
+            MFile {
+                path: "packages/dayjs/index.ts",
+                defs: vec![],
+                imports: vec![
+                    import("package-name", "", "@scope/dayjs"),
+                    import("from-import", "dayjs", "default as dayjs"),
+                    import("local-export", "", "dayjs as default"),
+                ],
+                packages: vec!["@scope/dayjs"],
+                bases: vec![],
+            },
+        ];
+        let caller = mfile(
+            "src/app/page.ts",
+            &["page"],
+            vec![
+                import("from-import", "next/navigation", "redirect"),
+                import("from-import", "@scope/dayjs", "default as dayjs"),
+                import("from-import", "@/lib/navigation", "redirect as go"),
+            ],
+        );
+        let refs = vec![
+            call("redirect", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("dayjs", "")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("go", "")
+            },
+        ];
+        let (dsts, why) = module_case("typescript", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![at("redirect", "src/lib/navigation.ts")],
+            "{why:?}"
+        );
+        assert!(why.contains(&external("next/navigation")), "{why:?}");
+        assert!(why.contains(&external("dayjs")), "{why:?}");
+        assert_eq!(refusals(&why), 0, "{why:?}");
+    }
+
+    /// R12 (Go): in module mode an import path no `go.mod` covers is a
+    /// dependency, even with a package directory of the same name.
+    #[test]
+    fn go_stdlib_import_named_like_a_workspace_directory_is_external() {
+        let files = vec![go_pkg_file(
+            "internal/reflect/reflect.go",
+            "reflect",
+            "example.com/app/internal/reflect",
+            vec![(
+                "reflect.DeepEqual",
+                CallableKind::Function,
+                "func DeepEqual()",
+            )],
+            vec![],
+        )];
+        let caller = go_caller(vec![import("import", "reflect", "")]);
+        let (dsts, why) =
+            module_case("go", files, caller, vec![call("DeepEqual", "reflect")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(why, vec![external("reflect")]);
+    }
+
+    /// JS: a module whose value cgg cannot read (`module.exports = {
+    /// ...spread }`, `export default router` of a local variable) is no
+    /// proof a name is absent; `module.exports = require('./m')` carries
+    /// `./m`'s value, class instance included; a relative module cgg did
+    /// not analyze (`types.d.ts`) refuses only `mod.f()`.
+    #[test]
+    fn js_unreadable_values_are_not_proof_of_absence() {
+        let m = CallableKind::Method;
+        let files = vec![
+            mfile(
+                "core/utils/index.js",
+                &[],
+                vec![import("local-export", "", "<value> as default")],
+            ),
+            mfile(
+                "core/router.js",
+                &[],
+                vec![import("local-export", "", "router as default")],
+            ),
+            MFile {
+                path: "core/importer/import-manager.js",
+                defs: vec![("ImportManager.getExtensions", m, "")],
+                imports: vec![import("local-export", "", "ImportManager as default")],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile(
+                "core/importer/index.js",
+                &[],
+                vec![import("re-export", "./import-manager", "*, default")],
+            ),
+            mfile("zzz/decoy.js", &["addTable", "get"], vec![]),
+        ];
+        let caller = mfile(
+            "core/migrations/run.js",
+            &["run"],
+            vec![
+                import("from-import", "../utils", "addTable"),
+                import("import", "../router", "router"),
+                import("import", "../importer", "ImportManager"),
+                import("from-import", "../types", "Props"),
+            ],
+        );
+        let refs = vec![
+            call("addTable", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("get", "router")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("getExtensions", "ImportManager")
+            },
+            RefRecord {
+                site_byte: 63,
+                ..call("render", "Props")
+            },
+        ];
+        let (dsts, why) = module_case("javascript", files, caller, refs);
+        assert!(
+            dsts.contains(&at(
+                "ImportManager.getExtensions",
+                "core/importer/import-manager.js"
+            )),
+            "{dsts:?}"
+        );
+        assert_eq!(refusals(&why), 0, "{why:?}");
+    }
+
+    /// The near miss of the above: a module whose exports cgg reads in
+    /// full, a default class without a constructor, and a namespace call
+    /// into an unanalyzed relative module are still decisive.
+    #[test]
+    fn js_readable_modules_stay_decisive() {
+        let m = CallableKind::Method;
+        let files = vec![
+            mfile("core/utils/index.js", &["other"], vec![]),
+            MFile {
+                path: "core/templates/email.js",
+                defs: vec![("Email.getPayload", m, "")],
+                imports: vec![import("local-export", "", "Email as default")],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile("zzz/decoy.js", &["addTable", "dbget"], vec![]),
+        ];
+        let caller = mfile(
+            "core/migrations/run.js",
+            &["run"],
+            vec![
+                import("from-import", "../utils", "addTable"),
+                import("from-import", "../templates/email", "default as Email"),
+                import("import", "../gone", "gone"),
+            ],
+        );
+        let refs = vec![
+            call("addTable", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("Email", "")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("dbget", "gone")
+            },
+        ];
+        let (dsts, why) = module_case("javascript", files, caller, refs);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert!(why.contains(&refused("../utils")), "{why:?}");
+        assert!(why.contains(&refused("../gone")), "{why:?}");
+        assert!(
+            why.iter()
+                .any(|w| matches!(w, UnresolvedReason::ClassWithoutExplicitInit)),
+            "{why:?}"
+        );
+    }
+
+    /// R13 (Zig): `const addRunArtifact = link.addRunArtifact;` names the
+    /// file `link` is; a name the calling file declares itself is never
+    /// bound to another file's copy.
+    #[test]
+    fn zig_member_aliases_and_own_declarations() {
+        let files = vec![
+            mfile("test/link/link.zig", &["addRunArtifact"], vec![]),
+            mfile("lib/std/Build.zig", &["addRunArtifact", "pack"], vec![]),
+            mfile("lib/std/crypto/ml_dsa.zig", &["pack"], vec![]),
+        ];
+        let caller = mfile(
+            "test/link/macho.zig",
+            &["testAll", "pack"],
+            vec![
+                import("import", "link.zig", "link"),
+                import("import", "std", "std"),
+                import("alias", "link.addRunArtifact", "addRunArtifact"),
+            ],
+        );
+        let refs = vec![
+            call("addRunArtifact", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("pack", "")
+            },
+        ];
+        let (dsts, _) = module_case("zig", files, caller, refs);
+        assert!(
+            dsts.contains(&at("addRunArtifact", "test/link/link.zig")),
+            "{dsts:?}"
+        );
+        assert!(
+            !dsts
+                .iter()
+                .any(|(q, p)| q == "pack" && p != "test/link/macho.zig"),
+            "{dsts:?}"
+        );
+        assert!(
+            !dsts.contains(&at("addRunArtifact", "lib/std/Build.zig")),
+            "{dsts:?}"
+        );
+    }
+
+    /// R17 (Java): a bare call in a nested class reaches its own class by
+    /// qualified owner — never every same-named nested class (`_Fields`)
+    /// elsewhere. Near miss: the caller's own overload set still fans out.
+    #[test]
+    fn java_bare_member_is_the_qualified_calling_class() {
+        let m = CallableKind::Method;
+        let files = vec![MFile {
+            path: "gen/Supervisor.java",
+            defs: vec![
+                ("gen.Supervisor.A._Fields.find", m, ""),
+                ("gen.Supervisor.B._Fields.find", m, ""),
+                ("gen.Supervisor.A._Fields.put", m, ""),
+            ],
+            imports: vec![],
+            packages: vec!["gen"],
+            bases: vec![],
+        }];
+        let caller = MFile {
+            path: "gen/Nimbus.java",
+            defs: vec![
+                ("gen.Nimbus.A._Fields.orThrow", m, ""),
+                ("gen.Nimbus.A._Fields.find", m, ""),
+                ("gen.Nimbus.B._Fields.find", m, ""),
+                ("gen.Nimbus.A._Fields.put", m, "void put(int a)"),
+                ("gen.Nimbus.A._Fields.put", m, "void put(String a)"),
+            ],
+            imports: vec![],
+            packages: vec!["gen"],
+            bases: vec![],
+        };
+        let refs = vec![
+            call("find", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("put", "")
+            },
+        ];
+        let (dsts, _) = module_case("java", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("gen.Nimbus.A._Fields.find", "gen/Nimbus.java"),
+                at("gen.Nimbus.A._Fields.put", "gen/Nimbus.java"),
+                at("gen.Nimbus.A._Fields.put", "gen/Nimbus.java"),
+            ]
+        );
+    }
+
+    /// R18 (C#/Java): copies of one class (a sample vendored several
+    /// times) — the caller's copy, the one beside it, wins. Near miss: two
+    /// copies equally far from the caller are ambiguous, refused and
+    /// recorded, never both bound.
+    #[test]
+    fn class_copies_narrow_to_the_callers_copy() {
+        let m = CallableKind::Method;
+        let copy = |path: &'static str| MFile {
+            path,
+            defs: vec![("Samples.Form1.InitializeComponent", m, "")],
+            imports: vec![],
+            packages: vec!["Samples"],
+            bases: vec![],
+        };
+        let caller = |path: &'static str| MFile {
+            path,
+            defs: vec![("Samples.Form1.Form1", CallableKind::Constructor, "")],
+            imports: vec![],
+            packages: vec!["Samples"],
+            bases: vec![],
+        };
+        let files = vec![copy("a/Form1.Designer.cs"), copy("b/Form1.Designer.cs")];
+        let (dsts, _) = module_case(
+            "csharp",
+            files,
+            caller("a/Form1.cs"),
+            vec![call("InitializeComponent", "")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at(
+                "Samples.Form1.InitializeComponent",
+                "a/Form1.Designer.cs"
+            )]
+        );
+        let files = vec![copy("a/Form1.Designer.cs"), copy("b/Form1.Designer.cs")];
+        let (dsts, unresolved) = module_case(
+            "csharp",
+            files,
+            caller("c/Form1.cs"),
+            vec![call("InitializeComponent", "")],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert!(!unresolved.is_empty(), "a refusal is recorded");
+    }
+
+    /// R20 (Java): a bare call to a method a derived class overrides is a
+    /// virtual call — the declaration and its overrides, as the bare-name
+    /// fan-out bound them before, never the declaration alone (which left
+    /// every override looking uncalled). Over the fan-out cap it is
+    /// refused and recorded. Near miss: an inherited overload set nothing
+    /// overrides binds whole (R10).
+    #[test]
+    fn java_bare_call_to_an_overridden_member_reaches_the_overrides() {
+        let m = CallableKind::Method;
+        let decl = || MFile {
+            path: "src/p/ActionSetDecl.java",
+            defs: vec![("p.ActionSet.addOne", m, "")],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec![],
+        };
+        let sub = |path: &'static str, qn: &'static str| MFile {
+            path,
+            defs: vec![(qn, m, "")],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec!["ActionSet"],
+        };
+        let caller = || MFile {
+            path: "src/p/ActionSet.java",
+            defs: vec![("p.ActionSet.add", m, "")],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec![],
+        };
+        let files = vec![sub("src/p/Empty.java", "p.Empty.addOne"), decl()];
+        let (dsts, _) = module_case("java", files, caller(), vec![call("addOne", "")]);
+        assert_eq!(
+            dsts,
+            vec![
+                at("p.ActionSet.addOne", "src/p/ActionSetDecl.java"),
+                at("p.Empty.addOne", "src/p/Empty.java"),
+            ]
+        );
+
+        // Near miss: from a subclass, `this` is never a sibling — the
+        // inherited declaration, not the sibling's override.
+        let files = vec![sub("src/p/Empty.java", "p.Empty.addOne"), decl()];
+        let child = MFile {
+            path: "src/p/Child.java",
+            defs: vec![("p.Child.run", m, "")],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec!["ActionSet"],
+        };
+        let (dsts, _) = module_case("java", files, child, vec![call("addOne", "")]);
+        assert_eq!(
+            dsts,
+            vec![at("p.ActionSet.addOne", "src/p/ActionSetDecl.java")]
+        );
+
+        let mut files = vec![decl()];
+        for (path, qn) in [
+            ("src/p/S1.java", "p.S1.addOne"),
+            ("src/p/S2.java", "p.S2.addOne"),
+            ("src/p/S3.java", "p.S3.addOne"),
+            ("src/p/S4.java", "p.S4.addOne"),
+            ("src/p/S5.java", "p.S5.addOne"),
+        ] {
+            files.push(sub(path, qn));
+        }
+        let (dsts, unresolved) =
+            module_case("java", files, caller(), vec![call("addOne", "")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(
+            unresolved,
+            vec![UnresolvedReason::FanoutCapExceeded { candidates: 6 }]
+        );
+
+        let files = vec![MFile {
+            path: "src/p/PlainBase.java",
+            defs: vec![
+                ("p.PlainBase.helper", m, "void helper(int a)"),
+                ("p.PlainBase.helper", m, "void helper(String a)"),
+            ],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec![],
+        }];
+        let caller = MFile {
+            path: "src/p/Plain.java",
+            defs: vec![("p.Plain.run", m, "")],
+            imports: vec![],
+            packages: vec!["p"],
+            bases: vec!["PlainBase"],
+        };
+        let (dsts, _) = module_case("java", files, caller, vec![call("helper", "")]);
+        assert_eq!(
+            dsts,
+            vec![
+                at("p.PlainBase.helper", "src/p/PlainBase.java"),
+                at("p.PlainBase.helper", "src/p/PlainBase.java"),
+            ]
+        );
+    }
+
+    /// R19 (Zig): `const assert = std.debug.assert;` where `std` is not in
+    /// the tree is a call into the dependency — external, never a
+    /// workspace `assert`. Near miss: where the module is in the tree
+    /// (`lib/std/testing.zig`), the alias is followed to it.
+    #[test]
+    fn zig_alias_of_a_dependency_is_external_and_of_the_tree_is_followed() {
+        let files = vec![mfile(
+            "src/clients/java/src/jni_tests.zig",
+            &["assert"],
+            vec![],
+        )];
+        let caller = mfile(
+            "src/vsr.zig",
+            &["run"],
+            vec![
+                import("import", "std", "std"),
+                import("alias", "std.debug.assert", "assert"),
+            ],
+        );
+        let (dsts, unresolved) =
+            module_case("zig", files, caller, vec![call("assert", "")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert_eq!(unresolved, vec![external("std")]);
+
+        let files = vec![
+            mfile("lib/std/std.zig", &["init"], vec![]),
+            mfile("lib/std/testing.zig", &["expect"], vec![]),
+            mfile("lib/other/expect.zig", &["expect"], vec![]),
+        ];
+        let caller = mfile(
+            "test/behavior.zig",
+            &["checkIt"],
+            vec![
+                import("import", "std", "std"),
+                import("alias", "std.testing.expect", "expect"),
+            ],
+        );
+        let (dsts, _) = module_case("zig", files, caller, vec![call("expect", "")]);
+        assert_eq!(dsts, vec![at("expect", "lib/std/testing.zig")]);
+    }
+
+    /// R14 (Erlang): `m:f(…)` binds module `m`'s `f` — the shipped copy
+    /// when test data keeps another, the clause of the call's arity —
+    /// never another module's `f`.
+    #[test]
+    fn erlang_remote_call_binds_its_module_only() {
+        let files = vec![
+            MFile {
+                path: "lib/asn1/src/asn1ct_gen_per.erl",
+                defs: vec![
+                    (
+                        "asn1ct_gen_per:gen_dec_prim",
+                        CallableKind::Function,
+                        "gen_dec_prim(A) -> a",
+                    ),
+                    (
+                        "asn1ct_gen_per:gen_dec_prim",
+                        CallableKind::Function,
+                        "gen_dec_prim(A, B) -> b",
+                    ),
+                ],
+                imports: vec![],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile(
+                "lib/dialyzer/test/r9c_SUITE_data/src/asn1/asn1ct_gen_per.erl",
+                &["asn1ct_gen_per:gen_dec_prim"],
+                vec![],
+            ),
+            mfile(
+                "lib/asn1/src/asn1ct_gen_ber_bin_v2.erl",
+                &["asn1ct_gen_ber_bin_v2:gen_dec_prim"],
+                vec![],
+            ),
+        ];
+        let caller = mfile(
+            "lib/ssl/src/user.erl",
+            &["user:run"],
+            vec![import("include", "x.hrl", "")],
+        );
+        let refs = vec![RefRecord {
+            arity: Some(2),
+            ..call("asn1ct_gen_per:gen_dec_prim", "asn1ct_gen_per")
+        }];
+        let (dsts, _) = module_case("erlang", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![at(
+                "asn1ct_gen_per:gen_dec_prim",
+                "lib/asn1/src/asn1ct_gen_per.erl"
+            )]
+        );
+    }
+
+    /// R15 (F#): a bare call is never a type's member, wherever that type
+    /// is declared; the opened module's function is.
+    #[test]
+    fn fsharp_bare_call_never_reaches_a_member() {
+        let files = vec![
+            MFile {
+                path: "tests/Resolver/Generators.fs",
+                defs: vec![("PackageTypes.PackageName", CallableKind::Method, "")],
+                imports: vec![],
+                packages: vec![],
+                bases: vec![],
+            },
+            mfile("src/Core/Domain.fs", &["Paket.Domain.PackageName"], vec![]),
+        ];
+        let caller = mfile(
+            "tests/Resolver/PropertyTests.fs",
+            &["PropertyTests.check"],
+            vec![import("open", "Paket.Domain", "")],
+        );
+        let (dsts, _) =
+            module_case("fsharp", files, caller, vec![call("PackageName", "")]);
+        assert!(
+            !dsts.contains(&at(
+                "PackageTypes.PackageName",
+                "tests/Resolver/Generators.fs"
+            )),
+            "{dsts:?}"
+        );
+    }
+
+    /// R16 (Dart): `import 'fixtures.dart' as fixtures;` scopes bare
+    /// names to that file. A same-named function in some other file whose
+    /// path merely contains `fixtures` (`shell/common/fixtures/…`) is not
+    /// it; the imported file's own function is.
+    #[test]
+    fn dart_bare_call_needs_an_imported_file() {
+        let files = vec![
+            mfile(
+                "shell/common/fixtures/shell_test.dart",
+                &["expect", "load"],
+                vec![],
+            ),
+            mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
+        ];
+        let caller = mfile(
+            "tools/pkg/configs/test/loader_test.dart",
+            &["main"],
+            vec![
+                import("import", "package:test/test.dart", ""),
+                import("import", "fixtures.dart", "fixtures"),
+            ],
+        );
+        let refs = vec![
+            call("expect", ""),
+            RefRecord {
+                site_byte: 61,
+                ..call("load", "")
+            },
+        ];
+        let (dsts, _) = module_case("dart", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![at("load", "tools/pkg/configs/test/fixtures.dart")],
+            "{dsts:?}"
+        );
+    }
+
+    /// Copies are files: the overloads or clauses one file declares
+    /// under a name stay together; from outside the tests the one copy
+    /// that is not test data is chosen.
+    #[test]
+    fn copies_are_files_and_test_data_is_not_shipped() {
+        let files = vec![
+            mfile("lib/compiler/src/cerl.erl", &["cerl:fold_literal"], vec![]),
+            mfile(
+                "lib/dialyzer/test/opaque_SUITE_data/src/cerl.erl",
+                &["cerl:fold_literal"],
+                vec![],
+            ),
+            mfile(
+                "lib/dialyzer/test/options1_SUITE_data/src/cerl.erl",
+                &["cerl:fold_literal"],
+                vec![],
+            ),
+        ];
+        let caller = mfile("lib/dialyzer/src/dataflow.erl", &["dataflow:run"], vec![]);
+        let (dsts, _) = module_case(
+            "erlang",
+            files,
+            caller,
+            vec![call("cerl:fold_literal", "cerl")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at("cerl:fold_literal", "lib/compiler/src/cerl.erl")]
+        );
     }
 }

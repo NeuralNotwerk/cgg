@@ -68,11 +68,23 @@ impl LanguagePlugin for PythonPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "python");
+        let module = module_name(path);
+        // The dotted name other modules import this file by: the module
+        // name, which for a package's `__init__.py` is the package
+        // itself (its definitions still carry `pkg.__init__.` in their
+        // qualified names). The resolver maps an import onto the file
+        // through this, rather than matching names across the tree.
+        let importable = module
+            .strip_suffix(".__init__")
+            .unwrap_or(if module == "__init__" { "" } else { &module });
+        if !importable.is_empty() {
+            facts.packages = vec![importable.to_string()];
+        }
         let mut walker = Walker {
             ctx: *ctx,
             source,
             facts: &mut facts,
-            scope: vec![module_name(path)],
+            scope: vec![module],
             scope_is_class: vec![false],
             bases: Vec::new(),
             class_field_types: Vec::new(),
@@ -1068,6 +1080,24 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         extract_with("m.py", src)
+    }
+
+    /// The name other modules import the file by, for the resolver to map
+    /// an import onto the file (FINDINGS A5). A package's `__init__.py` is
+    /// importable as the package itself.
+    #[test]
+    fn packages_hold_the_importable_module_name() {
+        let tmp = std::env::temp_dir()
+            .join(format!("__cgg_py_importable_{}", std::process::id()));
+        let pkg = tmp.join("pkg");
+        std::fs::create_dir_all(&pkg).unwrap();
+        std::fs::write(pkg.join("__init__.py"), "").unwrap();
+        let init = extract_with(&pkg.join("__init__.py").to_string_lossy(), "x = 1\n");
+        let jobs = extract_with(&pkg.join("jobs.py").to_string_lossy(), "x = 1\n");
+        std::fs::remove_dir_all(&tmp).ok();
+        assert_eq!(init.packages, vec!["pkg".to_string()]);
+        assert_eq!(jobs.packages, vec!["pkg.jobs".to_string()]);
+        assert_eq!(extract("x = 1\n").packages, vec!["m".to_string()]);
     }
 
     /// Names captured as value references (a callable passed as a

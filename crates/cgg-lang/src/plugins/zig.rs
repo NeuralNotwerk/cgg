@@ -76,6 +76,16 @@ impl<'a> ZigWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `const addRunArtifact = link.addRunArtifact;` at file level:
+            // the name is that declaration of the aliased container, which
+            // the resolver follows (`const link = @import("link.zig")`).
+            "variable_declaration" => {
+                if node.parent().is_some_and(|p| p.kind() == "source_file") {
+                    self.record_alias(node);
+                }
+                self.walk_children(node);
+                return;
+            }
             "call_expression" => {
                 let func = node
                     .child_by_field_name("function")
@@ -131,6 +141,32 @@ impl<'a> ZigWalker<'a> {
         self.walk_children(node);
     }
 
+    fn record_alias(&mut self, node: Node) {
+        let mut c = node.walk();
+        let children: Vec<Node> = node.named_children(&mut c).collect();
+        let Some(name) = children.iter().find(|n| n.kind() == "identifier") else {
+            return;
+        };
+        let Some(value) = children.iter().find(|n| n.kind() == "field_expression") else {
+            return;
+        };
+        let path = self.text(*value).trim();
+        let plain = path.split('.').count() >= 2
+            && path.split('.').all(|seg| {
+                !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
+            });
+        if !plain {
+            return;
+        }
+        self.facts.imports.push(ImportRecord {
+            kind: "alias".into(),
+            path: path.to_string(),
+            alias: self.text(*name).to_string(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
+    }
+
     fn walk_children(&mut self, node: Node) {
         let mut c = node.walk();
         if c.goto_first_child() {
@@ -171,6 +207,25 @@ mod tests {
         );
         assert!(f.definitions.iter().any(|d| d.simple_name == "add"));
         assert!(f.definitions.iter().any(|d| d.simple_name == "main"));
+    }
+
+    /// FINDINGS R13: `const addRunArtifact = link.addRunArtifact;` is a
+    /// file-local alias of another file's function; a value that is not
+    /// a plain path is not one.
+    #[test]
+    fn a_member_alias_is_recorded() {
+        let f = extract(
+            "const link = @import(\"link.zig\");\n\
+             const addRunArtifact = link.addRunArtifact;\n\
+             const n = link.items[0];\n",
+        );
+        let aliases: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "alias")
+            .map(|i| (i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(aliases, vec![("link.addRunArtifact", "addRunArtifact")]);
     }
 
     #[test]

@@ -83,7 +83,8 @@ impl LanguagePlugin for GoPlugin {
         // The module path(s) this file is importable under, so the
         // resolver can tell `example.com/app/internal/jobs` (workspace)
         // from `github.com/google/uuid` (a dependency).
-        facts.packages = super::manifest::go_module_names(path);
+        let (modules, package_path) = super::manifest::go_module_info(path);
+        facts.packages = modules;
 
         let mut w = Walker {
             ctx: *ctx,
@@ -93,6 +94,19 @@ impl LanguagePlugin for GoPlugin {
         };
         w.walk(root);
         let mut out = facts;
+        // The import path of this file's package, after every real
+        // import so nothing keyed on "first import naming X" sees it.
+        // The path rides in `alias`, never `path`: it is where the file
+        // lives, not something it depends on.
+        if let Some(p) = package_path {
+            out.imports.push(ImportRecord {
+                kind: "package-path".into(),
+                path: String::new(),
+                alias: p,
+                site_line: 1,
+                site_byte: 0,
+            });
+        }
         if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::GO);
@@ -135,12 +149,19 @@ impl<'a> Walker<'a> {
         match node.kind() {
             "function_declaration" => {
                 self.record_function(node);
+                self.record_param_shadows(node);
                 // Continue into body for call sites.
                 self.walk_children(node);
                 return;
             }
             "method_declaration" => {
                 self.record_method(node);
+                self.record_param_shadows(node);
+                self.walk_children(node);
+                return;
+            }
+            "func_literal" => {
+                self.record_param_shadows(node);
                 self.walk_children(node);
                 return;
             }
@@ -296,21 +317,7 @@ impl<'a> Walker<'a> {
                         continue;
                     }
                     if let Some(t) = p.child_by_field_name("type") {
-                        match t.kind() {
-                            "type_identifier" => {
-                                out = self.text(t).to_string();
-                            }
-                            "pointer_type" => {
-                                let mut cc = t.walk();
-                                for n in t.children(&mut cc) {
-                                    if n.kind() == "type_identifier" {
-                                        out = self.text(n).to_string();
-                                        break;
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
+                        out = self.receiver_type_name(t).unwrap_or_default();
                     }
                     break;
                 }
@@ -435,6 +442,24 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// The named type of a method receiver: `T`, `*T`, and a generic
+    /// `Map[K, V]` / `*Map[K, V]` (its type parameters are not part of
+    /// the owner's name).
+    fn receiver_type_name(&self, t: Node) -> Option<String> {
+        match t.kind() {
+            "type_identifier" => Some(self.text(t).to_string()),
+            "pointer_type" | "parenthesized_type" => {
+                let mut c = t.walk();
+                let inner = t.named_children(&mut c).next()?;
+                self.receiver_type_name(inner)
+            }
+            "generic_type" => t
+                .child_by_field_name("type")
+                .and_then(|n| self.receiver_type_name(n)),
+            _ => None,
+        }
+    }
+
     fn package_prefix(&self, type_name: &str) -> String {
         format!("{}.{type_name}", self.pkg)
     }
@@ -480,7 +505,61 @@ impl<'a> Walker<'a> {
         if var_name.is_empty() {
             return;
         }
+        // `r := jobs.NewRunner()` / `r, err := jobs.Open(p)` /
+        // `r := &jobs.Runner{}`: a value made through an imported
+        // package. Its type is recorded as written — the call itself
+        // (`jobs.NewRunner()`) or the package-qualified type — and the
+        // resolver reads the callee's declared result type inside that
+        // package. Naming conventions are not consulted.
+        // The variable is in scope only after its declaration (Go spec):
+        // in `x, err := x.Open()` the right side's `x` is the package, so
+        // the type takes effect from the statement's end.
+        if let Some(first) = Self::first_assigned(left)
+            && let Some(rhs) = Self::first_value(right)
+            && let Some(ty) = self.package_made_type(rhs)
+        {
+            let var_name = self.text(first).to_string();
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name: var_name.clone(),
+                type_name: ty,
+                scope_byte: node.end_byte() as u32,
+            });
+            // ...and out of scope where its block ends (an `if`/`for`
+            // body, a `case` clause): an untyped entry there ends it, so a
+            // sibling block's `pp.New()` is the package again.
+            if let Some(scope) = node.parent().filter(|p| p.kind() != "source_file") {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name,
+                    type_name: String::new(),
+                    scope_byte: scope.end_byte() as u32,
+                });
+            }
+            return;
+        }
 
+        // A local named like an import binding shadows the package from
+        // here to the end of its block.
+        if let Some(scope) = node.parent().filter(|p| p.kind() != "source_file") {
+            let mut c = left.walk();
+            let names: Vec<String> = if left.kind() == "expression_list" {
+                left.named_children(&mut c)
+                    .filter(|n| n.kind() == "identifier")
+                    .map(|n| self.text(n).to_string())
+                    .collect()
+            } else {
+                vec![var_name.clone()]
+            };
+            let shadowing: Vec<String> =
+                names.into_iter().filter(|n| self.imports_bind(n)).collect();
+            for name in shadowing {
+                self.push_scoped_local(
+                    name,
+                    LOCAL_SHADOW.to_string(),
+                    node.end_byte() as u32,
+                    scope.end_byte() as u32,
+                );
+            }
+        }
         // Check if RHS is a func_literal — emit as a callable
         let rhs = if right.kind() == "expression_list" {
             right.child(0)
@@ -547,6 +626,173 @@ impl<'a> Walker<'a> {
         });
     }
 
+    /// A parameter named like an import binding (`c *app.RequestContext`
+    /// in a file importing `c ".../client"`) shadows the package for the
+    /// function's body: recorded as a local from the body's start — its
+    /// package-qualified type when it has one, else `<local>` — ended at
+    /// the body's end by an untyped entry.
+    fn record_param_shadows(&mut self, node: Node) {
+        let Some(body) = node.child_by_field_name("body") else {
+            return;
+        };
+        let lists = [
+            node.child_by_field_name("receiver"),
+            node.child_by_field_name("parameters"),
+        ];
+        let mut shadows: Vec<(String, String)> = Vec::new();
+        for list in lists.into_iter().flatten() {
+            let mut c = list.walk();
+            for p in list.named_children(&mut c) {
+                let ty = p
+                    .child_by_field_name("type")
+                    .map(|t| {
+                        let t = self.text(t).trim_start_matches('*');
+                        t.split('[').next().unwrap_or(t).trim().to_string()
+                    })
+                    .unwrap_or_default();
+                let typed = ty.split_once('.').is_some_and(|(pkg, t)| {
+                    self.imports_bind(pkg) && t.starts_with(char::is_uppercase)
+                });
+                let mut nc = p.walk();
+                for n in p.children_by_field_name("name", &mut nc) {
+                    let name = self.text(n).to_string();
+                    if self.imports_bind(&name) {
+                        let ty = if typed {
+                            ty.clone()
+                        } else {
+                            LOCAL_SHADOW.to_string()
+                        };
+                        shadows.push((name, ty));
+                    }
+                }
+            }
+        }
+        for (name, ty) in shadows {
+            self.push_scoped_local(
+                name,
+                ty,
+                body.start_byte() as u32,
+                body.end_byte() as u32,
+            );
+        }
+    }
+
+    /// A local typed `ty` from `start` to `end` (its block's end, where an
+    /// untyped entry ends it).
+    fn push_scoped_local(
+        &mut self,
+        var_name: String,
+        type_name: String,
+        start: u32,
+        end: u32,
+    ) {
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name: var_name.clone(),
+            type_name,
+            scope_byte: start,
+        });
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name,
+            type_name: String::new(),
+            scope_byte: end,
+        });
+    }
+
+    /// The first identifier an assignment's left side binds (`r` in `r,
+    /// err := …`), when it is a plain identifier.
+    fn first_assigned(left: Node) -> Option<Node> {
+        let first = if left.kind() == "expression_list" {
+            left.named_child(0)?
+        } else {
+            left
+        };
+        (first.kind() == "identifier").then_some(first)
+    }
+
+    /// The first value of an assignment's right side.
+    fn first_value(right: Node) -> Option<Node> {
+        if right.kind() == "expression_list" {
+            right.named_child(0)
+        } else {
+            Some(right)
+        }
+    }
+
+    /// `pkg.F(…)` → `pkg.F()`, `pkg.T{…}` / `&pkg.T{…}` → `pkg.T`, where
+    /// `pkg` is a name this file's imports bind (a method call on a
+    /// variable, `r.Clone()`, is not a package's doing).
+    fn package_made_type(&self, rhs: Node) -> Option<String> {
+        match rhs.kind() {
+            "call_expression" => {
+                let func = rhs.child_by_field_name("function")?;
+                if func.kind() != "selector_expression" {
+                    return None;
+                }
+                let operand = func.child_by_field_name("operand")?;
+                let field = func.child_by_field_name("field")?;
+                if operand.kind() != "identifier"
+                    || !self.imports_bind(self.text(operand))
+                {
+                    return None;
+                }
+                Some(format!("{}.{}()", self.text(operand), self.text(field)))
+            }
+            "unary_expression" => {
+                let operand = rhs.child_by_field_name("operand")?;
+                if rhs.child(0).map(|c| c.kind()) != Some("&") {
+                    return None;
+                }
+                (operand.kind() == "composite_literal")
+                    .then(|| self.package_made_type(operand))
+                    .flatten()
+            }
+            "composite_literal" => {
+                let ty = rhs.child_by_field_name("type")?;
+                if ty.kind() != "qualified_type" {
+                    return None;
+                }
+                let t = self.text(ty);
+                let t = t.split('[').next().unwrap_or(t).trim();
+                let pkg = t.split('.').next().unwrap_or("");
+                self.imports_bind(pkg).then(|| t.to_string())
+            }
+            _ => None,
+        }
+    }
+
+    /// Whether an `import` of this file binds `name`: its alias, or the
+    /// package name the path implies (last element, a `.vN`/`/vN` major
+    /// version and a `go-` prefix dropped).
+    fn imports_bind(&self, name: &str) -> bool {
+        self.facts
+            .imports
+            .iter()
+            .filter(|i| i.kind == "import")
+            .any(|i| {
+                let alias = i.alias.trim();
+                if !alias.is_empty() {
+                    return alias == name;
+                }
+                let path = i.path.trim();
+                let mut segs = path.rsplit('/');
+                let mut last = segs.next().unwrap_or(path);
+                let is_major = |s: &str| {
+                    s.len() >= 2
+                        && s.starts_with('v')
+                        && s[1..].chars().all(|c| c.is_ascii_digit())
+                };
+                if is_major(last) {
+                    last = segs.next().unwrap_or(last);
+                }
+                if let Some((stem, v)) = last.rsplit_once('.')
+                    && is_major(v)
+                {
+                    last = stem;
+                }
+                last == name || last.strip_prefix("go-") == Some(name)
+            })
+    }
+
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
         let (name, recv) = match func.kind() {
@@ -571,6 +817,11 @@ impl<'a> Walker<'a> {
         })
     }
 }
+
+/// The type a Go plugin records for a local whose type is unknown but
+/// which shadows an imported package's name (not an identifier, so it
+/// never names a type).
+pub(crate) const LOCAL_SHADOW: &str = "<local>";
 
 fn line_range(n: Node) -> (u32, u32) {
     let s = (n.start_position().row as u32) + 1;
@@ -622,6 +873,117 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    /// R7: a generic type's methods keep their owner — `func (m *Map[K,
+    /// V]) ReplaceKey` is `pkg.Map.ReplaceKey`, not `pkg.ReplaceKey`.
+    #[test]
+    fn generic_receiver_keeps_its_type() {
+        let f = extract(
+            "package ordered\n\ntype Map[K comparable, V any] struct{}\n\n\
+             func (m *Map[K, V]) ReplaceKey(a, b K) bool { return true }\n\
+             func (m Map[K, V]) Len() int { return 0 }\n",
+        );
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert_eq!(qns, vec!["ordered.Map.ReplaceKey", "ordered.Map.Len"]);
+    }
+
+    /// FINDINGS R9: a parameter named like an import binding shadows the
+    /// package over the function's body — typed when its type is another
+    /// package's, else `<local>` — and an untyped entry ends it there.
+    #[test]
+    fn a_parameter_shadowing_an_import_is_scoped_to_the_body() {
+        let src = "package main\n\nimport (\n\tc \"example.com/pkg/client\"\n\t\"example.com/pkg/app\"\n)\n\n\
+                   func h(c *app.RequestContext) { c.JSON(200) }\n\
+                   func k(c int) { _ = c }\n\
+                   func u(app int) {}\n";
+        let f = extract(src);
+        let body = |name: &str| {
+            let at = src.find(name).unwrap();
+            let open = at + src[at..].find('{').unwrap();
+            let close = at + src[at..].find('}').unwrap() + 1;
+            (open as u32, close as u32)
+        };
+        let entries: Vec<(&str, &str, u32)> = f
+            .local_types
+            .iter()
+            .map(|t| (t.var_name.as_str(), t.type_name.as_str(), t.scope_byte))
+            .collect();
+        let (h0, h1) = body("func h");
+        let (k0, k1) = body("func k");
+        let (u0, u1) = body("func u");
+        assert_eq!(
+            entries,
+            vec![
+                ("c", "app.RequestContext", h0),
+                ("c", "", h1),
+                ("c", LOCAL_SHADOW, k0),
+                ("c", "", k1),
+                ("app", LOCAL_SHADOW, u0),
+                ("app", "", u1),
+            ]
+        );
+    }
+
+    /// R1: `x, err := x.Open()` types `x` from the end of the statement —
+    /// the right side's `x` is the package.
+    #[test]
+    fn package_made_local_starts_after_its_statement() {
+        let src = "package main\n\nimport \"example.com/x\"\n\nfunc main() {\n\tx, err := x.Open()\n\t_ = err\n}\n";
+        let f = extract(src);
+        let lt = f
+            .local_types
+            .iter()
+            .find(|t| t.type_name == "x.Open()")
+            .expect("typed");
+        let stmt_end = src.find("x.Open()").unwrap() + "x.Open()".len();
+        assert_eq!(lt.scope_byte as usize, stmt_end);
+    }
+
+    /// FINDINGS A5: a value made through an imported package is typed as
+    /// written — the call, or the package-qualified type — for the
+    /// resolver to follow into that package. A bare `NewFoo()` keeps the
+    /// older reading; a value a variable's method returned is untyped.
+    #[test]
+    fn values_made_through_a_package_are_typed_as_written() {
+        let f = extract(
+            "package main\n\nimport \"example.com/app/jobs\"\n\n\
+             func main() {\n\
+             \tr := jobs.NewRunner()\n\
+             \tq, err := jobs.Open(\"x\")\n\
+             \tw := &jobs.Runner{}\n\
+             \tz := jobs.Runner{X: 1}\n\
+             \tv := NewThing()\n\
+             \tm := r.Clone()\n\
+             \t_, _, _, _ = q, err, w, m\n\
+             }\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .local_types
+            .iter()
+            .filter(|t| !t.type_name.is_empty())
+            .map(|t| (t.var_name.as_str(), t.type_name.as_str()))
+            .collect();
+        // Each package-made value is also closed where its block ends.
+        assert!(
+            f.local_types
+                .iter()
+                .any(|t| t.var_name == "r" && t.type_name.is_empty())
+        );
+        assert_eq!(
+            got,
+            vec![
+                ("r", "jobs.NewRunner()"),
+                ("q", "jobs.Open()"),
+                ("w", "jobs.Runner"),
+                ("z", "jobs.Runner"),
+                ("v", "Thing"),
+            ]
+        );
     }
 
     #[test]

@@ -213,6 +213,15 @@ pub enum UnresolvedReason {
     /// recorded in the external bucket instead. `module` is the import
     /// (or namespace head) the call was attributed to.
     ExternalModule { module: String },
+    /// The call is written through an import of a *workspace* module —
+    /// `svc.f()` after `import * as svc from './svc'`, `helpers.f()` after
+    /// `from . import helpers`, `jobs.NewRunner().M()` through a Go
+    /// package — and that module, followed through the re-exports cgg
+    /// can read, provides nothing the call can name, or the module's
+    /// file could not be determined. Binding it to a same-named callable
+    /// elsewhere would be a guess, so the site is recorded instead.
+    /// `module` is the import as written.
+    NotInImportedModule { module: String },
     /// Any other / legacy reason, preserving the original text.
     Other(String),
 }
@@ -243,6 +252,7 @@ pub const KNOWN_UNRESOLVED_STAGES: &[&str] = &[
     "value-ref-ambiguous",
     "value-ref-no-enclosing",
     "external-module",
+    "not-in-imported-module",
     "other",
 ];
 
@@ -277,6 +287,7 @@ impl UnresolvedReason {
             UnresolvedReason::ValueRefAmbiguous { .. } => "value-ref-ambiguous",
             UnresolvedReason::ValueRefNoEnclosing => "value-ref-no-enclosing",
             UnresolvedReason::ExternalModule { .. } => "external-module",
+            UnresolvedReason::NotInImportedModule { .. } => "not-in-imported-module",
             UnresolvedReason::Other(s) => s.as_str(),
         }
     }
@@ -810,7 +821,7 @@ mod tests {
     /// and the arm's index must then be admitted here or the length
     /// assertion fails. Two checks, because the arm alone only proves
     /// the *match* is exhaustive — not that the vec holds an instance.
-    const UNRESOLVED_REASON_VARIANTS: usize = 14;
+    const UNRESOLVED_REASON_VARIANTS: usize = 15;
 
     /// One instance of every `UnresolvedReason` variant.
     fn every_unresolved_reason() -> Vec<UnresolvedReason> {
@@ -831,6 +842,9 @@ mod tests {
                 module: "requests".into(),
             },
             UnresolvedReason::Other("legacy-thing".into()),
+            UnresolvedReason::NotInImportedModule {
+                module: "./svc".into(),
+            },
         ];
         // Compile-time exhaustiveness check, then a runtime one: every
         // arm index must appear, so a variant with an arm but no
@@ -852,6 +866,7 @@ mod tests {
                 UnresolvedReason::ValueRefNoEnclosing => 11,
                 UnresolvedReason::Other(_) => 12,
                 UnresolvedReason::ExternalModule { .. } => 13,
+                UnresolvedReason::NotInImportedModule { .. } => 14,
             };
             seen.insert(idx);
         }

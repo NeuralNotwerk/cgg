@@ -54,10 +54,14 @@ impl LanguagePlugin for TypeScriptPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "typescript");
-        facts.packages = super::manifest::js_module_names(path);
+        let manifest = super::manifest::js_module_manifest(path);
+        facts.packages = manifest.names;
+        let own_package = manifest.own;
+        let exported_as = manifest.exported_as;
         let mut w = JsWalker::new(*ctx, source, &mut facts);
         w.walk(tree.root_node());
         let mut out = facts;
+        super::javascript::push_package_name(&mut out, own_package, exported_as);
         // Same passes the JavaScript plugin runs. They were missing
         // here, which meant TypeScript silently produced none of the
         // dead-code signals its `signals()` manifest now declares.
@@ -89,6 +93,47 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    /// `import x = require('./m')` binds `x` to the module, like a
+    /// CommonJS `const x = require('./m')` (FINDINGS A4).
+    #[test]
+    fn import_equals_require_binds_the_module() {
+        let f = extract("import x = require('./cjs');\nx.run();\n");
+        let imp: Vec<(&str, &str, &str)> = f
+            .imports
+            .iter()
+            .map(|i| (i.kind.as_str(), i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(imp, vec![("import", "./cjs", "x")]);
+    }
+
+    /// `export = value` is CommonJS `module.exports = value`: a name, a
+    /// required module, or a value cgg cannot read (FINDINGS R12).
+    #[test]
+    fn export_assignment_is_the_default_export() {
+        let records = |src: &str| -> Vec<(String, String, String)> {
+            extract(src)
+                .imports
+                .iter()
+                .filter(|i| i.kind == "local-export" || i.kind == "re-export")
+                .map(|i| (i.kind.clone(), i.path.clone(), i.alias.clone()))
+                .collect()
+        };
+        let own =
+            |k: &str, p: &str, a: &str| (k.to_string(), p.to_string(), a.to_string());
+        assert_eq!(
+            records("function load() {}\nexport = load;\n"),
+            vec![own("local-export", "", "load as default")]
+        );
+        assert_eq!(
+            records("export = require('./impl');\n"),
+            vec![own("re-export", "./impl", "*, default")]
+        );
+        assert_eq!(
+            records("import { make } from './m';\nexport = make();\n"),
+            vec![own("local-export", "", "<value> as default")]
+        );
     }
 
     #[test]

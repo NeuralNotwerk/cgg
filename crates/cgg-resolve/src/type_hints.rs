@@ -383,6 +383,12 @@ pub fn propagate_types_with_fields(
     macros: &HashMap<String, String>,
     aliases: &HashMap<String, String>,
 ) {
+    // An Erlang receiver is the module atom of `m:f(…)` — never a variable,
+    // so never a value to type. Renaming `file` to a `File` some other
+    // language's function returns would lose the module.
+    if facts.language == "erlang" {
+        return;
+    }
     // Pass 1: Extract type hints from definition signatures.
     //
     // The names and types are slices of `def.signature_hint`, and `facts`
@@ -402,10 +408,19 @@ pub fn propagate_types_with_fields(
     // strings are simply freed now.
     let cpp = facts.language == "cpp";
     let rust = facts.language == "rust";
+    // Go records a value made through a package at the end of its `:=`
+    // statement, so Rust's scoped lookup applies to it (Strategy 3).
+    let go = facts.language == "go";
     let param_store: Vec<(u32, String, String)> = facts
         .definitions
         .iter()
-        .flat_map(|d| collect_param_types(d, cpp, rust))
+        .flat_map(|d| {
+            let mut v = collect_param_types(d, cpp, rust);
+            if go {
+                v.extend(go_package_param_types(d));
+            }
+            v
+        })
         .collect();
     // Key: (enclosing_start_byte, variable_name) -> type_name. Last write
     // wins, exactly as the repeated `map.insert` did.
@@ -432,12 +447,21 @@ pub fn propagate_types_with_fields(
         if lt.var_name.starts_with("self.") {
             self_field_map
                 .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
+        } else if go
+            && (lt.type_name.is_empty()
+                || lt.type_name.starts_with('<')
+                || go_package_made(&lt.type_name))
+        {
+            // A Go value made through a package (`r := jobs.NewRunner()`,
+            // `w := &jobs.Runner{}`) is typed only where its `:=` is in
+            // scope. File-wide it would retype every `r` in the file —
+            // the common short names repeat across functions.
         } else {
             local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
         }
     }
 
-    let rust_lets = if rust {
+    let rust_lets = if rust || go {
         RustLets::build(facts)
     } else {
         RustLets::default()
@@ -652,6 +676,18 @@ pub fn propagate_types_with_fields(
                     enclosing.map(|d| (d.start_byte, d.end_byte)),
                 )
                 .or_else(|| local_type_map.get(rh).copied())
+        } else if go {
+            // Go's own reading stays file-wide, as before; only a value
+            // made through a package is looked up where it is in scope.
+            local_type_map.get(rh).copied().or_else(|| {
+                rust_lets
+                    .visible(
+                        rh,
+                        rref.site_byte,
+                        enclosing.map(|d| (d.start_byte, d.end_byte)),
+                    )
+                    .filter(|ty| go_package_made(ty))
+            })
         } else {
             local_type_map.get(rh).copied()
         };
@@ -801,6 +837,57 @@ fn collect_param_types(
             }
         } else if let Some((name, ty)) = parse_type_first_param(param) {
             out.push((def.start_byte, name.to_string(), ty.to_string()));
+        }
+    }
+    out
+}
+
+/// Go parameters whose type is a package-qualified name — `t *util.T`,
+/// `a, b jobs.Runner` — as `(start, name, "util.T")`. The qualifier is
+/// kept: the resolver follows it through the file's imports to the one
+/// package it names (`modules`), where the bare `T` would match every
+/// type of that name in the tree. Go writes the name first, which the
+/// generic type-first parser never read, so these are the only Go
+/// parameters typed.
+fn go_package_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
+    let mut out = Vec::new();
+    // A method's receiver list (`func (s *Server) Handle(…)`) comes
+    // first; the parameters are the list after the name.
+    let sig = def.signature_hint.trim();
+    let sig = sig.strip_prefix("func").map_or(sig, str::trim_start);
+    let sig = match sig.starts_with('(') {
+        true => match matching_paren(sig.as_bytes(), 0) {
+            Some(close) => &sig[close + 1..],
+            None => return out,
+        },
+        false => sig,
+    };
+    let Some(params) = param_list(sig) else {
+        return out;
+    };
+    // Names declared without a type take the next one's (`a, b T`).
+    let mut pending: Vec<&str> = Vec::new();
+    for piece in param_pieces(params, false) {
+        let words = param_words(piece.trim());
+        match words.as_slice() {
+            [name] if is_plain_ident(name) => pending.push(name),
+            [name, ty] if is_plain_ident(name) => {
+                let ty = ty.trim_start_matches('*');
+                let ty = ty.split('[').next().unwrap_or(ty);
+                let qualified = ty.split_once('.').is_some_and(|(pkg, t)| {
+                    is_plain_ident(pkg)
+                        && pkg.starts_with(|c: char| c.is_lowercase())
+                        && is_plain_ident(t)
+                        && t.starts_with(char::is_uppercase)
+                });
+                if qualified {
+                    for n in pending.drain(..).chain(std::iter::once(*name)) {
+                        out.push((def.start_byte, n.to_string(), ty.to_string()));
+                    }
+                }
+                pending.clear();
+            }
+            _ => pending.clear(),
         }
     }
     out
@@ -1457,6 +1544,13 @@ fn find_constructor_assignments(facts: &FileFacts) -> HashMap<String, String> {
     map
 }
 
+/// A Go local type the plugin recorded for a value made through a
+/// package: the call (`jobs.NewRunner()`) or the qualified type
+/// (`jobs.Runner`). The older readings never carry a qualifier.
+fn go_package_made(ty: &str) -> bool {
+    ty.ends_with(')') || ty.contains('.')
+}
+
 /// Rust `let` bindings by name, each with the span of the innermost
 /// callable it was declared in, sorted by position. Built once per file.
 #[derive(Default)]
@@ -1660,6 +1754,141 @@ mod tests {
             visibility: String::new(),
             attributes: Vec::new(),
             ..Default::default()
+        }
+    }
+
+    /// FINDINGS A5, Go: a parameter of a package-qualified type keeps its
+    /// qualifier (`t *util.T` → `util.T`), names declared together share
+    /// the type, unqualified and composite types stay untyped, and a
+    /// method's receiver list is not its parameters.
+    #[test]
+    fn go_parameters_of_a_package_type_keep_the_package() {
+        let d = mk_def(
+            "main.use",
+            "func (s *Server) use(t *util.T, a, b jobs.Runner, n int, xs []util.T, q Local)",
+            0,
+            100,
+        );
+        let got: Vec<(String, String)> = go_package_param_types(&d)
+            .into_iter()
+            .map(|(_, n, t)| (n, t))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("t".to_string(), "util.T".to_string()),
+                ("a".to_string(), "jobs.Runner".to_string()),
+                ("b".to_string(), "jobs.Runner".to_string()),
+            ]
+        );
+    }
+
+    /// FINDINGS A5, Go: `r := jobs.NewRunner()` types `r` only where that
+    /// `:=` is in scope. The same short name in another function is not
+    /// that call's result, so it is left as written.
+    #[test]
+    fn go_package_made_locals_are_scoped_to_their_function() {
+        let defs = vec![
+            mk_def("main.a", "func a()", 0, 100),
+            mk_def("main.b", "func b()", 100, 200),
+            mk_def("main.c", "func c()", 200, 300),
+        ];
+        let call = |byte: u32| RefRecord {
+            name: "M".into(),
+            receiver_hint: "r".into(),
+            site_line: 1,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![call(50), call(150), call(250)]);
+        facts.language = "go".into();
+        facts.local_types = vec![
+            LocalType {
+                var_name: "r".into(),
+                type_name: "jobs.NewRunner()".into(),
+                scope_byte: 10,
+            },
+            LocalType {
+                var_name: "r".into(),
+                type_name: "other.Open()".into(),
+                scope_byte: 110,
+            },
+        ];
+        propagate_types(&mut facts);
+        let got: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(got, vec!["jobs.NewRunner()", "other.Open()", "r"]);
+    }
+
+    /// R1: a Go value made through a package is typed from the end of its
+    /// `:=` (the right side's `pp` is still the package) to the end of its
+    /// block (a sibling block's `pp.New()` is the package again). A
+    /// variable's existing file-wide reading is untouched.
+    #[test]
+    fn go_package_made_locals_respect_declaration_and_block() {
+        let defs = vec![mk_def("main.f", "func f()", 0, 300)];
+        let call = |byte: u32| RefRecord {
+            name: "M".into(),
+            receiver_hint: "pp".into(),
+            site_line: 1,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![call(40), call(80), call(150)]);
+        facts.language = "go".into();
+        facts.local_types = vec![
+            // `pp, err := pp.New()` spanning 30..60, in a block ending at 100.
+            LocalType {
+                var_name: "pp".into(),
+                type_name: "pp.New()".into(),
+                scope_byte: 60,
+            },
+            LocalType {
+                var_name: "pp".into(),
+                type_name: String::new(),
+                scope_byte: 100,
+            },
+        ];
+        propagate_types(&mut facts);
+        let got: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(got, vec!["pp", "pp.New()", "pp"]);
+    }
+
+    /// FINDINGS R14: an Erlang receiver is the module of `m:f(…)`; the
+    /// return-type heuristic that turns a `file` receiver into a `File`
+    /// some function returns never applies to it. The near miss: the same
+    /// shape in another language is still rewritten.
+    #[test]
+    fn erlang_module_receivers_are_never_typed() {
+        let mut ret: HashMap<&str, &str> = HashMap::new();
+        ret.insert("file", "File");
+        let index = ReturnTypeIndex::build(&ret);
+        for (lang, want) in [("erlang", "file"), ("python", "File")] {
+            let defs = vec![mk_def("m:run", "run(Fd) -> ok", 0, 100)];
+            let refs = vec![
+                RefRecord {
+                    name: "file".into(),
+                    site_byte: 10,
+                    ..Default::default()
+                },
+                RefRecord {
+                    name: "file:position".into(),
+                    receiver_hint: "file".into(),
+                    site_byte: 20,
+                    ..Default::default()
+                },
+            ];
+            let mut facts = mk_facts(defs, refs);
+            facts.language = lang.into();
+            propagate_types_with_returns(&mut facts, &index);
+            assert_eq!(facts.references[1].receiver_hint, want, "{lang}");
         }
     }
 

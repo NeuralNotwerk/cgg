@@ -142,6 +142,169 @@ otherwise change the default graph.
 - Python: a receiver chain wrapped over lines (`(self\n  .repo\n
   .quux())`) is rebuilt as `self.repo`, keeping the self-field type the
   one-line form has (FINDINGS A7).
+- **A call written through an import of a workspace module binds inside
+  that module** (FINDINGS A4, A5; JavaScript, TypeScript, Python, Go).
+  JavaScript/TypeScript qualified names carry no module, so `svc.spawnJob()`
+  after `import * as svc from './svc'`, `legacy.run()` after `const legacy =
+  require('./legacy')` and a named import's `spawnJob()` were looked up by
+  bare name and bound to whichever same-named function was indexed last —
+  a decoy in `src/zzz/` won. Python and Go module-qualified calls
+  (`pkg.sub.jobs.Runner().m()`, `from . import helpers; helpers.f()`, `r :=
+  jobs.NewRunner(); r.M()`) bound the right target plus every same-named
+  method duck typing found. The import is now followed to the file it
+  names — for a relative JS/TS specifier the file Node/TypeScript would
+  load (extension and `index` probing, `.js` written for a `.ts` source),
+  for a workspace package its own directory (`index` or Deno `mod` entry),
+  for a path alias or a Deno root-relative `/x.ts` every file whose path
+  ends like it, ranked by the importer's own package and then by
+  proximity; a Python module by its dotted name, relative imports made
+  absolute; a Go package by its import path below `go.mod` — and the call
+  is looked up there, through the module's re-exports (`export *`, `export
+  { a as b } from`, `export * as ns`, `module.exports = { … }` /
+  `require(…)` / `new X()`, a package `__init__.py`'s `from .x import y`
+  and star imports). A typed or constructed receiver binds to that type's
+  methods and bases: `new svc.Runner().start()`, `pkg.Runner().m()`, a Go
+  value a package function returned (`r, err := jobs.Open(p)`, by the
+  function's declared result type — another package's type is looked up
+  there, a dependency's is filed as external — typed from the end of its
+  `:=` to the end of its block), a parameter of a package type (`t
+  *util.T`), and a Go bare call in the calling package's own directory. A
+  single exact binding is `high`.
+- The call is refused and recorded as `not-in-imported-module`
+  (`{"module": …}`) only when that lookup is decisive: the receiver is the
+  module itself (`mod.f()`, `import { f }; f()`) and the module — every
+  file an alias may name — defines nothing by that name, or the module's
+  file cannot be found. A path through a module-level value (`pkg.Var.m()`,
+  `mod.instance.m()`, a default export cgg cannot name), the result of a
+  call (`useThing().m()`, a builder chain off `new X()`), a class whose
+  bases may hold the method, a Go type whose embedded fields may promote
+  it, or several files that each provide a different callable, keeps the
+  resolver's earlier readings.
+- Plugins record what that needs: JS/TS `re-export` and `local-export`
+  import records (`export … from`, `export { a as b }`, `export default
+  X`, CommonJS `module.exports` / `exports.k`) and TypeScript `import x =
+  require('./m')`; Python's importable module name in `FileFacts::packages`;
+  Go's own package import path (a `package-path` record) and values made
+  through an imported package (`r := jobs.NewRunner()` is typed as that
+  call, `w := &jobs.Runner{}` as `jobs.Runner`); Go parameters keep a
+  package qualifier (`t *util.T` is `util.T`); a JS/TS file's own package
+  (`package-name`) and a default export it cannot name (`<value>`). A Go
+  method on a generic type keeps its owner (`func (m *Map[K, V]) Get` is
+  `pkg.Map.Get`, was `pkg.Get`).
+- **A bare call no longer binds to a method of an unrelated type, nor to
+  another package's sub** (FINDINGS A6). The cross-file name fallbacks
+  (the scoped and the global by-name lookups) now apply each language's
+  unqualified-name scope, as the intra-file linker already did for some:
+  Python, Rust, JS/TS and PHP never reach a method (`collect()` is not
+  `Dates::collect`, `list(x)` not a generated `Command.list`); Go reaches
+  its own package's directory only; Perl its own package only, intra-file
+  too (`zlist()` in `package main` is not `Repo::zlist`); Java and C#
+  reach constructors, statically imported members, and the members of the
+  calling class, its enclosing classes, their bases and — by dispatch —
+  the overrides in classes derived from them. A definition nested in the
+  calling function is always in scope. Kotlin, Groovy, Scala, C++, Swift,
+  Dart and Objective-C are unchanged: lambdas with receiver, closure
+  delegates, argument-dependent lookup and unrecorded base types make
+  their bare-name scope a matter of types cgg does not have. Perl now
+  records `Pkg->m()`'s class as its receiver; it read as a bare `m()`.
+- Java `import static a.b.C.m;` resolves exactly (the member name was
+  appended to a path that already ended in it, so it never matched and
+  fell to name matching), `import static a.b.C.*;` is recorded as a
+  wildcard, and C# `using static` brings a class's members into scope.
+- Same-named callables are never chosen by indexing order. The scoped
+  by-name lookup returns the callable in the file it matched (it returned
+  the last callable with that qualified name anywhere — a Zig `assert`
+  copied into a test case won over `std.debug`'s). Copies of one qualified
+  name are narrowed by evidence to one — the copy in a module the file
+  imports (path, segment-aligned: `-import(lists, …)` is never `lists1`),
+  else the caller's own file, else the one in its directory — and with no
+  evidence bind nothing, recorded; the same holds for the bare-name
+  fallback through a module alias (`const Type = @import("Type.zig");
+  Type.fromInterned()` is `Type.zig`'s, an external `matcher.expect()`
+  none of the workspace's `expect`s).
+- A copy is a file: the overloads or clauses one file declares under a
+  name stay together (a two-arity Erlang function in the caller's
+  directory was dropped as two copies). Copies of the very module a call
+  names (`cerl:f` in the compiler and in two test-data suites) resolve to
+  the one outside test code when neither the caller's file nor its
+  directory holds one.
+- A local shadows an import of the same name. Go records a parameter or
+  `:=` local named like an import binding (`c *app.RequestContext` in a
+  file importing `c ".../client"`) over its scope, and a Python, JS or TS
+  parameter named like an import is the receiver, not the module: such a
+  call keeps the reading it had rather than being refused as a miss in
+  the package (FINDINGS R9).
+- Java and C# resolve a bare name to a member of the calling class or one
+  it inherits before any import (JLS 15.12.1), binding the whole overload
+  set; an import or `import static q.C.*` reaching an overloaded member
+  binds the set too. Overloaded inherited methods (`testQuery` on a
+  shared test base) and statically imported overloads (`CookieUtil.add`)
+  were not bound at all (FINDINGS R10).
+- JS/TS: a package's `exports` map (`package.json`, `deno.json`;
+  conditional targets and `*` patterns) names the file a sub-path
+  specifier reaches (`@std/assert/instance-of` → `instance_of.ts`,
+  FINDINGS R11).
+- External packages are labelled external, not refused (FINDINGS R12). A
+  bare JS/TS specifier is matched only whole and inside the importer's own
+  package (`baseUrl`, `NODE_PATH`) unless it is a path alias (`@/`, `~`,
+  `#`, `$`, a tsconfig `paths` prefix or catch-all `"*"`) or a package the
+  tree names: `next/navigation` no longer reaches a `navigation.ts`, nor
+  `react` another package's `react/` directory. A specifier that names no
+  file is a dependency; so is one matched only by that guess (a test stub
+  of the package) that lacks the name; and a workspace package that
+  re-exports a dependency (`import dayjs from "dayjs"; export default
+  dayjs`, `export * from "@testing-library/react"`) labels the call with
+  the dependency. Go in module mode: an import path no `go.mod` covers is
+  a dependency even when a directory shares its name (`reflect`).
+- JS/TS refusals need a module cgg can read: a value it cannot
+  (`module.exports = { ...x }`, a default export naming a variable,
+  TypeScript `export = make()`) is no proof any name is absent;
+  `module.exports = { ...require('./x') }` re-exports `./x`'s names;
+  `module.exports = require('./m')` and `export = require('./m')` carry
+  `./m`'s value as their own (an instance's class methods resolve); a
+  relative module cgg did not analyze (`types.d.ts`) is decisive only for
+  `mod.f()`; a default-exported class with no constructor is
+  `class-without-explicit-init`.
+- Zig: `const addRunArtifact = link.addRunArtifact;` is recorded (an
+  `alias` import record) and followed to the file `link` is, and a bare
+  name the calling file declares is never bound to another file's copy
+  (FINDINGS R13).
+- Erlang `m:f(…)` names module `m` (FINDINGS R14). The grammar nests the
+  call inside a `remote` node and the plugin had read only the call, so
+  every remote call was a bare `f`: `wxWindow:refreshRect(…)` inside
+  `wxDialog:refreshRect` bound to itself, `lists:map` to a local `map`.
+  The call is now `m:f` with receiver `m` and binds `m`'s `f` only — the
+  function of the call's arity, `high` when that is one — in-file when
+  `m` is the file's own module. Erlang receivers are no longer rewritten
+  by type inference (a `file` receiver had become a `File` some function
+  returns).
+- F#: a bare call never reaches a type's member (FINDINGS R15). Dart: the
+  scoped lookup binds only in a file the caller imports, not in a file
+  whose path merely contains an imported name (FINDINGS R16).
+- Java/C#: the calling class a bare name resolves in is its qualified
+  owner, not its bare name (FINDINGS R17). The member lookup added for
+  R10 keyed the class by its last segment, so a call inside a nested
+  `Nimbus.X._Fields` bound every generated class's
+  `_Fields.findByThriftId` (220 targets) and `unset_aze()` reached
+  `Supervisor`'s copy; the bare-call scope test likewise accepted any
+  class sharing the caller's bare name. A class now counts by its
+  qualified path, or through a recorded base.
+- Java/C#: copies of one class (one qualified name vendored into several
+  samples or modules) narrow to the caller's copy — the one sharing the
+  longest directory prefix with the calling file; a tie is refused, never
+  fanned out (FINDINGS R18). `InitializeComponent()` in a WinForms sample
+  no longer reaches every sample's designer file.
+- Java/C#: a bare call to a member that a class derived from the calling
+  class overrides is a virtual call: it binds the member and those
+  overrides (never a sibling class's), and over `--fanout-cap` it is
+  refused and recorded as `fanout-cap-exceeded` (FINDINGS R20). Binding
+  the declaration alone had left every override looking uncalled (285
+  dead findings newly `high`, `ImmutableActionSet.EmptySet.addOne`).
+- Zig: `const assert = std.debug.assert;` follows the alias to the module
+  the tree holds (`lib/std/debug.zig`), at `high`; where the aliased
+  module is not in the tree (`std` outside the Zig repository) the call is
+  external, never name-matched to a workspace `assert` (FINDINGS R19:
+  7,255 wrong `assert` edges in `tigerbeetle`, 125 in `ghostty`).
 
 ### Compatibility
 
@@ -232,6 +395,58 @@ otherwise change the default graph.
   parameter of a namespace-qualified type (`const ns::Foo& x`) is still
   read by the `name: Type` parser and never typed; a C++ smart pointer
   with no `->` in sight (`out.get()->m()`) is not followed.
+- Module-scoped calls, bare-call scope and same-name copies (FINDINGS A4,
+  A5, A6, R1–R20): **the default graph changes.** Full corpus, 283
+  repositories, none excluded: 299,896 edges removed (46,595 `high`),
+  452,851 added (311,469 `high`) and 275,014 re-scored (267,026 `medium` →
+  `high`: exact module and same-package bindings), in 208 repositories.
+  Removed / added by language: Go −86,001 / +23,909 (−60,143 / +12,369 of
+  it in `hcl-terraform-aws`: receivers typed through a dependency's
+  package — `d *schema.ResourceData` — filed as external rather than
+  duck-matched; bare calls into another package; decoys beside
+  package-made values), Java −42,517 / +99,416 (bare calls bound to
+  methods of unrelated classes dropped; static imports exact; inherited
+  and own-class overload sets, and overrides below the calling class,
+  bound), Python −26,391 / +13,604 (builtins such as `list()`/`filter()`
+  bound to methods; module-head decoys; relative imports now exact),
+  TypeScript −21,791 / +12,938 and JavaScript −14,922 / +5,433 (calls
+  through an import bound in the imported module; `app-calcom-nextjs`'s
+  generated `prisma.<model>.<op>()` and npm `next/*` imports no longer
+  bound to workspace functions; minified bundles), Perl −5,335 / +684
+  (`Pkg->m()` exact; other packages' subs), PHP −1,429, C# −554 / +5,317,
+  Rust −359. Erlang −49,720 / +255,615: `m:f(…)` now binds module `m`
+  (OTP's own `lists`/`io` are in the tree). Outside the module-scoped
+  languages the change is the scoped lookup and its same-name copies:
+  Zig −32,320 / +30,823 (`const assert = std.debug.assert` external where
+  `std` is not in the tree), Scala −6,737 / +877, OCaml −5,541 / +3,929,
+  Dart −3,882 / +69, F# −1,921 / +187, and under 150 each in Lua, Kotlin,
+  Haskell, Elixir, Clojure, Groovy and Lean — a call now reaches the copy
+  in the module it imports or its own directory (the compiler's `cerl`,
+  not a test-data copy; `std.debug.assert`), and other modules'
+  same-named functions it reached by name (Haskell `lift` in five
+  modules, Lua `assert`, a Play `status`) are dropped. Every class was
+  sampled.
+- Dead code: 209 findings rise to `high` and 50 leave it (Java +189 /
+  −46, C# +18, Python +1 / −4, Rust +1). Of the Java/C# rises, 106 lost
+  only the doubt of an unrelated same-named call site that now binds to
+  its own class or base (a `configure`, `setup` or `write` elsewhere;
+  framework-invoked `configure`/`readObject`/`@PostConstruct` hooks among
+  them), 74 are overrides reached only by dispatch from a call bound to
+  the base declaration (C# `JProperty.RemoveItemAt`, Java
+  `DoubleDimensionMergerV9.setupEncodedValueWriter`) that an unrelated
+  site or a wrong sibling edge had held, 21 lost wrong incoming edges
+  (`getDelegate()` bound across unrelated classes), and 6 are now called
+  only from dead code. Each was `medium`
+  only because a wrong edge or an unrelated same-named site pointed at it
+  (FINDINGS B2, B4, C2).
+- Not covered: a Go package variable aliasing a function (`var New =
+  sdk.New`), a JS module that builds its exports at run time and an npm
+  package the tree also has a directory named like (`next/headers`) are
+  refused as `not-in-imported-module` rather than external; Zig
+  `@import("x.zig")` aliases are not followed to their file; a JS/TS path
+  alias is matched by path suffix, not read from `tsconfig` `paths`
+  targets; Go block scope is tracked only for values made through a
+  package.
 
 ## [0.10.2] - 2026-10-11
 

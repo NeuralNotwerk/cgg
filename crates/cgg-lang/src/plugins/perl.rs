@@ -234,9 +234,12 @@ impl<'a> PerlWalker<'a> {
         {
             let name = self.text(method_node).to_string();
             if !name.is_empty() {
+                // `Pkg->m()` names its class in `package_name`; without it
+                // a class-method call read as a bare `m()`.
                 let receiver_hint = node
                     .child_by_field_name("object_return_value")
                     .or_else(|| node.child_by_field_name("object"))
+                    .or_else(|| node.child_by_field_name("package_name"))
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 self.facts.references.push(RefRecord {
@@ -522,6 +525,25 @@ mod tests {
         let src = "sub greet {\n  my $name = shift;\n  print \"Hello, $name\\n\";\n}\n";
         let f = extract(src);
         assert!(f.definitions.iter().any(|d| d.simple_name == "greet"));
+    }
+
+    /// `Pkg->m()` keeps its class as the receiver; it used to be lost and
+    /// the call read as a bare `m()` (FINDINGS A6).
+    #[test]
+    fn a_class_method_call_keeps_its_package() {
+        let f = extract(
+            "sub f { my $u = Ravada::Auth::SQL->search_by_id($x); $obj->run(1); }\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(
+            calls.contains(&("search_by_id", "Ravada::Auth::SQL")),
+            "{calls:?}"
+        );
+        assert!(calls.contains(&("run", "$obj")), "{calls:?}");
     }
 
     #[test]

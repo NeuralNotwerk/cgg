@@ -220,9 +220,24 @@ impl<'a> ErlangWalker<'a> {
         // call: atom ( ... ) or module:function ( ... )
         // First child is the function/module reference
         if let Some(func_node) = node.child(0) {
-            let name = self.text(func_node).to_string();
+            let mut name = self.text(func_node).to_string();
             if name.is_empty() {
                 return;
+            }
+            // `m:f(…)` parses as `remote(module: m, fun: call(f, …))`: the
+            // module is the parent's, and names the callee (`m:f`).
+            if let Some(parent) = node.parent()
+                && parent.kind() == "remote"
+                && parent
+                    .child_by_field_name("fun")
+                    .is_some_and(|f| f.id() == node.id())
+                && let Some(module) = parent
+                    .child_by_field_name("module")
+                    .and_then(|m| m.child_by_field_name("module").or(Some(m)))
+                && module.kind() == "atom"
+                && !name.contains(':')
+            {
+                name = format!("{}:{name}", self.text(module));
             }
 
             let receiver_hint = if name.contains(':') {
@@ -279,6 +294,19 @@ mod tests {
         let f = extract(src);
         assert!(!f.definitions.is_empty(), "Expected definitions, got none");
         assert_eq!(f.definitions[0].simple_name, "greet");
+    }
+
+    /// FINDINGS R14: `m:f(…)` names module `m` — the resolver binds it
+    /// to `m`'s `f` only, so the module must reach it as the receiver.
+    #[test]
+    fn a_remote_call_records_its_module_as_the_receiver() {
+        let f = extract("-module(a).\nrun(X) -> other_mod:gen(X), local(X).\n");
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(refs, vec![("other_mod:gen", "other_mod"), ("local", "")]);
     }
 
     #[test]

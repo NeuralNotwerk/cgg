@@ -58,7 +58,10 @@ impl LanguagePlugin for JavaScriptPlugin {
         // The names this file is imported under (`@acme/core`, a tsconfig
         // `paths` alias), so a bare specifier can be told apart from a
         // dependency's.
-        facts.packages = super::manifest::js_module_names(path);
+        let manifest = super::manifest::js_module_manifest(path);
+        facts.packages = manifest.names;
+        let own_package = manifest.own;
+        let exported_as = manifest.exported_as;
         let mut w = JsWalker {
             ctx: *ctx,
             source,
@@ -68,6 +71,7 @@ impl LanguagePlugin for JavaScriptPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
+        push_package_name(&mut out, own_package, exported_as);
         if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::JS);
@@ -76,6 +80,42 @@ impl LanguagePlugin for JavaScriptPlugin {
             out.dyn_uses = super::dynuse::extract(tree, source, "javascript");
         }
         out
+    }
+}
+
+/// The local name a `local-export` record gives an export cgg cannot
+/// name (`export default createX()`): not an identifier, so it never
+/// matches a definition, and the resolver reads it as "unknown".
+pub(crate) const UNKNOWN_EXPORT: &str = "<value>";
+
+/// The package the file belongs to (the nearest `package.json` /
+/// `deno.json` name), after every real import and with the name in
+/// `alias`, never `path`: it is where the file lives, not something it
+/// depends on. The resolver finds a workspace package's root directory
+/// through it.
+pub(crate) fn push_package_name(
+    facts: &mut FileFacts,
+    name: Option<String>,
+    exported_as: Vec<String>,
+) {
+    if let Some(name) = name {
+        facts.imports.push(ImportRecord {
+            kind: "package-name".into(),
+            path: String::new(),
+            alias: name,
+            site_line: 1,
+            site_byte: 0,
+        });
+    }
+    // The specifiers the package's `exports` map gives this file.
+    for spec in exported_as {
+        facts.imports.push(ImportRecord {
+            kind: "package-export".into(),
+            path: String::new(),
+            alias: spec,
+            site_line: 1,
+            site_byte: 0,
+        });
     }
 }
 
@@ -156,6 +196,9 @@ impl<'a> JsWalker<'a> {
                 // modules name a dependency (Deno's `deps.ts` convention).
                 if node.child_by_field_name("source").is_some() {
                     self.record_import(node);
+                    self.record_reexport(node);
+                } else {
+                    self.record_local_export(node);
                 }
                 // Walk into the exported declaration.
                 self.walk_children(node);
@@ -166,6 +209,7 @@ impl<'a> JsWalker<'a> {
                 // `module.exports.foo = function() {}` patterns (CJS).
                 self.try_record_exports_assign(node);
                 self.try_record_require_assign(node);
+                self.try_record_cjs_export(node);
                 self.walk_children(node);
                 return;
             }
@@ -532,6 +576,32 @@ impl<'a> JsWalker<'a> {
     }
 
     fn record_import(&mut self, node: Node) {
+        // TypeScript `import x = require('./m')`: the binding and the
+        // specifier both sit inside the clause, not on the statement.
+        if let Some(clause) = node
+            .children(&mut node.walk())
+            .find(|n| n.kind() == "import_require_clause")
+        {
+            let alias = clause
+                .children(&mut clause.walk())
+                .find(|n| n.kind() == "identifier")
+                .map(|n| self.text(n).to_string())
+                .unwrap_or_default();
+            let path = clause
+                .child_by_field_name("source")
+                .map(|n| self.unquote(n))
+                .unwrap_or_default();
+            if !alias.is_empty() && !path.is_empty() {
+                self.facts.imports.push(ImportRecord {
+                    kind: "import".into(),
+                    path,
+                    alias,
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+            }
+            return;
+        }
         let source_node = node.child_by_field_name("source").or_else(|| {
             // Fallback: find the string child directly.
             let count = node.child_count();
@@ -642,6 +712,334 @@ impl<'a> JsWalker<'a> {
                 site_byte: node.start_byte() as u32,
             });
         }
+    }
+
+    /// A string literal's text without its quotes.
+    fn unquote(&self, n: Node) -> String {
+        self.text(n)
+            .trim_matches(|c| c == '\'' || c == '"' || c == '`')
+            .to_string()
+    }
+
+    /// `export * from './m'`, `export * as ns from './m'`, `export { a, b
+    /// as c } from './m'`: names this module provides that live in
+    /// another one. Recorded as a `re-export` import (the plain `import`
+    /// record above keeps the dependency visible) so the resolver can
+    /// follow a call through a barrel file to the module that defines
+    /// it. `alias` is `*`, `* as ns`, or the specifier list.
+    fn record_reexport(&mut self, node: Node) {
+        let Some(path) = node
+            .child_by_field_name("source")
+            .map(|n| self.unquote(n))
+            .filter(|p| !p.is_empty())
+        else {
+            return;
+        };
+        let mut alias = String::new();
+        let mut star = false;
+        let mut c = node.walk();
+        for child in node.children(&mut c) {
+            match child.kind() {
+                "*" => star = true,
+                "namespace_export" => {
+                    let name = child
+                        .children(&mut child.walk())
+                        .filter(|n| n.is_named())
+                        .last()
+                        .map(|n| self.unquote(n))
+                        .unwrap_or_default();
+                    if !name.is_empty() {
+                        alias = format!("* as {name}");
+                    }
+                }
+                "export_clause" => alias = self.export_specifiers(child),
+                _ => {}
+            }
+        }
+        if alias.is_empty() && star {
+            alias = "*".to_string();
+        }
+        if alias.is_empty() {
+            return;
+        }
+        self.push_reexport(node, path, alias);
+    }
+
+    /// The specifiers of an `export { … }` clause as `name` / `name as
+    /// alias`, comma-joined.
+    fn export_specifiers(&self, clause: Node) -> String {
+        let mut items: Vec<String> = Vec::new();
+        let mut c = clause.walk();
+        for spec in clause.children(&mut c) {
+            if spec.kind() != "export_specifier" {
+                continue;
+            }
+            let name = spec
+                .child_by_field_name("name")
+                .map(|n| self.unquote(n))
+                .unwrap_or_default();
+            if name.is_empty() {
+                continue;
+            }
+            match spec.child_by_field_name("alias").map(|n| self.unquote(n)) {
+                Some(alias) if !alias.is_empty() && alias != name => {
+                    items.push(format!("{name} as {alias}"))
+                }
+                _ => items.push(name),
+            }
+        }
+        items.join(", ")
+    }
+
+    /// Names this module exports under a different name than it defines
+    /// them, or as its default: `export { a, b as c }`, `export default
+    /// foo`, `export default function foo() {}`. Recorded as a
+    /// `local-export` (empty path) — `local` or `local as exported` —
+    /// so an import of `c` or of the default can be followed to the
+    /// definition this file holds.
+    fn record_local_export(&mut self, node: Node) {
+        let mut c = node.walk();
+        let children: Vec<Node> = node.children(&mut c).collect();
+        let mut alias = String::new();
+        if let Some(clause) = children.iter().find(|n| n.kind() == "export_clause") {
+            alias = self.export_specifiers(*clause);
+        } else if children.iter().any(|n| n.kind() == "default") {
+            let name = node
+                .child_by_field_name("declaration")
+                .and_then(|d| d.child_by_field_name("name"))
+                .or_else(|| {
+                    node.child_by_field_name("value")
+                        .filter(|v| v.kind() == "identifier")
+                })
+                .map(|n| self.text(n).to_string())
+                .or_else(|| {
+                    // `export default new Api()`.
+                    node.child_by_field_name("value")
+                        .and_then(|v| self.constructed_class(v))
+                })
+                // A value cgg cannot name (`export default createX()`,
+                // an anonymous function, an object): the resolver must
+                // not take a miss through it as proof of absence.
+                .unwrap_or_else(|| UNKNOWN_EXPORT.to_string());
+            alias = format!("{name} as default");
+        } else if let Some(eq) = children.iter().position(|n| n.kind() == "=") {
+            // TypeScript `export = value`: CommonJS `module.exports`.
+            let value = children[eq + 1..].iter().find(|n| n.is_named());
+            match value {
+                Some(v) if v.kind() == "identifier" => {
+                    alias = format!("{} as default", self.text(*v));
+                }
+                Some(v) => {
+                    if let Some(name) = self.constructed_class(*v) {
+                        alias = format!("{name} as default");
+                    } else if let Some(path) = self.required_path(*v) {
+                        self.push_reexport(node, path, "*, default".to_string());
+                        return;
+                    } else {
+                        alias = format!("{UNKNOWN_EXPORT} as default");
+                    }
+                }
+                None => {}
+            }
+        }
+        if alias.is_empty() {
+            return;
+        }
+        self.push_local_export(node, alias);
+    }
+
+    fn push_local_export(&mut self, node: Node, alias: String) {
+        self.facts.imports.push(ImportRecord {
+            kind: "local-export".into(),
+            path: String::new(),
+            alias,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
+    }
+
+    /// CommonJS exports: `module.exports = foo`, `module.exports = { a,
+    /// b: c }`, `module.exports = require('./m')`, `exports.k = v`,
+    /// `module.exports.k = require('./m')`. The same `local-export` /
+    /// `re-export` records the ES forms produce. A function assigned to
+    /// `module.exports` is already a definition named `exports` (see
+    /// `extract_assignment_fn`), and is the module's default.
+    fn try_record_cjs_export(&mut self, node: Node) {
+        let Some(expr) = node.named_child(0) else {
+            return;
+        };
+        if expr.kind() != "assignment_expression" {
+            return;
+        }
+        let (Some(left), Some(right)) = (
+            expr.child_by_field_name("left"),
+            expr.child_by_field_name("right"),
+        ) else {
+            return;
+        };
+        if left.kind() != "member_expression" {
+            return;
+        }
+        let object = left.child_by_field_name("object");
+        let property = left
+            .child_by_field_name("property")
+            .map(|p| self.text(p).to_string())
+            .unwrap_or_default();
+        if self.is_module_exports(left) {
+            // `module.exports = …`: the module's default value.
+            match right.kind() {
+                "identifier" => {
+                    let name = self.text(right).to_string();
+                    self.push_local_export(node, format!("{name} as default"));
+                }
+                "function_expression"
+                | "function"
+                | "arrow_function"
+                | "generator_function" => {
+                    self.push_local_export(node, "exports as default".to_string());
+                }
+                "class" => {
+                    if let Some(n) = right.child_by_field_name("name") {
+                        let name = self.text(n).to_string();
+                        self.push_local_export(node, format!("{name} as default"));
+                    }
+                }
+                // `module.exports = new SettingsHelpers(…)`: an instance,
+                // whose members are its class's.
+                "new_expression" => {
+                    if let Some(name) = self.constructed_class(right) {
+                        self.push_local_export(node, format!("{name} as default"));
+                    }
+                }
+                "object" => {
+                    let mut items: Vec<String> = Vec::new();
+                    let mut c = right.walk();
+                    for prop in right.children(&mut c) {
+                        match prop.kind() {
+                            // `{ ...require('./a') }`: every export of
+                            // `./a`; any other spread is unreadable.
+                            "spread_element" => {
+                                let required = prop
+                                    .named_child(0)
+                                    .and_then(|v| self.required_path(v));
+                                match required {
+                                    Some(path) => {
+                                        self.push_reexport(node, path, "*".to_string())
+                                    }
+                                    None => {
+                                        items.push(format!("{UNKNOWN_EXPORT} as default"))
+                                    }
+                                }
+                            }
+                            "shorthand_property_identifier" => {
+                                items.push(self.text(prop).to_string());
+                            }
+                            "pair" => {
+                                let key = prop
+                                    .child_by_field_name("key")
+                                    .map(|k| self.unquote(k))
+                                    .unwrap_or_default();
+                                let Some(value) = prop.child_by_field_name("value")
+                                else {
+                                    continue;
+                                };
+                                if key.is_empty() {
+                                    continue;
+                                }
+                                if value.kind() == "identifier" {
+                                    let v = self.text(value).to_string();
+                                    if v == key {
+                                        items.push(v);
+                                    } else {
+                                        items.push(format!("{v} as {key}"));
+                                    }
+                                } else if let Some(path) = self.required_path(value) {
+                                    self.push_reexport(node, path, format!("* as {key}"));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    if !items.is_empty() {
+                        self.push_local_export(node, items.join(", "));
+                    }
+                }
+                _ => {
+                    if let Some(path) = self.required_path(right) {
+                        // `module.exports = require('./m')`: `./m`'s
+                        // names, and its value (`module.exports = new
+                        // Store()` there) as this module's.
+                        self.push_reexport(node, path, "*, default".to_string());
+                    } else {
+                        // `module.exports = makeThing()`: a value cgg
+                        // cannot read.
+                        self.push_local_export(
+                            node,
+                            format!("{UNKNOWN_EXPORT} as default"),
+                        );
+                    }
+                }
+            }
+            return;
+        }
+        // `exports.k = …` / `module.exports.k = …`.
+        let on_exports = object.is_some_and(|o| {
+            (o.kind() == "identifier" && self.text(o) == "exports")
+                || self.is_module_exports(o)
+        });
+        if !on_exports || property.is_empty() {
+            return;
+        }
+        if right.kind() == "identifier" {
+            let v = self.text(right).to_string();
+            if v != property {
+                self.push_local_export(node, format!("{v} as {property}"));
+            }
+        } else if let Some(path) = self.required_path(right) {
+            self.push_reexport(node, path, format!("* as {property}"));
+        }
+    }
+
+    /// The class a `new Klass(…)` expression constructs, when it is named
+    /// by a plain identifier.
+    fn constructed_class(&self, n: Node) -> Option<String> {
+        if n.kind() != "new_expression" {
+            return None;
+        }
+        let ctor = n.child_by_field_name("constructor")?;
+        (ctor.kind() == "identifier").then(|| self.text(ctor).to_string())
+    }
+
+    /// `module.exports` as an expression.
+    fn is_module_exports(&self, n: Node) -> bool {
+        n.kind() == "member_expression"
+            && n.child_by_field_name("object")
+                .is_some_and(|o| self.text(o) == "module")
+            && n.child_by_field_name("property")
+                .is_some_and(|p| self.text(p) == "exports")
+    }
+
+    /// The specifier of a `require('…')` call.
+    fn required_path(&self, n: Node) -> Option<String> {
+        if n.kind() != "call_expression"
+            || n.child_by_field_name("function").map(|f| self.text(f)) != Some("require")
+        {
+            return None;
+        }
+        let args = n.child_by_field_name("arguments")?;
+        let mut c = args.walk();
+        let s = args.children(&mut c).find(|a| a.kind() == "string")?;
+        Some(self.unquote(s)).filter(|p| !p.is_empty())
+    }
+
+    fn push_reexport(&mut self, node: Node, path: String, alias: String) {
+        self.facts.imports.push(ImportRecord {
+            kind: "re-export".into(),
+            path,
+            alias,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     fn extract_named_fn_child(&mut self, node: Node) {
@@ -906,6 +1304,101 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn imports_of(f: &FileFacts, kind: &str) -> Vec<(String, String)> {
+        f.imports
+            .iter()
+            .filter(|i| i.kind == kind)
+            .map(|i| (i.path.clone(), i.alias.clone()))
+            .collect()
+    }
+
+    fn pairs(v: &[(&str, &str)]) -> Vec<(String, String)> {
+        v.iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect()
+    }
+
+    /// FINDINGS A4: what a module re-exports from another, so a call
+    /// through a barrel file can be followed to the module defining it.
+    /// The plain `import` record of the same statement stays.
+    #[test]
+    fn es_reexports_are_recorded() {
+        let f = extract(
+            "export * from './impl';\n\
+             export * as u from './util';\n\
+             export { a, b as c, default as D } from './re';\n",
+        );
+        assert_eq!(
+            imports_of(&f, "re-export"),
+            pairs(&[
+                ("./impl", "*"),
+                ("./util", "* as u"),
+                ("./re", "a, b as c, default as D"),
+            ])
+        );
+        assert_eq!(imports_of(&f, "import").len(), 3);
+    }
+
+    /// A default export cgg cannot name is recorded as unknown, so the
+    /// resolver does not take a miss through it as proof of absence.
+    #[test]
+    fn unreadable_default_exports_are_marked_unknown() {
+        let f = extract(
+            "function make() { return {}; }\n\
+             export default make();\n\
+             module.exports = make();\n\
+             module.exports = { ...require('./a'), ...other, b };\n",
+        );
+        let locals: Vec<String> = imports_of(&f, "local-export")
+            .into_iter()
+            .map(|(_, a)| a)
+            .collect();
+        assert_eq!(
+            locals,
+            vec![
+                "<value> as default".to_string(),
+                "<value> as default".to_string(),
+                "<value> as default, b".to_string(),
+            ]
+        );
+        // A spread `require()` re-exports that module's names.
+        assert_eq!(
+            imports_of(&f, "re-export"),
+            vec![("./a".to_string(), "*".to_string())]
+        );
+    }
+
+    /// FINDINGS A4: names a module exports under another name or as its
+    /// default, ES and CommonJS alike.
+    #[test]
+    fn local_exports_and_commonjs_exports_are_recorded() {
+        let f = extract(
+            "function run() {}\nfunction impl2() {}\n\
+             export { run as go };\n\
+             export default function main() {}\n\
+             module.exports = { run, other: impl2, sub: require('./sub') };\n\
+             exports.k = impl2;\n\
+             module.exports = require('./proxy');\n\
+             module.exports = function () {};\n\
+             module.exports = new Store(cfg);\n",
+        );
+        assert_eq!(
+            imports_of(&f, "local-export"),
+            pairs(&[
+                ("", "run as go"),
+                ("", "main as default"),
+                ("", "run, impl2 as other"),
+                ("", "impl2 as k"),
+                ("", "exports as default"),
+                ("", "Store as default"),
+            ])
+        );
+        assert_eq!(
+            imports_of(&f, "re-export"),
+            pairs(&[("./sub", "* as sub"), ("./proxy", "*, default")])
+        );
     }
 
     #[test]

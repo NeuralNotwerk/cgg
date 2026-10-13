@@ -456,13 +456,15 @@ pub struct FileFacts {
     /// `package`, every C# `namespace` the file declares (nested blocks
     /// joined), the `module` path of the Go file's enclosing `go.mod`
     /// (and of every module a local `replace` points into the tree), the
-    /// `name` of the JS/TS file's enclosing `package.json`.
+    /// `name` of the JS/TS file's enclosing `package.json`, the dotted
+    /// module name of a Python file (`pkg.sub.mod`; a package's
+    /// `__init__.py` is `pkg.sub`).
     ///
     /// The resolver unions them across the run to tell an import of a
     /// workspace package from one of an external dependency — a call
     /// through the latter is never name-matched onto a workspace
-    /// callable. Empty for languages that need no declaration (Python
-    /// and C++ are judged from file paths and qualified names).
+    /// callable — and maps a Python import onto the file it names.
+    /// Empty for C++ (judged from file paths and qualified names).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<String>,
 }
