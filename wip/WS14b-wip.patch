@@ -1,5 +1,5 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index c538c98..75c5b0f 100644
+index c538c98..0e1775b 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
 @@ -369,6 +369,12 @@ pub struct RefRecord {
@@ -15,6 +15,54 @@ index c538c98..75c5b0f 100644
      /// How many arguments the call passes, where the language makes a
      /// function's arity part of its identity — Erlang's `f/1` and `f/2`
      /// are different functions that share a name. `None` when unknown or
+@@ -478,6 +484,22 @@ pub struct FileFacts {
+     /// declares by name is a definition, not one of these.
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     pub locals: Vec<LocalBinding>,
++    /// Named container types and the span of their body (Zig `const
++    /// Surface = struct { … }`, recorded by path: `Outer.Inner`). A
++    /// language whose qualified names carry no owner places a method in
++    /// its type by span instead. A name bound to `@This()` is recorded
++    /// with the span of the container it names (the whole file at file
++    /// level).
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub type_spans: Vec<TypeSpan>,
++}
++
++/// A container type's name and body span (see [`FileFacts::type_spans`]).
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct TypeSpan {
++    pub name: String,
++    pub start_byte: u32,
++    pub end_byte: u32,
+ }
+ 
+ /// A name bound to a value over `start_byte..end_byte` (see
+@@ -608,6 +630,7 @@ impl FileFacts {
+             untyped_receivers: Vec::new(),
+             packages: Vec::new(),
+             locals: Vec::new(),
++            type_spans: Vec::new(),
+         }
+     }
+ 
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index 4e4cc36..0faa86e 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -49,9 +49,9 @@ pub use external::{
+ pub use facts::{
+     ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DefRecord, DefVariant, DynUse, ExportRecord,
+     FieldType, FileFacts, ImportRecord, LocalBinding, LocalType, MacroAlias,
+-    MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion,
+-    VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment, looks_like_type_name,
+-    template_pointee,
++    MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole, TypeSpan,
++    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
++    looks_like_type_name, template_pointee,
+ };
+ pub use frameworks::{
+     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
 index 0c1c3e7..afcec1f 100644
 --- a/crates/cgg-lang/src/locals.rs
@@ -344,6 +392,640 @@ index ec1966e..b79c1d3 100644
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
+index eafccf8..37a9c9d 100644
+--- a/crates/cgg-lang/src/plugins/zig.rs
++++ b/crates/cgg-lang/src/plugins/zig.rs
+@@ -31,8 +31,14 @@ impl LanguagePlugin for ZigPlugin {
+         let mut w = ZigWalker {
+             source,
+             facts: &mut facts,
++            containers: Vec::new(),
++            this_aliases: Vec::new(),
++            fns: Vec::new(),
++            fn_stack: Vec::new(),
++            pending: Vec::new(),
+         };
+         w.walk(tree.root_node());
++        w.type_locals();
+         // A build script names the modules its packages are imported as:
+         // `b.addModule("pkg", .{ .root_source_file = b.path("src/main.zig") })`
+         // makes `@import("pkg")` that file (WS14).
+@@ -62,8 +68,85 @@ fn import_member(text: &str) -> Option<(&str, &str)> {
+ struct ZigWalker<'a> {
+     source: &'a [u8],
+     facts: &'a mut FileFacts,
++    /// Containers being walked, innermost last: `(path, body start)`;
++    /// an anonymous one (a generic's `return struct { … }`, a struct
++    /// declared in a function) has an empty path.
++    containers: Vec<(String, u32)>,
++    /// `const Self = @This();`: `(container body start, name)`, with
++    /// `u32::MAX` for the file.
++    this_aliases: Vec<(u32, String)>,
++    fns: Vec<ZigFn>,
++    /// Functions being walked (indices into `fns`), innermost last.
++    fn_stack: Vec<usize>,
++    pending: Vec<PendingLocal>,
+ }
+ 
++/// A function of the file, for typing locals from what it returns.
++struct ZigFn {
++    name: String,
++    start: u32,
++    /// Body start of the container it is declared in; `None` at file
++    /// level.
++    container: Option<u32>,
++    /// Its return type with optionals, pointers and error unions
++    /// peeled (`!?*Surface` → `Surface`), when that is a plain name or
++    /// path.
++    ret: Option<String>,
++    /// Its first parameter's name and peeled type (the receiver of a
++    /// method call `x.m()`).
++    first_param: Option<(String, String)>,
++}
++
++/// A local declaration whose type is read once the file is walked.
++struct PendingLocal {
++    var: String,
++    /// End of the declaration: the type holds from there on.
++    at: u32,
++    /// The function it is declared in (index into `fns`).
++    caller: usize,
++    ty: PendingTy,
++}
++
++enum PendingTy {
++    /// Written (`const x: T = …`, `T{ … }`).
++    Known(String),
++    /// What a call returns (`self.m() orelse return`, `try m()`).
++    Call {
++        method: String,
++        recv: Option<String>,
++    },
++}
++
++/// Container declaration kinds.
++const CONTAINERS: &[&str] = &[
++    "struct_declaration",
++    "union_declaration",
++    "enum_declaration",
++    "opaque_declaration",
++];
++
++/// `?*const T`, `!T`, `E!*T` → `T` when `T` is a plain name or path
++/// (`font.sprite.Canvas`); `None` for anything else (a slice, a generic
++/// instantiation, a builtin type).
++fn peel_type(mut n: Node, src: &[u8]) -> Option<String> {
++    for _ in 0..8 {
++        match n.kind() {
++            "nullable_type" | "pointer_type" => {
++                n = n.named_child(n.named_child_count().checked_sub(1)? as u32)?;
++            }
++            "error_union_type" => n = n.child_by_field_name("ok")?,
++            "identifier" | "field_expression" => {
++                let t = n.utf8_text(src).ok()?.trim();
++                let plain = t.split('.').all(|seg| {
++                    !seg.is_empty() && seg.chars().all(|c| c.is_alphanumeric() || c == '_')
++                });
++                return plain.then(|| t.to_string());
++            }
++            _ => return None,
++        }
++    }
++    None
++}
+ impl<'a> ZigWalker<'a> {
+     fn text(&self, n: Node) -> &str {
+         n.utf8_text(self.source).unwrap_or("")
+@@ -77,6 +160,28 @@ impl<'a> ZigWalker<'a> {
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
+                 if !name.is_empty() {
++                    let first_param = node
++                        .children(&mut node.walk())
++                        .find(|c| c.kind() == "parameters")
++                        .and_then(|ps| {
++                            ps.named_children(&mut ps.walk())
++                                .find(|p| p.kind() == "parameter")
++                        })
++                        .and_then(|p| {
++                            let n = p.child_by_field_name("name")?;
++                            let t = peel_type(p.child_by_field_name("type")?, self.source)?;
++                            Some((self.text(n).to_string(), t))
++                        });
++                    self.fns.push(ZigFn {
++                        name: name.clone(),
++                        start: node.start_byte() as u32,
++                        container: self.containers.last().map(|(_, s)| *s),
++                        ret: node
++                            .child_by_field_name("type")
++                            .and_then(|t| peel_type(t, self.source)),
++                        first_param,
++                    });
++                    self.fn_stack.push(self.fns.len() - 1);
+                     let (sl, el) = (
+                         (node.start_position().row as u32) + 1,
+                         (node.end_position().row as u32) + 1,
+@@ -94,10 +199,26 @@ impl<'a> ZigWalker<'a> {
+                         attributes: Vec::new(),
+                         ..Default::default()
+                     });
++                    self.walk_children(node);
++                    self.fn_stack.pop();
++                    return;
+                 }
+                 self.walk_children(node);
+                 return;
+             }
++            k if CONTAINERS.contains(&k) => {
++                // A container that is not a named declaration's value
++                // (`return struct { … }`): its methods are its own.
++                self.facts.type_spans.push(cgg_core::TypeSpan {
++                    name: String::new(),
++                    start_byte: node.start_byte() as u32,
++                    end_byte: node.end_byte() as u32,
++                });
++                self.containers.push((String::new(), node.start_byte() as u32));
++                self.walk_children(node);
++                self.containers.pop();
++                return;
++            }
+             // `const addRunArtifact = link.addRunArtifact;` at file level:
+             // the name is that declaration of the aliased container, which
+             // the resolver follows (`const link = @import("link.zig")`).
+@@ -105,6 +226,12 @@ impl<'a> ZigWalker<'a> {
+                 if node.parent().is_some_and(|p| p.kind() == "source_file") {
+                     self.record_alias(node);
+                 }
++                if self.declare_type(node) {
++                    return;
++                }
++                if self.in_fn() {
++                    self.record_local(node);
++                }
+                 self.walk_children(node);
+                 return;
+             }
+@@ -174,6 +301,307 @@ impl<'a> ZigWalker<'a> {
+         self.walk_children(node);
+     }
+ 
++    /// Directly in a function body (not in a container nested in one).
++    fn in_fn(&self) -> bool {
++        self.fn_stack.last().is_some_and(|&f| {
++            let fs = self.fns[f].start;
++            self.containers.last().is_none_or(|(_, cs)| *cs < fs)
++        })
++    }
++
++    /// The declaration's name and value (`const NAME[: T] = VALUE;`).
++    fn name_and_value<'t>(&self, node: Node<'t>) -> Option<(String, Node<'t>)> {
++        let mut c = node.walk();
++        let named: Vec<Node> = node.named_children(&mut c).collect();
++        let name = named.iter().find(|n| n.kind() == "identifier")?;
++        let ty = node.child_by_field_name("type").map(|t| t.id());
++        let value = named
++            .iter()
++            .rev()
++            .find(|n| n.id() != name.id() && Some(n.id()) != ty)?;
++        Some((self.text(*name).to_string(), *value))
++    }
++
++    /// `const T = struct { … }` and `const Self = @This();` outside any
++    /// function: record the type's span and walk its body as a
++    /// container. True when `node` was such a declaration (and walked).
++    fn declare_type(&mut self, node: Node) -> bool {
++        let in_fn = self.in_fn();
++        let Some((name, value)) = self.name_and_value(node) else {
++            return false;
++        };
++        let start = value.start_byte() as u32;
++        if CONTAINERS.contains(&value.kind()) {
++            // Inside a function a named struct is local to it: anonymous
++            // here (still the container of its own methods).
++            let path = match (in_fn, self.containers.last()) {
++                (true, _) => String::new(),
++                (false, Some((p, _))) if !p.is_empty() => format!("{p}.{name}"),
++                (false, Some(_)) => String::new(),
++                (false, None) => name,
++            };
++            self.facts.type_spans.push(cgg_core::TypeSpan {
++                name: path.clone(),
++                start_byte: start,
++                end_byte: value.end_byte() as u32,
++            });
++            self.containers.push((path, start));
++            self.walk_children(value);
++            self.containers.pop();
++            return true;
++        }
++        let is_this = value.kind() == "builtin_function"
++            && value
++                .children(&mut value.walk())
++                .any(|c| c.kind() == "builtin_identifier" && self.text(c) == "@This");
++        if is_this && !in_fn {
++            let (key, path, span) = match self.containers.last() {
++                Some((p, s)) => {
++                    let end = self
++                        .facts
++                        .type_spans
++                        .iter()
++                        .rev()
++                        .find(|t| t.start_byte == *s)
++                        .map_or(*s, |t| t.end_byte);
++                    let path = if p.is_empty() {
++                        String::new()
++                    } else {
++                        format!("{p}.{name}")
++                    };
++                    (*s, path, (*s, end))
++                }
++                None => (u32::MAX, name.clone(), (0, self.source.len() as u32)),
++            };
++            self.this_aliases.push((key, name));
++            if !path.is_empty() {
++                self.facts.type_spans.push(cgg_core::TypeSpan {
++                    name: path,
++                    start_byte: span.0,
++                    end_byte: span.1,
++                });
++            }
++            return true;
++        }
++        false
++    }
++
++    /// A local declaration in a function: its type when it is written
++    /// (`const x: ?*T = …`, `T{ … }`) or is what a call of this file
++    /// returns (`self.m() orelse return`, `try m()`), resolved once every
++    /// function is known (`type_locals`).
++    fn record_local(&mut self, node: Node) {
++        let Some(&caller) = self.fn_stack.last() else {
++            return;
++        };
++        let at = node.end_byte() as u32;
++        let Some(var) = node
++            .named_children(&mut node.walk())
++            .find(|n| n.kind() == "identifier")
++            .map(|n| self.text(n).to_string())
++        else {
++            return;
++        };
++        if let Some(t) = node
++            .child_by_field_name("type")
++            .and_then(|t| peel_type(t, self.source))
++        {
++            self.pending.push(PendingLocal {
++                var,
++                at,
++                caller,
++                ty: PendingTy::Known(t),
++            });
++            return;
++        }
++        let Some((_, value)) = self.name_and_value(node) else {
++            return;
++        };
++        let mut v = value;
++        for _ in 0..4 {
++            v = match v.kind() {
++                "try_expression" | "null_coercion_expression" | "catch_expression" => {
++                    match v.named_child(0) {
++                        Some(c) => c,
++                        None => return,
++                    }
++                }
++                "binary_expression"
++                    if v
++                        .child_by_field_name("operator")
++                        .is_some_and(|o| o.kind() == "orelse") =>
++                {
++                    match v.child_by_field_name("left") {
++                        Some(c) => c,
++                        None => return,
++                    }
++                }
++                _ => break,
++            };
++        }
++        let ty = match v.kind() {
++            "struct_initializer" => match v.named_child(0).and_then(|t| peel_type(t, self.source)) {
++                Some(t) => PendingTy::Known(t),
++                None => return,
++            },
++            "call_expression" => {
++                let Some(f) = v.child_by_field_name("function") else {
++                    return;
++                };
++                match f.kind() {
++                    "identifier" => PendingTy::Call {
++                        method: self.text(f).to_string(),
++                        recv: None,
++                    },
++                    "field_expression" => {
++                        let (Some(obj), Some(m)) = (
++                            f.child_by_field_name("object"),
++                            f.child_by_field_name("member"),
++                        ) else {
++                            return;
++                        };
++                        if obj.kind() != "identifier" {
++                            return;
++                        }
++                        PendingTy::Call {
++                            method: self.text(m).to_string(),
++                            recv: Some(self.text(obj).to_string()),
++                        }
++                    }
++                    _ => return,
++                }
++            }
++            _ => return,
++        };
++        self.pending.push(PendingLocal {
++            var,
++            at,
++            caller,
++            ty,
++        });
++    }
++
++    /// The container `name` denotes from inside container `within` (its
++    /// body start; `None` at file level): an enclosing container by name
++    /// or path, or a `@This()` alias of one.
++    fn container_named(&self, name: &str, within: Option<u32>) -> Option<u32> {
++        if let Some((s, _)) = self
++            .this_aliases
++            .iter()
++            .find(|(s, n)| n == name && (Some(*s) == within || *s == u32::MAX))
++        {
++            return Some(*s);
++        }
++        self.facts
++            .type_spans
++            .iter()
++            .find(|t| {
++                !t.name.is_empty()
++                    && (t.name == name || t.name.rsplit('.').next() == Some(name))
++            })
++            .map(|t| t.start_byte)
++            .filter(|_| {
++                self.facts
++                    .type_spans
++                    .iter()
++                    .filter(|t| {
++                        !t.name.is_empty()
++                            && (t.name == name || t.name.rsplit('.').next() == Some(name))
++                    })
++                    .count()
++                    == 1
++            })
++    }
++
++    /// A type as written in container `within`, made a path the resolver
++    /// can follow from the file: a `@This()` alias is the container's
++    /// path (or, at file level, the alias itself, which names the file).
++    fn type_from(&self, ty: &str, within: Option<u32>) -> Option<String> {
++        let alias = self
++            .this_aliases
++            .iter()
++            .find(|(s, n)| n == ty && (Some(*s) == within || *s == u32::MAX));
++        match alias {
++            Some((u32::MAX, _)) => Some(ty.to_string()),
++            Some((s, _)) => self
++                .facts
++                .type_spans
++                .iter()
++                .find(|t| t.start_byte == *s && !t.name.is_empty())
++                .map(|t| t.name.clone()),
++            None => Some(ty.to_string()),
++        }
++    }
++
++    /// Type the pending locals: a written type as is; a call by what the
++    /// one function of this file it reaches returns — `m()` a function of
++    /// the caller's container or the file, `x.m()` a method of the
++    /// caller's container when `x` is the caller's receiver parameter
++    /// (typed as that container), `T.m()` a function of container `T`.
++    fn type_locals(&mut self) {
++        let pending = std::mem::take(&mut self.pending);
++        for p in pending {
++            let ty = match p.ty {
++                PendingTy::Known(t) => {
++                    let within = self.fns.get(p.caller).and_then(|f| f.container);
++                    self.type_from(&t, within)
++                }
++                PendingTy::Call { method, recv } => {
++                    let caller = p.caller;
++                    let here = self.fns.get(caller).and_then(|f| f.container);
++                    let target: Vec<Option<u32>> = match &recv {
++                        None => vec![here, None],
++                        Some(r) => {
++                            let receiver_param =
++                                self.fns.get(caller).and_then(|f| f.first_param.as_ref());
++                            match receiver_param {
++                                Some((pn, pt))
++                                    if pn == r
++                                        && here.is_some()
++                                        && self.container_named(pt, here) == here =>
++                                {
++                                    vec![here]
++                                }
++                                _ => match self.container_named(r, here) {
++                                    // The file's own `@This()` alias: its
++                                    // file-level functions.
++                                    Some(u32::MAX) => vec![None],
++                                    Some(c) => vec![Some(c)],
++                                    None => continue,
++                                },
++                            }
++                        }
++                    };
++                    let mut found = None;
++                    for c in target {
++                        let cands: Vec<&ZigFn> = self
++                            .fns
++                            .iter()
++                            .filter(|f| f.name == method && f.container == c)
++                            .collect();
++                        if let [one] = cands.as_slice() {
++                            found = one
++                                .ret
++                                .as_deref()
++                                .and_then(|t| self.type_from(t, one.container));
++                        }
++                        if !cands.is_empty() {
++                            break;
++                        }
++                    }
++                    found
++                }
++            };
++            if let Some(ty) = ty {
++                self.facts.local_types.push(cgg_core::LocalType {
++                    var_name: p.var,
++                    type_name: ty,
++                    scope_byte: p.at,
++                });
++            }
++        }
++    }
++
+     fn record_alias(&mut self, node: Node) {
+         let mut c = node.walk();
+         let children: Vec<Node> = node.named_children(&mut c).collect();
+@@ -303,4 +731,43 @@ mod tests {
+             ("xev", "src/main.zig")
+         );
+     }
++
++    /// WS14b: a local's type is what is written, a struct literal's type,
++    /// or what a call of this file returns (`self.m() orelse return`,
++    /// `try m()`, `T.init()` through `@This()`), optionals and pointers
++    /// peeled. A call this file cannot see the target of types nothing.
++    #[test]
++    fn locals_are_typed_from_returns_and_annotations() {
++        let src = "const Surface = @import(\"surface.zig\").Surface;\n\
++                   const Pool = @This();\n\
++                   pub fn init() Pool { return .{}; }\n\
++                   pub const Tree = struct {\n\
++                   \x20   const Self = @This();\n\
++                   \x20   fn active(self: *Self) ?*Surface { return null; }\n\
++                   \x20   fn me(self: *Tree) Self { return self.*; }\n\
++                   \x20   fn f(self: *Tree) !void {\n\
++                   \x20       const a = self.active() orelse return;\n\
++                   \x20       const b = try self.me();\n\
++                   \x20       var c: ?*const Surface = null;\n\
++                   \x20       const d = Surface{ .id = 1 };\n\
++                   \x20       const e = other.thing();\n\
++                   \x20       const p = Pool.init();\n\
++                   \x20   }\n\
++                   };\n";
++        let f = extract(src);
++        let ty = |v: &str| {
++            f.local_types
++                .iter()
++                .find(|l| l.var_name == v)
++                .map(|l| l.type_name.clone())
++        };
++        assert_eq!(ty("a").as_deref(), Some("Surface"), "{:?}", f.local_types);
++        assert_eq!(ty("b").as_deref(), Some("Tree"), "{:?}", f.local_types);
++        assert_eq!(ty("c").as_deref(), Some("Surface"));
++        assert_eq!(ty("d").as_deref(), Some("Surface"));
++        assert_eq!(ty("e"), None);
++        assert_eq!(ty("p").as_deref(), Some("Pool"));
++        let names: Vec<&str> = f.type_spans.iter().map(|t| t.name.as_str()).collect();
++        assert_eq!(names, vec!["Pool", "Tree", "Tree.Self"], "{:?}", f.type_spans);
++    }
+ }
+diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
+index 8ed406d..6378bc4 100644
+--- a/crates/cgg-resolve/src/cross_file.rs
++++ b/crates/cgg-resolve/src/cross_file.rs
+@@ -9634,6 +9634,22 @@ mod tests {
+         tweak: impl FnOnce(&mut FileFacts),
+     ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
+         let mut tweak = Some(tweak);
++        module_case_each(lang, files, caller, refs, |is_caller, _, f| {
++            if is_caller && let Some(t) = tweak.take() {
++                t(f);
++            }
++        })
++    }
++
++    /// [`module_case`] with every file's facts adjusted before resolving
++    /// (`(is the caller, file index, facts)`).
++    fn module_case_each(
++        lang: &str,
++        files: Vec<MFile<'_>>,
++        caller: MFile<'_>,
++        refs: Vec<RefRecord>,
++        mut tweak: impl FnMut(bool, usize, &mut FileFacts),
++    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
+         let mut g = Graph::new();
+         let mut facts = Vec::new();
+         let mut all: Vec<MFile<'_>> = files;
+@@ -9681,11 +9697,7 @@ mod tests {
+                 f.imports,
+             );
+             ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
+-            if fi == n - 1
+-                && let Some(t) = tweak.take()
+-            {
+-                t(&mut ff);
+-            }
++            tweak(fi == n - 1, fi, &mut ff);
+             facts.push(ff);
+         }
+         let out = resolve_default(&g, &facts);
+@@ -11727,6 +11739,67 @@ mod tests {
+         );
+     }
+ 
++    /// WS14b (Zig): a receiver typed as a container (`s.close()` with
++    /// `s: *Surface`, `Surface = @import("surface.zig").Surface`) reaches
++    /// the member that container declares, not a same-named method of
++    /// another container in the same or another file; a name the
++    /// container does not declare is refused. A call on a type
++    /// function's result through a dependency is external.
++    #[test]
++    fn zig_container_typed_receiver_reaches_its_member() {
++        let files = vec![
++            // `pub const Surface = struct { fn close }` and
++            // `pub const Window = struct { fn close }` in one file.
++            mfile("src/surface.zig", &["close", "close"], vec![]),
++            mfile("src/other.zig", &["close", "missing", "init"], vec![]),
++        ];
++        let caller = mfile(
++            "src/split_tree.zig",
++            &["closeActive"],
++            vec![
++                import("import-member", "surface.zig#Surface", "Surface"),
++                import("import", "std", "std"),
++            ],
++        );
++        let refs = vec![
++            call("close", "Surface"),
++            RefRecord {
++                site_byte: 30,
++                ..call("missing", "Surface")
++            },
++            RefRecord {
++                site_byte: 40,
++                ..call("init", "std.array_list.Managed(T)")
++            },
++        ];
++        let spans = |is_caller: bool, fi: usize, f: &mut FileFacts| {
++            if !is_caller && fi == 0 {
++                // Defs of a non-caller file sit at 2000.. and 2010...
++                f.type_spans = vec![
++                    cgg_core::TypeSpan {
++                        name: "Surface".into(),
++                        start_byte: 1990,
++                        end_byte: 2008,
++                    },
++                    cgg_core::TypeSpan {
++                        name: "Window".into(),
++                        start_byte: 2008,
++                        end_byte: 2020,
++                    },
++                ];
++            }
++        };
++        let (dsts, why) = module_case_each("zig", files.clone(), caller.clone(), refs, spans);
++        assert_eq!(dsts.len(), 1, "{dsts:?} {why:?}");
++        assert_eq!(dsts[0].1, "src/surface.zig", "{dsts:?}");
++        assert!(why.contains(&refused("Surface")), "{why:?}");
++        assert!(why.contains(&external("std")), "{why:?}");
++        // Near miss: without the container spans the same call is not
++        // bound to either `close` by name.
++        let (dsts, _) = module_case("zig", files, caller, vec![call("close", "Surface")]);
++        assert!(dsts.is_empty(), "{dsts:?}");
++    }
++
+     /// WS14 (Scala): a bare call reaches the calling class, its bases and
+     /// an object `import a.Owner._` names — never an unrelated class's
+     /// member (`assert` is not `SubmitRestProtocolMessage::assert`).
 diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
 index 645882e..f71b71b 100644
 --- a/crates/cgg-resolve/src/frameworks/mod.rs
@@ -396,6 +1078,266 @@ index 645882e..f71b71b 100644
              arity: None,
              name: "on_mouse_pos".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
+index fd17edc..928ce1b 100644
+--- a/crates/cgg-resolve/src/libscope.rs
++++ b/crates/cgg-resolve/src/libscope.rs
+@@ -73,6 +73,16 @@ struct DartFile {
+     library_files: Vec<FileId>,
+ }
+ 
++/// Where a Zig receiver's type leads (WS14b).
++enum ZigTy {
++    /// A container type: file and body span.
++    Container(FileId, u32, u32),
++    /// A file (a file is a struct).
++    File(FileId),
++    /// A dependency.
++    External(String),
++}
++
+ /// A Zig file-level name bound to another file or a path.
+ #[derive(Debug, Clone)]
+ enum ZigBind {
+@@ -113,6 +123,14 @@ pub(crate) struct LibIndex<'a> {
+     zig_names: HashSet<String>,
+     /// Zig: file → callables not nested in another, by simple name.
+     zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
++    /// Zig: file → its named container types (`Outer.Inner`, a
++    /// `@This()` alias) and their body spans (WS14b).
++    zig_types: HashMap<FileId, Vec<(&'a str, u32, u32)>>,
++    /// Zig: `(file, container body span)` → the callables declared
++    /// directly in that container, by simple name.
++    zig_members: HashMap<(FileId, u32, u32), HashMap<&'a str, Vec<CallableId>>>,
++    /// Zig: callable → its byte span.
++    zig_spans: HashMap<CallableId, (u32, u32)>,
+     /// Exported namespaces, computed on first use, and whether some
+     /// export chain leaves the tree.
+     ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
+@@ -647,6 +665,44 @@ impl<'a> LibIndex<'a> {
+                     .push(c.id);
+             }
+         }
++        // Containers: each callable is a member of the innermost container
++        // around it (an anonymous one included, so a generic's `return
++        // struct { … }` keeps its methods to itself).
++        let mut by_file: HashMap<FileId, Vec<&cgg_core::graph::CallableNode>> =
++            HashMap::new();
++        for c in graph.callables.values().filter(|c| c.language == "zig") {
++            by_file.entry(c.file).or_default().push(c);
++            self.zig_spans.insert(c.id, (c.start_byte, c.end_byte));
++        }
++        for f in facts.iter().filter(|f| f.language == "zig") {
++            if f.type_spans.is_empty() {
++                continue;
++            }
++            let named: Vec<(&'a str, u32, u32)> = f
++                .type_spans
++                .iter()
++                .filter(|t| !t.name.is_empty())
++                .map(|t| (t.name.as_str(), t.start_byte, t.end_byte))
++                .collect();
++            self.zig_types.insert(f.file, named);
++            let mut cs = by_file.remove(&f.file).unwrap_or_default();
++            cs.sort_by_key(|c| (c.start_byte, c.id));
++            for c in cs {
++                let inner = f
++                    .type_spans
++                    .iter()
++                    .filter(|t| t.start_byte <= c.start_byte && c.end_byte <= t.end_byte)
++                    .min_by_key(|t| (t.end_byte - t.start_byte, t.start_byte));
++                if let Some(t) = inner {
++                    self.zig_members
++                        .entry((f.file, t.start_byte, t.end_byte))
++                        .or_default()
++                        .entry(c.simple_name.as_str())
++                        .or_default()
++                        .push(c.id);
++                }
++            }
++        }
+         for f in facts.iter().filter(|f| f.language == "zig") {
+             self.paths.insert(f.file, f.path.as_path());
+             self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
+@@ -780,6 +836,9 @@ impl<'a> LibIndex<'a> {
+         if rh.is_empty() {
+             return None;
+         }
++        if let Some(open) = rh.find('(') {
++            return self.zig_generic_call(file, &rh[..open], r);
++        }
+         let segs: Vec<&str> = rh.split('.').collect();
+         if !segs
+             .iter()
+@@ -788,7 +847,11 @@ impl<'a> LibIndex<'a> {
+             return None;
+         }
+         let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
+-        let (g, _) = self.zig_walk(file, &segs, 0)?;
++        let Some((g, _)) = self.zig_walk(file, &segs, 0) else {
++            // The receiver is a value typed as a container (WS14b): the
++            // call is that container's member.
++            return self.zig_member_call(file, &segs, r);
++        };
+         let mut g = match g {
+             Target::File(g) => g,
+             Target::External(m) => return Some(Scoped::External(m)),
+@@ -840,6 +903,155 @@ impl<'a> LibIndex<'a> {
+         None
+     }
+ 
++    /// A call on a receiver typed as a Zig container (`surface.close()`
++    /// with `surface: *Surface`, `Surface = @import("surface.zig")
++    /// .Surface`): the one member of that name the container declares.
++    /// `None` when the type is not found or the member is not one
++    /// callable of it (a field, `usingnamespace`, several).
++    fn zig_member_call(&self, file: FileId, segs: &[String], r: &RefRecord) -> Option<Scoped> {
++        let members = match self.zig_type(file, segs, Some(r.site_byte), 0)? {
++            ZigTy::External(m) => return Some(Scoped::External(m)),
++            ZigTy::File(g) => self.zig_top.get(&g)?.get(r.name.as_str())?,
++            // A container's member is one of its declarations: a name it
++            // does not declare is a field (a function pointer) or nothing,
++            // never a same-named function elsewhere.
++            ZigTy::Container(g, s, e) => match self
++                .zig_members
++                .get(&(g, s, e))
++                .and_then(|m| m.get(r.name.as_str()))
++            {
++                Some(m) => m,
++                None => return Some(Scoped::Refused(segs.join("."))),
++            },
++        };
++        match members.as_slice() {
++            [_] => Some(Scoped::Bound {
++                cids: members.clone(),
++                certain: true,
++            }),
++            _ => None,
++        }
++    }
++
++    /// A call on what a type function returns (`list.Managed(T).init()`,
++    /// `std.array_list.Managed(T).init()`; `callee` is the part before
++    /// the arguments). Through a dependency, external. In the tree, the
++    /// one member of that name of the container types the function
++    /// declares (its `return struct { … }`), else refused: what it
++    /// returns is not known, and a same-named function elsewhere is not
++    /// the callee.
++    fn zig_generic_call(&self, file: FileId, callee: &str, r: &RefRecord) -> Option<Scoped> {
++        let segs: Vec<String> = callee.split('.').map(str::to_string).collect();
++        if !segs
++            .iter()
++            .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'))
++        {
++            return None;
++        }
++        let (fname, prefix) = segs.split_last()?;
++        let g = if prefix.is_empty() {
++            file
++        } else {
++            match self.zig_walk(file, prefix, 0)?.0 {
++                Target::File(g) => g,
++                Target::External(m) => return Some(Scoped::External(m)),
++                Target::Unknown => return None,
++            }
++        };
++        let refused = || Some(Scoped::Refused(callee.to_string()));
++        let Some([f]) = self
++            .zig_top
++            .get(&g)
++            .and_then(|t| t.get(fname.as_str()))
++            .map(Vec::as_slice)
++        else {
++            return refused();
++        };
++        let Some(&(fs, fe)) = self.zig_spans.get(f) else {
++            return refused();
++        };
++        let mut found: Vec<CallableId> = self
++            .zig_members
++            .iter()
++            .filter(|((h, s, e), _)| *h == g && fs <= *s && *e <= fe)
++            .filter_map(|(_, m)| m.get(r.name.as_str()))
++            .flatten()
++            .copied()
++            .collect();
++        found.sort();
++        found.dedup();
++        match found.as_slice() {
++            [_] => Some(Scoped::Bound {
++                cids: found,
++                certain: false,
++            }),
++            _ => refused(),
++        }
++    }
++
++    /// The type `segs` names from `file`: through the file's bindings
++    /// to another file, then a container that file declares. `site` (in
++    /// `file`) lets a name resolve in the containers around it first
++    /// (`Inner` inside `Outer` is `Outer.Inner`).
++    fn zig_type(
++        &self,
++        file: FileId,
++        segs: &[String],
++        site: Option<u32>,
++        depth: u8,
++    ) -> Option<ZigTy> {
++        if depth > MAX_DEPTH {
++            return None;
++        }
++        let (head, rest) = segs.split_first()?;
++        if let Some(bind) = self.zig_binds.get(&file).and_then(|b| b.get(head)) {
++            let (g, path) = match bind {
++                ZigBind::Alias(path) => {
++                    let mut expanded: Vec<String> =
++                        path.split('.').map(str::to_string).collect();
++                    if expanded.first() == Some(head) {
++                        return None;
++                    }
++                    expanded.extend(rest.iter().cloned());
++                    return self.zig_type(file, &expanded, None, depth + 1);
++                }
++                ZigBind::Import(spec) => (self.zig_target(file, spec), rest.to_vec()),
++                ZigBind::ImportMember(spec, members) => {
++                    let mut p: Vec<String> = members.split('.').map(str::to_string).collect();
++                    p.extend(rest.iter().cloned());
++                    (self.zig_target(file, spec), p)
++                }
++            };
++            return match g {
++                Target::File(g) if path.is_empty() => Some(ZigTy::File(g)),
++                Target::File(g) => self.zig_type(g, &path, None, depth + 1),
++                Target::External(m) => Some(ZigTy::External(m)),
++                Target::Unknown => None,
++            };
++        }
++        let types = self.zig_types.get(&file)?;
++        let joined = segs.join(".");
++        let find = |name: &str| {
++            types
++                .iter()
++                .find(|(n, _, _)| *n == name)
++                .map(|&(_, s, e)| ZigTy::Container(file, s, e))
++        };
++        if let Some(site) = site {
++            let mut around: Vec<&(&str, u32, u32)> = types
++                .iter()
++                .filter(|(_, s, e)| *s <= site && site < *e)
++                .collect();
++            around.sort_by_key(|(_, s, e)| (e - s, *s));
++            for (n, _, _) in around {
++                if let Some(t) = find(&format!("{n}.{joined}")) {
++                    return Some(t);
++                }
++            }
++        }
++        find(&joined)
++    }
++
+     /// Follow `segs` from `file` through file-level bindings to the file
+     /// (or dependency) they name, with the import that started the path.
+     fn zig_walk(
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
 index 3f029ba..d4df246 100644
 --- a/crates/cgg-resolve/src/scope.rs
@@ -426,3 +1368,76 @@ index 3f029ba..d4df246 100644
      #[test]
      fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
          // `const cb = require('./cb')`: the declaration (from byte 5) makes
+diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
+index ded74f3..539d09f 100644
+--- a/crates/cgg-resolve/src/type_hints.rs
++++ b/crates/cgg-resolve/src/type_hints.rs
+@@ -411,6 +411,9 @@ pub fn propagate_types_with_fields(
+     // Go records a value made through a package at the end of its `:=`
+     // statement, so Rust's scoped lookup applies to it (Strategy 3).
+     let go = facts.language == "go";
++    // Zig records its locals' types at the end of their declaration
++    // (WS14b), so they are looked up where they are in scope, as Rust's.
++    let zig = facts.language == "zig";
+     let param_store: Vec<(u32, String, String)> = facts
+         .definitions
+         .iter()
+@@ -419,6 +422,11 @@ pub fn propagate_types_with_fields(
+             if go {
+                 v.extend(go_package_param_types(d));
+             }
++            if zig {
++                for (_, _, ty) in &mut v {
++                    *ty = zig_peel_type(ty).to_string();
++                }
++            }
+             v
+         })
+         .collect();
+@@ -461,7 +469,7 @@ pub fn propagate_types_with_fields(
+         }
+     }
+ 
+-    let rust_lets = if rust || go {
++    let rust_lets = if rust || go || zig {
+         RustLets::build(facts)
+     } else {
+         RustLets::default()
+@@ -676,6 +684,12 @@ pub fn propagate_types_with_fields(
+                     enclosing.map(|d| (d.start_byte, d.end_byte)),
+                 )
+                 .or_else(|| local_type_map.get(rh).copied())
++        } else if zig {
++            rust_lets.visible(
++                rh,
++                rref.site_byte,
++                enclosing.map(|d| (d.start_byte, d.end_byte)),
++            )
+         } else if go {
+             // Go's own reading stays file-wide, as before; only a value
+             // made through a package is looked up where it is in scope.
+@@ -1685,6 +1699,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
+     None
+ }
+ 
++/// A Zig parameter type with its optional, pointer and `const` markers
++/// removed (`?*const Surface` → `Surface`), so the receiver is the type
++/// the resolver can follow through the file's imports.
++fn zig_peel_type(mut ty: &str) -> &str {
++    loop {
++        let t = ty.trim_start();
++        let next = t
++            .strip_prefix('?')
++            .or_else(|| t.strip_prefix('*'))
++            .or_else(|| t.strip_prefix("const "))
++            .or_else(|| t.strip_prefix("volatile "));
++        match next {
++            Some(n) => ty = n,
++            None => return t.trim(),
++        }
++    }
++}
++
+ fn is_primitive(ty: &str) -> bool {
+     matches!(
+         ty,
