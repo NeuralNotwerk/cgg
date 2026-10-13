@@ -1,5 +1,5 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 80ebe7b..829172e 100644
+index 80ebe7b..f2db8e3 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -306,6 +306,63 @@ otherwise change the default graph.
@@ -66,7 +66,7 @@ index 80ebe7b..829172e 100644
  ### Compatibility
  
  - **The default graph changes.** Full corpus, 283 repositories:
-@@ -448,6 +505,30 @@ otherwise change the default graph.
+@@ -448,6 +505,32 @@ otherwise change the default graph.
    targets; Go block scope is tracked only for values made through a
    package.
  
@@ -87,7 +87,9 @@ index 80ebe7b..829172e 100644
 +  refused, 16.1k rebound), Lua +0.2k / −0.7k, Rust +0.4k / −0.3k,
 +  Swift −0.1k medium. Share of edges at `high`: Dart 6 → 35%, PHP
 +  17 → 87%, Elixir 65 → 90%, OCaml 65 → 77%, Zig 45 → 53%, Perl
-+  17 → 25%, TypeScript 64 → 68%.
++  17 → 25%, TypeScript 64 → 68%. Latency (perf/WS14.md, 10 repositories,
++  median of 5): no repository slower by 1 s or more; `scala-spark`
++  −1.1 s; total +0.3%.
 +- Not covered (WS14): OCaml `open`/local-open/module aliases, F# `open`,
 +  Ruby `require`, Lua module tables (`function M.f` is not extracted,
 +  WS8), Swift module/target visibility; Scala self-types; a JS/TS prop
