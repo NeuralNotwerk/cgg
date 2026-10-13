@@ -1602,7 +1602,7 @@ index 25910df..92db88c 100644
              if r.dot_call || lang == "cpp" || self.own_defs.contains(r.name.as_str()) {
                  return None;
 diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
-index cd1c5de..5b28b57 100644
+index cd1c5de..cd35427 100644
 --- a/crates/cgg-resolve/src/intra_file.rs
 +++ b/crates/cgg-resolve/src/intra_file.rs
 @@ -53,6 +53,88 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
@@ -1703,7 +1703,7 @@ index cd1c5de..5b28b57 100644
      for rref in &facts.references {
          let enclosing = enclosing_def_index(facts, rref);
          let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
-@@ -179,6 +263,42 @@ pub fn link_file_with_cap(
+@@ -179,6 +263,46 @@ pub fn link_file_with_cap(
              .map(|(i, d)| (i as u32, d))
              .collect();
  
@@ -1715,7 +1715,8 @@ index cd1c5de..5b28b57 100644
 +        // function — still is (WS14).
 +        let mut shadowed_by_local = false;
 +        if locals.shadows_bare_call(rref)
-+            && let Some((ls, le)) = locals.binding_at(&rref.name, rref.site_byte)
++            && let Some((ls, le, decl)) =
++                locals.binding_decl_at(&rref.name, rref.site_byte)
 +        {
 +            // The function the binding lives in: a definition nested in it
 +            // is a value the binding may hold (Python `def f` in one branch
@@ -1738,6 +1739,9 @@ index cd1c5de..5b28b57 100644
 +            let before = candidates.len();
 +            candidates.retain(|(i, d)| {
 +                (fs <= d.start_byte && d.start_byte < fe)
++                    // The function the declaration itself binds
++                    // (`const lim = (v) => …`).
++                    || (decl <= d.start_byte && d.start_byte < ls)
 +                    || (!is_param && nesting.parent[*i as usize].is_some())
 +            });
 +            shadowed_by_local = before > 0 && candidates.is_empty();
@@ -1746,7 +1750,7 @@ index cd1c5de..5b28b57 100644
          // A bare identifier is not a method call in these languages:
          // `helper(2)` inside a class reaches a module-level `helper`,
          // never `self.helper`. Without this a same-file method with a
-@@ -220,7 +340,8 @@ pub fn link_file_with_cap(
+@@ -220,7 +344,8 @@ pub fn link_file_with_cap(
              methods_out_of_scope += (before - candidates.len()) as u32;
          }
  
@@ -1756,7 +1760,7 @@ index cd1c5de..5b28b57 100644
          // another is visible by name only within it, and the innermost
          // definition shadows outer ones: `_scan()` inside the method that
          // defines `_scan` is that local, and `_scan()` anywhere else is
-@@ -230,25 +351,27 @@ pub fn link_file_with_cap(
+@@ -230,25 +355,27 @@ pub fn link_file_with_cap(
          // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
          // and name lookup is the only thing that finds it there.
          if rref.receiver_hint.is_empty()
@@ -1797,7 +1801,7 @@ index cd1c5de..5b28b57 100644
                  .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
                  .collect();
              // Innermost enclosing scope first: the smallest parent span,
-@@ -267,6 +390,22 @@ pub fn link_file_with_cap(
+@@ -267,6 +394,22 @@ pub fn link_file_with_cap(
                      candidates = narrowed;
                  }
              }
@@ -1820,7 +1824,7 @@ index cd1c5de..5b28b57 100644
          }
  
          // Receiver-based narrowing (Issue 1). A call of the form
-@@ -428,7 +567,9 @@ pub fn link_file_with_cap(
+@@ -428,7 +571,9 @@ pub fn link_file_with_cap(
                  // somewhere else, and reporting it as though the name
                  // does not exist is what P1-2 of the field report was
                  // about.
@@ -1831,7 +1835,7 @@ index cd1c5de..5b28b57 100644
                      UnresolvedReason::NotInScopeForBareCall {
                          methods: methods_out_of_scope,
                      }
-@@ -879,6 +1020,118 @@ mod tests {
+@@ -879,6 +1024,118 @@ mod tests {
              .collect()
      }
  
@@ -2035,10 +2039,10 @@ index 1ebc9c7..f9db696 100644
                  }
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
 new file mode 100644
-index 0000000..d56f64b
+index 0000000..0c1c3e7
 --- /dev/null
 +++ b/crates/cgg-lang/src/locals.rs
-@@ -0,0 +1,734 @@
+@@ -0,0 +1,783 @@
 +//! Value bindings: parameters and local variables, with the span they are
 +//! in scope over (FINDINGS A1/A4 generalisation, WS14).
 +//!
@@ -2488,6 +2492,12 @@ index 0000000..d56f64b
 +                && (b.parent.is_empty() || grand.is_some_and(|g| g.kind() == b.parent))
 +        });
 +        if let Some(binder) = binder {
++            // `var pick = H.pick`, `const Range = require("./range").Range`,
++            // `x = obj.x`: the local is another name for the member it
++            // reads, which carries the same name; it shadows nothing.
++            if aliases_same_member(parent, name, source) {
++                return None;
++            }
 +            // The binder's own ancestors (and itself) for the scope walk.
 +            let ancestors = if binder.parent.is_empty() {
 +                &chain[..level]
@@ -2531,6 +2541,32 @@ index 0000000..d56f64b
 +        level -= 1;
 +    }
 +    None
++}
++
++/// Whether a declaration's value is a member access ending in the very
++/// name it declares (`pick = H.pick`).
++fn aliases_same_member(binder: Node<'_>, name: &str, source: &[u8]) -> bool {
++    let Some(value) = binder
++        .child_by_field_name("value")
++        .or_else(|| binder.child_by_field_name("right"))
++    else {
++        return false;
++    };
++    if !matches!(
++        value.kind(),
++        "member_expression" | "attribute" | "field_expression" | "navigation_expression"
++    ) {
++        return false;
++    }
++    let last = value
++        .child_by_field_name("property")
++        .or_else(|| value.child_by_field_name("attribute"))
++        .or_else(|| value.child_by_field_name("field"))
++        .or_else(|| {
++            value.named_child(value.named_child_count().saturating_sub(1) as u32)
++        });
++    last.and_then(|n| n.utf8_text(source).ok())
++        .is_some_and(|t| t.trim().trim_start_matches('.') == name)
 +}
 +
 +/// The first child of `n` that is an identifier leaf.
@@ -2672,6 +2708,23 @@ index 0000000..d56f64b
 +        }
 +    }
 +
++    /// `var pick = H.pick` names the same function under its own name:
++    /// no shadow. `var pick = choose()` is a value: a shadow.
++    #[test]
++    fn a_same_named_member_alias_is_not_a_binding() {
++        let src = "function f(H) { var pick = H.pick; var other = H.thing; }";
++        let mut p = tree_sitter::Parser::new();
++        p.set_language(&tree_sitter_javascript::LANGUAGE.into())
++            .unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let got: Vec<String> = collect("javascript", &tree, src.as_bytes())
++            .into_iter()
++            .map(|b| b.name)
++            .collect();
++        assert!(!got.contains(&"pick".to_string()), "{got:?}");
++        assert!(got.contains(&"other".to_string()), "{got:?}");
++    }
++
 +    #[test]
 +    fn scope_spans_are_the_block_or_function() {
 +        let src = "function f(a) { { const k = 1; } k(); }";
@@ -2775,10 +2828,10 @@ index 0000000..d56f64b
 +}
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
 new file mode 100644
-index 0000000..351ff6a
+index 0000000..3f029ba
 --- /dev/null
 +++ b/crates/cgg-resolve/src/scope.rs
-@@ -0,0 +1,190 @@
+@@ -0,0 +1,213 @@
 +//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
 +//! generalisation).
 +//!
@@ -2793,14 +2846,22 @@ index 0000000..351ff6a
 +
 +use cgg_core::{FileFacts, RefRecord};
 +
++/// A binding's span, the index of its innermost enclosing span of the
++/// same name, and where its declaration starts.
++type Span = (u32, u32, Option<usize>, u32);
++
 +/// One file's value bindings, by name.
 +#[derive(Debug, Default)]
 +pub(crate) struct FileLocals {
++    /// Names the file's imports bind: a bare call through a local of that
++    /// name is left to the import reading (a component's prop that is the
++    /// bound action creator it imports).
++    imported: std::collections::HashSet<String>,
 +    /// Per name: binding spans sorted by start (outermost first at equal
 +    /// starts), each with the index of its innermost enclosing span of
 +    /// the same name — a minified bundle binds one short name thousands
 +    /// of times, so a lookup climbs this chain instead of scanning.
-+    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
++    spans: HashMap<String, Vec<Span>>,
 +}
 +
 +impl FileLocals {
@@ -2821,7 +2882,7 @@ index 0000000..351ff6a
 +                }
 +            }
 +        }
-+        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
++        let mut raw: HashMap<String, Vec<(u32, u32, u32)>> = HashMap::new();
 +        for l in &facts.locals {
 +            let is_the_import = import_sites.get(l.name.as_str()).is_some_and(|sites| {
 +                sites.iter().any(|b| l.decl_byte <= *b && *b < l.start_byte)
@@ -2829,40 +2890,52 @@ index 0000000..351ff6a
 +            if is_the_import {
 +                continue;
 +            }
-+            raw.entry(l.name.clone())
-+                .or_default()
-+                .push((l.start_byte, l.end_byte));
++            raw.entry(l.name.clone()).or_default().push((
++                l.start_byte,
++                l.end_byte,
++                l.decl_byte,
++            ));
 +        }
-+        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
++        let mut spans: HashMap<String, Vec<Span>> = HashMap::new();
 +        for (name, mut v) in raw {
 +            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
 +            v.dedup();
-+            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
++            let mut out: Vec<Span> = Vec::with_capacity(v.len());
 +            let mut open: Vec<usize> = Vec::new();
-+            for (s, e) in v {
++            for (s, e, d) in v {
 +                while open
 +                    .last()
 +                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
 +                {
 +                    open.pop();
 +                }
-+                out.push((s, e, open.last().copied()));
++                out.push((s, e, open.last().copied(), d));
 +                open.push(out.len() - 1);
 +            }
 +            spans.insert(name, out);
 +        }
-+        FileLocals { spans }
++        let imported = import_sites.keys().map(|k| (*k).to_string()).collect();
++        FileLocals { spans, imported }
 +    }
 +
 +    /// The innermost binding of `name` in scope at `site`, as its span.
 +    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
++        self.binding_decl_at(name, site).map(|(s, e, _)| (s, e))
++    }
++
++    /// [`Self::binding_at`] with where the binding's declaration starts.
++    pub(crate) fn binding_decl_at(
++        &self,
++        name: &str,
++        site: u32,
++    ) -> Option<(u32, u32, u32)> {
 +        let v = self.spans.get(name)?;
-+        let pos = v.partition_point(|(s, _, _)| *s <= site);
++        let pos = v.partition_point(|(s, _, _, _)| *s <= site);
 +        let mut cur = pos.checked_sub(1);
 +        while let Some(i) = cur {
-+            let (s, e, parent) = v[i];
++            let (s, e, parent, d) = v[i];
 +            if s <= site && site < e {
-+                return Some((s, e));
++                return Some((s, e, d));
 +            }
 +            cur = parent;
 +        }
@@ -2877,7 +2950,10 @@ index 0000000..351ff6a
 +    /// A bare call (`f()`, no receiver and no dot) through a value
 +    /// binding, which no other file's function can be the callee of.
 +    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
-+        r.receiver_hint.is_empty() && !r.dot_call && self.binds(&r.name, r.site_byte)
++        r.receiver_hint.is_empty()
++            && !r.dot_call
++            && !self.imported.contains(r.name.as_str())
++            && self.binds(&r.name, r.site_byte)
 +    }
 +
 +    /// Whether the leading identifier of the call's receiver is a value
