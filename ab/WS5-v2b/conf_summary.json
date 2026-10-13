@@ -1,0 +1,145 @@
+{
+ "cpp": {
+  "drop": {
+   "medium": 2
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 2
+  }
+ },
+ "csharp": {
+  "drop": {
+   "medium": 1842
+  },
+  "add": {
+   "medium": 6292
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 234,
+   "external/stdlib or still bound (same name, kept target)": 1608
+  }
+ },
+ "dart": {
+  "drop": {
+   "medium": 1814
+  },
+  "add": {
+   "medium": 2510,
+   "high": 19
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 1814
+  }
+ },
+ "java": {
+  "drop": {
+   "medium": 1240,
+   "low": 1
+  },
+  "add": {
+   "medium": 6097,
+   "low": 94,
+   "high": 2
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 664,
+   "external/stdlib or still bound (same name, kept target)": 185,
+   "rebound to another target": 391,
+   "now unresolved: fanout-cap-exceeded": 1
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "medium": 14
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 12,
+   "external/stdlib or still bound (same name, kept target)": 2
+  }
+ },
+ "proto": {
+  "drop": {},
+  "add": {
+   "low": 39
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "python": {
+  "drop": {
+   "medium": 72
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 40,
+   "now unresolved: super-base-out-of-graph": 32
+  }
+ },
+ "rust": {
+  "drop": {
+   "medium": 16
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 16
+  }
+ },
+ "scala": {
+  "drop": {
+   "medium": 508,
+   "high": 4
+  },
+  "add": {
+   "high": 459,
+   "medium": 827
+  },
+  "chg": {
+   "medium->high": 1
+  },
+  "fate": {
+   "rebound to another target": 512
+  }
+ },
+ "swift": {
+  "drop": {
+   "medium": 103
+  },
+  "add": {
+   "medium": 90,
+   "high": 11
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 44,
+   "external/stdlib or still bound (same name, kept target)": 47,
+   "now unresolved: candidates-in-other-files": 12
+  }
+ },
+ "typescript": {
+  "drop": {
+   "high": 1141,
+   "medium": 4035,
+   "low": 2
+  },
+  "add": {
+   "medium": 13476,
+   "high": 1545,
+   "low": 11
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 5169,
+   "now unresolved: not-in-scope-for-bare-call": 6,
+   "external/stdlib or still bound (same name, kept target)": 3
+  }
+ }
+}
