@@ -98,3 +98,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-13 20:25: tick — WS5 perf done (perf/WS5.md); agent finishing report. Mem 202 GB avail, nkb 56 GB.
 - 2026-10-13 21:24: WS5 COMMITTED df69a4f + docs 1cec46b, pushed origin+backup; PATH cgg verified 0.10.2 (CGG_INSTALL_DIR="" used). WS14b started; before = bins/WS14b-before (= df69a4f build).
 - 2026-10-13 22:22: tick — WS14b agent active; v1 A/B done, v2 A/B running (ab/WS14b-v2). Diff 22 files +2613/-74. Mem 62 GB avail, nkb 180 GB → OOM expected ~23:05; v2 may be cut short (agent told to rerun under new name).
+- 2026-10-13 22:25: tick — WS14b v2 A/B still running; mem 58 GB avail, nkb 183 GB; no OOM yet.
