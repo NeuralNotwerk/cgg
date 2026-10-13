@@ -61,10 +61,10 @@ index 23db991..57b127f 100644
              consider(child, &mut out);
          }
 diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
-index d3799b7..3256b8c 100644
+index d3799b7..739e1fc 100644
 --- a/crates/cgg-lang/src/plugins/csharp.rs
 +++ b/crates/cgg-lang/src/plugins/csharp.rs
-@@ -147,6 +147,18 @@ impl<'a> Walker<'a> {
+@@ -147,6 +147,19 @@ impl<'a> Walker<'a> {
                      .map(|n| self.text(n).to_string())
                      .unwrap_or_default();
                  let bases = super::attrs::base_types(node, self.source);
@@ -72,7 +72,8 @@ index d3799b7..3256b8c 100644
 +                    // Every type, bodiless ones included: see the Java
 +                    // plugin. A chain that finds nothing then proves the
 +                    // member is outside the tree (`base.M()`).
-+                    let mut parts: Vec<&str> = self.scope.iter().map(|s| s.name()).collect();
++                    let mut parts: Vec<&str> =
++                        self.scope.iter().map(|s| s.name()).collect();
 +                    parts.push(&name);
 +                    self.facts.classes.push(cgg_core::ClassDecl {
 +                        class_qn: parts.join("."),
@@ -83,7 +84,7 @@ index d3799b7..3256b8c 100644
                  self.bases.push(bases);
                  if !name.is_empty() {
                      self.scope.push(Scope::Type(name));
-@@ -262,7 +274,22 @@ impl<'a> Walker<'a> {
+@@ -262,7 +275,22 @@ impl<'a> Walker<'a> {
              visibility: String::new(),
              vis: csharp_vis(node),
              // Verbatim, so `[HttpGet("/users")]` keeps its route.
@@ -107,7 +108,7 @@ index d3799b7..3256b8c 100644
              base_types: self.bases.last().cloned().unwrap_or_default(),
              ..Default::default()
          });
-@@ -365,7 +392,16 @@ impl<'a> Walker<'a> {
+@@ -365,7 +393,16 @@ impl<'a> Walker<'a> {
              "member_access_expression" => {
                  let expr = func.child_by_field_name("expression")?;
                  let name = func.child_by_field_name("name")?;
@@ -125,8 +126,40 @@ index d3799b7..3256b8c 100644
              }
              "generic_name" => {
                  // Foo<T>() — take the base identifier.
+@@ -709,4 +746,31 @@ namespace A.B.C {
+         assert_eq!(acc("set", 2), Vis::Private);
+         assert_eq!(acc("get", 3), Vis::Private);
+     }
++
++    #[test]
++    fn base_receiver_reads_as_super_and_overrides_are_marked() {
++        let f = extract(
++            "namespace N {\n  class W : Ext, IThing {\n    protected override void Paint() { base.Paint(); this.Paint(); }\n    void IThing.Tick() { }\n    void Plain() { }\n  }\n}\n",
++        );
++        let attrs = |name: &str| {
++            f.definitions
++                .iter()
++                .find(|d| d.simple_name == name)
++                .map(|d| d.attributes.clone())
++                .unwrap_or_default()
++        };
++        assert!(attrs("Paint").iter().any(|a| a == "override"));
++        assert!(attrs("Tick").iter().any(|a| a == "override"));
++        assert!(!attrs("Plain").iter().any(|a| a == "override"));
++        let recv: Vec<&str> = f
++            .references
++            .iter()
++            .filter(|r| r.name == "Paint")
++            .map(|r| r.receiver_hint.as_str())
++            .collect();
++        assert_eq!(recv, vec!["super", "this"]);
++        assert_eq!(f.classes.len(), 1);
++        assert_eq!(f.classes[0].class_qn, "N.W");
++        assert_eq!(f.classes[0].base_types, vec!["Ext", "IThing"]);
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
-index 36fed60..13beb2b 100644
+index 36fed60..6b3b06c 100644
 --- a/crates/cgg-lang/src/plugins/dart.rs
 +++ b/crates/cgg-lang/src/plugins/dart.rs
 @@ -35,6 +35,7 @@ impl LanguagePlugin for DartPlugin {
@@ -205,8 +238,35 @@ index 36fed60..13beb2b 100644
              ..Default::default()
          });
      }
+@@ -581,4 +616,26 @@ mod tests {
+                 .any(|i| i.kind == "part-of" && i.path == "lib.dart")
+         );
+     }
++
++    #[test]
++    fn abstract_members_are_declarations_and_supertypes_are_bases() {
++        let f = extract(
++            "abstract class Shape { double area(); final int n = 1; }\nclass Sq extends Shape with M implements I { double area() => 1; }\nmixin M { void mm() {} }\n",
++        );
++        let decl = f
++            .definitions
++            .iter()
++            .find(|d| d.qualified_name == "Shape::area")
++            .expect("abstract member");
++        assert_eq!(decl.variant, DefVariant::TraitMethod);
++        assert!(decl.attributes.iter().any(|a| a == "abstract"));
++        let imp = f
++            .definitions
++            .iter()
++            .find(|d| d.qualified_name == "Sq::area")
++            .expect("implementation");
++        assert_eq!(imp.base_types, vec!["Shape", "M", "I"]);
++        assert!(f.definitions.iter().any(|d| d.qualified_name == "M::mm"));
++        assert!(f.definitions.iter().all(|d| d.simple_name != "n"));
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/java.rs b/crates/cgg-lang/src/plugins/java.rs
-index f82592e..8c70693 100644
+index f82592e..187f2d8 100644
 --- a/crates/cgg-lang/src/plugins/java.rs
 +++ b/crates/cgg-lang/src/plugins/java.rs
 @@ -114,6 +114,15 @@ impl<'a> JavaWalker<'a> {
@@ -225,6 +285,75 @@ index f82592e..8c70693 100644
                      self.scope.push(name);
                      self.bases.push(bases);
                      self.walk_children(node);
+@@ -166,7 +175,26 @@ impl<'a> JavaWalker<'a> {
+                         });
+                     }
+                 }
+-                self.walk_children(node);
++                // `new Base() { @Override void m() { super.m(); } }`: the
++                // body's methods belong to an anonymous subclass of `Base`,
++                // so `Base` — not the enclosing class's bases — is what
++                // they override and what their `super` names. Their
++                // qualified names stay under the enclosing class.
++                let anon_base = node
++                    .children(&mut node.walk())
++                    .any(|c| c.kind() == "class_body")
++                    .then(|| node.child_by_field_name("type"))
++                    .flatten()
++                    .map(|t| self.text(t).to_string())
++                    .filter(|t| !t.is_empty());
++                match anon_base {
++                    Some(b) => {
++                        self.bases.push(vec![b]);
++                        self.walk_children(node);
++                        self.bases.pop();
++                    }
++                    None => self.walk_children(node),
++                }
+                 return;
+             }
+             _ => {}
+@@ -680,4 +708,40 @@ mod tests {
+         // A class constructor with no modifier is package-private.
+         assert_eq!(vis_of(&f, "K"), Vis::Internal);
+     }
++
++    #[test]
++    fn every_class_is_recorded_with_its_bases_bodiless_ones_included() {
++        let f = extract(
++            "package p;\nclass Middle extends Base {}\ninterface I extends J, K { void m(); }\nclass Leaf extends Middle implements I { public void m() {} }\n",
++        );
++        let by: Vec<(&str, Vec<&str>)> = f
++            .classes
++            .iter()
++            .map(|c| {
++                (
++                    c.class_qn.as_str(),
++                    c.base_types.iter().map(|b| b.as_str()).collect(),
++                )
++            })
++            .collect();
++        assert!(by.contains(&("p.Middle", vec!["Base"])), "{by:?}");
++        assert!(by.contains(&("p.I", vec!["J", "K"])), "{by:?}");
++        assert!(by.contains(&("p.Leaf", vec!["Middle", "I"])), "{by:?}");
++    }
++
++    #[test]
++    fn anonymous_class_methods_carry_the_anonymous_base() {
++        let f = extract(
++            "package p;\nclass Outer extends Top {\n  void go() {\n    Runnable r = new Task() { @Override public void run() { } };\n  }\n  void after() { }\n}\n",
++        );
++        let bases = |n: &str| {
++            f.definitions
++                .iter()
++                .find(|d| d.simple_name == n)
++                .map(|d| d.base_types.clone())
++                .unwrap()
++        };
++        assert_eq!(bases("run"), vec!["Task"]);
++        assert_eq!(bases("after"), vec!["Top"]);
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
 index 88ae23a..ccdcdb2 100644
 --- a/crates/cgg-lang/src/plugins/javascript.rs
@@ -323,7 +452,7 @@ index 88ae23a..ccdcdb2 100644
          // Handle various CJS patterns:
          // `exports.foo = function() {}`
 diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
-index c86834f..6f2d0a6 100644
+index c86834f..5420a7c 100644
 --- a/crates/cgg-lang/src/plugins/scala.rs
 +++ b/crates/cgg-lang/src/plugins/scala.rs
 @@ -98,6 +98,24 @@ impl<'a> ScalaWalker<'a> {
@@ -351,8 +480,27 @@ index c86834f..6f2d0a6 100644
              "import_declaration" => {
                  self.record_import(node);
                  self.walk_children(node);
+@@ -254,4 +272,18 @@ mod tests {
+             f.definitions
+         );
+     }
++
++    #[test]
++    fn abstract_defs_are_bodiless_declarations() {
++        let f = extract("trait Shape { def area(): Double }\ndef top(): Int\n");
++        let d = f
++            .definitions
++            .iter()
++            .find(|d| d.qualified_name == "Shape::area")
++            .expect("abstract member");
++        assert_eq!(d.variant, DefVariant::TraitMethod);
++        assert!(d.attributes.iter().any(|a| a == "abstract"));
++        // Outside any type there is nothing to own it.
++        assert!(f.definitions.iter().all(|d| d.simple_name != "top"));
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/swift.rs b/crates/cgg-lang/src/plugins/swift.rs
-index 71dd6b2..8ba9e51 100644
+index 71dd6b2..8922690 100644
 --- a/crates/cgg-lang/src/plugins/swift.rs
 +++ b/crates/cgg-lang/src/plugins/swift.rs
 @@ -32,6 +32,7 @@ impl LanguagePlugin for SwiftPlugin {
@@ -464,8 +612,62 @@ index 71dd6b2..8ba9e51 100644
  #[cfg(test)]
  mod tests {
      use super::*;
+@@ -283,4 +350,24 @@ mod tests {
+             f.references
+         );
+     }
++
++    #[test]
++    fn protocol_requirements_are_declarations_and_conformances_are_bases() {
++        let f = extract(
++            "protocol Shape: Base { func area() -> Double }\nclass Sq: Shape { func area() -> Double { return 1 } }\n",
++        );
++        let req = f
++            .definitions
++            .iter()
++            .find(|d| d.qualified_name == "Shape.area")
++            .expect("protocol requirement");
++        assert_eq!(req.variant, DefVariant::TraitMethod);
++        assert!(req.attributes.iter().any(|a| a == "abstract"));
++        let imp = f
++            .definitions
++            .iter()
++            .find(|d| d.qualified_name == "Sq.area")
++            .expect("conformer");
++        assert_eq!(imp.base_types, vec!["Shape"]);
++    }
+ }
+diff --git a/crates/cgg-lang/src/plugins/typescript.rs b/crates/cgg-lang/src/plugins/typescript.rs
+index f5321f9..90f47a8 100644
+--- a/crates/cgg-lang/src/plugins/typescript.rs
++++ b/crates/cgg-lang/src/plugins/typescript.rs
+@@ -260,4 +260,24 @@ class Singleton { private constructor() {} }
+                 .any(|r| r.name == "run" && r.receiver_hint == "obj")
+         );
+     }
++
++    #[test]
++    fn interface_and_abstract_members_are_bodiless_declarations() {
++        let f = extract(
++            "interface Shape extends Base { area(): number; size: number; }\nabstract class A extends B implements Shape, L<X> { abstract render(): void; draw() { this.render(); } }\ntype T = { z(): void };\n",
++        );
++        let get = |qn: &str| f.definitions.iter().find(|d| d.qualified_name == qn);
++        let area = get("Shape.area").expect("interface member");
++        assert_eq!(area.variant, DefVariant::TraitMethod);
++        assert!(area.attributes.iter().any(|a| a == "abstract"));
++        assert_eq!(area.base_types, vec!["Base"]);
++        assert!(get("A.render").is_some(), "abstract member");
++        // The abstract class owns its concrete members too.
++        let draw = get("A.draw").expect("abstract class scope");
++        assert_eq!(draw.base_types, vec!["B", "Shape", "L<X>"]);
++        // An object type's member belongs to no class; a property is not
++        // a method.
++        assert!(f.definitions.iter().all(|d| d.simple_name != "z"));
++        assert!(f.definitions.iter().all(|d| d.simple_name != "size"));
++    }
+ }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 12c6f69..ce28868 100644
+index 12c6f69..8ed406d 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -1045,7 +1045,8 @@ pub fn resolve(
@@ -489,7 +691,93 @@ index 12c6f69..ce28868 100644
                      || owner_from_qn(&c.qualified_name).is_some_and(|o| {
                          protocol_owners.contains(&(c.language.as_str(), o))
                      })
-@@ -4106,15 +4109,23 @@ fn try_resolve_ref(
+@@ -1106,11 +1109,19 @@ pub fn resolve(
+     // bases and the chain would otherwise end at it; then from methods,
+     // for plugins that record bases only there.
+     let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
++    // Java/C# class records carry each class's bases exactly; a method's
++    // own `base_types` may name an anonymous class's base instead
++    // (`new Base() { … }`), which is not a base of the enclosing class.
++    let mut exact_classes: std::collections::HashSet<(String, String)> =
++        std::collections::HashSet::new();
+     for f in facts {
+         for c in &f.classes {
+             let Some(owner) = c.class_qn.rsplit('.').next() else {
+                 continue;
+             };
++            if crate::dispatch::CLASS_RECORDS_ARE_EXACT.contains(&f.language.as_str()) {
++                exact_classes.insert((f.language.clone(), owner.to_string()));
++            }
+             let slot = bases_by_owner
+                 .entry((f.language.clone(), owner.to_string()))
+                 .or_default();
+@@ -1118,6 +1129,20 @@ pub fn resolve(
+                 push_bare_base(slot, b);
+             }
+         }
++    }
++    // The bases a method's own record names when they are not its
++    // class's: a Java anonymous class body. `super.m()` there names them.
++    let mut own_bases: HashMap<CallableId, Vec<String>> = HashMap::new();
++    let by_span: HashMap<(FileId, u32), CallableId> = if exact_classes.is_empty() {
++        HashMap::new()
++    } else {
++        graph
++            .callables
++            .values()
++            .map(|c| ((c.file, c.start_byte), c.id))
++            .collect()
++    };
++    for f in facts {
+         for d in &f.definitions {
+             if d.base_types.is_empty() {
+                 continue;
+@@ -1125,6 +1150,19 @@ pub fn resolve(
+             let Some(owner) = owner_from_qn(&d.qualified_name) else {
+                 continue;
+             };
++            if exact_classes.contains(&(f.language.clone(), owner.to_string())) {
++                let mut mine: Vec<String> = Vec::new();
++                for b in &d.base_types {
++                    push_bare_base(&mut mine, b);
++                }
++                let class = bases_by_owner.get(&(f.language.clone(), owner.to_string()));
++                if class.is_none_or(|c| *c != mine)
++                    && let Some(&id) = by_span.get(&(f.file, d.start_byte))
++                {
++                    own_bases.insert(id, mine);
++                }
++                continue;
++            }
+             // Keyed by the bare type: `impl Trait for Tuple<'_>` declares
+             // `Tuple<'_>`'s bases, and a receiver names `Tuple`.
+             let owner = owner.split('<').next().unwrap_or(owner).trim();
+@@ -2312,6 +2350,7 @@ pub fn resolve(
+                     &rust_path_heads,
+                     &workspace_owner_names,
+                     &class_record_langs,
++                    &own_bases,
+                     &kotlin_extensions,
+                     &modix,
+                     &file_mods,
+@@ -2385,6 +2424,7 @@ pub fn resolve(
+                                 &rust_path_heads,
+                                 &workspace_owner_names,
+                                 &class_record_langs,
++                                &own_bases,
+                                 &kotlin_extensions,
+                                 &modix,
+                                 &file_mods,
+@@ -4043,6 +4083,8 @@ fn try_resolve_ref(
+     // Languages that record every class declaration (see its
+     // construction in `resolve`).
+     class_record_langs: &std::collections::BTreeSet<String>,
++    // A Java anonymous class method's bases, which are not its owner's.
++    own_bases: &HashMap<CallableId, Vec<String>>,
+     kotlin_extensions: &KotlinExtensions,
+     // Module-scoped resolution (FINDINGS A4/A5): the run's import→file
+     // index and the calling file's module bindings.
+@@ -4106,15 +4148,41 @@ fn try_resolve_ref(
          && let Some(own) = caller_qn.and_then(owner_from_qn)
      {
          let own = own.split('<').next().unwrap_or(own).trim();
@@ -501,6 +789,24 @@ index 12c6f69..ce28868 100644
 -                resolve_via_bases(lang, own, &r.name, by_owner_method, bases_by_owner);
 -            if found.is_some() || class_record_langs.contains(lang) {
 -                return found;
++        // In an anonymous class body `super` is the anonymous class's
++        // base: its own member, or one that base inherits.
++        if let Some(bases) = caller_id.and_then(|c| own_bases.get(&c)) {
++            for b in bases {
++                if let Some(cids) = by_owner_method
++                    .get(&(lang.to_string(), b.clone(), r.name.clone()))
++                    .filter(|v| !v.is_empty())
++                {
++                    return Some(cids.clone());
++                }
++                if let Some(cids) =
++                    resolve_via_bases(lang, b, &r.name, by_owner_method, bases_by_owner)
++                {
++                    return Some(cids);
++                }
+             }
++            return None;
++        }
 +        match bases_by_owner.get(&(lang.to_string(), own.to_string())) {
 +            Some(b) if !b.is_empty() => {
 +                let found = resolve_via_bases(
@@ -513,7 +819,7 @@ index 12c6f69..ce28868 100644
 +                if found.is_some() || class_record_langs.contains(lang) {
 +                    return found;
 +                }
-             }
++            }
 +            // A recorded class that names no base extends the language's
 +            // root type (`Object`, `object`): nothing in the tree.
 +            Some(_) if class_record_langs.contains(lang) => return None,
@@ -521,11 +827,46 @@ index 12c6f69..ce28868 100644
          }
      }
  
+@@ -5022,7 +5090,33 @@ fn try_resolve_ref(
+                             bases_by_owner,
+                         )
+                     {
+-                        return Some(cids);
++                        // Bases are recorded by bare name, so the base a
++                        // chain reaches may be one of many same-named
++                        // copies (a sample's generated `ICalculator`, once
++                        // per sample). The copy the file can see, nearest
++                        // the caller, is the one it derives from.
++                        let cids: Vec<CallableId> = if cs_scoped {
++                            let seen: Vec<CallableId> = cids
++                                .iter()
++                                .copied()
++                                .filter(|c| {
++                                    graph.callables.get(c).is_none_or(|n| {
++                                        heads.cs_candidate_visible(
++                                            vocab,
++                                            n.file,
++                                            &n.qualified_name,
++                                        )
++                                    })
++                                })
++                                .collect();
++                            if seen.is_empty() { cids } else { seen }
++                        } else {
++                            cids
++                        };
++                        return Some(
++                            nearest_class_copies(graph, &cids, caller_file)
++                                .unwrap_or(cids),
++                        );
+                     }
+                 }
+                 for owner in &owners {
 diff --git a/crates/cgg-resolve/src/deadcode/evidence.rs b/crates/cgg-resolve/src/deadcode/evidence.rs
-index df14f48..1f74220 100644
+index df14f48..33e6a16 100644
 --- a/crates/cgg-resolve/src/deadcode/evidence.rs
 +++ b/crates/cgg-resolve/src/deadcode/evidence.rs
-@@ -85,10 +85,14 @@ impl<'a> UnresolvedIndex<'a> {
+@@ -85,15 +85,29 @@ impl<'a> UnresolvedIndex<'a> {
  
      /// Evidence that this callable may in fact be called, from sites the
      /// resolver failed to place.
@@ -537,10 +878,26 @@ index df14f48..1f74220 100644
          graph: &Graph,
          node: &CallableNode,
 +        contradicts: &dyn Fn(&str) -> bool,
++        can_reach: &dyn Fn(&AuditUnresolvedCall) -> bool,
      ) -> Vec<Evidence> {
          let key = (node.language.as_str(), node.simple_name.as_str());
          let mut out = Vec::new();
-@@ -140,13 +144,22 @@ impl<'a> UnresolvedIndex<'a> {
+ 
+-        let Some(sites) = self.by_name.get(&key) else {
++        // Only sites that could legally call this callable: a Java/C#
++        // `private` member from outside its class, or a package-private
++        // one from another package, cannot be any site's target.
++        let reachable: Vec<&AuditUnresolvedCall> = self
++            .by_name
++            .get(&key)
++            .map(|v| v.iter().copied().filter(|u| can_reach(u)).collect())
++            .unwrap_or_default();
++        let sites = (!reachable.is_empty()).then_some(&reachable);
++        let Some(sites) = sites else {
+             out.push(Evidence::NoUnresolvedSiteWithName);
+             if let Some(&n) = self.external_by_name.get(&key) {
+                 out.push(Evidence::NameCollidesWithScreenedSite {
+@@ -140,13 +154,25 @@ impl<'a> UnresolvedIndex<'a> {
          }
  
          // Sites whose receiver hint does not contradict this candidate.
@@ -551,8 +908,11 @@ index df14f48..1f74220 100644
              .filter(|u| {
                  let rh = u.receiver_hint.as_str();
 +                // `super.m()` whose base chain left the tree: the
-+                // resolver proved the target is not ours.
-+                if matches!(u.reason, UnresolvedReason::SuperBaseOutOfGraph) {
++                // resolver proved the target is not ours. Not Rust, whose
++                // `super::f()` names the parent module, not a base.
++                if matches!(u.reason, UnresolvedReason::SuperBaseOutOfGraph)
++                    && node.language != "rust"
++                {
 +                    return false;
 +                }
                  rh.is_empty()
@@ -564,10 +924,10 @@ index df14f48..1f74220 100644
              .collect();
  
 diff --git a/crates/cgg-resolve/src/deadcode/mod.rs b/crates/cgg-resolve/src/deadcode/mod.rs
-index 859948a..0d413ff 100644
+index 859948a..e7e722c 100644
 --- a/crates/cgg-resolve/src/deadcode/mod.rs
 +++ b/crates/cgg-resolve/src/deadcode/mod.rs
-@@ -327,10 +327,43 @@ impl<'a> TraitSurfaces<'a> {
+@@ -327,10 +327,46 @@ impl<'a> TraitSurfaces<'a> {
          nd: &CallableNode,
          variant: Option<&cgg_core::DefVariant>,
          unresolved: &UnresolvedIndex<'_>,
@@ -584,7 +944,10 @@ index 859948a..0d413ff 100644
 +            let lang = nd.language.as_str();
 +            if matches!(
 +                variant,
-+                Some(cgg_core::DefVariant::Constructor | cgg_core::DefVariant::StaticMethod)
++                Some(
++                    cgg_core::DefVariant::Constructor
++                        | cgg_core::DefVariant::StaticMethod
++                )
 +            ) || (matches!(variant, Some(cgg_core::DefVariant::FreeFunction))
 +                && !crate::dispatch::free_variant_is_member(lang))
 +            {
@@ -611,7 +974,7 @@ index 859948a..0d413ff 100644
          if matches!(
              variant,
              Some(
-@@ -363,6 +396,190 @@ impl<'a> TraitSurfaces<'a> {
+@@ -363,6 +399,191 @@ impl<'a> TraitSurfaces<'a> {
      }
  }
  
@@ -703,9 +1066,8 @@ index 859948a..0d413ff 100644
 +        // Python marks nothing: any method of a class deriving from an
 +        // outside base may be the hook that base calls. A name-mangled
 +        // `__m` cannot be: the base would have to spell this class's name.
-+        let python = lang == "python"
-+            && !(name.starts_with("__") && !name.ends_with("__"))
-+            && nd.kind != CallableKind::Function;
++        let mangled = name.starts_with("__") && !name.ends_with("__");
++        let python = lang == "python" && !mangled && nd.kind != CallableKind::Function;
 +        if !marked && !python {
 +            return None;
 +        }
@@ -738,13 +1100,15 @@ index 859948a..0d413ff 100644
 +    /// (depth 8), sorted.
 +    fn overrides_below(&self, lang: &str, owner: &str, name: &str) -> Vec<CallableId> {
 +        let mut out: Vec<CallableId> = Vec::new();
-+        let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
++        let mut seen: std::collections::BTreeSet<&str> =
++            std::collections::BTreeSet::new();
 +        seen.insert(owner);
 +        let mut frontier: Vec<&str> = vec![owner];
 +        for _ in 0..8 {
 +            let mut next: Vec<&str> = Vec::new();
 +            for t in frontier {
-+                let Some(kids) = self.derived.get(&(lang.to_string(), t.to_string())) else {
++                let Some(kids) = self.derived.get(&(lang.to_string(), t.to_string()))
++                else {
 +                    continue;
 +                };
 +                for k in kids {
@@ -802,37 +1166,73 @@ index 859948a..0d413ff 100644
  /// Whether a callable may ever be reported.
  fn is_candidate(node: &cgg_core::graph::CallableNode) -> bool {
      // Synthesized exit nodes are not source. Destructors are invoked by
-@@ -398,6 +615,7 @@ pub fn analyze(
+@@ -398,7 +619,39 @@ pub fn analyze(
      let variants = def_variants(facts);
  
      let surfaces = TraitSurfaces::build(graph);
 +    let contracts = Contracts::build(graph, facts);
      let mentions = Mentions::build(facts);
++    // Java: the package each file declares.
++    let package_of: std::collections::HashMap<cgg_core::ids::FileId, &str> = facts
++        .iter()
++        .filter(|f| f.language == "java")
++        .filter_map(|f| f.packages.first().map(|p| (f.file, p.as_str())))
++        .collect();
++    // Whether an unresolved site could legally call `nd` at all.
++    let can_reach =
++        |nd: &CallableNode, u: &cgg_core::audit::AuditUnresolvedCall| -> bool {
++            match (nd.language.as_str(), nd.vis) {
++                // Java `private`: the top-level class, which is the file.
++                ("java", Vis::Private) => u.file == nd.file,
++                // Package-private: the package.
++                ("java", Vis::Internal) => {
++                    match (package_of.get(&u.file), package_of.get(&nd.file)) {
++                        (Some(a), Some(b)) => a == b,
++                        _ => true,
++                    }
++                }
++                // C# `private`: the class, which a `partial` class spreads
++                // over several files.
++                ("csharp", Vis::Private) => {
++                    u.file == nd.file
++                        || u.src
++                            .and_then(|c| graph.callables.get(&c))
++                            .and_then(|c| owner_stem(&c.qualified_name))
++                            .is_some_and(|o| Some(o) == owner_stem(&nd.qualified_name))
++                }
++                _ => true,
++            }
++        };
  
      let node_at = |i: u32| graph.callables.get_index(i as usize).map(|(_, v)| v);
-@@ -568,12 +786,23 @@ pub fn analyze(
+     let lang_at = |i: u32| node_at(i).map(|nd| nd.language.clone()).unwrap_or_default();
+@@ -568,12 +821,28 @@ pub fn analyze(
                  scc_size: sccs[cid as usize].len() as u32,
              });
          }
 -        ev.extend(unresolved.evidence_for(graph, nd));
 -        if let Some(e) = surfaces.evidence_for(
--            nd,
--            variants.get(&(nd.file, nd.start_byte)),
--            &unresolved,
--        ) {
 +        let variant = variants.get(&(nd.file, nd.start_byte));
 +        let free = (matches!(variant, Some(cgg_core::DefVariant::FreeFunction))
 +            && !crate::dispatch::free_variant_is_member(&nd.language))
 +            || owner_stem(&nd.qualified_name).is_none();
-+        ev.extend(unresolved.evidence_for(graph, nd, &|hint: &str| {
-+            // A receiver can only reach a member. For a free function a
-+            // hint naming anything but its own module rules it out, as
-+            // before; for a member only a declared, unrelated type does.
-+            match owner_stem(&nd.qualified_name) {
-+                Some(o) if !free => contracts.hint_contradicts(&nd.language, o, hint),
-+                _ => true,
-+            }
-+        }));
++        ev.extend(unresolved.evidence_for(
++            graph,
+             nd,
+-            variants.get(&(nd.file, nd.start_byte)),
+-            &unresolved,
+-        ) {
++            &|hint: &str| {
++                // A receiver can only reach a member. For a free function a
++                // hint naming anything but its own module rules it out, as
++                // before; for a member only a declared, unrelated type does.
++                match owner_stem(&nd.qualified_name) {
++                    Some(o) if !free => contracts.hint_contradicts(&nd.language, o, hint),
++                    _ => true,
++                }
++            },
++            &|u| can_reach(nd, u),
++        ));
 +        if let Some(e) = surfaces.evidence_for(nd, variant, &unresolved, &contracts) {
 +            ev.push(e);
 +        }
@@ -840,7 +1240,7 @@ index 859948a..0d413ff 100644
              ev.push(e);
          }
          ev.extend(mentions.evidence_for(nd));
-@@ -957,6 +1186,7 @@ pub fn why_live(
+@@ -957,6 +1226,7 @@ pub fn why_live(
      let prod = search(&adjacency, graph, &root_set.production);
      let any = search(&adjacency, graph, &all_roots);
      let surfaces = TraitSurfaces::build(graph);
@@ -848,7 +1248,7 @@ index 859948a..0d413ff 100644
      let unresolved = UnresolvedIndex::build(graph, &[]);
      let variants = def_variants(facts);
  
-@@ -1036,6 +1266,7 @@ pub fn why_live(
+@@ -1036,6 +1306,7 @@ pub fn why_live(
                      node,
                      variants.get(&(node.file, node.start_byte)),
                      &unresolved,
@@ -856,7 +1256,15 @@ index 859948a..0d413ff 100644
                  )
              })
              .flatten();
-@@ -1321,7 +1552,9 @@ mod tests {
+@@ -1055,6 +1326,7 @@ pub fn why_live(
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
+     use testutil::{graph_with, link, node};
+ 
+     fn opts() -> DeadCodeOptions {
+@@ -1321,7 +1593,9 @@ mod tests {
          ));
          let r = analyze(&g, &[], &[], &opts_rust_full());
          let f = decl_finding(&r);
@@ -867,11 +1275,322 @@ index 859948a..0d413ff 100644
          assert!(
              f.evidence
                  .iter()
+@@ -1729,4 +2003,310 @@ mod tests {
+         };
+         assert_eq!(format!("{:?}", build(false)), format!("{:?}", build(true)));
+     }
++
++    // --- WS5: dispatch through declared bases --------------------------
++
++    fn opts_full(lang: &str) -> DeadCodeOptions {
++        let mut o = opts();
++        o.language_signals.insert(
++            lang.into(),
++            cgg_core::deadcode::LanguageSignals {
++                visibility: true,
++                attributes: true,
++                value_refs: true,
++                impls: true,
++                ..Default::default()
++            },
++        );
++        o
++    }
++
++    /// A private member of `owner` in `lang`, at a distinct byte offset.
++    fn member(
++        id: u32,
++        lang: &str,
++        owner: &str,
++        name: &str,
++        attrs: &[&str],
++    ) -> CallableNode {
++        let mut n = node(id, &format!("p.{owner}.{name}"), name, lang);
++        n.kind = CallableKind::Method;
++        n.vis = Vis::Private;
++        n.start_byte = id * 100;
++        n.end_byte = id * 100 + 50;
++        n.attributes = attrs.iter().map(|a| a.to_string()).collect();
++        n
++    }
++
++    fn def_of(n: &CallableNode, bases: &[&str]) -> cgg_core::DefRecord {
++        cgg_core::DefRecord {
++            simple_name: n.simple_name.clone(),
++            qualified_name: n.qualified_name.clone(),
++            variant: cgg_core::DefVariant::InherentMethod,
++            start_byte: n.start_byte,
++            end_byte: n.end_byte,
++            base_types: bases.iter().map(|b| b.to_string()).collect(),
++            ..Default::default()
++        }
++    }
++
++    fn facts_for(lang: &str, defs: Vec<cgg_core::DefRecord>) -> Vec<FileFacts> {
++        let mut f = FileFacts::new(
++            cgg_core::ids::FileId::new(0),
++            std::path::PathBuf::from("t.src"),
++            lang,
++        );
++        // Java/C# record every class with its bases; mirror that.
++        for d in &defs {
++            if let Some((owner_path, _)) =
++                crate::names::split_last_segment(&d.qualified_name)
++                && !f.classes.iter().any(|c| c.class_qn == owner_path)
++            {
++                f.classes.push(cgg_core::ClassDecl {
++                    class_qn: owner_path.to_string(),
++                    base_types: d.base_types.clone(),
++                    line: 1,
++                });
++            }
++        }
++        f.definitions = defs;
++        vec![f]
++    }
++
++    fn finding<'r>(r: &'r DeadCodeReport, qn: &str) -> &'r DeadCodeFinding {
++        r.findings
++            .iter()
++            .find(|f| f.qualified_name == qn)
++            .unwrap_or_else(|| panic!("{qn} not reported"))
++    }
++
++    #[test]
++    fn an_override_of_an_out_of_tree_base_member_is_not_high() {
++        // `class Ext extends Handler { @Override void handle() }` with
++        // `Handler` outside the tree: the runtime calls `handle`.
++        let main = node(0, "p.Main.main", "main", "java");
++        let ext = member(1, "java", "Ext", "handle", &["@Override"]);
++        // Near miss: the same class's unmarked package-private helper.
++        let helper = member(2, "java", "Ext", "unused", &[]);
++        let facts = facts_for(
++            "java",
++            vec![def_of(&ext, &["Handler"]), def_of(&helper, &["Handler"])],
++        );
++        let g = graph_with(vec![main, ext, helper]);
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        let f = finding(&r, "p.Ext.handle");
++        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
++        assert!(f.evidence.iter().any(|e| matches!(
++            e,
++            Evidence::ImplementsExternalContract { contract } if contract == "Handler"
++        )));
++        assert_eq!(finding(&r, "p.Ext.unused").confidence, Confidence::High);
++    }
++
++    #[test]
++    fn an_override_of_an_in_tree_base_member_carries_no_external_contract() {
++        // The base declares it: the dispatch fan-out from the declaration
++        // is what reaches the override, not a cap.
++        let base = member(1, "java", "Base", "apply", &[]);
++        let kid = member(2, "java", "Kid", "apply", &["@Override"]);
++        let facts = facts_for("java", vec![def_of(&base, &[]), def_of(&kid, &["Base"])]);
++        let g = graph_with(vec![node(0, "p.Main.main", "main", "java"), base, kid]);
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        assert!(
++            !finding(&r, "p.Kid.apply")
++                .evidence
++                .iter()
++                .any(|e| e.slug() == "implements-external-contract")
++        );
++    }
++
++    #[test]
++    fn csharp_explicit_interface_impl_of_an_outside_interface_is_not_high() {
++        let imp = member(1, "csharp", "Proc", "Tick", &["override"]);
++        let facts = facts_for("csharp", vec![def_of(&imp, &["IExternal"])]);
++        let g = graph_with(vec![node(0, "p.Main.Main", "Main", "csharp"), imp]);
++        let r = analyze(&g, &[], &facts, &opts_full("csharp"));
++        assert_eq!(finding(&r, "p.Proc.Tick").confidence, Confidence::Medium);
++    }
++
++    #[test]
++    fn python_method_of_a_class_with_an_outside_base_is_not_high() {
++        let hook = member(1, "python", "MyForm", "_save_m2m", &[]);
++        // Name-mangled: no base can call it by this name.
++        let mangled = member(2, "python", "MyForm", "__secret", &[]);
++        // No outside base at all.
++        let plain = member(3, "python", "Plain", "_helper", &[]);
++        let facts = facts_for(
++            "python",
++            vec![
++                def_of(&hook, &["ModelForm"]),
++                def_of(&mangled, &["ModelForm"]),
++                def_of(&plain, &[]),
++            ],
++        );
++        let g = graph_with(vec![
++            node(0, "p.main", "main", "python"),
++            hook,
++            mangled,
++            plain,
++        ]);
++        let r = analyze(&g, &[], &facts, &opts_full("python"));
++        assert_eq!(
++            finding(&r, "p.MyForm._save_m2m").confidence,
++            Confidence::Medium
++        );
++        assert_eq!(
++            finding(&r, "p.MyForm.__secret").confidence,
++            Confidence::High
++        );
++        assert_eq!(finding(&r, "p.Plain._helper").confidence, Confidence::High);
++    }
++
++    #[test]
++    fn rust_impl_of_an_outside_trait_is_not_high_but_an_in_tree_one_is_judged() {
++        let mut ext = vis_node(
++            1,
++            "crate::<Cors as Fairing>::info",
++            "info",
++            "",
++            Vis::Unknown,
++        );
++        ext.trait_impl_target = Some("Fairing".into());
++        let decl = vis_node(2, "crate::Store::load", "load", "", Vis::Private);
++        let mut imp =
++            vis_node(3, "crate::<Mem as Store>::load", "load", "", Vis::Unknown);
++        imp.trait_impl_target = Some("Store".into());
++        let g = graph_with(vec![node(0, "crate::main", "main", "rust"), ext, decl, imp]);
++        let r = analyze(&g, &[], &[], &opts_rust_full());
++        let f = finding(&r, "crate::<Cors as Fairing>::info");
++        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
++        assert!(
++            !finding(&r, "crate::<Mem as Store>::load")
++                .evidence
++                .iter()
++                .any(|e| e.slug() == "implements-external-contract")
++        );
++    }
++
++    fn unresolved_site(
++        name: &str,
++        hint: &str,
++        reason: UnresolvedReason,
++    ) -> AuditUnresolvedCall {
++        AuditUnresolvedCall::new(
++            Some(CallableId::new(0)),
++            cgg_core::ids::FileId::new(0),
++            3,
++            30,
++            name.into(),
++            hint.into(),
++            reason,
++        )
++    }
++
++    #[test]
++    fn a_variable_or_generic_receiver_is_doubt_and_an_unrelated_declared_type_is_not() {
++        let target = member(1, "java", "Worker", "process", &[]);
++        let other = member(2, "java", "Ledger", "post", &[]);
++        let facts = facts_for("java", vec![def_of(&target, &[]), def_of(&other, &[])]);
++        let base_graph = || {
++            graph_with(vec![
++                node(0, "p.Main.main", "main", "java"),
++                target.clone(),
++                other.clone(),
++            ])
++        };
++        for hint in ["orderService", "p", "T", "this.repo"] {
++            let mut g = base_graph();
++            g.unresolved.push(unresolved_site(
++                "process",
++                hint,
++                UnresolvedReason::NoCandidateInFile,
++            ));
++            let r = analyze(&g, &[], &facts, &opts_full("java"));
++            let f = finding(&r, "p.Worker.process");
++            assert_ne!(f.confidence, Confidence::High, "{hint}: {:?}", f.evidence);
++        }
++        // `Ledger` is a type the tree declares and `Worker` is not related
++        // to it: that site cannot be this method.
++        let mut g = base_graph();
++        g.unresolved.push(unresolved_site(
++            "process",
++            "Ledger",
++            UnresolvedReason::NoCandidateInFile,
++        ));
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
++    }
++
++    #[test]
++    fn an_over_cap_site_is_doubt_for_every_candidate_and_an_outside_super_is_not() {
++        let target = member(1, "java", "Worker", "process", &[]);
++        let other = member(2, "java", "Ledger", "post", &[]);
++        let facts = facts_for("java", vec![def_of(&target, &[]), def_of(&other, &[])]);
++        let mk = |hint: &str, reason: UnresolvedReason| {
++            let mut g = graph_with(vec![
++                node(0, "p.Main.main", "main", "java"),
++                target.clone(),
++                other.clone(),
++            ]);
++            g.unresolved.push(unresolved_site("process", hint, reason));
++            analyze(&g, &[], &facts, &opts_full("java"))
++        };
++        let r = mk(
++            "Ledger",
++            UnresolvedReason::FanoutCapExceeded { candidates: 9 },
++        );
++        assert_ne!(finding(&r, "p.Worker.process").confidence, Confidence::High);
++        let r = mk("super", UnresolvedReason::SuperBaseOutOfGraph);
++        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
++    }
++
++    #[test]
++    fn a_base_member_whose_override_is_called_is_a_dispatch_surface() {
++        let base = member(1, "java", "Shape", "draw", &[]);
++        let kid = member(2, "java", "Square", "draw", &["@Override"]);
++        let facts = facts_for("java", vec![def_of(&base, &[]), def_of(&kid, &["Shape"])]);
++        let mut g = graph_with(vec![node(0, "p.Main.main", "main", "java"), base, kid]);
++        // Uncalled override: the base member is plain dead code.
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        assert_eq!(finding(&r, "p.Shape.draw").confidence, Confidence::High);
++        // Called directly on the subclass: the base member is the surface.
++        link(&mut g, 0, 2);
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        let f = finding(&r, "p.Shape.draw");
++        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
++        assert!(
++            f.evidence
++                .iter()
++                .any(|e| e.slug() == "implemented-trait-surface")
++        );
++    }
++
++    #[test]
++    fn a_site_that_cannot_legally_call_a_java_private_member_is_no_doubt() {
++        // `private` is the top-level class, which is the file: a site in
++        // another file is never this method's call.
++        let mut g = graph_with(vec![
++            node(0, "p.Main.main", "main", "java"),
++            member(1, "java", "Worker", "process", &[]),
++        ]);
++        g.add_file(cgg_core::graph::FileRecord {
++            id: cgg_core::ids::FileId::new(1),
++            path: std::path::PathBuf::from("o.java"),
++            language: "java".into(),
++            ..Default::default()
++        });
++        let mut u = unresolved_site("process", "x", UnresolvedReason::NoCandidateInFile);
++        u.file = cgg_core::ids::FileId::new(1);
++        g.unresolved.push(u.clone());
++        let facts = facts_for("java", vec![]);
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
++        // The same site in the member's own file is doubt.
++        u.file = cgg_core::ids::FileId::new(0);
++        g.unresolved = vec![u];
++        let r = analyze(&g, &[], &facts, &opts_full("java"));
++        assert_ne!(finding(&r, "p.Worker.process").confidence, Confidence::High);
++    }
+ }
 diff --git a/crates/cgg-resolve/src/dispatch.rs b/crates/cgg-resolve/src/dispatch.rs
-index 0853e91..d2eae4f 100644
+index 0853e91..69abc8f 100644
 --- a/crates/cgg-resolve/src/dispatch.rs
 +++ b/crates/cgg-resolve/src/dispatch.rs
-@@ -100,19 +100,142 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
+@@ -100,19 +100,151 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
      edges
  }
  
@@ -897,6 +1616,13 @@ index 0853e91..d2eae4f 100644
 +    "php",
 +    "ruby",
 +];
++
++/// Languages whose plugin records every class with exactly its own bases
++/// (`FileFacts::classes`). For them a method record's `base_types` is
++/// not read into its owner's bases: a Java anonymous class body's
++/// methods carry the anonymous class's base, which the enclosing class
++/// does not have.
++pub(crate) const CLASS_RECORDS_ARE_EXACT: &[&str] = &["java", "csharp"];
 +
 +/// Every class the analyzed tree declares and the bases each names, per
 +/// language, keyed by bare class name (the form a qualified name's owner
@@ -953,7 +1679,9 @@ index 0853e91..d2eae4f 100644
 +                    continue;
 +                }
 +                declared.insert((f.language.clone(), owner.to_string()));
-+                if !d.base_types.is_empty() {
++                if !d.base_types.is_empty()
++                    && !CLASS_RECORDS_ARE_EXACT.contains(&f.language.as_str())
++                {
 +                    add(&f.language, owner, &d.base_types);
 +                }
 +            }
@@ -1021,7 +1749,7 @@ index 0853e91..d2eae4f 100644
  pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
      let resolver = ResolverId::new("dispatch:inheritance");
  
-@@ -126,66 +249,26 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -126,66 +258,26 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
          by_span.insert((c.file, c.start_byte), c.id);
          if let Some(owner) = owner_from_qn(&c.qualified_name) {
              by_owner_method
@@ -1096,16 +1824,32 @@ index 0853e91..d2eae4f 100644
                  continue;
              }
              let Some(&child) = by_span.get(&(f.file, d.start_byte)) else {
-@@ -194,7 +277,7 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -194,7 +286,23 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
              let Some(owner) = owner_from_qn(&d.qualified_name) else {
                  continue;
              };
 -            for ancestor in walk_bases(&f.language, owner, &by_class_bases) {
-+            for ancestor in hierarchy.ancestors(&f.language, type_stem(owner)) {
++            // The class's ancestors, plus — for a Java anonymous class
++            // body — the anonymous class's base and its ancestors.
++            let mut up = hierarchy.ancestors(&f.language, type_stem(owner));
++            for b in &d.base_types {
++                let b = type_stem(b);
++                if !is_inheritable_base(b) || b == type_stem(owner) {
++                    continue;
++                }
++                for a in std::iter::once(b.to_string())
++                    .chain(hierarchy.ancestors(&f.language, b))
++                {
++                    if !up.contains(&a) {
++                        up.push(a);
++                    }
++                }
++            }
++            for ancestor in up {
                  let Some(parents) = by_owner_method.get(&(
                      f.language.clone(),
                      ancestor.clone(),
-@@ -229,24 +312,45 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -229,24 +337,45 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
      edges
  }
  
@@ -1157,7 +1901,7 @@ index 0853e91..d2eae4f 100644
  }
  
  fn walk_bases(
-@@ -279,9 +383,9 @@ fn walk_bases(
+@@ -279,9 +408,9 @@ fn walk_bases(
      out
  }
  
@@ -1169,6 +1913,197 @@ index 0853e91..d2eae4f 100644
  }
  
  fn looks_like_type(name: &str) -> bool {
+@@ -537,4 +666,129 @@ mod tests {
+         f.definitions.push(child);
+         assert!(inheritance_fanout(&g, &[f]).is_empty());
+     }
++
++    fn lang_node(id: u32, lang: &str, qn: &str, start: u32) -> CallableNode {
++        let mut n = py_node(id, qn, start);
++        n.language = lang.into();
++        n.simple_name = qn.rsplit(['.', ':']).next().unwrap_or(qn).into();
++        n
++    }
++
++    fn lang_facts(lang: &str, defs: Vec<DefRecord>) -> FileFacts {
++        let mut f = FileFacts::new(FileId::new(0), std::path::PathBuf::from("x"), lang);
++        f.definitions = defs;
++        f
++    }
++
++    #[test]
++    fn java_interface_and_abstract_members_fan_out_to_implementations() {
++        let mut g = Graph::new();
++        g.add_callable(lang_node(0, "java", "p.Shape.draw", 10));
++        g.add_callable(lang_node(1, "java", "p.Square.draw", 40));
++        g.add_callable(lang_node(2, "java", "p.Other.draw", 70));
++        let f = lang_facts(
++            "java",
++            vec![
++                py_def("draw", "p.Shape.draw", 10, &[]),
++                py_def("draw", "p.Square.draw", 40, &["Shape"]),
++                // Near miss: same name, no relation.
++                py_def("draw", "p.Other.draw", 70, &[]),
++            ],
++        );
++        let edges = inheritance_fanout(&g, &[f]);
++        assert_eq!(edges.len(), 1, "{edges:?}");
++        assert_eq!(
++            (edges[0].src, edges[0].dst),
++            (CallableId::new(0), CallableId::new(1))
++        );
++    }
++
++    #[test]
++    fn java_chain_runs_through_a_class_with_no_methods() {
++        let mut g = Graph::new();
++        g.add_callable(lang_node(0, "java", "p.Base.get", 10));
++        g.add_callable(lang_node(1, "java", "p.Leaf.get", 40));
++        let mut f = lang_facts(
++            "java",
++            vec![
++                py_def("get", "p.Base.get", 10, &[]),
++                py_def("get", "p.Leaf.get", 40, &["Middle"]),
++            ],
++        );
++        f.classes.push(cgg_core::ClassDecl {
++            class_qn: "p.Middle".into(),
++            base_types: vec!["Base".into()],
++            line: 1,
++        });
++        let edges = inheritance_fanout(&g, &[f]);
++        assert_eq!(edges.len(), 1, "{edges:?}");
++    }
++
++    #[test]
++    fn static_members_and_csharp_accessors_do_not_override() {
++        let mut g = Graph::new();
++        g.add_callable(lang_node(0, "java", "p.A.make", 10));
++        g.add_callable(lang_node(1, "java", "p.B.make", 40));
++        g.add_callable(lang_node(2, "csharp", "N.A.get", 70));
++        g.add_callable(lang_node(3, "csharp", "N.B.get", 90));
++        let mut st = py_def("make", "p.B.make", 40, &["A"]);
++        st.variant = DefVariant::StaticMethod;
++        let java = lang_facts("java", vec![py_def("make", "p.A.make", 10, &[]), st]);
++        let mut acc = py_def("get", "N.B.get", 90, &["A"]);
++        acc.variant = DefVariant::Property;
++        let cs = lang_facts("csharp", vec![py_def("get", "N.A.get", 70, &[]), acc]);
++        assert!(inheritance_fanout(&g, &[java, cs]).is_empty());
++    }
++
++    #[test]
++    fn scala_and_dart_members_recorded_as_free_functions_still_override() {
++        let mut g = Graph::new();
++        g.add_callable(lang_node(0, "scala", "Shape::area", 10));
++        g.add_callable(lang_node(1, "scala", "Square::area", 40));
++        let mut decl = py_def("area", "Shape::area", 10, &[]);
++        decl.variant = DefVariant::TraitMethod;
++        let mut imp = py_def("area", "Square::area", 40, &["Shape"]);
++        imp.variant = DefVariant::FreeFunction;
++        let edges = inheritance_fanout(&g, &[lang_facts("scala", vec![decl, imp])]);
++        assert_eq!(edges.len(), 1, "{edges:?}");
++    }
++
++    #[test]
++    fn cpp_and_rust_are_left_to_their_own_passes() {
++        let mut g = Graph::new();
++        g.add_callable(lang_node(0, "cpp", "A::f", 10));
++        g.add_callable(lang_node(1, "cpp", "B::f", 40));
++        let f = lang_facts(
++            "cpp",
++            vec![
++                py_def("f", "A::f", 10, &[]),
++                py_def("f", "B::f", 40, &["A"]),
++            ],
++        );
++        assert!(inheritance_fanout(&g, &[f]).is_empty());
++    }
++
++    #[test]
++    fn hierarchy_reports_declared_and_outside_ancestors() {
++        let mut f = lang_facts(
++            "java",
++            vec![py_def("handle", "p.Ext.handle", 10, &["Handler<String>"])],
++        );
++        f.classes.push(cgg_core::ClassDecl {
++            class_qn: "p.Ext".into(),
++            base_types: vec!["Handler<String>".into()],
++            line: 1,
++        });
++        f.classes.push(cgg_core::ClassDecl {
++            class_qn: "p.Loop".into(),
++            base_types: vec!["Loop".into()],
++            line: 1,
++        });
++        let h = ClassHierarchy::build(&[f]);
++        assert_eq!(h.ancestors("java", "Ext"), vec!["Handler".to_string()]);
++        assert!(h.declares("java", "Ext"));
++        assert!(!h.declares("java", "Handler"));
++        // A class naming itself terminates and is not its own ancestor.
++        assert!(h.ancestors("java", "Loop").is_empty());
++    }
+ }
+diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
+index cd35427..8b4e088 100644
+--- a/crates/cgg-resolve/src/intra_file.rs
++++ b/crates/cgg-resolve/src/intra_file.rs
+@@ -563,6 +563,19 @@ pub fn link_file_with_cap(
+             }
+         }
+ 
++        // A bodiless interface/abstract member a plugin tagged `abstract`
++        // (TypeScript, Swift, Scala, Dart) is a declaration, not a body
++        // the call runs: when a concrete same-file candidate survives the
++        // narrowing above, the declaration is dropped. One-sided — a set
++        // of declarations only stands.
++        if candidates.len() > 1 {
++            let is_decl = |d: &DefRecord| d.attributes.iter().any(|a| a == "abstract");
++            if candidates.iter().any(|(_, d)| !is_decl(d))
++                && candidates.iter().any(|(_, d)| is_decl(d))
++            {
++                candidates.retain(|(_, d)| !is_decl(d));
++            }
++        }
+         match candidates.as_slice() {
+             [] => {
+                 // Say which kind of "no candidate" this is. A bare call
+@@ -1364,6 +1377,36 @@ mod tests {
+         assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
+     }
+ 
++    #[test]
++    fn a_bodiless_declaration_yields_to_a_concrete_same_file_candidate() {
++        // Swift: `protocol P { func request(for:) }` beside
++        // `class D { func request(for:as:) }`; a bare `request(...)` in
++        // `D` runs D's body, never the protocol requirement.
++        let mut req = mk_def("request", "P.request", DefVariant::TraitMethod, (0, 20));
++        req.attributes = vec!["abstract".into()];
++        let defs = vec![
++            req.clone(),
++            mk_def("request", "D.request", DefVariant::InherentMethod, (20, 40)),
++            mk_def("go", "D.go", DefVariant::InherentMethod, (40, 80)),
++        ];
++        let facts = facts_with_lang("swift", defs, vec![mk_ref("request", 50)]);
++        let map = mk_map(&facts);
++        let out = link_file(&facts, &map);
++        assert_eq!(out.edges.len(), 1, "{out:?}");
++        assert_eq!(out.edges[0].dst, CallableId::new(1));
++        // Near miss: two declarations only stay ambiguous.
++        let mut req2 = mk_def("request", "Q.request", DefVariant::TraitMethod, (20, 40));
++        req2.attributes = vec!["abstract".into()];
++        let defs = vec![
++            req,
++            req2,
++            mk_def("go", "D.go", DefVariant::InherentMethod, (40, 80)),
++        ];
++        let facts = facts_with_lang("swift", defs, vec![mk_ref("request", 50)]);
++        let map = mk_map(&facts);
++        assert!(link_file(&facts, &map).edges.is_empty());
++    }
++
+     #[test]
+     fn ambiguous_name_flags_unresolved() {
+         // Two defs named `m` — common in Rust where `impl A { fn m } impl B { fn m }`.
 diff --git a/crates/cgg/src/deadcode/report.rs b/crates/cgg/src/deadcode/report.rs
 index b661b51..50654b0 100644
 --- a/crates/cgg/src/deadcode/report.rs
@@ -1183,3 +2118,94 @@ index b661b51..50654b0 100644
                      // `public-visibility:protected` — the entry also
                      // covers protected members, and the slug alone
                      // would call them public.
+diff --git a/crates/cgg/tests/resolve.rs b/crates/cgg/tests/resolve.rs
+index 558b416..254141f 100644
+--- a/crates/cgg/tests/resolve.rs
++++ b/crates/cgg/tests/resolve.rs
+@@ -2886,6 +2886,86 @@ fn super_resolves_through_the_declared_base_chain() {
+     assert!(net.is_empty(), "external base: {net:?}");
+ }
+ 
++/// Java and C# record every class, so `super.m()` / `base.M()` whose
++/// chain leaves the tree is refused rather than bound by name onto an
++/// unrelated workspace `m`; an in-tree base still binds.
++#[test]
++fn java_and_csharp_super_into_an_outside_base_is_refused() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "q/E.java",
++        b"package q;\nimport org.other.*;\npublic class E extends Widget {\n    @Override public void stop() { super.stop(); }\n}\n",
++    );
++    write(
++        tmp.path(),
++        "q/B.java",
++        b"package q;\npublic class B { public void stop() { } }\nclass C extends B {\n    @Override public void stop() { super.stop(); }\n}\n",
++    );
++    write(
++        tmp.path(),
++        "W.cs",
++        b"namespace App {\n  class W : ExternalBase {\n    protected override void Layout() { base.Layout(); }\n  }\n  class Other { internal void Layout() { } }\n}\n",
++    );
++    let (e, _) = edges_and_external(tmp.path(), "q.E.stop");
++    assert!(e.is_empty(), "outside base: {e:?}");
++    let (c, _) = edges_and_external(tmp.path(), "q.C.stop");
++    assert_eq!(c, vec!["q.B.stop"]);
++    let (w, _) = edges_and_external(tmp.path(), "App.W.Layout");
++    assert!(w.is_empty(), "outside base: {w:?}");
++    // An anonymous subclass's `super` is its own base, not the enclosing
++    // class's (`F` extends nothing).
++    write(
++        tmp.path(),
++        "q/F.java",
++        b"package q;\npublic class F {\n    void go() {\n        B b = new B() {\n            @Override public void stop() { super.stop(); }\n        };\n    }\n}\n",
++    );
++    let (f, _) = edges_and_external(tmp.path(), "q.F.stop");
++    assert_eq!(f, vec!["q.B.stop"]);
++}
++
++/// Dead code: an override reached only by dispatch from a called base
++/// declaration is live; an override of an outside contract is never in
++/// the top band; an unrelated private method still is.
++#[test]
++fn dispatch_through_declared_bases_keeps_overrides_out_of_the_top_band() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "src/p/V.java",
++        concat!(
++            "package p;\nimport org.thirdparty.Handler;\n",
++            "abstract class Validator { abstract String member(int x); }\n",
++            "final class Input extends Validator { @Override String member(int x) { return \"i\"; } }\n",
++            "class Ext extends Handler { @Override void handle(int c) { } }\n",
++            "public class V {\n    public static void main(String[] a) { Validator v = pick(); v.member(1); }\n",
++            "    private static Validator pick() { return null; }\n    private void orphan() { }\n}\n",
++        )
++        .as_bytes(),
++    );
++    let report = tmp.path().join("dead.json");
++    cgg()
++        .args(["--no-graph", "--dead-code", "--dead-code-format", "json"])
++        .arg("--dead-code-report")
++        .arg(&report)
++        .arg(tmp.path())
++        .assert()
++        .success();
++    let parsed: serde_json::Value =
++        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
++    let conf = |qn: &str| {
++        parsed["findings"]
++            .as_array()
++            .unwrap()
++            .iter()
++            .find(|f| f["qualified_name"] == qn)
++            .map(|f| f["confidence"].as_str().unwrap().to_string())
++    };
++    assert_eq!(conf("p.Input.member"), None, "dispatched to");
++    assert_eq!(conf("p.Ext.handle").as_deref(), Some("medium"));
++    assert_eq!(conf("p.V.orphan").as_deref(), Some("high"));
++}
++
+ /// A Kotlin extension function in scope — declared in the calling file or
+ /// imported by name — is what `expr.ext()` calls, whatever the receiver
+ /// expression; a receiver of a known type that declares the member keeps

@@ -1,0 +1,132 @@
+{
+ "csharp": {
+  "drop": {
+   "medium": 383
+  },
+  "add": {
+   "medium": 7828
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 234,
+   "external/stdlib or still bound (same name, kept target)": 149
+  }
+ },
+ "dart": {
+  "drop": {
+   "medium": 1814
+  },
+  "add": {
+   "medium": 2612,
+   "high": 19
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 1814
+  }
+ },
+ "java": {
+  "drop": {
+   "medium": 1070
+  },
+  "add": {
+   "medium": 5853,
+   "high": 2
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 720,
+   "now unresolved: fanout-cap-exceeded": 1,
+   "rebound to another target": 347,
+   "external/stdlib or still bound (same name, kept target)": 2
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "medium": 12
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 12
+  }
+ },
+ "proto": {
+  "drop": {},
+  "add": {
+   "low": 39
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "python": {
+  "drop": {
+   "medium": 32
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: super-base-out-of-graph": 32
+  }
+ },
+ "scala": {
+  "drop": {
+   "medium": 567,
+   "high": 63
+  },
+  "add": {
+   "high": 459,
+   "medium": 1430
+  },
+  "chg": {
+   "high->medium": 94,
+   "medium->high": 1
+  },
+  "fate": {
+   "rebound to another target": 592,
+   "external/stdlib or still bound (same name, kept target)": 15,
+   "now unresolved: ambiguous-in-file": 23
+  }
+ },
+ "swift": {
+  "drop": {
+   "medium": 113,
+   "high": 10
+  },
+  "add": {
+   "medium": 104,
+   "high": 11
+  },
+  "chg": {
+   "high->medium": 5
+  },
+  "fate": {
+   "rebound to another target": 44,
+   "external/stdlib or still bound (same name, kept target)": 47,
+   "now unresolved: fanout-cap-exceeded": 10,
+   "now unresolved: candidates-in-other-files": 12,
+   "now unresolved: ambiguous-in-file": 10
+  }
+ },
+ "typescript": {
+  "drop": {
+   "high": 1142,
+   "medium": 4148,
+   "low": 2
+  },
+  "add": {
+   "medium": 13542,
+   "high": 1545,
+   "low": 11
+  },
+  "chg": {
+   "high->medium": 13
+  },
+  "fate": {
+   "rebound to another target": 5170,
+   "now unresolved: not-in-scope-for-bare-call": 6,
+   "external/stdlib or still bound (same name, kept target)": 3,
+   "now unresolved: ambiguous-in-file": 113
+  }
+ }
+}
