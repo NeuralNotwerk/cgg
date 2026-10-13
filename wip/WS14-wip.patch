@@ -420,7 +420,7 @@ index 71e6020..a532745 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
-index 7735a2b..efe9711 100644
+index 7735a2b..c3c8875 100644
 --- a/crates/cgg-lang/src/plugins/php.rs
 +++ b/crates/cgg-lang/src/plugins/php.rs
 @@ -46,6 +46,7 @@ impl LanguagePlugin for PhpPlugin {
@@ -471,7 +471,36 @@ index 7735a2b..efe9711 100644
                  self.bases.push(super::attrs::base_types(node, self.source));
                  if !name.is_empty() {
                      self.scope.push(name);
-@@ -190,7 +211,23 @@ impl<'a> PhpWalker<'a> {
+@@ -122,6 +143,28 @@ impl<'a> PhpWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // `require_once __DIR__ . '/x.php';`: the file a statement
++            // loads (WS14), so copies of one function in several files can
++            // be told apart by what the caller loads.
++            "require_expression"
++            | "require_once_expression"
++            | "include_expression"
++            | "include_once_expression" => {
++                if let Some(arg) = node.named_child(0) {
++                    let path = self.text(arg).trim().to_string();
++                    if !path.is_empty() && path.len() <= 400 {
++                        self.facts.imports.push(ImportRecord {
++                            kind: "php-require".into(),
++                            path,
++                            alias: String::new(),
++                            site_line: (node.start_position().row as u32) + 1,
++                            site_byte: node.start_byte() as u32,
++                        });
++                    }
++                }
++                self.walk_children(node);
++                return;
++            }
+             "function_call_expression"
+             | "member_call_expression"
+             | "scoped_call_expression" => {
+@@ -190,7 +233,23 @@ impl<'a> PhpWalker<'a> {
          } else {
              "use"
          };
@@ -496,7 +525,7 @@ index 7735a2b..efe9711 100644
              let part = part.trim();
              if part.is_empty() {
                  continue;
-@@ -319,4 +356,22 @@ mod tests {
+@@ -319,4 +378,22 @@ mod tests {
          let f = extract(src);
          assert!(!f.references.is_empty(), "should extract references");
      }
@@ -657,7 +686,7 @@ index d089883..0ff40d7 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 9720a47..2865f31 100644
+index 9720a47..4e22e8f 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -1366,6 +1366,12 @@ pub fn resolve(
@@ -960,7 +989,15 @@ index 9720a47..2865f31 100644
          && let Some(scoped) = file_mods.resolve(
              modix,
              lang,
-@@ -4006,6 +4186,79 @@ fn try_resolve_ref(
+@@ -3996,6 +4176,7 @@ fn try_resolve_ref(
+                 *refused_module = Some(module);
+                 return None;
+             }
++            crate::modules::Scoped::Ambiguous => return None,
+             crate::modules::Scoped::NoCtor => {
+                 *no_ctor = true;
+                 return None;
+@@ -4006,6 +4187,82 @@ fn try_resolve_ref(
              }
          }
      }
@@ -981,6 +1018,7 @@ index 9720a47..2865f31 100644
 +                *refused_module = Some(module);
 +                return None;
 +            }
++            crate::modules::Scoped::Ambiguous => return None,
 +            crate::modules::Scoped::NoCtor => {
 +                *no_ctor = true;
 +                return None;
@@ -1011,6 +1049,7 @@ index 9720a47..2865f31 100644
 +                *refused_module = Some(module);
 +                return None;
 +            }
++            crate::modules::Scoped::Ambiguous => return None,
 +            crate::modules::Scoped::NoCtor => return None,
 +        }
 +    }
@@ -1034,13 +1073,14 @@ index 9720a47..2865f31 100644
 +                *refused_module = Some(module);
 +                return None;
 +            }
++            crate::modules::Scoped::Ambiguous => return None,
 +            crate::modules::Scoped::NoCtor => return None,
 +        }
 +    }
      // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
      // the evidence singles out when the module is vendored more than once
      // — never another module's `f`.
-@@ -4203,6 +4456,90 @@ fn try_resolve_ref(
+@@ -4203,6 +4460,90 @@ fn try_resolve_ref(
                  }
              }
          }
@@ -1131,7 +1171,7 @@ index 9720a47..2865f31 100644
          // Step 1b: bare-name lookup via unqualified-import prefixes
          // (Haskell `import Data.Map` + `lookup`, OCaml `open Foo` + `bar`,
          // Elixir `import Foo` + `bar`, F# `open System.IO` + `File`, …).
-@@ -4307,7 +4644,10 @@ fn try_resolve_ref(
+@@ -4307,7 +4648,10 @@ fn try_resolve_ref(
          // receiver_hint is the full receiver expression (e.g., "mod"
          // or "mod.sub"). Take its first segment to match module alias.
          let first = r.receiver_hint.split(['.', ':']).next().unwrap_or("");
@@ -1143,7 +1183,7 @@ index 9720a47..2865f31 100644
              // Rebuild the full target path. For `mod.fn()` with alias
              // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
              // `helpers.sub.fn`.
-@@ -9101,6 +9441,7 @@ mod tests {
+@@ -9101,6 +9445,7 @@ mod tests {
      // ----------------------------------------------------------------
  
      /// One file of a module-scoped case.
@@ -1151,7 +1191,7 @@ index 9720a47..2865f31 100644
      struct MFile<'a> {
          path: &'a str,
          /// `(qualified name, kind, signature)` of each callable.
-@@ -10971,10 +11312,13 @@ mod tests {
+@@ -10971,10 +11316,13 @@ mod tests {
          );
      }
  
@@ -1169,7 +1209,7 @@ index 9720a47..2865f31 100644
      #[test]
      fn dart_bare_call_needs_an_imported_file() {
          let files = vec![
-@@ -10985,25 +11329,332 @@ mod tests {
+@@ -10985,25 +11333,332 @@ mod tests {
              ),
              mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
          ];
@@ -1542,7 +1582,7 @@ index 25910df..92db88c 100644
              if r.dot_call || lang == "cpp" || self.own_defs.contains(r.name.as_str()) {
                  return None;
 diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
-index cd1c5de..16b42ab 100644
+index cd1c5de..77f2f8a 100644
 --- a/crates/cgg-resolve/src/intra_file.rs
 +++ b/crates/cgg-resolve/src/intra_file.rs
 @@ -53,6 +53,88 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
@@ -1687,13 +1727,17 @@ index cd1c5de..16b42ab 100644
          // another is visible by name only within it, and the innermost
          // definition shadows outer ones: `_scan()` inside the method that
          // defines `_scan` is that local, and `_scan()` anywhere else is
-@@ -230,25 +342,23 @@ pub fn link_file_with_cap(
+@@ -230,25 +342,27 @@ pub fn link_file_with_cap(
          // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
          // and name lookup is the only thing that finds it there.
          if rref.receiver_hint.is_empty()
 -            && facts.language == "python"
 +            && (!rref.dot_call || facts.language == "python")
 +            && lexically_scoped(&facts.language)
++            // JS/TS: only where the file's scopes were read (a minified
++            // bundle records none and keeps its old reading).
++            && (!matches!(facts.language.as_str(), "javascript" | "typescript")
++                || !facts.locals.is_empty())
              && candidates.len() > 1
          {
 -            let parent_span = |d: &DefRecord| -> Option<(u32, u32)> {
@@ -1724,7 +1768,7 @@ index cd1c5de..16b42ab 100644
                  .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
                  .collect();
              // Innermost enclosing scope first: the smallest parent span,
-@@ -267,6 +377,22 @@ pub fn link_file_with_cap(
+@@ -267,6 +381,22 @@ pub fn link_file_with_cap(
                      candidates = narrowed;
                  }
              }
@@ -1747,7 +1791,7 @@ index cd1c5de..16b42ab 100644
          }
  
          // Receiver-based narrowing (Issue 1). A call of the form
-@@ -428,7 +554,9 @@ pub fn link_file_with_cap(
+@@ -428,7 +558,9 @@ pub fn link_file_with_cap(
                  // somewhere else, and reporting it as though the name
                  // does not exist is what P1-2 of the field report was
                  // about.
@@ -1758,7 +1802,7 @@ index cd1c5de..16b42ab 100644
                      UnresolvedReason::NotInScopeForBareCall {
                          methods: methods_out_of_scope,
                      }
-@@ -879,6 +1007,89 @@ mod tests {
+@@ -879,6 +1011,89 @@ mod tests {
              .collect()
      }
  
@@ -1864,10 +1908,21 @@ index bf4857f..5cead32 100644
  pub mod type_hints;
  
 diff --git a/crates/cgg-resolve/src/modules.rs b/crates/cgg-resolve/src/modules.rs
-index d7be508..89834cd 100644
+index d7be508..3b85fc1 100644
 --- a/crates/cgg-resolve/src/modules.rs
 +++ b/crates/cgg-resolve/src/modules.rs
-@@ -2154,7 +2154,7 @@ fn strip_js_ext(name: &str) -> &str {
+@@ -63,6 +63,10 @@ pub(crate) enum Scoped {
+     /// `new X()` / `X()` for a class the module declares without an
+     /// explicit constructor.
+     NoCtor,
++    /// Several copies of one definition (one name declared in several
++    /// files) and nothing the caller can see singles one out: nothing
++    /// binds, and the site keeps its ordinary unresolved record.
++    Ambiguous,
+     /// The call is on a value whose type comes from a dependency (a Go
+     /// package function declared to return `ext.T`): the external bucket,
+     /// with the import path.
+@@ -2154,7 +2158,7 @@ fn strip_js_ext(name: &str) -> &str {
  
  /// Resolve `.` and `..` without touching the filesystem; a `..` above the
  /// first component is kept.
@@ -1877,10 +1932,21 @@ index d7be508..89834cd 100644
      for c in p.components() {
          match c {
 diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
-index 1ebc9c7..54e5558 100644
+index 1ebc9c7..f9db696 100644
 --- a/crates/cgg/src/lib.rs
 +++ b/crates/cgg/src/lib.rs
-@@ -455,13 +455,21 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+@@ -154,6 +154,10 @@ const ANALYZE_STACK_SIZE: usize = 128 * 1024 * 1024;
+ /// wide margin under it.
+ const MAX_TREE_DEPTH: usize = 4000;
+ 
++/// A line longer than this marks a minified or bundled file (WS14): no
++/// parameter/local scope evidence is collected for it.
++const MINIFIED_LINE_BYTES: usize = 2000;
++
+ pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
+     // Host the whole run on a thread with a large stack. Extraction and
+     // the `-n 0` path DFS recurse, and rayon lets the calling thread join
+@@ -455,13 +459,26 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                          // Narrow the registrar-verb gate to this file's
                          // language; the union of every rule in the table
                          // makes each language pay for the others'.
@@ -1896,7 +1962,12 @@ index 1ebc9c7..54e5558 100644
 +                        // Parameters and locals, from the same tree: a
 +                        // bare call through one is never another file's
 +                        // function (see `cgg_lang::locals`).
-+                        if f.locals.is_empty() {
++                        // Not in a minified bundle (one enormous line): its
++                        // reused short names make scope evidence noise, and
++                        // the file keeps the reading it always had.
++                        if f.locals.is_empty()
++                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
++                        {
 +                            f.locals =
 +                                cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
 +                        }
@@ -2646,10 +2717,10 @@ index 0000000..d56f64b
 +}
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
 new file mode 100644
-index 0000000..49b6640
+index 0000000..669ee3b
 --- /dev/null
 +++ b/crates/cgg-resolve/src/libscope.rs
-@@ -0,0 +1,1171 @@
+@@ -0,0 +1,1256 @@
 +//! Library scope for languages whose imports name files (WS14).
 +//!
 +//! Dart: a file sees its own library's top-level names (itself and its
@@ -3538,6 +3609,12 @@ index 0000000..49b6640
 +/// class and function names are case-insensitive).
 +#[derive(Debug, Default)]
 +pub(crate) struct PhpIndex {
++    /// File → the file names its `require`/`include` statements name.
++    requires: HashMap<FileId, Vec<String>>,
++    /// File name → files of that name.
++    by_basename: HashMap<String, Vec<FileId>>,
++    /// The file each PHP callable is declared in.
++    file_of: HashMap<CallableId, FileId>,
 +    /// Class / interface / trait / enum FQN → declaring files.
 +    classes: HashMap<String, Vec<FileId>>,
 +    /// Every declared namespace and each of its ancestors.
@@ -3636,6 +3713,29 @@ index 0000000..49b6640
 +            }
 +            ix.file_ns.insert(f.file, ns);
 +            ix.uses.insert(f.file, uses);
++            if let Some(n) = f.path.file_name() {
++                ix.by_basename
++                    .entry(n.to_string_lossy().into_owned())
++                    .or_default()
++                    .push(f.file);
++            }
++            let reqs: Vec<String> = f
++                .imports
++                .iter()
++                .filter(|i| {
++                    i.kind == "php-require"
++                        || i.kind.starts_with("require")
++                        || i.kind.starts_with("include")
++                })
++                .filter_map(|i| {
++                    let t = i.path.trim().trim_end_matches(['\'', '"', ')', ';', ' ']);
++                    let base = t.rsplit(['/', '\'', '"']).next()?.trim();
++                    (!base.is_empty()).then(|| base.to_string())
++                })
++                .collect();
++            if !reqs.is_empty() {
++                ix.requires.insert(f.file, reqs);
++            }
 +        }
 +        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
 +            .callables
@@ -3644,6 +3744,7 @@ index 0000000..49b6640
 +            .collect();
 +        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
 +        for c in ids {
++            ix.file_of.insert(c.id, c.file);
 +            match c.qualified_name.split_once("::") {
 +                Some((owner, m)) => ix
 +                    .methods
@@ -3664,6 +3765,58 @@ index 0000000..49b6640
 +            }
 +        }
 +        ix
++    }
++
++    /// Definitions found under one name, narrowed when they are copies in
++    /// several files (a stub file re-declaring a library's functions for
++    /// a boot path): the copy the caller's own file, or the files its
++    /// `require`/`include` chain reaches, declares. Copies the chain
++    /// cannot tell apart bind nothing ([`Scoped::Ambiguous`]).
++    fn one_copy(&self, from: FileId, ids: Vec<CallableId>) -> Scoped {
++        let mut files: Vec<FileId> = Vec::new();
++        for c in &ids {
++            if let Some(f) = self.file_of.get(c)
++                && !files.contains(f)
++            {
++                files.push(*f);
++            }
++        }
++        if files.len() <= 1 {
++            let certain = ids.len() == 1;
++            return Scoped::Bound { cids: ids, certain };
++        }
++        // The caller's include closure (its own file first).
++        let mut seen: Vec<FileId> = vec![from];
++        let mut frontier = vec![from];
++        for _ in 0..8 {
++            let mut next = Vec::new();
++            for f in frontier {
++                for base in self.requires.get(&f).into_iter().flatten() {
++                    for g in self.by_basename.get(base).into_iter().flatten() {
++                        if !seen.contains(g) {
++                            seen.push(*g);
++                            next.push(*g);
++                        }
++                    }
++                }
++            }
++            if next.is_empty() {
++                break;
++            }
++            frontier = next;
++        }
++        let reached: Vec<FileId> = files.iter().copied().filter(|f| seen.contains(f)).collect();
++        match reached.as_slice() {
++            [one] => {
++                let cids: Vec<CallableId> = ids
++                    .into_iter()
++                    .filter(|c| self.file_of.get(c) == Some(one))
++                    .collect();
++                let certain = cids.len() == 1;
++                Scoped::Bound { cids, certain }
++            }
++            _ => Scoped::Ambiguous,
++        }
 +    }
 +
 +    /// A class name as written in `file` at `byte`, made fully qualified
@@ -3770,10 +3923,7 @@ index 0000000..49b6640
 +            }
 +            for t in &tries {
 +                if let Some(ids) = self.functions.get(t) {
-+                    return Some(Scoped::Bound {
-+                        cids: ids.clone(),
-+                        certain: ids.len() == 1,
-+                    });
++                    return Some(self.one_copy(file, ids.clone()));
 +                }
 +            }
 +            // A function the tree declares only in other namespaces is
@@ -3805,7 +3955,13 @@ index 0000000..49b6640
 +            _ => self.class_fqn(file, r.site_byte, rh),
 +        };
 +        match self.class_method(&fqn, &r.name, 0) {
-+            ClassLookup::Found(cids, certain) => Some(Scoped::Bound { cids, certain }),
++            ClassLookup::Found(cids, certain) => Some(match self.one_copy(file, cids) {
++                Scoped::Bound { cids, certain: c } => Scoped::Bound {
++                    cids,
++                    certain: c && certain,
++                },
++                other => other,
++            }),
 +            ClassLookup::External => Some(Scoped::External(fqn)),
 +            ClassLookup::Unknown => None,
 +        }
