@@ -57,10 +57,10 @@ index bd13dcd..f74174a 100644
              seen.insert(idx);
          }
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index 97fc88c..1debd5f 100644
+index 97fc88c..c538c98 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
-@@ -467,6 +467,26 @@ pub struct FileFacts {
+@@ -467,6 +467,31 @@ pub struct FileFacts {
      /// Empty for C++ (judged from file paths and qualified names).
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub packages: Vec<String>,
@@ -84,10 +84,15 @@ index 97fc88c..1debd5f 100644
 +    pub name: String,
 +    pub start_byte: u32,
 +    pub end_byte: u32,
++    /// Where the binding's declaration starts (`const m = require('./m')`
++    /// starts at `m`, its scope after the initializer): an import the
++    /// declaration itself makes lies in `decl_byte..start_byte`.
++    #[serde(default)]
++    pub decl_byte: u32,
  }
  
  /// A class-level `name = Type(...)` assignment.
-@@ -582,6 +602,7 @@ impl FileFacts {
+@@ -582,6 +607,7 @@ impl FileFacts {
              type_aliases: Vec::new(),
              untyped_receivers: Vec::new(),
              packages: Vec::new(),
@@ -546,10 +551,10 @@ index 5f2eafa..ed6f1af 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index d089883..daa7579 100644
+index d089883..0ff40d7 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
-@@ -33,6 +33,14 @@ impl LanguagePlugin for ZigPlugin {
+@@ -33,10 +33,32 @@ impl LanguagePlugin for ZigPlugin {
              facts: &mut facts,
          };
          w.walk(tree.root_node());
@@ -564,7 +569,25 @@ index d089883..daa7579 100644
          facts
      }
  }
-@@ -125,10 +133,21 @@ impl<'a> ZigWalker<'a> {
+ 
++/// `@import("x").a.b` → `("x", "a.b")`: a path of plain members off an
++/// import.
++fn import_member(text: &str) -> Option<(&str, &str)> {
++    let rest = text.strip_prefix("@import(")?;
++    let close = rest.find(')')?;
++    let spec = rest[..close].trim().trim_matches('"');
++    let members = rest[close + 1..].strip_prefix('.')?;
++    let plain = !spec.is_empty()
++        && members.split('.').all(|seg| {
++            !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
++        });
++    plain.then_some((spec, members))
++}
++
+ struct ZigWalker<'a> {
+     source: &'a [u8],
+     facts: &'a mut FileFacts,
+@@ -125,10 +147,21 @@ impl<'a> ZigWalker<'a> {
                          .map(|n| self.text(n).trim_matches('"').to_string())
                          .unwrap_or_default();
                      if !arg.is_empty() {
@@ -587,7 +610,26 @@ index d089883..daa7579 100644
                              site_line: (node.start_position().row as u32) + 1,
                              site_byte: node.start_byte() as u32,
                          });
-@@ -236,4 +255,22 @@ mod tests {
+@@ -151,6 +184,18 @@ impl<'a> ZigWalker<'a> {
+             return;
+         };
+         let path = self.text(*value).trim();
++        // `const checksum = @import("vsr/checksum.zig").checksum;`: a
++        // member of an imported file, recorded as `<file>#<members>`.
++        if let Some((spec, members)) = import_member(path) {
++            self.facts.imports.push(ImportRecord {
++                kind: "import-member".into(),
++                path: format!("{spec}#{members}"),
++                alias: self.text(*name).to_string(),
++                site_line: (node.start_position().row as u32) + 1,
++                site_byte: node.start_byte() as u32,
++            });
++            return;
++        }
+         let plain = path.split('.').count() >= 2
+             && path.split('.').all(|seg| {
+                 !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
+@@ -236,4 +281,26 @@ mod tests {
          assert!(f.imports.iter().any(|i| i.path == "std"));
          assert!(f.references.iter().any(|r| r.name == "add"));
      }
@@ -602,6 +644,10 @@ index d089883..daa7579 100644
 +            && i.alias == "posix"));
 +        let src = "pub fn build(b: *std.Build) void {\n    _ = b.addModule(\"xev\", .{\n        \
 +                   .root_source_file = b.path(\"src/main.zig\"),\n    });\n}\n";
++        let f = extract("pub const checksum = @import(\"vsr/checksum.zig\").checksum;\n");
++        assert!(f.imports.iter().any(|i| i.kind == "import-member"
++            && i.path == "vsr/checksum.zig#checksum"
++            && i.alias == "checksum"));
 +        let mods = super::super::manifest::zig_build_modules(src.as_bytes());
 +        assert_eq!(mods.len(), 1);
 +        assert_eq!(
@@ -611,7 +657,7 @@ index d089883..daa7579 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 9720a47..aee1f81 100644
+index 9720a47..32871fb 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -1366,6 +1366,12 @@ pub fn resolve(
@@ -662,7 +708,7 @@ index 9720a47..aee1f81 100644
              let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
  
              drop(_sp_imports);
-@@ -2157,6 +2177,28 @@ pub fn resolve(
+@@ -2157,6 +2177,69 @@ pub fn resolve(
                      .and_then(|id| graph.callables.get(&id))
                      .map(|c| c.qualified_name.as_str());
  
@@ -671,6 +717,47 @@ index 9720a47..aee1f81 100644
 +                // the value the name holds. No other file's function is
 +                // the callee, whatever shares its name (WS14).
 +                if locals.shadows_bare_call(r) {
++                    // A local whose type is known is an instance: calling
++                    // it enters its type's call operator (step 7's
++                    // `agent("x")` → `Agent.__call__`), the one reading a
++                    // value binding has.
++                    let call_op: Option<Vec<CallableId>> =
++                        var_types.get(&r.name).and_then(|ty| {
++                            call_operator_names(&lang).iter().find_map(|op| {
++                                by_owner_method
++                                    .get(&(lang.clone(), ty.clone(), (*op).to_string()))
++                                    .filter(|v| !v.is_empty())
++                                    .cloned()
++                                    .or_else(|| {
++                                        resolve_via_bases(
++                                            &lang,
++                                            ty,
++                                            op,
++                                            &by_owner_method,
++                                            &bases_by_owner,
++                                        )
++                                    })
++                            })
++                        });
++                    if let (Some(cids), Some(src)) = (call_op, enclosing) {
++                        for cid in cids {
++                            if cid != src
++                                && !existing_edges.contains(&(src, cid, r.site_byte))
++                            {
++                                out.edges.push(CallEdge {
++                                    src,
++                                    dst: cid,
++                                    site_line: r.site_line,
++                                    site_byte: r.site_byte,
++                                    confidence: Confidence::Medium,
++                                    via: Via::Direct,
++                                    resolver: resolver_id.clone(),
++                                    weight: 1,
++                                });
++                            }
++                        }
++                        continue;
++                    }
 +                    if by_simple
 +                        .get(&(lang.clone(), r.name.clone()))
 +                        .is_some_and(|c| !c.is_empty())
@@ -691,7 +778,7 @@ index 9720a47..aee1f81 100644
                  let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                  let mut capped = 0u32;
                  let mut no_ctor = false;
-@@ -2199,6 +2241,8 @@ pub fn resolve(
+@@ -2199,6 +2282,8 @@ pub fn resolve(
                      &kotlin_extensions,
                      &modix,
                      &file_mods,
@@ -700,7 +787,7 @@ index 9720a47..aee1f81 100644
                      &qn_collisions,
                      &overloads,
                      &mut refused_module,
-@@ -2269,6 +2313,8 @@ pub fn resolve(
+@@ -2269,6 +2354,8 @@ pub fn resolve(
                                  &kotlin_extensions,
                                  &modix,
                                  &file_mods,
@@ -709,7 +796,7 @@ index 9720a47..aee1f81 100644
                                  &qn_collisions,
                                  &overloads,
                                  &mut m2,
-@@ -3604,10 +3650,13 @@ struct BareScope<'s> {
+@@ -3604,10 +3691,13 @@ struct BareScope<'s> {
  ///   names, and the members of the calling class, the classes enclosing
  ///   it, their recorded bases, and — by dispatch — the overrides in
  ///   classes derived from them; never a method of an unrelated class.
@@ -725,11 +812,12 @@ index 9720a47..aee1f81 100644
  ///   functions are recorded like members); and Swift, Dart, Objective-C,
  ///   whose plugins record no base types, so an inherited member cannot be
  ///   told from an unrelated one.
-@@ -3664,7 +3713,26 @@ fn bare_call_reaches(
+@@ -3664,9 +3754,32 @@ fn bare_call_reaches(
              via_import
                  || perl_package(&c.qualified_name) == caller_qn.map_or("", perl_package)
          }
 -        "java" | "csharp" => {
+-            if !member {
 +        // Elixir (WS14): a bare call reaches the calling module's own
 +        // functions and those of a module it `import`s or `use`s — never
 +        // another module's function that happens to share the name
@@ -737,7 +825,7 @@ index 9720a47..aee1f81 100644
 +        "elixir" => {
 +            let module = |qn: &str| qn.rsplit_once("::").map(|(m, _)| m.to_string());
 +            let Some(target) = module(&c.qualified_name) else {
-+                return true;
+                 return true;
 +            };
 +            caller_qn.and_then(module).as_deref() == Some(target.as_str())
 +                || unqualified_prefixes.contains(&target)
@@ -750,10 +838,16 @@ index 9720a47..aee1f81 100644
 +            } else {
 +                member
 +            };
-             if !member {
-                 return true;
++            if !member {
++                // Scala 2 has no top-level `def`: one with no owner is a
++                // package object's member (reached through an import of
++                // its package) or a member the grammar lost its class for
++                // (a parse error), never visible tree-wide.
++                return lang != "scala" || via_import;
              }
-@@ -3680,6 +3748,27 @@ fn bare_call_reaches(
+             // Named by the file's static imports: `import static a.b.C.m;`,
+             // `import static a.b.C.*;`, C# `using static A.C;`, a Kotlin
+@@ -3680,6 +3793,54 @@ fn bare_call_reaches(
              {
                  return true;
              }
@@ -764,24 +858,51 @@ index 9720a47..aee1f81 100644
 +                && let Some(owner) = owner_from_qn(&c.qualified_name)
 +            {
 +                let owner_last = owner.rsplit("::").next().unwrap_or(owner);
-+                let via_wildcard = unqualified_prefixes
++                // The objects the file imports members of, and every type
++                // they inherit from: `import DataTypeErrors.toSQLType`
++                // reaches the `toSQLType` its trait `DataTypeErrorsBase`
++                // declares.
++                let mut imported: Vec<String> = unqualified_prefixes
 +                    .iter()
-+                    .any(|p| p.rsplit('.').next() == Some(owner_last));
-+                let via_member = direct_imports.get(&r.name).is_some_and(|v| {
-+                    v.iter().any(|path| {
-+                        path.rsplit_once('.')
++                    .filter_map(|p| p.rsplit('.').next())
++                    .map(str::to_string)
++                    .collect();
++                if let Some(v) = direct_imports.get(&r.name) {
++                    for path in v {
++                        if let Some(o) = path
++                            .rsplit_once('.')
 +                            .and_then(|(o, _)| o.rsplit('.').next())
-+                            == Some(owner_last)
-+                    })
-+                });
-+                if via_wildcard || via_member {
++                        {
++                            imported.push(o.to_string());
++                        }
++                    }
++                }
++                let mut seen: std::collections::BTreeSet<String> =
++                    std::collections::BTreeSet::new();
++                let mut frontier = imported;
++                for _ in 0..8 {
++                    let mut next = Vec::new();
++                    for t in std::mem::take(&mut frontier) {
++                        if !seen.insert(t.clone()) {
++                            continue;
++                        }
++                        if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
++                            next.extend(bases.iter().cloned());
++                        }
++                    }
++                    if next.is_empty() {
++                        break;
++                    }
++                    frontier = next;
++                }
++                if seen.contains(owner_last) {
 +                    return true;
 +                }
 +            }
              let Some(caller) = caller_qn else {
                  return false;
              };
-@@ -3830,6 +3919,10 @@ fn try_resolve_ref(
+@@ -3830,6 +3991,10 @@ fn try_resolve_ref(
      // index and the calling file's module bindings.
      modix: &crate::modules::ModuleIndex<'_>,
      file_mods: &crate::modules::FileModules,
@@ -792,7 +913,7 @@ index 9720a47..aee1f81 100644
      // Qualified names more than one callable carries; see `resolve`.
      qn_collisions: &std::collections::HashSet<(String, String)>,
      // `(file, qualified name)` → the overload set it declares.
-@@ -3973,6 +4066,7 @@ fn try_resolve_ref(
+@@ -3973,6 +4138,7 @@ fn try_resolve_ref(
      // that provides nothing the call can name is a refusal, recorded by
      // the caller; it does not fall through to the name matching below.
      if matches!(lang, "javascript" | "typescript" | "python" | "go")
@@ -800,7 +921,7 @@ index 9720a47..aee1f81 100644
          && let Some(scoped) = file_mods.resolve(
              modix,
              lang,
-@@ -4006,6 +4100,79 @@ fn try_resolve_ref(
+@@ -4006,6 +4172,79 @@ fn try_resolve_ref(
              }
          }
      }
@@ -880,7 +1001,7 @@ index 9720a47..aee1f81 100644
      // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
      // the evidence singles out when the module is vendored more than once
      // — never another module's `f`.
-@@ -4307,7 +4474,10 @@ fn try_resolve_ref(
+@@ -4307,7 +4546,10 @@ fn try_resolve_ref(
          // receiver_hint is the full receiver expression (e.g., "mod"
          // or "mod.sub"). Take its first segment to match module alias.
          let first = r.receiver_hint.split(['.', ':']).next().unwrap_or("");
@@ -892,7 +1013,7 @@ index 9720a47..aee1f81 100644
              // Rebuild the full target path. For `mod.fn()` with alias
              // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
              // `helpers.sub.fn`.
-@@ -9101,6 +9271,7 @@ mod tests {
+@@ -9101,6 +9343,7 @@ mod tests {
      // ----------------------------------------------------------------
  
      /// One file of a module-scoped case.
@@ -900,7 +1021,7 @@ index 9720a47..aee1f81 100644
      struct MFile<'a> {
          path: &'a str,
          /// `(qualified name, kind, signature)` of each callable.
-@@ -10971,10 +11142,13 @@ mod tests {
+@@ -10971,10 +11214,13 @@ mod tests {
          );
      }
  
@@ -918,7 +1039,7 @@ index 9720a47..aee1f81 100644
      #[test]
      fn dart_bare_call_needs_an_imported_file() {
          let files = vec![
-@@ -10985,25 +11159,303 @@ mod tests {
+@@ -10985,25 +11231,332 @@ mod tests {
              ),
              mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
          ];
@@ -1017,7 +1138,7 @@ index 9720a47..aee1f81 100644
 +                at("otherFn", "pkg_a/lib/src/other.dart"),
              ],
 +            "{dsts:?}"
-         );
++        );
 +    }
 +
 +    /// WS14 (goal a): a bare call through a parameter or local is the
@@ -1030,8 +1151,9 @@ index 9720a47..aee1f81 100644
 +            "src/main.js",
 +            &["main"],
 +            vec![import("from-import", "./other", "x")],
-+        );
-+        let refs = vec![
+         );
+         let refs = vec![
+-            call("expect", ""),
 +            call("cb", ""),
 +            RefRecord {
 +                site_byte: 600,
@@ -1043,6 +1165,7 @@ index 9720a47..aee1f81 100644
 +                name: "cb".into(),
 +                start_byte: 0,
 +                end_byte: 100,
++                decl_byte: 0,
 +            }];
 +        });
 +        // Byte 0 is inside the binding; byte 600 (still in `main`) is not.
@@ -1082,8 +1205,7 @@ index 9720a47..aee1f81 100644
 +                ],
 +            )
 +        };
-         let refs = vec![
--            call("expect", ""),
++        let refs = vec![
 +            call("fromString", "Uuid"),
 +            RefRecord {
 +                site_byte: 21,
@@ -1151,6 +1273,34 @@ index 9720a47..aee1f81 100644
 +        let (dsts, why) = module_case("zig", files, caller, refs);
 +        assert_eq!(dsts, vec![at("run", "src/loop.zig")], "{dsts:?}");
 +        assert!(why.contains(&external("std")), "{why:?}");
++
++        // `pub const checksum = @import("vsr/checksum.zig").checksum;` in
++        // `vsr.zig`: `vsr.checksum()` is that file's function, not a
++        // same-named one elsewhere.
++        let files = vec![
++            mfile(
++                "src/vsr.zig",
++                &[],
++                vec![import(
++                    "import-member",
++                    "vsr/checksum.zig#checksum",
++                    "checksum",
++                )],
++            ),
++            mfile("src/vsr/checksum.zig", &["checksum"], vec![]),
++            mfile("src/other/checksum.zig", &["checksum"], vec![]),
++        ];
++        let caller = mfile(
++            "src/testing/storage.zig",
++            &["check"],
++            vec![import("import", "../vsr.zig", "vsr")],
++        );
++        let (dsts, _) = module_case("zig", files, caller, vec![call("checksum", "vsr")]);
++        assert_eq!(
++            dsts,
++            vec![at("checksum", "src/vsr/checksum.zig")],
++            "{dsts:?}"
++        );
 +    }
 +
 +    /// WS14 (Scala): a bare call reaches the calling class, its bases and
@@ -1262,7 +1412,7 @@ index 25910df..92db88c 100644
              if r.dot_call || lang == "cpp" || self.own_defs.contains(r.name.as_str()) {
                  return None;
 diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
-index cd1c5de..ef42c82 100644
+index cd1c5de..16b42ab 100644
 --- a/crates/cgg-resolve/src/intra_file.rs
 +++ b/crates/cgg-resolve/src/intra_file.rs
 @@ -53,6 +53,88 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
@@ -1478,7 +1628,7 @@ index cd1c5de..ef42c82 100644
                      UnresolvedReason::NotInScopeForBareCall {
                          methods: methods_out_of_scope,
                      }
-@@ -879,6 +1007,88 @@ mod tests {
+@@ -879,6 +1007,89 @@ mod tests {
              .collect()
      }
  
@@ -1487,6 +1637,7 @@ index cd1c5de..ef42c82 100644
 +            name: name.into(),
 +            start_byte: start,
 +            end_byte: end,
++            decl_byte: start,
 +        }
 +    }
 +
@@ -1625,10 +1776,10 @@ index 1ebc9c7..54e5558 100644
                  }
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
 new file mode 100644
-index 0000000..9696564
+index 0000000..d56f64b
 --- /dev/null
 +++ b/crates/cgg-lang/src/locals.rs
-@@ -0,0 +1,715 @@
+@@ -0,0 +1,734 @@
 +//! Value bindings: parameters and local variables, with the span they are
 +//! in scope over (FINDINGS A1/A4 generalisation, WS14).
 +//!
@@ -2085,10 +2236,29 @@ index 0000000..9696564
 +                &chain[..level.checked_sub(1)?]
 +            };
 +            let (start, end) = scope_of(spec, ancestors, binder)?;
++            // The declaration statement around the binder (`const` before
++            // a JS declarator), unless the binder sits directly in a
++            // block or function.
++            let decl = match ancestors.len() {
++                0 => start,
++                n => {
++                    let binder_node = ancestors[n - 1].0;
++                    match n.checked_sub(2).map(|i| ancestors[i].0) {
++                        Some(p)
++                            if !spec.blocks.contains(&p.kind())
++                                && !spec.functions.contains(&p.kind()) =>
++                        {
++                            p.start_byte().min(binder_node.start_byte()) as u32
++                        }
++                        _ => binder_node.start_byte() as u32,
++                    }
++                }
++            };
 +            return Some(LocalBinding {
 +                name: name.to_string(),
 +                start_byte: start,
 +                end_byte: end,
++                decl_byte: decl.min(start),
 +            });
 +        }
 +        if spec.binders.iter().any(|b| b.kind == parent.kind())
@@ -2344,189 +2514,12 @@ index 0000000..9696564
 +        }
 +    }
 +}
-diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
-new file mode 100644
-index 0000000..6b5b8dc
---- /dev/null
-+++ b/crates/cgg-resolve/src/scope.rs
-@@ -0,0 +1,171 @@
-+//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
-+//! generalisation).
-+//!
-+//! The plugins record every parameter and local variable with the span it
-+//! is in scope over (`FileFacts::locals`, see `cgg_lang::locals`). A bare
-+//! call through such a name calls the value it holds: neither a same-named
-+//! function in another file nor one declared further out in this file is
-+//! the callee. A receiver headed by one (`c.json()` with a parameter `c`)
-+//! is that value, not an import of the same name.
-+
-+use std::collections::HashMap;
-+
-+use cgg_core::{FileFacts, RefRecord};
-+
-+/// One file's value bindings, by name.
-+#[derive(Debug, Default)]
-+pub(crate) struct FileLocals {
-+    /// Per name: binding spans sorted by start (outermost first at equal
-+    /// starts), each with the index of its innermost enclosing span of
-+    /// the same name — a minified bundle binds one short name thousands
-+    /// of times, so a lookup climbs this chain instead of scanning.
-+    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
-+    /// Names the file's imports bind: a local that holds an import
-+    /// (`const m = require('./m')` inside a function) is left to the
-+    /// module resolver.
-+    imported: std::collections::HashSet<String>,
-+}
-+
-+impl FileLocals {
-+    pub(crate) fn build(facts: &FileFacts) -> Self {
-+        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-+        for l in &facts.locals {
-+            raw.entry(l.name.clone())
-+                .or_default()
-+                .push((l.start_byte, l.end_byte));
-+        }
-+        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
-+        for (name, mut v) in raw {
-+            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
-+            v.dedup();
-+            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
-+            let mut open: Vec<usize> = Vec::new();
-+            for (s, e) in v {
-+                while open
-+                    .last()
-+                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
-+                {
-+                    open.pop();
-+                }
-+                out.push((s, e, open.last().copied()));
-+                open.push(out.len() - 1);
-+            }
-+            spans.insert(name, out);
-+        }
-+        let mut imported = std::collections::HashSet::new();
-+        for imp in &facts.imports {
-+            for item in imp.alias.split(',') {
-+                let item = item.trim();
-+                let local = item
-+                    .rsplit_once(" as ")
-+                    .map_or(item, |(_, a)| a.trim())
-+                    .trim();
-+                if !local.is_empty() {
-+                    imported.insert(local.to_string());
-+                }
-+            }
-+        }
-+        FileLocals { spans, imported }
-+    }
-+
-+    /// The innermost binding of `name` in scope at `site`, as its span.
-+    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
-+        let v = self.spans.get(name)?;
-+        let pos = v.partition_point(|(s, _, _)| *s <= site);
-+        let mut cur = pos.checked_sub(1);
-+        while let Some(i) = cur {
-+            let (s, e, parent) = v[i];
-+            if s <= site && site < e {
-+                return Some((s, e));
-+            }
-+            cur = parent;
-+        }
-+        None
-+    }
-+
-+    /// Whether `name` is a value binding in scope at `site`.
-+    pub(crate) fn binds(&self, name: &str, site: u32) -> bool {
-+        self.binding_at(name, site).is_some()
-+    }
-+
-+    /// A bare call (`f()`, no receiver and no dot) through a value
-+    /// binding, which no other file's function can be the callee of.
-+    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
-+        r.receiver_hint.is_empty()
-+            && !r.dot_call
-+            && !self.imported.contains(r.name.as_str())
-+            && self.binds(&r.name, r.site_byte)
-+    }
-+
-+    /// Whether the leading identifier of the call's receiver is a value
-+    /// binding at the site — then it is not a module or import of that
-+    /// name.
-+    pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
-+        let rh = r.receiver_hint.trim();
-+        let rh = rh.strip_prefix("new ").unwrap_or(rh);
-+        let end = rh
-+            .char_indices()
-+            .find(|(_, c)| !(c.is_alphanumeric() || *c == '_' || *c == '$'))
-+            .map_or(rh.len(), |(i, _)| i);
-+        let head = &rh[..end];
-+        !head.is_empty() && self.binds(head, r.site_byte)
-+    }
-+}
-+
-+#[cfg(test)]
-+mod tests {
-+    use super::*;
-+    use cgg_core::{LocalBinding, ids::FileId};
-+
-+    fn facts() -> FileFacts {
-+        let mut f = FileFacts::new(FileId::new(0), "a.js".into(), "javascript");
-+        f.locals = vec![
-+            LocalBinding {
-+                name: "cb".into(),
-+                start_byte: 10,
-+                end_byte: 50,
-+            },
-+            LocalBinding {
-+                name: "c".into(),
-+                start_byte: 10,
-+                end_byte: 50,
-+            },
-+        ];
-+        f
-+    }
-+
-+    fn call(name: &str, recv: &str, at: u32) -> RefRecord {
-+        RefRecord {
-+            name: name.into(),
-+            receiver_hint: recv.into(),
-+            site_byte: at,
-+            ..Default::default()
-+        }
-+    }
-+
-+    #[test]
-+    fn a_bare_call_through_a_binding_in_scope_is_shadowed() {
-+        let l = FileLocals::build(&facts());
-+        assert!(l.shadows_bare_call(&call("cb", "", 20)));
-+        // Out of the binding's scope, or with a receiver: not shadowed.
-+        assert!(!l.shadows_bare_call(&call("cb", "", 60)));
-+        assert!(!l.shadows_bare_call(&call("cb", "x", 20)));
-+        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
-+        assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
-+        assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
-+    }
-+
-+    #[test]
-+    fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
-+        let mut f = facts();
-+        f.imports.push(cgg_core::ImportRecord {
-+            kind: "import".into(),
-+            path: "./cb".into(),
-+            alias: "cb".into(),
-+            site_line: 1,
-+            site_byte: 12,
-+        });
-+        let l = FileLocals::build(&f);
-+        assert!(!l.shadows_bare_call(&call("cb", "", 20)));
-+    }
-+}
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
 new file mode 100644
-index 0000000..08535e6
+index 0000000..49b6640
 --- /dev/null
 +++ b/crates/cgg-resolve/src/libscope.rs
-@@ -0,0 +1,1116 @@
+@@ -0,0 +1,1171 @@
 +//! Library scope for languages whose imports name files (WS14).
 +//!
 +//! Dart: a file sees its own library's top-level names (itself and its
@@ -2609,6 +2602,8 @@ index 0000000..08535e6
 +    Import(String),
 +    /// `a.b.c`, a path through this file's other bindings.
 +    Alias(String),
++    /// `@import("x").a.b`: members of an imported file.
++    ImportMember(String, String),
 +}
 +
 +/// A library's exported namespace: name → the callables it denotes.
@@ -3203,6 +3198,17 @@ index 0000000..08535e6
 +                            ZigBind::Alias(imp.path.trim().into()),
 +                        );
 +                    }
++                    "import-member" if !name.is_empty() => {
++                        if let Some((spec, members)) = imp.path.trim().split_once('#') {
++                            binds.insert(
++                                name.to_string(),
++                                ZigBind::ImportMember(
++                                    spec.to_string(),
++                                    members.to_string(),
++                                ),
++                            );
++                        }
++                    }
 +                    "zig-module" => {
 +                        if let Some(dir) = f.path.parent() {
 +                            self.zig_modules.push((
@@ -3304,23 +3310,56 @@ index 0000000..08535e6
 +            return None;
 +        }
 +        let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
-+        let (g, label) = self.zig_walk(file, &segs, 0)?;
-+        let g = match g {
++        let (g, _) = self.zig_walk(file, &segs, 0)?;
++        let mut g = match g {
 +            Target::File(g) => g,
 +            Target::External(m) => return Some(Scoped::External(m)),
 +            Target::Unknown => return None,
 +        };
-+        let cands = self.zig_top.get(&g).and_then(|t| t.get(r.name.as_str()))?;
-+        match cands.as_slice() {
-+            [_] => Some(Scoped::Bound {
-+                cids: cands.clone(),
-+                certain: true,
-+            }),
-+            _ => {
-+                let _ = label;
-+                None
++        let mut name = r.name.clone();
++        // The name may itself be a re-export of the file reached:
++        // `pub const checksum = @import("vsr/checksum.zig").checksum;`.
++        for _ in 0..MAX_DEPTH {
++            if let Some(cands) = self.zig_top.get(&g).and_then(|t| t.get(name.as_str())) {
++                return match cands.as_slice() {
++                    [_] => Some(Scoped::Bound {
++                        cids: cands.clone(),
++                        certain: true,
++                    }),
++                    _ => None,
++                };
++            }
++            let path: Vec<String> = match self.zig_binds.get(&g)?.get(&name)? {
++                ZigBind::Alias(p) => p.split('.').map(str::to_string).collect(),
++                ZigBind::ImportMember(spec, members) => {
++                    // Resolved from `g`: the import spec, then the members.
++                    let mut p = vec![format!("@{spec}")];
++                    p.extend(members.split('.').map(str::to_string));
++                    p
++                }
++                ZigBind::Import(_) => return None,
++            };
++            let (last, prefix) = path.split_last()?;
++            let target =
++                if let Some(spec) = prefix.first().and_then(|h| h.strip_prefix('@')) {
++                    match self.zig_target(g, spec) {
++                        Target::File(f) if prefix.len() == 1 => Target::File(f),
++                        Target::File(f) => self.zig_walk(f, &prefix[1..], 0)?.0,
++                        other => other,
++                    }
++                } else {
++                    self.zig_walk(g, prefix, 0)?.0
++                };
++            match target {
++                Target::File(f) => {
++                    g = f;
++                    name = last.clone();
++                }
++                Target::External(m) => return Some(Scoped::External(m)),
++                Target::Unknown => return None,
 +            }
 +        }
++        None
 +    }
 +
 +    /// Follow `segs` from `file` through file-level bindings to the file
@@ -3350,6 +3389,15 @@ index 0000000..08535e6
 +                    Some((Target::File(g), spec.clone()))
 +                }
 +                Target::File(g) => self.zig_walk(g, rest, depth + 1),
++                other => Some((other, spec.clone())),
++            },
++            ZigBind::ImportMember(spec, members) => match self.zig_target(file, spec) {
++                Target::File(g) => {
++                    let mut path: Vec<String> =
++                        members.split('.').map(str::to_string).collect();
++                    path.extend(rest.iter().cloned());
++                    self.zig_walk(g, &path, depth + 1)
++                }
 +                other => Some((other, spec.clone())),
 +            },
 +        }
@@ -3642,4 +3690,200 @@ index 0000000..08535e6
 +    External,
 +    /// Not decided here.
 +    Unknown,
++}
+diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
+new file mode 100644
+index 0000000..351ff6a
+--- /dev/null
++++ b/crates/cgg-resolve/src/scope.rs
+@@ -0,0 +1,190 @@
++//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
++//! generalisation).
++//!
++//! The plugins record every parameter and local variable with the span it
++//! is in scope over (`FileFacts::locals`, see `cgg_lang::locals`). A bare
++//! call through such a name calls the value it holds: neither a same-named
++//! function in another file nor one declared further out in this file is
++//! the callee. A receiver headed by one (`c.json()` with a parameter `c`)
++//! is that value, not an import of the same name.
++
++use std::collections::HashMap;
++
++use cgg_core::{FileFacts, RefRecord};
++
++/// One file's value bindings, by name.
++#[derive(Debug, Default)]
++pub(crate) struct FileLocals {
++    /// Per name: binding spans sorted by start (outermost first at equal
++    /// starts), each with the index of its innermost enclosing span of
++    /// the same name — a minified bundle binds one short name thousands
++    /// of times, so a lookup climbs this chain instead of scanning.
++    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
++}
++
++impl FileLocals {
++    pub(crate) fn build(facts: &FileFacts) -> Self {
++        // An import the declaration itself makes (`const m =
++        // require('./m')` inside a function) is that import's binding,
++        // which the module resolver follows: not a shadow of it.
++        let mut import_sites: HashMap<&str, Vec<u32>> = HashMap::new();
++        for imp in &facts.imports {
++            for item in imp.alias.split(',') {
++                let item = item.trim();
++                let local = item
++                    .rsplit_once(" as ")
++                    .map_or(item, |(_, a)| a.trim())
++                    .trim();
++                if !local.is_empty() {
++                    import_sites.entry(local).or_default().push(imp.site_byte);
++                }
++            }
++        }
++        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
++        for l in &facts.locals {
++            let is_the_import = import_sites.get(l.name.as_str()).is_some_and(|sites| {
++                sites.iter().any(|b| l.decl_byte <= *b && *b < l.start_byte)
++            });
++            if is_the_import {
++                continue;
++            }
++            raw.entry(l.name.clone())
++                .or_default()
++                .push((l.start_byte, l.end_byte));
++        }
++        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
++        for (name, mut v) in raw {
++            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
++            v.dedup();
++            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
++            let mut open: Vec<usize> = Vec::new();
++            for (s, e) in v {
++                while open
++                    .last()
++                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
++                {
++                    open.pop();
++                }
++                out.push((s, e, open.last().copied()));
++                open.push(out.len() - 1);
++            }
++            spans.insert(name, out);
++        }
++        FileLocals { spans }
++    }
++
++    /// The innermost binding of `name` in scope at `site`, as its span.
++    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
++        let v = self.spans.get(name)?;
++        let pos = v.partition_point(|(s, _, _)| *s <= site);
++        let mut cur = pos.checked_sub(1);
++        while let Some(i) = cur {
++            let (s, e, parent) = v[i];
++            if s <= site && site < e {
++                return Some((s, e));
++            }
++            cur = parent;
++        }
++        None
++    }
++
++    /// Whether `name` is a value binding in scope at `site`.
++    pub(crate) fn binds(&self, name: &str, site: u32) -> bool {
++        self.binding_at(name, site).is_some()
++    }
++
++    /// A bare call (`f()`, no receiver and no dot) through a value
++    /// binding, which no other file's function can be the callee of.
++    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
++        r.receiver_hint.is_empty() && !r.dot_call && self.binds(&r.name, r.site_byte)
++    }
++
++    /// Whether the leading identifier of the call's receiver is a value
++    /// binding at the site — then it is not a module or import of that
++    /// name.
++    pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
++        let rh = r.receiver_hint.trim();
++        let rh = rh.strip_prefix("new ").unwrap_or(rh);
++        let end = rh
++            .char_indices()
++            .find(|(_, c)| !(c.is_alphanumeric() || *c == '_' || *c == '$'))
++            .map_or(rh.len(), |(i, _)| i);
++        let head = &rh[..end];
++        !head.is_empty() && self.binds(head, r.site_byte)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use cgg_core::{LocalBinding, ids::FileId};
++
++    fn facts() -> FileFacts {
++        let mut f = FileFacts::new(FileId::new(0), "a.js".into(), "javascript");
++        f.locals = vec![
++            LocalBinding {
++                name: "cb".into(),
++                start_byte: 10,
++                end_byte: 50,
++                decl_byte: 10,
++            },
++            LocalBinding {
++                name: "c".into(),
++                start_byte: 10,
++                end_byte: 50,
++                decl_byte: 10,
++            },
++        ];
++        f
++    }
++
++    fn call(name: &str, recv: &str, at: u32) -> RefRecord {
++        RefRecord {
++            name: name.into(),
++            receiver_hint: recv.into(),
++            site_byte: at,
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn a_bare_call_through_a_binding_in_scope_is_shadowed() {
++        let l = FileLocals::build(&facts());
++        assert!(l.shadows_bare_call(&call("cb", "", 20)));
++        // Out of the binding's scope, or with a receiver: not shadowed.
++        assert!(!l.shadows_bare_call(&call("cb", "", 60)));
++        assert!(!l.shadows_bare_call(&call("cb", "x", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
++        assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
++    }
++
++    #[test]
++    fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
++        // `const cb = require('./cb')`: the declaration (from byte 5) makes
++        // the import (at byte 7); its scope starts after it (byte 10).
++        let mut f = facts();
++        f.locals[0].decl_byte = 5;
++        f.imports.push(cgg_core::ImportRecord {
++            kind: "import".into(),
++            path: "./cb".into(),
++            alias: "cb".into(),
++            site_line: 1,
++            site_byte: 7,
++        });
++        let l = FileLocals::build(&f);
++        assert!(!l.shadows_bare_call(&call("cb", "", 20)));
++        // Near miss: a parameter named like a file-level import still
++        // shadows it (the import is outside its declaration).
++        let mut f = facts();
++        f.imports.push(cgg_core::ImportRecord {
++            kind: "import".into(),
++            path: "./c".into(),
++            alias: "c".into(),
++            site_line: 1,
++            site_byte: 0,
++        });
++        let l = FileLocals::build(&f);
++        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
++    }
 +}
