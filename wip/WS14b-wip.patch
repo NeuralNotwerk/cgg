@@ -1,5 +1,5 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index c538c98..ca969b8 100644
+index c538c98..2df1b83 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
 @@ -283,6 +283,12 @@ pub struct DefRecord {
@@ -49,7 +49,7 @@ index c538c98..ca969b8 100644
      /// How many arguments the call passes, where the language makes a
      /// function's arity part of its identity — Erlang's `f/1` and `f/2`
      /// are different functions that share a name. `None` when unknown or
-@@ -478,6 +511,32 @@ pub struct FileFacts {
+@@ -478,6 +511,37 @@ pub struct FileFacts {
      /// declares by name is a definition, not one of these.
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub locals: Vec<LocalBinding>,
@@ -79,10 +79,15 @@ index c538c98..ca969b8 100644
 +    /// The package it is declared in (Scala).
 +    #[serde(default, skip_serializing_if = "String::is_empty")]
 +    pub package: String,
++    /// Value declarations of the container, name and value as written
++    /// (Zig `pub const frame = Functions(@This()).frame;`): a member that
++    /// is another name for a function.
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub decls: Vec<(String, String)>,
  }
  
  /// A name bound to a value over `start_byte..end_byte` (see
-@@ -608,6 +667,7 @@ impl FileFacts {
+@@ -608,6 +672,7 @@ impl FileFacts {
              untyped_receivers: Vec::new(),
              packages: Vec::new(),
              locals: Vec::new(),
@@ -1159,7 +1164,7 @@ index ec1966e..a476f94 100644
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
-index 5420a7c..488aa39 100644
+index 5420a7c..e12b82e 100644
 --- a/crates/cgg-lang/src/plugins/scala.rs
 +++ b/crates/cgg-lang/src/plugins/scala.rs
 @@ -36,6 +36,7 @@ impl LanguagePlugin for ScalaPlugin {
@@ -1179,7 +1184,7 @@ index 5420a7c..488aa39 100644
  }
  
  impl<'a> ScalaWalker<'a> {
-@@ -68,12 +71,87 @@ impl<'a> ScalaWalker<'a> {
+@@ -68,12 +71,89 @@ impl<'a> ScalaWalker<'a> {
  
      fn walk(&mut self, node: Node) {
          match node.kind() {
@@ -1235,6 +1240,7 @@ index 5420a7c..488aa39 100644
 +                        kind: "anon".into(),
 +                        bases,
 +                        package: self.package.clone(),
++                        ..Default::default()
 +                    });
 +                }
 +                self.walk_children(node);
@@ -1262,12 +1268,13 @@ index 5420a7c..488aa39 100644
 +                        kind: node.kind().trim_end_matches("_definition").to_string(),
 +                        bases: class_bases.clone(),
 +                        package: self.package.clone(),
++                        ..Default::default()
 +                    });
 +                }
                  if !name.is_empty() {
                      self.scope.push(name);
                      self.bases.push(class_bases.clone());
-@@ -201,6 +279,18 @@ impl<'a> ScalaWalker<'a> {
+@@ -201,6 +281,18 @@ impl<'a> ScalaWalker<'a> {
          if func.is_empty() {
              return;
          }
@@ -1286,7 +1293,7 @@ index 5420a7c..488aa39 100644
  
          self.facts.references.push(RefRecord {
              name: func,
-@@ -286,4 +376,41 @@ mod tests {
+@@ -286,4 +378,41 @@ mod tests {
          // Outside any type there is nothing to own it.
          assert!(f.definitions.iter().all(|d| d.simple_name != "top"));
      }
@@ -1329,7 +1336,7 @@ index 5420a7c..488aa39 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index eafccf8..d4a2a95 100644
+index eafccf8..eb107a7 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
 @@ -31,8 +31,14 @@ impl LanguagePlugin for ZigPlugin {
@@ -1506,7 +1513,7 @@ index eafccf8..d4a2a95 100644
                  self.walk_children(node);
                  return;
              }
-@@ -174,6 +305,310 @@ impl<'a> ZigWalker<'a> {
+@@ -174,6 +305,328 @@ impl<'a> ZigWalker<'a> {
          self.walk_children(node);
      }
  
@@ -1559,6 +1566,24 @@ index eafccf8..d4a2a95 100644
 +            self.walk_children(value);
 +            self.containers.pop();
 +            return true;
++        }
++        // `pub const frame = Functions(@This()).frame;` in a container: a
++        // declaration that may name a function (WS14b).
++        if !in_fn
++            && let Some((_, cs)) = self.containers.last()
++            && matches!(value.kind(), "field_expression" | "identifier")
++        {
++            let cs = *cs;
++            let text = self.text(value).to_string();
++            if let Some(t) = self
++                .facts
++                .type_spans
++                .iter_mut()
++                .rev()
++                .find(|t| t.start_byte == cs)
++            {
++                t.decls.push((name.clone(), text));
++            }
 +        }
 +        let is_this = value.kind() == "builtin_function"
 +            && value
@@ -1817,7 +1842,7 @@ index eafccf8..d4a2a95 100644
      fn record_alias(&mut self, node: Node) {
          let mut c = node.walk();
          let children: Vec<Node> = node.named_children(&mut c).collect();
-@@ -303,4 +738,48 @@ mod tests {
+@@ -303,4 +756,48 @@ mod tests {
              ("xev", "src/main.zig")
          );
      }
@@ -1867,10 +1892,10 @@ index eafccf8..d4a2a95 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 8ed406d..42ebd46 100644
+index 8ed406d..af675dd 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
-@@ -2382,69 +2382,181 @@ pub fn resolve(
+@@ -2382,69 +2382,96 @@ pub fn resolve(
                  // it with — and anything that finds is a guess, so medium.
                  let mut untyped_fallback = false;
                  let resolved = match resolved {
@@ -1930,6 +1955,11 @@ index 8ed406d..42ebd46 100644
 -                                &mut c2,
 -                                &mut n2,
 -                            )
+-                        })
+-                        .inspect(|_| {
+-                            untyped_fallback = true;
+-                            external = None;
+-                        }),
 +                    // Zig (WS14b): a receiver typed as something the
 +                    // container lookup could not follow (a generic's
 +                    // `const T = Fn(…)` alias) is read as written; a type
@@ -2002,92 +2032,6 @@ index 8ed406d..42ebd46 100644
 +                                external = None;
 +                            })
 +                    }
-+                    // A bare call in a Kotlin `x.run { … }` / `with(x) { … }`
-+                    // lambda was tried on its implicit receiver `x` first
-+                    // (WS14b); when `x`'s type does not declare it, the
-+                    // call is to an enclosing scope, read as a bare one. A
-+                    // receiver typed outside the tree declares members cgg
-+                    // cannot see: a bare reading that binds wins over that
-+                    // `external`, as a guess (medium).
-+                    None if r.implicit_receiver && capped == 0 => {
-+                        let mut r2 = r.clone();
-+                        r2.receiver_hint = String::new();
-+                        r2.implicit_receiver = false;
-+                        let (mut c2, mut n2) = (0u32, false);
-+                        let mut e2: Option<String> = None;
-+                        let (mut m2, mut mc2) = (None, false);
-+                        try_resolve_ref(
-+                            graph,
-+                            facts.file,
-+                            &lang,
-+                            &r2,
-+                            &heads,
-+                            &vocab,
-+                            &mut e2,
-+                            &direct_imports,
-+                            &module_aliases,
-+                            &unqualified_prefixes,
-+                            &scoped_simple,
-+                            &module_files,
-+                            &by_qn,
-+                            &by_simple,
-+                            &by_owner_method,
-+                            &by_full_owner_method,
-+                            &std_owner_trait_impls,
-+                            &reexports,
-+                            &bases_by_owner,
-+                            &derived_by_base,
-+                            &zig_packages,
-+                            &known_owners,
-+                            &stub_ids,
-+                            &signatures,
-+                            &var_types,
-+                            caller_qn,
-+                            enclosing,
-+                            fanout_cap,
-+                            &rust_path_heads,
-+                            &workspace_owner_names,
-+                            &class_record_langs,
-+                            &own_bases,
-+                            &kotlin_extensions,
-+                            &modix,
-+                            &file_mods,
-+                            &libix,
-+                            &phpix,
-+                            &scala_wild,
-+                            &qn_collisions,
-+                            &overloads,
-+                            &mut m2,
-+                            &mut mc2,
-+                            &mut c2,
-+                            &mut n2,
-+                        )
-+                        .or_else(|| {
-+                            // A function of this very file (what the
-+                            // intra-file pass binds a bare call to), when
-+                            // it is the one of that name here.
-+                            let here: Vec<CallableId> = by_simple
-+                                .get(&(lang.clone(), r.name.clone()))
-+                                .into_iter()
-+                                .flatten()
-+                                .copied()
-+                                .filter(|c| {
-+                                    Some(*c) != enclosing
-+                                        && graph
-+                                            .callables
-+                                            .get(c)
-+                                            .is_some_and(|n| n.file == facts.file)
-+                                })
-+                                .collect();
-+                            (here.len() == 1).then_some(here)
-                         })
-                         .inspect(|_| {
-                             untyped_fallback = true;
-                             external = None;
--                        }),
-+                            refused_module = None;
-+                        })
-+                    }
                      other => other,
                  };
 +                // A non-recursive binding is not the callee of a call in
@@ -2109,7 +2053,7 @@ index 8ed406d..42ebd46 100644
                  // `--guess-unique-names`: a Rust site nothing placed, whose
                  // name exactly one callable in the tree carries. Opt-in and
                  // `low`, because a unique name is evidence, not proof.
-@@ -4352,6 +4464,30 @@ fn try_resolve_ref(
+@@ -4352,6 +4379,30 @@ fn try_resolve_ref(
              crate::modules::Scoped::NoCtor => return None,
          }
      }
@@ -2140,7 +2084,7 @@ index 8ed406d..42ebd46 100644
      // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
      // the class `X` names through them (a dependency's class is
      // external); `parent::m()` the caller's base's; `f()` the namespace's
-@@ -4420,6 +4556,28 @@ fn try_resolve_ref(
+@@ -4420,6 +4471,28 @@ fn try_resolve_ref(
      // answered by whichever same-named callable was indexed last.
      let bare_qns = matches!(lang, "javascript" | "typescript");
  
@@ -2169,7 +2113,7 @@ index 8ed406d..42ebd46 100644
      // Step 1: direct import match — `foo()` where `foo` was
      // imported.
      if r.receiver_hint.is_empty() {
-@@ -9634,6 +9792,22 @@ mod tests {
+@@ -9634,6 +9707,22 @@ mod tests {
          tweak: impl FnOnce(&mut FileFacts),
      ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
          let mut tweak = Some(tweak);
@@ -2192,7 +2136,7 @@ index 8ed406d..42ebd46 100644
          let mut g = Graph::new();
          let mut facts = Vec::new();
          let mut all: Vec<MFile<'_>> = files;
-@@ -9681,11 +9855,7 @@ mod tests {
+@@ -9681,11 +9770,7 @@ mod tests {
                  f.imports,
              );
              ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
@@ -2205,7 +2149,7 @@ index 8ed406d..42ebd46 100644
              facts.push(ff);
          }
          let out = resolve_default(&g, &facts);
-@@ -11727,6 +11897,250 @@ mod tests {
+@@ -11727,6 +11812,251 @@ mod tests {
          );
      }
  
@@ -2369,6 +2313,7 @@ index 8ed406d..42ebd46 100644
 +                kind: kind.into(),
 +                bases: bases.iter().map(|b| b.to_string()).collect(),
 +                package: pkg.into(),
++                decls: vec![],
 +            }
 +        };
 +        let files = vec![
@@ -2569,7 +2514,7 @@ index 8b4e088..513450d 100644
      /// function of the file returns (`is_valid = factory(x)` then
      /// `is_valid(i)`): the nested definition stays its candidate; a
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..b29731c 100644
+index fd17edc..e553cf0 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
 @@ -73,6 +73,42 @@ struct DartFile {
@@ -2615,7 +2560,7 @@ index fd17edc..b29731c 100644
  /// A Zig file-level name bound to another file or a path.
  #[derive(Debug, Clone)]
  enum ZigBind {
-@@ -113,6 +149,38 @@ pub(crate) struct LibIndex<'a> {
+@@ -113,6 +149,41 @@ pub(crate) struct LibIndex<'a> {
      zig_names: HashSet<String>,
      /// Zig: file → callables not nested in another, by simple name.
      zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
@@ -2629,6 +2574,9 @@ index fd17edc..b29731c 100644
 +    zig_spans: HashMap<CallableId, (u32, u32)>,
 +    /// Zig: functions returning `type` (generic type constructors).
 +    zig_type_fns: HashSet<CallableId>,
++    /// Zig: `(file, container body span)` → its value declarations by
++    /// name, as written (`frame` → `Functions(@This()).frame`).
++    zig_decls: HashMap<(FileId, u32, u32), HashMap<&'a str, String>>,
 +    /// Perl: `(package, sub name)` → its subs (`main` for none).
 +    perl_subs: HashMap<(String, String), Vec<CallableId>>,
 +    /// Perl: every package a `package` statement of the tree declares.
@@ -2654,7 +2602,7 @@ index fd17edc..b29731c 100644
      /// Exported namespaces, computed on first use, and whether some
      /// export chain leaves the tree.
      ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
-@@ -122,6 +190,8 @@ impl<'a> LibIndex<'a> {
+@@ -122,6 +193,8 @@ impl<'a> LibIndex<'a> {
      pub(crate) fn build(graph: &'a Graph, facts: &'a [FileFacts]) -> Self {
          let mut ix = LibIndex::default();
          ix.build_zig(graph, facts);
@@ -2663,7 +2611,7 @@ index fd17edc..b29731c 100644
          if !facts.iter().any(|f| f.language == "dart") {
              return ix;
          }
-@@ -613,6 +683,388 @@ impl<'a> LibIndex<'a> {
+@@ -613,6 +686,388 @@ impl<'a> LibIndex<'a> {
  }
  
  impl<'a> LibIndex<'a> {
@@ -3052,7 +3000,7 @@ index fd17edc..b29731c 100644
      fn build_zig(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
          if !facts.iter().any(|f| f.language == "zig") {
              return;
-@@ -647,6 +1099,47 @@ impl<'a> LibIndex<'a> {
+@@ -647,6 +1102,56 @@ impl<'a> LibIndex<'a> {
                      .push(c.id);
              }
          }
@@ -3079,6 +3027,15 @@ index fd17edc..b29731c 100644
 +                .map(|t| (t.name.as_str(), t.start_byte, t.end_byte))
 +                .collect();
 +            self.zig_types.insert(f.file, named);
++            for t in f.type_spans.iter().filter(|t| !t.decls.is_empty()) {
++                let slot = self
++                    .zig_decls
++                    .entry((f.file, t.start_byte, t.end_byte))
++                    .or_default();
++                for (n, v) in &t.decls {
++                    slot.entry(n.as_str()).or_insert_with(|| v.clone());
++                }
++            }
 +            let mut cs = by_file.remove(&f.file).unwrap_or_default();
 +            cs.sort_by_key(|c| (c.start_byte, c.id));
 +            for c in cs {
@@ -3100,17 +3057,17 @@ index fd17edc..b29731c 100644
          for f in facts.iter().filter(|f| f.language == "zig") {
              self.paths.insert(f.file, f.path.as_path());
              self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
-@@ -780,6 +1273,9 @@ impl<'a> LibIndex<'a> {
+@@ -780,6 +1285,9 @@ impl<'a> LibIndex<'a> {
          if rh.is_empty() {
              return None;
          }
 +        if let Some(open) = rh.find('(') {
-+            return self.zig_generic_call(file, &rh[..open], r);
++            return self.zig_generic_call(file, &rh[..open], &r.name, 0);
 +        }
          let segs: Vec<&str> = rh.split('.').collect();
          if !segs
              .iter()
-@@ -788,7 +1284,11 @@ impl<'a> LibIndex<'a> {
+@@ -788,7 +1296,11 @@ impl<'a> LibIndex<'a> {
              return None;
          }
          let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
@@ -3118,40 +3075,52 @@ index fd17edc..b29731c 100644
 +        let Some((g, _)) = self.zig_walk(file, &segs, 0) else {
 +            // The receiver is a value typed as a container (WS14b): the
 +            // call is that container's member.
-+            return self.zig_member_call(file, &segs, r);
++            return self.zig_member_call(file, &segs, &r.name, Some(r.site_byte), 0);
 +        };
          let mut g = match g {
              Target::File(g) => g,
              Target::External(m) => return Some(Scoped::External(m)),
-@@ -840,6 +1340,168 @@ impl<'a> LibIndex<'a> {
+@@ -840,6 +1352,235 @@ impl<'a> LibIndex<'a> {
          None
      }
  
 +    /// A call on a receiver typed as a Zig container (`surface.close()`
 +    /// with `surface: *Surface`, `Surface = @import("surface.zig")
-+    /// .Surface`): the one member of that name the container declares.
-+    /// `None` when the type is not found or the member is not one
-+    /// callable of it (a field, `usingnamespace`, several).
++    /// .Surface`): the one member of that name the container declares —
++    /// a function, or a declaration aliasing one (`pub const frame =
++    /// Functions(@This()).frame;`, followed). `None` when the type is not
++    /// found or the member is not one callable of it; refused when the
++    /// container declares nothing of that name (a field holding a
++    /// function pointer is not a same-named function elsewhere).
 +    fn zig_member_call(
 +        &self,
 +        file: FileId,
 +        segs: &[String],
-+        r: &RefRecord,
++        name: &str,
++        site: Option<u32>,
++        depth: u8,
 +    ) -> Option<Scoped> {
-+        let members = match self.zig_type(file, segs, Some(r.site_byte), 0)? {
++        if depth > 4 {
++            return None;
++        }
++        let members = match self.zig_type(file, segs, site, 0)? {
 +            ZigTy::External(m) => return Some(Scoped::External(m)),
-+            ZigTy::File(g) => self.zig_top.get(&g)?.get(r.name.as_str())?,
-+            // A container's member is one of its declarations: a name it
-+            // does not declare is a field (a function pointer) or nothing,
-+            // never a same-named function elsewhere.
-+            ZigTy::Container(g, s, e) => match self
-+                .zig_members
-+                .get(&(g, s, e))
-+                .and_then(|m| m.get(r.name.as_str()))
-+            {
-+                Some(m) => m,
-+                None => return Some(Scoped::Refused(segs.join("."))),
-+            },
++            ZigTy::File(g) => self.zig_top.get(&g)?.get(name)?,
++            ZigTy::Container(g, s, e) => {
++                match self.zig_members.get(&(g, s, e)).and_then(|m| m.get(name)) {
++                    Some(m) => m,
++                    None => {
++                        return match self
++                            .zig_decls
++                            .get(&(g, s, e))
++                            .and_then(|d| d.get(name))
++                        {
++                            Some(value) => self.zig_alias_call(g, value, depth + 1),
++                            None => Some(Scoped::Refused(segs.join("."))),
++                        };
++                    }
++                }
++            }
 +        };
 +        match members.as_slice() {
 +            [_] => Some(Scoped::Bound {
@@ -3162,18 +3131,50 @@ index fd17edc..b29731c 100644
 +        }
 +    }
 +
++    /// What a container-level alias of a function names, from the file
++    /// `g` it is declared in: `Fn(args).member` (a type function's
++    /// member) or `a.b.member` (a path). `None` when it is neither, or
++    /// does not lead to one function.
++    fn zig_alias_call(&self, g: FileId, value: &str, depth: u8) -> Option<Scoped> {
++        let value: String = value.split_whitespace().collect();
++        if let Some(open) = value.find('(') {
++            let close = value.rfind(')')?;
++            let member = value[close + 1..].strip_prefix('.')?;
++            if member.contains('.') || member.is_empty() {
++                return None;
++            }
++            return match self.zig_generic_call(g, &value[..open], member, depth)? {
++                b @ Scoped::Bound { .. } => Some(b),
++                _ => None,
++            };
++        }
++        let segs: Vec<String> = value.split('.').map(str::to_string).collect();
++        let (member, prefix) = segs.split_last()?;
++        if prefix.is_empty() {
++            return None;
++        }
++        match self.zig_member_call(g, prefix, member, None, depth)? {
++            b @ Scoped::Bound { .. } => Some(b),
++            _ => None,
++        }
++    }
++
 +    /// A call on what a call returns (`callee` is the part before the
 +    /// arguments). Through a dependency, external. In the tree, when the
 +    /// callee is a type function (`list.Managed(T).init()`, returning
-+    /// `type`): the one member of that name of the container types it
-+    /// declares (its `return struct { … }`), else refused — a same-named
++    /// `type`): the one member of that name of the container it returns
++    /// (its outermost `struct { … }`), else refused — a same-named
 +    /// function elsewhere is not the callee. Any other callee: `None`.
 +    fn zig_generic_call(
 +        &self,
 +        file: FileId,
 +        callee: &str,
-+        r: &RefRecord,
++        name: &str,
++        depth: u8,
 +    ) -> Option<Scoped> {
++        if depth > 4 {
++            return None;
++        }
 +        let segs: Vec<String> = callee.split('.').map(str::to_string).collect();
 +        if !segs
 +            .iter()
@@ -3206,21 +3207,44 @@ index fd17edc..b29731c 100644
 +        let Some(&(fs, fe)) = self.zig_spans.get(f) else {
 +            return refused();
 +        };
-+        let mut found: Vec<CallableId> = self
++        // The containers the function returns: those in its body not
++        // nested in another container of it.
++        let inside: Vec<(u32, u32)> = self
 +            .zig_members
-+            .iter()
-+            .filter(|((h, s, e), _)| *h == g && fs <= *s && *e <= fe)
-+            .filter_map(|(_, m)| m.get(r.name.as_str()))
-+            .flatten()
-+            .copied()
++            .keys()
++            .filter(|(h, s, e)| *h == g && fs <= *s && *e <= fe)
++            .map(|&(_, s, e)| (s, e))
++            .chain(
++                self.zig_decls
++                    .keys()
++                    .filter(|(h, s, e)| *h == g && fs <= *s && *e <= fe)
++                    .map(|&(_, s, e)| (s, e)),
++            )
 +            .collect();
++        let outer = |(s, e): (u32, u32)| {
++            !inside
++                .iter()
++                .any(|&(s2, e2)| s2 <= s && e <= e2 && (s2, e2) != (s, e))
++        };
++        let mut found: Vec<CallableId> = Vec::new();
++        let mut aliased: Option<&str> = None;
++        for &(s, e) in inside.iter().filter(|&&k| outer(k)) {
++            if let Some(m) = self.zig_members.get(&(g, s, e)).and_then(|m| m.get(name)) {
++                found.extend(m.iter().copied());
++            } else if let Some(v) =
++                self.zig_decls.get(&(g, s, e)).and_then(|d| d.get(name))
++            {
++                aliased = Some(v.as_str());
++            }
++        }
 +        found.sort();
 +        found.dedup();
-+        match found.as_slice() {
-+            [_] => Some(Scoped::Bound {
++        match (found.as_slice(), aliased) {
++            ([_], _) => Some(Scoped::Bound {
 +                cids: found,
 +                certain: false,
 +            }),
++            ([], Some(v)) => self.zig_alias_call(g, v, depth + 1),
 +            _ => refused(),
 +        }
 +    }
@@ -3292,7 +3316,7 @@ index fd17edc..b29731c 100644
      /// Follow `segs` from `file` through file-level bindings to the file
      /// (or dependency) they name, with the import that started the path.
      fn zig_walk(
-@@ -909,6 +1571,9 @@ pub(crate) struct PhpIndex {
+@@ -909,6 +1650,9 @@ pub(crate) struct PhpIndex {
      /// `(file, lowercase class short name)` → its declared bases as
      /// written.
      bases: HashMap<(FileId, String), Vec<String>>,
@@ -3302,7 +3326,7 @@ index fd17edc..b29731c 100644
  }
  
  fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
-@@ -1020,7 +1685,20 @@ impl PhpIndex {
+@@ -1020,7 +1764,20 @@ impl PhpIndex {
              .filter(|c| c.language == "php")
              .collect();
          ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
@@ -3323,7 +3347,7 @@ index fd17edc..b29731c 100644
              ix.file_of.insert(c.id, c.file);
              match c.qualified_name.split_once("::") {
                  Some((owner, m)) => ix
-@@ -1093,7 +1771,29 @@ impl PhpIndex {
+@@ -1093,7 +1850,29 @@ impl PhpIndex {
                  let certain = cids.len() == 1;
                  Scoped::Bound { cids, certain }
              }
@@ -3354,7 +3378,7 @@ index fd17edc..b29731c 100644
          }
      }
  
-@@ -1255,3 +1955,37 @@ enum ClassLookup {
+@@ -1255,3 +2034,37 @@ enum ClassLookup {
      /// Not decided here.
      Unknown,
  }
@@ -3423,20 +3447,21 @@ index 3f029ba..d4df246 100644
      fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
          // `const cb = require('./cb')`: the declaration (from byte 5) makes
 diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
-index ded74f3..014ebf9 100644
+index ded74f3..0eff853 100644
 --- a/crates/cgg-resolve/src/type_hints.rs
 +++ b/crates/cgg-resolve/src/type_hints.rs
-@@ -411,6 +411,9 @@ pub fn propagate_types_with_fields(
+@@ -411,6 +411,10 @@ pub fn propagate_types_with_fields(
      // Go records a value made through a package at the end of its `:=`
      // statement, so Rust's scoped lookup applies to it (Strategy 3).
      let go = facts.language == "go";
 +    // Zig records its locals' types at the end of their declaration
 +    // (WS14b), so they are looked up where they are in scope, as Rust's.
 +    let zig = facts.language == "zig";
++    let kotlin = facts.language == "kotlin";
      let param_store: Vec<(u32, String, String)> = facts
          .definitions
          .iter()
-@@ -419,6 +422,11 @@ pub fn propagate_types_with_fields(
+@@ -419,6 +423,11 @@ pub fn propagate_types_with_fields(
              if go {
                  v.extend(go_package_param_types(d));
              }
@@ -3448,7 +3473,7 @@ index ded74f3..014ebf9 100644
              v
          })
          .collect();
-@@ -461,7 +469,7 @@ pub fn propagate_types_with_fields(
+@@ -461,7 +470,7 @@ pub fn propagate_types_with_fields(
          }
      }
  
@@ -3457,7 +3482,28 @@ index ded74f3..014ebf9 100644
          RustLets::build(facts)
      } else {
          RustLets::default()
-@@ -676,6 +684,12 @@ pub fn propagate_types_with_fields(
+@@ -647,6 +656,20 @@ pub fn propagate_types_with_fields(
+             rewrites.push((i, ty.to_string()));
+             continue;
+         }
++        // Kotlin (WS14b): a lambda or an object expression's method sees
++        // the parameters of the functions around it.
++        if kotlin
++            && let Some(ty) = facts
++                .definitions
++                .iter()
++                .filter(|d| d.start_byte <= rref.site_byte && rref.site_byte < d.end_byte)
++                .filter(|d| enclosing.is_none_or(|e| d.start_byte != e.start_byte))
++                .max_by_key(|d| (d.start_byte, std::cmp::Reverse(d.end_byte)))
++                .and_then(|d| type_map.get(&(d.start_byte, rh)))
++        {
++            rewrites.push((i, ty.to_string()));
++            continue;
++        }
+ 
+         // Strategy 3: explicit local variable type declarations. C++ looks
+         // them up per call site, scoped to the enclosing callable, so two
+@@ -676,6 +699,12 @@ pub fn propagate_types_with_fields(
                      enclosing.map(|d| (d.start_byte, d.end_byte)),
                  )
                  .or_else(|| local_type_map.get(rh).copied())
@@ -3470,7 +3516,7 @@ index ded74f3..014ebf9 100644
          } else if go {
              // Go's own reading stays file-wide, as before; only a value
              // made through a package is looked up where it is in scope.
-@@ -695,6 +709,13 @@ pub fn propagate_types_with_fields(
+@@ -695,6 +724,13 @@ pub fn propagate_types_with_fields(
              rewrites.push((i, ty.to_string()));
              continue;
          }
@@ -3484,7 +3530,7 @@ index ded74f3..014ebf9 100644
  
          // Strategy 4: return-type inference. If the receiver variable
          // was assigned from a function call whose return type we know,
-@@ -747,7 +768,9 @@ pub fn propagate_types_with_fields(
+@@ -747,7 +783,9 @@ pub fn propagate_types_with_fields(
          } else {
              ty
          };
@@ -3495,7 +3541,48 @@ index ded74f3..014ebf9 100644
              let r = &facts.references[i];
              facts.untyped_receivers.push((
                  r.site_byte,
-@@ -1685,6 +1708,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
+@@ -759,6 +797,40 @@ pub fn propagate_types_with_fields(
+     }
+ }
+ 
++/// Settle each Kotlin bare call made inside a `x.run { … }` /
++/// `x.apply { … }` / `with(x) { … }` lambda (`RefRecord::implicit_receiver`,
++/// receiver already typed): when the type `x` was typed as declares a
++/// member of that name, the call is that member's, through the receiver;
++/// otherwise it is a call to an enclosing scope, and goes back to being
++/// the bare call it was written as (WS14b).
++pub fn settle_implicit_receivers(all_facts: &mut [FileFacts]) {
++    if !all_facts
++        .iter()
++        .any(|f| f.references.iter().any(|r| r.implicit_receiver))
++    {
++        return;
++    }
++    let mut members: std::collections::HashSet<(String, String)> =
++        std::collections::HashSet::new();
++    for f in all_facts.iter().filter(|f| f.language == "kotlin") {
++        for d in &f.definitions {
++            if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
++                members.insert((owner.to_string(), d.simple_name.clone()));
++            }
++        }
++    }
++    for f in all_facts.iter_mut() {
++        for r in f.references.iter_mut().filter(|r| r.implicit_receiver) {
++            let ty = r.receiver_hint.rsplit('.').next().unwrap_or("");
++            let ty = ty.split('<').next().unwrap_or(ty).trim_end_matches('?');
++            if !members.contains(&(ty.to_string(), r.name.clone())) {
++                r.receiver_hint.clear();
++                r.implicit_receiver = false;
++            }
++        }
++    }
++}
++
+ /// Parameter `(enclosing_start_byte, name, type)` triples from one
+ /// definition's `signature_hint`.
+ ///
+@@ -1685,6 +1757,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
      None
  }
  
@@ -3520,3 +3607,71 @@ index ded74f3..014ebf9 100644
  fn is_primitive(ty: &str) -> bool {
      matches!(
          ty,
+@@ -2592,4 +2682,55 @@ mod tests {
+         propagate_types(&mut facts);
+         assert_eq!(facts.references[0].receiver_hint, "Controller");
+     }
++
++    /// WS14b: inside `b.apply { … }` a call the type of `b` declares stays
++    /// on `b`; one it does not (an enclosing class's member) becomes the
++    /// bare call it was written as. A lambda in an object expression sees
++    /// the enclosing function's parameter types.
++    #[test]
++    fn implicit_receivers_settle_by_the_receivers_members() {
++        let mut box_file = mk_facts(
++            vec![DefRecord {
++                simple_name: "open".into(),
++                qualified_name: "ex.Box.open".into(),
++                ..Default::default()
++            }],
++            vec![],
++        );
++        box_file.language = "kotlin".into();
++        let implicit = |name: &str, at: u32| RefRecord {
++            name: name.into(),
++            receiver_hint: "b".into(),
++            site_byte: at,
++            implicit_receiver: true,
++            ..Default::default()
++        };
++        let mut user = mk_facts(
++            vec![
++                mk_def("ex.go", "fun go(b: Box)", 0, 100),
++                mk_def("ex.go.inner", "override fun inner()", 10, 90),
++            ],
++            vec![implicit("open", 20), implicit("member", 30)],
++        );
++        user.language = "kotlin".into();
++        propagate_types_with_returns(&mut user, &ReturnTypeIndex::default());
++        let mut all = vec![box_file, user];
++        settle_implicit_receivers(&mut all);
++        let got: Vec<(&str, &str, bool)> = all[1]
++            .references
++            .iter()
++            .map(|r| {
++                (
++                    r.name.as_str(),
++                    r.receiver_hint.as_str(),
++                    r.implicit_receiver,
++                )
++            })
++            .collect();
++        assert_eq!(
++            got,
++            vec![("open", "Box", true), ("member", "", false)],
++            "{got:?}"
++        );
++    }
+ }
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index f9db696..5011f4f 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -703,6 +703,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+             );
+         });
+     }
++    cgg_resolve::type_hints::settle_implicit_receivers(&mut all_facts);
+     let known_names = build_known_names(&all_facts);
+     // Hoisted out of the per-file loop below. It was rebuilt for every
+     // file from the same `known_names`, which is O(files x names) — on
