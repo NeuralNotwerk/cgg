@@ -1336,7 +1336,7 @@ index 5420a7c..e12b82e 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index eafccf8..eb107a7 100644
+index eafccf8..82c0940 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
 @@ -31,8 +31,14 @@ impl LanguagePlugin for ZigPlugin {
@@ -1471,7 +1471,7 @@ index eafccf8..eb107a7 100644
                      let (sl, el) = (
                          (node.start_position().row as u32) + 1,
                          (node.end_position().row as u32) + 1,
-@@ -94,10 +201,28 @@ impl<'a> ZigWalker<'a> {
+@@ -94,16 +201,43 @@ impl<'a> ZigWalker<'a> {
                          attributes: Vec::new(),
                          ..Default::default()
                      });
@@ -1500,23 +1500,27 @@ index eafccf8..eb107a7 100644
              // `const addRunArtifact = link.addRunArtifact;` at file level:
              // the name is that declaration of the aliased container, which
              // the resolver follows (`const link = @import("link.zig")`).
-@@ -105,6 +230,12 @@ impl<'a> ZigWalker<'a> {
+             "variable_declaration" => {
                  if node.parent().is_some_and(|p| p.kind() == "source_file") {
-                     self.record_alias(node);
-                 }
+-                    self.record_alias(node);
++                    self.record_alias(node, false);
++                }
 +                if self.declare_type(node) {
 +                    return;
 +                }
 +                if self.in_fn() {
++                    // `const IO = @import("io.zig").IO;` in a function: an
++                    // alias the resolver follows like a file-level one.
++                    self.record_alias(node, true);
 +                    self.record_local(node);
-+                }
+                 }
                  self.walk_children(node);
                  return;
-             }
-@@ -174,6 +305,328 @@ impl<'a> ZigWalker<'a> {
+@@ -174,7 +308,344 @@ impl<'a> ZigWalker<'a> {
          self.walk_children(node);
      }
  
+-    fn record_alias(&mut self, node: Node) {
 +    /// Directly in a function body (not in a container nested in one).
 +    fn in_fn(&self) -> bool {
 +        self.fn_stack.last().is_some_and(|&f| {
@@ -1804,7 +1808,20 @@ index eafccf8..eb107a7 100644
 +                                    // file-level functions.
 +                                    Some(u32::MAX) => vec![None],
 +                                    Some(c) => vec![Some(c)],
-+                                    None => continue,
++                                    // Not this file's (`IO.init()` with
++                                    // `IO` imported): typed as the call,
++                                    // whose declared return type the
++                                    // resolver follows.
++                                    None => {
++                                        self.facts.local_types.push(
++                                            cgg_core::LocalType {
++                                                var_name: p.var,
++                                                type_name: format!("{r}.{method}()"),
++                                                scope_byte: p.at,
++                                            },
++                                        );
++                                        continue;
++                                    }
 +                                },
 +                            }
 +                        }
@@ -1839,10 +1856,23 @@ index eafccf8..eb107a7 100644
 +        }
 +    }
 +
-     fn record_alias(&mut self, node: Node) {
++    /// `local`: a declaration in a function, recorded only when it names
++    /// a member of an imported file.
++    fn record_alias(&mut self, node: Node, local: bool) {
          let mut c = node.walk();
          let children: Vec<Node> = node.named_children(&mut c).collect();
-@@ -303,4 +756,48 @@ mod tests {
+         let Some(name) = children.iter().find(|n| n.kind() == "identifier") else {
+@@ -196,6 +667,9 @@ impl<'a> ZigWalker<'a> {
+             });
+             return;
+         }
++        if local {
++            return;
++        }
+         let plain = path.split('.').count() >= 2
+             && path.split('.').all(|seg| {
+                 !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
+@@ -303,4 +777,50 @@ mod tests {
              ("xev", "src/main.zig")
          );
      }
@@ -1850,7 +1880,7 @@ index eafccf8..eb107a7 100644
 +    /// WS14b: a local's type is what is written, a struct literal's type,
 +    /// or what a call of this file returns (`self.m() orelse return`,
 +    /// `try m()`, `T.init()` through `@This()`), optionals and pointers
-+    /// peeled. A call this file cannot see the target of types nothing.
++    /// peeled. A call this file cannot see the target of is the call.
 +    #[test]
 +    fn locals_are_typed_from_returns_and_annotations() {
 +        let src = "const Surface = @import(\"surface.zig\").Surface;\n\
@@ -1880,7 +1910,9 @@ index eafccf8..eb107a7 100644
 +        assert_eq!(ty("b").as_deref(), Some("Tree"), "{:?}", f.local_types);
 +        assert_eq!(ty("c").as_deref(), Some("Surface"));
 +        assert_eq!(ty("d").as_deref(), Some("Surface"));
-+        assert_eq!(ty("e"), None);
++        // Another file's function: typed as the call, whose declared
++        // return type the resolver follows.
++        assert_eq!(ty("e").as_deref(), Some("other.thing()"));
 +        assert_eq!(ty("p").as_deref(), Some("Pool"));
 +        let names: Vec<&str> = f.type_spans.iter().map(|t| t.name.as_str()).collect();
 +        assert_eq!(
@@ -2514,7 +2546,7 @@ index 8b4e088..513450d 100644
      /// function of the file returns (`is_valid = factory(x)` then
      /// `is_valid(i)`): the nested definition stays its candidate; a
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..e553cf0 100644
+index fd17edc..169d095 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
 @@ -73,6 +73,42 @@ struct DartFile {
@@ -2560,7 +2592,7 @@ index fd17edc..e553cf0 100644
  /// A Zig file-level name bound to another file or a path.
  #[derive(Debug, Clone)]
  enum ZigBind {
-@@ -113,6 +149,41 @@ pub(crate) struct LibIndex<'a> {
+@@ -113,6 +149,46 @@ pub(crate) struct LibIndex<'a> {
      zig_names: HashSet<String>,
      /// Zig: file → callables not nested in another, by simple name.
      zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
@@ -2574,6 +2606,11 @@ index fd17edc..e553cf0 100644
 +    zig_spans: HashMap<CallableId, (u32, u32)>,
 +    /// Zig: functions returning `type` (generic type constructors).
 +    zig_type_fns: HashSet<CallableId>,
++    /// Zig: function → its declared return type, optional / pointer /
++    /// error-union markers peeled (`!?*IO` → `IO`, `@This()` → `@This`).
++    zig_returns: HashMap<CallableId, String>,
++    /// Zig: callable → its file.
++    zig_file_of: HashMap<CallableId, FileId>,
 +    /// Zig: `(file, container body span)` → its value declarations by
 +    /// name, as written (`frame` → `Functions(@This()).frame`).
 +    zig_decls: HashMap<(FileId, u32, u32), HashMap<&'a str, String>>,
@@ -2602,7 +2639,7 @@ index fd17edc..e553cf0 100644
      /// Exported namespaces, computed on first use, and whether some
      /// export chain leaves the tree.
      ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
-@@ -122,6 +193,8 @@ impl<'a> LibIndex<'a> {
+@@ -122,6 +198,8 @@ impl<'a> LibIndex<'a> {
      pub(crate) fn build(graph: &'a Graph, facts: &'a [FileFacts]) -> Self {
          let mut ix = LibIndex::default();
          ix.build_zig(graph, facts);
@@ -2611,7 +2648,7 @@ index fd17edc..e553cf0 100644
          if !facts.iter().any(|f| f.language == "dart") {
              return ix;
          }
-@@ -613,6 +686,388 @@ impl<'a> LibIndex<'a> {
+@@ -613,6 +691,388 @@ impl<'a> LibIndex<'a> {
  }
  
  impl<'a> LibIndex<'a> {
@@ -3000,7 +3037,7 @@ index fd17edc..e553cf0 100644
      fn build_zig(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
          if !facts.iter().any(|f| f.language == "zig") {
              return;
-@@ -647,6 +1102,56 @@ impl<'a> LibIndex<'a> {
+@@ -647,6 +1107,60 @@ impl<'a> LibIndex<'a> {
                      .push(c.id);
              }
          }
@@ -3014,6 +3051,10 @@ index fd17edc..e553cf0 100644
 +            self.zig_spans.insert(c.id, (c.start_byte, c.end_byte));
 +            if c.signature_hint.trim_end().ends_with(" type") {
 +                self.zig_type_fns.insert(c.id);
++            }
++            self.zig_file_of.insert(c.id, c.file);
++            if let Some(ret) = zig_return_type(&c.signature_hint) {
++                self.zig_returns.insert(c.id, ret);
 +            }
 +        }
 +        for f in facts.iter().filter(|f| f.language == "zig") {
@@ -3057,7 +3098,7 @@ index fd17edc..e553cf0 100644
          for f in facts.iter().filter(|f| f.language == "zig") {
              self.paths.insert(f.file, f.path.as_path());
              self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
-@@ -780,6 +1285,9 @@ impl<'a> LibIndex<'a> {
+@@ -780,6 +1294,9 @@ impl<'a> LibIndex<'a> {
          if rh.is_empty() {
              return None;
          }
@@ -3067,7 +3108,7 @@ index fd17edc..e553cf0 100644
          let segs: Vec<&str> = rh.split('.').collect();
          if !segs
              .iter()
-@@ -788,7 +1296,11 @@ impl<'a> LibIndex<'a> {
+@@ -788,7 +1305,11 @@ impl<'a> LibIndex<'a> {
              return None;
          }
          let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
@@ -3080,7 +3121,7 @@ index fd17edc..e553cf0 100644
          let mut g = match g {
              Target::File(g) => g,
              Target::External(m) => return Some(Scoped::External(m)),
-@@ -840,6 +1352,235 @@ impl<'a> LibIndex<'a> {
+@@ -840,6 +1361,272 @@ impl<'a> LibIndex<'a> {
          None
      }
  
@@ -3183,26 +3224,63 @@ index fd17edc..e553cf0 100644
 +            return None;
 +        }
 +        let (fname, prefix) = segs.split_last()?;
-+        let g = if prefix.is_empty() {
-+            file
++        // The function called: of the file the prefix names (a module
++        // path), or of the container it names (`IO.init`).
++        let (g, fns) = if prefix.is_empty() {
++            (file, self.zig_top.get(&file)?.get(fname.as_str())?)
 +        } else {
-+            match self.zig_walk(file, prefix, 0)?.0 {
-+                Target::File(g) => g,
-+                Target::External(m) => return Some(Scoped::External(m)),
-+                Target::Unknown => return None,
++            match self.zig_walk(file, prefix, 0).map(|(t, _)| t) {
++                Some(Target::File(g)) => (g, self.zig_top.get(&g)?.get(fname.as_str())?),
++                Some(Target::External(m)) => return Some(Scoped::External(m)),
++                Some(Target::Unknown) => return None,
++                None => match self.zig_type(file, prefix, None, 0)? {
++                    ZigTy::External(m) => return Some(Scoped::External(m)),
++                    ZigTy::File(g) => (g, self.zig_top.get(&g)?.get(fname.as_str())?),
++                    ZigTy::Container(g, s, e) => {
++                        (g, self.zig_members.get(&(g, s, e))?.get(fname.as_str())?)
++                    }
++                },
 +            }
 +        };
 +        let refused = || Some(Scoped::Refused(callee.to_string()));
-+        let Some([f]) = self
-+            .zig_top
-+            .get(&g)
-+            .and_then(|t| t.get(fname.as_str()))
-+            .map(Vec::as_slice)
-+        else {
++        let [f] = fns.as_slice() else {
 +            return None;
 +        };
++        // A plain function: the receiver is what it is declared to
++        // return (`IO.init()` returning `!IO`, `Self`, `@This()`), WS14b.
 +        if !self.zig_type_fns.contains(f) {
-+            return None;
++            let ret = self.zig_returns.get(f)?;
++            let fg = *self.zig_file_of.get(f)?;
++            let &(fs, _) = self.zig_spans.get(f)?;
++            let ty = if ret == "@This" {
++                // The container around the function, else its file.
++                let around = self
++                    .zig_types
++                    .get(&fg)
++                    .into_iter()
++                    .flatten()
++                    .filter(|(_, s, e)| *s <= fs && fs < *e)
++                    .min_by_key(|(_, s, e)| (e - s, *s))
++                    .map(|&(_, s, e)| ZigTy::Container(fg, s, e));
++                around.unwrap_or(ZigTy::File(fg))
++            } else {
++                let rsegs: Vec<String> = ret.split('.').map(str::to_string).collect();
++                self.zig_type(fg, &rsegs, Some(fs), 0)?
++            };
++            let members = match ty {
++                ZigTy::External(m) => return Some(Scoped::External(m)),
++                ZigTy::File(h) => self.zig_top.get(&h)?.get(name)?,
++                ZigTy::Container(h, s, e) => {
++                    self.zig_members.get(&(h, s, e))?.get(name)?
++                }
++            };
++            return match members.as_slice() {
++                [_] => Some(Scoped::Bound {
++                    cids: members.clone(),
++                    certain: true,
++                }),
++                _ => None,
++            };
 +        }
 +        let Some(&(fs, fe)) = self.zig_spans.get(f) else {
 +            return refused();
@@ -3316,7 +3394,7 @@ index fd17edc..e553cf0 100644
      /// Follow `segs` from `file` through file-level bindings to the file
      /// (or dependency) they name, with the import that started the path.
      fn zig_walk(
-@@ -909,6 +1650,9 @@ pub(crate) struct PhpIndex {
+@@ -909,6 +1696,9 @@ pub(crate) struct PhpIndex {
      /// `(file, lowercase class short name)` → its declared bases as
      /// written.
      bases: HashMap<(FileId, String), Vec<String>>,
@@ -3326,7 +3404,7 @@ index fd17edc..e553cf0 100644
  }
  
  fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
-@@ -1020,7 +1764,20 @@ impl PhpIndex {
+@@ -1020,7 +1810,20 @@ impl PhpIndex {
              .filter(|c| c.language == "php")
              .collect();
          ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
@@ -3347,7 +3425,7 @@ index fd17edc..e553cf0 100644
              ix.file_of.insert(c.id, c.file);
              match c.qualified_name.split_once("::") {
                  Some((owner, m)) => ix
-@@ -1093,7 +1850,29 @@ impl PhpIndex {
+@@ -1093,7 +1896,29 @@ impl PhpIndex {
                  let certain = cids.len() == 1;
                  Scoped::Bound { cids, certain }
              }
@@ -3378,7 +3456,7 @@ index fd17edc..e553cf0 100644
          }
      }
  
-@@ -1255,3 +2034,37 @@ enum ClassLookup {
+@@ -1255,3 +2080,106 @@ enum ClassLookup {
      /// Not decided here.
      Unknown,
  }
@@ -3414,6 +3492,75 @@ index fd17edc..e553cf0 100644
 +    }
 +    if let Some((_, last)) = path.rsplit_once('.') {
 +        im.exact.insert(last.to_string(), path.to_string());
++    }
++}
++
++/// A Zig function's declared return type from its signature (`pub fn
++/// init(a: u8) !?*IO` → `IO`, `… @This()` → `@This`): `None` unless it
++/// is a plain name or path.
++fn zig_return_type(sig: &str) -> Option<String> {
++    let open = sig.find('(')?;
++    let mut depth = 0i32;
++    let mut close = None;
++    for (i, ch) in sig[open..].char_indices() {
++        match ch {
++            '(' => depth += 1,
++            ')' => {
++                depth -= 1;
++                if depth == 0 {
++                    close = Some(open + i);
++                    break;
++                }
++            }
++            _ => {}
++        }
++    }
++    let rest = sig[close? + 1..].trim().trim_end_matches('{').trim();
++    let mut t = rest.rsplit('!').next().unwrap_or(rest).trim();
++    loop {
++        let next = t
++            .strip_prefix('?')
++            .or_else(|| t.strip_prefix('*'))
++            .or_else(|| t.strip_prefix("const "));
++        match next {
++            Some(n) => t = n.trim_start(),
++            None => break,
++        }
++    }
++    if t == "@This()" {
++        return Some("@This".to_string());
++    }
++    let plain = !t.is_empty()
++        && t.split('.')
++            .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'));
++    (plain && !matches!(t, "void" | "type" | "bool" | "noreturn" | "anytype"))
++        .then(|| t.to_string())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// WS14b: a Zig function's declared return type, peeled to the type a
++    /// receiver it initializes has; anything else is no type.
++    #[test]
++    fn zig_return_types_are_peeled() {
++        assert_eq!(
++            zig_return_type("pub fn init(n: u32) !IO").as_deref(),
++            Some("IO")
++        );
++        assert_eq!(
++            zig_return_type("fn a(self: *T) ?*const x.Surface").as_deref(),
++            Some("x.Surface")
++        );
++        assert_eq!(
++            zig_return_type("fn b(f: fn () void) E!*Self").as_deref(),
++            Some("Self")
++        );
++        assert_eq!(zig_return_type("fn c() @This()").as_deref(), Some("@This"));
++        assert_eq!(zig_return_type("fn d() void"), None);
++        assert_eq!(zig_return_type("fn e() []const u8"), None);
++        assert_eq!(zig_return_type("fn f(comptime T: type) type"), None);
 +    }
 +}
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
