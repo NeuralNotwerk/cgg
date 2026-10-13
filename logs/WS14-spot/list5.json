@@ -1,0 +1,222 @@
+[
+ {
+  "stratum": "added-medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "IntegratedUDFTestUtils::createPythonDataSource",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/IntegratedUDFTestUtils.scala:231",
+  "call_text": "withTempPath { codePath =>",
+  "target": "SQLHelper::withTempPath",
+  "target_file": "scala-spark/sql/catalyst/src/test/scala/org/apache/spark/sql/catalyst/plans/SQLHelper.scala",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "repo": "app-rn-expensify",
+  "lang": "typescript",
+  "caller": "handleNewRequireFieldsRule",
+  "call_site": "app-rn-expensify/src/pages/workspace/rules/tabs/RulesRequireFieldsTab.tsx:57",
+  "call_text": "showReadOnlyModal();",
+  "target": "showReadOnlyModal",
+  "target_file": "app-rn-expensify/src/hooks/usePolicyFeatureWriteAccess.ts",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/draggable_test.dart:3887",
+  "call_text": "await tester.pumpWidget(build((int buttons) => buttons == kSecondaryButton));",
+  "target": "TestWidgetsApp::build",
+  "target_file": "dart-flutter/packages/flutter/test/widgets/widgets_app_tester.dart",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/examples/api/test/cupertino/nav_bar/cupertino_sliver_nav_bar.0_test.dart:79",
+  "call_text": "expect(nextButton, findsNothing);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "added-medium [python]",
+  "repo": "py-falcon",
+  "lang": "python",
+  "caller": "asgi.test_ws.test_missing_spec_version",
+  "call_site": "py-falcon/tests/asgi/test_ws.py:949",
+  "call_text": "await app(scope, ws._emit, ws._collect)",
+  "target": "falcon.asgi.app.App.__call__",
+  "target_file": "py-falcon/falcon/asgi/app.py",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "WP_AI_Client_Cache::getMultiple",
+  "call_site": "app-wordpress/wp-includes/ai-client/adapters/class-wp-ai-client-cache.php:136",
+  "call_text": "$values     = wp_cache_get_multiple( $keys_array, $this->get_cache_group() );",
+  "target": "wp_cache_get_multiple",
+  "target_file": "app-wordpress/wp-includes/cache.php",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "rescored medium->high [rust]",
+  "repo": "rust-ripgrep",
+  "lang": "rust",
+  "caller": "ripgrep::crates::core::flags::defs::test_type",
+  "call_site": "rust-ripgrep/crates/core/flags/defs.rs:6933",
+  "call_text": "assert_eq!(vec![select(\"abcdefxyz\")], args.type_changes);",
+  "target": "ripgrep::crates::core::flags::defs::select",
+  "target_file": "rust-ripgrep/crates/core/flags/defs.rs",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports'], ['medium', 'cross-file:imports']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "rescored medium->high [fsharp]",
+  "repo": "app-fsautocomplete-expecto",
+  "lang": "fsharp",
+  "caller": "visitMember",
+  "call_site": "app-fsautocomplete-expecto/src/FsAutoComplete.Core/TestAdapter.fs:499",
+  "call_text": "visitMember entry m",
+  "target": "visitMember",
+  "target_file": "app-fsautocomplete-expecto/src/FsAutoComplete.Core/TestAdapter.fs",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [zig]",
+  "repo": "app-tigerbeetle-zig",
+  "lang": "zig",
+  "caller": "arbitrary",
+  "call_site": "app-tigerbeetle-zig/src/stdx/net.zig:504",
+  "call_text": "return .{ .ip = IPAddress.arbitrary(prng), .port = prng.int(u16) };",
+  "target": "int",
+  "target_file": "app-tigerbeetle-zig/src/stdx/benchmark/perf_linux.zig",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "prependEnv",
+  "call_site": "app-ghostty-zig/src/termio/shell_integration.zig:687",
+  "call_text": "if (current.len == 0) return try alloc.dupe(u8, value);",
+  "target": "dupe",
+  "target_file": "app-ghostty-zig/src/terminal/hyperlink.zig",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/material/time_picker_theme_test.dart:103",
+  "call_text": "equalsIgnoringHashCodes(<String>[",
+  "target": "equalsIgnoringHashCodes",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/matchers.dart",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "HuberBlockAggregator::add",
+  "call_site": "scala-spark/mllib/src/main/scala/org/apache/spark/ml/optim/aggregator/HuberBlockAggregator.scala:125",
+  "call_text": "arr(i) = multiplier",
+  "target": "CollationExpressionSuite::arr",
+  "target_file": "scala-spark/sql/catalyst/src/test/scala/org/apache/spark/sql/catalyst/expressions/CollationExpressionSuite.scala",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "added-medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "CSVSuite::testLineSeparator",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/execution/datasources/csv/CSVSuite.scala:2428",
+  "call_text": "checkAnswer(df, expected)",
+  "target": "QueryTest::checkAnswer",
+  "target_file": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/QueryTest.scala",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "rescored medium->high [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "setColorSpace",
+  "call_site": "app-ghostty-zig/pkg/macos/iosurface/iosurface.zig:77",
+  "call_text": "defer foundation.CFRelease(@constCast(serialized_colorspace));",
+  "target": "CFRelease",
+  "target_file": "app-ghostty-zig/pkg/macos/foundation/type.zig",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "repo": "app-rn-expensify",
+  "lang": "typescript",
+  "caller": "ReportField",
+  "call_site": "app-rn-expensify/src/components/MoneyRequestConfirmationList/sections/ReportField.tsx:116",
+  "call_text": "return isUnreported ? translate('common.none') : translate('iou.newReport');",
+  "target": "translate",
+  "target_file": "app-rn-expensify/src/libs/actions/OnyxDerived/configs/reportAttributes.ts",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "added-medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "V1WriteFallbackSessionCatalogSuite::verifyTable",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/connector/V1WriteFallbackSuite.scala:264",
+  "call_text": "checkAnswer(InMemoryV1Provider.getTableData(spark, s\"default.$tableName\"), expected)",
+  "target": "QueryTest::checkAnswer",
+  "target_file": "scala-spark/sql/connect/client/jvm/src/test/scala/org/apache/spark/sql/connect/test/QueryTest.scala",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "added-high [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "isByRef",
+  "call_site": "zig-zig/src/codegen/llvm.zig:12682",
+  "call_text": "const field_ty = Type.fromInterned(field_types[field_index]);",
+  "target": "fromInterned",
+  "target_file": "zig-zig/src/Type.zig",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "rescored medium->high [php]",
+  "repo": "php-laravel",
+  "lang": "php",
+  "caller": "uri",
+  "call_site": "php-laravel/src/Illuminate/Foundation/helpers.php:1041",
+  "call_text": "str_contains($uri, '.') && Route::has($uri) => Uri::route($uri, $parameters, $absolute),",
+  "target": "Uri::route",
+  "target_file": "php-laravel/src/Illuminate/Support/Uri.php",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "rescored medium->high [php]",
+  "repo": "app-symfony-messenger",
+  "lang": "php",
+  "caller": "SerializerPass::buildChildNameConverterDefinition",
+  "call_site": "app-symfony-messenger/src/Symfony/Component/Serializer/DependencyInjection/SerializerPass.php:200",
+  "call_text": "$childId = self::NAME_CONVERTER_METADATA_AWARE_ID.'.'.ContainerBuilder::hash($nameConverter);",
+  "target": "ContainerBuilder::hash",
+  "target_file": "app-symfony-messenger/src/Symfony/Component/DependencyInjection/ContainerBuilder.php",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "added-medium [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "scanAllCompileUnits",
+  "call_site": "zig-zig/lib/std/debug/Dwarf.zig:572",
+  "call_text": "var attrs_buf = std.array_list.Managed(Die.Attr).init(gpa);",
+  "target": "init",
+  "target_file": "zig-zig/lib/std/debug/Dwarf.zig",
+  "change": "edge ADDED at medium"
+ }
+]

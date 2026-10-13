@@ -1,0 +1,229 @@
+[
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [ocaml]",
+  "repo": "app-opam-cmdliner",
+  "lang": "ocaml",
+  "caller": "read_opt",
+  "call_site": "app-opam-cmdliner/src/format/opamFile.ml:726",
+  "call_text": "Option.map open_env_updates (read_opt file)",
+  "target": "read_opt",
+  "target_file": "app-opam-cmdliner/src/state/opamStateConfig.ml",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [rust]",
+  "repo": "rust-ntex",
+  "lang": "rust",
+  "caller": "ntex::http::response::ResponseBuilder::keep_alive",
+  "call_site": "rust-ntex/ntex/src/http/response.rs:389",
+  "call_text": "if let Some(parts) = parts(&mut self.head, self.err) {",
+  "target": "ntex::http::response::parts",
+  "target_file": "rust-ntex/ntex/src/http/response.rs",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [lua]",
+  "repo": "lua-neovim",
+  "lang": "lua",
+  "caller": "do_both",
+  "call_site": "lua-neovim/test/functional/lua/buffer_updates_spec.lua:748",
+  "call_text": "local check_events = setup_eventcheck(verify, { 'abcde', '12345' })",
+  "target": "setup_eventcheck",
+  "target_file": "lua-neovim/test/functional/lua/buffer_updates_spec.lua",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [python]",
+  "repo": "app-saleor-celery",
+  "lang": "python",
+  "caller": "saleor.plugins.webhook.tests.test_stored_payment_method_request_delete.test_stored_payment_method_request_delete_missing_response_from_webhook",
+  "call_site": "app-saleor-celery/saleor/plugins/webhook/tests/test_stored_payment_method_request_delete.py:231",
+  "call_text": "plugin = webhook_plugin()",
+  "target": "saleor.plugins.webhook.conftest.webhook_plugin",
+  "target_file": "app-saleor-celery/saleor/plugins/webhook/conftest.py",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [lua]",
+  "repo": "lua-neovim",
+  "lang": "lua",
+  "caller": "render_api_meta",
+  "call_site": "lua-neovim/src/gen/gen_eval_files.lua:337",
+  "call_text": "write('--- WARNING: This feature is experimental/unstable.')",
+  "target": "write",
+  "target_file": "lua-neovim/src/gen/gen_eval_files.lua",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [fsharp]",
+  "repo": "app-fsautocomplete-expecto",
+  "lang": "fsharp",
+  "caller": "checkAll",
+  "call_site": "app-fsautocomplete-expecto/test/FsAutoComplete.Tests.Lsp/CodeFixTests/AdjustConstantTests.fs:120",
+  "call_text": "(mkExpected Base.Decimal)",
+  "target": "mkExpected",
+  "target_file": "app-fsautocomplete-expecto/test/FsAutoComplete.Tests.Lsp/CodeFixTests/AdjustConstantTests.fs",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [kotlin]",
+  "repo": "app-libchecker-gradle",
+  "lang": "kotlin",
+  "caller": "com.absinthe.libchecker.domain.statistics.reference.ui.view.LibReferenceTreemapInstrumentedTest.findReference",
+  "call_site": "app-libchecker-gradle/app/src/androidTest/kotlin/com/absinthe/libchecker/domain/statistics/reference/ui/view/LibReferenceTreemapInstrumentedTest.kt:406",
+  "call_text": "findReference(fragment.childFragmentManager)?.let { return it }",
+  "target": "com.absinthe.libchecker.domain.statistics.reference.ui.view.LibReferenceTreemapInstrumentedTest.findReference",
+  "target_file": "app-libchecker-gradle/app/src/androidTest/kotlin/com/absinthe/libchecker/domain/statistics/reference/ui/view/LibReferenceTreemapInstrumentedTest.kt",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "rescored medium->high [kotlin]",
+  "repo": "groovy-gradle",
+  "lang": "kotlin",
+  "caller": "org.gradle.internal.declarativedsl.recurse",
+  "call_site": "groovy-gradle/platforms/core-configuration/declarative-dsl-core/src/test/kotlin/org/gradle/internal/declarativedsl/prettyPrintResults.kt:75",
+  "call_text": "appendNextIndented(\"potentialElementSource = ${current.potentialElementSource.prettyPrint()},\")",
+  "target": "org.gradle.internal.declarativedsl.appendNextIndented",
+  "target_file": "groovy-gradle/platforms/core-configuration/declarative-dsl-core/src/test/kotlin/org/gradle/internal/declarativedsl/prettyPrintResults.kt",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/nested_scroll_view_test.dart:1059",
+  "call_text": "expect(buildCount, expectedBuildCount);",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "update",
+  "call_site": "app-ghostty-zig/src/terminal/search/viewport.zig:98",
+  "call_text": "const active_tl = list.getTopLeft(.active);",
+  "target": "getTopLeft",
+  "target_file": "app-ghostty-zig/src/terminal/PageList.zig",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / rebound [php]",
+  "repo": "app-symfony-messenger",
+  "lang": "php",
+  "caller": "TermiiTransportFactory::create",
+  "call_site": "app-symfony-messenger/src/Symfony/Component/Notifier/Bridge/Termii/TermiiTransportFactory.php:34",
+  "call_text": "$from = $dsn->getRequiredOption('from');",
+  "target": "Dsn::getRequiredOption",
+  "target_file": "app-symfony-messenger/src/Symfony/Component/Translation/Provider/Dsn.php",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "app-symfony-messenger/src/Symfony/Component/Notifier/Transport/Dsn.php",
+    "Dsn::getRequiredOption",
+    "high"
+   ]
+  ]
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/gestures/scale_test.dart:606",
+  "call_text": "expect(didEndScale, isFalse);",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/painting/image_provider_resize_image_test.dart:442",
+  "call_text": "test('constrains landscape image to bounded square', () async {",
+  "target": "test",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/test_compat.dart",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "rescored high->medium [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "rowCellsGetTypedInner",
+  "call_site": "app-ghostty-zig/src/terminal/c/render.zig:757",
+  "call_text": ".style => if (cell.hasStyling()) {",
+  "target": "hasStyling",
+  "target_file": "app-ghostty-zig/src/terminal/page.zig",
+  "change": "edge confidence high->medium (old [['high', 'cross-file:imports']], new [['medium', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [javascript]",
+  "repo": "app-streama-grails",
+  "lang": "javascript",
+  "caller": "FormController",
+  "call_site": "app-streama-grails/grails-app/assets/bower/angular/angular.js:24527",
+  "call_text": "this.$name = $interpolate($attrs.name || $attrs.ngForm || '')($scope);",
+  "target": "$interpolate",
+  "target_file": "app-streama-grails/grails-app/assets/bower/angular/angular.js",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "SQLFunction::referredTempNamesToProps",
+  "call_site": "scala-spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/catalog/SQLFunction.scala:371",
+  "call_text": "props.put(FUNCTION_REFERRED_TEMP_VARIABLE_NAMES, compact(render(variableNamesJson)))",
+  "target": "ThriftServerPage::render",
+  "target_file": "scala-spark/sql/hive-thriftserver/src/main/scala/org/apache/spark/sql/hive/thriftserver/ui/ThriftServerPage.scala",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "actionCloseSplit",
+  "call_site": "app-ghostty-zig/src/apprt/gtk/class/split_tree.zig:755",
+  "call_text": "surface.close();",
+  "target": "close",
+  "target_file": "app-ghostty-zig/src/apprt/gtk/class/surface.zig",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "rescored medium->high [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "SparkContext::supplementJavaIPv6Options",
+  "call_site": "scala-spark/core/src/main/scala/org/apache/spark/SparkContext.scala:3446",
+  "call_text": "supplement(SparkLauncher.DRIVER_EXTRA_JAVA_OPTIONS)",
+  "target": "SparkContext::supplement",
+  "target_file": "scala-spark/core/src/main/scala/org/apache/spark/SparkContext.scala",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [python]",
+  "repo": "app-powertools-lambda",
+  "lang": "python",
+  "caller": "tests.functional.metrics.required_dependencies.test_metrics_cloudwatch_emf.test_log_metrics_capture_cold_start_metric_with_constructor_parameter",
+  "call_site": "app-powertools-lambda/tests/functional/metrics/required_dependencies/test_metrics_cloudwatch_emf.py:745",
+  "call_text": "lambda_handler({}, LambdaContext(\"example_fn\"))",
+  "target": "tests.functional.idempotency._boto3.conftest.LambdaContext.__init__",
+  "target_file": "app-powertools-lambda/tests/functional/idempotency/_boto3/conftest.py",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [elixir]",
+  "repo": "app-plausible-phoenix",
+  "lang": "elixir",
+  "caller": "Plausible.Stats.Funnel::backfill_steps",
+  "call_site": "app-plausible-phoenix/extra/lib/plausible/stats/funnel.ex:154",
+  "call_text": "conversion_rate = percentage(current_visitors, total_visitors)",
+  "target": "Plausible.Stats.Util::percentage",
+  "target_file": "app-plausible-phoenix/lib/plausible/stats/util.ex",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ }
+]

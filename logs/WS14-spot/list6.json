@@ -1,0 +1,222 @@
+[
+ {
+  "stratum": "added-high [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "twentythirteen_setup",
+  "call_site": "app-wordpress/wp-content/themes/twentythirteen/functions.php:250",
+  "call_text": "register_nav_menu( 'primary', __( 'Navigation Menu', 'twentythirteen' ) );",
+  "target": "register_nav_menu",
+  "target_file": "app-wordpress/wp-includes/nav-menu.php",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "added-high [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "WP_REST_Global_Styles_Revisions_Controller::register_routes",
+  "call_site": "app-wordpress/wp-includes/rest-api/endpoints/class-wp-rest-global-styles-revisions-controller.php:92",
+  "call_text": "register_rest_route(",
+  "target": "register_rest_route",
+  "target_file": "app-wordpress/wp-includes/rest-api.php",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [perl]",
+  "repo": "app-ravada-mojolicious",
+  "lang": "perl",
+  "caller": "add_user_group",
+  "call_site": "app-ravada-mojolicious/script/rvd_back:482",
+  "call_text": "my $user = Ravada::Auth::SQL->new(name => $login);",
+  "target": "Ravada::Domain::KVM::name",
+  "target_file": "app-ravada-mojolicious/lib/Ravada/Domain/KVM.pm",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [rust]",
+  "repo": "app-lemmy-actix",
+  "lang": "rust",
+  "caller": "lemmy_api_routes_v3::convert::convert_post_listing_sort",
+  "call_site": "app-lemmy-actix/crates/api/routes_v3/src/convert.rs:793",
+  "call_text": "SortTypeV3::TopYear => top(YEAR),",
+  "target": "lemmy_api_routes_v3::convert::top",
+  "target_file": "app-lemmy-actix/crates/api/routes_v3/src/convert.rs",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "WP_REST_Server::dispatch",
+  "call_site": "app-wordpress/wp-includes/rest-api/class-wp-rest-server.php:1114",
+  "call_text": "if ( ! is_wp_error( $error ) ) {",
+  "target": "is_wp_error",
+  "target_file": "app-wordpress/wp-includes/load.php",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "rescored medium->high [javascript]",
+  "repo": "solidity-openzeppelin",
+  "lang": "javascript",
+  "caller": "shouldBehaveLikeAManagedRestrictedOperation",
+  "call_site": "solidity-openzeppelin/test/access/manager/AccessManager.behavior.js:165",
+  "call_text": "testScheduleOperation(true);",
+  "target": "testScheduleOperation",
+  "target_file": "solidity-openzeppelin/test/access/manager/AccessManager.behavior.js",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports'], ['medium', 'cross-file:imports']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter_tools/test/general.shard/flutter_manifest_test.dart:238",
+  "call_text": "expect(flutterManifest.fonts, hasLength(1));",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/material/input_decorator_test.dart:816",
+  "call_text": "expect(getContainerRect(tester).height, 48.0);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "testMain",
+  "call_site": "dart-flutter/engine/src/flutter/lib/web_ui/test/ui/path_test.dart:148",
+  "call_text": "expect(posTan.angle, equals(0.0));",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / gone (external/stdlib or same-name target kept) [perl]",
+  "repo": "app-ravada-mojolicious",
+  "lang": "perl",
+  "caller": "Ravada::Domain::_post_shutdown",
+  "call_site": "app-ravada-mojolicious/lib/Ravada/Domain.pm:3514",
+  "call_text": "$self->_data(status => 'shutdown');",
+  "target": "Ravada::Domain::status",
+  "target_file": "app-ravada-mojolicious/lib/Ravada/Domain.pm",
+  "change": "edge REMOVED (was high); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "testMain",
+  "call_site": "dart-flutter/engine/src/flutter/lib/web_ui/test/engine/history_test.dart:85",
+  "call_text": "setUp(() async {",
+  "target": "PlatformMessagesSpy::setUp",
+  "target_file": "dart-flutter/engine/src/flutter/lib/web_ui/test/common/spy.dart",
+  "change": "edge REMOVED (was high); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/material/input_decorator_test.dart:13307",
+  "call_text": "testWidgets('top align includes padding', (WidgetTester tester) async {",
+  "target": "testWidgets",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/scrollbar_test.dart:1178",
+  "call_text": "expect(",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "rescored medium->high [php]",
+  "repo": "app-symfony-messenger",
+  "lang": "php",
+  "caller": "Acknowledger::__construct",
+  "call_site": "app-symfony-messenger/src/Symfony/Component/Messenger/Handler/Acknowledger.php:37",
+  "call_text": "$this->clock = $clock ?? Clock::get();",
+  "target": "Clock::get",
+  "target_file": "app-symfony-messenger/src/Symfony/Component/Clock/Clock.php",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/rendering/mouse_tracker_cursor_test.dart:115",
+  "call_text": "expect(logCursors, <_CursorUpdateDetails>[",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [perl]",
+  "repo": "app-ravada-mojolicious",
+  "lang": "perl",
+  "caller": "test_old_machine_req",
+  "call_site": "app-ravada-mojolicious/t/vm/v20_volatile_clones.t:426",
+  "call_text": "name => $domain->name",
+  "target": "Ravada::Domain::LXC::name",
+  "target_file": "app-ravada-mojolicious/lib/Ravada/Domain/LXC.pm",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "rescored medium->high [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "emit",
+  "call_site": "zig-zig/src/codegen/x86_64/CodeGen.zig:187719",
+  "call_text": "std.debug.panic(\"{s}: {s}{s}{s}\\n\", .{",
+  "target": "panic",
+  "target_file": "zig-zig/lib/std/debug.zig",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/material/text_field_test.dart:17725",
+  "call_text": "expect(controller.selection.baseOffset, isTargetPlatformAndroid ? 4 : 9);",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [python]",
+  "repo": "scala-spark",
+  "lang": "python",
+  "caller": "pyspark.sql.tests.pandas.test_pandas_udf_grouped_agg.GroupedAggPandasUDFTestsMixin.test_complex_groupby",
+  "call_site": "scala-spark/python/pyspark/sql/tests/pandas/test_pandas_udf_grouped_agg.py:342",
+  "call_text": "result1 = df.groupby(df.v % 2).agg(sum_udf(df.v))",
+  "target": "pyspark.sql.tests.pandas.test_pandas_udf_grouped_agg.GroupedAggPandasUDFTestsMixin.test_grouped_agg_pandas_udf_with_compression_codec.sum_udf",
+  "target_file": "scala-spark/python/pyspark/sql/tests/pandas/test_pandas_udf_grouped_agg.py",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:ambiguous-in-file"
+ },
+ {
+  "stratum": "added-high [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "get_available_languages",
+  "call_site": "app-wordpress/wp-includes/l10n.php:1566",
+  "call_text": "! str_starts_with( $lang_file, 'admin-' ) ) {",
+  "target": "str_starts_with",
+  "target_file": "app-wordpress/wp-includes/compat.php",
+  "change": "edge ADDED at high"
+ }
+]

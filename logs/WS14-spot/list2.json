@@ -1,0 +1,236 @@
+[
+ {
+  "stratum": "dropped-high / now-unresolved [ocaml]",
+  "repo": "ocaml-dune",
+  "lang": "ocaml",
+  "caller": "decode_since_expanded_gen",
+  "call_site": "ocaml-dune/src/dune_lang/ordered_set_lang.ml:307",
+  "call_text": "if ver < since_expanded && not (is_expanded t)",
+  "target": "is_expanded",
+  "target_file": "ocaml-dune/src/dune_lang/ordered_set_lang.ml",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/gestures/drag_test.dart:1851",
+  "call_text": "expect(logs, <String>['down', 'start']);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "rescored medium->high [php]",
+  "repo": "php-laravel",
+  "lang": "php",
+  "caller": "QueueBeanstalkdQueueTest::testPushProperlyPushesJobOntoBeanstalkd",
+  "call_site": "php-laravel/tests/Queue/QueueBeanstalkdQueueTest.php:56",
+  "call_text": "Str::createUuidsNormally();",
+  "target": "Str::createUuidsNormally",
+  "target_file": "php-laravel/src/Illuminate/Support/Str.php",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-high / rebound [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "checkDataset",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/QueryTest.scala:92",
+  "call_text": "val result = getResult(ds)",
+  "target": "getResult",
+  "target_file": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/QueryTest.scala",
+  "change": "edge REMOVED (was high); fate now: rebound",
+  "new_targets": [
+   [
+    "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/QueryTest.scala",
+    "QueryTestBase::getResult",
+    "high"
+   ]
+  ]
+ },
+ {
+  "stratum": "added-medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "KVStoreProtobufSerializerSuite::checkAnswer",
+  "call_site": "scala-spark/core/src/test/scala/org/apache/spark/status/protobuf/KVStoreProtobufSerializerSuite.scala:1550",
+  "call_text": "checkAnswer(result.taskMetrics.get, expected.taskMetrics.get)",
+  "target": "KVStoreProtobufSerializerSuite::checkAnswer",
+  "target_file": "scala-spark/core/src/test/scala/org/apache/spark/status/protobuf/KVStoreProtobufSerializerSuite.scala",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [python]",
+  "repo": "app-hypothesis-pyramid",
+  "lang": "python",
+  "caller": "tests.unit.h.search.query_test.TestGroupAndModerationFilter.test_moderators_see_hidden_annotations",
+  "call_site": "app-hypothesis-pyramid/tests/unit/h/search/query_test.py:816",
+  "call_text": "anno_where_moderator_by_other_user = make_annotation(",
+  "target": "tests.unit.h.search.query_test.make_annotation",
+  "target_file": "app-hypothesis-pyramid/tests/unit/h/search/query_test.py",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/reorderable_list_test.dart:799",
+  "call_text": "expect(tester.getTopLeft(find.text('item 0')), Offset.zero);",
+  "target": "expect",
+  "target_file": "dart-flutter/dev/bots/service_worker_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [typescript]",
+  "repo": "app-metabase-compojure",
+  "lang": "typescript",
+  "caller": "TableSelector",
+  "call_site": "app-metabase-compojure/frontend/src/metabase/admin/datamodel/hoc/FilteredToUrlTable.tsx:115",
+  "call_text": "setTableId(null);",
+  "target": "setTableId",
+  "target_file": "app-metabase-compojure/frontend/src/metabase/admin/datamodel/hoc/FilteredToUrlTable.tsx",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [javascript]",
+  "repo": "app-bewcloud-deno",
+  "lang": "javascript",
+  "caller": "c",
+  "call_site": "app-bewcloud-deno/public/js/@jsr/std__path@1.1.6/denonext/_common/env.mjs:2",
+  "call_text": "function c(t){let o=globalThis,n=o.process?.cwd??o.Deno?.cwd;if(typeof n!=\"function\")throw new TypeError(t);return n()}export{c as cwd};",
+  "target": "n.constructor",
+  "target_file": "app-bewcloud-deno/public/js/chart.js@4.5.1/denonext/chart.mjs",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / rebound [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/dev/devicelab/test/adb_test.dart:231",
+  "call_text": "test('reboot', () async {",
+  "target": "test",
+  "target_file": "dart-flutter/packages/flutter_tools/test/src/common.dart",
+  "change": "edge REMOVED (was high); fate now: rebound",
+  "new_targets": [
+   [
+    "dart-flutter/dev/devicelab/test/common.dart",
+    "test",
+    "high"
+   ]
+  ]
+ },
+ {
+  "stratum": "rescored medium->high [typescript]",
+  "repo": "app-papercups-phoenix",
+  "lang": "typescript",
+  "caller": "handleReopenConversation",
+  "call_site": "app-papercups-phoenix/assets/src/components/conversations/ConversationsDashboard.tsx:459",
+  "call_text": "handleSelectConversation(nextSelectedConversationId);",
+  "target": "handleSelectConversation",
+  "target_file": "app-papercups-phoenix/assets/src/components/conversations/ConversationsDashboard.tsx",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])"
+ },
+ {
+  "stratum": "added-high [javascript]",
+  "repo": "app-bamboobsc-struts",
+  "lang": "javascript",
+  "caller": "chart",
+  "call_site": "app-bamboobsc-struts/core-web/WebContent/d3/nv.d3.js:10372",
+  "call_text": ".attr('height', function(d,i) { return Math.abs(y(getY(d,i)) - y(0)) });",
+  "target": "getY",
+  "target_file": "app-bamboobsc-struts/core-web/WebContent/d3/nv.d3.js",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [ocaml]",
+  "repo": "ocaml-dune",
+  "lang": "ocaml",
+  "caller": "pair",
+  "call_site": "ocaml-dune/otherlibs/dyn/dyn.ml:168",
+  "call_text": "let pair f g (x, y) = Tuple [ f x; g y ]",
+  "target": "g",
+  "target_file": "ocaml-dune/src/dune_rules/modules.ml",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/cupertino/nav_bar_test.dart:3205",
+  "call_text": "expect(find.byType(CupertinoSearchTextField), findsOneWidget);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "added-medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "JavaStreamingContext::this",
+  "call_site": "scala-spark/streaming/src/main/scala/org/apache/spark/streaming/api/java/JavaStreamingContext.scala:157",
+  "call_text": "def this(path: String, hadoopConf: Configuration) = this(new StreamingContext(path, hadoopConf))",
+  "target": "JavaStreamingContext::this",
+  "target_file": "scala-spark/streaming/src/main/scala/org/apache/spark/streaming/api/java/JavaStreamingContext.scala",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [php]",
+  "repo": "app-symfony-messenger",
+  "lang": "php",
+  "caller": "TraceableCommand::setProcessTitle",
+  "call_site": "app-symfony-messenger/src/Symfony/Component/Console/Command/TraceableCommand.php:243",
+  "call_text": "return parent::setProcessTitle($title);",
+  "target": "LazyCommand::setProcessTitle",
+  "target_file": "app-symfony-messenger/src/Symfony/Component/Console/Command/LazyCommand.php",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/selectable_region_test.dart:5708",
+  "call_text": "expect(regionState.selectionOverlay?.startHandleLayerLink, isNotNull);",
+  "target": "expect",
+  "target_file": "dart-flutter/dev/bots/service_worker_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "rescored high->medium [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "StreamingQuerySuite::getBatch",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/streaming/StreamingQuerySuite.scala:1306",
+  "call_text": "Dataset.ofRows(spark, LocalRelation(toAttributes(schema), Nil, isStreaming = true))",
+  "target": "DataTypeUtils::toAttributes",
+  "target_file": "scala-spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/types/DataTypeUtils.scala",
+  "change": "edge confidence high->medium (old [['high', 'cross-file:imports']], new [['medium', 'cross-file:imports'], ['medium', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [perl]",
+  "repo": "app-ravada-mojolicious",
+  "lang": "perl",
+  "caller": "Ravada::Domain::info",
+  "call_site": "app-ravada-mojolicious/lib/Ravada/Domain.pm:2411",
+  "call_text": ",is_public => $self->is_public",
+  "target": "Ravada::Domain::is_public",
+  "target_file": "app-ravada-mojolicious/lib/Ravada/Domain.pm",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "rescored medium->high [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "main",
+  "call_site": "zig-zig/test/standalone/env_vars/main.zig:18",
+  "call_text": "try std.testing.expect(!(try std.process.hasNonEmptyEnvVar(allocator, \"FO\")));",
+  "target": "hasNonEmptyEnvVar",
+  "target_file": "zig-zig/lib/std/process.zig",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ }
+]

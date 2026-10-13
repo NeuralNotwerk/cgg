@@ -1,0 +1,243 @@
+[
+ {
+  "stratum": "dropped-medium / now-unresolved [swift]",
+  "repo": "app-ghostty-zig",
+  "lang": "swift",
+  "caller": "Backport.onKeyPress",
+  "call_site": "app-ghostty-zig/macos/Sources/Helpers/Backport.swift:48",
+  "call_text": "switch action(keyPress.modifiers) {",
+  "target": "Ghostty.App.action",
+  "target_file": "app-ghostty-zig/macos/Sources/Ghostty/Ghostty.App.swift",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "rescored medium->high [php]",
+  "repo": "php-laravel",
+  "lang": "php",
+  "caller": "RoutingRouteTest::testControllerCallActionMethodParameters",
+  "call_site": "php-laravel/tests/Routing/RoutingRouteTest.php:712",
+  "call_text": "$router->get(($str = Str::random()).'/{one}/{two}', RouteTestAnotherControllerWithParameterStub::class.'@differentArgumentNames');",
+  "target": "Str::random",
+  "target_file": "php-laravel/src/Illuminate/Support/Str.php",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "repo": "app-rn-expensify",
+  "lang": "typescript",
+  "caller": "WorkspaceWorkflowsPage",
+  "call_site": "app-rn-expensify/src/pages/workspace/workflows/WorkspaceWorkflowsPage.tsx:132",
+  "call_text": "showConfirmModal({",
+  "target": "showConfirmModal",
+  "target_file": "app-rn-expensify/src/pages/MultifactorAuthentication/RevokePage.tsx",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "rescored medium->high [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "cmdBuild",
+  "call_site": "zig-zig/src/main.zig:4970",
+  "call_text": "color = std.meta.stringToEnum(Color, args[i]) orelse {",
+  "target": "stringToEnum",
+  "target_file": "zig-zig/lib/std/meta.zig",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [elixir]",
+  "repo": "app-plausible-phoenix",
+  "lang": "elixir",
+  "caller": "Plausible.Repo.Migrations.CreateGoogleSearchConsoleIntegration::change",
+  "call_site": "app-plausible-phoenix/priv/repo/migrations/20190718160353_create_google_search_console_integration.exs:5",
+  "call_text": "create table(:google_auth) do",
+  "target": "PlausibleWeb.Components.Generic::table",
+  "target_file": "app-plausible-phoenix/lib/plausible_web/components/generic.ex",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [elixir]",
+  "repo": "app-plausible-phoenix",
+  "lang": "elixir",
+  "caller": "Plausible.Stats.Imported.SQL.Expression::filter_group_values",
+  "call_site": "app-plausible-phoenix/lib/plausible/stats/imported/sql/expression.ex:307",
+  "call_text": "where(q, [i], fragment(\"not empty(?)\", field(i, ^dim)))",
+  "target": "Plausible.Imported.CSVImporterTest::field",
+  "target_file": "app-plausible-phoenix/test/plausible/imported/csv_importer_test.exs",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "dropped-high / rebound [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "cosh64",
+  "call_site": "zig-zig/lib/std/math/complex/cosh.zig:105",
+  "call_text": "return Complex(f64).init(math.cosh(x), x * y);",
+  "target": "cosh",
+  "target_file": "zig-zig/lib/std/math/complex/cosh.zig",
+  "change": "edge REMOVED (was high); fate now: rebound",
+  "new_targets": [
+   [
+    "zig-zig/lib/std/math/cosh.zig",
+    "cosh",
+    "high"
+   ]
+  ]
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "QueryPlan::verboseStringWithOperatorId",
+  "call_site": "scala-spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/plans/QueryPlan.scala:502",
+  "call_text": "val argumentString = argString(conf.maxToStringFields)",
+  "target": "UnionLoop::argString",
+  "target_file": "scala-spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/plans/logical/cteOperators.scala",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [javascript]",
+  "repo": "js-polka",
+  "lang": "javascript",
+  "caller": "ccc",
+  "call_site": "js-polka/tests/polka.js:241",
+  "call_text": "next();",
+  "target": "Polka.next",
+  "target_file": "js-polka/packages/polka/index.js",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "added-medium [kotlin]",
+  "repo": "groovy-gradle",
+  "lang": "kotlin",
+  "caller": "org.gradle.kotlin.dsl.precompile.v1.PrecompiledSettingsScript.alias",
+  "call_site": "groovy-gradle/platforms/core-configuration/kotlin-dsl/src/main/kotlin/org/gradle/kotlin/dsl/precompile/v1/PrecompiledScriptTemplates.kt:131",
+  "call_text": "return alias(notation.asProvider())",
+  "target": "org.gradle.kotlin.dsl.precompile.v1.PrecompiledSettingsScript.alias",
+  "target_file": "groovy-gradle/platforms/core-configuration/kotlin-dsl/src/main/kotlin/org/gradle/kotlin/dsl/precompile/v1/PrecompiledScriptTemplates.kt",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [typescript]",
+  "repo": "app-metabase-compojure",
+  "lang": "typescript",
+  "caller": "BasicAdminSettingInput",
+  "call_site": "app-metabase-compojure/frontend/src/metabase/admin/settings/components/widgets/AdminSettingInput.tsx:209",
+  "call_text": "handleChange(newValue);",
+  "target": "handleChange",
+  "target_file": "app-metabase-compojure/frontend/src/metabase/admin/settings/components/widgets/AdminSettingInput.tsx",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/cupertino/segmented_control_test.dart:1842",
+  "call_text": "expect(sharedValue, 0);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "dropped-medium / rebound [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "HiveMetadataCacheSuite::testCaching",
+  "call_site": "scala-spark/sql/hive/src/test/scala/org/apache/spark/sql/hive/HiveMetadataCacheSuite.scala:76",
+  "call_text": "withTable(\"test\") {",
+  "target": "InsertIntoHiveTableBenchmark::withTable",
+  "target_file": "scala-spark/sql/hive/src/test/scala/org/apache/spark/sql/execution/benchmark/InsertIntoHiveTableBenchmark.scala",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "scala-spark/sql/connect/client/jvm/src/test/scala/org/apache/spark/sql/connect/test/SQLHelper.scala",
+    "SQLHelper::withTable",
+    "medium"
+   ]
+  ]
+ },
+ {
+  "stratum": "added-high [rust]",
+  "repo": "rust-ripgrep",
+  "lang": "rust",
+  "caller": "ignore::tests::gitignore_matched_path_or_any_parents_tests::test_dirs_in_deep",
+  "call_site": "rust-ripgrep/crates/ignore/tests/gitignore_matched_path_or_any_parents_tests.rs:217",
+  "call_text": "assert!(m(\"ROOT/parent_dir/dir_deep_02/file\", false).is_none());",
+  "target": "ignore::tests::gitignore_matched_path_or_any_parents_tests::m",
+  "target_file": "rust-ripgrep/crates/ignore/tests/gitignore_matched_path_or_any_parents_tests.rs",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "repo": "app-rn-expensify",
+  "lang": "typescript",
+  "caller": "useExpenseActions",
+  "call_site": "app-rn-expensify/src/hooks/useExpenseActions.ts:415",
+  "call_text": "text: isDuplicateReportActive ? translate('common.duplicateReport') : translate('common.duplicated'),",
+  "target": "translate",
+  "target_file": "app-rn-expensify/src/libs/actions/OnyxDerived/configs/reportAttributes.ts",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter_localizations/test/material/translations_test.dart:277",
+  "call_text": "expect(localizations, isA<MaterialLocalizationZhHant>());",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [perl]",
+  "repo": "app-ravada-mojolicious",
+  "lang": "perl",
+  "caller": "test_remove_n",
+  "call_site": "app-ravada-mojolicious/t/nodes/50_three_nodes.t:40",
+  "call_text": ",start => 1",
+  "target": "Ravada::Domain::Void::start",
+  "target_file": "app-ravada-mojolicious/lib/Ravada/Domain/Void.pm",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-high / now-unresolved [scala]",
+  "repo": "app-riffraff-play",
+  "lang": "scala",
+  "caller": "FailureNotificationContents::scheduledDeployFailureNotificationContents",
+  "call_site": "app-riffraff-play/riff-raff/app/notification/FailureNotificationContents.scala:97",
+  "call_text": "val scheduledDeployConfig = Action(",
+  "target": "PrismLookupTest::Action",
+  "target_file": "app-riffraff-play/riff-raff/test/lookup/PrismLookupTest.scala",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "added-high [kotlin]",
+  "repo": "groovy-gradle",
+  "lang": "kotlin",
+  "caller": "org.gradle.internal.serialize.graph.decodeLoop",
+  "call_site": "groovy-gradle/platforms/core-configuration/graph-serialization/src/main/kotlin/org/gradle/internal/serialize/graph/Combinators.kt:122",
+  "call_text": "codec.run { decode() }",
+  "target": "org.gradle.internal.serialize.graph.decode",
+  "target_file": "groovy-gradle/platforms/core-configuration/graph-serialization/src/main/kotlin/org/gradle/internal/serialize/graph/Combinators.kt",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / rebound [ocaml]",
+  "repo": "app-zpool-opium",
+  "lang": "ocaml",
+  "caller": "schema",
+  "call_site": "app-zpool-opium/pool/app/pool_user/entity.ml:169",
+  "call_text": "let schema = schema Pool_message.Field.IsAdmin",
+  "target": "schema",
+  "target_file": "app-zpool-opium/pool/app/query/entity.ml",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "app-zpool-opium/pool/app/pool_user/entity.ml",
+    "schema",
+    "high"
+   ]
+  ]
+ }
+]

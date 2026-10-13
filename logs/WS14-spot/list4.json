@@ -1,0 +1,250 @@
+[
+ {
+  "stratum": "added-medium [zig]",
+  "repo": "app-ghostty-zig",
+  "lang": "zig",
+  "caller": "init",
+  "call_site": "app-ghostty-zig/src/apprt/embedded.zig:539",
+  "call_text": "const stat = dir.stat(global.io()) catch |err| {",
+  "target": "io",
+  "target_file": "app-ghostty-zig/src/global.zig",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "added-medium [php]",
+  "repo": "app-humhub-yii",
+  "lang": "php",
+  "caller": "SpaceModelMembership::handleRemoveMembershipEvent",
+  "call_site": "app-humhub-yii/protected/humhub/modules/space/behaviors/SpaceModelMembership.php:533",
+  "call_text": "InviteNotification::instance()->about($this->owner)->delete($user);",
+  "target": "SocialActivity::instance",
+  "target_file": "app-humhub-yii/protected/humhub/components/SocialActivity.php",
+  "change": "edge ADDED at medium"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "testMain",
+  "call_site": "dart-flutter/engine/src/flutter/lib/web_ui/test/ui/rasterizer_order_test.dart:113",
+  "call_text": "expect(",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter_tools/test/general.shard/project_test.dart:1862",
+  "call_text": "expect(project.android.settingsGradleFile.path, expected.path);",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/widgets/sliver_cross_axis_group_test.dart:360",
+  "call_text": "expect((child.parentData! as SliverPhysicalParentData).paintOffset.dy, equals(410));",
+  "target": "expect",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "added-high [scala]",
+  "repo": "app-riffraff-play",
+  "lang": "scala",
+  "caller": "Pagination::last",
+  "call_site": "app-riffraff-play/riff-raff/app/deployment/filter.scala:179",
+  "call_text": "def last(base: Call) = pageCount.map(toPage(base, _)).getOrElse(DISABLED)",
+  "target": "Pagination::toPage",
+  "target_file": "app-riffraff-play/riff-raff/app/deployment/filter.scala",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / rebound [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "DataSourceReadBenchmark::numericScanBenchmark",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/execution/benchmark/DataSourceReadBenchmark.scala:173",
+  "call_text": "withSQLConf(SQLConf.JSON_USE_UNSAFE_ROW.key -> \"true\") {",
+  "target": "AggregatingAccumulator::withSQLConf",
+  "target_file": "scala-spark/sql/core/src/main/scala/org/apache/spark/sql/execution/AggregatingAccumulator.scala",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "scala-spark/sql/connect/client/jvm/src/test/scala/org/apache/spark/sql/connect/test/SQLHelper.scala",
+    "SQLHelper::withSQLConf",
+    "medium"
+   ]
+  ]
+ },
+ {
+  "stratum": "rescored medium->high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/material/tabs_test.dart:4254",
+  "call_text": "testWidgets('correct semantics', (WidgetTester tester) async {",
+  "target": "testWidgets",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/widget_tester.dart",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])"
+ },
+ {
+  "stratum": "added-high [javascript]",
+  "repo": "app-wordpress",
+  "lang": "javascript",
+  "caller": "MediaElement",
+  "call_site": "app-wordpress/wp-includes/js/mediaelement/mediaelement.js:918",
+  "call_text": "assignGettersSetters(props[_i3]);",
+  "target": "assignGettersSetters",
+  "target_file": "app-wordpress/wp-includes/js/mediaelement/mediaelement.js",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/dev/a11y_assessments/test/text_button_test.dart:40",
+  "call_text": "expect(findHeadingLevelOnes, findsOne);",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "BlockManagerProactiveReplicationSuite::testProactiveReplication",
+  "call_site": "scala-spark/core/src/test/scala/org/apache/spark/storage/BlockManagerReplicationSuite.scala:564",
+  "call_text": "assert(bm.blockInfoManager.getTaskLockCount(BlockInfo.NON_TASK_WRITER) === 0)",
+  "target": "MapWithStateSuite::assert",
+  "target_file": "scala-spark/streaming/src/test/scala/org/apache/spark/streaming/MapWithStateSuite.scala",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "added-high [php]",
+  "repo": "app-wordpress",
+  "lang": "php",
+  "caller": "WP_REST_Posts_Controller::prepare_item_for_response",
+  "call_site": "app-wordpress/wp-includes/rest-api/endpoints/class-wp-rest-posts-controller.php:2013",
+  "call_text": "$data['content']['block_version'] = block_version( $post->post_content );",
+  "target": "block_version",
+  "target_file": "app-wordpress/wp-includes/blocks.php",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / rebound [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "RandomBlockReplicationPolicy::prioritize",
+  "call_site": "scala-spark/core/src/main/scala/org/apache/spark/storage/BlockReplicationPolicy.scala:125",
+  "call_text": "log\"replicas with only ${MDC(NUM_PEERS, peers.size)} peer/s.\")",
+  "target": "MDC",
+  "target_file": "scala-spark/common/utils/src/main/scala/org/apache/spark/internal/Logging.scala",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "scala-spark/common/utils/src/main/scala/org/apache/spark/internal/Logging.scala",
+    "Logging::MDC",
+    "medium"
+   ]
+  ]
+ },
+ {
+  "stratum": "added-high [ocaml]",
+  "repo": "ocaml-dune",
+  "lang": "ocaml",
+  "caller": "loop",
+  "call_site": "ocaml-dune/boot/duneboot.ml:100",
+  "call_text": "| `Middle x -> loop l (x :: m) r xs",
+  "target": "loop",
+  "target_file": "ocaml-dune/boot/duneboot.ml",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / rebound [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "AggregateBenchmark::runBenchmarkSuite",
+  "call_site": "scala-spark/sql/core/src/test/scala/org/apache/spark/sql/execution/benchmark/AggregateBenchmark.scala:147",
+  "call_text": "withSQLConf(",
+  "target": "AggregatingAccumulator::withSQLConf",
+  "target_file": "scala-spark/sql/core/src/main/scala/org/apache/spark/sql/execution/AggregatingAccumulator.scala",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "scala-spark/sql/connect/client/jvm/src/test/scala/org/apache/spark/sql/connect/test/SQLHelper.scala",
+    "SQLHelper::withSQLConf",
+    "medium"
+   ]
+  ]
+ },
+ {
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/examples/api/test/material/scrollbar/scrollbar.0_test.dart:44",
+  "call_text": "expect(find.text('item 9'), findsOne);",
+  "target": "expect",
+  "target_file": "dart-flutter/engine/src/flutter/shell/common/fixtures/shell_test.dart",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)"
+ },
+ {
+  "stratum": "added-high [dart]",
+  "repo": "dart-flutter",
+  "lang": "dart",
+  "caller": "main",
+  "call_site": "dart-flutter/packages/flutter/test/painting/paint_image_test.dart:163",
+  "call_text": "test('centerSlice with scale \u2260 1', () async {",
+  "target": "test",
+  "target_file": "dart-flutter/packages/flutter_test/lib/src/test_compat.dart",
+  "change": "edge ADDED at high"
+ },
+ {
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "repo": "scala-spark",
+  "lang": "scala",
+  "caller": "OracleIntegrationSuite::testDatetime",
+  "call_site": "scala-spark/connector/docker-integration-tests/src/test/scala/org/apache/spark/sql/jdbc/v2/OracleIntegrationSuite.scala:244",
+  "call_text": "assert(rows5(2).getString(0) === \"tom\")",
+  "target": "SubmitRestProtocolMessage::assert",
+  "target_file": "scala-spark/core/src/main/scala/org/apache/spark/deploy/rest/SubmitRestProtocolMessage.scala",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files"
+ },
+ {
+  "stratum": "dropped-medium / rebound [zig]",
+  "repo": "zig-zig",
+  "lang": "zig",
+  "caller": "parse",
+  "call_site": "zig-zig/lib/std/zig.zig:298",
+  "call_text": "} else if (std.mem.eql(u8, text, \"uuid\")) {",
+  "target": "eql",
+  "target_file": "zig-zig/lib/std/zig.zig",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "new_targets": [
+   [
+    "zig-zig/lib/std/mem.zig",
+    "eql",
+    "high"
+   ]
+  ]
+ },
+ {
+  "stratum": "added-high [ocaml]",
+  "repo": "ocaml-dune",
+  "lang": "ocaml",
+  "caller": "handle_resolve_result",
+  "call_site": "ocaml-dune/src/dune_rules/lib.ml:1734",
+  "call_text": "instantiate db name info ~hidden:None",
+  "target": "instantiate",
+  "target_file": "ocaml-dune/src/dune_rules/lib.ml",
+  "change": "edge ADDED at high"
+ }
+]
