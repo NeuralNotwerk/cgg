@@ -81,3 +81,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-13 12:26: tick — round-3 agent active (last call 12:25), iterating on R20 after v9 review (gates running, v10 next). Diff +4915/-94.
 - 2026-10-13 13:45: WS4 COMMITTED 9cd92fa + docs 1de9553, pushed origin+backup; PATH cgg verified = 0.10.2 release. Orchestrator verified v11: multi-owner Java/C# sites remaining (836) are base+overrides-below by design; tigerbeetle assert adds 0; samples correct. WS14 started; before = bins/WS14-before (= 9cd92fa build).
 - 2026-10-13 14:22: tick — WS14 agent active (last call 14:21); v1 A/B done (ab/WS14-v1), iterating; diff 16 files +657/-43 (dart, perl, php, scala, zig, manifest, intra_file).
+- 2026-10-13 14:26: tick — WS14 agent active (14:25), building a new shared crates/cgg-lang/src/locals.rs (locals/params shadowing); v2 not yet.

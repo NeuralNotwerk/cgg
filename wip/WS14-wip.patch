@@ -1141,10 +1141,10 @@ index 1ebc9c7..0fe3a57 100644
                  }
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
 new file mode 100644
-index 0000000..d43e236
+index 0000000..7279869
 --- /dev/null
 +++ b/crates/cgg-lang/src/locals.rs
-@@ -0,0 +1,590 @@
+@@ -0,0 +1,602 @@
 +//! Value bindings: parameters and local variables, with the span they are
 +//! in scope over (FINDINGS A1/A4 generalisation, WS14).
 +//!
@@ -1483,66 +1483,87 @@ index 0000000..d43e236
 +        return Vec::new();
 +    };
 +    let mut out = Vec::new();
-+    let mut stack = vec![tree.root_node()];
-+    while let Some(n) = stack.pop() {
-+        if n.child_count() == 0 {
-+            if spec.idents.contains(&n.kind())
-+                && let Some(b) = binding(spec, n, source)
++    // Depth-first with a cursor, keeping the ancestor chain (each node
++    // with the field it hangs from its parent by): `Node::parent` and a
++    // per-leaf search of the parent's children are both linear, and a
++    // minified bundle has nodes with tens of thousands of children.
++    let mut chain: Vec<(Node<'_>, &'static str)> = Vec::new();
++    let mut functions = 0usize;
++    let mut cursor = tree.walk();
++    loop {
++        let node = cursor.node();
++        let field = cursor.field_name().unwrap_or("");
++        let is_ident = spec.idents.contains(&node.kind());
++        if is_ident {
++            if functions > 0
++                && let Some(b) = binding(spec, node, field, &chain, source)
 +            {
 +                out.push(b);
 +            }
-+            continue;
 +        }
-+        // `value_pattern` (OCaml) has a child; take it as a leaf too.
-+        if spec.idents.contains(&n.kind()) {
-+            if let Some(b) = binding(spec, n, source) {
-+                out.push(b);
++        // Descend (not into an identifier: OCaml's `value_pattern` has a
++        // child of its own).
++        if !is_ident && cursor.goto_first_child() {
++            if spec.functions.contains(&node.kind()) {
++                functions += 1;
 +            }
++            chain.push((node, field));
 +            continue;
 +        }
-+        let mut c = n.walk();
-+        let kids: Vec<Node<'_>> = n.children(&mut c).collect();
-+        stack.extend(kids.into_iter().rev());
-+    }
-+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
-+    out.dedup();
-+    out
-+}
-+
-+/// The field through which `child` hangs off `parent` (`""` for none).
-+fn field_of(parent: Node<'_>, child: Node<'_>) -> &'static str {
-+    let mut c = parent.walk();
-+    for (i, ch) in parent.children(&mut c).enumerate() {
-+        if ch.id() == child.id() {
-+            return parent.field_name_for_child(i as u32).unwrap_or("");
++        // Next sibling, else climb until one has a next sibling.
++        loop {
++            if cursor.goto_next_sibling() {
++                break;
++            }
++            if !cursor.goto_parent() {
++                out.sort_by_key(|b| (b.start_byte, b.end_byte));
++                out.dedup();
++                return out;
++            }
++            if let Some((n, _)) = chain.pop()
++                && spec.functions.contains(&n.kind())
++            {
++                functions -= 1;
++            }
 +        }
 +    }
-+    ""
 +}
 +
-+fn binding(spec: &Spec, leaf: Node<'_>, source: &[u8]) -> Option<LocalBinding> {
++/// `leaf` names a binding when, climbing through pattern nodes, it
++/// reaches a binder by one of the binder's name fields. `chain` holds the
++/// leaf's ancestors, root first, each with the field it hangs from its
++/// own parent by; `leaf_field` is the leaf's.
++fn binding(
++    spec: &Spec,
++    leaf: Node<'_>,
++    leaf_field: &'static str,
++    chain: &[(Node<'_>, &'static str)],
++    source: &[u8],
++) -> Option<LocalBinding> {
 +    let name = leaf.utf8_text(source).ok()?.trim();
 +    if name.is_empty() || name == "_" {
 +        return None;
 +    }
 +    let mut cur = leaf;
++    let mut field = leaf_field;
++    let mut level = chain.len();
 +    for _ in 0..8 {
-+        let parent = cur.parent()?;
-+        let field = field_of(parent, cur);
++        let (parent, parent_field) = *chain.get(level.checked_sub(1)?)?;
++        let grand = level.checked_sub(2).and_then(|i| chain.get(i)).map(|(g, _)| *g);
 +        let binder = spec.binders.iter().find(|b| {
 +            b.kind == parent.kind()
 +                && b.fields.contains(&field)
 +                && (!b.first_only || first_ident_child(spec, parent) == Some(cur.id()))
-+                && (b.parent.is_empty()
-+                    || parent.parent().is_some_and(|g| g.kind() == b.parent))
++                && (b.parent.is_empty() || grand.is_some_and(|g| g.kind() == b.parent))
 +        });
 +        if let Some(binder) = binder {
-+            let anchor = if binder.parent.is_empty() {
-+                parent
++            // The binder's own ancestors (and itself) for the scope walk.
++            let ancestors = if binder.parent.is_empty() {
++                &chain[..level]
 +            } else {
-+                parent.parent()?
++                &chain[..level.checked_sub(1)?]
 +            };
-+            let (start, end) = scope_of(spec, anchor, binder.scope)?;
++            let (start, end) = scope_of(spec, ancestors, binder.scope)?;
 +            return Some(LocalBinding {
 +                name: name.to_string(),
 +                start_byte: start,
@@ -1556,6 +1577,8 @@ index 0000000..d43e236
 +            return None;
 +        }
 +        cur = parent;
++        field = parent_field;
++        level -= 1;
 +    }
 +    None
 +}
@@ -1568,44 +1591,33 @@ index 0000000..d43e236
 +        .map(|ch| ch.id())
 +}
 +
-+fn scope_of(spec: &Spec, binder: Node<'_>, scope: Scope) -> Option<(u32, u32)> {
-+    // Only inside a callable: a module-level binding is the module's.
-+    let mut func = None;
-+    let mut up = Some(binder);
-+    while let Some(n) = up {
-+        if spec.functions.contains(&n.kind()) {
-+            func = Some(n);
-+            break;
-+        }
-+        up = n.parent();
-+    }
-+    let func = func?;
-+    // A binder that is itself a callable (a Dart local function) is in
-+    // scope in the block around it, not only inside itself.
-+    let func = if func.id() == binder.id() {
-+        let mut up = binder.parent();
-+        loop {
-+            match up {
-+                Some(n) if spec.functions.contains(&n.kind()) => break n,
-+                Some(n) => up = n.parent(),
-+                None => return None,
-+            }
-+        }
++/// The span a binding is in scope over. `chain` ends with the binder
++/// itself, preceded by its ancestors (root first).
++fn scope_of(spec: &Spec, chain: &[(Node<'_>, &'static str)], scope: Scope) -> Option<(u32, u32)> {
++    let (binder, _) = *chain.last()?;
++    // Only inside a callable: a module-level binding is the module's. A
++    // binder that is itself a callable (a Dart local function) is in
++    // scope in the block around it, so its search starts above it.
++    let is_fn = |n: &Node<'_>| spec.functions.contains(&n.kind());
++    let above = &chain[..chain.len() - 1];
++    let func_at = if is_fn(&binder) {
++        above.iter().rposition(|(n, _)| is_fn(n))?
 +    } else {
-+        func
++        chain.iter().rposition(|(n, _)| is_fn(n))?
 +    };
++    let func = chain[func_at].0;
++    let span = |n: Node<'_>| (n.start_byte() as u32, n.end_byte() as u32);
 +    match scope {
-+        Scope::Param => Some((func.start_byte() as u32, func.end_byte() as u32)),
-+        Scope::Own => Some((binder.start_byte() as u32, binder.end_byte() as u32)),
++        Scope::Param => Some(span(func)),
++        Scope::Own => Some(span(binder)),
 +        Scope::Decl => {
-+            let mut up = binder.parent();
-+            while let Some(n) = up {
-+                if spec.blocks.contains(&n.kind()) || spec.functions.contains(&n.kind()) {
-+                    return Some((binder.start_byte() as u32, n.end_byte() as u32));
-+                }
-+                up = n.parent();
-+            }
-+            Some((binder.start_byte() as u32, func.end_byte() as u32))
++            let block = above
++                .iter()
++                .rev()
++                .map(|(n, _)| *n)
++                .find(|n| spec.blocks.contains(&n.kind()) || is_fn(n))
++                .unwrap_or(func);
++            Some((binder.start_byte() as u32, block.end_byte() as u32))
 +        }
 +    }
 +}
@@ -2788,10 +2800,10 @@ index 0000000..a5e70bb
 +}
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
 new file mode 100644
-index 0000000..55cb0ea
+index 0000000..6b5b8dc
 --- /dev/null
 +++ b/crates/cgg-resolve/src/scope.rs
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,171 @@
 +//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
 +//! generalisation).
 +//!
@@ -2809,7 +2821,11 @@ index 0000000..55cb0ea
 +/// One file's value bindings, by name.
 +#[derive(Debug, Default)]
 +pub(crate) struct FileLocals {
-+    spans: HashMap<String, Vec<(u32, u32)>>,
++    /// Per name: binding spans sorted by start (outermost first at equal
++    /// starts), each with the index of its innermost enclosing span of
++    /// the same name — a minified bundle binds one short name thousands
++    /// of times, so a lookup climbs this chain instead of scanning.
++    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
 +    /// Names the file's imports bind: a local that holds an import
 +    /// (`const m = require('./m')` inside a function) is left to the
 +    /// module resolver.
@@ -2818,12 +2834,29 @@ index 0000000..55cb0ea
 +
 +impl FileLocals {
 +    pub(crate) fn build(facts: &FileFacts) -> Self {
-+        let mut spans: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
++        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
 +        for l in &facts.locals {
-+            spans
-+                .entry(l.name.clone())
++            raw.entry(l.name.clone())
 +                .or_default()
 +                .push((l.start_byte, l.end_byte));
++        }
++        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
++        for (name, mut v) in raw {
++            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
++            v.dedup();
++            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
++            let mut open: Vec<usize> = Vec::new();
++            for (s, e) in v {
++                while open
++                    .last()
++                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
++                {
++                    open.pop();
++                }
++                out.push((s, e, open.last().copied()));
++                open.push(out.len() - 1);
++            }
++            spans.insert(name, out);
 +        }
 +        let mut imported = std::collections::HashSet::new();
 +        for imp in &facts.imports {
@@ -2843,12 +2876,17 @@ index 0000000..55cb0ea
 +
 +    /// The innermost binding of `name` in scope at `site`, as its span.
 +    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
-+        self.spans
-+            .get(name)?
-+            .iter()
-+            .filter(|(s, e)| *s <= site && site < *e)
-+            .min_by_key(|(s, e)| e - s)
-+            .copied()
++        let v = self.spans.get(name)?;
++        let pos = v.partition_point(|(s, _, _)| *s <= site);
++        let mut cur = pos.checked_sub(1);
++        while let Some(i) = cur {
++            let (s, e, parent) = v[i];
++            if s <= site && site < e {
++                return Some((s, e));
++            }
++            cur = parent;
++        }
++        None
 +    }
 +
 +    /// Whether `name` is a value binding in scope at `site`.
