@@ -222,6 +222,12 @@ pub enum UnresolvedReason {
     /// elsewhere would be a guess, so the site is recorded instead.
     /// `module` is the import as written.
     NotInImportedModule { module: String },
+    /// A bare call through a name the calling scope binds to a *value* —
+    /// a parameter, a local variable, a closure's parameter (`cb()`,
+    /// `debug("x")` after `const debug = makeDebug()`). It calls whatever
+    /// that value holds; a same-named function elsewhere in the tree is a
+    /// coincidence of spelling, so the site is recorded instead of bound.
+    ShadowedByLocal,
     /// Any other / legacy reason, preserving the original text.
     Other(String),
 }
@@ -253,6 +259,7 @@ pub const KNOWN_UNRESOLVED_STAGES: &[&str] = &[
     "value-ref-no-enclosing",
     "external-module",
     "not-in-imported-module",
+    "shadowed-by-local",
     "other",
 ];
 
@@ -288,6 +295,7 @@ impl UnresolvedReason {
             UnresolvedReason::ValueRefNoEnclosing => "value-ref-no-enclosing",
             UnresolvedReason::ExternalModule { .. } => "external-module",
             UnresolvedReason::NotInImportedModule { .. } => "not-in-imported-module",
+            UnresolvedReason::ShadowedByLocal => "shadowed-by-local",
             UnresolvedReason::Other(s) => s.as_str(),
         }
     }
@@ -821,7 +829,7 @@ mod tests {
     /// and the arm's index must then be admitted here or the length
     /// assertion fails. Two checks, because the arm alone only proves
     /// the *match* is exhaustive — not that the vec holds an instance.
-    const UNRESOLVED_REASON_VARIANTS: usize = 15;
+    const UNRESOLVED_REASON_VARIANTS: usize = 16;
 
     /// One instance of every `UnresolvedReason` variant.
     fn every_unresolved_reason() -> Vec<UnresolvedReason> {
@@ -845,6 +853,7 @@ mod tests {
             UnresolvedReason::NotInImportedModule {
                 module: "./svc".into(),
             },
+            UnresolvedReason::ShadowedByLocal,
         ];
         // Compile-time exhaustiveness check, then a runtime one: every
         // arm index must appear, so a variant with an arm but no
@@ -867,6 +876,7 @@ mod tests {
                 UnresolvedReason::Other(_) => 12,
                 UnresolvedReason::ExternalModule { .. } => 13,
                 UnresolvedReason::NotInImportedModule { .. } => 14,
+                UnresolvedReason::ShadowedByLocal => 15,
             };
             seen.insert(idx);
         }

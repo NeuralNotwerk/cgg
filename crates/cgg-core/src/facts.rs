@@ -467,6 +467,31 @@ pub struct FileFacts {
     /// Empty for C++ (judged from file paths and qualified names).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packages: Vec<String>,
+    /// Names bound to a *value* — a parameter, a local variable, a
+    /// closure's parameter — over the byte span where the binding is in
+    /// scope (from the declaration to the end of its block or function).
+    /// A bare call through such a name (`cb()`, `debug("x")` after
+    /// `const debug = makeDebug()`) calls whatever value the name holds,
+    /// never a same-named function elsewhere in the tree; a receiver
+    /// headed by one (`c.json()` with a parameter `c`) is not an import
+    /// of that name. Recorded only inside callables; a function the code
+    /// declares by name is a definition, not one of these.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locals: Vec<LocalBinding>,
+}
+
+/// A name bound to a value over `start_byte..end_byte` (see
+/// [`FileFacts::locals`]).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LocalBinding {
+    pub name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    /// Where the binding's declaration starts (`const m = require('./m')`
+    /// starts at `m`, its scope after the initializer): an import the
+    /// declaration itself makes lies in `decl_byte..start_byte`.
+    #[serde(default)]
+    pub decl_byte: u32,
 }
 
 /// A class-level `name = Type(...)` assignment.
@@ -582,6 +607,7 @@ impl FileFacts {
             type_aliases: Vec::new(),
             untyped_receivers: Vec::new(),
             packages: Vec::new(),
+            locals: Vec::new(),
         }
     }
 

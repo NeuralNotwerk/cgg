@@ -63,6 +63,10 @@ pub(crate) enum Scoped {
     /// `new X()` / `X()` for a class the module declares without an
     /// explicit constructor.
     NoCtor,
+    /// Several copies of one definition (one name declared in several
+    /// files) and nothing the caller can see singles one out: nothing
+    /// binds, and the site keeps its ordinary unresolved record.
+    Ambiguous,
     /// The call is on a value whose type comes from a dependency (a Go
     /// package function declared to return `ext.T`): the external bucket,
     /// with the import path.
@@ -2154,7 +2158,7 @@ fn strip_js_ext(name: &str) -> &str {
 
 /// Resolve `.` and `..` without touching the filesystem; a `..` above the
 /// first component is kept.
-fn normalize(p: &Path) -> PathBuf {
+pub(crate) fn normalize(p: &Path) -> PathBuf {
     let mut out = PathBuf::new();
     for c in p.components() {
         match c {

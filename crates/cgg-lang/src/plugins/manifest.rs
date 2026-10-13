@@ -62,6 +62,79 @@ pub(crate) fn go_module_info(path: &Path) -> (Vec<String>, Option<String>) {
     (Vec::new(), None)
 }
 
+/// The `name:` of the `pubspec.yaml` nearest above a Dart file, and the
+/// directory it sits in — the package's root, whose `lib/` a
+/// `package:<name>/…` import names. `None` outside any package.
+pub(crate) fn dart_package(path: &Path) -> Option<(String, std::path::PathBuf)> {
+    let mut dir = path.parent();
+    while let Some(d) = dir {
+        let spec = d.join("pubspec.yaml");
+        if spec.is_file() {
+            let text = std::fs::read_to_string(&spec).ok()?;
+            let name = text.lines().find_map(|l| {
+                // Top level only: an indented `name:` belongs to a nested map.
+                let rest = l.strip_prefix("name:")?;
+                let v = rest.split('#').next().unwrap_or("").trim();
+                let v = v.trim_matches(|c| c == '"' || c == '\'');
+                (!v.is_empty()).then(|| v.to_string())
+            })?;
+            return Some((name, d.to_path_buf()));
+        }
+        dir = d.parent();
+    }
+    None
+}
+
+/// The modules a Zig `build.zig` declares, as `zig-module` import records
+/// (`alias` the module name, `path` its root file relative to the build
+/// script): each `addModule("<name>", .{ … .root_source_file =
+/// b.path("<path>") … })`. A module whose root is computed (not a string
+/// literal) is skipped.
+pub(crate) fn zig_build_modules(source: &[u8]) -> Vec<cgg_core::ImportRecord> {
+    let text = String::from_utf8_lossy(source);
+    let mut out = Vec::new();
+    let quoted = |s: &str| -> Option<(String, usize)> {
+        let s0 = s.trim_start();
+        let skipped = s.len() - s0.len();
+        let rest = s0.strip_prefix('"')?;
+        let end = rest.find('"')?;
+        Some((rest[..end].to_string(), skipped + end + 2))
+    };
+    let mut at = 0usize;
+    while let Some(i) = text[at..].find("addModule(") {
+        let start = at + i + "addModule(".len();
+        at = start;
+        let Some((name, used)) = quoted(&text[start..]) else {
+            continue;
+        };
+        // The options struct of this call: up to its closing `})`.
+        let rest = &text[start + used..];
+        let window = &rest[..rest.find("})").unwrap_or(rest.len()).min(rest.len())];
+        let Some(j) = window.find(".root_source_file") else {
+            continue;
+        };
+        let after = &window[j..];
+        let Some(k) = after.find(".path(") else {
+            continue;
+        };
+        let Some((root, _)) = quoted(&after[k + ".path(".len()..]) else {
+            continue;
+        };
+        if name.is_empty() || root.is_empty() {
+            continue;
+        }
+        let line = text[..start].matches('\n').count() as u32 + 1;
+        out.push(cgg_core::ImportRecord {
+            kind: "zig-module".into(),
+            path: root,
+            alias: name,
+            site_line: line,
+            site_byte: start as u32,
+        });
+    }
+    out
+}
+
 /// The `module` directive of a `go.mod` body.
 fn go_mod_module(text: &str) -> Option<String> {
     text.lines().find_map(|line| {

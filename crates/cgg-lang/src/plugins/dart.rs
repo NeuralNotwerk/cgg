@@ -37,6 +37,19 @@ impl LanguagePlugin for DartPlugin {
             scope: Vec::new(),
         };
         w.walk(tree.root_node());
+        // The package this file belongs to (`pubspec.yaml` `name:`), and
+        // the directory it is rooted at: `package:<name>/x.dart` is
+        // `<root>/lib/x.dart`.
+        if let Some((name, root)) = super::manifest::dart_package(path) {
+            facts.packages.push(name);
+            facts.imports.push(ImportRecord {
+                kind: "package-root".into(),
+                path: root.to_string_lossy().into_owned(),
+                alias: String::new(),
+                site_line: 0,
+                site_byte: 0,
+            });
+        }
         facts
     }
 }
@@ -137,6 +150,10 @@ impl<'a> DartWalker<'a> {
             "import_or_export" => {
                 self.record_import(node);
                 self.walk_children(node);
+                return;
+            }
+            "part_directive" | "part_of_directive" | "library_name" => {
+                self.record_directive(node);
                 return;
             }
             "call_expression" => {
@@ -247,10 +264,96 @@ impl<'a> DartWalker<'a> {
             return;
         }
         let alias = find_alias(node, self.source);
+        // `export 'x.dart'` re-exports a library's names; it brings none
+        // into this file's own scope.
+        let is_export = node
+            .named_child(0)
+            .is_some_and(|c| c.kind() == "library_export");
+        let site_line = (node.start_position().row as u32) + 1;
+        let site_byte = node.start_byte() as u32;
         self.facts.imports.push(ImportRecord {
-            kind: "import".into(),
-            path: uri,
+            kind: if is_export { "export" } else { "import" }.into(),
+            path: uri.clone(),
             alias,
+            site_line,
+            site_byte,
+        });
+        // `show a, b` / `hide c`: one record each, keyed to the directive
+        // by its URI and position.
+        let mut stack = vec![node];
+        let mut combinators = Vec::new();
+        while let Some(cur) = stack.pop() {
+            if cur.kind() == "combinator" {
+                combinators.push(cur);
+                continue;
+            }
+            let mut c = cur.walk();
+            for ch in cur.children(&mut c) {
+                stack.push(ch);
+            }
+        }
+        combinators.sort_by_key(|c| c.start_byte());
+        for comb in combinators {
+            let mut c = comb.walk();
+            let kids: Vec<Node> = comb.children(&mut c).collect();
+            let Some(kw) = kids.first().map(|k| k.kind()) else {
+                continue;
+            };
+            if kw != "show" && kw != "hide" {
+                continue;
+            }
+            let names: Vec<&str> = kids
+                .iter()
+                .filter(|k| k.kind() == "identifier")
+                .map(|k| self.text(*k))
+                .collect();
+            self.facts.imports.push(ImportRecord {
+                kind: kw.into(),
+                path: uri.clone(),
+                alias: names.join(","),
+                site_line,
+                site_byte,
+            });
+        }
+    }
+
+    /// `part 'x.dart';`, `part of 'lib.dart';` / `part of a.b;`,
+    /// `library a.b;`: which files form one library, whose top-level
+    /// names every part sees.
+    fn record_directive(&mut self, node: Node) {
+        let mut uri = String::new();
+        let mut dotted = String::new();
+        let mut stack = vec![node];
+        while let Some(cur) = stack.pop() {
+            match cur.kind() {
+                k if k.starts_with("template_chars_") => {
+                    uri = self.text(cur).to_string();
+                    continue;
+                }
+                "dotted_identifier_list" => {
+                    dotted = self.text(cur).split_whitespace().collect();
+                    continue;
+                }
+                _ => {}
+            }
+            let mut c = cur.walk();
+            for ch in cur.children(&mut c) {
+                stack.push(ch);
+            }
+        }
+        let (kind, path) = match node.kind() {
+            "part_directive" => ("part", uri),
+            "part_of_directive" if !uri.is_empty() => ("part-of", uri),
+            "part_of_directive" => ("part-of-library", dotted),
+            _ => ("library", dotted),
+        };
+        if path.is_empty() {
+            return;
+        }
+        self.facts.imports.push(ImportRecord {
+            kind: kind.into(),
+            path,
+            alias: String::new(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
         });
@@ -443,5 +546,39 @@ mod tests {
     fn malformed_source_does_not_panic() {
         let f = extract("class Broken {\n  void run( {\n");
         let _ = defs(&f);
+    }
+
+    /// WS14: an `export` is not an import, `show`/`hide` follow their
+    /// directive, `part`/`part of` tie a library together.
+    #[test]
+    fn dart_directives_are_told_apart() {
+        let f = extract(
+            "library a;\nimport 'x.dart' as p show f, g hide h;\nexport 'y.dart' show k;\n\
+             part 'z.dart';\n",
+        );
+        let got: Vec<(&str, &str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind != "package-root")
+            .map(|i| (i.kind.as_str(), i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("library", "a", ""),
+                ("import", "x.dart", "p"),
+                ("show", "x.dart", "f,g"),
+                ("hide", "x.dart", "h"),
+                ("export", "y.dart", ""),
+                ("show", "y.dart", "k"),
+                ("part", "z.dart", ""),
+            ]
+        );
+        let part = extract("part of 'lib.dart';\n");
+        assert!(
+            part.imports
+                .iter()
+                .any(|i| i.kind == "part-of" && i.path == "lib.dart")
+        );
     }
 }

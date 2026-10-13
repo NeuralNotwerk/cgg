@@ -328,6 +328,9 @@ pub(crate) struct FileHeads {
     /// the local definition shadowing an import of the same name (a
     /// minified bundle reuses every short name), so it is never refused.
     own_defs: HashSet<String>,
+    /// Parameters and locals: a receiver headed by one is that value,
+    /// not an import of the same name.
+    pub(crate) locals: crate::scope::FileLocals,
 }
 
 impl FileHeads {
@@ -338,6 +341,7 @@ impl FileHeads {
                 .iter()
                 .map(|d| d.simple_name.clone())
                 .collect(),
+            locals: crate::scope::FileLocals::build(facts),
             ..FileHeads::default()
         };
         let lang = facts.language.as_str();
@@ -571,6 +575,9 @@ impl FileHeads {
         }
         let rh = r.receiver_hint.trim();
         if rh == cgg_core::VALUE_REF_HINT || rh == cgg_core::STRING_REF_HINT {
+            return None;
+        }
+        if !rh.is_empty() && self.locals.shadows_receiver_head(r) {
             return None;
         }
         if rh.is_empty() {

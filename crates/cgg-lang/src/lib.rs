@@ -14,6 +14,7 @@
 #![allow(clippy::needless_update)]
 
 pub mod detect;
+pub mod locals;
 pub mod notebook;
 pub mod parser;
 pub mod plugins;

@@ -33,8 +33,30 @@ impl LanguagePlugin for ZigPlugin {
             facts: &mut facts,
         };
         w.walk(tree.root_node());
+        // A build script names the modules its packages are imported as:
+        // `b.addModule("pkg", .{ .root_source_file = b.path("src/main.zig") })`
+        // makes `@import("pkg")` that file (WS14).
+        if path.file_name().is_some_and(|n| n == "build.zig") {
+            facts
+                .imports
+                .extend(super::manifest::zig_build_modules(source));
+        }
         facts
     }
+}
+
+/// `@import("x").a.b` → `("x", "a.b")`: a path of plain members off an
+/// import.
+fn import_member(text: &str) -> Option<(&str, &str)> {
+    let rest = text.strip_prefix("@import(")?;
+    let close = rest.find(')')?;
+    let spec = rest[..close].trim().trim_matches('"');
+    let members = rest[close + 1..].strip_prefix('.')?;
+    let plain = !spec.is_empty()
+        && members.split('.').all(|seg| {
+            !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
+        });
+    plain.then_some((spec, members))
 }
 
 struct ZigWalker<'a> {
@@ -125,10 +147,21 @@ impl<'a> ZigWalker<'a> {
                         .map(|n| self.text(n).trim_matches('"').to_string())
                         .unwrap_or_default();
                     if !arg.is_empty() {
+                        // `const NAME = @import("x");`: the name it is
+                        // bound under in this file.
+                        let alias = node
+                            .parent()
+                            .filter(|p| p.kind() == "variable_declaration")
+                            .and_then(|p| {
+                                p.children(&mut p.walk())
+                                    .find(|c| c.kind() == "identifier")
+                                    .map(|n| self.text(n).to_string())
+                            })
+                            .unwrap_or_default();
                         self.facts.imports.push(ImportRecord {
                             kind: "import".into(),
                             path: arg,
-                            alias: String::new(),
+                            alias,
                             site_line: (node.start_position().row as u32) + 1,
                             site_byte: node.start_byte() as u32,
                         });
@@ -151,6 +184,18 @@ impl<'a> ZigWalker<'a> {
             return;
         };
         let path = self.text(*value).trim();
+        // `const checksum = @import("vsr/checksum.zig").checksum;`: a
+        // member of an imported file, recorded as `<file>#<members>`.
+        if let Some((spec, members)) = import_member(path) {
+            self.facts.imports.push(ImportRecord {
+                kind: "import-member".into(),
+                path: format!("{spec}#{members}"),
+                alias: self.text(*name).to_string(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
+            return;
+        }
         let plain = path.split('.').count() >= 2
             && path.split('.').all(|seg| {
                 !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
@@ -235,5 +280,27 @@ mod tests {
         );
         assert!(f.imports.iter().any(|i| i.path == "std"));
         assert!(f.references.iter().any(|r| r.name == "add"));
+    }
+
+    /// WS14: an import carries the name it is bound to, and a build
+    /// script's `addModule` names a module's root file.
+    #[test]
+    fn import_names_and_build_modules() {
+        let f = extract("const posix = @import(\"os/posix.zig\");\n");
+        assert!(f.imports.iter().any(|i| i.kind == "import"
+            && i.path == "os/posix.zig"
+            && i.alias == "posix"));
+        let src = "pub fn build(b: *std.Build) void {\n    _ = b.addModule(\"xev\", .{\n        \
+                   .root_source_file = b.path(\"src/main.zig\"),\n    });\n}\n";
+        let f = extract("pub const checksum = @import(\"vsr/checksum.zig\").checksum;\n");
+        assert!(f.imports.iter().any(|i| i.kind == "import-member"
+            && i.path == "vsr/checksum.zig#checksum"
+            && i.alias == "checksum"));
+        let mods = super::super::manifest::zig_build_modules(src.as_bytes());
+        assert_eq!(mods.len(), 1);
+        assert_eq!(
+            (mods[0].alias.as_str(), mods[0].path.as_str()),
+            ("xev", "src/main.zig")
+        );
     }
 }

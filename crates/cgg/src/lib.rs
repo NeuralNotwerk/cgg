@@ -154,6 +154,10 @@ const ANALYZE_STACK_SIZE: usize = 128 * 1024 * 1024;
 /// wide margin under it.
 const MAX_TREE_DEPTH: usize = 4000;
 
+/// A line longer than this marks a minified or bundled file (WS14): no
+/// parameter/local scope evidence is collected for it.
+const MINIFIED_LINE_BYTES: usize = 2000;
+
 pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
     // Host the whole run on a thread with a large stack. Extraction and
     // the `-n 0` path DFS recurse, and rayon lets the calling thread join
@@ -455,13 +459,26 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                         // Narrow the registrar-verb gate to this file's
                         // language; the union of every rule in the table
                         // makes each language pay for the others'.
-                        p.extract(
+                        let mut f = p.extract(
                             &extract_ctx.for_language(lang),
                             FileId::new(0),
                             &cand.path,
                             &out.tree,
                             &bytes,
-                        )
+                        );
+                        // Parameters and locals, from the same tree: a
+                        // bare call through one is never another file's
+                        // function (see `cgg_lang::locals`).
+                        // Not in a minified bundle (one enormous line): its
+                        // reused short names make scope evidence noise, and
+                        // the file keeps the reading it always had.
+                        if f.locals.is_empty()
+                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
+                        {
+                            f.locals =
+                                cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
+                        }
+                        f
                     });
                     (status.to_string(), out.parse_ms, facts)
                 }

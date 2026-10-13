@@ -202,6 +202,9 @@ fn split_type_list(raw: &str) -> Vec<String> {
     let s = raw.trim();
     let s = trim_unbalanced_close(s.trim_start_matches(['(', ':', '<', '[']).trim());
     let s = strip_leading_type_kws(s);
+    // Scala / Dart mixins: `extends A with B with C` lists three bases.
+    let joined = s.replace(" with ", ", ");
+    let s = joined.as_str();
 
     let mut parts: Vec<String> = Vec::new();
     let mut depth = 0i32;

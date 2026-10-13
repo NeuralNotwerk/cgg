@@ -68,7 +68,7 @@ impl<'a> ScalaWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "class_definition" | "object_definition" => {
+            "class_definition" | "object_definition" | "trait_definition" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
@@ -234,5 +234,24 @@ mod tests {
         let src = "def main() { greet() }\n";
         let f = extract(src);
         assert!(!f.references.is_empty(), "should extract references");
+    }
+
+    /// WS14: a trait is a scope like a class: its methods are its own.
+    #[test]
+    fn trait_methods_are_owned_by_the_trait() {
+        let o =
+            extract("object Errs extends QueryBase with Compilation { def f() = 1 }\n");
+        assert_eq!(
+            o.definitions[0].base_types,
+            vec!["QueryBase".to_string(), "Compilation".to_string()]
+        );
+        let f = extract("trait Logging { def logInfo(m: String): Unit = () }\n");
+        assert!(
+            f.definitions
+                .iter()
+                .any(|d| d.qualified_name == "Logging::logInfo"),
+            "{:?}",
+            f.definitions
+        );
     }
 }

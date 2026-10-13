@@ -53,6 +53,88 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
     )
 }
 
+/// How a file's definitions nest, computed once per file: each
+/// definition's innermost strictly-enclosing definition (an identical
+/// span — an overload, a re-declaration — does not enclose).
+struct Nesting {
+    parent: Vec<Option<usize>>,
+    /// Definition indices by start byte (outermost first at equal starts).
+    by_start: Vec<usize>,
+}
+
+impl Nesting {
+    fn build(defs: &[DefRecord]) -> Self {
+        let mut by_start: Vec<usize> = (0..defs.len()).collect();
+        by_start.sort_by(|&a, &b| {
+            defs[a]
+                .start_byte
+                .cmp(&defs[b].start_byte)
+                .then(defs[b].end_byte.cmp(&defs[a].end_byte))
+                .then(a.cmp(&b))
+        });
+        let mut parent = vec![None; defs.len()];
+        let mut open: Vec<usize> = Vec::new();
+        for &i in &by_start {
+            let (s, e) = (defs[i].start_byte, defs[i].end_byte);
+            while open
+                .last()
+                .is_some_and(|&o| !(defs[o].start_byte <= s && e <= defs[o].end_byte))
+            {
+                open.pop();
+            }
+            // The innermost open span that strictly encloses this one.
+            parent[i] = open.iter().rev().copied().find(|&o| {
+                let (os, oe) = (defs[o].start_byte, defs[o].end_byte);
+                os <= s && e <= oe && (os, oe) != (s, e)
+            });
+            open.push(i);
+        }
+        Nesting { parent, by_start }
+    }
+
+    /// The innermost definition containing `byte`.
+    fn innermost(&self, defs: &[DefRecord], byte: u32) -> Option<usize> {
+        let pos = self
+            .by_start
+            .partition_point(|&i| defs[i].start_byte <= byte);
+        // Walk back from the last definition starting at or before
+        // `byte`; climb its parents until one contains the byte.
+        for &start in self.by_start[..pos].iter().rev().take(64) {
+            let mut cur = Some(start);
+            while let Some(i) = cur {
+                if defs[i].start_byte <= byte && byte < defs[i].end_byte {
+                    return Some(i);
+                }
+                cur = self.parent[i];
+            }
+        }
+        None
+    }
+}
+
+/// Languages whose functions nest lexically: a function declared inside
+/// another is visible by bare name only within it, and the innermost
+/// declaration shadows outer ones (an OCaml `let rec go` in each of three
+/// functions of one file; a JavaScript helper nested in a component).
+fn lexically_scoped(language: &str) -> bool {
+    matches!(
+        language,
+        "python"
+            | "javascript"
+            | "typescript"
+            | "lua"
+            | "ocaml"
+            | "fsharp"
+            | "scala"
+            | "kotlin"
+            | "swift"
+            | "rust"
+            | "dart"
+            | "haskell"
+            | "julia"
+    )
+}
+
 /// Whether a definition is a member of a type rather than a free
 /// function.
 /// A same-name candidate: its index in `definitions`, and the record.
@@ -115,6 +197,8 @@ pub fn link_file_with_cap(
     let mut out = LinkOutcome::default();
     let resolver_id = ResolverId::new("intra-file");
 
+    let locals = crate::scope::FileLocals::build(facts);
+    let nesting = Nesting::build(&facts.definitions);
     for rref in &facts.references {
         let enclosing = enclosing_def_index(facts, rref);
         let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
@@ -179,6 +263,46 @@ pub fn link_file_with_cap(
             .map(|(i, d)| (i as u32, d))
             .collect();
 
+        // A bare call through a parameter or local calls the value it
+        // holds: a definition declared outside the binding's scope is
+        // not the callee (`cb()` with a parameter `cb` and a function
+        // `cb` at module level). One declared inside it — the arrow
+        // function `const cb = () => …` the binding names, a nested
+        // function — still is (WS14).
+        let mut shadowed_by_local = false;
+        if locals.shadows_bare_call(rref)
+            && let Some((ls, le, decl)) =
+                locals.binding_decl_at(&rref.name, rref.site_byte)
+        {
+            // The function the binding lives in: a definition nested in it
+            // is a value the binding may hold (Python `def f` in one branch
+            // and `f = g` in another), one outside it is shadowed.
+            let (fs, fe) = nesting
+                .innermost(&facts.definitions, ls)
+                .map(|i| {
+                    (
+                        facts.definitions[i].start_byte,
+                        facts.definitions[i].end_byte,
+                    )
+                })
+                .unwrap_or((ls, le));
+            // A parameter's scope is its whole function. A local is bound
+            // by an assignment, and may hold a closure another function of
+            // the file returns (`is_valid = is_valid_factory(x)` then
+            // `is_valid(i)` enters the nested `is_valid`): a definition
+            // nested in some other function stays a candidate for it.
+            let is_param = fs == ls;
+            let before = candidates.len();
+            candidates.retain(|(i, d)| {
+                (fs <= d.start_byte && d.start_byte < fe)
+                    // The function the declaration itself binds
+                    // (`const lim = (v) => …`).
+                    || (decl <= d.start_byte && d.start_byte < ls)
+                    || (!is_param && nesting.parent[*i as usize].is_some())
+            });
+            shadowed_by_local = before > 0 && candidates.is_empty();
+        }
+
         // A bare identifier is not a method call in these languages:
         // `helper(2)` inside a class reaches a module-level `helper`,
         // never `self.helper`. Without this a same-file method with a
@@ -220,7 +344,8 @@ pub fn link_file_with_cap(
             methods_out_of_scope += (before - candidates.len()) as u32;
         }
 
-        // Python lexical scope for a bare call. A function nested inside
+        // Lexical scope for a bare call (Python; WS14: every language in
+        // `lexically_scoped`). A function nested inside
         // another is visible by name only within it, and the innermost
         // definition shadows outer ones: `_scan()` inside the method that
         // defines `_scan` is that local, and `_scan()` anywhere else is
@@ -230,25 +355,27 @@ pub fn link_file_with_cap(
         // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
         // and name lookup is the only thing that finds it there.
         if rref.receiver_hint.is_empty()
-            && facts.language == "python"
+            && (!rref.dot_call || facts.language == "python")
+            && lexically_scoped(&facts.language)
+            // JS/TS: only where the file's scopes were read (a minified
+            // bundle records none and keeps its old reading).
+            && (!matches!(facts.language.as_str(), "javascript" | "typescript")
+                || !facts.locals.is_empty())
             && candidates.len() > 1
         {
-            let parent_span = |d: &DefRecord| -> Option<(u32, u32)> {
-                facts
-                    .definitions
-                    .iter()
-                    .filter(|p| {
-                        p.start_byte <= d.start_byte
-                            && d.end_byte <= p.end_byte
-                            && (p.start_byte, p.end_byte) != (d.start_byte, d.end_byte)
-                    })
-                    .map(|p| (p.start_byte, p.end_byte))
-                    .min_by_key(|(a, b)| b - a)
+            // A definition whose span is a whole type (a Kotlin primary
+            // constructor recorded over its class) is not a lexical scope:
+            // its members are the type's, not locals of a function.
+            let parent_span = |i: u32| -> Option<(u32, u32)> {
+                nesting.parent[i as usize]
+                    .map(|p| &facts.definitions[p])
+                    .filter(|d| d.variant != DefVariant::Constructor)
+                    .map(|d| (d.start_byte, d.end_byte))
             };
             let site = rref.site_byte;
             let visible: Vec<(Candidate<'_>, Option<Span>)> = candidates
                 .iter()
-                .map(|c| (*c, parent_span(c.1)))
+                .map(|c| (*c, parent_span(c.0)))
                 .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
                 .collect();
             // Innermost enclosing scope first: the smallest parent span,
@@ -265,6 +392,22 @@ pub fn link_file_with_cap(
                     .collect();
                 if !narrowed.is_empty() {
                     candidates = narrowed;
+                }
+            }
+            // ML-style `let` (and Lua's `local function`): a later binding
+            // of the name in the same scope shadows an earlier one, so the
+            // call is the last one bound before it (two `let pkgVer` in two
+            // `do` blocks of one test).
+            if candidates.len() > 1
+                && matches!(facts.language.as_str(), "ocaml" | "fsharp" | "lua")
+            {
+                if let Some(last) = candidates
+                    .iter()
+                    .filter(|(_, d)| d.start_byte <= site)
+                    .max_by_key(|(_, d)| d.start_byte)
+                    .copied()
+                {
+                    candidates = vec![last];
                 }
             }
         }
@@ -428,7 +571,9 @@ pub fn link_file_with_cap(
                 // somewhere else, and reporting it as though the name
                 // does not exist is what P1-2 of the field report was
                 // about.
-                let reason = if methods_out_of_scope > 0 {
+                let reason = if shadowed_by_local {
+                    UnresolvedReason::ShadowedByLocal
+                } else if methods_out_of_scope > 0 {
                     UnresolvedReason::NotInScopeForBareCall {
                         methods: methods_out_of_scope,
                     }
@@ -877,6 +1022,118 @@ mod tests {
             .enumerate()
             .map(|(i, _)| ((facts.file, i as u32), CallableId::new(i as u32)))
             .collect()
+    }
+
+    fn local(name: &str, start: u32, end: u32) -> cgg_core::LocalBinding {
+        cgg_core::LocalBinding {
+            name: name.into(),
+            start_byte: start,
+            end_byte: end,
+            decl_byte: start,
+        }
+    }
+
+    /// WS14: `function f(cb) { cb(); }` with a module-level `function
+    /// cb` — the parameter is the callee, not the module's function. A
+    /// function nested in the binding's own function (the value the
+    /// binding may hold) still binds; a call outside the binding's scope
+    /// is untouched.
+    #[test]
+    fn a_parameter_or_local_shadows_the_files_function() {
+        let defs = vec![
+            mk_def("f", "f", DefVariant::FreeFunction, (0, 100)),
+            mk_def("cb", "cb", DefVariant::FreeFunction, (200, 300)),
+            mk_def("g", "g", DefVariant::FreeFunction, (400, 500)),
+            mk_def("cb", "g.cb", DefVariant::FreeFunction, (410, 420)),
+        ];
+        let refs = vec![mk_ref("cb", 50), mk_ref("cb", 450), mk_ref("cb", 250)];
+        let mut facts = facts_with_lang("javascript", defs, refs);
+        facts.locals = vec![local("cb", 0, 100), local("cb", 405, 500)];
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let dsts: Vec<(u32, u32)> = out
+            .edges
+            .iter()
+            .map(|e| (e.site_byte, e.dst.as_u32()))
+            .collect();
+        // 50: shadowed by the parameter. 450: the nested `cb` the local
+        // may hold. 250 (inside `cb` itself, out of every binding): the
+        // module's.
+        assert_eq!(dsts, vec![(450, 3), (250, 1)], "{dsts:?}");
+        assert!(
+            out.unresolved
+                .iter()
+                .any(|u| u.site_byte == 50
+                    && u.reason == UnresolvedReason::ShadowedByLocal),
+            "{:?}",
+            out.unresolved
+        );
+    }
+
+    /// WS14: a local bound by assignment may hold a closure another
+    /// function of the file returns (`is_valid = factory(x)` then
+    /// `is_valid(i)`): the nested definition stays its candidate; a
+    /// module-level one of the same name is shadowed.
+    #[test]
+    fn a_local_may_hold_a_closure_a_factory_returns() {
+        let defs = vec![
+            mk_def("factory", "m.factory", DefVariant::FreeFunction, (0, 100)),
+            mk_def(
+                "is_valid",
+                "m.factory.is_valid",
+                DefVariant::FreeFunction,
+                (10, 50),
+            ),
+            mk_def("run", "m.run", DefVariant::FreeFunction, (200, 300)),
+        ];
+        let mut facts = facts_with_lang("python", defs, vec![mk_ref("is_valid", 250)]);
+        facts.locals = vec![cgg_core::LocalBinding {
+            name: "is_valid".into(),
+            start_byte: 230,
+            end_byte: 300,
+            decl_byte: 210,
+        }];
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
+        assert_eq!(dsts, vec![1], "{:?}", out);
+    }
+
+    /// WS14: lexical scope beyond Python. Three OCaml functions each
+    /// define a local `go`; a call inside one is its own. Two `let`s of
+    /// one name in one scope: the later one, if before the call, shadows.
+    #[test]
+    fn nested_functions_are_scoped_lexically_in_ml_style_languages() {
+        let defs = vec![
+            mk_def("concat", "concat", DefVariant::FreeFunction, (0, 100)),
+            mk_def("go", "go", DefVariant::FreeFunction, (10, 90)),
+            mk_def("connect", "connect", DefVariant::FreeFunction, (200, 300)),
+            mk_def("go", "go", DefVariant::FreeFunction, (210, 280)),
+            mk_def("t", "t", DefVariant::FreeFunction, (400, 600)),
+            mk_def("pv", "pv", DefVariant::FreeFunction, (410, 420)),
+            mk_def("pv", "pv", DefVariant::FreeFunction, (500, 510)),
+        ];
+        let refs = vec![mk_ref("go", 290), mk_ref("pv", 450), mk_ref("pv", 550)];
+        let facts = facts_with_lang("ocaml", defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let dsts: Vec<(u32, u32)> = out
+            .edges
+            .iter()
+            .map(|e| (e.site_byte, e.dst.as_u32()))
+            .collect();
+        assert_eq!(dsts, vec![(290, 3), (450, 5), (550, 6)], "{dsts:?}");
+        // Near miss: a Kotlin member is not a local of its class's
+        // constructor span — the class span does not make it "innermost".
+        let defs = vec![
+            mk_def("K", "K", DefVariant::Constructor, (0, 100)),
+            mk_def("h", "K.h", DefVariant::InherentMethod, (10, 50)),
+            mk_def("h", "h", DefVariant::FreeFunction, (200, 300)),
+        ];
+        let facts = facts_with_lang("kotlin", defs, vec![mk_ref("h", 20)]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert!(out.edges.is_empty(), "{:?}", out.edges);
     }
 
     #[test]

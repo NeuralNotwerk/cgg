@@ -206,6 +206,13 @@ impl<'a> PerlWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
+        // `name => $v`: a bareword before a fat comma is an autoquoted
+        // string (a hash key, a named argument), not a call (WS14).
+        if node.kind() == "call_expression_with_bareword"
+            && node.next_sibling().is_some_and(|n| n.kind() == "fat_comma")
+        {
+            return;
+        }
         if let Some(func_node) = node.child(0) {
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
@@ -741,5 +748,14 @@ mod tests {
     fn malformed_source_does_not_panic() {
         let f = extract("sub broken {\n  my $x = ;\n");
         let _ = defs(&f);
+    }
+
+    /// WS14: `name => $v` is an autoquoted key, not a call to `name`.
+    #[test]
+    fn a_bareword_before_a_fat_comma_is_not_a_call() {
+        let f = extract("sub run { my $u = Foo->new(name => $n); helper(1); }\n");
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(!names.contains(&"name"), "{names:?}");
+        assert!(names.contains(&"helper"), "{names:?}");
     }
 }

@@ -1366,6 +1366,12 @@ pub fn resolve(
     // Import → file, for calls written through a workspace module
     // (FINDINGS A4/A5; see `modules`).
     let modix = crate::modules::ModuleIndex::build(graph, facts, &vocab);
+    // Library scope (Dart imports, exports, parts; WS14; see `libscope`).
+    let libix = crate::libscope::LibIndex::build(graph, facts);
+    let phpix = crate::libscope::PhpIndex::build(graph, facts);
+    // A module a build script declares is the tree's, whatever its root
+    // file is named (`@import("pkg")` → `src/main.zig`).
+    zig_packages.extend(libix.zig_module_names().map(str::to_string));
 
     drop(_sp_idx);
     let _sp_loop = cgg_core::profile::span("xfile::parallel-loop");
@@ -1441,6 +1447,10 @@ pub fn resolve(
             // Resolution tries `<prefix>.<ref-name>` (and `<prefix>::<name>`
             // for ::-joined languages) for each prefix.
             let mut unqualified_prefixes: Vec<String> = Vec::new();
+            // Scala: the packages / objects the file imports from, for the
+            // scoped lookup's file match only (an import binds no name
+            // for its prefix).
+            let mut scala_import_dirs: Vec<String> = Vec::new();
 
             // A declaration this file made itself, merged into a body elsewhere,
             // is still visible here — whether or not the file includes anything.
@@ -1780,6 +1790,12 @@ pub fn resolve(
                         // other languages because match arms above already
                         // claim the kind for Rust.
                         let path = imp.path.trim();
+                        // Elixir `use M, opts`: the module precedes them.
+                        let path = if lang == "elixir" {
+                            path.split(',').next().unwrap_or(path).trim()
+                        } else {
+                            path
+                        };
                         if !path.is_empty() {
                             unqualified_prefixes.push(path.to_string());
                         }
@@ -1834,7 +1850,23 @@ pub fn resolve(
                                                 .push(format!("{prefix}.{src}"));
                                         }
                                     }
-                                    if let Some(last) = prefix.rsplit('.').next() {
+                                    // Scala binds only what the import
+                                    // names (`import a.sql.QueryTest`
+                                    // binds `QueryTest`, not `sql`).
+                                    // Only an import that can name a
+                                    // package object's member (a wildcard,
+                                    // a lowercase member) points the
+                                    // scoped lookup at its package; a class
+                                    // import does not.
+                                    if lang == "scala" {
+                                        let members = suffix == "_"
+                                            || suffix.split(',').any(|n| {
+                                                n.trim().starts_with(char::is_lowercase)
+                                            });
+                                        if members {
+                                            scala_import_dirs.push(prefix.to_string());
+                                        }
+                                    } else if let Some(last) = prefix.rsplit('.').next() {
                                         module_aliases
                                             .insert(last.to_string(), prefix.to_string());
                                     }
@@ -1877,6 +1909,13 @@ pub fn resolve(
                             // unqualified import.
                             "haskell" | "erlang" | "elixir" | "fsharp" | "ocaml"
                             | "julia" | "lean" => {
+                                // Elixir `import M, only: [f: 1]`: the
+                                // module is what precedes the options.
+                                let path = if lang == "elixir" {
+                                    path.split(',').next().unwrap_or(path).trim()
+                                } else {
+                                    path
+                                };
                                 unqualified_prefixes.push(path.to_string());
                                 if let Some(last) = path.rsplit('.').next() {
                                     module_aliases
@@ -1998,7 +2037,7 @@ pub fn resolve(
                     .collect();
                 // Also include single-segment module aliases (Lua `require('foo')`,
                 // Scala `import play.Foo` last segment, etc.)
-                for target in module_aliases.values() {
+                for target in module_aliases.values().chain(scala_import_dirs.iter()) {
                     path_fragments.push(target.replace('.', "/").to_ascii_lowercase());
                 }
                 path_fragments.retain(|f| !f.is_empty());
@@ -2012,6 +2051,20 @@ pub fn resolve(
             }
 
             let heads = crate::heads::FileHeads::build(facts, &vocab);
+            let locals = &heads.locals;
+            let scala_wild = if lang == "scala" {
+                with_ancestors(
+                    &lang,
+                    unqualified_prefixes
+                        .iter()
+                        .filter_map(|p| p.rsplit('.').next())
+                        .map(str::to_string)
+                        .collect(),
+                    &bases_by_owner,
+                )
+            } else {
+                std::collections::BTreeSet::new()
+            };
             let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
 
             drop(_sp_imports);
@@ -2157,6 +2210,69 @@ pub fn resolve(
                     .and_then(|id| graph.callables.get(&id))
                     .map(|c| c.qualified_name.as_str());
 
+                // A bare call through a parameter or local (`cb()`,
+                // `debug("x")` after `const debug = makeDebug()`) calls
+                // the value the name holds. No other file's function is
+                // the callee, whatever shares its name (WS14).
+                if locals.shadows_bare_call(r) {
+                    // A local whose type is known is an instance: calling
+                    // it enters its type's call operator (step 7's
+                    // `agent("x")` → `Agent.__call__`), the one reading a
+                    // value binding has.
+                    let call_op: Option<Vec<CallableId>> =
+                        var_types.get(&r.name).and_then(|ty| {
+                            call_operator_names(&lang).iter().find_map(|op| {
+                                by_owner_method
+                                    .get(&(lang.clone(), ty.clone(), (*op).to_string()))
+                                    .filter(|v| !v.is_empty())
+                                    .cloned()
+                                    .or_else(|| {
+                                        resolve_via_bases(
+                                            &lang,
+                                            ty,
+                                            op,
+                                            &by_owner_method,
+                                            &bases_by_owner,
+                                        )
+                                    })
+                            })
+                        });
+                    if let (Some(cids), Some(src)) = (call_op, enclosing) {
+                        for cid in cids {
+                            if cid != src
+                                && !existing_edges.contains(&(src, cid, r.site_byte))
+                            {
+                                out.edges.push(CallEdge {
+                                    src,
+                                    dst: cid,
+                                    site_line: r.site_line,
+                                    site_byte: r.site_byte,
+                                    confidence: Confidence::Medium,
+                                    via: Via::Direct,
+                                    resolver: resolver_id.clone(),
+                                    weight: 1,
+                                });
+                            }
+                        }
+                        continue;
+                    }
+                    if by_simple
+                        .get(&(lang.clone(), r.name.clone()))
+                        .is_some_and(|c| !c.is_empty())
+                    {
+                        out.unresolved.push(AuditUnresolvedCall::new(
+                            enclosing,
+                            facts.file,
+                            r.site_line,
+                            r.site_byte,
+                            r.name.clone(),
+                            r.receiver_hint.clone(),
+                            UnresolvedReason::ShadowedByLocal,
+                        ));
+                    }
+                    continue;
+                }
+
                 let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                 let mut capped = 0u32;
                 let mut no_ctor = false;
@@ -2199,6 +2315,9 @@ pub fn resolve(
                     &kotlin_extensions,
                     &modix,
                     &file_mods,
+                    &libix,
+                    &phpix,
+                    &scala_wild,
                     &qn_collisions,
                     &overloads,
                     &mut refused_module,
@@ -2269,6 +2388,9 @@ pub fn resolve(
                                 &kotlin_extensions,
                                 &modix,
                                 &file_mods,
+                                &libix,
+                                &phpix,
+                                &scala_wild,
                                 &qn_collisions,
                                 &overloads,
                                 &mut m2,
@@ -3587,6 +3709,36 @@ struct BareScope<'s> {
     direct_imports: &'s HashMap<String, Vec<String>>,
     unqualified_prefixes: &'s [String],
     bases_by_owner: &'s HashMap<(String, String), Vec<String>>,
+    /// Scala: the objects the file wildcard-imports, with their bases
+    /// (computed once per file).
+    scala_wild: &'s std::collections::BTreeSet<String>,
+}
+
+/// `start` and every type it inherits from through recorded bases (bare
+/// names, depth 8).
+fn with_ancestors(
+    lang: &str,
+    start: Vec<String>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+) -> std::collections::BTreeSet<String> {
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut frontier = start;
+    for _ in 0..8 {
+        let mut next = Vec::new();
+        for t in std::mem::take(&mut frontier) {
+            if !seen.insert(t.clone()) {
+                continue;
+            }
+            if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
+                next.extend(bases.iter().cloned());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    seen
 }
 
 /// FINDINGS A6. Whether a bare call — no receiver, no `this`/`self::`
@@ -3604,10 +3756,13 @@ struct BareScope<'s> {
 ///   names, and the members of the calling class, the classes enclosing
 ///   it, their recorded bases, and — by dispatch — the overrides in
 ///   classes derived from them; never a method of an unrelated class.
+///   Scala the same (WS14), with an object's members also reached through
+///   `import a.Owner._` / `import a.Owner.m` (its qualified names carry
+///   no package, so the owner is matched by its name).
 /// * Unchanged where the bare-name scope depends on types cgg does not
 ///   have: Kotlin (a lambda with receiver, `apply {}`/`with(x) {}`),
-///   Groovy (closure delegates — the Gradle DSL, Spock), Scala (imports
-///   of a value's members), C++ (argument-dependent lookup; namespace
+///   Groovy (closure delegates — the Gradle DSL, Spock), C++
+///   (argument-dependent lookup; namespace
 ///   functions are recorded like members); and Swift, Dart, Objective-C,
 ///   whose plugins record no base types, so an inherited member cannot be
 ///   told from an unrelated one.
@@ -3630,6 +3785,7 @@ fn bare_call_reaches(
         direct_imports,
         unqualified_prefixes,
         bases_by_owner,
+        scala_wild,
     } = *scope;
     if r.dot_call {
         return true;
@@ -3664,9 +3820,37 @@ fn bare_call_reaches(
             via_import
                 || perl_package(&c.qualified_name) == caller_qn.map_or("", perl_package)
         }
-        "java" | "csharp" => {
-            if !member {
+        // Elixir (WS14): a bare call reaches the calling module's own
+        // functions and those of a module it `import`s or `use`s — never
+        // another module's function that happens to share the name
+        // (`from` under `import Ecto.Query` is not a workspace `from`).
+        "elixir" => {
+            let module = |qn: &str| qn.rsplit_once("::").map(|(m, _)| m.to_string());
+            let Some(target) = module(&c.qualified_name) else {
                 return true;
+            };
+            caller_qn.and_then(module).as_deref() == Some(target.as_str())
+                || unqualified_prefixes.contains(&target)
+        }
+        "java" | "csharp" | "scala" => {
+            // Scala records every `def` as a function; a member is one
+            // with an owner in its qualified name (`Owner::m`).
+            let member = if lang == "scala" {
+                c.qualified_name.contains("::")
+            } else {
+                member
+            };
+            if !member {
+                // Scala 2 has no top-level `def`: one with no owner is a
+                // package object's member (in a `package.scala`, reached
+                // through an import of its package) or a member the
+                // grammar lost its class for (a parse error), never
+                // visible tree-wide.
+                return lang != "scala"
+                    || via_import
+                        && graph.files.get(&c.file).is_some_and(|f| {
+                            f.path.file_stem().is_some_and(|s| s == "package")
+                        });
             }
             // Named by the file's static imports: `import static a.b.C.m;`,
             // `import static a.b.C.*;`, C# `using static A.C;`, a Kotlin
@@ -3679,6 +3863,40 @@ fn bare_call_reaches(
                 )
             {
                 return true;
+            }
+            // Scala: `import a.b.Owner._` / `import a.b.Owner.m` brings an
+            // object's members into scope; its qualified names carry no
+            // package (`Owner::m`), so the owner is matched by name.
+            if lang == "scala"
+                && let Some(owner) = owner_from_qn(&c.qualified_name)
+            {
+                let owner_last = owner.rsplit("::").next().unwrap_or(owner);
+                // The objects the file imports members of, and every type
+                // they inherit from: `import DataTypeErrors.toSQLType`
+                // reaches the `toSQLType` its trait `DataTypeErrorsBase`
+                // declares.
+                let mut direct: Vec<String> = Vec::new();
+                if let Some(v) = direct_imports.get(&r.name) {
+                    for path in v {
+                        if let Some(o) = path
+                            .rsplit_once('.')
+                            .and_then(|(o, _)| o.rsplit('.').next())
+                        {
+                            direct.push(o.to_string());
+                        }
+                    }
+                }
+                let seen = if direct.is_empty() {
+                    std::collections::BTreeSet::new()
+                } else {
+                    with_ancestors(lang, direct, bases_by_owner)
+                };
+                if scala_wild.contains(owner_last) {
+                    return true;
+                }
+                if seen.contains(owner_last) {
+                    return true;
+                }
             }
             let Some(caller) = caller_qn else {
                 return false;
@@ -3830,6 +4048,12 @@ fn try_resolve_ref(
     // index and the calling file's module bindings.
     modix: &crate::modules::ModuleIndex<'_>,
     file_mods: &crate::modules::FileModules,
+    // Library scope for languages whose imports name files (WS14).
+    libix: &crate::libscope::LibIndex<'_>,
+    // PHP namespaces and `use` tables (WS14).
+    phpix: &crate::libscope::PhpIndex,
+    // Scala: wildcard-imported objects and their bases (WS14).
+    scala_wild: &std::collections::BTreeSet<String>,
     // Qualified names more than one callable carries; see `resolve`.
     qn_collisions: &std::collections::HashSet<(String, String)>,
     // `(file, qualified name)` → the overload set it declares.
@@ -3973,6 +4197,7 @@ fn try_resolve_ref(
     // that provides nothing the call can name is a refusal, recorded by
     // the caller; it does not fall through to the name matching below.
     if matches!(lang, "javascript" | "typescript" | "python" | "go")
+        && !heads.locals.shadows_receiver_head(r)
         && let Some(scoped) = file_mods.resolve(
             modix,
             lang,
@@ -3996,6 +4221,7 @@ fn try_resolve_ref(
                 *refused_module = Some(module);
                 return None;
             }
+            crate::modules::Scoped::Ambiguous => return None,
             crate::modules::Scoped::NoCtor => {
                 *no_ctor = true;
                 return None;
@@ -4004,6 +4230,82 @@ fn try_resolve_ref(
                 *external_out = Some(module);
                 return None;
             }
+        }
+    }
+    // WS14: a Dart call through the library scope — the file's own
+    // library, its imports' exported namespaces (`show`/`hide`), an
+    // import prefix — binds there, or is refused / external; never
+    // matched by name across the tree.
+    if lang == "dart"
+        && !heads.locals.shadows_receiver_head(r)
+        && let Some(scoped) = libix.resolve_dart(caller_file, r, caller_qn)
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, certain } => {
+                *module_certain = certain && cids.len() == 1;
+                return Some(cids);
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Ambiguous => return None,
+            crate::modules::Scoped::NoCtor => {
+                *no_ctor = true;
+                return None;
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+        }
+    }
+    // WS14: a Zig call through file-level `@import`s and aliases
+    // (`std.debug.print()`) is the function the file the path ends in
+    // declares; through a dependency, external.
+    if lang == "zig"
+        && !heads.locals.shadows_receiver_head(r)
+        && let Some(scoped) = libix.resolve_zig(caller_file, r)
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, certain } => {
+                *module_certain = certain && cids.len() == 1;
+                return Some(cids);
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Ambiguous => return None,
+            crate::modules::Scoped::NoCtor => return None,
+        }
+    }
+    // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
+    // the class `X` names through them (a dependency's class is
+    // external); `parent::m()` the caller's base's; `f()` the namespace's
+    // function, else the global one.
+    if lang == "php"
+        && let Some(scoped) = phpix.resolve(caller_file, r, caller_qn)
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, certain } => {
+                *module_certain = certain && cids.len() == 1;
+                return Some(cids);
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Ambiguous => return None,
+            crate::modules::Scoped::NoCtor => return None,
         }
     }
     // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
@@ -4062,6 +4364,7 @@ fn try_resolve_ref(
             direct_imports,
             unqualified_prefixes,
             bases_by_owner,
+            scala_wild,
         };
         // Java/C#: a bare name is a member of the calling class or one it
         // inherits before any static import (see `member_of_calling_class`).
@@ -4203,6 +4506,90 @@ fn try_resolve_ref(
                 }
             }
         }
+        // Scala (WS14): `import a.b.Obj.m` / `import a.b.Obj._` bring an
+        // object's members — declared on it or inherited from its traits —
+        // into scope. Scala qualified names carry no package (`Obj::m`), so
+        // the object is found by its name and its member by the owner
+        // index, then up its declared bases.
+        if lang == "scala" {
+            // A member the calling class declares or inherits outranks a
+            // wildcard or explicit import of the name (SLS 2: inherited
+            // definitions bind before imports): `get(p)` inside a `Params`
+            // subclass is `Params.get`, not an imported `functions.get`.
+            if let Some(own) = caller_qn.and_then(owner_from_qn) {
+                let own_last = own.rsplit("::").next().unwrap_or(own);
+                let inherited = by_owner_method
+                    .get(&(lang.to_string(), own_last.to_string(), r.name.clone()))
+                    .filter(|v| !v.is_empty())
+                    .cloned()
+                    .or_else(|| {
+                        resolve_via_bases(
+                            lang,
+                            own_last,
+                            &r.name,
+                            by_owner_method,
+                            bases_by_owner,
+                        )
+                    });
+                if let Some(ids) = inherited {
+                    return Some(ids);
+                }
+            }
+            // `(object, the package it is imported from)`.
+            let mut owners: Vec<(&str, &str)> = Vec::new();
+            if let Some(paths) = direct_imports.get(&r.name) {
+                for path in paths {
+                    if let Some((obj_path, _)) = path.rsplit_once('.')
+                        && let Some((pkg, o)) = obj_path.rsplit_once('.')
+                    {
+                        owners.push((o, pkg));
+                    }
+                }
+            }
+            for p in unqualified_prefixes {
+                if let Some((pkg, o)) = p.rsplit_once('.') {
+                    owners.push((o, pkg));
+                }
+            }
+            let mut found: Vec<CallableId> = Vec::new();
+            for (o, pkg) in owners {
+                // The object the import names lives in that package: a
+                // same-named class elsewhere (`case class Cast` beside
+                // `object Cast`) is not it.
+                let dir = pkg.replace('.', "/").to_ascii_lowercase();
+                let in_pkg = |c: &CallableId| {
+                    graph
+                        .callables
+                        .get(c)
+                        .and_then(|n| graph.files.get(&n.file))
+                        .is_some_and(|f| {
+                            f.path.to_string_lossy().to_ascii_lowercase().contains(&dir)
+                        })
+                };
+                let ids = by_owner_method
+                    .get(&(lang.to_string(), o.to_string(), r.name.clone()))
+                    .map(|v| v.iter().copied().filter(in_pkg).collect::<Vec<_>>())
+                    .filter(|v| !v.is_empty())
+                    .or_else(|| {
+                        resolve_via_bases(
+                            lang,
+                            o,
+                            &r.name,
+                            by_owner_method,
+                            bases_by_owner,
+                        )
+                    })
+                    .unwrap_or_default();
+                for id in ids {
+                    if !found.contains(&id) {
+                        found.push(id);
+                    }
+                }
+            }
+            if !found.is_empty() && found.len() <= fanout_cap.max(1) {
+                return Some(found);
+            }
+        }
         // Step 1b: bare-name lookup via unqualified-import prefixes
         // (Haskell `import Data.Map` + `lookup`, OCaml `open Foo` + `bar`,
         // Elixir `import Foo` + `bar`, F# `open System.IO` + `File`, …).
@@ -4307,7 +4694,10 @@ fn try_resolve_ref(
         // receiver_hint is the full receiver expression (e.g., "mod"
         // or "mod.sub"). Take its first segment to match module alias.
         let first = r.receiver_hint.split(['.', ':']).next().unwrap_or("");
-        if let Some(module) = module_aliases.get(first) {
+        if let Some(module) = module_aliases
+            .get(first)
+            .filter(|_| !heads.locals.shadows_receiver_head(r))
+        {
             // Rebuild the full target path. For `mod.fn()` with alias
             // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
             // `helpers.sub.fn`.
@@ -9101,6 +9491,7 @@ mod tests {
     // ----------------------------------------------------------------
 
     /// One file of a module-scoped case.
+    #[derive(Clone)]
     struct MFile<'a> {
         path: &'a str,
         /// `(qualified name, kind, signature)` of each callable.
@@ -10971,10 +11362,13 @@ mod tests {
         );
     }
 
-    /// R16 (Dart): `import 'fixtures.dart' as fixtures;` scopes bare
-    /// names to that file. A same-named function in some other file whose
-    /// path merely contains `fixtures` (`shell/common/fixtures/…`) is not
-    /// it; the imported file's own function is.
+    /// R16 (Dart): an import scopes bare names to the file it names. A
+    /// same-named function in some other file whose path merely contains
+    /// `fixtures` (`shell/common/fixtures/…`) is not it; the imported
+    /// file's own function is. WS14: a name a prefixed import brings in
+    /// is reached only through the prefix, and a name no workspace import
+    /// provides comes from a dependency (`package:test`) — refused as
+    /// external, never matched by name.
     #[test]
     fn dart_bare_call_needs_an_imported_file() {
         let files = vec![
@@ -10985,25 +11379,332 @@ mod tests {
             ),
             mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
         ];
+        for (prefix, want) in [
+            ("", vec![at("load", "tools/pkg/configs/test/fixtures.dart")]),
+            ("fixtures", vec![]),
+        ] {
+            let caller = mfile(
+                "tools/pkg/configs/test/loader_test.dart",
+                &["main"],
+                vec![
+                    import("import", "package:test/test.dart", ""),
+                    import("import", "fixtures.dart", prefix),
+                ],
+            );
+            let mut refs = vec![
+                call("expect", ""),
+                RefRecord {
+                    site_byte: 61,
+                    ..call("load", "")
+                },
+            ];
+            if !prefix.is_empty() {
+                refs.push(RefRecord {
+                    site_byte: 71,
+                    ..call("load", prefix)
+                });
+            }
+            let (dsts, why) = module_case("dart", files.clone(), caller, refs);
+            let mut want = want;
+            if !prefix.is_empty() {
+                want.push(at("load", "tools/pkg/configs/test/fixtures.dart"));
+            }
+            assert_eq!(dsts, want, "prefix {prefix:?}: {dsts:?}");
+            assert!(why.contains(&external("package:test/test.dart")), "{why:?}");
+        }
+    }
+
+    /// WS14 (Dart): `package:<name>/x.dart` names `<root>/lib/x.dart` of
+    /// the pubspec declaring `<name>`, and an import reaches what that
+    /// library exports, filtered by `show` / `hide`.
+    #[test]
+    fn dart_package_uris_exports_and_combinators() {
+        let pkg = |path: &'static str, defs: &[&'static str], imports| MFile {
+            packages: vec!["pkg_a"],
+            ..mfile(path, defs, imports)
+        };
+        let files = vec![
+            pkg(
+                "pkg_a/lib/pkg_a.dart",
+                &[],
+                vec![
+                    import("package-root", "pkg_a", ""),
+                    import("export", "src/helpers.dart", ""),
+                    import("show", "src/helpers.dart", "helperOne"),
+                    import("export", "src/other.dart", ""),
+                ],
+            ),
+            pkg(
+                "pkg_a/lib/src/helpers.dart",
+                &["helperOne", "helperTwo"],
+                vec![import("package-root", "pkg_a", "")],
+            ),
+            pkg(
+                "pkg_a/lib/src/other.dart",
+                &["otherFn"],
+                vec![import("package-root", "pkg_a", "")],
+            ),
+            // A decoy every import misses.
+            mfile("tool/helpers.dart", &["helperTwo"], vec![]),
+        ];
         let caller = mfile(
-            "tools/pkg/configs/test/loader_test.dart",
+            "app/test/main_test.dart",
             &["main"],
-            vec![
-                import("import", "package:test/test.dart", ""),
-                import("import", "fixtures.dart", "fixtures"),
-            ],
+            vec![import("import", "package:pkg_a/pkg_a.dart", "")],
         );
         let refs = vec![
-            call("expect", ""),
+            call("helperOne", ""),
             RefRecord {
-                site_byte: 61,
-                ..call("load", "")
+                site_byte: 21,
+                ..call("otherFn", "")
+            },
+            RefRecord {
+                site_byte: 41,
+                ..call("helperTwo", "")
             },
         ];
         let (dsts, _) = module_case("dart", files, caller, refs);
         assert_eq!(
             dsts,
-            vec![at("load", "tools/pkg/configs/test/fixtures.dart")],
+            vec![
+                at("helperOne", "pkg_a/lib/src/helpers.dart"),
+                at("otherFn", "pkg_a/lib/src/other.dart"),
+            ],
+            "{dsts:?}"
+        );
+    }
+
+    /// WS14 (goal a): a bare call through a parameter or local is the
+    /// value's, never another file's same-named function; the same name
+    /// out of the binding's scope still resolves as before.
+    #[test]
+    fn a_local_binding_is_never_matched_across_files() {
+        let files = vec![mfile("src/util.js", &["cb"], vec![])];
+        let caller = mfile(
+            "src/main.js",
+            &["main"],
+            vec![import("from-import", "./other", "x")],
+        );
+        let refs = vec![
+            call("cb", ""),
+            RefRecord {
+                site_byte: 600,
+                ..call("cb", "")
+            },
+        ];
+        let (dsts, why) = module_case_with("javascript", files, caller, refs, |f| {
+            f.locals = vec![cgg_core::LocalBinding {
+                name: "cb".into(),
+                start_byte: 0,
+                end_byte: 100,
+                decl_byte: 0,
+            }];
+        });
+        // Byte 0 is inside the binding; byte 600 (still in `main`) is not.
+        assert_eq!(dsts, vec![at("cb", "src/util.js")], "{dsts:?}");
+        assert!(why.contains(&UnresolvedReason::ShadowedByLocal), "{why:?}");
+    }
+
+    /// WS14 (PHP): `X::m()` is the method of the class `X` names through
+    /// the file's namespace and `use` table; a dependency's class of the
+    /// same short name is external; `parent::m()` is the base's; `f()` is
+    /// the namespace's function, else the global one.
+    #[test]
+    fn php_namespaces_and_use_tables_decide_the_class() {
+        let pkg = |path: &'static str, ns: &'static str, defs: &[&'static str]| {
+            mfile(path, defs, vec![import("package", ns, "")])
+        };
+        let files = vec![
+            pkg(
+                "src/Util/Uuid.php",
+                "Acme\\Util",
+                &["Uuid::fromString", "helper"],
+            ),
+            pkg("src/Other/Uuid.php", "Acme\\Other", &["Uuid::fromString"]),
+            pkg("src/Other/Base.php", "Acme\\Other", &["Base::boot"]),
+        ];
+        let caller = MFile {
+            bases: vec!["Base"],
+            ..mfile(
+                "app/Main.php",
+                &["Main::boot"],
+                vec![
+                    import("package", "App", ""),
+                    import("use", "Acme\\Util\\Uuid", ""),
+                    import("use", "Vendor\\Lib\\Uuid", "VUuid"),
+                    import("use", "Acme\\Util\\helper", ""),
+                    import("use", "Acme\\Other\\Base", ""),
+                ],
+            )
+        };
+        let refs = vec![
+            call("fromString", "Uuid"),
+            RefRecord {
+                site_byte: 21,
+                ..call("fromString", "VUuid")
+            },
+            RefRecord {
+                site_byte: 41,
+                ..call("helper", "")
+            },
+            RefRecord {
+                site_byte: 61,
+                ..call("boot", "parent")
+            },
+        ];
+        let (dsts, why) = module_case("php", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("Uuid::fromString", "src/Util/Uuid.php"),
+                at("helper", "src/Util/Uuid.php"),
+                at("Base::boot", "src/Other/Base.php"),
+            ],
+            "{dsts:?}"
+        );
+        assert!(why.contains(&external("vendor\\lib\\uuid")), "{why:?}");
+    }
+
+    /// WS14 (Zig): a path through file-level `@import`s reaches the
+    /// function the last file declares; a module a build script declares
+    /// is the tree's, whatever its root file is called (`@import("xev")`
+    /// → `src/main.zig`); a module the tree does not hold is external.
+    #[test]
+    fn zig_import_paths_and_build_modules() {
+        let files = vec![
+            mfile(
+                "build.zig",
+                &["build"],
+                vec![import("zig-module", "src/main.zig", "xev")],
+            ),
+            mfile(
+                "src/main.zig",
+                &[],
+                vec![import("import", "loop.zig", "loop")],
+            ),
+            mfile("src/loop.zig", &["run"], vec![]),
+            mfile("src/other/loop.zig", &["run"], vec![]),
+        ];
+        let caller = mfile(
+            "examples/basic.zig",
+            &["main"],
+            vec![
+                import("import", "xev", "xev"),
+                import("import", "std", "std"),
+            ],
+        );
+        let refs = vec![
+            call("run", "xev.loop"),
+            RefRecord {
+                site_byte: 21,
+                ..call("run", "std.loop")
+            },
+        ];
+        let (dsts, why) = module_case("zig", files, caller, refs);
+        assert_eq!(dsts, vec![at("run", "src/loop.zig")], "{dsts:?}");
+        assert!(why.contains(&external("std")), "{why:?}");
+
+        // `pub const checksum = @import("vsr/checksum.zig").checksum;` in
+        // `vsr.zig`: `vsr.checksum()` is that file's function, not a
+        // same-named one elsewhere.
+        let files = vec![
+            mfile(
+                "src/vsr.zig",
+                &[],
+                vec![import(
+                    "import-member",
+                    "vsr/checksum.zig#checksum",
+                    "checksum",
+                )],
+            ),
+            mfile("src/vsr/checksum.zig", &["checksum"], vec![]),
+            mfile("src/other/checksum.zig", &["checksum"], vec![]),
+        ];
+        let caller = mfile(
+            "src/testing/storage.zig",
+            &["check"],
+            vec![import("import", "../vsr.zig", "vsr")],
+        );
+        let (dsts, _) = module_case("zig", files, caller, vec![call("checksum", "vsr")]);
+        assert_eq!(
+            dsts,
+            vec![at("checksum", "src/vsr/checksum.zig")],
+            "{dsts:?}"
+        );
+    }
+
+    /// WS14 (Scala): a bare call reaches the calling class, its bases and
+    /// an object `import a.Owner._` names — never an unrelated class's
+    /// member (`assert` is not `SubmitRestProtocolMessage::assert`).
+    #[test]
+    fn scala_bare_call_reaches_bases_and_imported_objects_only() {
+        let files = vec![
+            mfile("core/Message.scala", &["Message::assert"], vec![]),
+            mfile("core/Helpers.scala", &["Helpers::helper"], vec![]),
+            mfile("core/Base.scala", &["Base::log"], vec![]),
+        ];
+        let caller = MFile {
+            bases: vec!["Base"],
+            ..mfile(
+                "core/Suite.scala",
+                &["Suite::test"],
+                vec![import("import", "org.acme.Helpers._", "")],
+            )
+        };
+        let refs = vec![
+            call("assert", ""),
+            RefRecord {
+                site_byte: 21,
+                ..call("helper", "")
+            },
+            RefRecord {
+                site_byte: 41,
+                ..call("log", "")
+            },
+        ];
+        let (dsts, _) = module_case("scala", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("Helpers::helper", "core/Helpers.scala"),
+                at("Base::log", "core/Base.scala"),
+            ],
+            "{dsts:?}"
+        );
+    }
+
+    /// WS14 (Elixir): a bare call reaches the calling module and the
+    /// modules it `import`s or `use`s (options after the module name
+    /// ignored) — not another module's same-named function.
+    #[test]
+    fn elixir_bare_call_reaches_its_module_and_imports() {
+        let files = vec![
+            mfile(
+                "lib/query_builder.ex",
+                &["Stats.QueryBuilder::from"],
+                vec![],
+            ),
+            mfile("lib/helpers.ex", &["App.Helpers::h"], vec![]),
+        ];
+        let caller = mfile(
+            "lib/goals.ex",
+            &["App.Goals::a"],
+            vec![
+                import("import", "Ecto.Query", ""),
+                import("import", "App.Helpers, only: [h: 1]", ""),
+            ],
+        );
+        let refs = vec![
+            call("from", ""),
+            RefRecord {
+                site_byte: 21,
+                ..call("h", "")
+            },
+        ];
+        let (dsts, _) = module_case("elixir", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![at("App.Helpers::h", "lib/helpers.ex")],
             "{dsts:?}"
         );
     }

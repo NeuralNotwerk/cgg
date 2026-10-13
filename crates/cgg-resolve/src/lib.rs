@@ -20,8 +20,10 @@ pub mod ffi;
 pub mod frameworks;
 mod heads;
 pub mod intra_file;
+mod libscope;
 mod modules;
 pub mod names;
+mod scope;
 pub mod stack_graphs_resolver;
 pub mod type_hints;
 

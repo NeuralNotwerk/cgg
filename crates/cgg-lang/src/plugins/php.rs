@@ -46,6 +46,7 @@ impl LanguagePlugin for PhpPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             bases: Vec::new(),
+            namespace: String::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -60,6 +61,8 @@ struct PhpWalker<'a> {
     scope: Vec<String>,
     /// `extends`/`implements` of the enclosing class, innermost last.
     bases: Vec<Vec<String>>,
+    /// The namespace the walk is in (`namespace App\Http;`).
+    namespace: String,
 }
 
 impl<'a> PhpWalker<'a> {
@@ -84,11 +87,29 @@ impl<'a> PhpWalker<'a> {
                 self.walk_children(node);
                 return;
             }
-            "class_declaration" | "interface_declaration" | "trait_declaration" => {
+            "class_declaration"
+            | "interface_declaration"
+            | "trait_declaration"
+            | "enum_declaration" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // Every type the file declares, by its fully qualified
+                // name, so a `use` of it can be told from a `use` of a
+                // dependency's (WS14). Bases stay on the methods.
+                if !name.is_empty() && self.scope.is_empty() {
+                    let fqn = if self.namespace.is_empty() {
+                        name.clone()
+                    } else {
+                        format!("{}\\{name}", self.namespace)
+                    };
+                    self.facts.classes.push(cgg_core::ClassDecl {
+                        class_qn: fqn,
+                        base_types: Vec::new(),
+                        line: (node.start_position().row as u32) + 1,
+                    });
+                }
                 self.bases.push(super::attrs::base_types(node, self.source));
                 if !name.is_empty() {
                     self.scope.push(name);
@@ -118,6 +139,28 @@ impl<'a> PhpWalker<'a> {
                     .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::InherentMethod);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `require_once __DIR__ . '/x.php';`: the file a statement
+            // loads (WS14), so copies of one function in several files can
+            // be told apart by what the caller loads.
+            "require_expression"
+            | "require_once_expression"
+            | "include_expression"
+            | "include_once_expression" => {
+                if let Some(arg) = node.named_child(0) {
+                    let path = self.text(arg).trim().to_string();
+                    if !path.is_empty() && path.len() <= 400 {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "php-require".into(),
+                            path,
+                            alias: String::new(),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
                 }
                 self.walk_children(node);
                 return;
@@ -190,7 +233,23 @@ impl<'a> PhpWalker<'a> {
         } else {
             "use"
         };
-        for part in body.split(',') {
+        if kind == "package" {
+            self.namespace = body.trim_start_matches('\\').to_string();
+        }
+        // `use A\{B, C as D};`: each item under the group's prefix.
+        let expanded: Vec<String> = match (body.find('{'), body.rfind('}')) {
+            (Some(open), Some(close)) if open < close => {
+                let prefix = body[..open].trim();
+                body[open + 1..close]
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|p| !p.is_empty())
+                    .map(|p| format!("{prefix}{p}"))
+                    .collect()
+            }
+            _ => body.split(',').map(|p| p.trim().to_string()).collect(),
+        };
+        for part in &expanded {
             let part = part.trim();
             if part.is_empty() {
                 continue;
@@ -318,5 +377,23 @@ mod tests {
         let src = "<?php\nfunction main() { greet(); }\n";
         let f = extract(src);
         assert!(!f.references.is_empty(), "should extract references");
+    }
+
+    /// WS14: a grouped `use` names each class under its prefix, and every
+    /// class is recorded by its fully qualified name.
+    #[test]
+    fn grouped_use_and_class_fqns() {
+        let f = extract(
+            "<?php\nnamespace App\\Http;\nuse Foo\\{Bar, Baz as Q};\nclass C { function m() {} }\n",
+        );
+        let uses: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "use")
+            .map(|i| (i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(uses, vec![("Foo\\Bar", ""), ("Foo\\Baz", "Q")]);
+        assert_eq!(f.classes.len(), 1);
+        assert_eq!(f.classes[0].class_qn, "App\\Http\\C");
     }
 }

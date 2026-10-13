@@ -306,6 +306,63 @@ otherwise change the default graph.
   external, never name-matched to a workspace `assert` (FINDINGS R19:
   7,255 wrong `assert` edges in `tigerbeetle`, 125 in `ghostty`).
 
+- **Parameters and locals shadow other names** (WS14; JavaScript,
+  TypeScript, Python, Lua, Scala, Kotlin, Swift, Rust, Dart, OCaml, Zig).
+  Plugins now record every parameter and local variable with the span it
+  is in scope over (`FileFacts::locals`, from grammar node kinds). A bare
+  call through one — `cb()` with a parameter `cb`, `t("…")` after `const
+  { t } = useLocale()`, `f x` inside an OCaml function taking `f`, a
+  pytest fixture parameter — calls the value it holds, so it is no longer
+  name-matched onto a same-named function elsewhere; the site is recorded
+  as the new unresolved reason `shadowed-by-local`. A declaration is in
+  scope after its initializer (`let now = now();` still reaches the outer
+  `now`); a local that is the import its declaration makes (`const m =
+  require('./m')`), one aliasing a same-named member (`var pick =
+  H.pick`), or one named like an import of the file keeps the import
+  reading; a typed local still enters its type's call operator; a local
+  may hold a closure another function of the file returns. A receiver
+  headed by a local is that value, not a module of the same name.
+  Minified bundles (a line over 2,000 bytes) are left as they were.
+- Lexical scope for bare calls beyond Python: JavaScript, TypeScript,
+  Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Dart, Haskell and Julia
+  bind a call to the innermost visible nested definition (three local
+  `let rec go` in one OCaml file), and in OCaml, F# and Lua a later
+  same-scope binding shadows an earlier one.
+- **Dart library scope.** A bare call binds to what the file's library
+  (its parts) and its imports provide — the imported library's top-level
+  functions and everything it `export`s, filtered by `show`/`hide`;
+  `package:<name>/x.dart` is `lib/x.dart` of the in-tree `pubspec.yaml`
+  naming `<name>`; a prefixed import is reached only as `p.f()`. A name
+  no in-tree import provides is external (`package:test`'s `expect` no
+  longer binds to a workspace file declaring an `expect`). The plugin now
+  records `export`, `show`/`hide`, `part`/`part of` and the pubspec
+  package.
+- **PHP namespaces.** `X::m()` binds the method of the class `X` names
+  through the file's namespace and `use` table (grouped `use A\{B, C}`
+  included), a dependency's class of the same short name is external,
+  `parent::m()` is the caller's base's, and `f()` is the namespace's
+  function, else the global one. Copies of one function in several files
+  narrow to the one the caller's `require`/`include` chain reaches, or
+  bind nothing. The plugin records each class's qualified name and its
+  `require`/`include` statements.
+- **Zig module paths.** A call through file-level `@import`s and aliases
+  (`std.debug.print()`, a typed receiver `pt.navAlignment()` with `pt:
+  Zcu.PerThread`) binds the function the file the path ends in declares,
+  following `pub const f = @import("x.zig").f` re-exports; a module a
+  `build.zig` declares with `addModule` is the tree's whatever its root
+  file is called (`@import("xev")` → `src/main.zig`); a module the tree
+  does not hold is external.
+- **Scala.** A bare call reaches the calling class, its bases (`extends
+  A with B` now records both), the objects the file imports members of
+  (`import a.Obj._`, `import a.Obj.m`, with the object's own bases), and a
+  package object's members — never an unrelated class's member
+  (`assert` is not some suite's `assert`); a member the calling class
+  inherits outranks an import. Traits are scopes (their methods are
+  `Trait::m`). An import binds only the name it names.
+- Elixir: a bare call reaches the calling module and the modules it
+  `import`s or `use`s (options after the module name ignored). Perl: a
+  bareword before `=>` is an autoquoted key, not a call.
+
 ### Compatibility
 
 - **The default graph changes.** Full corpus, 283 repositories:
@@ -447,6 +504,32 @@ otherwise change the default graph.
   alias is matched by path suffix, not read from `tsconfig` `paths`
   targets; Go block scope is tracked only for values made through a
   package.
+
+- WS14 (scope model beyond Py/JS/TS/Go). Full corpus, 283 repositories,
+  none excluded (ab/WS14-v9), counting re-scored edges: `high` +208.1k
+  net, `medium` −358.4k net; dead-code findings unchanged. Per language
+  (`high` net / `medium` net): Dart +113.2k / −263.4k (bare calls into
+  `package:test` and `dart:` libraries are external; `expect` /
+  `testWidgets` bind to the in-tree `flutter_test` at `high`), PHP
+  +68.5k / −37.2k (WordPress global functions, namespaced static calls;
+  stub copies refused unless the include chain reaches one), Zig +18.9k /
+  −16.1k, OCaml +5.5k / −3.3k, JavaScript +2.1k / −1.7k, TypeScript
+  +0.1k / −16.9k (calls through destructured props and hook results),
+  Python −1.0k / −4.7k (mostly pytest fixture parameters, whose value the
+  test calls), Perl −0.3k / −8.2k (fat-comma keys), Elixir −2.4k medium,
+  Kotlin +0.2k / −1.2k, F# +0.4k / −1.0k, Scala −0.0k / −1.1k (trait
+  members now `Trait::m`; 19.0k calls to unrelated classes' members
+  refused, 16.1k rebound), Lua +0.2k / −0.7k, Rust +0.4k / −0.3k,
+  Swift −0.1k medium. Share of edges at `high`: Dart 6 → 35%, PHP
+  17 → 87%, Elixir 65 → 90%, OCaml 65 → 77%, Zig 45 → 53%, Perl
+  17 → 25%, TypeScript 64 → 68%. Latency (perf/WS14.md, 10 repositories,
+  median of 5): no repository slower by 1 s or more; `scala-spark`
+  −1.1 s; total +0.3%.
+- Not covered (WS14): OCaml `open`/local-open/module aliases, F# `open`,
+  Ruby `require`, Lua module tables (`function M.f` is not extracted,
+  WS8), Swift module/target visibility; Scala self-types; a JS/TS prop
+  holding a bound action creator of the same name when the file does not
+  import it.
 
 ## [0.10.2] - 2026-10-11
 
