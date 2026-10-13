@@ -944,34 +944,82 @@ index 12c6f69..8ed406d 100644
                  }
                  for owner in &owners {
 diff --git a/crates/cgg-resolve/src/deadcode/evidence.rs b/crates/cgg-resolve/src/deadcode/evidence.rs
-index df14f48..424b17c 100644
+index df14f48..e0da166 100644
 --- a/crates/cgg-resolve/src/deadcode/evidence.rs
 +++ b/crates/cgg-resolve/src/deadcode/evidence.rs
-@@ -85,10 +85,15 @@ impl<'a> UnresolvedIndex<'a> {
+@@ -33,6 +33,11 @@ pub(crate) struct UnresolvedIndex<'a> {
+     /// already stripped of anything that later resolved — so every entry
+     /// here is genuinely unresolved.
+     by_name: HashMap<(&'a str, &'a str), Vec<&'a AuditUnresolvedCall>>,
++    /// Parallel to `by_name`: each site's receiver hint reduced to the
++    /// type name it could be (`a.b.Foo` -> `Foo`), or `None` when it is
++    /// not type-shaped (a variable, an expression). Computed once per
++    /// site, not once per finding that shares its name.
++    hint_types: HashMap<(&'a str, &'a str), Vec<Option<&'a str>>>,
+     /// From `AuditFileRecord::external_calls` only.
+     ///
+     /// Deliberately *not* from `stdlib_calls`: `new`, `len`, `push`,
+@@ -61,6 +66,23 @@ impl<'a> UnresolvedIndex<'a> {
+                 .push(u);
+         }
+ 
++        let hint_types = by_name
++            .iter()
++            .map(|(k, v)| {
++                let types = v
++                    .iter()
++                    .map(|u| {
++                        let stem = crate::dispatch::type_stem(&u.receiver_hint);
++                        (!stem.is_empty()
++                            && cgg_core::looks_like_type_name(stem)
++                            && stem.chars().all(|c| c.is_alphanumeric() || c == '_'))
++                        .then_some(stem)
++                    })
++                    .collect();
++                (*k, types)
++            })
++            .collect();
++
+         let mut external_by_name: HashMap<(&str, &str), u32> = HashMap::new();
+         for fa in file_audits {
+             for u in &fa.external_calls {
+@@ -72,6 +94,7 @@ impl<'a> UnresolvedIndex<'a> {
+ 
+         Self {
+             by_name,
++            hint_types,
+             external_by_name,
+         }
+     }
+@@ -85,10 +108,16 @@ impl<'a> UnresolvedIndex<'a> {
  
      /// Evidence that this callable may in fact be called, from sites the
      /// resolver failed to place.
-+    /// `contradicts(hint)` says whether a site's receiver hint rules
-+    /// this candidate out; it is consulted only for a hint that is not
++    /// `contradicts(type)` says whether a site's receiver rules this
++    /// candidate out, given the receiver's type-shaped name (`None`: a
++    /// variable or expression). Consulted only for a hint that is not
 +    /// empty, a self-reference, or the candidate's own owner.
      pub(crate) fn evidence_for(
          &self,
          graph: &Graph,
          node: &CallableNode,
-+        contradicts: &dyn Fn(&str) -> bool,
++        contradicts: &dyn Fn(Option<&str>) -> bool,
 +        can_reach: &dyn Fn(&AuditUnresolvedCall) -> bool,
      ) -> Vec<Evidence> {
          let key = (node.language.as_str(), node.simple_name.as_str());
          let mut out = Vec::new();
-@@ -140,13 +145,33 @@ impl<'a> UnresolvedIndex<'a> {
+@@ -140,14 +169,39 @@ impl<'a> UnresolvedIndex<'a> {
          }
  
          // Sites whose receiver hint does not contradict this candidate.
 +        // A site refused for too many candidates named every one of
 +        // them, this one included: doubt for each, whatever its receiver.
++        let types = self.hint_types.get(&key).map_or(&[][..], |v| v.as_slice());
          let plausible: Vec<_> = sites
              .iter()
-             .filter(|u| {
+-            .filter(|u| {
++            .enumerate()
++            .filter(|(i, u)| {
                  let rh = u.receiver_hint.as_str();
 +                // `super.m()` whose base chain left the tree: the
 +                // resolver proved the target is not ours. Not Rust, whose
@@ -991,14 +1039,18 @@ index df14f48..424b17c 100644
                  rh.is_empty()
                      || SELF_HINTS.contains(&rh)
                      || owner.is_some_and(|o| o == rh)
-+                    || ((matches!(u.reason, UnresolvedReason::FanoutCapExceeded { .. })
-+                        || !contradicts(rh))
-+                        && can_reach(u))
++                    || (can_reach(u)
++                        && (matches!(
++                            u.reason,
++                            UnresolvedReason::FanoutCapExceeded { .. }
++                        ) || !contradicts(types.get(*i).copied().flatten())))
              })
++            .map(|(_, u)| u)
              .collect();
  
+         if let Some(first) = plausible.first() {
 diff --git a/crates/cgg-resolve/src/deadcode/mod.rs b/crates/cgg-resolve/src/deadcode/mod.rs
-index 859948a..e7e722c 100644
+index 859948a..aa2e11b 100644
 --- a/crates/cgg-resolve/src/deadcode/mod.rs
 +++ b/crates/cgg-resolve/src/deadcode/mod.rs
 @@ -327,10 +327,46 @@ impl<'a> TraitSurfaces<'a> {
@@ -1048,7 +1100,7 @@ index 859948a..e7e722c 100644
          if matches!(
              variant,
              Some(
-@@ -363,6 +399,191 @@ impl<'a> TraitSurfaces<'a> {
+@@ -363,6 +399,186 @@ impl<'a> TraitSurfaces<'a> {
      }
  }
  
@@ -1210,14 +1262,9 @@ index 859948a..e7e722c 100644
 +    /// the candidate's owner by inheritance either way. A variable
 +    /// (`p`, `orderService`), a type parameter (`T`), an expression or a
 +    /// type cgg never saw says nothing about which class receives it.
-+    fn hint_contradicts(&self, lang: &str, owner: &str, hint: &str) -> bool {
-+        let stem = crate::dispatch::type_stem(hint);
-+        if stem.is_empty()
-+            || !cgg_core::looks_like_type_name(stem)
-+            || !stem.chars().all(|c| c.is_alphanumeric() || c == '_')
-+            || !self.owners.contains(&(lang, stem))
-+            || stem == owner
-+        {
++    /// `stem` is the receiver hint already reduced to a type-shaped name.
++    fn hint_contradicts(&self, lang: &str, owner: &str, stem: &str) -> bool {
++        if stem == owner || !self.owners.contains(&(lang, stem)) {
 +            return false;
 +        }
 +        let up = self.hierarchy.ancestors(lang, owner);
@@ -1240,11 +1287,14 @@ index 859948a..e7e722c 100644
  /// Whether a callable may ever be reported.
  fn is_candidate(node: &cgg_core::graph::CallableNode) -> bool {
      // Synthesized exit nodes are not source. Destructors are invoked by
-@@ -398,7 +619,39 @@ pub fn analyze(
+@@ -398,7 +614,43 @@ pub fn analyze(
      let variants = def_variants(facts);
  
      let surfaces = TraitSurfaces::build(graph);
-+    let contracts = Contracts::build(graph, facts);
++    let contracts = {
++        let _s = cgg_core::profile::span("dead::contracts-build");
++        Contracts::build(graph, facts)
++    };
      let mentions = Mentions::build(facts);
 +    // Java: the package each file declares.
 +    let package_of: std::collections::HashMap<cgg_core::ids::FileId, &str> = facts
@@ -1253,34 +1303,35 @@ index 859948a..e7e722c 100644
 +        .filter_map(|f| f.packages.first().map(|p| (f.file, p.as_str())))
 +        .collect();
 +    // Whether an unresolved site could legally call `nd` at all.
-+    let can_reach =
-+        |nd: &CallableNode, u: &cgg_core::audit::AuditUnresolvedCall| -> bool {
-+            match (nd.language.as_str(), nd.vis) {
-+                // Java `private`: the top-level class, which is the file.
-+                ("java", Vis::Private) => u.file == nd.file,
-+                // Package-private: the package.
-+                ("java", Vis::Internal) => {
-+                    match (package_of.get(&u.file), package_of.get(&nd.file)) {
-+                        (Some(a), Some(b)) => a == b,
-+                        _ => true,
-+                    }
-+                }
-+                // C# `private`: the class, which a `partial` class spreads
-+                // over several files.
-+                ("csharp", Vis::Private) => {
-+                    u.file == nd.file
-+                        || u.src
-+                            .and_then(|c| graph.callables.get(&c))
-+                            .and_then(|c| owner_stem(&c.qualified_name))
-+                            .is_some_and(|o| Some(o) == owner_stem(&nd.qualified_name))
-+                }
++    let can_reach = |nd: &CallableNode,
++                     nd_owner: Option<&str>,
++                     nd_package: Option<&str>,
++                     u: &cgg_core::audit::AuditUnresolvedCall|
++     -> bool {
++        match (nd.language.as_str(), nd.vis) {
++            // Java `private`: the top-level class, which is the file.
++            ("java", Vis::Private) => u.file == nd.file,
++            // Package-private: the package.
++            ("java", Vis::Internal) => match (package_of.get(&u.file), nd_package) {
++                (Some(a), Some(b)) => *a == b,
 +                _ => true,
++            },
++            // C# `private`: the class, which a `partial` class spreads
++            // over several files.
++            ("csharp", Vis::Private) => {
++                u.file == nd.file
++                    || u.src
++                        .and_then(|c| graph.callables.get(&c))
++                        .and_then(|c| owner_stem(&c.qualified_name))
++                        .is_some_and(|o| Some(o) == nd_owner)
 +            }
-+        };
++            _ => true,
++        }
++    };
  
      let node_at = |i: u32| graph.callables.get_index(i as usize).map(|(_, v)| v);
      let lang_at = |i: u32| node_at(i).map(|nd| nd.language.clone()).unwrap_or_default();
-@@ -568,12 +821,28 @@ pub fn analyze(
+@@ -568,12 +820,37 @@ pub fn analyze(
                  scc_size: sccs[cid as usize].len() as u32,
              });
          }
@@ -1290,23 +1341,32 @@ index 859948a..e7e722c 100644
 +        let free = (matches!(variant, Some(cgg_core::DefVariant::FreeFunction))
 +            && !crate::dispatch::free_variant_is_member(&nd.language))
 +            || owner_stem(&nd.qualified_name).is_none();
++        let _s_unres = cgg_core::profile::span("dead::unresolved-evidence");
++        let nd_owner = owner_stem(&nd.qualified_name);
++        let nd_package = package_of.get(&nd.file).copied();
 +        ev.extend(unresolved.evidence_for(
 +            graph,
              nd,
 -            variants.get(&(nd.file, nd.start_byte)),
 -            &unresolved,
 -        ) {
-+            &|hint: &str| {
++            &|hint_type: Option<&str>| {
 +                // A receiver can only reach a member. For a free function a
 +                // hint naming anything but its own module rules it out, as
-+                // before; for a member only a declared, unrelated type does.
-+                match owner_stem(&nd.qualified_name) {
-+                    Some(o) if !free => contracts.hint_contradicts(&nd.language, o, hint),
++                // before; for a member only a declared, unrelated type does
++                // — a variable or expression says nothing.
++                match (nd_owner, hint_type) {
++                    (Some(_), None) if !free => false,
++                    (Some(o), Some(t)) if !free => {
++                        contracts.hint_contradicts(&nd.language, o, t)
++                    }
 +                    _ => true,
 +                }
 +            },
-+            &|u| can_reach(nd, u),
++            &|u| can_reach(nd, nd_owner, nd_package, u),
 +        ));
++        drop(_s_unres);
++        let _s_disp = cgg_core::profile::span("dead::dispatch-evidence");
 +        if let Some(e) = surfaces.evidence_for(nd, variant, &unresolved, &contracts) {
 +            ev.push(e);
 +        }
@@ -1314,7 +1374,7 @@ index 859948a..e7e722c 100644
              ev.push(e);
          }
          ev.extend(mentions.evidence_for(nd));
-@@ -957,6 +1226,7 @@ pub fn why_live(
+@@ -957,6 +1234,7 @@ pub fn why_live(
      let prod = search(&adjacency, graph, &root_set.production);
      let any = search(&adjacency, graph, &all_roots);
      let surfaces = TraitSurfaces::build(graph);
@@ -1322,7 +1382,7 @@ index 859948a..e7e722c 100644
      let unresolved = UnresolvedIndex::build(graph, &[]);
      let variants = def_variants(facts);
  
-@@ -1036,6 +1306,7 @@ pub fn why_live(
+@@ -1036,6 +1314,7 @@ pub fn why_live(
                      node,
                      variants.get(&(node.file, node.start_byte)),
                      &unresolved,
@@ -1330,7 +1390,7 @@ index 859948a..e7e722c 100644
                  )
              })
              .flatten();
-@@ -1055,6 +1326,7 @@ pub fn why_live(
+@@ -1055,6 +1334,7 @@ pub fn why_live(
  #[cfg(test)]
  mod tests {
      use super::*;
@@ -1338,7 +1398,7 @@ index 859948a..e7e722c 100644
      use testutil::{graph_with, link, node};
  
      fn opts() -> DeadCodeOptions {
-@@ -1321,7 +1593,9 @@ mod tests {
+@@ -1321,7 +1601,9 @@ mod tests {
          ));
          let r = analyze(&g, &[], &[], &opts_rust_full());
          let f = decl_finding(&r);
@@ -1349,7 +1409,7 @@ index 859948a..e7e722c 100644
          assert!(
              f.evidence
                  .iter()
-@@ -1729,4 +2003,310 @@ mod tests {
+@@ -1729,4 +2011,310 @@ mod tests {
          };
          assert_eq!(format!("{:?}", build(false)), format!("{:?}", build(true)));
      }
@@ -1661,10 +1721,10 @@ index 859948a..e7e722c 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/dispatch.rs b/crates/cgg-resolve/src/dispatch.rs
-index 0853e91..69abc8f 100644
+index 0853e91..0af5962 100644
 --- a/crates/cgg-resolve/src/dispatch.rs
 +++ b/crates/cgg-resolve/src/dispatch.rs
-@@ -100,19 +100,151 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
+@@ -100,19 +100,173 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
      edges
  }
  
@@ -1710,6 +1770,11 @@ index 0853e91..69abc8f 100644
 +    /// (language, class) for every class declared in the tree: a class
 +    /// record, or the owner of a method definition.
 +    declared: std::collections::HashSet<(String, String)>,
++    /// Memoized [`ClassHierarchy::ancestors`]: dead-code asks for the same
++    /// class's chain once per finding and per unresolved site.
++    /// Keyed language → class, so a hit allocates nothing.
++    #[allow(clippy::type_complexity)]
++    memo: std::cell::RefCell<HashMap<String, HashMap<String, std::rc::Rc<Vec<String>>>>>,
 +}
 +
 +impl ClassHierarchy {
@@ -1763,14 +1828,31 @@ index 0853e91..69abc8f 100644
 +        for v in bases.values_mut() {
 +            v.sort();
 +        }
-+        ClassHierarchy { bases, declared }
++        ClassHierarchy {
++            bases,
++            declared,
++            memo: Default::default(),
++        }
 +    }
 +
 +    /// The ancestors of `owner`, breadth first, bounded (depth 8) and
 +    /// cycle-safe. Includes ancestors the tree does not declare.
-+    pub(crate) fn ancestors(&self, language: &str, owner: &str) -> Vec<String> {
++    pub(crate) fn ancestors(
++        &self,
++        language: &str,
++        owner: &str,
++    ) -> std::rc::Rc<Vec<String>> {
++        if let Some(v) = self.memo.borrow().get(language).and_then(|m| m.get(owner)) {
++            return v.clone();
++        }
 +        let mut v = walk_bases(language, owner, &self.bases);
 +        v.retain(|a| a != owner);
++        let v = std::rc::Rc::new(v);
++        self.memo
++            .borrow_mut()
++            .entry(language.to_string())
++            .or_default()
++            .insert(owner.to_string(), v.clone());
 +        v
 +    }
 +
@@ -1823,7 +1905,7 @@ index 0853e91..69abc8f 100644
  pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
      let resolver = ResolverId::new("dispatch:inheritance");
  
-@@ -126,66 +258,26 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -126,66 +280,26 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
          by_span.insert((c.file, c.start_byte), c.id);
          if let Some(owner) = owner_from_qn(&c.qualified_name) {
              by_owner_method
@@ -1898,21 +1980,22 @@ index 0853e91..69abc8f 100644
                  continue;
              }
              let Some(&child) = by_span.get(&(f.file, d.start_byte)) else {
-@@ -194,7 +286,23 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -194,7 +308,24 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
              let Some(owner) = owner_from_qn(&d.qualified_name) else {
                  continue;
              };
 -            for ancestor in walk_bases(&f.language, owner, &by_class_bases) {
 +            // The class's ancestors, plus — for a Java anonymous class
 +            // body — the anonymous class's base and its ancestors.
-+            let mut up = hierarchy.ancestors(&f.language, type_stem(owner));
++            let mut up: Vec<String> =
++                hierarchy.ancestors(&f.language, type_stem(owner)).to_vec();
 +            for b in &d.base_types {
 +                let b = type_stem(b);
 +                if !is_inheritable_base(b) || b == type_stem(owner) {
 +                    continue;
 +                }
 +                for a in std::iter::once(b.to_string())
-+                    .chain(hierarchy.ancestors(&f.language, b))
++                    .chain(hierarchy.ancestors(&f.language, b).iter().cloned())
 +                {
 +                    if !up.contains(&a) {
 +                        up.push(a);
@@ -1923,7 +2006,7 @@ index 0853e91..69abc8f 100644
                  let Some(parents) = by_owner_method.get(&(
                      f.language.clone(),
                      ancestor.clone(),
-@@ -229,24 +337,45 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
+@@ -229,24 +360,45 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
      edges
  }
  
@@ -1975,7 +2058,7 @@ index 0853e91..69abc8f 100644
  }
  
  fn walk_bases(
-@@ -279,9 +408,9 @@ fn walk_bases(
+@@ -279,9 +431,9 @@ fn walk_bases(
      out
  }
  
@@ -1987,7 +2070,7 @@ index 0853e91..69abc8f 100644
  }
  
  fn looks_like_type(name: &str) -> bool {
-@@ -537,4 +666,129 @@ mod tests {
+@@ -537,4 +689,129 @@ mod tests {
          f.definitions.push(child);
          assert!(inheritance_fanout(&g, &[f]).is_empty());
      }
@@ -2110,7 +2193,7 @@ index 0853e91..69abc8f 100644
 +            line: 1,
 +        });
 +        let h = ClassHierarchy::build(&[f]);
-+        assert_eq!(h.ancestors("java", "Ext"), vec!["Handler".to_string()]);
++        assert_eq!(*h.ancestors("java", "Ext"), vec!["Handler".to_string()]);
 +        assert!(h.declares("java", "Ext"));
 +        assert!(!h.declares("java", "Handler"));
 +        // A class naming itself terminates and is not its own ancestor.

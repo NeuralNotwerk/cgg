@@ -17,3 +17,12 @@ runs: median of 5, alternating; load: 9.57, 12.15, 15.77
 
 total: 51071 ms -> 51430 ms (+359 ms, +0.7%)
 elapsed: 617s
+
+### --dead-code mode (implies --dynamic-dispatch), WS5-before vs WS5-after-v4, median of 5, alternating; load: 26.57, 21.17, 17.32
+
+| repo | old ms | new ms | delta ms | delta % |
+|---|---|---|---|---|
+| groovy-gradle | 15797 | 16948 | 1151 | +7.3 |
+| app-druid-jaxrs | 10409 | 11564 | 1155 | +11.1 |
+| csharp-newtonsoft | 659 | 713 | 54 | +8.2 |
+| app-django-netbox | 4165 | 4324 | 159 | +3.8 |
