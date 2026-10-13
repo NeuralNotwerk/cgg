@@ -84,3 +84,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-13 14:26: tick — WS14 agent active (14:25), building a new shared crates/cgg-lang/src/locals.rs (locals/params shadowing); v2 not yet.
 - 2026-10-13 15:10: status check — WS14 agent active; v2 A/B done (ab/WS14-v2), agent sampling precision (PHP) and re-running gates; diff +1224/-44 plus new locals.rs, scope.rs, libscope.rs.
 - 2026-10-13 15:40: WS14 v2 audited by confidence (tools/conf_summary.py): gains Dart/PHP-high/Zig/OCaml; regressions PHP noop.php copies, Scala inherited members, Dart in-tree package; checks JS bundle churn, Py high drops. Sent to agent (logs/WS14-review.md).
+- 2026-10-13 16:22: tick — WS14 agent active (16:21); bins up to v5, A/B ab/WS14-v5 running (10 min); working PHP include-chain narrowing. Diff +1324/-46 + new files.
