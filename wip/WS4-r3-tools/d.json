@@ -35,12 +35,12 @@
   "summary": {
     "review_required": true,
     "callables": 10,
-    "edges": 4,
-    "unresolved_call_sites": 2,
+    "edges": 10,
+    "unresolved_call_sites": 0,
     "roots": 1,
     "candidates": 7,
     "reported": 7,
-    "regions": 7
+    "regions": 4
   },
   "roots": [
     {
@@ -56,7 +56,10 @@
     {
       "id": 0,
       "members": [
-        "C14otp6gkxg8"
+        "C14otp6gkxg8",
+        "Ci6yb6crpya",
+        "C4wia3cid4j",
+        "C3vv6bhls42"
       ],
       "anchors": [
         "C14otp6gkxg8"
@@ -64,28 +67,11 @@
       "files": [
         "F14z68pruwmb"
       ],
-      "total_lines": 6,
+      "total_lines": 11,
       "languages": [
         "java"
       ],
       "confidence": "medium"
-    },
-    {
-      "id": 1,
-      "members": [
-        "Ci6yb6crpya"
-      ],
-      "anchors": [
-        "Ci6yb6crpya"
-      ],
-      "files": [
-        "F14z68pruwmb"
-      ],
-      "total_lines": 1,
-      "languages": [
-        "java"
-      ],
-      "confidence": "low"
     },
     {
       "id": 2,
@@ -105,23 +91,6 @@
       "confidence": "high"
     },
     {
-      "id": 3,
-      "members": [
-        "C4wia3cid4j"
-      ],
-      "anchors": [
-        "C4wia3cid4j"
-      ],
-      "files": [
-        "F14z68pruwmb"
-      ],
-      "total_lines": 2,
-      "languages": [
-        "java"
-      ],
-      "confidence": "low"
-    },
-    {
       "id": 4,
       "members": [
         "Ca4e8v23tb1"
@@ -137,23 +106,6 @@
         "java"
       ],
       "confidence": "high"
-    },
-    {
-      "id": 5,
-      "members": [
-        "C3vv6bhls42"
-      ],
-      "anchors": [
-        "C3vv6bhls42"
-      ],
-      "files": [
-        "F14z68pruwmb"
-      ],
-      "total_lines": 2,
-      "languages": [
-        "java"
-      ],
-      "confidence": "low"
     },
     {
       "id": 6,
@@ -280,6 +232,117 @@
       "out_degree": 0
     },
     {
+      "id": "C4wia3cid4j",
+      "qualified_name": "p.ActionSet.EmptySet.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 17,
+      "end_line": 18,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addOne(int a)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 602,
+      "region": 0,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C14otp6gkxg8"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3vv6bhls42",
+      "qualified_name": "p.ActionSet.Single.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addOne(int a)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 602,
+      "region": 0,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C14otp6gkxg8"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci6yb6crpya",
+      "qualified_name": "p.ActionSet.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 13,
+      "end_line": 13,
+      "size_lines": 1,
+      "signature_hint": "abstract ActionSet addOne(int a);",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 601,
+      "region": 0,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C14otp6gkxg8"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
       "id": "C14otp6gkxg8",
       "qualified_name": "p.ActionSet.add",
       "simple_name": "add",
@@ -312,178 +375,7 @@
           "kind": "no-unresolved-site-with-name"
         }
       ],
-      "out_degree": 0
-    },
-    {
-      "id": "C4wia3cid4j",
-      "qualified_name": "p.ActionSet.EmptySet.addOne",
-      "simple_name": "addOne",
-      "language": "java",
-      "kind": "method",
-      "def_variant": "inherent_method",
-      "file": "F14z68pruwmb",
-      "path": "r20-java-overrides/src/p/ActionSet.java",
-      "start_line": 17,
-      "end_line": 18,
-      "size_lines": 2,
-      "signature_hint": "@Override ActionSet addOne(int a)",
-      "category": "never-referenced",
-      "confidence": "low",
-      "rank": -198,
-      "region": 3,
-      "role": "anchor",
-      "evidence": [
-        {
-          "kind": "ambiguous-site-in-same-file",
-          "sites": 2,
-          "file_local_candidates": 3,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "name-matches-unresolved-site",
-          "name": "addOne",
-          "sites": 2,
-          "reason": "ambiguous-in-file",
-          "same_file_sites": 2,
-          "owner_match_sites": 0,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "no-incoming-edges"
-        },
-        {
-          "kind": "language-signals-complete"
-        },
-        {
-          "kind": "private-visibility",
-          "token": "internal"
-        }
-      ],
-      "out_degree": 0
-    },
-    {
-      "id": "C3vv6bhls42",
-      "qualified_name": "p.ActionSet.Single.addOne",
-      "simple_name": "addOne",
-      "language": "java",
-      "kind": "method",
-      "def_variant": "inherent_method",
-      "file": "F14z68pruwmb",
-      "path": "r20-java-overrides/src/p/ActionSet.java",
-      "start_line": 23,
-      "end_line": 24,
-      "size_lines": 2,
-      "signature_hint": "@Override ActionSet addOne(int a)",
-      "category": "never-referenced",
-      "confidence": "low",
-      "rank": -198,
-      "region": 5,
-      "role": "anchor",
-      "evidence": [
-        {
-          "kind": "ambiguous-site-in-same-file",
-          "sites": 2,
-          "file_local_candidates": 3,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "name-matches-unresolved-site",
-          "name": "addOne",
-          "sites": 2,
-          "reason": "ambiguous-in-file",
-          "same_file_sites": 2,
-          "owner_match_sites": 0,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "no-incoming-edges"
-        },
-        {
-          "kind": "language-signals-complete"
-        },
-        {
-          "kind": "private-visibility",
-          "token": "internal"
-        }
-      ],
-      "out_degree": 0
-    },
-    {
-      "id": "Ci6yb6crpya",
-      "qualified_name": "p.ActionSet.addOne",
-      "simple_name": "addOne",
-      "language": "java",
-      "kind": "method",
-      "def_variant": "inherent_method",
-      "file": "F14z68pruwmb",
-      "path": "r20-java-overrides/src/p/ActionSet.java",
-      "start_line": 13,
-      "end_line": 13,
-      "size_lines": 1,
-      "signature_hint": "abstract ActionSet addOne(int a);",
-      "category": "never-referenced",
-      "confidence": "low",
-      "rank": -199,
-      "region": 1,
-      "role": "anchor",
-      "evidence": [
-        {
-          "kind": "ambiguous-site-in-same-file",
-          "sites": 2,
-          "file_local_candidates": 3,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "name-matches-unresolved-site",
-          "name": "addOne",
-          "sites": 2,
-          "reason": "ambiguous-in-file",
-          "same_file_sites": 2,
-          "owner_match_sites": 0,
-          "example": {
-            "file": "F14z68pruwmb",
-            "path": "r20-java-overrides/src/p/ActionSet.java",
-            "line": 9,
-            "name": "addOne"
-          }
-        },
-        {
-          "kind": "no-incoming-edges"
-        },
-        {
-          "kind": "language-signals-complete"
-        },
-        {
-          "kind": "private-visibility",
-          "token": "internal"
-        }
-      ],
-      "out_degree": 0
+      "out_degree": 6
     }
   ]
 }
