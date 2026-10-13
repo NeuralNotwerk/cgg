@@ -1,3 +1,84 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f2db8e3..4b1d120 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -363,6 +363,47 @@ otherwise change the default graph.
+   `import`s or `use`s (options after the module name ignored). Perl: a
+   bareword before `=>` is an autoquoted key, not a call.
+ 
++- **Interface and abstract dispatch no longer leaves overrides looking
++  dead** (Java, C#, Python, Rust, and declaration nodes for TypeScript,
++  Swift, Scala, Dart). Outside Rust, nothing linked a called base or
++  interface member to the members that override it, so an override
++  reached only through `Validator v = …; v.member()` was reported dead at
++  `high`; Java and C# declared a dispatch model they did not have. Under
++  `--dead-code` / `--dynamic-dispatch` the declaration → override fan-out
++  that Python had (`dispatch:inheritance`) now runs for every language
++  that records class bases (Java, C#, Kotlin, Scala, Groovy, TypeScript,
++  JavaScript, Swift, Dart, PHP, Ruby), walking bodiless intermediate
++  classes and, in Java, an anonymous class body's own base. A base member
++  whose override is called is a dispatch surface (`implemented-trait-surface`,
++  as for Rust traits). An override of a contract the tree does not declare
++  — `@Override`/`override` with no in-tree base member, a C# explicit
++  `void I.M()`, a Rust impl of an outside trait, a Python method of a class
++  with an outside base — carries the new evidence
++  `implements-external-contract` and is never `high`: the runtime calls
++  it. An unresolved same-name site whose receiver is a variable, a type
++  parameter or an unknown type, and a site refused over `--fanout-cap`, are
++  now doubt rather than contradiction, but only when the site could legally
++  call the member (a Java/C# `private` member from outside its class, or a
++  package-private one from another package, is never such a site's
++  target); a `super.m()` refused as outside the tree is no doubt for
++  in-tree members (except Rust, whose `super::` is a module).
++- Java and C# record every class with its bases (`FileFacts::classes`), so
++  `super.m()` / `base.M()` whose chain leaves the tree is refused as
++  `super-base-out-of-graph` instead of being name-matched onto an unrelated
++  workspace member (`base.OnPaint()` → `Other.OnPaint`). C# `base.M()` is
++  read as `super` and now binds to an in-tree base member. An inherited
++  member reached through a chain of same-named class copies narrows to the
++  copy nearest the caller (`nearest_class_copies`).
++- TypeScript interface members and `abstract` methods, Swift protocol
++  requirements, Scala abstract `def`s and Dart abstract methods are emitted
++  as bodiless declaration nodes (tagged `abstract`), so a call typed to the
++  interface binds to its declaration — the Rust model — and dispatch fans
++  out from there. Duck-typed fan-out and in-file bare-call resolution prefer
++  a concrete candidate over such a declaration. TypeScript `abstract class`
++  now owns its members (`A.draw`, was `draw`), `extends A implements B`
++  records both bases, Swift and Dart record supertypes, and Dart mixins own
++  their members.
++
+ ### Compatibility
+ 
+ - **The default graph changes.** Full corpus, 283 repositories:
+@@ -531,6 +572,28 @@ otherwise change the default graph.
+   holding a bound action creator of the same name when the file does not
+   import it.
+ 
++- WS5 (interface/abstract dispatch). Full corpus, 283 repositories,
++  `hcl-terraform-aws` excluded (timeout on both sides; ab/WS5-v3). Edges
++  (`high` net / `medium` net): Java +2 / +4.9k (C# 6.3k / Java 6.1k
++  `medium` added are inherited members reached through now-recorded
++  bodiless classes and `base.M()`; 664 Java, 234 C#, 32 Python, 12 Kotlin
++  `super` calls into outside bases refused; 1.6k C# and 185 Java edges to
++  same-named class copies far from the caller dropped), C# 0 / +4.5k,
++  TypeScript +0.4k / +9.4k (calls typed to an interface or abstract member
++  bind to its declaration; 5.2k edges re-keyed by the abstract-class owner),
++  Scala +0.5k / +0.3k, Dart +19 / +0.7k (1.8k re-keyed by mixin owner),
++  Swift +11 / −13, Python 0 / −72, Rust 0 / −16 (wrong copies). The default
++  graph gains no `Via::Dynamic` edge; the fan-out runs only under
++  `--dynamic-dispatch`, which `--dead-code` turns on. Dead code at `high`:
++  Java −757, Rust −630, Python −394, C# −245 (outside-contract overrides
++  1.0k, now live through dispatch 274, doubt from untyped sites 620,
++  reachable only from dead code 91, base-member surfaces 46); one finding
++  newly `high` (its only edge was a wrong `super` binding; its real caller
++  is a method reference). Remaining carry-over `high`s are framework or
++  reflective entry points (lifecycle and Gradle annotations, Gradle
++  service `configure`, serialization hooks, method references → later
++  workstreams). Latency: perf/WS5.md.
++
+ ## [0.10.2] - 2026-10-11
+ 
+ Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. A bugfix
 diff --git a/crates/cgg-core/src/deadcode.rs b/crates/cgg-core/src/deadcode.rs
 index 6b0ea73..124a548 100644
 --- a/crates/cgg-core/src/deadcode.rs
