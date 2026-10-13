@@ -1,0 +1,489 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.10.2",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "java",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle"
+      ],
+      "files": 3,
+      "callables": 10,
+      "roots": 1,
+      "reachable": 3,
+      "reachable_pct": 30,
+      "findings": 7
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 10,
+    "edges": 4,
+    "unresolved_call_sites": 2,
+    "roots": 1,
+    "candidates": 7,
+    "reported": 7,
+    "regions": 7
+  },
+  "roots": [
+    {
+      "id": "C85zniprf5k",
+      "qualified_name": "p.Plain.run",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`run` is invoked by the runtime"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C14otp6gkxg8"
+      ],
+      "anchors": [
+        "C14otp6gkxg8"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "Ci6yb6crpya"
+      ],
+      "anchors": [
+        "Ci6yb6crpya"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 2,
+      "members": [
+        "Cu74y5sayjs"
+      ],
+      "anchors": [
+        "Cu74y5sayjs"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 3,
+      "members": [
+        "C4wia3cid4j"
+      ],
+      "anchors": [
+        "C4wia3cid4j"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 4,
+      "members": [
+        "Ca4e8v23tb1"
+      ],
+      "anchors": [
+        "Ca4e8v23tb1"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 5,
+      "members": [
+        "C3vv6bhls42"
+      ],
+      "anchors": [
+        "C3vv6bhls42"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 6,
+      "members": [
+        "C71cp1cg8yk"
+      ],
+      "anchors": [
+        "C71cp1cg8yk"
+      ],
+      "files": [
+        "F14z68pruwmb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Ca4e8v23tb1",
+      "qualified_name": "p.ActionSet.EmptySet.addAll",
+      "simple_name": "addAll",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 19,
+      "end_line": 20,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addAll(int a)",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 602,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C71cp1cg8yk",
+      "qualified_name": "p.ActionSet.Single.addAll",
+      "simple_name": "addAll",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 25,
+      "end_line": 26,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addAll(int a)",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 602,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu74y5sayjs",
+      "qualified_name": "p.ActionSet.addAll",
+      "simple_name": "addAll",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 14,
+      "end_line": 14,
+      "size_lines": 1,
+      "signature_hint": "abstract ActionSet addAll(int a);",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 601,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14otp6gkxg8",
+      "qualified_name": "p.ActionSet.add",
+      "simple_name": "add",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 7,
+      "end_line": 12,
+      "size_lines": 6,
+      "signature_hint": "public ActionSet add(int a)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4wia3cid4j",
+      "qualified_name": "p.ActionSet.EmptySet.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 17,
+      "end_line": 18,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addOne(int a)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -198,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "addOne",
+          "sites": 2,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3vv6bhls42",
+      "qualified_name": "p.ActionSet.Single.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "@Override ActionSet addOne(int a)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -198,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "addOne",
+          "sites": 2,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci6yb6crpya",
+      "qualified_name": "p.ActionSet.addOne",
+      "simple_name": "addOne",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14z68pruwmb",
+      "path": "r20-java-overrides/src/p/ActionSet.java",
+      "start_line": 13,
+      "end_line": 13,
+      "size_lines": 1,
+      "signature_hint": "abstract ActionSet addOne(int a);",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -199,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "addOne",
+          "sites": 2,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14z68pruwmb",
+            "path": "r20-java-overrides/src/p/ActionSet.java",
+            "line": 9,
+            "name": "addOne"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+  L7 java-bare/src/p/A.java:p.A.f@6 -> java-bare/src/p/Base.java:p.Base.g@4 [medium cross-file:imports]
+  L8 java-bare/src/p/B.java:p.B.f@7 -> java-bare/src/q/TestUtils.java:q.TestUtils.helper@4 [medium cross-file:imports]
+  L9 java-bare/src/p/B.java:p.B.f@7 -> java-bare/src/q/TestUtils.java:q.TestUtils.single@5 [high cross-file:imports]
