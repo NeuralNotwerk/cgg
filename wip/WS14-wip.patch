@@ -130,6 +130,20 @@ index be8fdf3..f9374d7 100644
  pub mod notebook;
  pub mod parser;
  pub mod plugins;
+diff --git a/crates/cgg-lang/src/plugins/attrs.rs b/crates/cgg-lang/src/plugins/attrs.rs
+index a772d50..23db991 100644
+--- a/crates/cgg-lang/src/plugins/attrs.rs
++++ b/crates/cgg-lang/src/plugins/attrs.rs
+@@ -202,6 +202,9 @@ fn split_type_list(raw: &str) -> Vec<String> {
+     let s = raw.trim();
+     let s = trim_unbalanced_close(s.trim_start_matches(['(', ':', '<', '[']).trim());
+     let s = strip_leading_type_kws(s);
++    // Scala / Dart mixins: `extends A with B with C` lists three bases.
++    let joined = s.replace(" with ", ", ");
++    let s = joined.as_str();
+ 
+     let mut parts: Vec<String> = Vec::new();
+     let mut depth = 0i32;
 diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
 index 034ce52..36fed60 100644
 --- a/crates/cgg-lang/src/plugins/dart.rs
@@ -549,7 +563,7 @@ index 7735a2b..c3c8875 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
-index 5f2eafa..ed6f1af 100644
+index 5f2eafa..c86834f 100644
 --- a/crates/cgg-lang/src/plugins/scala.rs
 +++ b/crates/cgg-lang/src/plugins/scala.rs
 @@ -68,7 +68,7 @@ impl<'a> ScalaWalker<'a> {
@@ -561,7 +575,7 @@ index 5f2eafa..ed6f1af 100644
                  let name = node
                      .child_by_field_name("name")
                      .map(|n| self.text(n).to_string())
-@@ -235,4 +235,17 @@ mod tests {
+@@ -235,4 +235,23 @@ mod tests {
          let f = extract(src);
          assert!(!f.references.is_empty(), "should extract references");
      }
@@ -569,6 +583,12 @@ index 5f2eafa..ed6f1af 100644
 +    /// WS14: a trait is a scope like a class: its methods are its own.
 +    #[test]
 +    fn trait_methods_are_owned_by_the_trait() {
++        let o =
++            extract("object Errs extends QueryBase with Compilation { def f() = 1 }\n");
++        assert_eq!(
++            o.definitions[0].base_types,
++            vec!["QueryBase".to_string(), "Compilation".to_string()]
++        );
 +        let f = extract("trait Logging { def logInfo(m: String): Unit = () }\n");
 +        assert!(
 +            f.definitions
@@ -1582,7 +1602,7 @@ index 25910df..92db88c 100644
              if r.dot_call || lang == "cpp" || self.own_defs.contains(r.name.as_str()) {
                  return None;
 diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
-index cd1c5de..77f2f8a 100644
+index cd1c5de..5b28b57 100644
 --- a/crates/cgg-resolve/src/intra_file.rs
 +++ b/crates/cgg-resolve/src/intra_file.rs
 @@ -53,6 +53,88 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
@@ -1683,7 +1703,7 @@ index cd1c5de..77f2f8a 100644
      for rref in &facts.references {
          let enclosing = enclosing_def_index(facts, rref);
          let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
-@@ -179,6 +263,33 @@ pub fn link_file_with_cap(
+@@ -179,6 +263,42 @@ pub fn link_file_with_cap(
              .map(|(i, d)| (i as u32, d))
              .collect();
  
@@ -1709,15 +1729,24 @@ index cd1c5de..77f2f8a 100644
 +                    )
 +                })
 +                .unwrap_or((ls, le));
++            // A parameter's scope is its whole function. A local is bound
++            // by an assignment, and may hold a closure another function of
++            // the file returns (`is_valid = is_valid_factory(x)` then
++            // `is_valid(i)` enters the nested `is_valid`): a definition
++            // nested in some other function stays a candidate for it.
++            let is_param = fs == ls;
 +            let before = candidates.len();
-+            candidates.retain(|(_, d)| fs <= d.start_byte && d.start_byte < fe);
++            candidates.retain(|(i, d)| {
++                (fs <= d.start_byte && d.start_byte < fe)
++                    || (!is_param && nesting.parent[*i as usize].is_some())
++            });
 +            shadowed_by_local = before > 0 && candidates.is_empty();
 +        }
 +
          // A bare identifier is not a method call in these languages:
          // `helper(2)` inside a class reaches a module-level `helper`,
          // never `self.helper`. Without this a same-file method with a
-@@ -220,7 +331,8 @@ pub fn link_file_with_cap(
+@@ -220,7 +340,8 @@ pub fn link_file_with_cap(
              methods_out_of_scope += (before - candidates.len()) as u32;
          }
  
@@ -1727,7 +1756,7 @@ index cd1c5de..77f2f8a 100644
          // another is visible by name only within it, and the innermost
          // definition shadows outer ones: `_scan()` inside the method that
          // defines `_scan` is that local, and `_scan()` anywhere else is
-@@ -230,25 +342,27 @@ pub fn link_file_with_cap(
+@@ -230,25 +351,27 @@ pub fn link_file_with_cap(
          // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
          // and name lookup is the only thing that finds it there.
          if rref.receiver_hint.is_empty()
@@ -1768,7 +1797,7 @@ index cd1c5de..77f2f8a 100644
                  .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
                  .collect();
              // Innermost enclosing scope first: the smallest parent span,
-@@ -267,6 +381,22 @@ pub fn link_file_with_cap(
+@@ -267,6 +390,22 @@ pub fn link_file_with_cap(
                      candidates = narrowed;
                  }
              }
@@ -1791,7 +1820,7 @@ index cd1c5de..77f2f8a 100644
          }
  
          // Receiver-based narrowing (Issue 1). A call of the form
-@@ -428,7 +558,9 @@ pub fn link_file_with_cap(
+@@ -428,7 +567,9 @@ pub fn link_file_with_cap(
                  // somewhere else, and reporting it as though the name
                  // does not exist is what P1-2 of the field report was
                  // about.
@@ -1802,7 +1831,7 @@ index cd1c5de..77f2f8a 100644
                      UnresolvedReason::NotInScopeForBareCall {
                          methods: methods_out_of_scope,
                      }
-@@ -879,6 +1011,89 @@ mod tests {
+@@ -879,6 +1020,118 @@ mod tests {
              .collect()
      }
  
@@ -1850,6 +1879,35 @@ index cd1c5de..77f2f8a 100644
 +            "{:?}",
 +            out.unresolved
 +        );
++    }
++
++    /// WS14: a local bound by assignment may hold a closure another
++    /// function of the file returns (`is_valid = factory(x)` then
++    /// `is_valid(i)`): the nested definition stays its candidate; a
++    /// module-level one of the same name is shadowed.
++    #[test]
++    fn a_local_may_hold_a_closure_a_factory_returns() {
++        let defs = vec![
++            mk_def("factory", "m.factory", DefVariant::FreeFunction, (0, 100)),
++            mk_def(
++                "is_valid",
++                "m.factory.is_valid",
++                DefVariant::FreeFunction,
++                (10, 50),
++            ),
++            mk_def("run", "m.run", DefVariant::FreeFunction, (200, 300)),
++        ];
++        let mut facts = facts_with_lang("python", defs, vec![mk_ref("is_valid", 250)]);
++        facts.locals = vec![cgg_core::LocalBinding {
++            name: "is_valid".into(),
++            start_byte: 230,
++            end_byte: 300,
++            decl_byte: 210,
++        }];
++        let map = mk_map(&facts);
++        let out = link_file(&facts, &map);
++        let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
++        assert_eq!(dsts, vec![1], "{:?}", out);
 +    }
 +
 +    /// WS14: lexical scope beyond Python. Three OCaml functions each
@@ -2715,12 +2773,208 @@ index 0000000..d56f64b
 +        }
 +    }
 +}
+diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
+new file mode 100644
+index 0000000..351ff6a
+--- /dev/null
++++ b/crates/cgg-resolve/src/scope.rs
+@@ -0,0 +1,190 @@
++//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
++//! generalisation).
++//!
++//! The plugins record every parameter and local variable with the span it
++//! is in scope over (`FileFacts::locals`, see `cgg_lang::locals`). A bare
++//! call through such a name calls the value it holds: neither a same-named
++//! function in another file nor one declared further out in this file is
++//! the callee. A receiver headed by one (`c.json()` with a parameter `c`)
++//! is that value, not an import of the same name.
++
++use std::collections::HashMap;
++
++use cgg_core::{FileFacts, RefRecord};
++
++/// One file's value bindings, by name.
++#[derive(Debug, Default)]
++pub(crate) struct FileLocals {
++    /// Per name: binding spans sorted by start (outermost first at equal
++    /// starts), each with the index of its innermost enclosing span of
++    /// the same name — a minified bundle binds one short name thousands
++    /// of times, so a lookup climbs this chain instead of scanning.
++    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
++}
++
++impl FileLocals {
++    pub(crate) fn build(facts: &FileFacts) -> Self {
++        // An import the declaration itself makes (`const m =
++        // require('./m')` inside a function) is that import's binding,
++        // which the module resolver follows: not a shadow of it.
++        let mut import_sites: HashMap<&str, Vec<u32>> = HashMap::new();
++        for imp in &facts.imports {
++            for item in imp.alias.split(',') {
++                let item = item.trim();
++                let local = item
++                    .rsplit_once(" as ")
++                    .map_or(item, |(_, a)| a.trim())
++                    .trim();
++                if !local.is_empty() {
++                    import_sites.entry(local).or_default().push(imp.site_byte);
++                }
++            }
++        }
++        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
++        for l in &facts.locals {
++            let is_the_import = import_sites.get(l.name.as_str()).is_some_and(|sites| {
++                sites.iter().any(|b| l.decl_byte <= *b && *b < l.start_byte)
++            });
++            if is_the_import {
++                continue;
++            }
++            raw.entry(l.name.clone())
++                .or_default()
++                .push((l.start_byte, l.end_byte));
++        }
++        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
++        for (name, mut v) in raw {
++            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
++            v.dedup();
++            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
++            let mut open: Vec<usize> = Vec::new();
++            for (s, e) in v {
++                while open
++                    .last()
++                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
++                {
++                    open.pop();
++                }
++                out.push((s, e, open.last().copied()));
++                open.push(out.len() - 1);
++            }
++            spans.insert(name, out);
++        }
++        FileLocals { spans }
++    }
++
++    /// The innermost binding of `name` in scope at `site`, as its span.
++    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
++        let v = self.spans.get(name)?;
++        let pos = v.partition_point(|(s, _, _)| *s <= site);
++        let mut cur = pos.checked_sub(1);
++        while let Some(i) = cur {
++            let (s, e, parent) = v[i];
++            if s <= site && site < e {
++                return Some((s, e));
++            }
++            cur = parent;
++        }
++        None
++    }
++
++    /// Whether `name` is a value binding in scope at `site`.
++    pub(crate) fn binds(&self, name: &str, site: u32) -> bool {
++        self.binding_at(name, site).is_some()
++    }
++
++    /// A bare call (`f()`, no receiver and no dot) through a value
++    /// binding, which no other file's function can be the callee of.
++    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
++        r.receiver_hint.is_empty() && !r.dot_call && self.binds(&r.name, r.site_byte)
++    }
++
++    /// Whether the leading identifier of the call's receiver is a value
++    /// binding at the site — then it is not a module or import of that
++    /// name.
++    pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
++        let rh = r.receiver_hint.trim();
++        let rh = rh.strip_prefix("new ").unwrap_or(rh);
++        let end = rh
++            .char_indices()
++            .find(|(_, c)| !(c.is_alphanumeric() || *c == '_' || *c == '$'))
++            .map_or(rh.len(), |(i, _)| i);
++        let head = &rh[..end];
++        !head.is_empty() && self.binds(head, r.site_byte)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use cgg_core::{LocalBinding, ids::FileId};
++
++    fn facts() -> FileFacts {
++        let mut f = FileFacts::new(FileId::new(0), "a.js".into(), "javascript");
++        f.locals = vec![
++            LocalBinding {
++                name: "cb".into(),
++                start_byte: 10,
++                end_byte: 50,
++                decl_byte: 10,
++            },
++            LocalBinding {
++                name: "c".into(),
++                start_byte: 10,
++                end_byte: 50,
++                decl_byte: 10,
++            },
++        ];
++        f
++    }
++
++    fn call(name: &str, recv: &str, at: u32) -> RefRecord {
++        RefRecord {
++            name: name.into(),
++            receiver_hint: recv.into(),
++            site_byte: at,
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn a_bare_call_through_a_binding_in_scope_is_shadowed() {
++        let l = FileLocals::build(&facts());
++        assert!(l.shadows_bare_call(&call("cb", "", 20)));
++        // Out of the binding's scope, or with a receiver: not shadowed.
++        assert!(!l.shadows_bare_call(&call("cb", "", 60)));
++        assert!(!l.shadows_bare_call(&call("cb", "x", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
++        assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
++    }
++
++    #[test]
++    fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
++        // `const cb = require('./cb')`: the declaration (from byte 5) makes
++        // the import (at byte 7); its scope starts after it (byte 10).
++        let mut f = facts();
++        f.locals[0].decl_byte = 5;
++        f.imports.push(cgg_core::ImportRecord {
++            kind: "import".into(),
++            path: "./cb".into(),
++            alias: "cb".into(),
++            site_line: 1,
++            site_byte: 7,
++        });
++        let l = FileLocals::build(&f);
++        assert!(!l.shadows_bare_call(&call("cb", "", 20)));
++        // Near miss: a parameter named like a file-level import still
++        // shadows it (the import is outside its declaration).
++        let mut f = facts();
++        f.imports.push(cgg_core::ImportRecord {
++            kind: "import".into(),
++            path: "./c".into(),
++            alias: "c".into(),
++            site_line: 1,
++            site_byte: 0,
++        });
++        let l = FileLocals::build(&f);
++        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
++    }
++}
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
 new file mode 100644
-index 0000000..669ee3b
+index 0000000..fd17edc
 --- /dev/null
 +++ b/crates/cgg-resolve/src/libscope.rs
-@@ -0,0 +1,1256 @@
+@@ -0,0 +1,1257 @@
 +//! Library scope for languages whose imports name files (WS14).
 +//!
 +//! Dart: a file sees its own library's top-level names (itself and its
@@ -3805,7 +4059,8 @@ index 0000000..669ee3b
 +            }
 +            frontier = next;
 +        }
-+        let reached: Vec<FileId> = files.iter().copied().filter(|f| seen.contains(f)).collect();
++        let reached: Vec<FileId> =
++            files.iter().copied().filter(|f| seen.contains(f)).collect();
 +        match reached.as_slice() {
 +            [one] => {
 +                let cids: Vec<CallableId> = ids
@@ -3976,200 +4231,4 @@ index 0000000..669ee3b
 +    External,
 +    /// Not decided here.
 +    Unknown,
-+}
-diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
-new file mode 100644
-index 0000000..351ff6a
---- /dev/null
-+++ b/crates/cgg-resolve/src/scope.rs
-@@ -0,0 +1,190 @@
-+//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
-+//! generalisation).
-+//!
-+//! The plugins record every parameter and local variable with the span it
-+//! is in scope over (`FileFacts::locals`, see `cgg_lang::locals`). A bare
-+//! call through such a name calls the value it holds: neither a same-named
-+//! function in another file nor one declared further out in this file is
-+//! the callee. A receiver headed by one (`c.json()` with a parameter `c`)
-+//! is that value, not an import of the same name.
-+
-+use std::collections::HashMap;
-+
-+use cgg_core::{FileFacts, RefRecord};
-+
-+/// One file's value bindings, by name.
-+#[derive(Debug, Default)]
-+pub(crate) struct FileLocals {
-+    /// Per name: binding spans sorted by start (outermost first at equal
-+    /// starts), each with the index of its innermost enclosing span of
-+    /// the same name — a minified bundle binds one short name thousands
-+    /// of times, so a lookup climbs this chain instead of scanning.
-+    spans: HashMap<String, Vec<(u32, u32, Option<usize>)>>,
-+}
-+
-+impl FileLocals {
-+    pub(crate) fn build(facts: &FileFacts) -> Self {
-+        // An import the declaration itself makes (`const m =
-+        // require('./m')` inside a function) is that import's binding,
-+        // which the module resolver follows: not a shadow of it.
-+        let mut import_sites: HashMap<&str, Vec<u32>> = HashMap::new();
-+        for imp in &facts.imports {
-+            for item in imp.alias.split(',') {
-+                let item = item.trim();
-+                let local = item
-+                    .rsplit_once(" as ")
-+                    .map_or(item, |(_, a)| a.trim())
-+                    .trim();
-+                if !local.is_empty() {
-+                    import_sites.entry(local).or_default().push(imp.site_byte);
-+                }
-+            }
-+        }
-+        let mut raw: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-+        for l in &facts.locals {
-+            let is_the_import = import_sites.get(l.name.as_str()).is_some_and(|sites| {
-+                sites.iter().any(|b| l.decl_byte <= *b && *b < l.start_byte)
-+            });
-+            if is_the_import {
-+                continue;
-+            }
-+            raw.entry(l.name.clone())
-+                .or_default()
-+                .push((l.start_byte, l.end_byte));
-+        }
-+        let mut spans: HashMap<String, Vec<(u32, u32, Option<usize>)>> = HashMap::new();
-+        for (name, mut v) in raw {
-+            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
-+            v.dedup();
-+            let mut out: Vec<(u32, u32, Option<usize>)> = Vec::with_capacity(v.len());
-+            let mut open: Vec<usize> = Vec::new();
-+            for (s, e) in v {
-+                while open
-+                    .last()
-+                    .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
-+                {
-+                    open.pop();
-+                }
-+                out.push((s, e, open.last().copied()));
-+                open.push(out.len() - 1);
-+            }
-+            spans.insert(name, out);
-+        }
-+        FileLocals { spans }
-+    }
-+
-+    /// The innermost binding of `name` in scope at `site`, as its span.
-+    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
-+        let v = self.spans.get(name)?;
-+        let pos = v.partition_point(|(s, _, _)| *s <= site);
-+        let mut cur = pos.checked_sub(1);
-+        while let Some(i) = cur {
-+            let (s, e, parent) = v[i];
-+            if s <= site && site < e {
-+                return Some((s, e));
-+            }
-+            cur = parent;
-+        }
-+        None
-+    }
-+
-+    /// Whether `name` is a value binding in scope at `site`.
-+    pub(crate) fn binds(&self, name: &str, site: u32) -> bool {
-+        self.binding_at(name, site).is_some()
-+    }
-+
-+    /// A bare call (`f()`, no receiver and no dot) through a value
-+    /// binding, which no other file's function can be the callee of.
-+    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
-+        r.receiver_hint.is_empty() && !r.dot_call && self.binds(&r.name, r.site_byte)
-+    }
-+
-+    /// Whether the leading identifier of the call's receiver is a value
-+    /// binding at the site — then it is not a module or import of that
-+    /// name.
-+    pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
-+        let rh = r.receiver_hint.trim();
-+        let rh = rh.strip_prefix("new ").unwrap_or(rh);
-+        let end = rh
-+            .char_indices()
-+            .find(|(_, c)| !(c.is_alphanumeric() || *c == '_' || *c == '$'))
-+            .map_or(rh.len(), |(i, _)| i);
-+        let head = &rh[..end];
-+        !head.is_empty() && self.binds(head, r.site_byte)
-+    }
-+}
-+
-+#[cfg(test)]
-+mod tests {
-+    use super::*;
-+    use cgg_core::{LocalBinding, ids::FileId};
-+
-+    fn facts() -> FileFacts {
-+        let mut f = FileFacts::new(FileId::new(0), "a.js".into(), "javascript");
-+        f.locals = vec![
-+            LocalBinding {
-+                name: "cb".into(),
-+                start_byte: 10,
-+                end_byte: 50,
-+                decl_byte: 10,
-+            },
-+            LocalBinding {
-+                name: "c".into(),
-+                start_byte: 10,
-+                end_byte: 50,
-+                decl_byte: 10,
-+            },
-+        ];
-+        f
-+    }
-+
-+    fn call(name: &str, recv: &str, at: u32) -> RefRecord {
-+        RefRecord {
-+            name: name.into(),
-+            receiver_hint: recv.into(),
-+            site_byte: at,
-+            ..Default::default()
-+        }
-+    }
-+
-+    #[test]
-+    fn a_bare_call_through_a_binding_in_scope_is_shadowed() {
-+        let l = FileLocals::build(&facts());
-+        assert!(l.shadows_bare_call(&call("cb", "", 20)));
-+        // Out of the binding's scope, or with a receiver: not shadowed.
-+        assert!(!l.shadows_bare_call(&call("cb", "", 60)));
-+        assert!(!l.shadows_bare_call(&call("cb", "x", 20)));
-+        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
-+        assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
-+        assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
-+    }
-+
-+    #[test]
-+    fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
-+        // `const cb = require('./cb')`: the declaration (from byte 5) makes
-+        // the import (at byte 7); its scope starts after it (byte 10).
-+        let mut f = facts();
-+        f.locals[0].decl_byte = 5;
-+        f.imports.push(cgg_core::ImportRecord {
-+            kind: "import".into(),
-+            path: "./cb".into(),
-+            alias: "cb".into(),
-+            site_line: 1,
-+            site_byte: 7,
-+        });
-+        let l = FileLocals::build(&f);
-+        assert!(!l.shadows_bare_call(&call("cb", "", 20)));
-+        // Near miss: a parameter named like a file-level import still
-+        // shadows it (the import is outside its declaration).
-+        let mut f = facts();
-+        f.imports.push(cgg_core::ImportRecord {
-+            kind: "import".into(),
-+            path: "./c".into(),
-+            alias: "c".into(),
-+            site_line: 1,
-+            site_byte: 0,
-+        });
-+        let l = FileLocals::build(&f);
-+        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
-+    }
 +}
