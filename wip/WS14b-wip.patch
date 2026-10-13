@@ -1,8 +1,8 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index c538c98..0e1775b 100644
+index c538c98..7a5f5b2 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
-@@ -369,6 +369,12 @@ pub struct RefRecord {
+@@ -369,6 +369,19 @@ pub struct RefRecord {
      #[serde(default, skip_serializing_if = "std::ops::Not::not")]
      pub arrow: bool,
  
@@ -12,10 +12,17 @@ index c538c98..0e1775b 100644
 +    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
 +    pub macro_call: bool,
 +
++    /// Set when the receiver is the enclosing method's invocant — a
++    /// Perl `my $self = shift;` / `my ($class, …) = @_;` / signature's
++    /// first parameter, or `shift->m()`. The call then names a method of
++    /// the caller's own package or one it inherits.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub invocant: bool,
++
      /// How many arguments the call passes, where the language makes a
      /// function's arity part of its identity — Erlang's `f/1` and `f/2`
      /// are different functions that share a name. `None` when unknown or
-@@ -478,6 +484,22 @@ pub struct FileFacts {
+@@ -478,6 +491,22 @@ pub struct FileFacts {
      /// declares by name is a definition, not one of these.
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub locals: Vec<LocalBinding>,
@@ -38,7 +45,7 @@ index c538c98..0e1775b 100644
  }
  
  /// A name bound to a value over `start_byte..end_byte` (see
-@@ -608,6 +630,7 @@ impl FileFacts {
+@@ -608,6 +637,7 @@ impl FileFacts {
              untyped_receivers: Vec::new(),
              packages: Vec::new(),
              locals: Vec::new(),
@@ -63,6 +70,28 @@ index 4e4cc36..0faa86e 100644
  };
  pub use frameworks::{
      EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+diff --git a/crates/cgg-core/src/stdlib.rs b/crates/cgg-core/src/stdlib.rs
+index fab9fc0..81fe49a 100644
+--- a/crates/cgg-core/src/stdlib.rs
++++ b/crates/cgg-core/src/stdlib.rs
+@@ -8,6 +8,17 @@
+ use std::collections::HashSet;
+ use std::sync::OnceLock;
+ 
++/// Perl: modules whose `use M 'Base', …` names the using package's base
++/// classes (the core `parent` / `base` pragmas, and `Mojo::Base`, whose
++/// first string argument is the base). Arguments starting with `-` are
++/// flags (`-norequire`, `-base`, `-strict`).
++pub const PERL_BASE_PRAGMAS: &[&str] = &["parent", "base", "Mojo::Base"];
++
++/// Perl: OO keywords (Moose / Moo / Mouse) whose string arguments name
++/// where the package's methods come from: `extends 'Base'` its base
++/// classes, `with 'Role'` the roles composed into it.
++pub const PERL_BASE_KEYWORDS: &[&str] = &["extends", "with"];
++
+ static RUST: &str = include_str!("stdlib/rust.txt");
+ static PYTHON: &str = include_str!("stdlib/python.txt");
+ static GO: &str = include_str!("stdlib/go.txt");
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
 index 0c1c3e7..afcec1f 100644
 --- a/crates/cgg-lang/src/locals.rs
@@ -221,159 +250,461 @@ index 0c1c3e7..afcec1f 100644
      /// no shadow. `var pick = choose()` is a value: a shadow.
      #[test]
 diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
-index ab1049f..369d9ec 100644
+index ab1049f..935d9f7 100644
 --- a/crates/cgg-lang/src/plugins/clojure.rs
 +++ b/crates/cgg-lang/src/plugins/clojure.rs
-@@ -335,6 +335,7 @@ impl<'a> ClojureWalker<'a> {
+@@ -335,6 +335,8 @@ impl<'a> ClojureWalker<'a> {
                          path_receiver: false,
                          dot_call: false,
                          arrow: false,
 +                        macro_call: false,
++                        invocant: false,
                          arity: None,
                          name: s,
                          receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
-@@ -362,6 +363,7 @@ impl<'a> ClojureWalker<'a> {
+@@ -362,6 +364,8 @@ impl<'a> ClojureWalker<'a> {
                          path_receiver: false,
                          dot_call: false,
                          arrow: false,
 +                        macro_call: false,
++                        invocant: false,
                          arity: None,
                          name: t.to_string(),
                          receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
-@@ -431,6 +433,7 @@ impl<'a> ClojureWalker<'a> {
+@@ -431,6 +435,8 @@ impl<'a> ClojureWalker<'a> {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: simple,
              receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
-index b01a91a..5cee53d 100644
+index b01a91a..2f92f75 100644
 --- a/crates/cgg-lang/src/plugins/elixir.rs
 +++ b/crates/cgg-lang/src/plugins/elixir.rs
-@@ -448,6 +448,7 @@ impl<'a> ElixirWalker<'a> {
+@@ -448,6 +448,8 @@ impl<'a> ElixirWalker<'a> {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              name,
              receiver_hint: hint.to_string(),
              site_line: line,
 diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
-index ccdcdb2..e987973 100644
+index ccdcdb2..8a38751 100644
 --- a/crates/cgg-lang/src/plugins/javascript.rs
 +++ b/crates/cgg-lang/src/plugins/javascript.rs
-@@ -1297,6 +1297,7 @@ impl<'a> JsWalker<'a> {
+@@ -1297,6 +1297,8 @@ impl<'a> JsWalker<'a> {
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
-index a532745..895333c 100644
+index a532745..dedf584 100644
 --- a/crates/cgg-lang/src/plugins/perl.rs
 +++ b/crates/cgg-lang/src/plugins/perl.rs
-@@ -379,6 +379,7 @@ impl<'a> PerlWalker<'a> {
+@@ -42,6 +42,7 @@ impl LanguagePlugin for PerlPlugin {
+             source,
+             facts: &mut facts,
+             scope: Vec::new(),
++            invocants: Vec::new(),
+         };
+         w.walk(tree.root_node());
+         facts
+@@ -54,6 +55,9 @@ struct PerlWalker<'a> {
+     ctx: crate::ExtractCtx<'a>,
+     facts: &'a mut FileFacts,
+     scope: Vec<String>,
++    /// The invocant variable of each sub being walked, innermost last
++    /// (`$self` after `my $self = shift;`); empty when it has none.
++    invocants: Vec<String>,
+ }
+ 
+ impl<'a> PerlWalker<'a> {
+@@ -80,6 +84,13 @@ impl<'a> PerlWalker<'a> {
+                         if child.kind() == "package_name" {
+                             let name = self.text(child).to_string();
+                             if !name.is_empty() {
++                                self.facts.imports.push(ImportRecord {
++                                    kind: "perl-package".into(),
++                                    path: name.clone(),
++                                    alias: String::new(),
++                                    site_line: (node.start_position().row as u32) + 1,
++                                    site_byte: node.start_byte() as u32,
++                                });
+                                 self.scope.clear();
+                                 self.scope.push(name);
+                             }
+@@ -100,6 +111,31 @@ impl<'a> PerlWalker<'a> {
+                         self.record_def(node, &name, DefVariant::FreeFunction);
+                     }
+                 }
++                let inv = self.invocant_of(node).unwrap_or_default();
++                self.invocants.push(inv);
++                self.walk_children(node);
++                self.invocants.pop();
++                return;
++            }
++            // `use parent -norequire, 'Base';` (its own node kind).
++            "use_parent_statement" => {
++                self.record_bases(node);
++                self.walk_children(node);
++                return;
++            }
++            // `our @ISA = ('Base');`
++            "binary_expression"
++                if node
++                    .child_by_field_name("operator")
++                    .is_some_and(|o| self.text(o) == "=")
++                    && node.child(0).is_some_and(|l| {
++                        let t = self.text(l);
++                        t.trim_start_matches("our").trim() == "@ISA"
++                    }) =>
++            {
++                if let Some(rhs) = node.child(node.child_count().saturating_sub(1) as u32) {
++                    self.record_bases(rhs);
++                }
+                 self.walk_children(node);
+                 return;
+             }
+@@ -110,6 +146,14 @@ impl<'a> PerlWalker<'a> {
+             // resolution resolved nothing.
+             "use_no_statement" | "use_statement" | "require_statement" => {
+                 self.record_import(node);
++                // `use base qw(A B);`, `use Mojo::Base 'Base';`
++                let module = node
++                    .child_by_field_name("package_name")
++                    .map(|n| self.text(n).to_string())
++                    .unwrap_or_default();
++                if cgg_core::stdlib::PERL_BASE_PRAGMAS.contains(&module.as_str()) {
++                    self.record_bases(node);
++                }
+                 self.walk_children(node);
+                 return;
+             }
+@@ -117,6 +161,18 @@ impl<'a> PerlWalker<'a> {
+             | "call_expression_with_args_with_brackets"
+             | "call_expression_with_bareword"
+             | "call_expression_with_spaced_args" => {
++                // `extends 'Base';`, `with 'Role';`
++                if node.kind() == "call_expression_with_spaced_args"
++                    && node
++                        .child(0)
++                        .and_then(|c| c.child_by_field_name("function_name"))
++                        .is_some_and(|f| {
++                            cgg_core::stdlib::PERL_BASE_KEYWORDS.contains(&self.text(f))
++                        })
++                    && let Some(args) = node.child_by_field_name("args")
++                {
++                    self.record_bases(args);
++                }
+                 self.record_call(node);
+                 self.walk_children(node);
+                 return;
+@@ -143,6 +199,104 @@ impl<'a> PerlWalker<'a> {
+         }
+     }
+ 
++    /// The sub's invocant: its signature's first parameter (`sub m ($self,
++    /// …)`), else the variable its first statement takes from `@_`
++    /// (`my $self = shift;`, `my ($class, %args) = @_;`, `my $self =
++    /// $_[0];`).
++    fn invocant_of(&self, def: Node) -> Option<String> {
++        let mut c = def.walk();
++        if let Some(sig) = def
++            .children(&mut c)
++            .find(|n| n.kind() == "function_signature")
++        {
++            let mut sc = sig.walk();
++            return sig
++                .named_children(&mut sc)
++                .next()
++                .filter(|n| n.kind() == "scalar_variable")
++                .map(|n| self.text(n).to_string());
++        }
++        let body = def.child_by_field_name("body")?;
++        let mut bc = body.walk();
++        let first = body.named_children(&mut bc).next()?;
++        if first.kind() != "binary_expression" {
++            return None;
++        }
++        let lhs = first.child(0)?;
++        let rhs = first.child(first.child_count().checked_sub(1)? as u32)?;
++        if lhs.kind() != "variable_declaration" || !self.text(lhs).starts_with("my") {
++            return None;
++        }
++        let mut lc = lhs.walk();
++        let list = lhs.named_children(&mut lc).find(|n| n.kind() == "array");
++        let var = match list {
++            Some(a) => {
++                let mut ac = a.walk();
++                a.named_children(&mut ac)
++                    .next()
++                    .filter(|n| n.kind() == "scalar_variable")?
++            }
++            None => {
++                let mut lc = lhs.walk();
++                lhs.named_children(&mut lc)
++                    .find(|n| n.kind() == "scalar_variable")?
++            }
++        };
++        let rhs_text: String = self.text(rhs).split_whitespace().collect();
++        let takes_first = match list {
++            Some(_) => rhs_text == "@_",
++            None => matches!(
++                rhs_text.as_str(),
++                "shift" | "shift()" | "shift@_" | "shift(@_)" | "$_[0]"
++            ),
++        };
++        takes_first.then(|| self.text(var).to_string())
++    }
++
++    /// Record the package names `node` lists (quoted strings, `qw(…)`
++    /// items; `-flag`s skipped) as bases of the current package.
++    fn record_bases(&mut self, node: Node) {
++        let pkg = if self.scope.is_empty() {
++            "main".to_string()
++        } else {
++            self.scope.join("::")
++        };
++        let mut stack = vec![node];
++        let mut found: Vec<(String, u32)> = Vec::new();
++        while let Some(n) = stack.pop() {
++            match n.kind() {
++                k if k.starts_with("string") || k == "list_item" => {
++                    let t = self
++                        .text(n)
++                        .trim()
++                        .trim_matches(|c| c == '\'' || c == '"')
++                        .trim();
++                    if !t.is_empty()
++                        && !t.starts_with('-')
++                        && t.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ':')
++                    {
++                        found.push((t.to_string(), n.start_byte() as u32));
++                    }
++                }
++                _ => {
++                    let mut c = n.walk();
++                    stack.extend(n.children(&mut c));
++                }
++            }
++        }
++        found.sort_by_key(|(_, b)| *b);
++        // `use Mojo::Base 'Base'` names one base, its first argument.
++        for (base, at) in found {
++            self.facts.imports.push(ImportRecord {
++                kind: "perl-isa".into(),
++                path: base,
++                alias: pkg.clone(),
++                site_line: (node.start_position().row as u32) + 1,
++                site_byte: at,
++            });
++        }
++    }
++
+     fn record_def(&mut self, node: Node, simple: &str, variant: DefVariant) {
+         let qn = self.qn(simple);
+         let (sl, el) = (
+@@ -249,11 +403,27 @@ impl<'a> PerlWalker<'a> {
+                     .or_else(|| node.child_by_field_name("package_name"))
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
++                // `$self->m()` with `my $self = shift;`, `shift->m()`.
++                let invocant = receiver_hint == "shift"
++                    || self
++                        .invocants
++                        .last()
++                        .is_some_and(|v| !v.is_empty() && *v == receiver_hint);
++                // `$self->SUPER::m()`: the bases' `m`.
++                let is_super = invocant && {
++                    let mut c = node.walk();
++                    node.children(&mut c).any(|n| n.kind() == "super")
++                };
+                 self.facts.references.push(RefRecord {
+                     name: name.clone(),
+-                    receiver_hint: receiver_hint.clone(),
++                    receiver_hint: if is_super {
++                        "SUPER".to_string()
++                    } else {
++                        receiver_hint.clone()
++                    },
+                     site_line: (node.start_position().row as u32) + 1,
+                     site_byte: node.start_byte() as u32,
++                    invocant,
+                     ..Default::default()
+                 });
+                 // Mojolicious routes are method calls on a router
+@@ -379,6 +549,8 @@ impl<'a> PerlWalker<'a> {
                      path_receiver: false,
                      dot_call: false,
                      arrow: false,
 +                    macro_call: false,
++                    invocant: false,
                      arity: None,
                      name: s,
                      receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
-@@ -397,6 +398,7 @@ impl<'a> PerlWalker<'a> {
+@@ -397,6 +569,8 @@ impl<'a> PerlWalker<'a> {
                      path_receiver: false,
                      dot_call: false,
                      arrow: false,
 +                    macro_call: false,
++                    invocant: false,
                      arity: None,
                      name,
                      receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
-@@ -483,6 +485,7 @@ impl<'a> PerlWalker<'a> {
+@@ -483,6 +657,8 @@ impl<'a> PerlWalker<'a> {
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+@@ -758,4 +934,53 @@ mod tests {
+         assert!(!names.contains(&"name"), "{names:?}");
+         assert!(names.contains(&"helper"), "{names:?}");
+     }
++
++    /// WS14b: a method call on the sub's invocant is marked (`my $self =
++    /// shift;`, `my ($c, %a) = @_;`, a signature's first parameter,
++    /// `shift->m`), `SUPER::` keeps that in the receiver, and a package's
++    /// bases are recorded from `use parent`, `use base qw(…)`, `@ISA`
++    /// and `extends`. Another variable is not the invocant.
++    #[test]
++    fn invocant_calls_and_bases_are_recorded() {
++        let f = extract(
++            "package A::B;\nuse parent -norequire, 'X::Y';\nuse base qw(P Q);\n\
++             extends 'E::F';\nour @ISA = ('I::J');\n\
++             sub m1 { my $self = shift; $self->x; shift->y; $self->SUPER::new(); $other->z; }\n\
++             sub m2 { my ($c, %a) = @_; $c->w; }\nsub m3 ($s, $t) { $s->v; $t->u; }\n",
++        );
++        let inv: Vec<(&str, &str)> = f
++            .references
++            .iter()
++            .filter(|r| r.invocant)
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
++            .collect();
++        assert_eq!(
++            inv,
++            vec![
++                ("x", "$self"),
++                ("y", "shift"),
++                ("new", "SUPER"),
++                ("w", "$c"),
++                ("v", "$s")
++            ],
++            "{:?}",
++            f.references
++        );
++        let bases: Vec<(&str, &str)> = f
++            .imports
++            .iter()
++            .filter(|i| i.kind == "perl-isa")
++            .map(|i| (i.alias.as_str(), i.path.as_str()))
++            .collect();
++        assert_eq!(
++            bases,
++            vec![
++                ("A::B", "X::Y"),
++                ("A::B", "P"),
++                ("A::B", "Q"),
++                ("A::B", "E::F"),
++                ("A::B", "I::J")
++            ]
++        );
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
-index 72e83eb..fa217b1 100644
+index 72e83eb..d510abb 100644
 --- a/crates/cgg-lang/src/plugins/registrar.rs
 +++ b/crates/cgg-lang/src/plugins/registrar.rs
-@@ -469,6 +469,7 @@ pub(crate) fn capture(
+@@ -469,6 +469,8 @@ pub(crate) fn capture(
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: s,
                  receiver_hint: STRING_REF_HINT.to_string(),
-@@ -627,6 +628,7 @@ fn collect_value_refs(
+@@ -627,6 +629,8 @@ fn collect_value_refs(
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: format!("{owner}::{method}"),
                  receiver_hint: STRING_REF_HINT.to_string(),
-@@ -646,6 +648,7 @@ fn collect_value_refs(
+@@ -646,6 +650,8 @@ fn collect_value_refs(
                      path_receiver: false,
                      dot_call: false,
                      arrow: false,
 +                    macro_call: false,
++                    invocant: false,
                      arity: None,
                      name: s,
                      receiver_hint: STRING_REF_HINT.to_string(),
-@@ -678,6 +681,7 @@ fn collect_value_refs(
+@@ -678,6 +684,8 @@ fn collect_value_refs(
                      path_receiver: false,
                      dot_call: false,
                      arrow: false,
 +                    macro_call: false,
++                    invocant: false,
                      arity: None,
                      name: s,
                      receiver_hint: STRING_REF_HINT.to_string(),
-@@ -745,6 +749,7 @@ fn collect_value_refs(
+@@ -745,6 +753,8 @@ fn collect_value_refs(
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: last_segment(&callee).to_string(),
                  receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -775,6 +780,7 @@ fn collect_value_refs(
+@@ -775,6 +785,8 @@ fn collect_value_refs(
                      path_receiver: false,
                      dot_call: false,
                      arrow: false,
 +                    macro_call: false,
++                    invocant: false,
                      arity: None,
                      name: owner.to_string(),
                      receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -815,6 +821,7 @@ fn collect_value_refs(
+@@ -815,6 +827,8 @@ fn collect_value_refs(
          path_receiver: false,
          dot_call: false,
          arrow: false,
 +        macro_call: false,
++        invocant: false,
          arity: None,
          name: simple.to_string(),
          receiver_hint: VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
-index 1a1cb83..0854dc9 100644
+index 1a1cb83..6e491a0 100644
 --- a/crates/cgg-lang/src/plugins/ruby.rs
 +++ b/crates/cgg-lang/src/plugins/ruby.rs
-@@ -314,6 +314,7 @@ impl<'a> RubyWalker<'a> {
+@@ -314,6 +314,8 @@ impl<'a> RubyWalker<'a> {
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
-index ec1966e..b79c1d3 100644
+index ec1966e..cf42c24 100644
 --- a/crates/cgg-lang/src/plugins/rust.rs
 +++ b/crates/cgg-lang/src/plugins/rust.rs
 @@ -1565,6 +1565,7 @@ impl<'a> Walker<'a> {
@@ -384,11 +715,12 @@ index ec1966e..b79c1d3 100644
              ..Default::default()
          })
      }
-@@ -1906,6 +1907,7 @@ impl<'a> Walker<'a> {
+@@ -1906,6 +1907,8 @@ impl<'a> Walker<'a> {
                  path_receiver: false,
                  dot_call: false,
                  arrow: false,
 +                macro_call: false,
++                invocant: false,
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
@@ -919,10 +1251,41 @@ index eafccf8..37a9c9d 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 8ed406d..6378bc4 100644
+index 8ed406d..511a343 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
-@@ -9634,6 +9634,22 @@ mod tests {
+@@ -4352,6 +4352,30 @@ fn try_resolve_ref(
+             crate::modules::Scoped::NoCtor => return None,
+         }
+     }
++    // WS14b: a Perl method call on the caller's invocant (`$self->m()`)
++    // is the caller's package's `m` or one it inherits; inherited from a
++    // base outside the tree, external.
++    if lang == "perl"
++        && let Some(scoped) = libix.resolve_perl(r, caller_qn)
++    {
++        match scoped {
++            crate::modules::Scoped::Bound { cids, certain } => {
++                *module_certain = certain && cids.len() == 1;
++                return Some(cids);
++            }
++            crate::modules::Scoped::External(module) => {
++                *external_out = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::Refused(module) => {
++                *refused_module = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::Ambiguous | crate::modules::Scoped::NoCtor => {
++                return None;
++            }
++        }
++    }
+     // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
+     // the class `X` names through them (a dependency's class is
+     // external); `parent::m()` the caller's base's; `f()` the namespace's
+@@ -9634,6 +9658,22 @@ mod tests {
          tweak: impl FnOnce(&mut FileFacts),
      ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
          let mut tweak = Some(tweak);
@@ -945,7 +1308,7 @@ index 8ed406d..6378bc4 100644
          let mut g = Graph::new();
          let mut facts = Vec::new();
          let mut all: Vec<MFile<'_>> = files;
-@@ -9681,11 +9697,7 @@ mod tests {
+@@ -9681,11 +9721,7 @@ mod tests {
                  f.imports,
              );
              ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
@@ -958,7 +1321,7 @@ index 8ed406d..6378bc4 100644
              facts.push(ff);
          }
          let out = resolve_default(&g, &facts);
-@@ -11727,6 +11739,67 @@ mod tests {
+@@ -11727,6 +11763,113 @@ mod tests {
          );
      }
  
@@ -1023,63 +1386,115 @@ index 8ed406d..6378bc4 100644
 +        assert!(dsts.is_empty(), "{dsts:?}");
 +    }
 +
++    /// WS14b (Perl): `$self->m()` on the caller's invocant is the caller
++    /// package's `m`, else the first up its bases (depth-first); with
++    /// the chain leaving the tree it is external. A same-named sub of an
++    /// unrelated package is never the callee, and a receiver that is not
++    /// the invocant keeps the old reading.
++    #[test]
++    fn perl_invocant_call_reaches_the_package_and_its_bases() {
++        let files = vec![
++            mfile(
++                "lib/My/Domain.pm",
++                &["My::Domain::is_public", "My::Domain::base_only"],
++                vec![import("perl-package", "My::Domain", "")],
++            ),
++            mfile(
++                "lib/My/Other.pm",
++                &["My::Other::is_public", "My::Other::base_only", "My::Other::render"],
++                vec![import("perl-package", "My::Other", "")],
++            ),
++        ];
++        let caller = mfile(
++            "lib/My/Domain/Void.pm",
++            &["My::Domain::Void::status"],
++            vec![
++                import("perl-package", "My::Domain::Void", ""),
++                import("perl-isa", "My::Domain", "My::Domain::Void"),
++                import("perl-isa", "Ext::Base", "My::Domain::Void"),
++            ],
++        );
++        let inv = |name: &str, at: u32| RefRecord {
++            invocant: true,
++            site_byte: at,
++            ..call(name, "$self")
++        };
++        let refs = vec![inv("base_only", 10), inv("render", 20)];
++        let (dsts, why) = module_case("perl", files.clone(), caller.clone(), refs);
++        assert_eq!(dsts, vec![at("My::Domain::base_only", "lib/My/Domain.pm")], "{dsts:?}");
++        assert!(why.contains(&external("Ext::Base")), "{why:?}");
++        // Near miss: not the invocant — not bound through the bases.
++        let (dsts, _) = module_case("perl", files, caller, vec![call("base_only", "$x")]);
++        assert!(
++            !dsts.contains(&at("My::Domain::base_only", "lib/My/Domain.pm"))
++                || dsts.len() > 1,
++            "{dsts:?}"
++        );
++    }
++
      /// WS14 (Scala): a bare call reaches the calling class, its bases and
      /// an object `import a.Owner._` names — never an unrelated class's
      /// member (`assert` is not `SubmitRestProtocolMessage::assert`).
 diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
-index 645882e..f71b71b 100644
+index 645882e..2286cb9 100644
 --- a/crates/cgg-resolve/src/frameworks/mod.rs
 +++ b/crates/cgg-resolve/src/frameworks/mod.rs
-@@ -1860,6 +1860,7 @@ mod tests {
+@@ -1860,6 +1860,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "listUsers".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -1893,6 +1894,7 @@ mod tests {
+@@ -1893,6 +1895,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "name".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -1912,6 +1914,7 @@ mod tests {
+@@ -1912,6 +1916,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "name".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -1938,6 +1941,7 @@ mod tests {
+@@ -1938,6 +1944,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "user_id".into(),
              receiver_hint: STRING_REF_HINT.to_string(),
-@@ -1989,6 +1993,7 @@ mod tests {
+@@ -1989,6 +1997,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "listUsers".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
-@@ -2024,6 +2029,7 @@ mod tests {
+@@ -2024,6 +2034,8 @@ mod tests {
              path_receiver: false,
              dot_call: false,
              arrow: false,
 +            macro_call: false,
++            invocant: false,
              arity: None,
              name: "on_mouse_pos".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..928ce1b 100644
+index fd17edc..2108fec 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
 @@ -73,6 +73,16 @@ struct DartFile {
@@ -1099,7 +1514,7 @@ index fd17edc..928ce1b 100644
  /// A Zig file-level name bound to another file or a path.
  #[derive(Debug, Clone)]
  enum ZigBind {
-@@ -113,6 +123,14 @@ pub(crate) struct LibIndex<'a> {
+@@ -113,6 +123,21 @@ pub(crate) struct LibIndex<'a> {
      zig_names: HashSet<String>,
      /// Zig: file → callables not nested in another, by simple name.
      zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
@@ -1111,10 +1526,113 @@ index fd17edc..928ce1b 100644
 +    zig_members: HashMap<(FileId, u32, u32), HashMap<&'a str, Vec<CallableId>>>,
 +    /// Zig: callable → its byte span.
 +    zig_spans: HashMap<CallableId, (u32, u32)>,
++    /// Perl: `(package, sub name)` → its subs (`main` for none).
++    perl_subs: HashMap<(String, String), Vec<CallableId>>,
++    /// Perl: every package a `package` statement of the tree declares.
++    perl_packages: HashSet<String>,
++    /// Perl: package → its bases and composed roles, in declaration
++    /// order (`use parent`, `@ISA`, `extends`, `with`, …).
++    perl_isa: HashMap<String, Vec<String>>,
      /// Exported namespaces, computed on first use, and whether some
      /// export chain leaves the tree.
      ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
-@@ -647,6 +665,44 @@ impl<'a> LibIndex<'a> {
+@@ -122,6 +147,7 @@ impl<'a> LibIndex<'a> {
+     pub(crate) fn build(graph: &'a Graph, facts: &'a [FileFacts]) -> Self {
+         let mut ix = LibIndex::default();
+         ix.build_zig(graph, facts);
++        ix.build_perl(graph, facts);
+         if !facts.iter().any(|f| f.language == "dart") {
+             return ix;
+         }
+@@ -613,6 +639,87 @@ impl<'a> LibIndex<'a> {
+ }
+ 
+ impl<'a> LibIndex<'a> {
++    fn build_perl(&mut self, graph: &Graph, facts: &[FileFacts]) {
++        if !facts.iter().any(|f| f.language == "perl") {
++            return;
++        }
++        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
++            .callables
++            .values()
++            .filter(|c| c.language == "perl")
++            .collect();
++        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        for c in ids {
++            let (pkg, name) = c
++                .qualified_name
++                .rsplit_once("::")
++                .unwrap_or(("main", c.qualified_name.as_str()));
++            self.perl_subs
++                .entry((pkg.to_string(), name.to_string()))
++                .or_default()
++                .push(c.id);
++        }
++        for f in facts.iter().filter(|f| f.language == "perl") {
++            for imp in &f.imports {
++                match imp.kind.as_str() {
++                    "perl-package" => {
++                        self.perl_packages.insert(imp.path.clone());
++                    }
++                    "perl-isa" => {
++                        let v = self.perl_isa.entry(imp.alias.clone()).or_default();
++                        if !v.contains(&imp.path) {
++                            v.push(imp.path.clone());
++                        }
++                    }
++                    _ => {}
++                }
++            }
++        }
++    }
++
++    /// A Perl method call on the caller's invocant (`$self->m()` after
++    /// `my $self = shift;`, `$self->SUPER::m()`): the sub `m` of the
++    /// caller's package, else of its bases depth-first in declaration
++    /// order (Perl's default method resolution). Not found, with a base
++    /// outside the tree on the way: external — the method is inherited
++    /// from the dependency. `None` when nothing decides.
++    pub(crate) fn resolve_perl(&self, r: &RefRecord, caller_qn: Option<&str>) -> Option<Scoped> {
++        if !r.invocant {
++            return None;
++        }
++        let pkg = caller_qn
++            .and_then(|q| q.rsplit_once("::"))
++            .map_or("main", |(p, _)| p);
++        let mut stack: Vec<String> = if r.receiver_hint == "SUPER" {
++            self.perl_isa.get(pkg)?.iter().rev().cloned().collect()
++        } else {
++            vec![pkg.to_string()]
++        };
++        let mut seen: HashSet<String> = HashSet::new();
++        let mut outside: Option<String> = None;
++        let mut steps = 0;
++        while let Some(p) = stack.pop() {
++            steps += 1;
++            if steps > 64 || !seen.insert(p.clone()) {
++                continue;
++            }
++            if let Some(cids) = self.perl_subs.get(&(p.clone(), r.name.clone())) {
++                return Some(Scoped::Bound {
++                    cids: cids.clone(),
++                    certain: cids.len() == 1,
++                });
++            }
++            let declared = self.perl_packages.contains(&p);
++            if !declared && outside.is_none() {
++                outside = Some(p.clone());
++            }
++            if let Some(bases) = self.perl_isa.get(&p) {
++                stack.extend(bases.iter().rev().cloned());
++            }
++        }
++        outside.map(Scoped::External)
++    }
++
+     fn build_zig(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
+         if !facts.iter().any(|f| f.language == "zig") {
+             return;
+@@ -647,6 +754,44 @@ impl<'a> LibIndex<'a> {
                      .push(c.id);
              }
          }
@@ -1159,7 +1677,7 @@ index fd17edc..928ce1b 100644
          for f in facts.iter().filter(|f| f.language == "zig") {
              self.paths.insert(f.file, f.path.as_path());
              self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
-@@ -780,6 +836,9 @@ impl<'a> LibIndex<'a> {
+@@ -780,6 +925,9 @@ impl<'a> LibIndex<'a> {
          if rh.is_empty() {
              return None;
          }
@@ -1169,7 +1687,7 @@ index fd17edc..928ce1b 100644
          let segs: Vec<&str> = rh.split('.').collect();
          if !segs
              .iter()
-@@ -788,7 +847,11 @@ impl<'a> LibIndex<'a> {
+@@ -788,7 +936,11 @@ impl<'a> LibIndex<'a> {
              return None;
          }
          let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
@@ -1182,7 +1700,7 @@ index fd17edc..928ce1b 100644
          let mut g = match g {
              Target::File(g) => g,
              Target::External(m) => return Some(Scoped::External(m)),
-@@ -840,6 +903,155 @@ impl<'a> LibIndex<'a> {
+@@ -840,6 +992,155 @@ impl<'a> LibIndex<'a> {
          None
      }
  
