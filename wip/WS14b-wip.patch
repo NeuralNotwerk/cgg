@@ -1,8 +1,21 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index c538c98..7a5f5b2 100644
+index c538c98..ee45f9c 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
-@@ -369,6 +369,19 @@ pub struct RefRecord {
+@@ -283,6 +283,12 @@ pub struct DefRecord {
+     /// absorbed. Not copied onto the graph.
+     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+     pub has_body: bool,
++
++    /// Declared inside a conditional statement (PHP `if (!function_exists
++    /// ('f')) { function f() … }`): a fallback that exists only when no
++    /// other definition was loaded. Not copied onto the graph.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub conditional: bool,
+ }
+ 
+ /// A single call-site reference extracted from a file.
+@@ -369,6 +375,19 @@ pub struct RefRecord {
      #[serde(default, skip_serializing_if = "std::ops::Not::not")]
      pub arrow: bool,
  
@@ -22,7 +35,7 @@ index c538c98..7a5f5b2 100644
      /// How many arguments the call passes, where the language makes a
      /// function's arity part of its identity — Erlang's `f/1` and `f/2`
      /// are different functions that share a name. `None` when unknown or
-@@ -478,6 +491,22 @@ pub struct FileFacts {
+@@ -478,6 +497,22 @@ pub struct FileFacts {
      /// declares by name is a definition, not one of these.
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub locals: Vec<LocalBinding>,
@@ -45,7 +58,7 @@ index c538c98..7a5f5b2 100644
  }
  
  /// A name bound to a value over `start_byte..end_byte` (see
-@@ -608,6 +637,7 @@ impl FileFacts {
+@@ -608,6 +643,7 @@ impl FileFacts {
              untyped_receivers: Vec::new(),
              packages: Vec::new(),
              locals: Vec::new(),
@@ -621,6 +634,67 @@ index a532745..dedf584 100644
 +                ("A::B", "I::J")
 +            ]
 +        );
++    }
+ }
+diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
+index c3c8875..c492f94 100644
+--- a/crates/cgg-lang/src/plugins/php.rs
++++ b/crates/cgg-lang/src/plugins/php.rs
+@@ -128,6 +128,11 @@ impl<'a> PhpWalker<'a> {
+                     .unwrap_or_default();
+                 if !name.is_empty() {
+                     self.record_def(&name, node, DefVariant::FreeFunction);
++                    if is_conditional(node)
++                        && let Some(d) = self.facts.definitions.last_mut()
++                    {
++                        d.conditional = true;
++                    }
+                 }
+                 self.walk_children(node);
+                 return;
+@@ -336,6 +341,22 @@ impl<'a> PhpWalker<'a> {
+     }
+ }
+ 
++/// Whether a function declaration sits in a conditional statement of
++/// the code around it (`if (!function_exists('f')) { function f() … }`),
++/// rather than unconditionally at the top of its file or namespace.
++fn is_conditional(def: Node) -> bool {
++    let mut cur = def.parent();
++    while let Some(n) = cur {
++        match n.kind() {
++            "if_statement" | "else_clause" | "else_if_clause" => return true,
++            "function_definition" | "method_declaration" | "class_declaration"
++            | "program" => return false,
++            _ => cur = n.parent(),
++        }
++    }
++    false
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -396,4 +417,21 @@ mod tests {
+         assert_eq!(f.classes.len(), 1);
+         assert_eq!(f.classes[0].class_qn, "App\\Http\\C");
+     }
++
++    /// WS14b: a function declared inside an `if` (a `function_exists`
++    /// fallback, either block syntax) is marked conditional; one at file
++    /// level or in a namespace is not.
++    #[test]
++    fn a_guarded_function_is_conditional() {
++        let f = extract(
++            "<?php\nfunction a() {}\nif (!function_exists('b')) :\n  function b() {}\nendif;\n\
++             if (!function_exists('c')) { function c() {} }\n",
++        );
++        let cond: Vec<(&str, bool)> = f
++            .definitions
++            .iter()
++            .map(|d| (d.simple_name.as_str(), d.conditional))
++            .collect();
++        assert_eq!(cond, vec![("a", false), ("b", true), ("c", true)], "{cond:?}");
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
@@ -1251,7 +1325,7 @@ index eafccf8..37a9c9d 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 8ed406d..511a343 100644
+index 8ed406d..fc9579b 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -4352,6 +4352,30 @@ fn try_resolve_ref(
@@ -1321,7 +1395,7 @@ index 8ed406d..511a343 100644
              facts.push(ff);
          }
          let out = resolve_default(&g, &facts);
-@@ -11727,6 +11763,113 @@ mod tests {
+@@ -11727,6 +11763,141 @@ mod tests {
          );
      }
  
@@ -1432,6 +1506,34 @@ index 8ed406d..511a343 100644
 +        );
 +    }
 +
++    /// WS14b (PHP): a global function declared in several files none of
++    /// which the caller's include chain reaches binds to the one
++    /// unconditional definition when every other copy is a conditional
++    /// fallback (`if (!function_exists(…))`); with two unconditional
++    /// copies it stays refused.
++    #[test]
++    fn php_unconditional_definition_beats_guarded_fallbacks() {
++        let files = vec![
++            mfile("inc/cache.php", &["get_multi", "dup"], vec![]),
++            mfile("inc/compat.php", &["get_multi"], vec![]),
++            mfile("admin/noop.php", &["dup"], vec![]),
++        ];
++        let caller = mfile("lib/client.php", &["run"], vec![]);
++        let refs = vec![
++            call("get_multi", ""),
++            RefRecord {
++                site_byte: 70,
++                ..call("dup", "")
++            },
++        ];
++        let (dsts, _) = module_case_each("php", files, caller, refs, |is_caller, fi, f| {
++            if !is_caller && fi == 1 {
++                f.definitions[0].conditional = true;
++            }
++        });
++        assert_eq!(dsts, vec![at("get_multi", "inc/cache.php")], "{dsts:?}");
++    }
++
      /// WS14 (Scala): a bare call reaches the calling class, its bases and
      /// an object `import a.Owner._` names — never an unrelated class's
      /// member (`assert` is not `SubmitRestProtocolMessage::assert`).
@@ -1494,7 +1596,7 @@ index 645882e..2286cb9 100644
              name: "on_mouse_pos".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..2108fec 100644
+index fd17edc..be8ecdf 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
 @@ -73,6 +73,16 @@ struct DartFile {
@@ -1856,6 +1958,68 @@ index fd17edc..2108fec 100644
      /// Follow `segs` from `file` through file-level bindings to the file
      /// (or dependency) they name, with the import that started the path.
      fn zig_walk(
+@@ -909,6 +1210,9 @@ pub(crate) struct PhpIndex {
+     /// `(file, lowercase class short name)` → its declared bases as
+     /// written.
+     bases: HashMap<(FileId, String), Vec<String>>,
++    /// Functions declared inside a conditional (`if (!function_exists(…))`
++    /// fallbacks), WS14b.
++    conditional: HashSet<CallableId>,
+ }
+ 
+ fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
+@@ -1020,7 +1324,20 @@ impl PhpIndex {
+             .filter(|c| c.language == "php")
+             .collect();
+         ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        let conditional: HashSet<(FileId, u32)> = facts
++            .iter()
++            .filter(|f| f.language == "php")
++            .flat_map(|f| {
++                f.definitions
++                    .iter()
++                    .filter(|d| d.conditional)
++                    .map(move |d| (f.file, d.start_byte))
++            })
++            .collect();
+         for c in ids {
++            if conditional.contains(&(c.file, c.start_byte)) {
++                ix.conditional.insert(c.id);
++            }
+             ix.file_of.insert(c.id, c.file);
+             match c.qualified_name.split_once("::") {
+                 Some((owner, m)) => ix
+@@ -1093,7 +1410,29 @@ impl PhpIndex {
+                 let certain = cids.len() == 1;
+                 Scoped::Bound { cids, certain }
+             }
+-            _ => Scoped::Ambiguous,
++            // The chain does not decide (WS14b): a definition declared in
++            // a conditional (`if (!function_exists('f'))`) is a fallback
++            // that exists only when no other one is loaded. With exactly
++            // one unconditional definition left among the candidates, that
++            // one is the function — a guess at the loading order, so not
++            // certain.
++            pool => {
++                let pool: &[FileId] = if pool.is_empty() { &files } else { pool };
++                let firm: Vec<CallableId> = ids
++                    .into_iter()
++                    .filter(|c| {
++                        !self.conditional.contains(c)
++                            && self.file_of.get(c).is_some_and(|f| pool.contains(f))
++                    })
++                    .collect();
++                match firm.as_slice() {
++                    [_] => Scoped::Bound {
++                        cids: firm,
++                        certain: false,
++                    },
++                    _ => Scoped::Ambiguous,
++                }
++            }
+         }
+     }
+ 
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
 index 3f029ba..d4df246 100644
 --- a/crates/cgg-resolve/src/scope.rs
