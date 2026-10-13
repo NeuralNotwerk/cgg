@@ -1,0 +1,56 @@
+{
+ "perl": {
+  "drop": {
+   "medium": 98
+  },
+  "add": {
+   "high": 3214
+  },
+  "chg": {
+   "medium->high": 114
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 98
+  }
+ },
+ "php": {
+  "drop": {},
+  "add": {
+   "medium": 88
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "rust": {
+  "drop": {
+   "high": 1
+  },
+  "add": {
+   "high": 22,
+   "medium": 15
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: shadowed-by-local": 1
+  }
+ },
+ "zig": {
+  "drop": {
+   "medium": 1814,
+   "high": 19
+  },
+  "add": {
+   "high": 3972,
+   "medium": 46
+  },
+  "chg": {
+   "medium->high": 1631
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1099,
+   "rebound to another target": 259,
+   "now unresolved: not-in-imported-module": 124,
+   "now unresolved: candidates-in-other-files": 351
+  }
+ }
+}

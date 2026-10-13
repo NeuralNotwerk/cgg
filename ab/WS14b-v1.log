@@ -1,0 +1,24 @@
+old=target/remediation/bins/WS14b-before
+new=target/remediation/bins/WS14b-after-v1
+repos=283 elapsed=438s
+excluded (timeout/error, NOT diffed): 2
+  hcl-terraform-aws: graph rc old=124 new=124
+  zig-zig: graph rc old=124 new=0
+repos changed: 15
+  app-cloudflare-workers: edges 3538->3541 (-0 +3 ~0) callables 2157->2157 unresolved 2092->2089 files 228->228 deadhigh 8->8 
+  app-ghostty-zig: edges 19781->20315 (-591 +1125 ~725) callables 9703->9703 unresolved 42647->40223 files 1114->1114 deadhigh 0->0 
+  app-libxev-zig: edges 1359->1393 (-52 +86 ~134) callables 819->819 unresolved 1035->887 files 55->55 deadhigh 0->0 
+  app-metacpan-catalyst: edges 123->254 (-0 +131 ~0) callables 415->415 unresolved 910->762 files 150->150 deadhigh 0->0 
+  app-perlmaven-dancer2: edges 2427->2438 (-0 +11 ~0) callables 1562->1562 unresolved 4386->4375 files 33->33 deadhigh 0->0 
+  app-ravada-mojolicious: edges 12725->14994 (-0 +2269 ~1) callables 4778->4778 unresolved 20417->16324 files 256->256 deadhigh 0->0 
+  app-tigerbeetle-zig: edges 23235->23861 (-942 +1568 ~523) callables 6314->6314 unresolved 13252->11591 files 411->411 deadhigh 14->14 
+  app-vaultwarden-rocket: edges 6709->6724 (-0 +15 ~0) callables 2663->2663 unresolved 3009->2994 files 106->106 deadhigh 6->6 
+  app-wordpress: edges 66494->66582 (-0 +88 ~0) callables 27339->27339 unresolved 142949->142861 files 2313->2313 deadhigh 0->0 
+  app-zls-zig: edges 3784->4716 (-181 +1113 ~231) callables 1163->1163 unresolved 4686->3446 files 92->92 deadhigh 0->0 
+  perl-dancer2: edges 1258->1484 (-7 +233 ~13) callables 1159->1159 unresolved 4191->3938 files 312->312 deadhigh 0->0 
+  perl-mojolicious: edges 2193->2672 (-91 +570 ~101) callables 2187->2187 unresolved 23890->23312 files 289->289 deadhigh 0->0 
+  rust-ntex: edges 20591->20608 (-0 +17 ~0) callables 5299->5299 unresolved 14473->14456 files 309->309 deadhigh 273->273 
+  rust-ripgrep: edges 8176->8177 (-1 +2 ~0) callables 2973->2973 unresolved 6851->6850 files 108->108 deadhigh 29->29 
+  zig-http: edges 923->982 (-67 +126 ~36) callables 552->552 unresolved 1828->1644 files 33->33 deadhigh 0->0 
+by language: see by_language.tsv
+
