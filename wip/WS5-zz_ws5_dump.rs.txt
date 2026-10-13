@@ -1,0 +1,25 @@
+// TEMPORARY WS5 tree dumper; deleted before hand-off.
+fn dump(lang: tree_sitter::Language, src: &str) {
+    let mut p = tree_sitter::Parser::new();
+    p.set_language(&lang).unwrap();
+    let t = p.parse(src, None).unwrap();
+    println!("{}", t.root_node().to_sexp());
+}
+#[test]
+fn dump_all() {
+    dump(tree_sitter_dart::LANGUAGE.into(), "abstract class Shape extends Base with M implements I, J { double area(); void draw() { area(); } @override String toString() => 'x'; }\nmixin M on Base { void mm(); }");
+    dump(tree_sitter_scala::LANGUAGE.into(), "trait Shape extends Base with I { def area: Double; def name(x: Int): String; def draw(): Unit = { area } }\nabstract class A { def m(): Int }\nclass C extends A { override def m(): Int = 1 }");
+    dump(tree_sitter_swift::LANGUAGE.into(), "protocol Shape: Base { func area() -> Double }\nclass Sq: NSObject, Shape { override func draw() {} func area() -> Double { return 1 } }\nextension Foo: Shape { func area() -> Double { 2 } }");
+    dump(tree_sitter_typescript::LANGUAGE_TSX.into(), "interface I extends J<T>, K { m(): void; p: number; }\nabstract class A extends B implements I, L<X> { abstract r(): void; override q() {} }\ntype T = { z(): void }");
+}
+#[test]
+fn dart_facts() {
+    use cgg_lang::LanguagePlugin;
+    let src = std::fs::read("/storage/cgg/target/remediation/fixtures/WS5/dart-decl/lib/shapes.dart").unwrap();
+    let mut p = tree_sitter::Parser::new();
+    p.set_language(&tree_sitter_dart::LANGUAGE.into()).unwrap();
+    let t = p.parse(&src, None).unwrap();
+    let f = cgg_lang::plugins::dart::DartPlugin.extract(&cgg_lang::ExtractCtx::plain(), cgg_core::ids::FileId::new(0), std::path::Path::new("x.dart"), &t, &src);
+    for d in &f.definitions { println!("{} {:?} {:?} {:?}", d.qualified_name, d.variant, d.base_types, d.attributes); }
+    println!("{}", t.root_node().to_sexp());
+}
