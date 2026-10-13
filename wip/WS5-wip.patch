@@ -1,5 +1,5 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index f2db8e3..4b1d120 100644
+index f2db8e3..e3f0491 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -363,6 +363,47 @@ otherwise change the default graph.
@@ -50,7 +50,7 @@ index f2db8e3..4b1d120 100644
  ### Compatibility
  
  - **The default graph changes.** Full corpus, 283 repositories:
-@@ -531,6 +572,28 @@ otherwise change the default graph.
+@@ -531,6 +572,30 @@ otherwise change the default graph.
    holding a bound action creator of the same name when the file does not
    import it.
  
@@ -74,7 +74,9 @@ index f2db8e3..4b1d120 100644
 +  is a method reference). Remaining carry-over `high`s are framework or
 +  reflective entry points (lifecycle and Gradle annotations, Gradle
 +  service `configure`, serialization hooks, method references → later
-+  workstreams). Latency: perf/WS5.md.
++  workstreams). Latency (perf/WS5.md, median of 5): default graph, 10
++  repositories, none slower by 1 s or more, total +0.7%; `--dead-code`,
++  4 repositories, largest +0.5 s (`groovy-gradle`, +3.5%).
 +
  ## [0.10.2] - 2026-10-11
  

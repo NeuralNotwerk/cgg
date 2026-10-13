@@ -26,3 +26,14 @@ elapsed: 617s
 | app-druid-jaxrs | 10409 | 11564 | 1155 | +11.1 |
 | csharp-newtonsoft | 659 | 713 | 54 | +8.2 |
 | app-django-netbox | 4165 | 4324 | 159 | +3.8 |
+
+### --dead-code mode (implies --dynamic-dispatch), WS5-before vs WS5-after-v5, median of 5, alternating; load: 9.48, 13.79, 19.33
+
+| repo | old ms | new ms | delta ms | delta % |
+|---|---|---|---|---|
+| groovy-gradle | 14760 | 15283 | 523 | +3.5 |
+| app-druid-jaxrs | 9779 | 9972 | 193 | +2.0 |
+| csharp-newtonsoft | 615 | 659 | 44 | +7.2 |
+| app-django-netbox | 4148 | 4173 | 25 | +0.6 |
+
+Notes: the default-graph table above was measured on WS5-after-v3; v4/v5 change only dead-code evidence code, which the default graph never runs (ab/WS5-v5 is identical to ab/WS5-v3 in every summary). The v4 dead-code row (+1.15 s on groovy-gradle and app-druid-jaxrs, load 26) was investigated with --profile: `dead::unresolved-evidence` had grown from ~40 ms to 1.3–2.2 s because each finding re-derived the receiver type of every same-name site and re-parsed its own owner per site. v5 computes the type once per site and the owner/package once per finding; output is byte-identical on 5 repos and in the full A/B. The v5 row is the final measurement.
