@@ -1,8 +1,8 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 85fd4d3..3237b1d 100644
+index 85fd4d3..80ebe7b 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -142,6 +142,145 @@ otherwise change the default graph.
+@@ -142,6 +142,169 @@ otherwise change the default graph.
  - Python: a receiver chain wrapped over lines (`(self\n  .repo\n
    .quux())`) is rebuilt as `self.repo`, keeping the self-field type the
    one-line form has (FINDINGS A7).
@@ -145,46 +145,81 @@ index 85fd4d3..3237b1d 100644
 +- F#: a bare call never reaches a type's member (FINDINGS R15). Dart: the
 +  scoped lookup binds only in a file the caller imports, not in a file
 +  whose path merely contains an imported name (FINDINGS R16).
++- Java/C#: the calling class a bare name resolves in is its qualified
++  owner, not its bare name (FINDINGS R17). The member lookup added for
++  R10 keyed the class by its last segment, so a call inside a nested
++  `Nimbus.X._Fields` bound every generated class's
++  `_Fields.findByThriftId` (220 targets) and `unset_aze()` reached
++  `Supervisor`'s copy; the bare-call scope test likewise accepted any
++  class sharing the caller's bare name. A class now counts by its
++  qualified path, or through a recorded base.
++- Java/C#: copies of one class (one qualified name vendored into several
++  samples or modules) narrow to the caller's copy — the one sharing the
++  longest directory prefix with the calling file; a tie is refused, never
++  fanned out (FINDINGS R18). `InitializeComponent()` in a WinForms sample
++  no longer reaches every sample's designer file.
++- Java/C#: a bare call to a member that a class derived from the calling
++  class overrides is a virtual call: it binds the member and those
++  overrides (never a sibling class's), and over `--fanout-cap` it is
++  refused and recorded as `fanout-cap-exceeded` (FINDINGS R20). Binding
++  the declaration alone had left every override looking uncalled (285
++  dead findings newly `high`, `ImmutableActionSet.EmptySet.addOne`).
++- Zig: `const assert = std.debug.assert;` follows the alias to the module
++  the tree holds (`lib/std/debug.zig`), at `high`; where the aliased
++  module is not in the tree (`std` outside the Zig repository) the call is
++  external, never name-matched to a workspace `assert` (FINDINGS R19:
++  7,255 wrong `assert` edges in `tigerbeetle`, 125 in `ghostty`).
  
  ### Compatibility
  
-@@ -232,6 +371,47 @@ otherwise change the default graph.
+@@ -232,6 +395,58 @@ otherwise change the default graph.
    parameter of a namespace-qualified type (`const ns::Foo& x`) is still
    read by the `name: Type` parser and never typed; a C++ smart pointer
    with no `->` in sight (`out.get()->m()`) is not followed.
 +- Module-scoped calls, bare-call scope and same-name copies (FINDINGS A4,
-+  A5, A6): **the default graph changes.** Full corpus, 283 repositories,
-+  none excluded: 241,955 edges removed (10,982 `high`), 81,230 added
-+  (43,986 `high`) and 167,420 re-scored (165,115 `medium` → `high`: exact
-+  module and same-package bindings), in 194 repositories. Removed / added
-+  by language: Go −85,670 / +23,914 (receivers typed through a
-+  dependency's package — `d *schema.ResourceData` in `hcl-terraform-aws` —
-+  filed as external rather than duck-matched; bare calls into another
-+  package; decoys beside package-made values), Java −40,791 / +2,601 (bare
-+  calls bound to methods of unrelated classes; static imports now exact),
-+  Python −26,393 / +13,604 (builtins such as `list()`/`filter()` bound to
-+  methods; module-head decoys; relative imports now exact), TypeScript
-+  −21,937 / +12,943 and JavaScript −14,942 / +5,410 (calls through an
-+  import bound in the imported module; `app-calcom-nextjs`'s generated
-+  `prisma.<model>.<op>()` and npm `next/*` imports no longer bound to
-+  workspace functions; minified bundles), Perl −5,335 / +684 (`Pkg->m()`
-+  exact; other packages' subs), PHP −1,429, C# −539 / +31, Rust −359.
-+  Outside the module-scoped languages the change is the scoped lookup and
-+  its same-name copies: Zig −22,921 / +13,284, Erlang −7,040 / +3,338,
-+  Scala −6,739 / +868, OCaml −5,541 / +3,929, Dart −1,120 / +393, F# −722 /
-+  +182, and under 150 each in Lua, Kotlin, Haskell, Elixir, Clojure,
-+  Groovy and Lean — a call now reaches the copy in the module it imports
-+  or its own directory (the compiler's `cerl`, not a test-data copy;
-+  `std.debug.assert`), and other modules' same-named functions it reached
-+  by name (Haskell `lift` in five modules, Lua `assert`, a Play `status`)
-+  are dropped. Every class was sampled.
-+- Dead code: 24 findings rise to `high` and 29 leave it (Java −6, C# +3,
-+  Rust +1, Python −3). The new ones are overrides reached only through
-+  dispatch (C# `JProperty.GetItem`, Java `@Override mask()`), a
-+  `@PreDestroy` hook, members called only through an untyped `new
-+  X().m()` receiver, and a duplicate whose only callers were wrong
-+  (`extension._exclude_home`): each was `medium` only because a wrong edge
-+  or an unrelated same-named site pointed at it (FINDINGS B2, B4, C2).
++  A5, A6, R1–R20): **the default graph changes.** Full corpus, 283
++  repositories, none excluded: 299,896 edges removed (46,595 `high`),
++  452,851 added (311,469 `high`) and 275,014 re-scored (267,026 `medium` →
++  `high`: exact module and same-package bindings), in 208 repositories.
++  Removed / added by language: Go −86,001 / +23,909 (−60,143 / +12,369 of
++  it in `hcl-terraform-aws`: receivers typed through a dependency's
++  package — `d *schema.ResourceData` — filed as external rather than
++  duck-matched; bare calls into another package; decoys beside
++  package-made values), Java −42,517 / +99,416 (bare calls bound to
++  methods of unrelated classes dropped; static imports exact; inherited
++  and own-class overload sets, and overrides below the calling class,
++  bound), Python −26,391 / +13,604 (builtins such as `list()`/`filter()`
++  bound to methods; module-head decoys; relative imports now exact),
++  TypeScript −21,791 / +12,938 and JavaScript −14,922 / +5,433 (calls
++  through an import bound in the imported module; `app-calcom-nextjs`'s
++  generated `prisma.<model>.<op>()` and npm `next/*` imports no longer
++  bound to workspace functions; minified bundles), Perl −5,335 / +684
++  (`Pkg->m()` exact; other packages' subs), PHP −1,429, C# −554 / +5,317,
++  Rust −359. Erlang −49,720 / +255,615: `m:f(…)` now binds module `m`
++  (OTP's own `lists`/`io` are in the tree). Outside the module-scoped
++  languages the change is the scoped lookup and its same-name copies:
++  Zig −32,320 / +30,823 (`const assert = std.debug.assert` external where
++  `std` is not in the tree), Scala −6,737 / +877, OCaml −5,541 / +3,929,
++  Dart −3,882 / +69, F# −1,921 / +187, and under 150 each in Lua, Kotlin,
++  Haskell, Elixir, Clojure, Groovy and Lean — a call now reaches the copy
++  in the module it imports or its own directory (the compiler's `cerl`,
++  not a test-data copy; `std.debug.assert`), and other modules'
++  same-named functions it reached by name (Haskell `lift` in five
++  modules, Lua `assert`, a Play `status`) are dropped. Every class was
++  sampled.
++- Dead code: 209 findings rise to `high` and 50 leave it (Java +189 /
++  −46, C# +18, Python +1 / −4, Rust +1). Of the Java/C# rises, 106 lost
++  only the doubt of an unrelated same-named call site that now binds to
++  its own class or base (a `configure`, `setup` or `write` elsewhere;
++  framework-invoked `configure`/`readObject`/`@PostConstruct` hooks among
++  them), 74 are overrides reached only by dispatch from a call bound to
++  the base declaration (C# `JProperty.RemoveItemAt`, Java
++  `DoubleDimensionMergerV9.setupEncodedValueWriter`) that an unrelated
++  site or a wrong sibling edge had held, 21 lost wrong incoming edges
++  (`getDelegate()` bound across unrelated classes), and 6 are now called
++  only from dead code. Each was `medium`
++  only because a wrong edge or an unrelated same-named site pointed at it
++  (FINDINGS B2, B4, C2).
 +- Not covered: a Go package variable aliasing a function (`var New =
 +  sdk.New`), a JS module that builds its exports at run time and an npm
 +  package the tree also has a directory named like (`next/headers`) are
