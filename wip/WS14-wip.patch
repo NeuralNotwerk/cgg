@@ -1,0 +1,2753 @@
+diff --git a/crates/cgg-core/src/audit.rs b/crates/cgg-core/src/audit.rs
+index bd13dcd..f74174a 100644
+--- a/crates/cgg-core/src/audit.rs
++++ b/crates/cgg-core/src/audit.rs
+@@ -222,6 +222,12 @@ pub enum UnresolvedReason {
+     /// elsewhere would be a guess, so the site is recorded instead.
+     /// `module` is the import as written.
+     NotInImportedModule { module: String },
++    /// A bare call through a name the calling scope binds to a *value* —
++    /// a parameter, a local variable, a closure's parameter (`cb()`,
++    /// `debug("x")` after `const debug = makeDebug()`). It calls whatever
++    /// that value holds; a same-named function elsewhere in the tree is a
++    /// coincidence of spelling, so the site is recorded instead of bound.
++    ShadowedByLocal,
+     /// Any other / legacy reason, preserving the original text.
+     Other(String),
+ }
+@@ -253,6 +259,7 @@ pub const KNOWN_UNRESOLVED_STAGES: &[&str] = &[
+     "value-ref-no-enclosing",
+     "external-module",
+     "not-in-imported-module",
++    "shadowed-by-local",
+     "other",
+ ];
+ 
+@@ -288,6 +295,7 @@ impl UnresolvedReason {
+             UnresolvedReason::ValueRefNoEnclosing => "value-ref-no-enclosing",
+             UnresolvedReason::ExternalModule { .. } => "external-module",
+             UnresolvedReason::NotInImportedModule { .. } => "not-in-imported-module",
++            UnresolvedReason::ShadowedByLocal => "shadowed-by-local",
+             UnresolvedReason::Other(s) => s.as_str(),
+         }
+     }
+@@ -821,7 +829,7 @@ mod tests {
+     /// and the arm's index must then be admitted here or the length
+     /// assertion fails. Two checks, because the arm alone only proves
+     /// the *match* is exhaustive — not that the vec holds an instance.
+-    const UNRESOLVED_REASON_VARIANTS: usize = 15;
++    const UNRESOLVED_REASON_VARIANTS: usize = 16;
+ 
+     /// One instance of every `UnresolvedReason` variant.
+     fn every_unresolved_reason() -> Vec<UnresolvedReason> {
+@@ -845,6 +853,7 @@ mod tests {
+             UnresolvedReason::NotInImportedModule {
+                 module: "./svc".into(),
+             },
++            UnresolvedReason::ShadowedByLocal,
+         ];
+         // Compile-time exhaustiveness check, then a runtime one: every
+         // arm index must appear, so a variant with an arm but no
+@@ -867,6 +876,7 @@ mod tests {
+                 UnresolvedReason::Other(_) => 12,
+                 UnresolvedReason::ExternalModule { .. } => 13,
+                 UnresolvedReason::NotInImportedModule { .. } => 14,
++                UnresolvedReason::ShadowedByLocal => 15,
+             };
+             seen.insert(idx);
+         }
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 97fc88c..1debd5f 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -467,6 +467,26 @@ pub struct FileFacts {
+     /// Empty for C++ (judged from file paths and qualified names).
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     pub packages: Vec<String>,
++    /// Names bound to a *value* — a parameter, a local variable, a
++    /// closure's parameter — over the byte span where the binding is in
++    /// scope (from the declaration to the end of its block or function).
++    /// A bare call through such a name (`cb()`, `debug("x")` after
++    /// `const debug = makeDebug()`) calls whatever value the name holds,
++    /// never a same-named function elsewhere in the tree; a receiver
++    /// headed by one (`c.json()` with a parameter `c`) is not an import
++    /// of that name. Recorded only inside callables; a function the code
++    /// declares by name is a definition, not one of these.
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub locals: Vec<LocalBinding>,
++}
++
++/// A name bound to a value over `start_byte..end_byte` (see
++/// [`FileFacts::locals`]).
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct LocalBinding {
++    pub name: String,
++    pub start_byte: u32,
++    pub end_byte: u32,
+ }
+ 
+ /// A class-level `name = Type(...)` assignment.
+@@ -582,6 +602,7 @@ impl FileFacts {
+             type_aliases: Vec::new(),
+             untyped_receivers: Vec::new(),
+             packages: Vec::new(),
++            locals: Vec::new(),
+         }
+     }
+ 
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index b737028..a7df5bf 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -48,7 +48,7 @@ pub use external::{
+ };
+ pub use facts::{
+     ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DefRecord, DefVariant, DynUse, ExportRecord,
+-    FieldType, FileFacts, ImportRecord, LocalType, MacroAlias, MemberPtrTake,
++    FieldType, FileFacts, ImportRecord, LocalBinding, LocalType, MacroAlias, MemberPtrTake,
+     NameMention, RefRecord, STRING_REF_HINT, TestRole, UnreachableRegion, VALUE_REF_HINT,
+     Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+ };
+diff --git a/crates/cgg-lang/src/lib.rs b/crates/cgg-lang/src/lib.rs
+index be8fdf3..c8060c6 100644
+--- a/crates/cgg-lang/src/lib.rs
++++ b/crates/cgg-lang/src/lib.rs
+@@ -16,6 +16,7 @@
+ pub mod detect;
+ pub mod notebook;
+ pub mod parser;
++pub mod locals;
+ pub mod plugins;
+ 
+ use std::fmt;
+diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
+index 034ce52..e8b3df1 100644
+--- a/crates/cgg-lang/src/plugins/dart.rs
++++ b/crates/cgg-lang/src/plugins/dart.rs
+@@ -37,6 +37,19 @@ impl LanguagePlugin for DartPlugin {
+             scope: Vec::new(),
+         };
+         w.walk(tree.root_node());
++        // The package this file belongs to (`pubspec.yaml` `name:`), and
++        // the directory it is rooted at: `package:<name>/x.dart` is
++        // `<root>/lib/x.dart`.
++        if let Some((name, root)) = super::manifest::dart_package(path) {
++            facts.packages.push(name);
++            facts.imports.push(ImportRecord {
++                kind: "package-root".into(),
++                path: root.to_string_lossy().into_owned(),
++                alias: String::new(),
++                site_line: 0,
++                site_byte: 0,
++            });
++        }
+         facts
+     }
+ }
+@@ -139,6 +152,10 @@ impl<'a> DartWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            "part_directive" | "part_of_directive" | "library_name" => {
++                self.record_directive(node);
++                return;
++            }
+             "call_expression" => {
+                 self.record_call(node);
+                 self.walk_children(node);
+@@ -247,10 +264,96 @@ impl<'a> DartWalker<'a> {
+             return;
+         }
+         let alias = find_alias(node, self.source);
++        // `export 'x.dart'` re-exports a library's names; it brings none
++        // into this file's own scope.
++        let is_export = node
++            .named_child(0)
++            .is_some_and(|c| c.kind() == "library_export");
++        let site_line = (node.start_position().row as u32) + 1;
++        let site_byte = node.start_byte() as u32;
+         self.facts.imports.push(ImportRecord {
+-            kind: "import".into(),
+-            path: uri,
++            kind: if is_export { "export" } else { "import" }.into(),
++            path: uri.clone(),
+             alias,
++            site_line,
++            site_byte,
++        });
++        // `show a, b` / `hide c`: one record each, keyed to the directive
++        // by its URI and position.
++        let mut stack = vec![node];
++        let mut combinators = Vec::new();
++        while let Some(cur) = stack.pop() {
++            if cur.kind() == "combinator" {
++                combinators.push(cur);
++                continue;
++            }
++            let mut c = cur.walk();
++            for ch in cur.children(&mut c) {
++                stack.push(ch);
++            }
++        }
++        combinators.sort_by_key(|c| c.start_byte());
++        for comb in combinators {
++            let mut c = comb.walk();
++            let kids: Vec<Node> = comb.children(&mut c).collect();
++            let Some(kw) = kids.first().map(|k| k.kind()) else {
++                continue;
++            };
++            if kw != "show" && kw != "hide" {
++                continue;
++            }
++            let names: Vec<&str> = kids
++                .iter()
++                .filter(|k| k.kind() == "identifier")
++                .map(|k| self.text(*k))
++                .collect();
++            self.facts.imports.push(ImportRecord {
++                kind: kw.into(),
++                path: uri.clone(),
++                alias: names.join(","),
++                site_line,
++                site_byte,
++            });
++        }
++    }
++
++    /// `part 'x.dart';`, `part of 'lib.dart';` / `part of a.b;`,
++    /// `library a.b;`: which files form one library, whose top-level
++    /// names every part sees.
++    fn record_directive(&mut self, node: Node) {
++        let mut uri = String::new();
++        let mut dotted = String::new();
++        let mut stack = vec![node];
++        while let Some(cur) = stack.pop() {
++            match cur.kind() {
++                k if k.starts_with("template_chars_") => {
++                    uri = self.text(cur).to_string();
++                    continue;
++                }
++                "dotted_identifier_list" => {
++                    dotted = self.text(cur).split_whitespace().collect();
++                    continue;
++                }
++                _ => {}
++            }
++            let mut c = cur.walk();
++            for ch in cur.children(&mut c) {
++                stack.push(ch);
++            }
++        }
++        let (kind, path) = match node.kind() {
++            "part_directive" => ("part", uri),
++            "part_of_directive" if !uri.is_empty() => ("part-of", uri),
++            "part_of_directive" => ("part-of-library", dotted),
++            _ => ("library", dotted),
++        };
++        if path.is_empty() {
++            return;
++        }
++        self.facts.imports.push(ImportRecord {
++            kind: kind.into(),
++            path,
++            alias: String::new(),
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
+         });
+diff --git a/crates/cgg-lang/src/plugins/manifest.rs b/crates/cgg-lang/src/plugins/manifest.rs
+index 2d47989..f22db1a 100644
+--- a/crates/cgg-lang/src/plugins/manifest.rs
++++ b/crates/cgg-lang/src/plugins/manifest.rs
+@@ -62,6 +62,79 @@ pub(crate) fn go_module_info(path: &Path) -> (Vec<String>, Option<String>) {
+     (Vec::new(), None)
+ }
+ 
++/// The `name:` of the `pubspec.yaml` nearest above a Dart file, and the
++/// directory it sits in — the package's root, whose `lib/` a
++/// `package:<name>/…` import names. `None` outside any package.
++pub(crate) fn dart_package(path: &Path) -> Option<(String, std::path::PathBuf)> {
++    let mut dir = path.parent();
++    while let Some(d) = dir {
++        let spec = d.join("pubspec.yaml");
++        if spec.is_file() {
++            let text = std::fs::read_to_string(&spec).ok()?;
++            let name = text.lines().find_map(|l| {
++                // Top level only: an indented `name:` belongs to a nested map.
++                let rest = l.strip_prefix("name:")?;
++                let v = rest.split('#').next().unwrap_or("").trim();
++                let v = v.trim_matches(|c| c == '"' || c == '\'');
++                (!v.is_empty()).then(|| v.to_string())
++            })?;
++            return Some((name, d.to_path_buf()));
++        }
++        dir = d.parent();
++    }
++    None
++}
++
++/// The modules a Zig `build.zig` declares, as `zig-module` import records
++/// (`alias` the module name, `path` its root file relative to the build
++/// script): each `addModule("<name>", .{ … .root_source_file =
++/// b.path("<path>") … })`. A module whose root is computed (not a string
++/// literal) is skipped.
++pub(crate) fn zig_build_modules(source: &[u8]) -> Vec<cgg_core::ImportRecord> {
++    let text = String::from_utf8_lossy(source);
++    let mut out = Vec::new();
++    let quoted = |s: &str| -> Option<(String, usize)> {
++        let s0 = s.trim_start();
++        let skipped = s.len() - s0.len();
++        let rest = s0.strip_prefix('"')?;
++        let end = rest.find('"')?;
++        Some((rest[..end].to_string(), skipped + end + 2))
++    };
++    let mut at = 0usize;
++    while let Some(i) = text[at..].find("addModule(") {
++        let start = at + i + "addModule(".len();
++        at = start;
++        let Some((name, used)) = quoted(&text[start..]) else {
++            continue;
++        };
++        // The options struct of this call: up to its closing `})`.
++        let rest = &text[start + used..];
++        let window = &rest[..rest.find("})").unwrap_or(rest.len()).min(rest.len())];
++        let Some(j) = window.find(".root_source_file") else {
++            continue;
++        };
++        let after = &window[j..];
++        let Some(k) = after.find(".path(") else {
++            continue;
++        };
++        let Some((root, _)) = quoted(&after[k + ".path(".len()..]) else {
++            continue;
++        };
++        if name.is_empty() || root.is_empty() {
++            continue;
++        }
++        let line = text[..start].matches('\n').count() as u32 + 1;
++        out.push(cgg_core::ImportRecord {
++            kind: "zig-module".into(),
++            path: root,
++            alias: name,
++            site_line: line,
++            site_byte: start as u32,
++        });
++    }
++    out
++}
++
+ /// The `module` directive of a `go.mod` body.
+ fn go_mod_module(text: &str) -> Option<String> {
+     text.lines().find_map(|line| {
+diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
+index 7735a2b..3ac7029 100644
+--- a/crates/cgg-lang/src/plugins/php.rs
++++ b/crates/cgg-lang/src/plugins/php.rs
+@@ -46,6 +46,7 @@ impl LanguagePlugin for PhpPlugin {
+             facts: &mut facts,
+             scope: Vec::new(),
+             bases: Vec::new(),
++            namespace: String::new(),
+         };
+         w.walk(tree.root_node());
+         facts
+@@ -60,6 +61,8 @@ struct PhpWalker<'a> {
+     scope: Vec<String>,
+     /// `extends`/`implements` of the enclosing class, innermost last.
+     bases: Vec<Vec<String>>,
++    /// The namespace the walk is in (`namespace App\Http;`).
++    namespace: String,
+ }
+ 
+ impl<'a> PhpWalker<'a> {
+@@ -84,11 +87,27 @@ impl<'a> PhpWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
+-            "class_declaration" | "interface_declaration" | "trait_declaration" => {
++            "class_declaration" | "interface_declaration" | "trait_declaration"
++            | "enum_declaration" => {
+                 let name = node
+                     .child_by_field_name("name")
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
++                // Every type the file declares, by its fully qualified
++                // name, so a `use` of it can be told from a `use` of a
++                // dependency's (WS14). Bases stay on the methods.
++                if !name.is_empty() && self.scope.is_empty() {
++                    let fqn = if self.namespace.is_empty() {
++                        name.clone()
++                    } else {
++                        format!("{}\\{name}", self.namespace)
++                    };
++                    self.facts.classes.push(cgg_core::ClassDecl {
++                        class_qn: fqn,
++                        base_types: Vec::new(),
++                        line: (node.start_position().row as u32) + 1,
++                    });
++                }
+                 self.bases.push(super::attrs::base_types(node, self.source));
+                 if !name.is_empty() {
+                     self.scope.push(name);
+@@ -190,7 +209,23 @@ impl<'a> PhpWalker<'a> {
+         } else {
+             "use"
+         };
+-        for part in body.split(',') {
++        if kind == "package" {
++            self.namespace = body.trim_start_matches('\\').to_string();
++        }
++        // `use A\{B, C as D};`: each item under the group's prefix.
++        let expanded: Vec<String> = match (body.find('{'), body.rfind('}')) {
++            (Some(open), Some(close)) if open < close => {
++                let prefix = body[..open].trim();
++                body[open + 1..close]
++                    .split(',')
++                    .map(str::trim)
++                    .filter(|p| !p.is_empty())
++                    .map(|p| format!("{prefix}{p}"))
++                    .collect()
++            }
++            _ => body.split(',').map(|p| p.trim().to_string()).collect(),
++        };
++        for part in &expanded {
+             let part = part.trim();
+             if part.is_empty() {
+                 continue;
+diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
+index d089883..ab11ca0 100644
+--- a/crates/cgg-lang/src/plugins/zig.rs
++++ b/crates/cgg-lang/src/plugins/zig.rs
+@@ -33,6 +33,14 @@ impl LanguagePlugin for ZigPlugin {
+             facts: &mut facts,
+         };
+         w.walk(tree.root_node());
++        // A build script names the modules its packages are imported as:
++        // `b.addModule("xev", .{ .root_source_file = b.path("src/main.zig") })`
++        // makes `@import("xev")` that file (WS14).
++        if path.file_name().is_some_and(|n| n == "build.zig") {
++            facts
++                .imports
++                .extend(super::manifest::zig_build_modules(source));
++        }
+         facts
+     }
+ }
+@@ -125,10 +133,21 @@ impl<'a> ZigWalker<'a> {
+                         .map(|n| self.text(n).trim_matches('"').to_string())
+                         .unwrap_or_default();
+                     if !arg.is_empty() {
++                        // `const NAME = @import("x");`: the name it is
++                        // bound under in this file.
++                        let alias = node
++                            .parent()
++                            .filter(|p| p.kind() == "variable_declaration")
++                            .and_then(|p| {
++                                p.children(&mut p.walk())
++                                    .find(|c| c.kind() == "identifier")
++                                    .map(|n| self.text(n).to_string())
++                            })
++                            .unwrap_or_default();
+                         self.facts.imports.push(ImportRecord {
+                             kind: "import".into(),
+                             path: arg,
+-                            alias: String::new(),
++                            alias,
+                             site_line: (node.start_position().row as u32) + 1,
+                             site_byte: node.start_byte() as u32,
+                         });
+diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
+index 9720a47..53ad1c9 100644
+--- a/crates/cgg-resolve/src/cross_file.rs
++++ b/crates/cgg-resolve/src/cross_file.rs
+@@ -1366,6 +1366,12 @@ pub fn resolve(
+     // Import → file, for calls written through a workspace module
+     // (FINDINGS A4/A5; see `modules`).
+     let modix = crate::modules::ModuleIndex::build(graph, facts, &vocab);
++    // Library scope (Dart imports, exports, parts; WS14; see `libscope`).
++    let libix = crate::libscope::LibIndex::build(graph, facts);
++    let phpix = crate::libscope::PhpIndex::build(graph, facts);
++    // A module a build script declares is the tree's, whatever its root
++    // file is named (`@import("xev")` → `src/main.zig`).
++    zig_packages.extend(libix.zig_module_names().map(str::to_string));
+ 
+     drop(_sp_idx);
+     let _sp_loop = cgg_core::profile::span("xfile::parallel-loop");
+@@ -2012,6 +2018,7 @@ pub fn resolve(
+             }
+ 
+             let heads = crate::heads::FileHeads::build(facts, &vocab);
++            let locals = &heads.locals;
+             let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
+ 
+             drop(_sp_imports);
+@@ -2157,6 +2164,28 @@ pub fn resolve(
+                     .and_then(|id| graph.callables.get(&id))
+                     .map(|c| c.qualified_name.as_str());
+ 
++                // A bare call through a parameter or local (`cb()`,
++                // `debug("x")` after `const debug = makeDebug()`) calls
++                // the value the name holds. No other file's function is
++                // the callee, whatever shares its name (WS14).
++                if locals.shadows_bare_call(r) {
++                    if by_simple
++                        .get(&(lang.clone(), r.name.clone()))
++                        .is_some_and(|c| !c.is_empty())
++                    {
++                        out.unresolved.push(AuditUnresolvedCall::new(
++                            enclosing,
++                            facts.file,
++                            r.site_line,
++                            r.site_byte,
++                            r.name.clone(),
++                            r.receiver_hint.clone(),
++                            UnresolvedReason::ShadowedByLocal,
++                        ));
++                    }
++                    continue;
++                }
++
+                 let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
+                 let mut capped = 0u32;
+                 let mut no_ctor = false;
+@@ -2199,6 +2228,8 @@ pub fn resolve(
+                     &kotlin_extensions,
+                     &modix,
+                     &file_mods,
++                    &libix,
++                    &phpix,
+                     &qn_collisions,
+                     &overloads,
+                     &mut refused_module,
+@@ -2269,6 +2300,8 @@ pub fn resolve(
+                                 &kotlin_extensions,
+                                 &modix,
+                                 &file_mods,
++                                &libix,
++                                &phpix,
+                                 &qn_collisions,
+                                 &overloads,
+                                 &mut m2,
+@@ -3830,6 +3863,10 @@ fn try_resolve_ref(
+     // index and the calling file's module bindings.
+     modix: &crate::modules::ModuleIndex<'_>,
+     file_mods: &crate::modules::FileModules,
++    // Library scope for languages whose imports name files (WS14).
++    libix: &crate::libscope::LibIndex<'_>,
++    // PHP namespaces and `use` tables (WS14).
++    phpix: &crate::libscope::PhpIndex,
+     // Qualified names more than one callable carries; see `resolve`.
+     qn_collisions: &std::collections::HashSet<(String, String)>,
+     // `(file, qualified name)` → the overload set it declares.
+@@ -3973,6 +4010,7 @@ fn try_resolve_ref(
+     // that provides nothing the call can name is a refusal, recorded by
+     // the caller; it does not fall through to the name matching below.
+     if matches!(lang, "javascript" | "typescript" | "python" | "go")
++        && !heads.locals.shadows_receiver_head(r)
+         && let Some(scoped) = file_mods.resolve(
+             modix,
+             lang,
+@@ -4006,6 +4044,79 @@ fn try_resolve_ref(
+             }
+         }
+     }
++    // WS14: a Dart call through the library scope — the file's own
++    // library, its imports' exported namespaces (`show`/`hide`), an
++    // import prefix — binds there, or is refused / external; never
++    // matched by name across the tree.
++    if lang == "dart"
++        && !heads.locals.shadows_receiver_head(r)
++        && let Some(scoped) = libix.resolve_dart(caller_file, r, caller_qn)
++    {
++        match scoped {
++            crate::modules::Scoped::Bound { cids, certain } => {
++                *module_certain = certain && cids.len() == 1;
++                return Some(cids);
++            }
++            crate::modules::Scoped::Refused(module) => {
++                *refused_module = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::NoCtor => {
++                *no_ctor = true;
++                return None;
++            }
++            crate::modules::Scoped::External(module) => {
++                *external_out = Some(module);
++                return None;
++            }
++        }
++    }
++    // WS14: a Zig call through file-level `@import`s and aliases
++    // (`std.debug.print()`) is the function the file the path ends in
++    // declares; through a dependency, external.
++    if lang == "zig"
++        && !heads.locals.shadows_receiver_head(r)
++        && let Some(scoped) = libix.resolve_zig(caller_file, r)
++    {
++        match scoped {
++            crate::modules::Scoped::Bound { cids, certain } => {
++                *module_certain = certain && cids.len() == 1;
++                return Some(cids);
++            }
++            crate::modules::Scoped::External(module) => {
++                *external_out = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::Refused(module) => {
++                *refused_module = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::NoCtor => return None,
++        }
++    }
++    // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
++    // the class `X` names through them (a dependency's class is
++    // external); `parent::m()` the caller's base's; `f()` the namespace's
++    // function, else the global one.
++    if lang == "php"
++        && let Some(scoped) = phpix.resolve(caller_file, r, caller_qn)
++    {
++        match scoped {
++            crate::modules::Scoped::Bound { cids, certain } => {
++                *module_certain = certain && cids.len() == 1;
++                return Some(cids);
++            }
++            crate::modules::Scoped::External(module) => {
++                *external_out = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::Refused(module) => {
++                *refused_module = Some(module);
++                return None;
++            }
++            crate::modules::Scoped::NoCtor => return None,
++        }
++    }
+     // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
+     // the evidence singles out when the module is vendored more than once
+     // — never another module's `f`.
+@@ -4307,7 +4418,10 @@ fn try_resolve_ref(
+         // receiver_hint is the full receiver expression (e.g., "mod"
+         // or "mod.sub"). Take its first segment to match module alias.
+         let first = r.receiver_hint.split(['.', ':']).next().unwrap_or("");
+-        if let Some(module) = module_aliases.get(first) {
++        if let Some(module) = module_aliases
++            .get(first)
++            .filter(|_| !heads.locals.shadows_receiver_head(r))
++        {
+             // Rebuild the full target path. For `mod.fn()` with alias
+             // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
+             // `helpers.sub.fn`.
+@@ -9101,6 +9215,7 @@ mod tests {
+     // ----------------------------------------------------------------
+ 
+     /// One file of a module-scoped case.
++    #[derive(Clone)]
+     struct MFile<'a> {
+         path: &'a str,
+         /// `(qualified name, kind, signature)` of each callable.
+@@ -10971,10 +11086,13 @@ mod tests {
+         );
+     }
+ 
+-    /// R16 (Dart): `import 'fixtures.dart' as fixtures;` scopes bare
+-    /// names to that file. A same-named function in some other file whose
+-    /// path merely contains `fixtures` (`shell/common/fixtures/…`) is not
+-    /// it; the imported file's own function is.
++    /// R16 (Dart): an import scopes bare names to the file it names. A
++    /// same-named function in some other file whose path merely contains
++    /// `fixtures` (`shell/common/fixtures/…`) is not it; the imported
++    /// file's own function is. WS14: a name a prefixed import brings in
++    /// is reached only through the prefix, and a name no workspace import
++    /// provides comes from a dependency (`package:test`) — refused as
++    /// external, never matched by name.
+     #[test]
+     fn dart_bare_call_needs_an_imported_file() {
+         let files = vec![
+@@ -10985,25 +11103,97 @@ mod tests {
+             ),
+             mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
+         ];
++        for (prefix, want) in [
++            ("", vec![at("load", "tools/pkg/configs/test/fixtures.dart")]),
++            ("fixtures", vec![]),
++        ] {
++            let caller = mfile(
++                "tools/pkg/configs/test/loader_test.dart",
++                &["main"],
++                vec![
++                    import("import", "package:test/test.dart", ""),
++                    import("import", "fixtures.dart", prefix),
++                ],
++            );
++            let mut refs = vec![
++                call("expect", ""),
++                RefRecord {
++                    site_byte: 61,
++                    ..call("load", "")
++                },
++            ];
++            if !prefix.is_empty() {
++                refs.push(RefRecord {
++                    site_byte: 71,
++                    ..call("load", prefix)
++                });
++            }
++            let (dsts, why) = module_case("dart", files.clone(), caller, refs);
++            let mut want = want;
++            if !prefix.is_empty() {
++                want.push(at("load", "tools/pkg/configs/test/fixtures.dart"));
++            }
++            assert_eq!(dsts, want, "prefix {prefix:?}: {dsts:?}");
++            assert!(why.contains(&external("package:test/test.dart")), "{why:?}");
++        }
++    }
++
++    /// WS14 (Dart): `package:<name>/x.dart` names `<root>/lib/x.dart` of
++    /// the pubspec declaring `<name>`, and an import reaches what that
++    /// library exports, filtered by `show` / `hide`.
++    #[test]
++    fn dart_package_uris_exports_and_combinators() {
++        let pkg = |path: &'static str, defs: &[&'static str], imports| MFile {
++            packages: vec!["pkg_a"],
++            ..mfile(path, defs, imports)
++        };
++        let files = vec![
++            pkg(
++                "pkg_a/lib/pkg_a.dart",
++                &[],
++                vec![
++                    import("package-root", "pkg_a", ""),
++                    import("export", "src/helpers.dart", ""),
++                    import("show", "src/helpers.dart", "helperOne"),
++                    import("export", "src/other.dart", ""),
++                ],
++            ),
++            pkg(
++                "pkg_a/lib/src/helpers.dart",
++                &["helperOne", "helperTwo"],
++                vec![import("package-root", "pkg_a", "")],
++            ),
++            pkg(
++                "pkg_a/lib/src/other.dart",
++                &["otherFn"],
++                vec![import("package-root", "pkg_a", "")],
++            ),
++            // A decoy every import misses.
++            mfile("tool/helpers.dart", &["helperTwo"], vec![]),
++        ];
+         let caller = mfile(
+-            "tools/pkg/configs/test/loader_test.dart",
++            "app/test/main_test.dart",
+             &["main"],
+-            vec![
+-                import("import", "package:test/test.dart", ""),
+-                import("import", "fixtures.dart", "fixtures"),
+-            ],
++            vec![import("import", "package:pkg_a/pkg_a.dart", "")],
+         );
+         let refs = vec![
+-            call("expect", ""),
++            call("helperOne", ""),
+             RefRecord {
+-                site_byte: 61,
+-                ..call("load", "")
++                site_byte: 21,
++                ..call("otherFn", "")
++            },
++            RefRecord {
++                site_byte: 41,
++                ..call("helperTwo", "")
+             },
+         ];
+         let (dsts, _) = module_case("dart", files, caller, refs);
+         assert_eq!(
+             dsts,
+-            vec![at("load", "tools/pkg/configs/test/fixtures.dart")],
++            vec![
++                at("helperOne", "pkg_a/lib/src/helpers.dart"),
++                at("otherFn", "pkg_a/lib/src/other.dart"),
++            ],
+             "{dsts:?}"
+         );
+     }
+diff --git a/crates/cgg-resolve/src/heads.rs b/crates/cgg-resolve/src/heads.rs
+index 25910df..92db88c 100644
+--- a/crates/cgg-resolve/src/heads.rs
++++ b/crates/cgg-resolve/src/heads.rs
+@@ -328,6 +328,9 @@ pub(crate) struct FileHeads {
+     /// the local definition shadowing an import of the same name (a
+     /// minified bundle reuses every short name), so it is never refused.
+     own_defs: HashSet<String>,
++    /// Parameters and locals: a receiver headed by one is that value,
++    /// not an import of the same name.
++    pub(crate) locals: crate::scope::FileLocals,
+ }
+ 
+ impl FileHeads {
+@@ -338,6 +341,7 @@ impl FileHeads {
+                 .iter()
+                 .map(|d| d.simple_name.clone())
+                 .collect(),
++            locals: crate::scope::FileLocals::build(facts),
+             ..FileHeads::default()
+         };
+         let lang = facts.language.as_str();
+@@ -573,6 +577,9 @@ impl FileHeads {
+         if rh == cgg_core::VALUE_REF_HINT || rh == cgg_core::STRING_REF_HINT {
+             return None;
+         }
++        if !rh.is_empty() && self.locals.shadows_receiver_head(r) {
++            return None;
++        }
+         if rh.is_empty() {
+             if r.dot_call || lang == "cpp" || self.own_defs.contains(r.name.as_str()) {
+                 return None;
+diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
+index cd1c5de..ea90270 100644
+--- a/crates/cgg-resolve/src/intra_file.rs
++++ b/crates/cgg-resolve/src/intra_file.rs
+@@ -53,6 +53,29 @@ fn bare_call_is_never_a_method(language: &str) -> bool {
+     )
+ }
+ 
++/// Languages whose functions nest lexically: a function declared inside
++/// another is visible by bare name only within it, and the innermost
++/// declaration shadows outer ones (an OCaml `let rec go` in each of three
++/// functions of one file; a JavaScript helper nested in a component).
++fn lexically_scoped(language: &str) -> bool {
++    matches!(
++        language,
++        "python"
++            | "javascript"
++            | "typescript"
++            | "lua"
++            | "ocaml"
++            | "fsharp"
++            | "scala"
++            | "kotlin"
++            | "swift"
++            | "rust"
++            | "dart"
++            | "haskell"
++            | "julia"
++    )
++}
++
+ /// Whether a definition is a member of a type rather than a free
+ /// function.
+ /// A same-name candidate: its index in `definitions`, and the record.
+@@ -115,6 +138,7 @@ pub fn link_file_with_cap(
+     let mut out = LinkOutcome::default();
+     let resolver_id = ResolverId::new("intra-file");
+ 
++    let locals = crate::scope::FileLocals::build(facts);
+     for rref in &facts.references {
+         let enclosing = enclosing_def_index(facts, rref);
+         let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
+@@ -179,6 +203,21 @@ pub fn link_file_with_cap(
+             .map(|(i, d)| (i as u32, d))
+             .collect();
+ 
++        // A bare call through a parameter or local calls the value it
++        // holds: a definition declared outside the binding's scope is
++        // not the callee (`cb()` with a parameter `cb` and a function
++        // `cb` at module level). One declared inside it — the arrow
++        // function `const cb = () => …` the binding names, a nested
++        // function — still is (WS14).
++        let mut shadowed_by_local = false;
++        if locals.shadows_bare_call(rref)
++            && let Some((ls, le)) = locals.binding_at(&rref.name, rref.site_byte)
++        {
++            let before = candidates.len();
++            candidates.retain(|(_, d)| ls <= d.start_byte && d.start_byte < le);
++            shadowed_by_local = before > 0 && candidates.is_empty();
++        }
++
+         // A bare identifier is not a method call in these languages:
+         // `helper(2)` inside a class reaches a module-level `helper`,
+         // never `self.helper`. Without this a same-file method with a
+@@ -220,7 +259,8 @@ pub fn link_file_with_cap(
+             methods_out_of_scope += (before - candidates.len()) as u32;
+         }
+ 
+-        // Python lexical scope for a bare call. A function nested inside
++        // Lexical scope for a bare call (Python; WS14: every language in
++        // `lexically_scoped`). A function nested inside
+         // another is visible by name only within it, and the innermost
+         // definition shadows outer ones: `_scan()` inside the method that
+         // defines `_scan` is that local, and `_scan()` anywhere else is
+@@ -230,7 +270,8 @@ pub fn link_file_with_cap(
+         // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
+         // and name lookup is the only thing that finds it there.
+         if rref.receiver_hint.is_empty()
+-            && facts.language == "python"
++            && (!rref.dot_call || facts.language == "python")
++            && lexically_scoped(&facts.language)
+             && candidates.len() > 1
+         {
+             let parent_span = |d: &DefRecord| -> Option<(u32, u32)> {
+@@ -428,7 +469,9 @@ pub fn link_file_with_cap(
+                 // somewhere else, and reporting it as though the name
+                 // does not exist is what P1-2 of the field report was
+                 // about.
+-                let reason = if methods_out_of_scope > 0 {
++                let reason = if shadowed_by_local {
++                    UnresolvedReason::ShadowedByLocal
++                } else if methods_out_of_scope > 0 {
+                     UnresolvedReason::NotInScopeForBareCall {
+                         methods: methods_out_of_scope,
+                     }
+diff --git a/crates/cgg-resolve/src/lib.rs b/crates/cgg-resolve/src/lib.rs
+index bf4857f..5cead32 100644
+--- a/crates/cgg-resolve/src/lib.rs
++++ b/crates/cgg-resolve/src/lib.rs
+@@ -20,8 +20,10 @@ pub mod ffi;
+ pub mod frameworks;
+ mod heads;
+ pub mod intra_file;
++mod libscope;
+ mod modules;
+ pub mod names;
++mod scope;
+ pub mod stack_graphs_resolver;
+ pub mod type_hints;
+ 
+diff --git a/crates/cgg-resolve/src/modules.rs b/crates/cgg-resolve/src/modules.rs
+index d7be508..89834cd 100644
+--- a/crates/cgg-resolve/src/modules.rs
++++ b/crates/cgg-resolve/src/modules.rs
+@@ -2154,7 +2154,7 @@ fn strip_js_ext(name: &str) -> &str {
+ 
+ /// Resolve `.` and `..` without touching the filesystem; a `..` above the
+ /// first component is kept.
+-fn normalize(p: &Path) -> PathBuf {
++pub(crate) fn normalize(p: &Path) -> PathBuf {
+     let mut out = PathBuf::new();
+     for c in p.components() {
+         match c {
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index 1ebc9c7..0fe3a57 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -455,13 +455,20 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+                         // Narrow the registrar-verb gate to this file's
+                         // language; the union of every rule in the table
+                         // makes each language pay for the others'.
+-                        p.extract(
++                        let mut f = p.extract(
+                             &extract_ctx.for_language(lang),
+                             FileId::new(0),
+                             &cand.path,
+                             &out.tree,
+                             &bytes,
+-                        )
++                        );
++                        // Parameters and locals, from the same tree: a
++                        // bare call through one is never another file's
++                        // function (see `cgg_lang::locals`).
++                        if f.locals.is_empty() {
++                            f.locals = cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
++                        }
++                        f
+                     });
+                     (status.to_string(), out.parse_ms, facts)
+                 }
+diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
+new file mode 100644
+index 0000000..d43e236
+--- /dev/null
++++ b/crates/cgg-lang/src/locals.rs
+@@ -0,0 +1,590 @@
++//! Value bindings: parameters and local variables, with the span they are
++//! in scope over (FINDINGS A1/A4 generalisation, WS14).
++//!
++//! A bare call `cb()` where `cb` is a parameter, `debug("x")` after
++//! `const debug = makeDebug()`, `f n` inside an OCaml function taking
++//! `f`: the call goes through whatever value the name holds. Without a
++//! record of the binding the cross-file resolver matched the name against
++//! every same-named function in the tree. This pass records each binding
++//! as [`LocalBinding`] so the resolver can refuse that match, and so a
++//! receiver headed by a local (`c.json()` with a parameter `c`) is not
++//! read as an import of the same name.
++//!
++//! One walk serves every language: a table per grammar names the node
++//! kinds that bind names (and through which of their fields), and the
++//! kinds that bound a binding's scope. Nothing here is a function name;
++//! everything is a grammar node kind.
++
++use cgg_core::LocalBinding;
++use tree_sitter::{Node, Tree};
++
++/// How a binder's scope is found.
++#[derive(Clone, Copy, PartialEq, Eq)]
++enum Scope {
++    /// A parameter: the whole enclosing function (or closure).
++    Param,
++    /// A declaration: from the declaration to the end of the enclosing
++    /// block or function.
++    Decl,
++    /// The binder node itself (a `for` loop, a `catch` clause, a match
++    /// arm, a lambda whose parameters it holds directly).
++    Own,
++}
++
++/// One binding form: a node kind, the fields of it a bound name may sit
++/// under (`""` for an unnamed child), and how its scope is found.
++struct Binder {
++    kind: &'static str,
++    fields: &'static [&'static str],
++    scope: Scope,
++    /// Only the binder's first identifier child names the binding (its
++    /// other unnamed children are a type or a value).
++    first_only: bool,
++    /// When set, the binder counts only under a parent of this kind, and
++    /// that parent is what the binding's scope is measured from (a Dart
++    /// local function's signature names it in the enclosing block).
++    parent: &'static str,
++}
++
++const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) -> Binder {
++    Binder {
++        kind,
++        fields,
++        scope,
++        first_only: false,
++        parent: "",
++    }
++}
++
++const fn b1(kind: &'static str, scope: Scope) -> Binder {
++    Binder {
++        kind,
++        fields: &[""],
++        scope,
++        first_only: true,
++        parent: "",
++    }
++}
++
++const fn bp(
++    kind: &'static str,
++    field: &'static [&'static str],
++    parent: &'static str,
++) -> Binder {
++    Binder {
++        kind,
++        fields: field,
++        scope: Scope::Decl,
++        first_only: false,
++        parent,
++    }
++}
++
++/// A grammar's binding forms.
++struct Spec {
++    /// Leaf kinds that name a binding.
++    idents: &'static [&'static str],
++    binders: &'static [Binder],
++    /// Node kinds that are callables: a binding is recorded only inside
++    /// one, and a parameter's scope is the nearest one.
++    functions: &'static [&'static str],
++    /// Node kinds that bound a declaration's scope (besides functions).
++    blocks: &'static [&'static str],
++    /// Node kinds that are patterns: a name nested in one, under a
++    /// binder's field, is bound too (`const [a, b] = …`).
++    patterns: &'static [&'static str],
++}
++
++/// Fields of a pattern that never hold a bound name: a default value, a
++/// type, an object key.
++const STOP_FIELDS: &[&str] = &["right", "default", "default_value", "type", "key"];
++
++const JS_SPEC: Spec = Spec {
++    idents: &[
++        "identifier",
++        "shorthand_property_identifier_pattern",
++    ],
++    binders: &[
++        b("formal_parameters", &[""], Scope::Param),
++        b("required_parameter", &["pattern"], Scope::Param),
++        b("optional_parameter", &["pattern"], Scope::Param),
++        b("arrow_function", &["parameter"], Scope::Own),
++        b("variable_declarator", &["name"], Scope::Decl),
++        b("for_in_statement", &["left"], Scope::Own),
++        b("catch_clause", &["parameter"], Scope::Own),
++    ],
++    functions: &[
++        "function_declaration",
++        "function_expression",
++        "function",
++        "arrow_function",
++        "method_definition",
++        "generator_function_declaration",
++        "generator_function",
++    ],
++    blocks: &["statement_block", "for_statement", "for_in_statement"],
++    patterns: &[
++        "object_pattern",
++        "array_pattern",
++        "pair_pattern",
++        "assignment_pattern",
++        "rest_pattern",
++        "object_assignment_pattern",
++    ],
++};
++
++const PY_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("parameters", &[""], Scope::Param),
++        b("lambda_parameters", &[""], Scope::Param),
++        b("default_parameter", &["name"], Scope::Param),
++        b("typed_parameter", &[""], Scope::Param),
++        b("typed_default_parameter", &["name"], Scope::Param),
++        b("assignment", &["left"], Scope::Decl),
++        b("for_statement", &["left"], Scope::Decl),
++        b("as_pattern_target", &[""], Scope::Decl),
++    ],
++    functions: &["function_definition", "lambda"],
++    blocks: &[],
++    patterns: &[
++        "pattern_list",
++        "tuple_pattern",
++        "list_pattern",
++        "list_splat_pattern",
++        "dictionary_splat_pattern",
++    ],
++};
++
++const LUA_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("parameters", &["name"], Scope::Param),
++        b("variable_list", &["name"], Scope::Decl),
++        b("for_numeric_clause", &["name"], Scope::Own),
++    ],
++    functions: &["function_declaration", "function_definition"],
++    blocks: &["block", "for_statement"],
++    patterns: &[],
++};
++
++const SCALA_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("parameter", &["name"], Scope::Param),
++        b("class_parameter", &["name"], Scope::Param),
++        b("lambda_expression", &["parameters"], Scope::Own),
++        b("binding", &["name"], Scope::Param),
++        b("val_definition", &["pattern"], Scope::Decl),
++        b("var_definition", &["pattern"], Scope::Decl),
++        b("case_clause", &["pattern"], Scope::Own),
++    ],
++    functions: &["function_definition", "lambda_expression"],
++    blocks: &["block", "case_clause", "for_expression"],
++    patterns: &[
++        "tuple_pattern",
++        "case_class_pattern",
++        "typed_pattern",
++        "infix_pattern",
++        "capture_pattern",
++        "alternative_pattern",
++    ],
++};
++
++const KOTLIN_SPEC: Spec = Spec {
++    idents: &["simple_identifier"],
++    binders: &[
++        b1("parameter", Scope::Param),
++        b1("variable_declaration", Scope::Decl),
++        b("lambda_parameters", &[""], Scope::Param),
++    ],
++    functions: &[
++        "function_declaration",
++        "lambda_literal",
++        "anonymous_function",
++        "secondary_constructor",
++    ],
++    blocks: &["statements", "for_statement", "control_structure_body"],
++    patterns: &["multi_variable_declaration"],
++};
++
++const SWIFT_SPEC: Spec = Spec {
++    idents: &["simple_identifier"],
++    binders: &[
++        b("parameter", &["name"], Scope::Param),
++        b("lambda_parameter", &["name"], Scope::Param),
++        b("pattern", &["bound_identifier", ""], Scope::Decl),
++        b("if_statement", &["bound_identifier"], Scope::Own),
++        b("guard_statement", &["bound_identifier"], Scope::Decl),
++    ],
++    functions: &[
++        "function_declaration",
++        "lambda_literal",
++        "init_declaration",
++        "computed_property",
++    ],
++    blocks: &["statements", "for_statement"],
++    patterns: &["pattern"],
++};
++
++const RUST_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("parameter", &["pattern"], Scope::Param),
++        b("closure_parameters", &[""], Scope::Param),
++        b("let_declaration", &["pattern"], Scope::Decl),
++        b("for_expression", &["pattern"], Scope::Own),
++        b("let_condition", &["pattern"], Scope::Own),
++        b("match_arm", &["pattern"], Scope::Own),
++    ],
++    functions: &["function_item", "closure_expression"],
++    blocks: &["block", "if_expression", "match_arm", "for_expression"],
++    patterns: &[
++        "tuple_pattern",
++        "tuple_struct_pattern",
++        "struct_pattern",
++        "field_pattern",
++        "slice_pattern",
++        "ref_pattern",
++        "mut_pattern",
++        "reference_pattern",
++        "captured_pattern",
++        "or_pattern",
++        "match_pattern",
++    ],
++};
++
++const DART_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("formal_parameter", &["name"], Scope::Param),
++        b1("formal_parameter", Scope::Param),
++        b("initialized_variable_definition", &["name"], Scope::Decl),
++        b("initialized_identifier", &["name"], Scope::Decl),
++        b("for_loop_parts", &["name"], Scope::Own),
++        b("catch_parameters", &[""], Scope::Own),
++        // A local function names a value in its enclosing block (the
++        // plugin records no callable for it).
++        bp("function_signature", &["name"], "local_function_declaration"),
++    ],
++    functions: &[
++        "function_declaration",
++        "method_declaration",
++        "local_function_declaration",
++        "function_expression",
++    ],
++    blocks: &["block", "for_statement"],
++    patterns: &[],
++};
++
++const OCAML_SPEC: Spec = Spec {
++    idents: &["value_pattern"],
++    binders: &[
++        b("parameter", &["pattern"], Scope::Param),
++        b("match_case", &["pattern"], Scope::Own),
++    ],
++    functions: &["let_binding", "fun_expression", "function_expression"],
++    blocks: &["match_case"],
++    patterns: &[
++        "tuple_pattern",
++        "parenthesized_pattern",
++        "constructor_pattern",
++        "typed_pattern",
++        "alias_pattern",
++        "or_pattern",
++        "cons_pattern",
++        "list_pattern",
++        "record_pattern",
++        "field_pattern",
++        "labeled_argument",
++        "label",
++    ],
++};
++
++const ZIG_SPEC: Spec = Spec {
++    idents: &["identifier"],
++    binders: &[
++        b("parameter", &["name"], Scope::Param),
++        b1("variable_declaration", Scope::Decl),
++        b("payload", &[""], Scope::Decl),
++    ],
++    functions: &["function_declaration"],
++    blocks: &["block", "for_statement", "while_statement", "if_statement"],
++    patterns: &[],
++};
++
++fn spec(lang: &str) -> Option<&'static Spec> {
++    Some(match lang {
++        "javascript" | "typescript" => &JS_SPEC,
++        "python" => &PY_SPEC,
++        "lua" => &LUA_SPEC,
++        "scala" => &SCALA_SPEC,
++        "kotlin" => &KOTLIN_SPEC,
++        "swift" => &SWIFT_SPEC,
++        "rust" => &RUST_SPEC,
++        "dart" => &DART_SPEC,
++        "ocaml" => &OCAML_SPEC,
++        "zig" => &ZIG_SPEC,
++        _ => return None,
++    })
++}
++
++/// Every value binding of the file, in source order. Empty for a
++/// language with no table.
++pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
++    let Some(spec) = spec(lang) else {
++        return Vec::new();
++    };
++    let mut out = Vec::new();
++    let mut stack = vec![tree.root_node()];
++    while let Some(n) = stack.pop() {
++        if n.child_count() == 0 {
++            if spec.idents.contains(&n.kind())
++                && let Some(b) = binding(spec, n, source)
++            {
++                out.push(b);
++            }
++            continue;
++        }
++        // `value_pattern` (OCaml) has a child; take it as a leaf too.
++        if spec.idents.contains(&n.kind()) {
++            if let Some(b) = binding(spec, n, source) {
++                out.push(b);
++            }
++            continue;
++        }
++        let mut c = n.walk();
++        let kids: Vec<Node<'_>> = n.children(&mut c).collect();
++        stack.extend(kids.into_iter().rev());
++    }
++    out.sort_by_key(|b| (b.start_byte, b.end_byte));
++    out.dedup();
++    out
++}
++
++/// The field through which `child` hangs off `parent` (`""` for none).
++fn field_of(parent: Node<'_>, child: Node<'_>) -> &'static str {
++    let mut c = parent.walk();
++    for (i, ch) in parent.children(&mut c).enumerate() {
++        if ch.id() == child.id() {
++            return parent.field_name_for_child(i as u32).unwrap_or("");
++        }
++    }
++    ""
++}
++
++fn binding(spec: &Spec, leaf: Node<'_>, source: &[u8]) -> Option<LocalBinding> {
++    let name = leaf.utf8_text(source).ok()?.trim();
++    if name.is_empty() || name == "_" {
++        return None;
++    }
++    let mut cur = leaf;
++    for _ in 0..8 {
++        let parent = cur.parent()?;
++        let field = field_of(parent, cur);
++        let binder = spec.binders.iter().find(|b| {
++            b.kind == parent.kind()
++                && b.fields.contains(&field)
++                && (!b.first_only || first_ident_child(spec, parent) == Some(cur.id()))
++                && (b.parent.is_empty()
++                    || parent.parent().is_some_and(|g| g.kind() == b.parent))
++        });
++        if let Some(binder) = binder {
++            let anchor = if binder.parent.is_empty() {
++                parent
++            } else {
++                parent.parent()?
++            };
++            let (start, end) = scope_of(spec, anchor, binder.scope)?;
++            return Some(LocalBinding {
++                name: name.to_string(),
++                start_byte: start,
++                end_byte: end,
++            });
++        }
++        if spec.binders.iter().any(|b| b.kind == parent.kind())
++            || STOP_FIELDS.contains(&field)
++            || !spec.patterns.contains(&parent.kind())
++        {
++            return None;
++        }
++        cur = parent;
++    }
++    None
++}
++
++/// The first child of `n` that is an identifier leaf.
++fn first_ident_child(spec: &Spec, n: Node<'_>) -> Option<usize> {
++    let mut c = n.walk();
++    n.children(&mut c)
++        .find(|ch| spec.idents.contains(&ch.kind()))
++        .map(|ch| ch.id())
++}
++
++fn scope_of(spec: &Spec, binder: Node<'_>, scope: Scope) -> Option<(u32, u32)> {
++    // Only inside a callable: a module-level binding is the module's.
++    let mut func = None;
++    let mut up = Some(binder);
++    while let Some(n) = up {
++        if spec.functions.contains(&n.kind()) {
++            func = Some(n);
++            break;
++        }
++        up = n.parent();
++    }
++    let func = func?;
++    // A binder that is itself a callable (a Dart local function) is in
++    // scope in the block around it, not only inside itself.
++    let func = if func.id() == binder.id() {
++        let mut up = binder.parent();
++        loop {
++            match up {
++                Some(n) if spec.functions.contains(&n.kind()) => break n,
++                Some(n) => up = n.parent(),
++                None => return None,
++            }
++        }
++    } else {
++        func
++    };
++    match scope {
++        Scope::Param => Some((func.start_byte() as u32, func.end_byte() as u32)),
++        Scope::Own => Some((binder.start_byte() as u32, binder.end_byte() as u32)),
++        Scope::Decl => {
++            let mut up = binder.parent();
++            while let Some(n) = up {
++                if spec.blocks.contains(&n.kind()) || spec.functions.contains(&n.kind()) {
++                    return Some((binder.start_byte() as u32, n.end_byte() as u32));
++                }
++                up = n.parent();
++            }
++            Some((binder.start_byte() as u32, func.end_byte() as u32))
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn names(lang: &str, ts: tree_sitter::Language, src: &str) -> Vec<String> {
++        let mut p = tree_sitter::Parser::new();
++        p.set_language(&ts).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        collect(lang, &tree, src.as_bytes())
++            .into_iter()
++            .map(|b| b.name)
++            .collect()
++    }
++
++    #[test]
++    fn javascript_params_locals_and_closure_params() {
++        let got = names(
++            "javascript",
++            tree_sitter_javascript::LANGUAGE.into(),
++            "const top = 1;\nfunction f(a, {b, c: d}, ...rest) { const k = 1, [m, n] = x; \
++             for (const it of xs) {} xs.map((e) => e); xs.map(z => z); try {} catch (err) {} }",
++        );
++        for want in ["a", "b", "d", "rest", "k", "m", "n", "it", "e", "z", "err"] {
++            assert!(got.contains(&want.to_string()), "{want} in {got:?}");
++        }
++        // Module level, a value, an object key: not bindings here.
++        for not in ["top", "x", "xs", "c", "f"] {
++            assert!(!got.contains(&not.to_string()), "{not} in {got:?}");
++        }
++    }
++
++    #[test]
++    fn scope_spans_are_the_block_or_function() {
++        let src = "function f(a) { { const k = 1; } k(); }";
++        let mut p = tree_sitter::Parser::new();
++        p.set_language(&tree_sitter_javascript::LANGUAGE.into())
++            .unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let got = collect("javascript", &tree, src.as_bytes());
++        let k = got.iter().find(|b| b.name == "k").unwrap();
++        let call = src.find("k()").unwrap() as u32;
++        assert!(k.end_byte <= call, "the inner block ends before the call");
++        let a = got.iter().find(|b| b.name == "a").unwrap();
++        assert!(a.start_byte <= call && call < a.end_byte);
++    }
++
++    #[test]
++    fn dart_ocaml_lua_python_rust_kotlin_swift_scala_zig() {
++        let cases: Vec<(&str, tree_sitter::Language, &str, &[&str], &[&str])> = vec![
++            (
++                "dart",
++                tree_sitter_dart::LANGUAGE.into(),
++                "void main(List<String> args) { final cb = make(); void inner() {} \
++                 test('x', (tester) async { tester.pump(); }); }",
++                &["args", "cb", "tester", "inner"],
++                &["main", "make", "test"],
++            ),
++            (
++                "ocaml",
++                tree_sitter_ocaml::LANGUAGE_OCAML.into(),
++                "let iter f s = List.iter (fun e -> f e) s",
++                &["f", "s", "e"],
++                &["iter"],
++            ),
++            (
++                "lua",
++                tree_sitter_lua::LANGUAGE.into(),
++                "local function f(a, b) local k = g(); for i, v in ipairs(t) do end end",
++                &["a", "b", "k", "i", "v"],
++                &["f", "g", "t"],
++            ),
++            (
++                "python",
++                tree_sitter_python::LANGUAGE.into(),
++                "def f(a, b=1, *args, c: int = 2, **kw):\n    k = 1\n    p, q = t\n",
++                &["a", "b", "args", "c", "kw", "k", "p", "q"],
++                &["f", "t", "int"],
++            ),
++            (
++                "rust",
++                tree_sitter_rust::LANGUAGE.into(),
++                "fn f(a: i32) { let cb = |x: i32| x; let (p, q) = t; }",
++                &["a", "cb", "x", "p", "q"],
++                &["f", "t"],
++            ),
++            (
++                "kotlin",
++                tree_sitter_kotlin_sg::LANGUAGE.into(),
++                "fun f(a: Int) { val k = 1; xs.map { e -> e } }",
++                &["a", "k", "e"],
++                &["f", "xs"],
++            ),
++            (
++                "swift",
++                tree_sitter_swift::LANGUAGE.into(),
++                "func f(_ a: Int) { let k = 1; for it in xs {} }",
++                &["a", "k", "it"],
++                &["f", "xs"],
++            ),
++            (
++                "scala",
++                tree_sitter_scala::LANGUAGE.into(),
++                "object O { def f(a: Int) = { val k = 1; xs.map(e => e) } }",
++                &["a", "k", "e"],
++                &["f", "xs", "O"],
++            ),
++            (
++                "zig",
++                tree_sitter_zig::LANGUAGE.into(),
++                "fn f(a: u32) void { const k = 1; for (xs) |it| {} }",
++                &["a", "k", "it"],
++                &["f", "xs"],
++            ),
++        ];
++        for (lang, ts, src, want, not) in cases {
++            let got = names(lang, ts, src);
++            for w in want {
++                assert!(got.contains(&w.to_string()), "{lang}: {w} in {got:?}");
++            }
++            for n in not {
++                assert!(!got.contains(&n.to_string()), "{lang}: {n} not in {got:?}");
++            }
++        }
++    }
++}
+diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
+new file mode 100644
+index 0000000..55cb0ea
+--- /dev/null
++++ b/crates/cgg-resolve/src/scope.rs
+@@ -0,0 +1,145 @@
++//! Value bindings in scope at a call site (WS14, FINDINGS A1/A4
++//! generalisation).
++//!
++//! The plugins record every parameter and local variable with the span it
++//! is in scope over (`FileFacts::locals`, see `cgg_lang::locals`). A bare
++//! call through such a name calls the value it holds: neither a same-named
++//! function in another file nor one declared further out in this file is
++//! the callee. A receiver headed by one (`c.json()` with a parameter `c`)
++//! is that value, not an import of the same name.
++
++use std::collections::HashMap;
++
++use cgg_core::{FileFacts, RefRecord};
++
++/// One file's value bindings, by name.
++#[derive(Debug, Default)]
++pub(crate) struct FileLocals {
++    spans: HashMap<String, Vec<(u32, u32)>>,
++    /// Names the file's imports bind: a local that holds an import
++    /// (`const m = require('./m')` inside a function) is left to the
++    /// module resolver.
++    imported: std::collections::HashSet<String>,
++}
++
++impl FileLocals {
++    pub(crate) fn build(facts: &FileFacts) -> Self {
++        let mut spans: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
++        for l in &facts.locals {
++            spans
++                .entry(l.name.clone())
++                .or_default()
++                .push((l.start_byte, l.end_byte));
++        }
++        let mut imported = std::collections::HashSet::new();
++        for imp in &facts.imports {
++            for item in imp.alias.split(',') {
++                let item = item.trim();
++                let local = item
++                    .rsplit_once(" as ")
++                    .map_or(item, |(_, a)| a.trim())
++                    .trim();
++                if !local.is_empty() {
++                    imported.insert(local.to_string());
++                }
++            }
++        }
++        FileLocals { spans, imported }
++    }
++
++    /// The innermost binding of `name` in scope at `site`, as its span.
++    pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
++        self.spans
++            .get(name)?
++            .iter()
++            .filter(|(s, e)| *s <= site && site < *e)
++            .min_by_key(|(s, e)| e - s)
++            .copied()
++    }
++
++    /// Whether `name` is a value binding in scope at `site`.
++    pub(crate) fn binds(&self, name: &str, site: u32) -> bool {
++        self.binding_at(name, site).is_some()
++    }
++
++    /// A bare call (`f()`, no receiver and no dot) through a value
++    /// binding, which no other file's function can be the callee of.
++    pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
++        r.receiver_hint.is_empty()
++            && !r.dot_call
++            && !self.imported.contains(r.name.as_str())
++            && self.binds(&r.name, r.site_byte)
++    }
++
++    /// Whether the leading identifier of the call's receiver is a value
++    /// binding at the site — then it is not a module or import of that
++    /// name.
++    pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
++        let rh = r.receiver_hint.trim();
++        let rh = rh.strip_prefix("new ").unwrap_or(rh);
++        let end = rh
++            .char_indices()
++            .find(|(_, c)| !(c.is_alphanumeric() || *c == '_' || *c == '$'))
++            .map_or(rh.len(), |(i, _)| i);
++        let head = &rh[..end];
++        !head.is_empty() && self.binds(head, r.site_byte)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use cgg_core::{LocalBinding, ids::FileId};
++
++    fn facts() -> FileFacts {
++        let mut f = FileFacts::new(FileId::new(0), "a.js".into(), "javascript");
++        f.locals = vec![
++            LocalBinding {
++                name: "cb".into(),
++                start_byte: 10,
++                end_byte: 50,
++            },
++            LocalBinding {
++                name: "c".into(),
++                start_byte: 10,
++                end_byte: 50,
++            },
++        ];
++        f
++    }
++
++    fn call(name: &str, recv: &str, at: u32) -> RefRecord {
++        RefRecord {
++            name: name.into(),
++            receiver_hint: recv.into(),
++            site_byte: at,
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn a_bare_call_through_a_binding_in_scope_is_shadowed() {
++        let l = FileLocals::build(&facts());
++        assert!(l.shadows_bare_call(&call("cb", "", 20)));
++        // Out of the binding's scope, or with a receiver: not shadowed.
++        assert!(!l.shadows_bare_call(&call("cb", "", 60)));
++        assert!(!l.shadows_bare_call(&call("cb", "x", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c", 20)));
++        assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
++        assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
++    }
++
++    #[test]
++    fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
++        let mut f = facts();
++        f.imports.push(cgg_core::ImportRecord {
++            kind: "import".into(),
++            path: "./cb".into(),
++            alias: "cb".into(),
++            site_line: 1,
++            site_byte: 12,
++        });
++        let l = FileLocals::build(&f);
++        assert!(!l.shadows_bare_call(&call("cb", "", 20)));
++    }
++}
+diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
+new file mode 100644
+index 0000000..a5e70bb
+--- /dev/null
++++ b/crates/cgg-resolve/src/libscope.rs
+@@ -0,0 +1,1045 @@
++//! Library scope for languages whose imports name files (WS14).
++//!
++//! Dart: a file sees its own library's top-level names (itself and its
++//! `part` files), and the names each `import` brings in — the imported
++//! library's top-level declarations and everything it `export`s, filtered
++//! by `show` / `hide` — unless the import has a prefix (`as p`), when they
++//! are reached only as `p.name`. `package:<name>/x.dart` is
++//! `<root>/lib/x.dart` of the `pubspec.yaml` declaring `<name>`; a package
++//! no pubspec in the tree declares, and `dart:` libraries, are
++//! dependencies.
++//!
++//! A call this scope decides is bound only to what the scope holds, or
++//! refused (recorded): never matched by name against the rest of the tree,
++//! which bound `expect()` from `package:test` to whichever workspace file
++//! declared an `expect`. Every lookup is keyed by file and name; nothing
++//! here is built from a list of names.
++
++use std::collections::{HashMap, HashSet};
++use std::path::{Path, PathBuf};
++use std::sync::{Arc, Mutex};
++
++use cgg_core::{
++    FileFacts, RefRecord,
++    graph::Graph,
++    ids::{CallableId, FileId},
++};
++
++use crate::modules::{Scoped, normalize};
++
++/// Export chains deeper than this are not followed.
++const MAX_DEPTH: u8 = 16;
++
++/// Where a Dart URI leads from a given file.
++#[derive(Debug, Clone, PartialEq)]
++enum Target {
++    /// An analyzed file of the tree.
++    File(FileId),
++    /// A library outside the tree (`dart:async`, a package no pubspec of
++    /// the tree declares).
++    External(String),
++    /// A path into the tree that names no analyzed file (generated code,
++    /// a file in a language filter's shadow): nothing can be judged.
++    Unknown,
++}
++
++/// One `import` / `export` directive.
++#[derive(Debug, Clone, Default)]
++struct Directive {
++    uri: String,
++    prefix: String,
++    show: Option<HashSet<String>>,
++    hide: HashSet<String>,
++    /// Where `uri` leads, resolved once when the index is built.
++    target: Option<Target>,
++}
++
++impl Directive {
++    fn allows(&self, name: &str) -> bool {
++        self.show.as_ref().is_none_or(|s| s.contains(name)) && !self.hide.contains(name)
++    }
++}
++
++#[derive(Debug, Default)]
++struct DartFile {
++    imports: Vec<Directive>,
++    exports: Vec<Directive>,
++    parts: Vec<String>,
++    part_of: Option<String>,
++    part_of_library: Option<String>,
++    /// The library the file belongs to, and that library's files (it and
++    /// its parts), resolved once when the index is built.
++    library: Option<FileId>,
++    library_files: Vec<FileId>,
++}
++
++/// A Zig file-level name bound to another file or a path.
++#[derive(Debug, Clone)]
++enum ZigBind {
++    /// `@import("x")`, as written.
++    Import(String),
++    /// `a.b.c`, a path through this file's other bindings.
++    Alias(String),
++}
++
++/// A library's exported namespace: name → the callables it denotes.
++type Namespace = HashMap<String, Vec<CallableId>>;
++
++/// Whole-tree index, built once per run.
++#[derive(Debug, Default)]
++pub(crate) struct LibIndex<'a> {
++    dart_by_path: HashMap<PathBuf, FileId>,
++    dart_files: HashMap<FileId, DartFile>,
++    /// Package name → its root directories (several pubspecs may share a
++    /// name — templates, fixtures).
++    dart_pkg_roots: HashMap<String, Vec<PathBuf>>,
++    /// `library a.b;` name → files declaring it.
++    dart_library_names: HashMap<String, Vec<FileId>>,
++    /// File → the top-level callables it declares, by simple name.
++    dart_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
++    /// File → every simple name any callable of it carries.
++    dart_any: HashMap<FileId, HashSet<&'a str>>,
++    paths: HashMap<FileId, &'a Path>,
++    /// Zig: normalized path → file.
++    zig_by_path: HashMap<PathBuf, FileId>,
++    /// Zig: each file's top-level `const NAME = @import(…)` /
++    /// `const NAME = a.b` bindings.
++    zig_binds: HashMap<FileId, HashMap<String, ZigBind>>,
++    /// Zig: modules build scripts declare, `(build dir, name, root)`.
++    zig_modules: Vec<(PathBuf, String, PathBuf)>,
++    /// Zig: every file stem and directory name of a Zig file.
++    zig_names: HashSet<String>,
++    /// Zig: file → callables not nested in another, by simple name.
++    zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
++    /// Exported namespaces, computed on first use, and whether some
++    /// export chain leaves the tree.
++    ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
++}
++
++impl<'a> LibIndex<'a> {
++    pub(crate) fn build(graph: &'a Graph, facts: &'a [FileFacts]) -> Self {
++        let mut ix = LibIndex::default();
++        ix.build_zig(graph, facts);
++        if !facts.iter().any(|f| f.language == "dart") {
++            return ix;
++        }
++        // Top-level: a callable no other callable of its file contains,
++        // with no owner in its qualified name.
++        let mut spans: HashMap<FileId, Vec<(u32, u32)>> = HashMap::new();
++        for c in graph.callables.values().filter(|c| c.language == "dart") {
++            spans.entry(c.file).or_default().push((c.start_byte, c.end_byte));
++        }
++        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
++            .callables
++            .values()
++            .filter(|c| c.language == "dart")
++            .collect();
++        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        for c in ids {
++            ix.dart_any
++                .entry(c.file)
++                .or_default()
++                .insert(c.simple_name.as_str());
++            // A method whose class the plugin missed (a `mixin`, a parse
++            // error) also carries a bare qualified name; its kind says
++            // what it is.
++            if c.qualified_name != c.simple_name
++                || matches!(
++                    c.kind,
++                    cgg_core::graph::CallableKind::Method
++                        | cgg_core::graph::CallableKind::Property
++                        | cgg_core::graph::CallableKind::Destructor
++                )
++            {
++                continue;
++            }
++            let nested = spans.get(&c.file).is_some_and(|v| {
++                v.iter().any(|&(s, e)| {
++                    s <= c.start_byte && c.end_byte <= e && (s, e) != (c.start_byte, c.end_byte)
++                })
++            });
++            if nested {
++                continue;
++            }
++            ix.dart_top
++                .entry(c.file)
++                .or_default()
++                .entry(c.simple_name.as_str())
++                .or_default()
++                .push(c.id);
++        }
++        for f in facts.iter().filter(|f| f.language == "dart") {
++            ix.paths.insert(f.file, f.path.as_path());
++            ix.dart_by_path.entry(normalize(&f.path)).or_insert(f.file);
++            let mut df = DartFile::default();
++            // Directives in source order; `show`/`hide` follow the
++            // directive they belong to.
++            let mut last: Option<(bool, usize)> = None;
++            for imp in &f.imports {
++                let uri = imp.path.trim();
++                match imp.kind.as_str() {
++                    "import" | "export" => {
++                        let d = Directive {
++                            uri: uri.to_string(),
++                            prefix: imp.alias.trim().to_string(),
++                            ..Directive::default()
++                        };
++                        if imp.kind == "import" {
++                            df.imports.push(d);
++                            last = Some((true, df.imports.len() - 1));
++                        } else {
++                            df.exports.push(d);
++                            last = Some((false, df.exports.len() - 1));
++                        }
++                    }
++                    "show" | "hide" => {
++                        let Some((is_import, i)) = last else { continue };
++                        let d = if is_import {
++                            &mut df.imports[i]
++                        } else {
++                            &mut df.exports[i]
++                        };
++                        if d.uri != uri {
++                            continue;
++                        }
++                        let names = imp
++                            .alias
++                            .split(',')
++                            .map(|n| n.trim().to_string())
++                            .filter(|n| !n.is_empty());
++                        if imp.kind == "show" {
++                            d.show.get_or_insert_with(HashSet::new).extend(names);
++                        } else {
++                            d.hide.extend(names);
++                        }
++                    }
++                    "part" => df.parts.push(uri.to_string()),
++                    "part-of" => df.part_of = Some(uri.to_string()),
++                    "part-of-library" => df.part_of_library = Some(uri.to_string()),
++                    "library" => ix
++                        .dart_library_names
++                        .entry(uri.to_string())
++                        .or_default()
++                        .push(f.file),
++                    "package-root" => {
++                        if let Some(name) = f.packages.first() {
++                            let roots = ix.dart_pkg_roots.entry(name.clone()).or_default();
++                            let root = normalize(Path::new(uri));
++                            if !roots.contains(&root) {
++                                roots.push(root);
++                            }
++                        }
++                    }
++                    _ => {}
++                }
++            }
++            ix.dart_files.insert(f.file, df);
++        }
++        for roots in ix.dart_pkg_roots.values_mut() {
++            roots.sort();
++        }
++        // Resolve every directive's target once.
++        let mut files: Vec<FileId> = ix.dart_files.keys().copied().collect();
++        files.sort();
++        for f in &files {
++            let df = &ix.dart_files[f];
++            let imports: Vec<Target> =
++                df.imports.iter().map(|d| ix.dart_target(*f, &d.uri)).collect();
++            let exports: Vec<Target> =
++                df.exports.iter().map(|d| ix.dart_target(*f, &d.uri)).collect();
++            let library = ix.dart_library_of(*f);
++            if let Some(df) = ix.dart_files.get_mut(f) {
++                for (d, t) in df.imports.iter_mut().zip(imports) {
++                    d.target = Some(t);
++                }
++                for (d, t) in df.exports.iter_mut().zip(exports) {
++                    d.target = Some(t);
++                }
++                df.library = Some(library);
++            }
++        }
++        for f in &files {
++            let lib_files = ix.dart_library_files_uncached(*f);
++            if let Some(df) = ix.dart_files.get_mut(f) {
++                df.library_files = lib_files;
++            }
++        }
++        ix
++    }
++
++    fn target_of(&self, from: FileId, d: &Directive) -> Target {
++        d.target
++            .clone()
++            .unwrap_or_else(|| self.dart_target(from, &d.uri))
++    }
++
++    /// Where `uri`, written in `from`, leads.
++    fn dart_target(&self, from: FileId, uri: &str) -> Target {
++        let uri = uri.trim();
++        if uri.starts_with("dart:") {
++            return Target::External(uri.to_string());
++        }
++        if let Some(rest) = uri.strip_prefix("package:") {
++            let (name, sub) = rest.split_once('/').unwrap_or((rest, ""));
++            let Some(roots) = self.dart_pkg_roots.get(name) else {
++                return Target::External(uri.to_string());
++            };
++            // Several packages of one name: the one the importer sits in,
++            // else the one sharing the longest directory prefix with it.
++            let here = self.paths.get(&from).map(|p| normalize(p));
++            let root = roots
++                .iter()
++                .max_by_key(|r| {
++                    here.as_ref().map_or(0, |h| {
++                        h.components().zip(r.components()).take_while(|(a, b)| a == b).count()
++                    })
++                })
++                .cloned();
++            let Some(root) = root else {
++                return Target::Unknown;
++            };
++            return match self.dart_by_path.get(&normalize(&root.join("lib").join(sub))) {
++                Some(f) => Target::File(*f),
++                None => Target::Unknown,
++            };
++        }
++        if uri.contains(':') {
++            // `http:`, `file:`: not a library of the tree.
++            return Target::External(uri.to_string());
++        }
++        let Some(dir) = self.paths.get(&from).and_then(|p| p.parent()) else {
++            return Target::Unknown;
++        };
++        match self.dart_by_path.get(&normalize(&dir.join(uri))) {
++            Some(f) => Target::File(*f),
++            None => Target::Unknown,
++        }
++    }
++
++    /// The library a file belongs to: its own file, or the file its
++    /// `part of` names.
++    fn dart_library_of(&self, f: FileId) -> FileId {
++        let Some(df) = self.dart_files.get(&f) else {
++            return f;
++        };
++        if let Some(lib) = df.library {
++            return lib;
++        }
++        if let Some(uri) = &df.part_of
++            && let Target::File(lib) = self.dart_target(f, uri)
++        {
++            return lib;
++        }
++        if let Some(name) = &df.part_of_library
++            && let Some([lib]) = self.dart_library_names.get(name).map(Vec::as_slice)
++        {
++            return *lib;
++        }
++        f
++    }
++
++    /// The files of library `lib`: itself and its parts.
++    fn dart_library_files(&self, lib: FileId) -> Vec<FileId> {
++        match self.dart_files.get(&lib) {
++            Some(df) if !df.library_files.is_empty() => df.library_files.clone(),
++            _ => self.dart_library_files_uncached(lib),
++        }
++    }
++
++    fn dart_library_files_uncached(&self, lib: FileId) -> Vec<FileId> {
++        let mut out = vec![lib];
++        if let Some(df) = self.dart_files.get(&lib) {
++            for p in &df.parts {
++                if let Target::File(f) = self.dart_target(lib, p)
++                    && !out.contains(&f)
++                {
++                    out.push(f);
++                }
++            }
++        }
++        out
++    }
++
++    /// What library `lib` exports: its own top-level declarations and,
++    /// through `export`, everything the libraries it re-exports do
++    /// (filtered by `show`/`hide`). Whether some export left the tree is
++    /// returned too: a name not found may come from there.
++    fn dart_namespace(&self, lib: FileId) -> (Arc<Namespace>, bool) {
++        if let Ok(cache) = self.ns_cache.lock()
++            && let Some(ns) = cache.get(&lib)
++        {
++            return ns.clone();
++        }
++        let mut ns = Namespace::new();
++        let mut seen = HashSet::new();
++        self.dart_collect(lib, &mut ns, &mut seen, &|_| true, 0);
++        let outside = self.dart_exports_outside(lib, &mut HashSet::new(), 0);
++        let ns = (Arc::new(ns), outside);
++        if let Ok(mut cache) = self.ns_cache.lock() {
++            cache.entry(lib).or_insert_with(|| ns.clone());
++        }
++        ns
++    }
++
++    fn dart_collect(
++        &self,
++        lib: FileId,
++        ns: &mut Namespace,
++        seen: &mut HashSet<FileId>,
++        allow: &dyn Fn(&str) -> bool,
++        depth: u8,
++    ) {
++        if depth > MAX_DEPTH || !seen.insert(lib) {
++            return;
++        }
++        for f in self.dart_library_files(lib) {
++            if let Some(top) = self.dart_top.get(&f) {
++                let mut names: Vec<(&&str, &Vec<CallableId>)> = top.iter().collect();
++                names.sort_by_key(|(n, _)| **n);
++                for (name, cids) in names {
++                    if allow(name) {
++                        let slot = ns.entry((*name).to_string()).or_default();
++                        for c in cids {
++                            if !slot.contains(c) {
++                                slot.push(*c);
++                            }
++                        }
++                    }
++                }
++            }
++        }
++        let Some(df) = self.dart_files.get(&lib) else {
++            return;
++        };
++        for e in &df.exports {
++            if let Target::File(t) = self.target_of(lib, e) {
++                let both = |n: &str| allow(n) && e.allows(n);
++                self.dart_collect(t, ns, seen, &both, depth + 1);
++            }
++        }
++    }
++
++    /// Whether some export chain from `lib` leaves the tree (or names a
++    /// file cgg did not analyze).
++    fn dart_exports_outside(&self, lib: FileId, seen: &mut HashSet<FileId>, depth: u8) -> bool {
++        if depth > MAX_DEPTH || !seen.insert(lib) {
++            return false;
++        }
++        let Some(df) = self.dart_files.get(&lib) else {
++            return false;
++        };
++        df.exports.iter().any(|e| match self.target_of(lib, e) {
++            Target::File(t) => self.dart_exports_outside(t, seen, depth + 1),
++            _ => true,
++        })
++    }
++
++    /// Library-scope resolution of one Dart call. `None`: not a call this
++    /// scope can judge; the resolver's other steps apply.
++    pub(crate) fn resolve_dart(
++        &self,
++        file: FileId,
++        r: &RefRecord,
++        caller_qn: Option<&str>,
++    ) -> Option<Scoped> {
++        let df = self.dart_files.get(&file)?;
++        let rh = r.receiver_hint.trim();
++        if rh.is_empty() {
++            if r.dot_call {
++                return None;
++            }
++            // The file's own declarations are intra-file's to weigh.
++            if self
++                .dart_any
++                .get(&file)
++                .is_some_and(|names| names.contains(r.name.as_str()))
++            {
++                return None;
++            }
++            // Another part of the same library.
++            let lib = self.dart_library_of(file);
++            let mut own: Vec<CallableId> = Vec::new();
++            for f in self.dart_library_files(lib) {
++                if let Some(cids) = self.dart_top.get(&f).and_then(|t| t.get(r.name.as_str())) {
++                    own.extend(cids.iter().copied());
++                }
++            }
++            if !own.is_empty() {
++                return Some(Scoped::Bound {
++                    cids: own,
++                    certain: true,
++                });
++            }
++            // A part's imports are its library's.
++            let lib_df = self.dart_files.get(&lib).unwrap_or(df);
++            let import_file = if lib_df.imports.is_empty() { file } else { lib };
++            let imports = if lib_df.imports.is_empty() {
++                &df.imports
++            } else {
++                &lib_df.imports
++            };
++            let mut found: Vec<Vec<CallableId>> = Vec::new();
++            let mut external: Option<String> = None;
++            let mut unknown = false;
++            for d in imports.iter().filter(|d| d.prefix.is_empty()) {
++                if !d.allows(&r.name) {
++                    continue;
++                }
++                match self.target_of(import_file, d) {
++                    Target::File(t) => {
++                        let (ns, outside) = self.dart_namespace(t);
++                        if let Some(cids) = ns.get(r.name.as_str()) {
++                            if !found.contains(cids) {
++                                found.push(cids.clone());
++                            }
++                        } else if outside {
++                            external.get_or_insert_with(|| d.uri.clone());
++                        }
++                    }
++                    Target::External(u) => {
++                        external.get_or_insert(u);
++                    }
++                    Target::Unknown => unknown = true,
++                }
++            }
++            return match found.len() {
++                0 if unknown => None,
++                // A member's bare call may name an inherited member; the
++                // plugin records no bases to tell.
++                0 if caller_qn.is_some_and(|q| q.contains("::")) => None,
++                // `dart:core` is imported implicitly.
++                0 => Some(Scoped::External(
++                    external.unwrap_or_else(|| "dart:core".to_string()),
++                )),
++                1 => Some(Scoped::Bound {
++                    cids: found.pop().unwrap_or_default(),
++                    certain: true,
++                }),
++                _ => Some(Scoped::Bound {
++                    cids: found.into_iter().flatten().collect(),
++                    certain: false,
++                }),
++            };
++        }
++        // `p.f()` through an import prefix.
++        let lib = self.dart_library_of(file);
++        let lib_df = self.dart_files.get(&lib).unwrap_or(df);
++        let (import_file, imports) = if lib_df.imports.is_empty() {
++            (file, &df.imports)
++        } else {
++            (lib, &lib_df.imports)
++        };
++        let head = rh.split('.').next().unwrap_or(rh);
++        let prefixed: Vec<&Directive> = imports.iter().filter(|d| d.prefix == head).collect();
++        if prefixed.is_empty() {
++            return None;
++        }
++        let mut found: Vec<Vec<CallableId>> = Vec::new();
++        let mut external: Option<String> = None;
++        let mut unknown = false;
++        let mut first_ws: Option<String> = None;
++        for d in &prefixed {
++            match self.target_of(import_file, d) {
++                Target::File(t) => {
++                    first_ws.get_or_insert_with(|| d.uri.clone());
++                    if rh != head {
++                        // `p.Type.m()`: a member, not judged here.
++                        unknown = true;
++                        continue;
++                    }
++                    if !d.allows(&r.name) {
++                        continue;
++                    }
++                    let (ns, outside) = self.dart_namespace(t);
++                    if let Some(cids) = ns.get(r.name.as_str()) {
++                        if !found.contains(cids) {
++                            found.push(cids.clone());
++                        }
++                    } else if outside {
++                        external.get_or_insert_with(|| d.uri.clone());
++                    }
++                }
++                Target::External(u) => {
++                    external.get_or_insert(u);
++                }
++                Target::Unknown => unknown = true,
++            }
++        }
++        match found.len() {
++            1 => Some(Scoped::Bound {
++                cids: found.pop().unwrap_or_default(),
++                certain: true,
++            }),
++            n if n > 1 => Some(Scoped::Bound {
++                cids: found.into_iter().flatten().collect(),
++                certain: false,
++            }),
++            _ if unknown => None,
++            _ => match (external, first_ws) {
++                (Some(u), _) => Some(Scoped::External(u)),
++                (None, Some(u)) => Some(Scoped::Refused(u)),
++                (None, None) => None,
++            },
++        }
++    }
++}
++
++impl<'a> LibIndex<'a> {
++    fn build_zig(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
++        if !facts.iter().any(|f| f.language == "zig") {
++            return;
++        }
++        let mut spans: HashMap<FileId, Vec<(u32, u32)>> = HashMap::new();
++        for c in graph.callables.values().filter(|c| c.language == "zig") {
++            spans.entry(c.file).or_default().push((c.start_byte, c.end_byte));
++        }
++        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
++            .callables
++            .values()
++            .filter(|c| c.language == "zig")
++            .collect();
++        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        for c in ids {
++            let nested = spans.get(&c.file).is_some_and(|v| {
++                v.iter().any(|&(s, e)| {
++                    s <= c.start_byte && c.end_byte <= e && (s, e) != (c.start_byte, c.end_byte)
++                })
++            });
++            if !nested {
++                self.zig_top
++                    .entry(c.file)
++                    .or_default()
++                    .entry(c.simple_name.as_str())
++                    .or_default()
++                    .push(c.id);
++            }
++        }
++        for f in facts.iter().filter(|f| f.language == "zig") {
++            self.paths.insert(f.file, f.path.as_path());
++            self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
++            if let Some(stem) = f.path.file_stem() {
++                self.zig_names.insert(stem.to_string_lossy().into_owned());
++            }
++            if let Some(dir) = f.path.parent() {
++                for c in dir.components() {
++                    if let std::path::Component::Normal(n) = c {
++                        self.zig_names.insert(n.to_string_lossy().into_owned());
++                    }
++                }
++            }
++            let mut binds: HashMap<String, ZigBind> = HashMap::new();
++            for imp in &f.imports {
++                let name = imp.alias.trim();
++                match imp.kind.as_str() {
++                    "import" if !name.is_empty() => {
++                        binds.insert(name.to_string(), ZigBind::Import(imp.path.trim().into()));
++                    }
++                    "alias" if !name.is_empty() => {
++                        binds.insert(name.to_string(), ZigBind::Alias(imp.path.trim().into()));
++                    }
++                    "zig-module" => {
++                        if let Some(dir) = f.path.parent() {
++                            self.zig_modules.push((
++                                normalize(dir),
++                                name.to_string(),
++                                normalize(&dir.join(imp.path.trim())),
++                            ));
++                        }
++                    }
++                    _ => {}
++                }
++            }
++            self.zig_binds.insert(f.file, binds);
++        }
++        self.zig_modules.sort();
++        self.zig_modules.dedup();
++    }
++
++    /// The module names the tree's build scripts declare.
++    pub(crate) fn zig_module_names(&self) -> impl Iterator<Item = &str> {
++        self.zig_modules.iter().map(|(_, n, _)| n.as_str())
++    }
++
++    /// Where `@import(spec)`, written in `from`, leads.
++    fn zig_target(&self, from: FileId, spec: &str) -> Target {
++        let spec = spec.trim();
++        let here = self.paths.get(&from).map(|p| normalize(p));
++        if spec.ends_with(".zig") || spec.ends_with(".zon") {
++            let Some(dir) = here.as_ref().and_then(|p| p.parent().map(Path::to_path_buf)) else {
++                return Target::Unknown;
++            };
++            return match self.zig_by_path.get(&normalize(&dir.join(spec))) {
++                Some(f) => Target::File(*f),
++                None => Target::Unknown,
++            };
++        }
++        // A module a build script of the tree declares: the nearest one
++        // above the importer, else the one declaration of the name.
++        let declared: Vec<&(PathBuf, String, PathBuf)> =
++            self.zig_modules.iter().filter(|(_, n, _)| n == spec).collect();
++        let nearest = declared
++            .iter()
++            .filter(|(dir, _, _)| here.as_ref().is_some_and(|h| h.starts_with(dir)))
++            .max_by_key(|(dir, _, _)| dir.components().count())
++            .or(match declared.as_slice() {
++                [one] => Some(one),
++                _ => None,
++            });
++        if let Some((_, _, root)) = nearest {
++            return match self.zig_by_path.get(root) {
++                Some(f) => Target::File(*f),
++                None => Target::Unknown,
++            };
++        }
++        if !declared.is_empty() {
++            return Target::Unknown;
++        }
++        // A module whose root file is named after its directory
++        // (`lib/std/std.zig` in the Zig tree itself).
++        let rooted: Vec<FileId> = self
++            .zig_by_path
++            .iter()
++            .filter(|(p, _)| {
++                p.file_stem().is_some_and(|s| s == spec)
++                    && p.parent()
++                        .and_then(|d| d.file_name())
++                        .is_some_and(|d| d == spec)
++            })
++            .map(|(_, f)| *f)
++            .collect();
++        match rooted.as_slice() {
++            [one] => Target::File(*one),
++            [] if !self.zig_names.contains(spec) => Target::External(spec.to_string()),
++            _ => Target::Unknown,
++        }
++    }
++
++    /// Module-path resolution of a Zig call written through the file's
++    /// imports (`std.debug.print()`, `link.addRunArtifact()`): each
++    /// segment a file-level `@import` or alias of the file reached so
++    /// far, the call a function declared in the file the path ends in.
++    /// `None` when the path enters a type or value, or nothing decides.
++    pub(crate) fn resolve_zig(&self, file: FileId, r: &RefRecord) -> Option<Scoped> {
++        let rh = r.receiver_hint.trim();
++        if rh.is_empty() {
++            return None;
++        }
++        let segs: Vec<&str> = rh.split('.').collect();
++        if !segs
++            .iter()
++            .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'))
++        {
++            return None;
++        }
++        let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
++        let (g, label) = self.zig_walk(file, &segs, 0)?;
++        let g = match g {
++            Target::File(g) => g,
++            Target::External(m) => return Some(Scoped::External(m)),
++            Target::Unknown => return None,
++        };
++        let cands = self.zig_top.get(&g).and_then(|t| t.get(r.name.as_str()))?;
++        match cands.as_slice() {
++            [_] => Some(Scoped::Bound {
++                cids: cands.clone(),
++                certain: true,
++            }),
++            _ => {
++                let _ = label;
++                None
++            }
++        }
++    }
++
++    /// Follow `segs` from `file` through file-level bindings to the file
++    /// (or dependency) they name, with the import that started the path.
++    fn zig_walk(&self, file: FileId, segs: &[String], depth: u8) -> Option<(Target, String)> {
++        if depth > MAX_DEPTH {
++            return None;
++        }
++        let (head, rest) = segs.split_first()?;
++        match self.zig_binds.get(&file)?.get(head)? {
++            ZigBind::Alias(path) => {
++                let mut expanded: Vec<String> = path.split('.').map(str::to_string).collect();
++                if expanded.first() == Some(head) {
++                    return None;
++                }
++                expanded.extend(rest.iter().cloned());
++                self.zig_walk(file, &expanded, depth + 1)
++            }
++            ZigBind::Import(spec) => match self.zig_target(file, spec) {
++                Target::File(g) if rest.is_empty() => Some((Target::File(g), spec.clone())),
++                Target::File(g) => self.zig_walk(g, rest, depth + 1),
++                other => Some((other, spec.clone())),
++            },
++        }
++    }
++}
++
++/// PHP: what the tree declares, by fully qualified name (lowercase: PHP
++/// class and function names are case-insensitive).
++#[derive(Debug, Default)]
++pub(crate) struct PhpIndex {
++    /// Class / interface / trait / enum FQN → declaring files.
++    classes: HashMap<String, Vec<FileId>>,
++    /// Every declared namespace and each of its ancestors.
++    namespaces: HashSet<String>,
++    /// `(file, lowercase class short name, lowercase method)` → callables.
++    methods: HashMap<(FileId, String, String), Vec<CallableId>>,
++    /// Function FQN → callables.
++    functions: HashMap<String, Vec<CallableId>>,
++    /// Lowercase simple names of every PHP function the tree declares.
++    function_names: HashSet<String>,
++    /// File → `(byte, namespace)`, in source order.
++    file_ns: HashMap<FileId, Vec<(u32, String)>>,
++    /// File → `use` table: lowercase alias → FQN.
++    uses: HashMap<FileId, HashMap<String, String>>,
++    /// `(file, lowercase class short name)` → its declared bases as
++    /// written.
++    bases: HashMap<(FileId, String), Vec<String>>,
++}
++
++fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
++    ns.iter()
++        .rev()
++        .find(|(b, _)| *b <= byte)
++        .or(ns.first())
++        .map_or("", |(_, n)| n.as_str())
++}
++
++fn php_join(ns: &str, name: &str) -> String {
++    let name = name.trim_start_matches('\\');
++    if ns.is_empty() {
++        name.to_ascii_lowercase()
++    } else {
++        format!("{ns}\\{name}").to_ascii_lowercase()
++    }
++}
++
++impl PhpIndex {
++    pub(crate) fn build(graph: &Graph, facts: &[FileFacts]) -> Self {
++        let mut ix = PhpIndex::default();
++        for f in facts.iter().filter(|f| f.language == "php") {
++            let mut ns: Vec<(u32, String)> = Vec::new();
++            let mut uses: HashMap<String, String> = HashMap::new();
++            for imp in &f.imports {
++                let path = imp.path.trim().trim_start_matches('\\');
++                match imp.kind.as_str() {
++                    "package" => {
++                        ns.push((imp.site_byte, path.to_string()));
++                        let mut cut = path.to_ascii_lowercase();
++                        loop {
++                            ix.namespaces.insert(cut.clone());
++                            match cut.rsplit_once('\\') {
++                                Some((h, _)) => cut = h.to_string(),
++                                None => break,
++                            }
++                        }
++                    }
++                    "use" if !path.is_empty() => {
++                        let alias = if imp.alias.trim().is_empty() {
++                            path.rsplit('\\').next().unwrap_or(path)
++                        } else {
++                            imp.alias.trim()
++                        };
++                        uses.insert(alias.to_ascii_lowercase(), path.to_ascii_lowercase());
++                    }
++                    _ => {}
++                }
++            }
++            for c in &f.classes {
++                ix.classes
++                    .entry(c.class_qn.to_ascii_lowercase())
++                    .or_default()
++                    .push(f.file);
++            }
++            for d in &f.definitions {
++                if let Some((owner, _)) = d.qualified_name.split_once("::")
++                    && !d.base_types.is_empty()
++                {
++                    ix.bases
++                        .entry((f.file, owner.to_ascii_lowercase()))
++                        .or_insert_with(|| d.base_types.clone());
++                }
++            }
++            ix.file_ns.insert(f.file, ns);
++            ix.uses.insert(f.file, uses);
++        }
++        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
++            .callables
++            .values()
++            .filter(|c| c.language == "php")
++            .collect();
++        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        for c in ids {
++            match c.qualified_name.split_once("::") {
++                Some((owner, m)) => ix
++                    .methods
++                    .entry((c.file, owner.to_ascii_lowercase(), m.to_ascii_lowercase()))
++                    .or_default()
++                    .push(c.id),
++                None => {
++                    let ns = ix.file_ns.get(&c.file).map_or("", |v| php_ns_at(v, c.start_byte));
++                    ix.functions
++                        .entry(php_join(ns, &c.simple_name))
++                        .or_default()
++                        .push(c.id);
++                    ix.function_names.insert(c.simple_name.to_ascii_lowercase());
++                }
++            }
++        }
++        ix
++    }
++
++    /// A class name as written in `file` at `byte`, made fully qualified
++    /// through the file's namespace and `use` table.
++    fn class_fqn(&self, file: FileId, byte: u32, name: &str) -> String {
++        if let Some(abs) = name.strip_prefix('\\') {
++            return abs.to_ascii_lowercase();
++        }
++        let (head, rest) = match name.split_once('\\') {
++            Some((h, r)) => (h, Some(r)),
++            None => (name, None),
++        };
++        if let Some(target) = self
++            .uses
++            .get(&file)
++            .and_then(|u| u.get(&head.to_ascii_lowercase()))
++        {
++            return match rest {
++                Some(r) => format!("{target}\\{}", r.to_ascii_lowercase()),
++                None => target.clone(),
++            };
++        }
++        let ns = self.file_ns.get(&file).map_or("", |v| php_ns_at(v, byte));
++        php_join(ns, name)
++    }
++
++    /// Whether a fully qualified name lies in a namespace the tree
++    /// declares (or is a global name, which any file may declare).
++    fn in_tree_namespace(&self, fqn: &str) -> bool {
++        match fqn.rsplit_once('\\') {
++            Some((ns, _)) => self.namespaces.contains(ns),
++            None => true,
++        }
++    }
++
++    /// `method` of the class `fqn`, walking its bases (`depth` levels).
++    fn class_method(&self, fqn: &str, method: &str, depth: u8) -> ClassLookup {
++        if depth > 8 {
++            return ClassLookup::Unknown;
++        }
++        let Some(files) = self.classes.get(fqn) else {
++            return if self.in_tree_namespace(fqn) {
++                ClassLookup::Unknown
++            } else {
++                ClassLookup::External
++            };
++        };
++        let short = fqn.rsplit('\\').next().unwrap_or(fqn).to_string();
++        let mut found: Vec<CallableId> = Vec::new();
++        for f in files {
++            if let Some(ids) =
++                self.methods
++                    .get(&(*f, short.clone(), method.to_ascii_lowercase()))
++            {
++                found.extend(ids.iter().copied());
++            }
++        }
++        if !found.is_empty() {
++            return ClassLookup::Found(found, files.len() == 1);
++        }
++        // Inherited: the first base that provides it.
++        for f in files {
++            for b in self.bases.get(&(*f, short.clone())).into_iter().flatten() {
++                let base = self.class_fqn(*f, 0, b);
++                match self.class_method(&base, method, depth + 1) {
++                    ClassLookup::Found(ids, _) => return ClassLookup::Found(ids, false),
++                    ClassLookup::External => return ClassLookup::External,
++                    ClassLookup::Unknown => {}
++                }
++            }
++        }
++        ClassLookup::Unknown
++    }
++
++    /// Namespace-scoped resolution of one PHP call. `None`: not a call
++    /// this pass judges.
++    pub(crate) fn resolve(
++        &self,
++        file: FileId,
++        r: &RefRecord,
++        caller_qn: Option<&str>,
++    ) -> Option<Scoped> {
++        let rh = r.receiver_hint.trim();
++        if rh.is_empty() {
++            if r.dot_call {
++                return None;
++            }
++            // `f()`: a `use function` import, else the namespace's own
++            // `f`, else the global one.
++            let ns = self.file_ns.get(&file).map_or("", |v| php_ns_at(v, r.site_byte));
++            let lower = r.name.to_ascii_lowercase();
++            let mut tries: Vec<String> = Vec::new();
++            if let Some(t) = self.uses.get(&file).and_then(|u| u.get(&lower)) {
++                tries.push(t.clone());
++            }
++            if r.name.starts_with('\\') || r.name.contains('\\') {
++                tries.push(self.class_fqn(file, r.site_byte, &r.name));
++            } else {
++                tries.push(php_join(ns, &r.name));
++                tries.push(lower.clone());
++            }
++            for t in &tries {
++                if let Some(ids) = self.functions.get(t) {
++                    return Some(Scoped::Bound {
++                        cids: ids.clone(),
++                        certain: ids.len() == 1,
++                    });
++                }
++            }
++            // A function the tree declares only in other namespaces is
++            // not this call's: a builtin or a dependency's.
++            return self
++                .function_names
++                .contains(lower.trim_start_matches('\\'))
++                .then(|| Scoped::External(tries.last().cloned().unwrap_or(lower)));
++        }
++        let lower = rh.to_ascii_lowercase();
++        let fqn = match lower.as_str() {
++            // `parent::m()`: the calling class's base.
++            "parent" => {
++                let (owner, _) = caller_qn?.split_once("::")?;
++                let base = self
++                    .bases
++                    .get(&(file, owner.to_ascii_lowercase()))?
++                    .first()?;
++                self.class_fqn(file, r.site_byte, base)
++            }
++            "self" | "static" => return None,
++            _ if rh.starts_with('$')
++                || !rh
++                    .chars()
++                    .all(|c| c.is_alphanumeric() || c == '_' || c == '\\') =>
++            {
++                return None;
++            }
++            _ => self.class_fqn(file, r.site_byte, rh),
++        };
++        match self.class_method(&fqn, &r.name, 0) {
++            ClassLookup::Found(cids, certain) => Some(Scoped::Bound { cids, certain }),
++            ClassLookup::External => Some(Scoped::External(fqn)),
++            ClassLookup::Unknown => None,
++        }
++    }
++}
++
++/// What a class-method lookup found.
++enum ClassLookup {
++    Found(Vec<CallableId>, bool),
++    /// The class (or the base the method must come from) is a
++    /// dependency's.
++    External,
++    /// Not decided here.
++    Unknown,
++}
