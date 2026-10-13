@@ -1,5 +1,5 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index c538c98..ee45f9c 100644
+index c538c98..0d332e2 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
 @@ -283,6 +283,12 @@ pub struct DefRecord {
@@ -35,7 +35,7 @@ index c538c98..ee45f9c 100644
      /// How many arguments the call passes, where the language makes a
      /// function's arity part of its identity — Erlang's `f/1` and `f/2`
      /// are different functions that share a name. `None` when unknown or
-@@ -478,6 +497,22 @@ pub struct FileFacts {
+@@ -478,6 +497,32 @@ pub struct FileFacts {
      /// declares by name is a definition, not one of these.
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub locals: Vec<LocalBinding>,
@@ -50,15 +50,25 @@ index c538c98..ee45f9c 100644
 +}
 +
 +/// A container type's name and body span (see [`FileFacts::type_spans`]).
-+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 +pub struct TypeSpan {
 +    pub name: String,
 +    pub start_byte: u32,
 +    pub end_byte: u32,
++    /// What declares it, where the language distinguishes (Scala
++    /// `class` / `trait` / `object`, `anon` for `new T { … }`).
++    #[serde(default, skip_serializing_if = "String::is_empty")]
++    pub kind: String,
++    /// Its supertypes as written (`QueryTest`, `catalyst.SQLHelper`).
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub bases: Vec<String>,
++    /// The package it is declared in (Scala).
++    #[serde(default, skip_serializing_if = "String::is_empty")]
++    pub package: String,
  }
  
  /// A name bound to a value over `start_byte..end_byte` (see
-@@ -608,6 +643,7 @@ impl FileFacts {
+@@ -608,6 +653,7 @@ impl FileFacts {
              untyped_receivers: Vec::new(),
              packages: Vec::new(),
              locals: Vec::new(),
@@ -798,8 +808,179 @@ index ec1966e..cf42c24 100644
                  arity: None,
                  name: simple,
                  receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
+index 5420a7c..6a1b669 100644
+--- a/crates/cgg-lang/src/plugins/scala.rs
++++ b/crates/cgg-lang/src/plugins/scala.rs
+@@ -36,6 +36,7 @@ impl LanguagePlugin for ScalaPlugin {
+             source,
+             facts: &mut facts,
+             scope: Vec::new(),
++            package: String::new(),
+         };
+         w.walk(tree.root_node());
+         facts
+@@ -52,6 +53,8 @@ struct ScalaWalker<'a> {
+     /// language was inert — the contract is identical to Java's and
+     /// matched nothing.
+     bases: Vec<Vec<String>>,
++    /// The package in effect (`package a.b` clauses, chained or block).
++    package: String,
+ }
+ 
+ impl<'a> ScalaWalker<'a> {
+@@ -68,12 +71,88 @@ impl<'a> ScalaWalker<'a> {
+ 
+     fn walk(&mut self, node: Node) {
+         match node.kind() {
++            "package_clause" => {
++                let name = node
++                    .child_by_field_name("name")
++                    .map(|n| self.text(n).split_whitespace().collect::<String>())
++                    .unwrap_or_default();
++                let joined = if self.package.is_empty() {
++                    name
++                } else {
++                    format!("{}.{name}", self.package)
++                };
++                match node.child_by_field_name("body") {
++                    // `package a { … }`: in effect inside the block only.
++                    Some(_) => {
++                        let outer = std::mem::replace(&mut self.package, joined);
++                        self.walk_children(node);
++                        self.package = outer;
++                    }
++                    // `package a.b` then `package c`: the rest of the file.
++                    None => {
++                        self.facts.imports.push(ImportRecord {
++                            kind: "scala-package".into(),
++                            path: joined.clone(),
++                            alias: String::new(),
++                            site_line: (node.start_position().row as u32) + 1,
++                            site_byte: node.start_byte() as u32,
++                        });
++                        self.package = joined;
++                    }
++                }
++                return;
++            }
++            // `new T { … }`: an anonymous class extending `T`; its members
++            // see `T`'s (WS14b).
++            "instance_expression" => {
++                let mut c = node.walk();
++                let has_body = node.children(&mut c).any(|n| n.kind() == "template_body");
++                if has_body {
++                    let mut c = node.walk();
++                    let bases: Vec<String> = node
++                        .named_children(&mut c)
++                        .filter(|n| n.kind() != "template_body" && n.kind() != "arguments")
++                        .map(|n| self.text(n).to_string())
++                        .collect();
++                    self.facts.type_spans.push(cgg_core::TypeSpan {
++                        name: String::new(),
++                        start_byte: node.start_byte() as u32,
++                        end_byte: node.end_byte() as u32,
++                        kind: "anon".into(),
++                        bases,
++                        package: self.package.clone(),
++                    });
++                }
++                self.walk_children(node);
++                return;
++            }
+             "class_definition" | "object_definition" | "trait_definition" => {
+                 let name = node
+                     .child_by_field_name("name")
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
+                 let class_bases = super::attrs::base_types(node, self.source);
++                if !name.is_empty() {
++                    // The type by its path in the package (`Outer.Inner`),
++                    // with its kind and bases, so a member lookup can walk
++                    // the bases the declaring file's imports name (WS14b).
++                    let mut path = self.scope.join(".");
++                    if !path.is_empty() {
++                        path.push('.');
++                    }
++                    path.push_str(&name);
++                    self.facts.type_spans.push(cgg_core::TypeSpan {
++                        name: path,
++                        start_byte: node.start_byte() as u32,
++                        end_byte: node.end_byte() as u32,
++                        kind: node
++                            .kind()
++                            .trim_end_matches("_definition")
++                            .to_string(),
++                        bases: class_bases.clone(),
++                        package: self.package.clone(),
++                    });
++                }
+                 if !name.is_empty() {
+                     self.scope.push(name);
+                     self.bases.push(class_bases.clone());
+@@ -201,6 +280,18 @@ impl<'a> ScalaWalker<'a> {
+         if func.is_empty() {
+             return;
+         }
++        // `this(…)` in an auxiliary constructor delegates to a constructor
++        // of the enclosing class (the primary one, or another `def this`
++        // the arguments select): a construction of that class, never a
++        // by-name match of the `this` members (WS14b).
++        let func = if func == "this" {
++            match self.scope.last() {
++                Some(class) => class.clone(),
++                None => return,
++            }
++        } else {
++            func
++        };
+ 
+         self.facts.references.push(RefRecord {
+             name: func,
+@@ -286,4 +377,41 @@ mod tests {
+         // Outside any type there is nothing to own it.
+         assert!(f.definitions.iter().all(|d| d.simple_name != "top"));
+     }
++
++    /// WS14b: types are recorded with their package path, kind and bases
++    /// (a companion object apart from its class), and `this(…)` in an
++    /// auxiliary constructor is a construction of the enclosing class,
++    /// not a call named `this`.
++    #[test]
++    fn types_packages_and_constructor_delegation() {
++        let f = extract(
++            "package org.ex\npackage sql\n\
++             trait Q extends Base { def a = 1 }\nobject Q { def a = 2 }\n\
++             class C(n: Int) extends Q with T { def this(s: String) = this(s.length) }\n",
++        );
++        let types: Vec<(&str, &str, &str, Vec<&str>)> = f
++            .type_spans
++            .iter()
++            .map(|t| {
++                (
++                    t.name.as_str(),
++                    t.kind.as_str(),
++                    t.package.as_str(),
++                    t.bases.iter().map(String::as_str).collect(),
++                )
++            })
++            .collect();
++        assert_eq!(
++            types,
++            vec![
++                ("Q", "trait", "org.ex.sql", vec!["Base"]),
++                ("Q", "object", "org.ex.sql", vec![]),
++                ("C", "class", "org.ex.sql", vec!["Q", "T"]),
++            ],
++            "{types:?}"
++        );
++        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
++        assert!(names.contains(&"C"), "{names:?}");
++        assert!(!names.contains(&"this"), "{names:?}");
++    }
+ }
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index eafccf8..37a9c9d 100644
+index eafccf8..6ab9c5c 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
 @@ -31,8 +31,14 @@ impl LanguagePlugin for ZigPlugin {
@@ -932,7 +1113,7 @@ index eafccf8..37a9c9d 100644
                      let (sl, el) = (
                          (node.start_position().row as u32) + 1,
                          (node.end_position().row as u32) + 1,
-@@ -94,10 +199,26 @@ impl<'a> ZigWalker<'a> {
+@@ -94,10 +199,27 @@ impl<'a> ZigWalker<'a> {
                          attributes: Vec::new(),
                          ..Default::default()
                      });
@@ -950,6 +1131,7 @@ index eafccf8..37a9c9d 100644
 +                    name: String::new(),
 +                    start_byte: node.start_byte() as u32,
 +                    end_byte: node.end_byte() as u32,
++                    ..Default::default()
 +                });
 +                self.containers.push((String::new(), node.start_byte() as u32));
 +                self.walk_children(node);
@@ -959,7 +1141,7 @@ index eafccf8..37a9c9d 100644
              // `const addRunArtifact = link.addRunArtifact;` at file level:
              // the name is that declaration of the aliased container, which
              // the resolver follows (`const link = @import("link.zig")`).
-@@ -105,6 +226,12 @@ impl<'a> ZigWalker<'a> {
+@@ -105,6 +227,12 @@ impl<'a> ZigWalker<'a> {
                  if node.parent().is_some_and(|p| p.kind() == "source_file") {
                      self.record_alias(node);
                  }
@@ -972,7 +1154,7 @@ index eafccf8..37a9c9d 100644
                  self.walk_children(node);
                  return;
              }
-@@ -174,6 +301,307 @@ impl<'a> ZigWalker<'a> {
+@@ -174,6 +302,309 @@ impl<'a> ZigWalker<'a> {
          self.walk_children(node);
      }
  
@@ -1019,6 +1201,7 @@ index eafccf8..37a9c9d 100644
 +                name: path.clone(),
 +                start_byte: start,
 +                end_byte: value.end_byte() as u32,
++                ..Default::default()
 +            });
 +            self.containers.push((path, start));
 +            self.walk_children(value);
@@ -1054,6 +1237,7 @@ index eafccf8..37a9c9d 100644
 +                    name: path,
 +                    start_byte: span.0,
 +                    end_byte: span.1,
++                    ..Default::default()
 +                });
 +            }
 +            return true;
@@ -1280,7 +1464,7 @@ index eafccf8..37a9c9d 100644
      fn record_alias(&mut self, node: Node) {
          let mut c = node.walk();
          let children: Vec<Node> = node.named_children(&mut c).collect();
-@@ -303,4 +731,43 @@ mod tests {
+@@ -303,4 +734,43 @@ mod tests {
              ("xev", "src/main.zig")
          );
      }
@@ -1325,7 +1509,7 @@ index eafccf8..37a9c9d 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 8ed406d..fc9579b 100644
+index 8ed406d..200eafc 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -4352,6 +4352,30 @@ fn try_resolve_ref(
@@ -1359,7 +1543,27 @@ index 8ed406d..fc9579b 100644
      // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
      // the class `X` names through them (a dependency's class is
      // external); `parent::m()` the caller's base's; `f()` the namespace's
-@@ -9634,6 +9658,22 @@ mod tests {
+@@ -4420,6 +4444,19 @@ fn try_resolve_ref(
+     // answered by whichever same-named callable was indexed last.
+     let bare_qns = matches!(lang, "javascript" | "typescript");
+ 
++    // WS14b: a Scala bare call is a member of the type around it or one
++    // it inherits, its bases resolved through the declaring file's
++    // imports and package (not by simple name); a companion object's
++    // members are not the class's.
++    if lang == "scala"
++        && (r.receiver_hint.is_empty() || r.receiver_hint == "this")
++        && !r.dot_call
++        && let Some(crate::modules::Scoped::Bound { cids, certain }) =
++            libix.resolve_scala_bare(caller_file, r)
++    {
++        *module_certain = certain;
++        return Some(cids);
++    }
+     // Step 1: direct import match — `foo()` where `foo` was
+     // imported.
+     if r.receiver_hint.is_empty() {
+@@ -9634,6 +9671,22 @@ mod tests {
          tweak: impl FnOnce(&mut FileFacts),
      ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
          let mut tweak = Some(tweak);
@@ -1382,7 +1586,7 @@ index 8ed406d..fc9579b 100644
          let mut g = Graph::new();
          let mut facts = Vec::new();
          let mut all: Vec<MFile<'_>> = files;
-@@ -9681,11 +9721,7 @@ mod tests {
+@@ -9681,11 +9734,7 @@ mod tests {
                  f.imports,
              );
              ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
@@ -1395,7 +1599,7 @@ index 8ed406d..fc9579b 100644
              facts.push(ff);
          }
          let out = resolve_default(&g, &facts);
-@@ -11727,6 +11763,141 @@ mod tests {
+@@ -11727,6 +11776,191 @@ mod tests {
          );
      }
  
@@ -1440,11 +1644,13 @@ index 8ed406d..fc9579b 100644
 +                        name: "Surface".into(),
 +                        start_byte: 1990,
 +                        end_byte: 2008,
++                        ..Default::default()
 +                    },
 +                    cgg_core::TypeSpan {
 +                        name: "Window".into(),
 +                        start_byte: 2008,
 +                        end_byte: 2020,
++                        ..Default::default()
 +                    },
 +                ];
 +            }
@@ -1534,6 +1740,54 @@ index 8ed406d..fc9579b 100644
 +        assert_eq!(dsts, vec![at("get_multi", "inc/cache.php")], "{dsts:?}");
 +    }
 +
++    /// WS14b (Scala): a bare call inherited through `extends QueryTest`
++    /// reaches the `QueryTest` the caller's file imports, not a same-named
++    /// trait of another package, nor the companion object's member.
++    #[test]
++    fn scala_base_is_resolved_through_the_declaring_files_imports() {
++        let ts = |name: &str, kind: &str, pkg: &str, bases: &[&str], s: u32, e: u32| {
++            cgg_core::TypeSpan {
++                name: name.into(),
++                start_byte: s,
++                end_byte: e,
++                kind: kind.into(),
++                bases: bases.iter().map(|b| b.to_string()).collect(),
++                package: pkg.into(),
++            }
++        };
++        let files = vec![
++            // trait QueryTest { def check }  /  object QueryTest { def check }
++            mfile(
++                "core/QueryTest.scala",
++                &["QueryTest::check", "QueryTest::check"],
++                vec![],
++            ),
++            mfile("connect/QueryTest.scala", &["QueryTest::check"], vec![]),
++        ];
++        let caller = mfile(
++            "hive/Suite.scala",
++            &["Suite::run"],
++            vec![import("import", "org.ex.sql.QueryTest", "")],
++        );
++        let (dsts, _) = module_case_each(
++            "scala",
++            files,
++            caller,
++            vec![call("check", "")],
++            |is_caller, fi, f| {
++                f.type_spans = match (is_caller, fi) {
++                    (true, _) => vec![ts("Suite", "class", "org.ex.sql.hive", &["QueryTest"], 0, 1000)],
++                    (false, 0) => vec![
++                        ts("QueryTest", "trait", "org.ex.sql", &[], 1990, 2008),
++                        ts("QueryTest", "object", "org.ex.sql", &[], 2008, 2020),
++                    ],
++                    _ => vec![ts("QueryTest", "class", "org.ex.sql.connect", &[], 1990, 2008)],
++                };
++            },
++        );
++        assert_eq!(dsts, vec![at("QueryTest::check", "core/QueryTest.scala")], "{dsts:?}");
++    }
++
      /// WS14 (Scala): a bare call reaches the calling class, its bases and
      /// an object `import a.Owner._` names — never an unrelated class's
      /// member (`assert` is not `SubmitRestProtocolMessage::assert`).
@@ -1596,13 +1850,39 @@ index 645882e..2286cb9 100644
              name: "on_mouse_pos".into(),
              receiver_hint: VALUE_REF_HINT.to_string(),
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..be8ecdf 100644
+index fd17edc..b53623c 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
-@@ -73,6 +73,16 @@ struct DartFile {
+@@ -73,6 +73,42 @@ struct DartFile {
      library_files: Vec<FileId>,
  }
  
++/// A Scala type declaration (WS14b).
++#[derive(Debug)]
++struct ScalaType<'a> {
++    file: FileId,
++    /// Path within its package (`Outer.Inner`); empty for `new T { … }`.
++    path: &'a str,
++    package: &'a str,
++    kind: &'a str,
++    bases: &'a [String],
++    span: (u32, u32),
++}
++
++/// One Scala file's imports.
++#[derive(Debug, Default)]
++struct ScalaImports {
++    /// Name in scope → the path it imports (`Z` → `a.b.Y` for
++    /// `import a.b.{Y => Z}`).
++    exact: HashMap<String, String>,
++    /// `import a.b._` / `a.b.*` prefixes.
++    wild: Vec<String>,
++}
++
++/// A Scala base name resolved to types, and whether only a by-name
++/// fallback found them.
++type ScalaTypes = (Vec<usize>, bool);
++
 +/// Where a Zig receiver's type leads (WS14b).
 +enum ZigTy {
 +    /// A container type: file and body span.
@@ -1616,7 +1896,7 @@ index fd17edc..be8ecdf 100644
  /// A Zig file-level name bound to another file or a path.
  #[derive(Debug, Clone)]
  enum ZigBind {
-@@ -113,6 +123,21 @@ pub(crate) struct LibIndex<'a> {
+@@ -113,6 +149,33 @@ pub(crate) struct LibIndex<'a> {
      zig_names: HashSet<String>,
      /// Zig: file → callables not nested in another, by simple name.
      zig_top: HashMap<FileId, HashMap<&'a str, Vec<CallableId>>>,
@@ -1635,21 +1915,280 @@ index fd17edc..be8ecdf 100644
 +    /// Perl: package → its bases and composed roles, in declaration
 +    /// order (`use parent`, `@ISA`, `extends`, `with`, …).
 +    perl_isa: HashMap<String, Vec<String>>,
++    /// Scala: every class / trait / object / anonymous class (WS14b).
++    scala_types: Vec<ScalaType<'a>>,
++    /// Scala: fully qualified name → types carrying it.
++    scala_by_fqn: HashMap<String, Vec<usize>>,
++    /// Scala: simple name → named types.
++    scala_by_name: HashMap<&'a str, Vec<usize>>,
++    /// Scala: file → its types, in source order.
++    scala_file_types: HashMap<FileId, Vec<usize>>,
++    /// Scala: file → import table.
++    scala_imports: HashMap<FileId, ScalaImports>,
++    /// Scala: type → the callables declared directly in it, by name.
++    scala_members: HashMap<usize, HashMap<&'a str, Vec<CallableId>>>,
      /// Exported namespaces, computed on first use, and whether some
      /// export chain leaves the tree.
      ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
-@@ -122,6 +147,7 @@ impl<'a> LibIndex<'a> {
+@@ -122,6 +185,8 @@ impl<'a> LibIndex<'a> {
      pub(crate) fn build(graph: &'a Graph, facts: &'a [FileFacts]) -> Self {
          let mut ix = LibIndex::default();
          ix.build_zig(graph, facts);
 +        ix.build_perl(graph, facts);
++        ix.build_scala(graph, facts);
          if !facts.iter().any(|f| f.language == "dart") {
              return ix;
          }
-@@ -613,6 +639,87 @@ impl<'a> LibIndex<'a> {
+@@ -613,6 +678,333 @@ impl<'a> LibIndex<'a> {
  }
  
  impl<'a> LibIndex<'a> {
++    fn build_scala(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
++        if !facts.iter().any(|f| f.language == "scala") {
++            return;
++        }
++        for f in facts.iter().filter(|f| f.language == "scala") {
++            for t in &f.type_spans {
++                let i = self.scala_types.len();
++                self.scala_types.push(ScalaType {
++                    file: f.file,
++                    path: t.name.as_str(),
++                    package: t.package.as_str(),
++                    kind: t.kind.as_str(),
++                    bases: &t.bases,
++                    span: (t.start_byte, t.end_byte),
++                });
++                self.scala_file_types.entry(f.file).or_default().push(i);
++                if !t.name.is_empty() {
++                    let fqn = if t.package.is_empty() {
++                        t.name.clone()
++                    } else {
++                        format!("{}.{}", t.package, t.name)
++                    };
++                    self.scala_by_fqn.entry(fqn).or_default().push(i);
++                    let simple = t.name.rsplit('.').next().unwrap_or(&t.name);
++                    self.scala_by_name.entry(simple).or_default().push(i);
++                }
++            }
++            let mut im = ScalaImports::default();
++            for imp in f.imports.iter().filter(|i| i.kind == "import") {
++                scala_import(&imp.path, &mut im);
++            }
++            self.scala_imports.insert(f.file, im);
++        }
++        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
++            .callables
++            .values()
++            .filter(|c| c.language == "scala")
++            .collect();
++        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
++        for c in ids {
++            let Some(here) = self.scala_file_types.get(&c.file) else {
++                continue;
++            };
++            let inner = here
++                .iter()
++                .copied()
++                .filter(|&i| {
++                    let (s, e) = self.scala_types[i].span;
++                    s <= c.start_byte && c.end_byte <= e
++                })
++                .min_by_key(|&i| {
++                    let (s, e) = self.scala_types[i].span;
++                    (e - s, s)
++                });
++            if let Some(i) = inner {
++                self.scala_members
++                    .entry(i)
++                    .or_default()
++                    .entry(c.simple_name.as_str())
++                    .or_default()
++                    .push(c.id);
++            }
++        }
++    }
++
++    /// The class / trait a base name written in type `of` denotes:
++    /// a type of the same file, an import (exact, then resolved against
++    /// the file's wildcard imports and package — Scala imports may be
++    /// relative), the type's package, a wildcard import; ambiguity is
++    /// `None`. Only when none of those names a type in the tree, the one
++    /// type of that simple name, flagged as a by-name fallback.
++    fn scala_base(&self, of: usize, written: &str) -> Option<ScalaTypes> {
++        let t = &self.scala_types[of];
++        let name: String = written
++            .split(['[', '('])
++            .next()
++            .unwrap_or(written)
++            .split_whitespace()
++            .collect();
++        if name.is_empty() {
++            return None;
++        }
++        let classes = |fqn: &str| -> Vec<usize> {
++            self.scala_by_fqn
++                .get(fqn)
++                .map(|v| {
++                    v.iter()
++                        .copied()
++                        .filter(|&i| self.scala_types[i].kind != "object")
++                        .collect()
++                })
++                .unwrap_or_default()
++        };
++        let empty = ScalaImports::default();
++        let im = self.scala_imports.get(&t.file).unwrap_or(&empty);
++        let (head, rest) = match name.split_once('.') {
++            Some((h, r)) => (h, Some(r)),
++            None => (name.as_str(), None),
++        };
++        let with_rest = |p: &str| match rest {
++            Some(r) => format!("{p}.{r}"),
++            None => p.to_string(),
++        };
++        // The same file: a type it declares by this simple path.
++        if rest.is_none() {
++            let local: Vec<usize> = self
++                .scala_file_types
++                .get(&t.file)
++                .into_iter()
++                .flatten()
++                .copied()
++                .filter(|&i| {
++                    let u = &self.scala_types[i];
++                    u.kind != "object"
++                        && u.kind != "anon"
++                        && u.path.rsplit('.').next() == Some(head)
++                })
++                .collect();
++            if local.len() == 1 {
++                return Some((local, false));
++            }
++        }
++        // Candidate prefixes, in order of precedence.
++        let mut tries: Vec<Vec<String>> = Vec::new();
++        if let Some(target) = im.exact.get(head) {
++            let mut v = vec![with_rest(target)];
++            for w in &im.wild {
++                v.push(format!("{w}.{}", with_rest(target)));
++            }
++            if !t.package.is_empty() {
++                v.push(format!("{}.{}", t.package, with_rest(target)));
++            }
++            tries.push(v);
++        }
++        if !t.package.is_empty() {
++            tries.push(vec![format!("{}.{name}", t.package)]);
++        }
++        tries.push(im.wild.iter().map(|w| format!("{w}.{name}")).collect());
++        if rest.is_some() {
++            tries.push(vec![name.clone()]);
++        }
++        for group in tries {
++            let mut found: Vec<usize> = Vec::new();
++            let mut fqns = 0;
++            for fqn in &group {
++                let c = classes(fqn);
++                if !c.is_empty() {
++                    fqns += 1;
++                    found.extend(c);
++                }
++            }
++            match fqns {
++                0 => {}
++                1 => return Some((found, false)),
++                _ => return None,
++            }
++        }
++        let last = name.rsplit('.').next().unwrap_or(&name);
++        let by_name: Vec<usize> = self
++            .scala_by_name
++            .get(last)
++            .into_iter()
++            .flatten()
++            .copied()
++            .filter(|&i| self.scala_types[i].kind != "object")
++            .collect();
++        let mut fqns: Vec<(&str, &str)> = by_name
++            .iter()
++            .map(|&i| (self.scala_types[i].package, self.scala_types[i].path))
++            .collect();
++        fqns.sort();
++        fqns.dedup();
++        (fqns.len() == 1).then_some((by_name, true))
++    }
++
++    /// A Scala bare call (`withTable(…)`, `this.m(…)`): the member of the
++    /// innermost type around the site, else of its bases — each resolved
++    /// through the declaring file's imports and package, never by simple
++    /// name alone (`QueryTest` is the imported `org.x.sql.QueryTest`, not
++    /// a same-named class in another package) — else of the enclosing
++    /// types. A companion object's members are not the class's. `None`
++    /// when no type around the site, or none on its chain, declares it.
++    pub(crate) fn resolve_scala_bare(&self, file: FileId, r: &RefRecord) -> Option<Scoped> {
++        let here = self.scala_file_types.get(&file)?;
++        let mut around: Vec<usize> = here
++            .iter()
++            .copied()
++            .filter(|&i| {
++                let (s, e) = self.scala_types[i].span;
++                s <= r.site_byte && r.site_byte < e
++            })
++            .collect();
++        around.sort_by_key(|&i| {
++            let (s, e) = self.scala_types[i].span;
++            (e - s, s)
++        });
++        for t in around {
++            if let Some((cids, guessed)) = self.scala_member(t, &r.name) {
++                return Some(Scoped::Bound {
++                    certain: !guessed && cids.len() == 1,
++                    cids,
++                });
++            }
++        }
++        None
++    }
++
++    /// `name` declared in type `t` or up its bases (breadth-first, depth
++    /// 8): the callables, and whether a base was found only by name.
++    fn scala_member(&self, t: usize, name: &str) -> Option<(Vec<CallableId>, bool)> {
++        let mut seen: HashSet<usize> = HashSet::new();
++        let mut frontier: Vec<(usize, bool)> = vec![(t, false)];
++        for _ in 0..8 {
++            let mut found: Vec<CallableId> = Vec::new();
++            let mut guessed = false;
++            let mut next: Vec<(usize, bool)> = Vec::new();
++            for (u, g) in frontier {
++                if !seen.insert(u) {
++                    continue;
++                }
++                if let Some(cids) = self.scala_members.get(&u).and_then(|m| m.get(name)) {
++                    for c in cids {
++                        if !found.contains(c) {
++                            found.push(*c);
++                        }
++                    }
++                    guessed |= g;
++                    continue;
++                }
++                for b in self.scala_types[u].bases {
++                    if let Some((ts, by_name)) = self.scala_base(u, b) {
++                        next.extend(ts.into_iter().map(|x| (x, g || by_name)));
++                    }
++                }
++            }
++            if !found.is_empty() {
++                return Some((found, guessed));
++            }
++            if next.is_empty() {
++                return None;
++            }
++            frontier = next;
++        }
++        None
++    }
++
 +    fn build_perl(&mut self, graph: &Graph, facts: &[FileFacts]) {
 +        if !facts.iter().any(|f| f.language == "perl") {
 +            return;
@@ -1734,7 +2273,7 @@ index fd17edc..be8ecdf 100644
      fn build_zig(&mut self, graph: &'a Graph, facts: &'a [FileFacts]) {
          if !facts.iter().any(|f| f.language == "zig") {
              return;
-@@ -647,6 +754,44 @@ impl<'a> LibIndex<'a> {
+@@ -647,6 +1039,44 @@ impl<'a> LibIndex<'a> {
                      .push(c.id);
              }
          }
@@ -1779,7 +2318,7 @@ index fd17edc..be8ecdf 100644
          for f in facts.iter().filter(|f| f.language == "zig") {
              self.paths.insert(f.file, f.path.as_path());
              self.zig_by_path.entry(normalize(&f.path)).or_insert(f.file);
-@@ -780,6 +925,9 @@ impl<'a> LibIndex<'a> {
+@@ -780,6 +1210,9 @@ impl<'a> LibIndex<'a> {
          if rh.is_empty() {
              return None;
          }
@@ -1789,7 +2328,7 @@ index fd17edc..be8ecdf 100644
          let segs: Vec<&str> = rh.split('.').collect();
          if !segs
              .iter()
-@@ -788,7 +936,11 @@ impl<'a> LibIndex<'a> {
+@@ -788,7 +1221,11 @@ impl<'a> LibIndex<'a> {
              return None;
          }
          let segs: Vec<String> = segs.into_iter().map(str::to_string).collect();
@@ -1802,7 +2341,7 @@ index fd17edc..be8ecdf 100644
          let mut g = match g {
              Target::File(g) => g,
              Target::External(m) => return Some(Scoped::External(m)),
-@@ -840,6 +992,155 @@ impl<'a> LibIndex<'a> {
+@@ -840,6 +1277,155 @@ impl<'a> LibIndex<'a> {
          None
      }
  
@@ -1958,7 +2497,7 @@ index fd17edc..be8ecdf 100644
      /// Follow `segs` from `file` through file-level bindings to the file
      /// (or dependency) they name, with the import that started the path.
      fn zig_walk(
-@@ -909,6 +1210,9 @@ pub(crate) struct PhpIndex {
+@@ -909,6 +1495,9 @@ pub(crate) struct PhpIndex {
      /// `(file, lowercase class short name)` → its declared bases as
      /// written.
      bases: HashMap<(FileId, String), Vec<String>>,
@@ -1968,7 +2507,7 @@ index fd17edc..be8ecdf 100644
  }
  
  fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
-@@ -1020,7 +1324,20 @@ impl PhpIndex {
+@@ -1020,7 +1609,20 @@ impl PhpIndex {
              .filter(|c| c.language == "php")
              .collect();
          ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
@@ -1989,7 +2528,7 @@ index fd17edc..be8ecdf 100644
              ix.file_of.insert(c.id, c.file);
              match c.qualified_name.split_once("::") {
                  Some((owner, m)) => ix
-@@ -1093,7 +1410,29 @@ impl PhpIndex {
+@@ -1093,7 +1695,29 @@ impl PhpIndex {
                  let certain = cids.len() == 1;
                  Scoped::Bound { cids, certain }
              }
@@ -2020,6 +2559,42 @@ index fd17edc..be8ecdf 100644
          }
      }
  
+@@ -1255,3 +1879,35 @@ enum ClassLookup {
+     /// Not decided here.
+     Unknown,
+ }
++
++/// One Scala `import` (whitespace removed: `a.b.{X,Y=>Z}`, `a.b._`,
++/// `a.b.*`, `a.b.X`) into the file's table.
++fn scala_import(path: &str, im: &mut ScalaImports) {
++    let path = path.trim();
++    if let Some((prefix, sel)) = path.split_once(".{") {
++        for item in sel.trim_end_matches('}').split(',') {
++            let item = item.trim();
++            match item.split_once("=>") {
++                Some((_, "_")) => {}
++                Some((from, to)) => {
++                    im.exact
++                        .insert(to.trim().to_string(), format!("{prefix}.{}", from.trim()));
++                }
++                None if item == "_" || item == "*" => im.wild.push(prefix.to_string()),
++                None if !item.is_empty() => {
++                    im.exact
++                        .insert(item.to_string(), format!("{prefix}.{item}"));
++                }
++                None => {}
++            }
++        }
++        return;
++    }
++    if let Some(prefix) = path.strip_suffix("._").or_else(|| path.strip_suffix(".*")) {
++        im.wild.push(prefix.to_string());
++        return;
++    }
++    if let Some((_, last)) = path.rsplit_once('.') {
++        im.exact.insert(last.to_string(), path.to_string());
++    }
++}
 diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
 index 3f029ba..d4df246 100644
 --- a/crates/cgg-resolve/src/scope.rs
