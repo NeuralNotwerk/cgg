@@ -1,0 +1,182 @@
+[
+ {
+  "i": 0,
+  "lang": "scala",
+  "stratum": "added-medium [scala]",
+  "change": "edge ADDED at medium",
+  "verdict": "correct",
+  "evidence": "object IntegratedUDFTestUtils extends SQLHelper (IntegratedUDFTestUtils.scala:103) and imports org.apache.spark.sql.catalyst.plans.SQLHelper (:33); withTempPath is SQLHelper.scala:38. Right copy (not the connect-client SQLHelper).",
+  "pattern": ""
+ },
+ {
+  "i": 1,
+  "lang": "typescript",
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "showReadOnlyModal is a destructured parameter of RulesRequireFieldsTab (RulesRequireFieldsTab.tsx:33), not the hook export; shadowed-by-local fits.",
+  "pattern": ""
+ },
+ {
+  "i": 2,
+  "lang": "dart",
+  "stratum": "dropped-high / now-unresolved [dart]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "build is a nested local function declared at draggable_test.dart:3868 inside the testWidgets closure; old edge to TestWidgetsApp::build was wrong. (Ideal would bind to the local function, but dropping the wrong edge is right.)",
+  "pattern": ""
+ },
+ {
+  "i": 3,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "File imports package:flutter_test/flutter_test.dart (:8), which exports src/widget_tester.dart (flutter_test.dart:94) defining top-level expect (widget_tester.dart:466); import-backed, high warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 4,
+  "lang": "python",
+  "stratum": "added-medium [python]",
+  "change": "edge ADDED at medium",
+  "verdict": "correct",
+  "evidence": "app = App() with App imported from falcon.asgi (test_ws.py:12, :939); calling the instance invokes App.__call__ (falcon/asgi/app.py:457).",
+  "pattern": ""
+ },
+ {
+  "i": 5,
+  "lang": "php",
+  "stratum": "dropped-medium / now-unresolved [php]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "regression",
+  "evidence": "WP_AI_Client_Cache file is in the global namespace (no namespace decl) and wp_cache_get_multiple is a global function defined in wp-includes/cache.php:172 (fallback in cache-compat.php:89); WordPress loads it via bootstrap requires, so the old medium edge was right and is now lost.",
+  "pattern": "PHP global-namespace function defined in another file with no require/include in the calling file (loaded by bootstrap) refused as candidates-in-other-files"
+ },
+ {
+  "i": 6,
+  "lang": "rust",
+  "stratum": "rescored medium->high [rust]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports'], ['medium', 'cross-file:imports']], new [['high', 'intra-file']])",
+  "verdict": "correct",
+  "evidence": "select is a let-bound closure in test_type (defs.rs:6915); collapsing the two same-name closure copies (6915, 7137) to one intra-file high edge is right assuming it is the in-scope 6915 copy.",
+  "pattern": ""
+ },
+ {
+  "i": 7,
+  "lang": "fsharp",
+  "stratum": "rescored medium->high [fsharp]",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])",
+  "verdict": "correct",
+  "evidence": "Call at TestAdapter.fs:499 sits in the `let rec visitMember ... and visitTypeDef` group starting at :463; two same-name local visitMembers (289, 463) collapsed to one scope-backed edge, presumably 463.",
+  "pattern": ""
+ },
+ {
+  "i": 8,
+  "lang": "zig",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [zig]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "prng is *stdx.PRNG (net.zig:503); prng.int is stdx/prng.zig:343, not the private PerfEventDomain.int in perf_linux.zig:33. Old edge wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 9,
+  "lang": "zig",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [zig]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "alloc is std.mem.Allocator (shell_integration.zig:683); alloc.dupe is stdlib, not hyperlink.zig's dupe. Old edge wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 10,
+  "lang": "dart",
+  "stratum": "added-high [dart]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "File imports flutter_test.dart (time_picker_theme_test.dart:7) which exports src/matchers.dart defining equalsIgnoringHashCodes (matchers.dart:434); high warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 11,
+  "lang": "scala",
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "arr is a local Array in add (HuberBlockAggregator.scala:118 `val margin = arr(i)`, used as in-place buffer); arr(i)=... is array update, not CollationExpressionSuite::arr.",
+  "pattern": ""
+ },
+ {
+  "i": 12,
+  "lang": "scala",
+  "stratum": "added-medium [scala]",
+  "change": "edge ADDED at medium",
+  "verdict": "regression",
+  "evidence": "CSVSuite extends SharedSparkSession -> trait QueryTest -> QueryTestBase, whose checkAnswer is QueryTest.scala:160-201; the target QueryTest::checkAnswer in that file is the companion `object QueryTest` (:792, methods :799+), which is not inherited and not imported.",
+  "pattern": "Scala companion object's members treated as inherited members of the same-named trait/class in a base chain"
+ },
+ {
+  "i": 13,
+  "lang": "zig",
+  "stratum": "rescored medium->high [zig]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "iosurface.zig:5 imports ../foundation.zig, which re-exports CFRelease = typepkg.CFRelease (foundation.zig:32) defined at foundation/type.zig:1; import-backed, high warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 14,
+  "lang": "typescript",
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "translate is destructured from useLocalize() at ReportField.tsx:56; not reportAttributes.ts's translate.",
+  "pattern": ""
+ },
+ {
+  "i": 15,
+  "lang": "scala",
+  "stratum": "added-medium [scala]",
+  "change": "edge ADDED at medium",
+  "verdict": "regression",
+  "evidence": "V1WriteFallbackSessionCatalogSuite -> InsertIntoTests -> InsertIntoSQLOnlyTests -> SharedSparkSession, which imports org.apache.spark.sql.QueryTest (SharedSparkSession.scala:23); target is org.apache.spark.sql.connect.test.QueryTest in the connect client module (connect/test/QueryTest.scala:33), an unrelated same-named class.",
+  "pattern": "Scala base-class name resolved to a same-named class in a different package, ignoring the import that names the base"
+ },
+ {
+  "i": 16,
+  "lang": "zig",
+  "stratum": "added-high [zig]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "llvm.zig:22 `const Type = @import(\"../Type.zig\")`; Type.fromInterned is src/Type.zig:432. High warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 17,
+  "lang": "php",
+  "stratum": "rescored medium->high [php]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "helpers.php:39 `use Illuminate\\Support\\Uri`; Uri::route is static at Support/Uri.php:68 (only Uri class in tree). High warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 18,
+  "lang": "php",
+  "stratum": "rescored medium->high [php]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "SerializerPass.php:17 imports Symfony\\Component\\DependencyInjection\\ContainerBuilder; static hash at ContainerBuilder.php:1762. High warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 19,
+  "lang": "zig",
+  "stratum": "added-medium [zig]",
+  "change": "edge ADDED at medium",
+  "verdict": "regression",
+  "evidence": "std.array_list.Managed(Die.Attr).init(gpa) (Dwarf.zig:572) calls Managed's init at lib/std/array_list.zig:44; the target init in Dwarf.zig (:701 / :1367) belongs to unrelated nested structs in the caller's file.",
+  "pattern": "Zig chained call on a generic type-constructor result (mod.Fn(T).method) bound by bare method name to a same-named method in the caller's own file"
+ }
+]

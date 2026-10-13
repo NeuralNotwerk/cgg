@@ -1,0 +1,182 @@
+[
+ {
+  "i": 0,
+  "lang": "php",
+  "stratum": "added-high [php]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "functions.php:250 (no namespace) calls global register_nav_menu; the only in-repo definition is wp-includes/nav-menu.php:136.",
+  "pattern": ""
+ },
+ {
+  "i": 1,
+  "lang": "php",
+  "stratum": "added-high [php]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "Un-namespaced class file calls global register_rest_route at :92; sole definition is wp-includes/rest-api.php:34.",
+  "pattern": ""
+ },
+ {
+  "i": 2,
+  "lang": "perl",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [perl]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "script/rvd_back:482 `name => $login` is a hash-key argument to Ravada::Auth::SQL->new, not a call to Ravada::Domain::KVM::name; old edge was a Perl fat-comma false positive.",
+  "pattern": ""
+ },
+ {
+  "i": 3,
+  "lang": "rust",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [rust]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "convert.rs:793 `top(YEAR)` calls the local closure `let top = |t| ...` at :773; a second same-named closure exists at :820 (other fn), so dropping the cross-function copy and keeping the in-scope one is right.",
+  "pattern": ""
+ },
+ {
+  "i": 4,
+  "lang": "php",
+  "stratum": "added-high [php]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "class-wp-rest-server.php:1114 (no namespace) calls global is_wp_error, defined only at wp-includes/load.php:1805.",
+  "pattern": ""
+ },
+ {
+  "i": 5,
+  "lang": "javascript",
+  "stratum": "rescored medium->high [javascript]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports'], ['medium', 'cross-file:imports']], new [['high', 'intra-file']])",
+  "verdict": "correct",
+  "evidence": "AccessManager.behavior.js:165 is inside shouldBehaveLikeAManagedRestrictedOperation (:137) which declares nested testScheduleOperation at :154; lexical intra-file binding at high is warranted (the :205 copy belongs to another function).",
+  "pattern": ""
+ },
+ {
+  "i": 6,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "flutter_manifest_test.dart imports ../src/common.dart, which re-exports package:test (common.dart:27); expect is external, never the engine fixture's expect at shell/common/fixtures/shell_test.dart:13.",
+  "pattern": ""
+ },
+ {
+  "i": 7,
+  "lang": "dart",
+  "stratum": "added-high [dart]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "input_decorator_test.dart:16 imports package:flutter_test/flutter_test.dart, which exports src/widget_tester.dart (:94) defining expect at :466.",
+  "pattern": ""
+ },
+ {
+  "i": 8,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "web_ui path_test.dart imports package:test/test.dart (:8), an external package; the old edge to the unrelated engine fixture expect was wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 9,
+  "lang": "perl",
+  "stratum": "dropped-high / gone (external/stdlib or same-name target kept) [perl]",
+  "change": "edge REMOVED (was high); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "Domain.pm:3514 `status => 'shutdown'` is a hash-key argument to $self->_data, not a call to Ravada::Domain::status; old high edge was a fat-comma false positive.",
+  "pattern": ""
+ },
+ {
+  "i": 10,
+  "lang": "dart",
+  "stratum": "dropped-high / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was high); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "history_test.dart:85 bare setUp comes from package:test (:9); PlatformMessagesSpy::setUp in common/spy.dart is an instance method, not reachable as a bare call.",
+  "pattern": ""
+ },
+ {
+  "i": 11,
+  "lang": "dart",
+  "stratum": "added-high [dart]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "input_decorator_test.dart imports flutter_test, which exports widget_tester.dart defining top-level testWidgets at :148.",
+  "pattern": ""
+ },
+ {
+  "i": 12,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "scrollbar_test.dart:10 imports package:flutter_test/flutter_test.dart -> exports src/widget_tester.dart (expect at :466); unique import-backed binding justifies high.",
+  "pattern": ""
+ },
+ {
+  "i": 13,
+  "lang": "php",
+  "stratum": "rescored medium->high [php]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "Acknowledger.php:14 `use Symfony\\Component\\Clock\\Clock;` and Clock.php:21/37 define final class Clock with static get(); import-backed static call, high warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 14,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "mouse_tracker_cursor_test.dart:11 imports flutter_test which exports widget_tester.dart (expect :466); import-backed high is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 15,
+  "lang": "perl",
+  "stratum": "dropped-medium / now-unresolved [perl]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "v20_volatile_clones.t:426 `name =>` is a hash key; the real call `$domain->name` has an untyped receiver with four candidate `sub name` (LXC/Void/KVM/Driver), so leaving it unresolved beats the old single-copy guess to LXC::name.",
+  "pattern": ""
+ },
+ {
+  "i": 16,
+  "lang": "zig",
+  "stratum": "rescored medium->high [zig]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "CodeGen.zig:1 `const std = @import(\"std\")`, lib/std/std.zig:70 `pub const debug = @import(\"debug.zig\")`, and debug.zig:435 `pub fn panic`; module-path-backed binding warrants high.",
+  "pattern": ""
+ },
+ {
+  "i": 17,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "dart text_field_test.dart:25 imports flutter_test; expect must not bind to the engine fixture shell_test.dart:13, which is unrelated (correct expect is widget_tester.dart:466).",
+  "pattern": ""
+ },
+ {
+  "i": 18,
+  "lang": "python",
+  "stratum": "dropped-medium / now-unresolved [python]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:ambiguous-in-file",
+  "verdict": "correct",
+  "evidence": "test_pandas_udf_grouped_agg.py:337 `sum_udf = self.pandas_agg_sum_udf` is a local; the old edge to the nested `def sum_udf` inside another method (:893) was wrong. Reason ambiguous-in-file is imprecise (shadowed-by-local fits better) but the outcome is right.",
+  "pattern": ""
+ },
+ {
+  "i": 19,
+  "lang": "php",
+  "stratum": "added-high [php]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "l10n.php:1566 calls global str_starts_with; compat.php:521 is a function_exists-guarded PHP 8 polyfill and WP's minimum is PHP 7.4 (version.php:40), so the edge is real on supported runtimes. Note: on PHP 8 the builtin wins, so high is slightly generous for a guarded polyfill.",
+  "pattern": ""
+ }
+]

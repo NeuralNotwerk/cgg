@@ -1,0 +1,182 @@
+[
+ {
+  "i": 0,
+  "lang": "swift",
+  "stratum": "dropped-medium / now-unresolved [swift]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "Backport.swift:45 declares `action` as a closure parameter of onKeyPress; line 48 `action(keyPress.modifiers)` calls it, so Ghostty.App.action was a decoy and shadowed-by-local is right.",
+  "pattern": ""
+ },
+ {
+  "i": 1,
+  "lang": "php",
+  "stratum": "rescored medium->high [php]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "RoutingRouteTest.php:40 `use Illuminate\\Support\\Str;` and Str.php:1108 defines `public static function random`, so the edge is import-backed and HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 2,
+  "lang": "typescript",
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "WorkspaceWorkflowsPage.tsx:57 `const {showConfirmModal} = useConfirmModal();` destructures a local, so the cross-file edge to RevokePage.tsx was wrong and shadowed-by-local fits.",
+  "pattern": ""
+ },
+ {
+  "i": 3,
+  "lang": "zig",
+  "stratum": "rescored medium->high [zig]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "main.zig:4 `const std = @import(\"std\")` and `std.meta.stringToEnum` is defined at lib/std/meta.zig:18; the module path is fully determined, so HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 4,
+  "lang": "elixir",
+  "stratum": "dropped-medium / now-unresolved [elixir]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "The migration `use Ecto.Migration` (line 2), and `table/1` at line 5 is Ecto.Migration's macro. PlausibleWeb.Components.Generic is neither imported nor aliased, so dropping the edge is right.",
+  "pattern": ""
+ },
+ {
+  "i": 5,
+  "lang": "elixir",
+  "stratum": "dropped-medium / now-unresolved [elixir]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "expression.ex:10 `import Ecto.Query` makes `field(i, ^dim)` Ecto's query macro. The old target was a private `defp field` in a test module (csv_importer_test.exs:1386), so it could never be called from here.",
+  "pattern": ""
+ },
+ {
+  "i": 6,
+  "lang": "zig",
+  "stratum": "dropped-high / rebound [zig]",
+  "change": "edge REMOVED (was high); fate now: rebound",
+  "verdict": "correct",
+  "evidence": "cosh.zig:9 `const math = std.math` and lib/std/math.zig:238 `pub const cosh = @import(\"math/cosh.zig\").cosh`, so `math.cosh(x)` is math/cosh.zig's cosh and not the enclosing complex cosh. The rebind is right.",
+  "pattern": ""
+ },
+ {
+  "i": 7,
+  "lang": "scala",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [scala]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "QueryPlan.scala:53-54 extends TreeNode, which defines argString (trees/TreeNode.scala:902). UnionLoop::argString is an override in an unrelated subclass, so dropping the medium edge is right.",
+  "pattern": ""
+ },
+ {
+  "i": 8,
+  "lang": "javascript",
+  "stratum": "dropped-medium / now-unresolved [javascript]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "polka.js:235 `let ccc = (req, res, next) => {...}`: at line 241 `next()` is the arrow function's parameter, not Polka.next. shadowed-by-local fits.",
+  "pattern": ""
+ },
+ {
+  "i": 9,
+  "lang": "kotlin",
+  "stratum": "added-medium [kotlin]",
+  "change": "edge ADDED at medium",
+  "verdict": "correct",
+  "evidence": "PrecompiledScriptTemplates.kt:131 `alias(notation.asProvider())` is inside the anonymous PluginDependenciesSpec object and calls its sibling overload `alias(Provider)` at line 125. That overload has the same qn (PrecompiledSettingsScript.alias) in the same file.",
+  "pattern": ""
+ },
+ {
+  "i": 10,
+  "lang": "typescript",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [typescript]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "AdminSettingInput.tsx:168 declares `const handleChange` inside BasicAdminSettingInput; the call at line 209 binds to it. The removed medium duplicate was the same-name copy, and the local target is kept.",
+  "pattern": ""
+ },
+ {
+  "i": 11,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "segmented_control_test.dart:17 imports package:flutter_test/flutter_test.dart, which re-exports src/widget_tester.dart (line 94), and that file defines `void expect` at line 466. The edge is import-chain backed, so HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 12,
+  "lang": "scala",
+  "stratum": "dropped-medium / rebound [scala]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "regression",
+  "evidence": "HiveMetadataCacheSuite.scala:9,31 imports and extends org.apache.spark.sql.QueryTest (sql/core QueryTest.scala:683 trait -> QueryTestBase -> QueryCleanupHelper.withTable, QueryCleanupHelper.scala:34). The new target is the connect-client SQLHelper::withTable, reached through the unrelated org.apache.spark.sql.connect.test.QueryTest, so the new edge is as wrong as the old decoy.",
+  "pattern": "Scala base class resolved by simple name rather than by the file's import/package, so a same-named class in another package supplies the inherited member"
+ },
+ {
+  "i": 13,
+  "lang": "rust",
+  "stratum": "added-high [rust]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "test_dirs_in_deep declares a named closure `let m = |path, is_dir|` (gitignore_matched_path_or_any_parents_tests.rs:195), and line 217 calls it. The named closure is a callable in the same scope, so HIGH is fine. Four closures in the file share the qn `m`; the containing one at :195 is the right binding.",
+  "pattern": ""
+ },
+ {
+  "i": 14,
+  "lang": "typescript",
+  "stratum": "dropped-medium / now-unresolved [typescript]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "useExpenseActions.ts:103 `const {translate, ...} = useLocalize();` makes translate a local, so the edge to reportAttributes.ts was a decoy and shadowed-by-local fits.",
+  "pattern": ""
+ },
+ {
+  "i": 15,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "translations_test.dart:10 imports flutter_test, so `expect` is flutter_test's. The old target in engine/.../shell/common/fixtures/shell_test.dart:13 is an unrelated same-name decoy that this file does not import.",
+  "pattern": ""
+ },
+ {
+  "i": 16,
+  "lang": "perl",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [perl]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "50_three_nodes.t:40 `,start => 1` is a hash key inside the Ravada::Request->migrate(...) argument list, not a call, so the removal is right.",
+  "pattern": ""
+ },
+ {
+  "i": 17,
+  "lang": "scala",
+  "stratum": "dropped-high / now-unresolved [scala]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "FailureNotificationContents.scala:3 `import com.gu.anghammarad.models.{Action, Target}` makes Action an external model constructor. The old HIGH edge to a test-file PrismLookupTest::Action was wrong. Ideally the reason would be external-module rather than candidates-in-other-files.",
+  "pattern": ""
+ },
+ {
+  "i": 18,
+  "lang": "kotlin",
+  "stratum": "added-high [kotlin]",
+  "change": "edge ADDED at high",
+  "verdict": "regression",
+  "evidence": "Combinators.kt:122 `codec.run { decode() }`: inside the `run` lambda the implicit receiver is `codec` (a Codec<T> parameter, line 56), so decode() is Codec.decode (Codec.kt:43, an interface member), dispatched to the wrapped codec. The new HIGH edge binds it to a package-level `decode` override in Combinators.kt (anonymous-object member, lines 44/77).",
+  "pattern": "Kotlin scope-function lambda (`x.run { m() }` / `with(x) { m() }`): the lambda receiver is ignored, and the bare call binds by name to a same-file member, here an enclosing anonymous object's override, at HIGH"
+ },
+ {
+  "i": 19,
+  "lang": "ocaml",
+  "stratum": "dropped-medium / rebound [ocaml]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "regression",
+  "evidence": "pool_user/entity.ml:166-169 `module IsAdmin = struct include Pool_model.Base.Boolean ... let schema = schema ...`: a non-recursive `let`, so the RHS `schema` is the included Boolean.schema (pool_model/base.ml:89). The new HIGH target is a same-file `schema` (itself or a sibling module's), which is wrong, and so was the old query/entity.ml target.",
+  "pattern": "OCaml non-recursive `let x = x ...`: the RHS name binds to the binding being defined, or to a sibling module's same-name let in the file, instead of the outer/`include`d/opened definition"
+ }
+]

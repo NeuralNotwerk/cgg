@@ -1,0 +1,182 @@
+[
+ {
+  "i": 0,
+  "lang": "ocaml",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [ocaml]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "opamFile.ml:725-726 `let read_opt file = Option.map open_env_updates (read_opt file)` is a non-recursive OCaml let, so the inner read_opt is the earlier in-scope read_opt of this module (opamFile.ml:104 / included IO functor), never opamStateConfig.ml in another library; removal of that cross-library edge is right.",
+  "pattern": ""
+ },
+ {
+  "i": 1,
+  "lang": "rust",
+  "stratum": "dropped-high / now-unresolved [rust]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "regression",
+  "evidence": "response.rs:389 `if let Some(parts) = parts(&mut self.head, self.err)`: the pattern binding `parts` is not in scope in its own scrutinee, so the call is the module fn `parts` at response.rs:619; the old HIGH edge was correct and shadowed-by-local is wrong.",
+  "pattern": "Rust `if let`/`while let`/`let` pattern binding treated as in scope inside its own initializer/scrutinee expression (binding should start after the expression)"
+ },
+ {
+  "i": 2,
+  "lang": "lua",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [lua]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "buffer_updates_spec.lua: two `local function setup_eventcheck` (line 63 in the on_lines describe, line 481 in the on_bytes describe); line 748 is inside do_both (546) in the on_bytes describe, so only the 481 copy is visible \u2014 dropping the other same-name copy is right.",
+  "pattern": ""
+ },
+ {
+  "i": 3,
+  "lang": "python",
+  "stratum": "dropped-medium / now-unresolved [python]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "test_stored_payment_method_request_delete.py:220 `webhook_plugin` is a pytest fixture parameter; line 231 calls the returned factory (conftest.py:8), not conftest.webhook_plugin itself \u2014 shadowed-by-local fits.",
+  "pattern": ""
+ },
+ {
+  "i": 4,
+  "lang": "lua",
+  "stratum": "dropped-high / now-unresolved [lua]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "gen_eval_files.lua:328 `local function render_api_meta(_f, fun, write)` \u2014 `write` at 337 is the parameter callback, not the file's `write` function; shadowed-by-local is right.",
+  "pattern": ""
+ },
+ {
+  "i": 5,
+  "lang": "fsharp",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [fsharp]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "AdjustConstantTests.fs:110 defines a local `let mkExpected` inside checkAll; a second same-name local exists at 172 in checkAllJourneys. The call at 120 sees only the 110 one, so dropping the other copy (same-name target kept) is right.",
+  "pattern": ""
+ },
+ {
+  "i": 6,
+  "lang": "kotlin",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [kotlin]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "LibReferenceTreemapInstrumentedTest.kt has three local `fun findReference` (275, 328, 403) in different test functions; the recursive call at 406 is inside the 403 one, so dropping the sibling copies while keeping the same-name enclosing one is right.",
+  "pattern": ""
+ },
+ {
+  "i": 7,
+  "lang": "kotlin",
+  "stratum": "rescored medium->high [kotlin]",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])",
+  "verdict": "correct",
+  "evidence": "prettyPrintResults.kt:56 declares local `fun appendNextIndented` inside `StringBuilder.recurse` of prettyPrintLanguageResult; the call at 75 is in that body (the other copy at 112 is in prettyPrintLanguageTree). Lexical binding to one copy at HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 8,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "nested_scroll_view_test.dart imports package:flutter_test/flutter_test.dart, which exports src/widget_tester.dart (expect at :466); the engine fixture shell_test.dart:13 `expect` is not in this library's import scope, so dropping it is right.",
+  "pattern": ""
+ },
+ {
+  "i": 9,
+  "lang": "zig",
+  "stratum": "added-high [zig]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "viewport.zig:79 `list: *PageList` with `const PageList = @import(\"../PageList.zig\")` (line 8); PageList.zig:6712 `pub fn getTopLeft` is the only definition. HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 10,
+  "lang": "php",
+  "stratum": "dropped-medium / rebound [php]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "correct",
+  "evidence": "TermiiTransportFactory.php:16 `use Symfony\\Component\\Notifier\\Transport\\Dsn;` and create(Dsn $dsn) at :25, so getRequiredOption is Notifier/Transport/Dsn.php:87, not Translation/Provider/Dsn.php. Rebind at HIGH is right.",
+  "pattern": ""
+ },
+ {
+  "i": 11,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "scale_test.dart imports package:flutter_test/flutter_test.dart (expect from widget_tester.dart:466); the engine fixture shell_test.dart `expect` is outside its import scope, so the removal is right.",
+  "pattern": ""
+ },
+ {
+  "i": 12,
+  "lang": "dart",
+  "stratum": "added-high [dart]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "image_provider_resize_image_test.dart:10 imports flutter_test.dart, which exports src/test_compat.dart (`void test(` at :175); no other imported library defines `test`. HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 13,
+  "lang": "zig",
+  "stratum": "rescored high->medium [zig]",
+  "change": "edge confidence high->medium (old [['high', 'cross-file:imports']], new [['medium', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "render.zig:757 `cell` is `cells.raws[x]`, with `raws: []const page.Cell` (render.zig:62) and `page = @import(\"../page.zig\")`; hasStyling is page.zig:2352 (the only one), so the edge is right. MEDIUM is conservative because the receiver type comes from slice-element indexing; HIGH would also have been defensible.",
+  "pattern": ""
+ },
+ {
+  "i": 14,
+  "lang": "javascript",
+  "stratum": "dropped-high / now-unresolved [javascript]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:shadowed-by-local",
+  "verdict": "correct",
+  "evidence": "angular.js:24520 `function FormController($element, $attrs, $scope, $animate, $interpolate)` \u2014 `$interpolate` at 24527 is the injected parameter, not the file's $interpolate function; shadowed-by-local is right.",
+  "pattern": ""
+ },
+ {
+  "i": 15,
+  "lang": "scala",
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "SQLFunction.scala:23 `import org.json4s.jackson.JsonMethods.{compact, render}` \u2014 render at 371 is external json4s, not ThriftServerPage::render. The removal is right; the reason should ideally be external-module rather than candidates-in-other-files.",
+  "pattern": ""
+ },
+ {
+  "i": 16,
+  "lang": "zig",
+  "stratum": "dropped-high / now-unresolved [zig]",
+  "change": "edge REMOVED (was high); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "regression",
+  "evidence": "split_tree.zig:754 `const surface = self.getActiveSurface() orelse return;` where getActiveSurface (split_tree.zig:519) returns `?*Surface` and `Surface = @import(\"surface.zig\").Surface` (:18); surface.close() is surface.zig:1508. The old HIGH edge was correct and is now lost as candidates-in-other-files.",
+  "pattern": "Zig local whose type comes from a same-struct method's optional-pointer return (`const x = self.m() orelse return;` with `?*T`, T a file-level @import alias): the method call on x is now refused instead of following the @import"
+ },
+ {
+  "i": 17,
+  "lang": "scala",
+  "stratum": "rescored medium->high [scala]",
+  "change": "edge confidence medium->high (old [['medium', 'intra-file'], ['medium', 'intra-file']], new [['high', 'intra-file']])",
+  "verdict": "correct",
+  "evidence": "SparkContext.scala:3442 local `def supplement` inside supplementJavaIPv6Options; the call at 3446 is in that body (the other copy at 3433 is in supplementJavaModuleOptions). Lexical binding to one copy at HIGH is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 18,
+  "lang": "python",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [python]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "test_metrics_cloudwatch_emf.py:744 `LambdaContext = namedtuple(\"LambdaContext\", \"function_name\")` is a local; the call at 745 constructs that namedtuple, not idempotency/_boto3/conftest.LambdaContext. The removal is right.",
+  "pattern": ""
+ },
+ {
+  "i": 19,
+  "lang": "elixir",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [elixir]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "funnel.ex:14 `import Plausible.Stats.Util, only: [percentage: 2]`, and util.ex defines percentage/2 as two clauses (:33, :49) sharing one qualified name. The import-backed target stays reachable under the new Elixir rule (the `, only:` options are stripped), so this reads as one same-name clause kept. I could not see the new graph to confirm the edge survives.",
+  "pattern": ""
+ }
+]

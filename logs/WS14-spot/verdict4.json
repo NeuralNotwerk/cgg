@@ -1,0 +1,182 @@
+[
+ {
+  "i": 0,
+  "lang": "zig",
+  "stratum": "added-medium [zig]",
+  "change": "edge ADDED at medium",
+  "verdict": "correct",
+  "evidence": "embedded.zig:14 binds `const global = @import(\"../global.zig\")`; global.zig:256 is the top-level `pub fn io()`, so global.io() at :539 is that function (medium is conservative, edge right).",
+  "pattern": ""
+ },
+ {
+  "i": 1,
+  "lang": "php",
+  "stratum": "added-medium [php]",
+  "change": "edge ADDED at medium",
+  "verdict": "correct",
+  "evidence": "SpaceModelMembership.php:20 `use ...\\space\\notifications\\Invite as InviteNotification`; Invite extends BaseNotification (Invite.php:20) extends SocialActivity (BaseNotification.php:45), which defines static instance() at SocialActivity.php:114.",
+  "pattern": ""
+ },
+ {
+  "i": 2,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "rasterizer_order_test.dart:6 imports package:test/test.dart (external), not flutter_test; old edge to flutter_test widget_tester.dart expect was wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 3,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "flutter_tools project_test.dart imports ../src/common.dart which re-exports package:test/test.dart (common.dart:27); flutter_test is not imported, so the old edge to widget_tester.dart:466 expect was wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 4,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "sliver_cross_axis_group_test.dart:8 imports package:flutter_test/flutter_test.dart, which exports src/widget_tester.dart (flutter_test.dart:94) defining top-level expect at :466; import-backed, so high is warranted.",
+  "pattern": ""
+ },
+ {
+  "i": 5,
+  "lang": "scala",
+  "stratum": "added-high [scala]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "Inside trait Pagination (filter.scala:140), toPage is declared at filter.scala:181 in the same trait; the bare call at :179 is Pagination::toPage.",
+  "pattern": ""
+ },
+ {
+  "i": 6,
+  "lang": "scala",
+  "stratum": "dropped-medium / rebound [scala]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "regression",
+  "evidence": "DataSourceReadBenchmark extends SqlBasedBenchmark, which mixes in org.apache.spark.sql.catalyst.plans.SQLHelper (SqlBasedBenchmark.scala:27,35); that trait extends SQLConfHelper, which defines withSQLConf (catalyst SQLConfHelper.scala:38). The new target, connect.test.SQLHelper (sql/connect/client/jvm/.../SQLHelper.scala:49), is a different trait with the same simple name. The old AggregatingAccumulator target was also wrong.",
+  "pattern": "Scala base trait resolved by simple name to a same-named trait in another package instead of the imported one, whose member is inherited from that trait's own base"
+ },
+ {
+  "i": 7,
+  "lang": "dart",
+  "stratum": "rescored medium->high [dart]",
+  "change": "edge confidence medium->high (old [['medium', 'cross-file:imports']], new [['high', 'cross-file:imports']])",
+  "verdict": "correct",
+  "evidence": "tabs_test.dart:10 imports flutter_test, which exports widget_tester.dart, which defines top-level testWidgets at :148; high is import-backed.",
+  "pattern": ""
+ },
+ {
+  "i": 8,
+  "lang": "javascript",
+  "stratum": "added-high [javascript]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "Bare call at mediaelement.js:918 is inside `var MediaElement = function MediaElement` (:586, ends ~:999), where assignGettersSetters is a local declared at :796; the 6 other same-named copies (:1340, :1592, ...) are locals of other functions. The target name does not say which copy, so I assume it is the in-scope :796.",
+  "pattern": ""
+ },
+ {
+  "i": 9,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "text_button_test.dart:7 imports flutter_test; the old target in engine shell/common/fixtures/shell_test.dart was an unrelated same-name function, so dropping it while keeping the flutter_test expect is right.",
+  "pattern": ""
+ },
+ {
+  "i": 10,
+  "lang": "scala",
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "BlockManagerProactiveReplicationSuite extends BlockManagerReplicationBehavior extends SparkFunSuite with Matchers (BlockManagerReplicationSuite.scala:50,507); assert comes from external ScalaTest Assertions. MapWithStateSuite.scala:565 has a private, unrelated assert, so the old edge was wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 11,
+  "lang": "php",
+  "stratum": "added-high [php]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "class-wp-rest-posts-controller.php has no namespace; block_version is a global function defined once at wp-includes/blocks.php:2686.",
+  "pattern": ""
+ },
+ {
+  "i": 12,
+  "lang": "scala",
+  "stratum": "dropped-medium / rebound [scala]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "correct",
+  "evidence": "RandomBlockReplicationPolicy `extends BlockReplicationPolicy with Logging` (BlockReplicationPolicy.scala:96-98), and MDC(...) is trait Logging's protected def MDC at Logging.scala:178, so the rebound to Logging::MDC is right.",
+  "pattern": ""
+ },
+ {
+  "i": 13,
+  "lang": "ocaml",
+  "stratum": "added-high [ocaml]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "duneboot.ml:94 declares `let rec loop` inside partition_map_skip; the call at :100 is that recursive self-call.",
+  "pattern": ""
+ },
+ {
+  "i": 14,
+  "lang": "scala",
+  "stratum": "dropped-medium / rebound [scala]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "regression",
+  "evidence": "Same as entry 6: AggregateBenchmark extends SqlBasedBenchmark (AggregateBenchmark.scala:46), so withSQLConf is catalyst SQLConfHelper::withSQLConf via plans.SQLHelper. The rebound target, connect.test.SQLHelper::withSQLConf, is a same-named trait in another package.",
+  "pattern": "Scala base trait resolved by simple name to a same-named trait in another package instead of the imported one, whose member is inherited from that trait's own base"
+ },
+ {
+  "i": 15,
+  "lang": "dart",
+  "stratum": "dropped-medium / gone (external/stdlib or same-name target kept) [dart]",
+  "change": "edge REMOVED (was medium); fate now: gone (external/stdlib or same-name target kept)",
+  "verdict": "correct",
+  "evidence": "scrollbar.0_test.dart:8 imports flutter_test; the old target, the engine fixture shell_test.dart expect, was a same-name decoy.",
+  "pattern": ""
+ },
+ {
+  "i": 16,
+  "lang": "dart",
+  "stratum": "added-high [dart]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "paint_image_test.dart:9 imports flutter_test, which exports src/test_compat.dart (flutter_test.dart:87) defining top-level test at :175; high is import-backed.",
+  "pattern": ""
+ },
+ {
+  "i": 17,
+  "lang": "scala",
+  "stratum": "dropped-medium / now-unresolved [scala]",
+  "change": "edge REMOVED (was medium); fate now: now-unresolved:candidates-in-other-files",
+  "verdict": "correct",
+  "evidence": "OracleIntegrationSuite extends DockerJDBCIntegrationV2Suite with V2JDBCTest (:59), and neither defines assert, so assert is ScalaTest's (external). SubmitRestProtocolMessage.scala:92 is an unrelated protected assert, so the old edge was wrong.",
+  "pattern": ""
+ },
+ {
+  "i": 18,
+  "lang": "zig",
+  "stratum": "dropped-medium / rebound [zig]",
+  "change": "edge REMOVED (was medium); fate now: rebound",
+  "verdict": "correct",
+  "evidence": "zig.zig:5 `const std = @import(\"std.zig\")`, std.zig:86 `pub const mem = @import(\"mem.zig\")`; std.mem.eql at :298 is mem.zig:723 `pub fn eql`, not BuildId.eql (zig.zig:260).",
+  "pattern": ""
+ },
+ {
+  "i": 19,
+  "lang": "ocaml",
+  "stratum": "added-high [ocaml]",
+  "change": "edge ADDED at high",
+  "verdict": "correct",
+  "evidence": "handle_resolve_result (lib.ml:1727) and instantiate (lib.ml:1712) are in the same `let rec ... and` group inside Resolve_names, so the call at :1734 is that instantiate, not Parameterised/Sub_system.instantiate (:637/:830).",
+  "pattern": ""
+ }
+]
