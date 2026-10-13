@@ -1,3 +1,102 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 80ebe7b..829172e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -306,6 +306,63 @@ otherwise change the default graph.
+   external, never name-matched to a workspace `assert` (FINDINGS R19:
+   7,255 wrong `assert` edges in `tigerbeetle`, 125 in `ghostty`).
+ 
++- **Parameters and locals shadow other names** (WS14; JavaScript,
++  TypeScript, Python, Lua, Scala, Kotlin, Swift, Rust, Dart, OCaml, Zig).
++  Plugins now record every parameter and local variable with the span it
++  is in scope over (`FileFacts::locals`, from grammar node kinds). A bare
++  call through one — `cb()` with a parameter `cb`, `t("…")` after `const
++  { t } = useLocale()`, `f x` inside an OCaml function taking `f`, a
++  pytest fixture parameter — calls the value it holds, so it is no longer
++  name-matched onto a same-named function elsewhere; the site is recorded
++  as the new unresolved reason `shadowed-by-local`. A declaration is in
++  scope after its initializer (`let now = now();` still reaches the outer
++  `now`); a local that is the import its declaration makes (`const m =
++  require('./m')`), one aliasing a same-named member (`var pick =
++  H.pick`), or one named like an import of the file keeps the import
++  reading; a typed local still enters its type's call operator; a local
++  may hold a closure another function of the file returns. A receiver
++  headed by a local is that value, not a module of the same name.
++  Minified bundles (a line over 2,000 bytes) are left as they were.
++- Lexical scope for bare calls beyond Python: JavaScript, TypeScript,
++  Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Dart, Haskell and Julia
++  bind a call to the innermost visible nested definition (three local
++  `let rec go` in one OCaml file), and in OCaml, F# and Lua a later
++  same-scope binding shadows an earlier one.
++- **Dart library scope.** A bare call binds to what the file's library
++  (its parts) and its imports provide — the imported library's top-level
++  functions and everything it `export`s, filtered by `show`/`hide`;
++  `package:<name>/x.dart` is `lib/x.dart` of the in-tree `pubspec.yaml`
++  naming `<name>`; a prefixed import is reached only as `p.f()`. A name
++  no in-tree import provides is external (`package:test`'s `expect` no
++  longer binds to a workspace file declaring an `expect`). The plugin now
++  records `export`, `show`/`hide`, `part`/`part of` and the pubspec
++  package.
++- **PHP namespaces.** `X::m()` binds the method of the class `X` names
++  through the file's namespace and `use` table (grouped `use A\{B, C}`
++  included), a dependency's class of the same short name is external,
++  `parent::m()` is the caller's base's, and `f()` is the namespace's
++  function, else the global one. Copies of one function in several files
++  narrow to the one the caller's `require`/`include` chain reaches, or
++  bind nothing. The plugin records each class's qualified name and its
++  `require`/`include` statements.
++- **Zig module paths.** A call through file-level `@import`s and aliases
++  (`std.debug.print()`, a typed receiver `pt.navAlignment()` with `pt:
++  Zcu.PerThread`) binds the function the file the path ends in declares,
++  following `pub const f = @import("x.zig").f` re-exports; a module a
++  `build.zig` declares with `addModule` is the tree's whatever its root
++  file is called (`@import("xev")` → `src/main.zig`); a module the tree
++  does not hold is external.
++- **Scala.** A bare call reaches the calling class, its bases (`extends
++  A with B` now records both), the objects the file imports members of
++  (`import a.Obj._`, `import a.Obj.m`, with the object's own bases), and a
++  package object's members — never an unrelated class's member
++  (`assert` is not some suite's `assert`); a member the calling class
++  inherits outranks an import. Traits are scopes (their methods are
++  `Trait::m`). An import binds only the name it names.
++- Elixir: a bare call reaches the calling module and the modules it
++  `import`s or `use`s (options after the module name ignored). Perl: a
++  bareword before `=>` is an autoquoted key, not a call.
++
+ ### Compatibility
+ 
+ - **The default graph changes.** Full corpus, 283 repositories:
+@@ -448,6 +505,30 @@ otherwise change the default graph.
+   targets; Go block scope is tracked only for values made through a
+   package.
+ 
++- WS14 (scope model beyond Py/JS/TS/Go). Full corpus, 283 repositories,
++  none excluded (ab/WS14-v9), counting re-scored edges: `high` +208.1k
++  net, `medium` −358.4k net; dead-code findings unchanged. Per language
++  (`high` net / `medium` net): Dart +113.2k / −263.4k (bare calls into
++  `package:test` and `dart:` libraries are external; `expect` /
++  `testWidgets` bind to the in-tree `flutter_test` at `high`), PHP
++  +68.5k / −37.2k (WordPress global functions, namespaced static calls;
++  stub copies refused unless the include chain reaches one), Zig +18.9k /
++  −16.1k, OCaml +5.5k / −3.3k, JavaScript +2.1k / −1.7k, TypeScript
++  +0.1k / −16.9k (calls through destructured props and hook results),
++  Python −1.0k / −4.7k (mostly pytest fixture parameters, whose value the
++  test calls), Perl −0.3k / −8.2k (fat-comma keys), Elixir −2.4k medium,
++  Kotlin +0.2k / −1.2k, F# +0.4k / −1.0k, Scala −0.0k / −1.1k (trait
++  members now `Trait::m`; 19.0k calls to unrelated classes' members
++  refused, 16.1k rebound), Lua +0.2k / −0.7k, Rust +0.4k / −0.3k,
++  Swift −0.1k medium. Share of edges at `high`: Dart 6 → 35%, PHP
++  17 → 87%, Elixir 65 → 90%, OCaml 65 → 77%, Zig 45 → 53%, Perl
++  17 → 25%, TypeScript 64 → 68%.
++- Not covered (WS14): OCaml `open`/local-open/module aliases, F# `open`,
++  Ruby `require`, Lua module tables (`function M.f` is not extracted,
++  WS8), Swift module/target visibility; Scala self-types; a JS/TS prop
++  holding a bound action creator of the same name when the file does not
++  import it.
++
+ ## [0.10.2] - 2026-10-11
+ 
+ Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. A bugfix
 diff --git a/crates/cgg-core/src/audit.rs b/crates/cgg-core/src/audit.rs
 index bd13dcd..f74174a 100644
 --- a/crates/cgg-core/src/audit.rs
@@ -706,7 +805,7 @@ index d089883..0ff40d7 100644
 +    }
  }
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 9720a47..4e22e8f 100644
+index 9720a47..532239c 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -1366,6 +1366,12 @@ pub fn resolve(
@@ -746,7 +845,7 @@ index 9720a47..4e22e8f 100644
                          if !path.is_empty() {
                              unqualified_prefixes.push(path.to_string());
                          }
-@@ -1834,7 +1850,12 @@ pub fn resolve(
+@@ -1834,7 +1850,23 @@ pub fn resolve(
                                                  .push(format!("{prefix}.{src}"));
                                          }
                                      }
@@ -754,13 +853,24 @@ index 9720a47..4e22e8f 100644
 +                                    // Scala binds only what the import
 +                                    // names (`import a.sql.QueryTest`
 +                                    // binds `QueryTest`, not `sql`).
++                                    // Only an import that can name a
++                                    // package object's member (a wildcard,
++                                    // a lowercase member) points the
++                                    // scoped lookup at its package; a class
++                                    // import does not.
 +                                    if lang == "scala" {
-+                                        scala_import_dirs.push(prefix.to_string());
++                                        let members = suffix == "_"
++                                            || suffix.split(',').any(|n| {
++                                                n.trim().starts_with(char::is_lowercase)
++                                            });
++                                        if members {
++                                            scala_import_dirs.push(prefix.to_string());
++                                        }
 +                                    } else if let Some(last) = prefix.rsplit('.').next() {
                                          module_aliases
                                              .insert(last.to_string(), prefix.to_string());
                                      }
-@@ -1877,6 +1898,13 @@ pub fn resolve(
+@@ -1877,6 +1909,13 @@ pub fn resolve(
                              // unqualified import.
                              "haskell" | "erlang" | "elixir" | "fsharp" | "ocaml"
                              | "julia" | "lean" => {
@@ -774,7 +884,7 @@ index 9720a47..4e22e8f 100644
                                  unqualified_prefixes.push(path.to_string());
                                  if let Some(last) = path.rsplit('.').next() {
                                      module_aliases
-@@ -1998,7 +2026,7 @@ pub fn resolve(
+@@ -1998,7 +2037,7 @@ pub fn resolve(
                      .collect();
                  // Also include single-segment module aliases (Lua `require('foo')`,
                  // Scala `import play.Foo` last segment, etc.)
@@ -783,15 +893,28 @@ index 9720a47..4e22e8f 100644
                      path_fragments.push(target.replace('.', "/").to_ascii_lowercase());
                  }
                  path_fragments.retain(|f| !f.is_empty());
-@@ -2012,6 +2040,7 @@ pub fn resolve(
+@@ -2012,6 +2051,20 @@ pub fn resolve(
              }
  
              let heads = crate::heads::FileHeads::build(facts, &vocab);
 +            let locals = &heads.locals;
++            let scala_wild = if lang == "scala" {
++                with_ancestors(
++                    &lang,
++                    unqualified_prefixes
++                        .iter()
++                        .filter_map(|p| p.rsplit('.').next())
++                        .map(str::to_string)
++                        .collect(),
++                    &bases_by_owner,
++                )
++            } else {
++                std::collections::BTreeSet::new()
++            };
              let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
  
              drop(_sp_imports);
-@@ -2157,6 +2186,69 @@ pub fn resolve(
+@@ -2157,6 +2210,69 @@ pub fn resolve(
                      .and_then(|id| graph.callables.get(&id))
                      .map(|c| c.qualified_name.as_str());
  
@@ -861,25 +984,64 @@ index 9720a47..4e22e8f 100644
                  let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                  let mut capped = 0u32;
                  let mut no_ctor = false;
-@@ -2199,6 +2291,8 @@ pub fn resolve(
+@@ -2199,6 +2315,9 @@ pub fn resolve(
                      &kotlin_extensions,
                      &modix,
                      &file_mods,
 +                    &libix,
 +                    &phpix,
++                    &scala_wild,
                      &qn_collisions,
                      &overloads,
                      &mut refused_module,
-@@ -2269,6 +2363,8 @@ pub fn resolve(
+@@ -2269,6 +2388,9 @@ pub fn resolve(
                                  &kotlin_extensions,
                                  &modix,
                                  &file_mods,
 +                                &libix,
 +                                &phpix,
++                                &scala_wild,
                                  &qn_collisions,
                                  &overloads,
                                  &mut m2,
-@@ -3604,10 +3700,13 @@ struct BareScope<'s> {
+@@ -3587,6 +3709,36 @@ struct BareScope<'s> {
+     direct_imports: &'s HashMap<String, Vec<String>>,
+     unqualified_prefixes: &'s [String],
+     bases_by_owner: &'s HashMap<(String, String), Vec<String>>,
++    /// Scala: the objects the file wildcard-imports, with their bases
++    /// (computed once per file).
++    scala_wild: &'s std::collections::BTreeSet<String>,
++}
++
++/// `start` and every type it inherits from through recorded bases (bare
++/// names, depth 8).
++fn with_ancestors(
++    lang: &str,
++    start: Vec<String>,
++    bases_by_owner: &HashMap<(String, String), Vec<String>>,
++) -> std::collections::BTreeSet<String> {
++    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
++    let mut frontier = start;
++    for _ in 0..8 {
++        let mut next = Vec::new();
++        for t in std::mem::take(&mut frontier) {
++            if !seen.insert(t.clone()) {
++                continue;
++            }
++            if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
++                next.extend(bases.iter().cloned());
++            }
++        }
++        if next.is_empty() {
++            break;
++        }
++        frontier = next;
++    }
++    seen
+ }
+ 
+ /// FINDINGS A6. Whether a bare call — no receiver, no `this`/`self::`
+@@ -3604,10 +3756,13 @@ struct BareScope<'s> {
  ///   names, and the members of the calling class, the classes enclosing
  ///   it, their recorded bases, and — by dispatch — the overrides in
  ///   classes derived from them; never a method of an unrelated class.
@@ -895,7 +1057,15 @@ index 9720a47..4e22e8f 100644
  ///   functions are recorded like members); and Swift, Dart, Objective-C,
  ///   whose plugins record no base types, so an inherited member cannot be
  ///   told from an unrelated one.
-@@ -3664,9 +3763,37 @@ fn bare_call_reaches(
+@@ -3630,6 +3785,7 @@ fn bare_call_reaches(
+         direct_imports,
+         unqualified_prefixes,
+         bases_by_owner,
++        scala_wild,
+     } = *scope;
+     if r.dot_call {
+         return true;
+@@ -3664,9 +3820,37 @@ fn bare_call_reaches(
              via_import
                  || perl_package(&c.qualified_name) == caller_qn.map_or("", perl_package)
          }
@@ -935,7 +1105,7 @@ index 9720a47..4e22e8f 100644
              }
              // Named by the file's static imports: `import static a.b.C.m;`,
              // `import static a.b.C.*;`, C# `using static A.C;`, a Kotlin
-@@ -3680,6 +3807,54 @@ fn bare_call_reaches(
+@@ -3680,6 +3864,40 @@ fn bare_call_reaches(
              {
                  return true;
              }
@@ -950,38 +1120,24 @@ index 9720a47..4e22e8f 100644
 +                // they inherit from: `import DataTypeErrors.toSQLType`
 +                // reaches the `toSQLType` its trait `DataTypeErrorsBase`
 +                // declares.
-+                let mut imported: Vec<String> = unqualified_prefixes
-+                    .iter()
-+                    .filter_map(|p| p.rsplit('.').next())
-+                    .map(str::to_string)
-+                    .collect();
++                let mut direct: Vec<String> = Vec::new();
 +                if let Some(v) = direct_imports.get(&r.name) {
 +                    for path in v {
 +                        if let Some(o) = path
 +                            .rsplit_once('.')
 +                            .and_then(|(o, _)| o.rsplit('.').next())
 +                        {
-+                            imported.push(o.to_string());
++                            direct.push(o.to_string());
 +                        }
 +                    }
 +                }
-+                let mut seen: std::collections::BTreeSet<String> =
-+                    std::collections::BTreeSet::new();
-+                let mut frontier = imported;
-+                for _ in 0..8 {
-+                    let mut next = Vec::new();
-+                    for t in std::mem::take(&mut frontier) {
-+                        if !seen.insert(t.clone()) {
-+                            continue;
-+                        }
-+                        if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
-+                            next.extend(bases.iter().cloned());
-+                        }
-+                    }
-+                    if next.is_empty() {
-+                        break;
-+                    }
-+                    frontier = next;
++                let seen = if direct.is_empty() {
++                    std::collections::BTreeSet::new()
++                } else {
++                    with_ancestors(lang, direct, bases_by_owner)
++                };
++                if scala_wild.contains(owner_last) {
++                    return true;
 +                }
 +                if seen.contains(owner_last) {
 +                    return true;
@@ -990,7 +1146,7 @@ index 9720a47..4e22e8f 100644
              let Some(caller) = caller_qn else {
                  return false;
              };
-@@ -3830,6 +4005,10 @@ fn try_resolve_ref(
+@@ -3830,6 +4048,12 @@ fn try_resolve_ref(
      // index and the calling file's module bindings.
      modix: &crate::modules::ModuleIndex<'_>,
      file_mods: &crate::modules::FileModules,
@@ -998,10 +1154,12 @@ index 9720a47..4e22e8f 100644
 +    libix: &crate::libscope::LibIndex<'_>,
 +    // PHP namespaces and `use` tables (WS14).
 +    phpix: &crate::libscope::PhpIndex,
++    // Scala: wildcard-imported objects and their bases (WS14).
++    scala_wild: &std::collections::BTreeSet<String>,
      // Qualified names more than one callable carries; see `resolve`.
      qn_collisions: &std::collections::HashSet<(String, String)>,
      // `(file, qualified name)` → the overload set it declares.
-@@ -3973,6 +4152,7 @@ fn try_resolve_ref(
+@@ -3973,6 +4197,7 @@ fn try_resolve_ref(
      // that provides nothing the call can name is a refusal, recorded by
      // the caller; it does not fall through to the name matching below.
      if matches!(lang, "javascript" | "typescript" | "python" | "go")
@@ -1009,7 +1167,7 @@ index 9720a47..4e22e8f 100644
          && let Some(scoped) = file_mods.resolve(
              modix,
              lang,
-@@ -3996,6 +4176,7 @@ fn try_resolve_ref(
+@@ -3996,6 +4221,7 @@ fn try_resolve_ref(
                  *refused_module = Some(module);
                  return None;
              }
@@ -1017,7 +1175,7 @@ index 9720a47..4e22e8f 100644
              crate::modules::Scoped::NoCtor => {
                  *no_ctor = true;
                  return None;
-@@ -4006,6 +4187,82 @@ fn try_resolve_ref(
+@@ -4006,6 +4232,82 @@ fn try_resolve_ref(
              }
          }
      }
@@ -1100,7 +1258,15 @@ index 9720a47..4e22e8f 100644
      // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
      // the evidence singles out when the module is vendored more than once
      // — never another module's `f`.
-@@ -4203,6 +4460,90 @@ fn try_resolve_ref(
+@@ -4062,6 +4364,7 @@ fn try_resolve_ref(
+             direct_imports,
+             unqualified_prefixes,
+             bases_by_owner,
++            scala_wild,
+         };
+         // Java/C#: a bare name is a member of the calling class or one it
+         // inherits before any static import (see `member_of_calling_class`).
+@@ -4203,6 +4506,90 @@ fn try_resolve_ref(
                  }
              }
          }
@@ -1191,7 +1357,7 @@ index 9720a47..4e22e8f 100644
          // Step 1b: bare-name lookup via unqualified-import prefixes
          // (Haskell `import Data.Map` + `lookup`, OCaml `open Foo` + `bar`,
          // Elixir `import Foo` + `bar`, F# `open System.IO` + `File`, …).
-@@ -4307,7 +4648,10 @@ fn try_resolve_ref(
+@@ -4307,7 +4694,10 @@ fn try_resolve_ref(
          // receiver_hint is the full receiver expression (e.g., "mod"
          // or "mod.sub"). Take its first segment to match module alias.
          let first = r.receiver_hint.split(['.', ':']).next().unwrap_or("");
@@ -1203,7 +1369,7 @@ index 9720a47..4e22e8f 100644
              // Rebuild the full target path. For `mod.fn()` with alias
              // `mod=helpers` -> `helpers.fn`. For `mod.sub.fn()` ->
              // `helpers.sub.fn`.
-@@ -9101,6 +9445,7 @@ mod tests {
+@@ -9101,6 +9491,7 @@ mod tests {
      // ----------------------------------------------------------------
  
      /// One file of a module-scoped case.
@@ -1211,7 +1377,7 @@ index 9720a47..4e22e8f 100644
      struct MFile<'a> {
          path: &'a str,
          /// `(qualified name, kind, signature)` of each callable.
-@@ -10971,10 +11316,13 @@ mod tests {
+@@ -10971,10 +11362,13 @@ mod tests {
          );
      }
  
@@ -1229,7 +1395,7 @@ index 9720a47..4e22e8f 100644
      #[test]
      fn dart_bare_call_needs_an_imported_file() {
          let files = vec![
-@@ -10985,25 +11333,332 @@ mod tests {
+@@ -10985,25 +11379,332 @@ mod tests {
              ),
              mfile("tools/pkg/configs/test/fixtures.dart", &["load"], vec![]),
          ];

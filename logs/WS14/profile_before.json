@@ -1,0 +1,186 @@
+{
+ "javascript": {
+  "e_high": 244553,
+  "e_medium": 265437
+ },
+ "rust": {
+  "e_high": 35074,
+  "e_medium": 65030
+ },
+ "python": {
+  "e_high": 175923,
+  "e_medium": 182735
+ },
+ "typescript": {
+  "e_high": 163141,
+  "e_medium": 92854
+ },
+ "csharp": {
+  "e_high": 9947,
+  "e_medium": 66525
+ },
+ "java": {
+  "e_high": 251317,
+  "e_medium": 1048628
+ },
+ "scala": {
+  "e_high": 29952,
+  "e_medium": 50582
+ },
+ "proto": {
+  "e_high": 2739,
+  "e_medium": 923,
+  "e_low": 2698
+ },
+ "swift": {
+  "e_medium": 14854,
+  "e_high": 6008
+ },
+ "bash": {
+  "e_high": 6556
+ },
+ "julia": {
+  "e_high": 2100,
+  "e_medium": 2466
+ },
+ "openapi": {
+  "e_high": 10970,
+  "e_medium": 5169
+ },
+ "lua": {
+  "e_high": 9533,
+  "e_medium": 5117
+ },
+ "go": {
+  "e_high": 465980,
+  "e_medium": 120277
+ },
+ "c": {
+  "e_high": 211627,
+  "e_medium": 53409
+ },
+ "fsharp": {
+  "e_high": 7908,
+  "e_medium": 13617
+ },
+ "ruby": {
+  "e_high": 6535,
+  "e_medium": 15939
+ },
+ "cpp": {
+  "e_high": 136922,
+  "e_medium": 266283
+ },
+ "asm": {
+  "e_high": 104,
+  "e_medium": 367
+ },
+ "graphql": {
+  "e_high": 10847,
+  "e_medium": 119
+ },
+ "clojure": {
+  "e_high": 21995,
+  "e_medium": 17957
+ },
+ "php": {
+  "e_medium": 49738,
+  "e_high": 9895
+ },
+ "haskell": {
+  "e_high": 21762,
+  "e_medium": 28578
+ },
+ "objc": {
+  "e_high": 1119,
+  "e_medium": 4984
+ },
+ "cmake": {
+  "e_high": 1385,
+  "e_medium": 111
+ },
+ "dart": {
+  "e_medium": 539459,
+  "e_high": 34864
+ },
+ "r": {
+  "e_high": 649,
+  "e_medium": 38
+ },
+ "fortran": {
+  "e_high": 1495,
+  "e_medium": 2613
+ },
+ "powershell": {
+  "e_high": 199,
+  "e_medium": 14
+ },
+ "zig": {
+  "e_high": 96394,
+  "e_medium": 117026
+ },
+ "nix": {
+  "e_high": 663,
+  "e_medium": 331
+ },
+ "perl": {
+  "e_high": 4003,
+  "e_medium": 19427
+ },
+ "kotlin": {
+  "e_high": 67214,
+  "e_medium": 134736
+ },
+ "kivy": {
+  "e_low": 78,
+  "e_high": 894,
+  "e_medium": 1275
+ },
+ "starlark": {
+  "e_high": 505,
+  "e_medium": 20
+ },
+ "ocaml": {
+  "e_high": 20610,
+  "e_medium": 11125
+ },
+ "vhdl": {
+  "e_high": 235,
+  "e_medium": 4
+ },
+ "verilog": {
+  "e_high": 86
+ },
+ "elixir": {
+  "e_high": 5481,
+  "e_medium": 2975
+ },
+ "lean": {
+  "e_high": 2303,
+  "e_medium": 6526
+ },
+ "erlang": {
+  "e_high": 537993,
+  "e_medium": 11307
+ },
+ "groovy": {
+  "e_high": 3455,
+  "e_medium": 16451
+ },
+ "asyncapi": {
+  "e_high": 355,
+  "e_medium": 42
+ },
+ "hcl": {
+  "e_high": 23
+ },
+ "solidity": {
+  "e_high": 1629,
+  "e_medium": 2667
+ },
+ "smithy": {
+  "e_high": 4620,
+  "e_medium": 1242,
+  "e_low": 14
+ }
+}

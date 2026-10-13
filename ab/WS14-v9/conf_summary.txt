@@ -1,0 +1,71 @@
+dart | removed {'medium': 189323, 'high': 1664} | added {'high': 40771} | rescored {'medium->high': 74111}
+       186349 external/stdlib or still bound (same name, kept target)
+       3433 now unresolved: shadowed-by-local
+       1204 rebound to another target
+       1 now unresolved: candidates-in-other-files
+elixir | removed {'medium': 2363} | added {'medium': 11} | rescored {}
+       2337 now unresolved: candidates-in-other-files
+       22 external/stdlib or still bound (same name, kept target)
+       2 now unresolved: ambiguous-in-file
+       2 rebound to another target
+fsharp | removed {'medium': 636} | added {'high': 4} | rescored {'medium->high': 409}
+       633 external/stdlib or still bound (same name, kept target)
+       2 now unresolved: candidates-in-other-files
+       1 rebound to another target
+javascript | removed {'medium': 1587, 'high': 695} | added {'high': 2647, 'medium': 10} | rescored {'medium->high': 127}
+       2188 now unresolved: shadowed-by-local
+       69 external/stdlib or still bound (same name, kept target)
+       16 now unresolved: ambiguous-in-file
+       7 now unresolved: not-in-scope-for-bare-call
+       2 now unresolved: fanout-cap-exceeded
+julia | removed {'medium': 4} | added {} | rescored {'medium->high': 4}
+       4 external/stdlib or still bound (same name, kept target)
+kotlin | removed {'high': 32, 'medium': 1060} | added {'medium': 29, 'high': 24} | rescored {'medium->high': 165}
+       851 now unresolved: shadowed-by-local
+       226 external/stdlib or still bound (same name, kept target)
+       15 rebound to another target
+lua | removed {'medium': 474, 'high': 88} | added {'high': 83} | rescored {'medium->high': 194}
+       369 now unresolved: shadowed-by-local
+       188 external/stdlib or still bound (same name, kept target)
+       5 rebound to another target
+ocaml | removed {'medium': 2116, 'high': 201} | added {'high': 4510} | rescored {'medium->high': 1214}
+       848 external/stdlib or still bound (same name, kept target)
+       789 now unresolved: shadowed-by-local
+       676 rebound to another target
+       4 now unresolved: ambiguous-in-file
+perl | removed {'high': 343, 'medium': 8192} | added {} | rescored {'high->medium': 1}
+       8244 external/stdlib or still bound (same name, kept target)
+       291 now unresolved: candidates-in-other-files
+php | removed {'medium': 2452, 'high': 3} | added {'high': 33261, 'medium': 440} | rescored {'medium->high': 35192}
+       1209 external/stdlib or still bound (same name, kept target)
+       1207 rebound to another target
+       39 now unresolved: candidates-in-other-files
+python | removed {'medium': 4781, 'high': 1036} | added {'medium': 33, 'high': 1} | rescored {'high->medium': 2}
+       5472 now unresolved: shadowed-by-local
+       177 now unresolved: ambiguous-in-file
+       137 external/stdlib or still bound (same name, kept target)
+       29 now unresolved: no-candidate-in-file
+       2 now unresolved: not-in-scope-for-bare-call
+rust | removed {'medium': 153, 'high': 22} | added {'high': 314} | rescored {'medium->high': 98}
+       126 external/stdlib or still bound (same name, kept target)
+       49 now unresolved: shadowed-by-local
+scala | removed {'high': 2590, 'medium': 38022} | added {'medium': 37043, 'high': 2448} | rescored {'high->medium': 164, 'medium->high': 287}
+       19015 now unresolved: candidates-in-other-files
+       16105 rebound to another target
+       3081 now unresolved: shadowed-by-local
+       1877 external/stdlib or still bound (same name, kept target)
+       534 now unresolved: ambiguous-in-file
+swift | removed {'medium': 93, 'high': 14} | added {'medium': 6} | rescored {'medium->high': 7}
+       97 now unresolved: shadowed-by-local
+       10 external/stdlib or still bound (same name, kept target)
+typescript | removed {'medium': 16757, 'high': 60} | added {'medium': 8, 'high': 11} | rescored {'medium->high': 194}
+       16459 now unresolved: shadowed-by-local
+       356 external/stdlib or still bound (same name, kept target)
+       1 now unresolved: not-in-scope-for-bare-call
+       1 now unresolved: candidates-in-other-files
+zig | removed {'medium': 4429, 'high': 459} | added {'medium': 2611, 'high': 5097} | rescored {'medium->high': 14400, 'high->medium': 115}
+       3509 external/stdlib or still bound (same name, kept target)
+       437 now unresolved: candidates-in-other-files
+       433 now unresolved: fanout-cap-exceeded
+       266 now unresolved: shadowed-by-local
+       243 rebound to another target
