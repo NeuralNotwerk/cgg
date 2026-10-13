@@ -1951,10 +1951,10 @@ index e27086b..d089883 100644
      fn calls_and_imports() {
          let f = extract(
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 5122b9a..eda7255 100644
+index 5122b9a..9720a47 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
-@@ -359,6 +359,221 @@ fn push_bare_base(slot: &mut Vec<String>, b: &str) {
+@@ -359,6 +359,211 @@ fn push_bare_base(slot: &mut Vec<String>, b: &str) {
      }
  }
  
@@ -2095,8 +2095,8 @@ index 5122b9a..eda7255 100644
 +///   every generated class's `_Fields` (FINDINGS R17).
 +/// * Copies of the class (one qualified name in several samples) are
 +///   narrowed to the caller's copy (`nearest_class_copies`, R18).
-+/// * A member that a class derived from its owner overrides is a virtual
-+///   call with several bodies: the declaration and every override, as
++/// * A member that a class derived from the calling class overrides is a
++///   virtual call with several bodies: the member and those overrides, as
 +///   the bare-name fan-out bound them before (R20) — never the
 +///   declaration alone, which left each override looking uncalled. Over
 +///   `--fanout-cap` the call is refused and recorded as capped.
@@ -2141,22 +2141,12 @@ index 5122b9a..eda7255 100644
 +    let Some(set) = nearest_class_copies(graph, &found, caller_file) else {
 +        return Some(None);
 +    };
-+    let mut owners: Vec<&str> = Vec::new();
-+    for c in &set {
-+        if let Some(o) = graph
-+            .callables
-+            .get(c)
-+            .and_then(|n| owner_from_qn(&n.qualified_name))
-+            && !owners.contains(&o)
-+        {
-+            owners.push(o);
-+        }
-+    }
-+    // A member a derived class overrides is a virtual call: the set is the
-+    // declaration and its overrides, bounded by the fan-out cap like any
-+    // other several-bodied call; over the cap it is refused and recorded.
-+    let overrides =
-+        overrides_below(lang, &owners, name, by_owner_method, derived_by_base);
++    // A member a class derived from the CALLING class overrides is a
++    // virtual call (`this` is the caller's class or below it — never a
++    // sibling): the set is the member and those overrides, bounded by the
++    // fan-out cap like any other several-bodied call; over the cap it is
++    // refused and recorded.
++    let overrides = overrides_below(lang, &[own], name, by_owner_method, derived_by_base);
 +    if overrides.is_empty() {
 +        return Some(Some(set));
 +    }
@@ -2176,7 +2166,7 @@ index 5122b9a..eda7255 100644
  fn resolve_via_bases(
      lang: &str,
      owner: &str,
-@@ -697,8 +912,19 @@ pub fn resolve(
+@@ -697,8 +902,19 @@ pub fn resolve(
          HashMap::new();
      let mut kotlin_ext_ids: std::collections::HashSet<CallableId> =
          std::collections::HashSet::new();
@@ -2197,7 +2187,7 @@ index 5122b9a..eda7255 100644
          // Callables a macro expansion generated are reachable by path and
          // by owner, never by name alone: a template stamped out once per
          // newtype would otherwise multiply every same-named candidate set
-@@ -921,6 +1147,21 @@ pub fn resolve(
+@@ -921,6 +1137,21 @@ pub fn resolve(
          }
      }
  
@@ -2219,7 +2209,7 @@ index 5122b9a..eda7255 100644
      let mut kotlin_extensions = KotlinExtensions {
          by_file: kotlin_ext_by_file,
          ids: kotlin_ext_ids,
-@@ -1042,10 +1283,31 @@ pub fn resolve(
+@@ -1042,10 +1273,31 @@ pub fn resolve(
      // index reproduces that. The corpus caught it as -9,331 nodes and
      // edges across 34 repos. Any future index has to be proven against
      // the full corpus before it replaces this scan.
@@ -2255,7 +2245,7 @@ index 5122b9a..eda7255 100644
      let def_cids: HashMap<FileId, Vec<(&str, CallableId)>> = facts
          .iter()
          .map(|f| {
-@@ -1053,8 +1315,8 @@ pub fn resolve(
+@@ -1053,8 +1305,8 @@ pub fn resolve(
                  .definitions
                  .iter()
                  .filter_map(|d| {
@@ -2266,7 +2256,7 @@ index 5122b9a..eda7255 100644
                          .map(|cid| (d.simple_name.as_str(), *cid))
                  })
                  .collect();
-@@ -1111,6 +1373,9 @@ pub fn resolve(
+@@ -1111,6 +1363,9 @@ pub fn resolve(
      // so a call through an import of a dependency is never name-matched
      // onto a workspace callable (FINDINGS A1; see `heads`).
      let vocab = crate::heads::WorkspaceVocab::build(graph, facts);
@@ -2276,7 +2266,7 @@ index 5122b9a..eda7255 100644
  
      drop(_sp_idx);
      let _sp_loop = cgg_core::profile::span("xfile::parallel-loop");
-@@ -1146,7 +1411,12 @@ pub fn resolve(
+@@ -1146,7 +1401,12 @@ pub fn resolve(
                  let mut conflicted: std::collections::HashSet<&str> =
                      std::collections::HashSet::new();
                  for lt in &facts.local_types {
@@ -2290,7 +2280,7 @@ index 5122b9a..eda7255 100644
                          continue;
                      }
                      match var_types.get(&lt.var_name) {
-@@ -1198,6 +1468,17 @@ pub fn resolve(
+@@ -1198,6 +1458,17 @@ pub fn resolve(
                          // JS/TS: imp.path is relative path; items are
                          // exported names from that file.
                          let module = imp.path.trim();
@@ -2308,7 +2298,7 @@ index 5122b9a..eda7255 100644
                          for item in imp.alias.split(',') {
                              // Defensive: a plugin that forwards a
                              // parenthesised list verbatim must not
-@@ -1210,14 +1491,34 @@ pub fn resolve(
+@@ -1210,14 +1481,34 @@ pub fn resolve(
                              if src.is_empty() {
                                  continue;
                              }
@@ -2347,7 +2337,7 @@ index 5122b9a..eda7255 100644
                                  direct_imports
                                      .entry(alias.to_string())
                                      .or_default()
-@@ -1325,6 +1626,7 @@ pub fn resolve(
+@@ -1325,6 +1616,7 @@ pub fn resolve(
                          // by its leaf name once we've walked the graph;
                          // at resolve time we try `X.Y.<name>` directly.
                          let full = imp.path.trim().to_string();
@@ -2355,7 +2345,7 @@ index 5122b9a..eda7255 100644
                          direct_imports
                              .entry("__using_static__".into())
                              .or_default()
-@@ -1683,6 +1985,19 @@ pub fn resolve(
+@@ -1683,6 +1975,19 @@ pub fn resolve(
              // module prefixes on qualified_name — still get cross-file
              // resolution without resorting to global by-simple noise.
              let mut scoped_simple: HashMap<String, Vec<CallableId>> = HashMap::new();
@@ -2375,7 +2365,7 @@ index 5122b9a..eda7255 100644
              if !unqualified_prefixes.is_empty()
                  || !direct_imports.is_empty()
                  || !module_aliases.is_empty()
-@@ -1707,6 +2022,7 @@ pub fn resolve(
+@@ -1707,6 +2012,7 @@ pub fn resolve(
              }
  
              let heads = crate::heads::FileHeads::build(facts, &vocab);
@@ -2383,7 +2373,7 @@ index 5122b9a..eda7255 100644
  
              drop(_sp_imports);
              let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
-@@ -1855,6 +2171,8 @@ pub fn resolve(
+@@ -1855,6 +2161,8 @@ pub fn resolve(
                  let mut capped = 0u32;
                  let mut no_ctor = false;
                  let mut external: Option<String> = None;
@@ -2392,7 +2382,7 @@ index 5122b9a..eda7255 100644
                  let super_recv = is_super_receiver(&r.receiver_hint);
                  let resolved = try_resolve_ref(
                      graph,
-@@ -1868,6 +2186,7 @@ pub fn resolve(
+@@ -1868,6 +2176,7 @@ pub fn resolve(
                      &module_aliases,
                      &unqualified_prefixes,
                      &scoped_simple,
@@ -2400,7 +2390,7 @@ index 5122b9a..eda7255 100644
                      &by_qn,
                      &by_simple,
                      &by_owner_method,
-@@ -1875,16 +2194,25 @@ pub fn resolve(
+@@ -1875,16 +2184,25 @@ pub fn resolve(
                      &std_owner_trait_impls,
                      &reexports,
                      &bases_by_owner,
@@ -2426,7 +2416,7 @@ index 5122b9a..eda7255 100644
                      &mut capped,
                      &mut no_ctor,
                  )
-@@ -1915,6 +2243,7 @@ pub fn resolve(
+@@ -1915,6 +2233,7 @@ pub fn resolve(
                              r2.receiver_hint = orig.clone();
                              let (mut c2, mut n2) = (0u32, false);
                              let mut e2: Option<String> = None;
@@ -2434,7 +2424,7 @@ index 5122b9a..eda7255 100644
                              try_resolve_ref(
                                  graph,
                                  facts.file,
-@@ -1927,6 +2256,7 @@ pub fn resolve(
+@@ -1927,6 +2246,7 @@ pub fn resolve(
                                  &module_aliases,
                                  &unqualified_prefixes,
                                  &scoped_simple,
@@ -2442,7 +2432,7 @@ index 5122b9a..eda7255 100644
                                  &by_qn,
                                  &by_simple,
                                  &by_owner_method,
-@@ -1934,16 +2264,25 @@ pub fn resolve(
+@@ -1934,16 +2254,25 @@ pub fn resolve(
                                  &std_owner_trait_impls,
                                  &reexports,
                                  &bases_by_owner,
@@ -2468,7 +2458,7 @@ index 5122b9a..eda7255 100644
                                  &mut c2,
                                  &mut n2,
                              )
-@@ -1992,6 +2331,9 @@ pub fn resolve(
+@@ -1992,6 +2321,9 @@ pub fn resolve(
                  let confidence = match &resolved {
                      _ if guessed => Confidence::Low,
                      _ if untyped_fallback => Confidence::Medium,
@@ -2478,7 +2468,7 @@ index 5122b9a..eda7255 100644
                      Some(cids)
                          if cids.len() == 1
                              && (r.receiver_hint.is_empty()
-@@ -2074,6 +2416,25 @@ pub fn resolve(
+@@ -2074,6 +2406,25 @@ pub fn resolve(
                          u.name_screen_applied = Some("external".to_string());
                          out.unresolved.push(u);
                      }
@@ -2504,7 +2494,7 @@ index 5122b9a..eda7255 100644
                  } else if capped > 0 {
                      // A drop is never silent. Without this the call site
                      // is indistinguishable from one that calls nothing —
-@@ -3037,6 +3398,398 @@ fn rust_candidate_reachable(
+@@ -3037,6 +3388,398 @@ fn rust_candidate_reachable(
      true
  }
  
@@ -2903,7 +2893,7 @@ index 5122b9a..eda7255 100644
  fn try_resolve_ref(
      graph: &Graph,
      caller_file: FileId,
-@@ -3052,6 +3805,8 @@ fn try_resolve_ref(
+@@ -3052,6 +3795,8 @@ fn try_resolve_ref(
      module_aliases: &HashMap<String, String>,
      unqualified_prefixes: &[String],
      scoped_simple: &HashMap<String, Vec<CallableId>>,
@@ -2912,7 +2902,7 @@ index 5122b9a..eda7255 100644
      by_qn: &HashMap<(String, String), CallableId>,
      by_simple: &HashMap<(String, String), Vec<CallableId>>,
      by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
-@@ -3059,11 +3814,18 @@ fn try_resolve_ref(
+@@ -3059,11 +3804,18 @@ fn try_resolve_ref(
      std_owner_trait_impls: &HashMap<(String, String, String), Vec<CallableId>>,
      reexports: &HashMap<(String, String), String>,
      bases_by_owner: &HashMap<(String, String), Vec<String>>,
@@ -2931,7 +2921,7 @@ index 5122b9a..eda7255 100644
      fanout_cap: usize,
      // First path segments seen in Rust qualified names (see its
      // construction in `resolve`) — used to tell an unresolved workspace
-@@ -3074,6 +3836,19 @@ fn try_resolve_ref(
+@@ -3074,6 +3826,19 @@ fn try_resolve_ref(
      // construction in `resolve`).
      class_record_langs: &std::collections::BTreeSet<String>,
      kotlin_extensions: &KotlinExtensions,
@@ -2951,7 +2941,7 @@ index 5122b9a..eda7255 100644
      // Set to the candidate count when the fan-out cap rejected a
      // non-empty set, so the caller can record the drop instead of
      // leaving the site looking uncalled.
-@@ -3201,19 +3976,150 @@ fn try_resolve_ref(
+@@ -3201,29 +3966,241 @@ fn try_resolve_ref(
          }
      }
  
@@ -2990,8 +2980,6 @@ index 5122b9a..eda7255 100644
 +                *module_certain = certain;
                  return Some(cids);
              }
--        }
--        // Also check module_aliases for bare calls — handles
 +            crate::modules::Scoped::Refused(module) => {
 +                *refused_module = Some(module);
 +                return None;
@@ -3004,7 +2992,10 @@ index 5122b9a..eda7255 100644
 +                *external_out = Some(module);
 +                return None;
 +            }
-+        }
+         }
+-        // Also check module_aliases for bare calls — handles
+-        // Kotlin/Java `import com.example.Foo` + `Foo()` constructor
+-        // and `import com.example.helper` + `helper()` top-level fn.
 +    }
 +    // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
 +    // the evidence singles out when the module is vendored more than once
@@ -3110,10 +3101,10 @@ index 5122b9a..eda7255 100644
 +            }
 +        }
 +        // Also check module_aliases for bare calls — handles
-         // Kotlin/Java `import com.example.Foo` + `Foo()` constructor
-         // and `import com.example.helper` + `helper()` top-level fn.
++        // Kotlin/Java `import com.example.Foo` + `Foo()` constructor
++        // and `import com.example.helper` + `helper()` top-level fn.
          if let Some(target) = module_aliases.get(&r.name) {
-@@ -3221,9 +4127,90 @@ fn try_resolve_ref(
+             // Try target.name (the full path IS the callable)
              if let Some(cid) = lookup_with_reexports(lang, target, by_qn, reexports) {
                  return Some(vec![cid]);
              }
@@ -3207,7 +3198,7 @@ index 5122b9a..eda7255 100644
              }
          }
          // Step 1b: bare-name lookup via unqualified-import prefixes
-@@ -3233,10 +4220,26 @@ fn try_resolve_ref(
+@@ -3233,10 +4210,26 @@ fn try_resolve_ref(
              for joiner in [".", "::"] {
                  let qn = format!("{prefix}{joiner}{}", r.name);
                  if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
@@ -3235,7 +3226,7 @@ index 5122b9a..eda7255 100644
          // Step 1c: scoped by-simple lookup — restricted to callables
          // defined in files whose path matches one of this file's
          // import prefixes. This carries Haskell/OCaml/Dart over the
-@@ -3246,7 +4249,26 @@ fn try_resolve_ref(
+@@ -3246,7 +4239,26 @@ fn try_resolve_ref(
              && !cids.is_empty()
              && cids.len() <= 8
          {
@@ -3263,7 +3254,7 @@ index 5122b9a..eda7255 100644
          }
          // Step 1d: global by-simple fallback. Last resort — only when
          // the file has at least one import and the simple name is
-@@ -3278,6 +4300,13 @@ fn try_resolve_ref(
+@@ -3278,6 +4290,13 @@ fn try_resolve_ref(
                  } else {
                      cids.clone()
                  };
@@ -3277,7 +3268,7 @@ index 5122b9a..eda7255 100644
                  if !cids.is_empty() {
                      return Some(cids);
                  }
-@@ -3302,12 +4331,28 @@ fn try_resolve_ref(
+@@ -3302,12 +4321,28 @@ fn try_resolve_ref(
              if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
                  return Some(vec![cid]);
              }
@@ -3312,7 +3303,7 @@ index 5122b9a..eda7255 100644
              }
          }
  
-@@ -3317,7 +4362,7 @@ fn try_resolve_ref(
+@@ -3317,7 +4352,7 @@ fn try_resolve_ref(
          // form.
          let mut rh_buf = r.receiver_hint.trim().to_string();
          let rh = rh_buf.as_str();
@@ -3321,7 +3312,7 @@ index 5122b9a..eda7255 100644
              // Direct paths in both joiners.
              let direct_dot = format!("{rh}.{}", r.name);
              if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports)
-@@ -6002,9 +7047,13 @@ mod tests {
+@@ -6002,9 +7037,13 @@ mod tests {
              "a.rs",
              "rust",
              vec![mk_def("f", "x::a::f", DefVariant::FreeFunction, (30, 120))],
@@ -3336,7 +3327,7 @@ index 5122b9a..eda7255 100644
                  site_line: 5,
                  site_byte: 60,
                  ..Default::default()
-@@ -7660,6 +8709,17 @@ mod tests {
+@@ -7660,6 +8699,17 @@ mod tests {
                  vec![],
              );
              f.packages = pk.iter().map(|s| s.to_string()).collect();
@@ -3354,7 +3345,7 @@ index 5122b9a..eda7255 100644
              facts.push(f);
          }
          let (cpath, cqn, cpk, cbases) = caller;
-@@ -8044,4 +9104,1932 @@ mod tests {
+@@ -8044,4 +9094,1948 @@ mod tests {
          assert!(dsts.is_empty(), "{dsts:?}");
          assert_eq!(why, vec![external("cmsys")]);
      }
@@ -5047,6 +5038,22 @@ index 5122b9a..eda7255 100644
 +                at("p.ActionSet.addOne", "src/p/ActionSetDecl.java"),
 +                at("p.Empty.addOne", "src/p/Empty.java"),
 +            ]
++        );
++
++        // Near miss: from a subclass, `this` is never a sibling — the
++        // inherited declaration, not the sibling's override.
++        let files = vec![sub("src/p/Empty.java", "p.Empty.addOne"), decl()];
++        let child = MFile {
++            path: "src/p/Child.java",
++            defs: vec![("p.Child.run", m, "")],
++            imports: vec![],
++            packages: vec!["p"],
++            bases: vec!["ActionSet"],
++        };
++        let (dsts, _) = module_case("java", files, child, vec![call("addOne", "")]);
++        assert_eq!(
++            dsts,
++            vec![at("p.ActionSet.addOne", "src/p/ActionSetDecl.java")]
 +        );
 +
 +        let mut files = vec![decl()];
