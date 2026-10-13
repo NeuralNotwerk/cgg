@@ -1045,7 +1045,8 @@ pub fn resolve(
         .collect();
 
     // Declarations rather than implementations: a `typing.Protocol`
-    // member or an `@abstractmethod`. They carry no body worth entering,
+    // member, an `@abstractmethod`, or a bodiless interface/abstract
+    // member a plugin tags `abstract` (TypeScript, Swift, Scala, Dart). They carry no body worth entering,
     // so counting them as call targets inflates "how many things does
     // this reach" — three implementations where two exist. Dropped from
     // duck-typed fan-out only when a concrete candidate survives, so a
@@ -1071,7 +1072,9 @@ pub fn resolve(
             .callables
             .values()
             .filter(|c| {
-                c.attributes.iter().any(|a| a.contains("abstractmethod"))
+                c.attributes
+                    .iter()
+                    .any(|a| a.contains("abstractmethod") || a == "abstract")
                     || owner_from_qn(&c.qualified_name).is_some_and(|o| {
                         protocol_owners.contains(&(c.language.as_str(), o))
                     })
@@ -1106,11 +1109,19 @@ pub fn resolve(
     // bases and the chain would otherwise end at it; then from methods,
     // for plugins that record bases only there.
     let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
+    // Java/C# class records carry each class's bases exactly; a method's
+    // own `base_types` may name an anonymous class's base instead
+    // (`new Base() { … }`), which is not a base of the enclosing class.
+    let mut exact_classes: std::collections::HashSet<(String, String)> =
+        std::collections::HashSet::new();
     for f in facts {
         for c in &f.classes {
             let Some(owner) = c.class_qn.rsplit('.').next() else {
                 continue;
             };
+            if crate::dispatch::CLASS_RECORDS_ARE_EXACT.contains(&f.language.as_str()) {
+                exact_classes.insert((f.language.clone(), owner.to_string()));
+            }
             let slot = bases_by_owner
                 .entry((f.language.clone(), owner.to_string()))
                 .or_default();
@@ -1118,6 +1129,20 @@ pub fn resolve(
                 push_bare_base(slot, b);
             }
         }
+    }
+    // The bases a method's own record names when they are not its
+    // class's: a Java anonymous class body. `super.m()` there names them.
+    let mut own_bases: HashMap<CallableId, Vec<String>> = HashMap::new();
+    let by_span: HashMap<(FileId, u32), CallableId> = if exact_classes.is_empty() {
+        HashMap::new()
+    } else {
+        graph
+            .callables
+            .values()
+            .map(|c| ((c.file, c.start_byte), c.id))
+            .collect()
+    };
+    for f in facts {
         for d in &f.definitions {
             if d.base_types.is_empty() {
                 continue;
@@ -1125,6 +1150,19 @@ pub fn resolve(
             let Some(owner) = owner_from_qn(&d.qualified_name) else {
                 continue;
             };
+            if exact_classes.contains(&(f.language.clone(), owner.to_string())) {
+                let mut mine: Vec<String> = Vec::new();
+                for b in &d.base_types {
+                    push_bare_base(&mut mine, b);
+                }
+                let class = bases_by_owner.get(&(f.language.clone(), owner.to_string()));
+                if class.is_none_or(|c| *c != mine)
+                    && let Some(&id) = by_span.get(&(f.file, d.start_byte))
+                {
+                    own_bases.insert(id, mine);
+                }
+                continue;
+            }
             // Keyed by the bare type: `impl Trait for Tuple<'_>` declares
             // `Tuple<'_>`'s bases, and a receiver names `Tuple`.
             let owner = owner.split('<').next().unwrap_or(owner).trim();
@@ -2312,6 +2350,7 @@ pub fn resolve(
                     &rust_path_heads,
                     &workspace_owner_names,
                     &class_record_langs,
+                    &own_bases,
                     &kotlin_extensions,
                     &modix,
                     &file_mods,
@@ -2385,6 +2424,7 @@ pub fn resolve(
                                 &rust_path_heads,
                                 &workspace_owner_names,
                                 &class_record_langs,
+                                &own_bases,
                                 &kotlin_extensions,
                                 &modix,
                                 &file_mods,
@@ -4043,6 +4083,8 @@ fn try_resolve_ref(
     // Languages that record every class declaration (see its
     // construction in `resolve`).
     class_record_langs: &std::collections::BTreeSet<String>,
+    // A Java anonymous class method's bases, which are not its owner's.
+    own_bases: &HashMap<CallableId, Vec<String>>,
     kotlin_extensions: &KotlinExtensions,
     // Module-scoped resolution (FINDINGS A4/A5): the run's import→file
     // index and the calling file's module bindings.
@@ -4106,15 +4148,41 @@ fn try_resolve_ref(
         && let Some(own) = caller_qn.and_then(owner_from_qn)
     {
         let own = own.split('<').next().unwrap_or(own).trim();
-        if bases_by_owner
-            .get(&(lang.to_string(), own.to_string()))
-            .is_some_and(|b| !b.is_empty())
-        {
-            let found =
-                resolve_via_bases(lang, own, &r.name, by_owner_method, bases_by_owner);
-            if found.is_some() || class_record_langs.contains(lang) {
-                return found;
+        // In an anonymous class body `super` is the anonymous class's
+        // base: its own member, or one that base inherits.
+        if let Some(bases) = caller_id.and_then(|c| own_bases.get(&c)) {
+            for b in bases {
+                if let Some(cids) = by_owner_method
+                    .get(&(lang.to_string(), b.clone(), r.name.clone()))
+                    .filter(|v| !v.is_empty())
+                {
+                    return Some(cids.clone());
+                }
+                if let Some(cids) =
+                    resolve_via_bases(lang, b, &r.name, by_owner_method, bases_by_owner)
+                {
+                    return Some(cids);
+                }
             }
+            return None;
+        }
+        match bases_by_owner.get(&(lang.to_string(), own.to_string())) {
+            Some(b) if !b.is_empty() => {
+                let found = resolve_via_bases(
+                    lang,
+                    own,
+                    &r.name,
+                    by_owner_method,
+                    bases_by_owner,
+                );
+                if found.is_some() || class_record_langs.contains(lang) {
+                    return found;
+                }
+            }
+            // A recorded class that names no base extends the language's
+            // root type (`Object`, `object`): nothing in the tree.
+            Some(_) if class_record_langs.contains(lang) => return None,
+            _ => {}
         }
     }
 
@@ -5022,7 +5090,33 @@ fn try_resolve_ref(
                             bases_by_owner,
                         )
                     {
-                        return Some(cids);
+                        // Bases are recorded by bare name, so the base a
+                        // chain reaches may be one of many same-named
+                        // copies (a sample's generated `ICalculator`, once
+                        // per sample). The copy the file can see, nearest
+                        // the caller, is the one it derives from.
+                        let cids: Vec<CallableId> = if cs_scoped {
+                            let seen: Vec<CallableId> = cids
+                                .iter()
+                                .copied()
+                                .filter(|c| {
+                                    graph.callables.get(c).is_none_or(|n| {
+                                        heads.cs_candidate_visible(
+                                            vocab,
+                                            n.file,
+                                            &n.qualified_name,
+                                        )
+                                    })
+                                })
+                                .collect();
+                            if seen.is_empty() { cids } else { seen }
+                        } else {
+                            cids
+                        };
+                        return Some(
+                            nearest_class_copies(graph, &cids, caller_file)
+                                .unwrap_or(cids),
+                        );
                     }
                 }
                 for owner in &owners {

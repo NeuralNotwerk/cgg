@@ -147,6 +147,19 @@ impl<'a> Walker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 let bases = super::attrs::base_types(node, self.source);
+                if !name.is_empty() {
+                    // Every type, bodiless ones included: see the Java
+                    // plugin. A chain that finds nothing then proves the
+                    // member is outside the tree (`base.M()`).
+                    let mut parts: Vec<&str> =
+                        self.scope.iter().map(|s| s.name()).collect();
+                    parts.push(&name);
+                    self.facts.classes.push(cgg_core::ClassDecl {
+                        class_qn: parts.join("."),
+                        base_types: bases.clone(),
+                        line: (node.start_position().row as u32) + 1,
+                    });
+                }
                 self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(Scope::Type(name));
@@ -262,7 +275,22 @@ impl<'a> Walker<'a> {
             visibility: String::new(),
             vis: csharp_vis(node),
             // Verbatim, so `[HttpGet("/users")]` keeps its route.
-            attributes: super::attrs::collect(node, self.source),
+            attributes: {
+                let mut a = super::attrs::collect(node, self.source);
+                // Implements a member some base declares: the `override`
+                // modifier, or an explicit interface implementation
+                // (`void IFoo.Bar()`), callable only through `IFoo`. Like
+                // Java's `@Override`, it says the runtime reaches this
+                // through the base, which may be outside the tree.
+                if has_modifier(node, "override")
+                    || node
+                        .children(&mut node.walk())
+                        .any(|c| c.kind() == "explicit_interface_specifier")
+                {
+                    a.push("override".to_string());
+                }
+                a
+            },
             base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
@@ -365,7 +393,16 @@ impl<'a> Walker<'a> {
             "member_access_expression" => {
                 let expr = func.child_by_field_name("expression")?;
                 let name = func.child_by_field_name("name")?;
-                (self.text(name).to_string(), self.text(expr).to_string())
+                // `base.M()` is C#'s `super.m()`: the caller's base types,
+                // never the caller's own class. Spelled the way every
+                // other language spells it so the resolver's base-chain
+                // reading applies.
+                let recv = if expr.kind() == "base" {
+                    "super".to_string()
+                } else {
+                    self.text(expr).to_string()
+                };
+                (self.text(name).to_string(), recv)
             }
             "generic_name" => {
                 // Foo<T>() — take the base identifier.
@@ -708,5 +745,32 @@ namespace A.B.C {
         assert_eq!(acc("get", 2), Vis::Public);
         assert_eq!(acc("set", 2), Vis::Private);
         assert_eq!(acc("get", 3), Vis::Private);
+    }
+
+    #[test]
+    fn base_receiver_reads_as_super_and_overrides_are_marked() {
+        let f = extract(
+            "namespace N {\n  class W : Ext, IThing {\n    protected override void Paint() { base.Paint(); this.Paint(); }\n    void IThing.Tick() { }\n    void Plain() { }\n  }\n}\n",
+        );
+        let attrs = |name: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == name)
+                .map(|d| d.attributes.clone())
+                .unwrap_or_default()
+        };
+        assert!(attrs("Paint").iter().any(|a| a == "override"));
+        assert!(attrs("Tick").iter().any(|a| a == "override"));
+        assert!(!attrs("Plain").iter().any(|a| a == "override"));
+        let recv: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "Paint")
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(recv, vec!["super", "this"]);
+        assert_eq!(f.classes.len(), 1);
+        assert_eq!(f.classes[0].class_qn, "N.W");
+        assert_eq!(f.classes[0].base_types, vec!["Ext", "IThing"]);
     }
 }

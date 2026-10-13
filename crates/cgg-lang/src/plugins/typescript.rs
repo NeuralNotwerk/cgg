@@ -260,4 +260,24 @@ class Singleton { private constructor() {} }
                 .any(|r| r.name == "run" && r.receiver_hint == "obj")
         );
     }
+
+    #[test]
+    fn interface_and_abstract_members_are_bodiless_declarations() {
+        let f = extract(
+            "interface Shape extends Base { area(): number; size: number; }\nabstract class A extends B implements Shape, L<X> { abstract render(): void; draw() { this.render(); } }\ntype T = { z(): void };\n",
+        );
+        let get = |qn: &str| f.definitions.iter().find(|d| d.qualified_name == qn);
+        let area = get("Shape.area").expect("interface member");
+        assert_eq!(area.variant, DefVariant::TraitMethod);
+        assert!(area.attributes.iter().any(|a| a == "abstract"));
+        assert_eq!(area.base_types, vec!["Base"]);
+        assert!(get("A.render").is_some(), "abstract member");
+        // The abstract class owns its concrete members too.
+        let draw = get("A.draw").expect("abstract class scope");
+        assert_eq!(draw.base_types, vec!["B", "Shape", "L<X>"]);
+        // An object type's member belongs to no class; a property is not
+        // a method.
+        assert!(f.definitions.iter().all(|d| d.simple_name != "z"));
+        assert!(f.definitions.iter().all(|d| d.simple_name != "size"));
+    }
 }

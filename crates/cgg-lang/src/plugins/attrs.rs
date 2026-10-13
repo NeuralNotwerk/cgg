@@ -186,6 +186,22 @@ pub(crate) fn base_types(node: Node, source: &[u8]) -> Vec<String> {
     }
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
+        // TypeScript's `class_heritage` holds both clauses: read as one
+        // text, `extends A implements B` splits into the single part
+        // `A implements B`, which no type name matches.
+        if child.kind() == "class_heritage" {
+            let mut inner = child.walk();
+            let clauses: Vec<Node> = child
+                .named_children(&mut inner)
+                .filter(|c| BASE_CONTAINER_KINDS.contains(&c.kind()))
+                .collect();
+            if !clauses.is_empty() {
+                for c in clauses {
+                    consider(c, &mut out);
+                }
+                continue;
+            }
+        }
         if BASE_CONTAINER_KINDS.contains(&child.kind()) {
             consider(child, &mut out);
         }

@@ -327,9 +327,45 @@ impl<'a> TraitSurfaces<'a> {
         nd: &CallableNode,
         variant: Option<&cgg_core::DefVariant>,
         unresolved: &UnresolvedIndex<'_>,
+        contracts: &Contracts<'_>,
     ) -> Option<Evidence> {
         if nd.trait_impl_target.is_some() || nd.qualified_name.contains(" as ") {
             return None;
+        }
+        // A member of a class that classes below it override: the same
+        // dispatch surface, read off the declared bases. Callers typed to
+        // a subclass bind to its override, so the base member's own
+        // in-degree of zero says nothing once an override is called.
+        if crate::dispatch::INHERITANCE_LANGS.contains(&nd.language.as_str()) {
+            let lang = nd.language.as_str();
+            if matches!(
+                variant,
+                Some(
+                    cgg_core::DefVariant::Constructor
+                        | cgg_core::DefVariant::StaticMethod
+                )
+            ) || (matches!(variant, Some(cgg_core::DefVariant::FreeFunction))
+                && !crate::dispatch::free_variant_is_member(lang))
+            {
+                return None;
+            }
+            let owner = owner_stem(&nd.qualified_name)?;
+            let below = contracts.overrides_below(lang, owner, &nd.simple_name);
+            if below.is_empty() {
+                return None;
+            }
+            let called_impls =
+                below.iter().filter(|c| self.called.contains(c)).count() as u32;
+            let unresolved_sites = unresolved.sites_named(lang, &nd.simple_name);
+            if called_impls == 0 && unresolved_sites == 0 {
+                return None;
+            }
+            return Some(Evidence::ImplementedTraitSurface {
+                trait_name: owner.to_string(),
+                impls: below.len() as u32,
+                unresolved_sites,
+                called_impls,
+            });
         }
         if matches!(
             variant,
@@ -361,6 +397,186 @@ impl<'a> TraitSurfaces<'a> {
             called_impls,
         })
     }
+}
+
+/// Markers a plugin records on a member that implements one its class's
+/// base declares: Java's `@Override`, the `override` modifier (C#, and
+/// the plugin's spelling of a C# explicit interface implementation),
+/// Dart's `@override`. Language keywords and annotations, never names.
+const OVERRIDE_MARKERS: &[&str] = &["@Override", "override", "@override"];
+
+/// The class hierarchy as dead-code needs it: what a member overrides,
+/// what overrides it, and whether a contract it implements lies outside
+/// the analyzed tree. Built once from the facts; every list it iterates
+/// is sorted, so `--jobs` cannot change an answer.
+struct Contracts<'a> {
+    hierarchy: crate::dispatch::ClassHierarchy,
+    /// (language, base) -> classes naming it as a base.
+    derived: std::collections::HashMap<(String, String), Vec<String>>,
+    /// (language, bare owner, method) -> callables.
+    members: std::collections::HashMap<(&'a str, &'a str, &'a str), Vec<CallableId>>,
+    /// (language, bare owner) of every declared callable — the types the
+    /// graph knows, including Rust traits by their declarations.
+    owners: std::collections::HashSet<(&'a str, &'a str)>,
+}
+
+impl<'a> Contracts<'a> {
+    fn build(graph: &'a Graph, facts: &[FileFacts]) -> Self {
+        let mut members: std::collections::HashMap<(&str, &str, &str), Vec<CallableId>> =
+            std::collections::HashMap::new();
+        let mut owners: std::collections::HashSet<(&str, &str)> =
+            std::collections::HashSet::new();
+        for c in graph.callables.values() {
+            if c.synthetic || c.trait_impl_target.is_some() {
+                // An impl's owner is the implementing type, which says
+                // nothing about which traits the tree declares.
+                if let (false, Some(o)) = (c.synthetic, owner_stem(&c.qualified_name)) {
+                    members
+                        .entry((c.language.as_str(), o, c.simple_name.as_str()))
+                        .or_default()
+                        .push(c.id);
+                }
+                continue;
+            }
+            if let Some(o) = owner_stem(&c.qualified_name) {
+                members
+                    .entry((c.language.as_str(), o, c.simple_name.as_str()))
+                    .or_default()
+                    .push(c.id);
+                owners.insert((c.language.as_str(), o));
+            }
+        }
+        let hierarchy = crate::dispatch::ClassHierarchy::build(facts);
+        let derived = hierarchy.derived_index();
+        Contracts {
+            hierarchy,
+            derived,
+            members,
+            owners,
+        }
+    }
+
+    fn declares_member(&self, lang: &str, owner: &str, name: &str) -> bool {
+        self.members
+            .get(&(lang, owner, name))
+            .is_some_and(|v| !v.is_empty())
+    }
+
+    /// [`Evidence::ImplementsExternalContract`] when `nd` implements a
+    /// member whose declaration is outside the tree.
+    fn external_contract(&self, nd: &CallableNode) -> Option<Evidence> {
+        let lang = nd.language.as_str();
+        let name = nd.simple_name.as_str();
+        // Rust names the trait on the impl; a trait the tree declares
+        // has at least one method declaration of its own.
+        if lang == "rust" {
+            let t = nd.trait_impl_target.as_deref()?;
+            let t = crate::dispatch::type_stem(t);
+            if self.owners.contains(&(lang, t)) {
+                return None;
+            }
+            return Some(Evidence::ImplementsExternalContract {
+                contract: t.to_string(),
+            });
+        }
+        let owner = owner_stem(&nd.qualified_name)?;
+        let marked = nd
+            .attributes
+            .iter()
+            .any(|a| OVERRIDE_MARKERS.contains(&a.trim()));
+        // Python marks nothing: any method of a class deriving from an
+        // outside base may be the hook that base calls. A name-mangled
+        // `__m` cannot be: the base would have to spell this class's name.
+        let mangled = name.starts_with("__") && !name.ends_with("__");
+        let python = lang == "python" && !mangled && nd.kind != CallableKind::Function;
+        if !marked && !python {
+            return None;
+        }
+        let ancestors = self.hierarchy.ancestors(lang, owner);
+        if ancestors
+            .iter()
+            .any(|a| self.declares_member(lang, a, name))
+        {
+            // The contract is in the tree: the dispatch fan-out from its
+            // declaration is what reaches this override.
+            return None;
+        }
+        let outside = ancestors
+            .iter()
+            .find(|a| !self.hierarchy.declares(lang, a))
+            .cloned();
+        match outside {
+            Some(a) => Some(Evidence::ImplementsExternalContract { contract: a }),
+            // A marker with no outside ancestor in view: the base it
+            // names is still outside (an implicit root type, or a base
+            // cgg could not read off the declaration).
+            None if marked => Some(Evidence::ImplementsExternalContract {
+                contract: String::new(),
+            }),
+            None => None,
+        }
+    }
+
+    /// The same-named members of the classes below `owner`, transitively
+    /// (depth 8), sorted.
+    fn overrides_below(&self, lang: &str, owner: &str, name: &str) -> Vec<CallableId> {
+        let mut out: Vec<CallableId> = Vec::new();
+        let mut seen: std::collections::BTreeSet<&str> =
+            std::collections::BTreeSet::new();
+        seen.insert(owner);
+        let mut frontier: Vec<&str> = vec![owner];
+        for _ in 0..8 {
+            let mut next: Vec<&str> = Vec::new();
+            for t in frontier {
+                let Some(kids) = self.derived.get(&(lang.to_string(), t.to_string()))
+                else {
+                    continue;
+                };
+                for k in kids {
+                    if !seen.insert(k.as_str()) {
+                        continue;
+                    }
+                    if let Some(v) = self.members.get(&(lang, k.as_str(), name)) {
+                        out.extend(v.iter().copied());
+                    }
+                    next.push(k.as_str());
+                }
+            }
+            if next.is_empty() {
+                break;
+            }
+            frontier = next;
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
+    /// Whether a receiver hint on an unresolved same-name site rules
+    /// this candidate out: only a type the tree declares, unrelated to
+    /// the candidate's owner by inheritance either way. A variable
+    /// (`p`, `orderService`), a type parameter (`T`), an expression or a
+    /// type cgg never saw says nothing about which class receives it.
+    /// `stem` is the receiver hint already reduced to a type-shaped name.
+    fn hint_contradicts(&self, lang: &str, owner: &str, stem: &str) -> bool {
+        if stem == owner || !self.owners.contains(&(lang, stem)) {
+            return false;
+        }
+        let up = self.hierarchy.ancestors(lang, owner);
+        if up.iter().any(|a| a == stem) {
+            return false;
+        }
+        !self
+            .hierarchy
+            .ancestors(lang, stem)
+            .iter()
+            .any(|a| a == owner)
+    }
+}
+
+/// The bare owner segment of a qualified name (`Box<T>` -> `Box`).
+fn owner_stem(qn: &str) -> Option<&str> {
+    crate::names::owner_from_qn(qn).map(crate::dispatch::type_stem)
 }
 
 /// Whether a callable may ever be reported.
@@ -398,7 +614,43 @@ pub fn analyze(
     let variants = def_variants(facts);
 
     let surfaces = TraitSurfaces::build(graph);
+    let contracts = {
+        let _s = cgg_core::profile::span("dead::contracts-build");
+        Contracts::build(graph, facts)
+    };
     let mentions = Mentions::build(facts);
+    // Java: the package each file declares.
+    let package_of: std::collections::HashMap<cgg_core::ids::FileId, &str> = facts
+        .iter()
+        .filter(|f| f.language == "java")
+        .filter_map(|f| f.packages.first().map(|p| (f.file, p.as_str())))
+        .collect();
+    // Whether an unresolved site could legally call `nd` at all.
+    let can_reach = |nd: &CallableNode,
+                     nd_owner: Option<&str>,
+                     nd_package: Option<&str>,
+                     u: &cgg_core::audit::AuditUnresolvedCall|
+     -> bool {
+        match (nd.language.as_str(), nd.vis) {
+            // Java `private`: the top-level class, which is the file.
+            ("java", Vis::Private) => u.file == nd.file,
+            // Package-private: the package.
+            ("java", Vis::Internal) => match (package_of.get(&u.file), nd_package) {
+                (Some(a), Some(b)) => *a == b,
+                _ => true,
+            },
+            // C# `private`: the class, which a `partial` class spreads
+            // over several files.
+            ("csharp", Vis::Private) => {
+                u.file == nd.file
+                    || u.src
+                        .and_then(|c| graph.callables.get(&c))
+                        .and_then(|c| owner_stem(&c.qualified_name))
+                        .is_some_and(|o| Some(o) == nd_owner)
+            }
+            _ => true,
+        }
+    };
 
     let node_at = |i: u32| graph.callables.get_index(i as usize).map(|(_, v)| v);
     let lang_at = |i: u32| node_at(i).map(|nd| nd.language.clone()).unwrap_or_default();
@@ -568,12 +820,37 @@ pub fn analyze(
                 scc_size: sccs[cid as usize].len() as u32,
             });
         }
-        ev.extend(unresolved.evidence_for(graph, nd));
-        if let Some(e) = surfaces.evidence_for(
+        let variant = variants.get(&(nd.file, nd.start_byte));
+        let free = (matches!(variant, Some(cgg_core::DefVariant::FreeFunction))
+            && !crate::dispatch::free_variant_is_member(&nd.language))
+            || owner_stem(&nd.qualified_name).is_none();
+        let _s_unres = cgg_core::profile::span("dead::unresolved-evidence");
+        let nd_owner = owner_stem(&nd.qualified_name);
+        let nd_package = package_of.get(&nd.file).copied();
+        ev.extend(unresolved.evidence_for(
+            graph,
             nd,
-            variants.get(&(nd.file, nd.start_byte)),
-            &unresolved,
-        ) {
+            &|hint_type: Option<&str>| {
+                // A receiver can only reach a member. For a free function a
+                // hint naming anything but its own module rules it out, as
+                // before; for a member only a declared, unrelated type does
+                // — a variable or expression says nothing.
+                match (nd_owner, hint_type) {
+                    (Some(_), None) if !free => false,
+                    (Some(o), Some(t)) if !free => {
+                        contracts.hint_contradicts(&nd.language, o, t)
+                    }
+                    _ => true,
+                }
+            },
+            &|u| can_reach(nd, nd_owner, nd_package, u),
+        ));
+        drop(_s_unres);
+        let _s_disp = cgg_core::profile::span("dead::dispatch-evidence");
+        if let Some(e) = surfaces.evidence_for(nd, variant, &unresolved, &contracts) {
+            ev.push(e);
+        }
+        if let Some(e) = contracts.external_contract(nd) {
             ev.push(e);
         }
         ev.extend(mentions.evidence_for(nd));
@@ -957,6 +1234,7 @@ pub fn why_live(
     let prod = search(&adjacency, graph, &root_set.production);
     let any = search(&adjacency, graph, &all_roots);
     let surfaces = TraitSurfaces::build(graph);
+    let contracts = Contracts::build(graph, facts);
     let unresolved = UnresolvedIndex::build(graph, &[]);
     let variants = def_variants(facts);
 
@@ -1036,6 +1314,7 @@ pub fn why_live(
                     node,
                     variants.get(&(node.file, node.start_byte)),
                     &unresolved,
+                    &contracts,
                 )
             })
             .flatten();
@@ -1055,6 +1334,7 @@ pub fn why_live(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
     use testutil::{graph_with, link, node};
 
     fn opts() -> DeadCodeOptions {
@@ -1321,7 +1601,9 @@ mod tests {
         ));
         let r = analyze(&g, &[], &[], &opts_rust_full());
         let f = decl_finding(&r);
-        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        // The site's receiver is a variable, which says nothing about
+        // its type: the site itself is doubt too (same file: low).
+        assert_ne!(f.confidence, Confidence::High, "{:?}", f.evidence);
         assert!(
             f.evidence
                 .iter()
@@ -1728,5 +2010,311 @@ mod tests {
             why_live(&g, &[], &opts(), &[CallableId::new(3)])[0].clone()
         };
         assert_eq!(format!("{:?}", build(false)), format!("{:?}", build(true)));
+    }
+
+    // --- WS5: dispatch through declared bases --------------------------
+
+    fn opts_full(lang: &str) -> DeadCodeOptions {
+        let mut o = opts();
+        o.language_signals.insert(
+            lang.into(),
+            cgg_core::deadcode::LanguageSignals {
+                visibility: true,
+                attributes: true,
+                value_refs: true,
+                impls: true,
+                ..Default::default()
+            },
+        );
+        o
+    }
+
+    /// A private member of `owner` in `lang`, at a distinct byte offset.
+    fn member(
+        id: u32,
+        lang: &str,
+        owner: &str,
+        name: &str,
+        attrs: &[&str],
+    ) -> CallableNode {
+        let mut n = node(id, &format!("p.{owner}.{name}"), name, lang);
+        n.kind = CallableKind::Method;
+        n.vis = Vis::Private;
+        n.start_byte = id * 100;
+        n.end_byte = id * 100 + 50;
+        n.attributes = attrs.iter().map(|a| a.to_string()).collect();
+        n
+    }
+
+    fn def_of(n: &CallableNode, bases: &[&str]) -> cgg_core::DefRecord {
+        cgg_core::DefRecord {
+            simple_name: n.simple_name.clone(),
+            qualified_name: n.qualified_name.clone(),
+            variant: cgg_core::DefVariant::InherentMethod,
+            start_byte: n.start_byte,
+            end_byte: n.end_byte,
+            base_types: bases.iter().map(|b| b.to_string()).collect(),
+            ..Default::default()
+        }
+    }
+
+    fn facts_for(lang: &str, defs: Vec<cgg_core::DefRecord>) -> Vec<FileFacts> {
+        let mut f = FileFacts::new(
+            cgg_core::ids::FileId::new(0),
+            std::path::PathBuf::from("t.src"),
+            lang,
+        );
+        // Java/C# record every class with its bases; mirror that.
+        for d in &defs {
+            if let Some((owner_path, _)) =
+                crate::names::split_last_segment(&d.qualified_name)
+                && !f.classes.iter().any(|c| c.class_qn == owner_path)
+            {
+                f.classes.push(cgg_core::ClassDecl {
+                    class_qn: owner_path.to_string(),
+                    base_types: d.base_types.clone(),
+                    line: 1,
+                });
+            }
+        }
+        f.definitions = defs;
+        vec![f]
+    }
+
+    fn finding<'r>(r: &'r DeadCodeReport, qn: &str) -> &'r DeadCodeFinding {
+        r.findings
+            .iter()
+            .find(|f| f.qualified_name == qn)
+            .unwrap_or_else(|| panic!("{qn} not reported"))
+    }
+
+    #[test]
+    fn an_override_of_an_out_of_tree_base_member_is_not_high() {
+        // `class Ext extends Handler { @Override void handle() }` with
+        // `Handler` outside the tree: the runtime calls `handle`.
+        let main = node(0, "p.Main.main", "main", "java");
+        let ext = member(1, "java", "Ext", "handle", &["@Override"]);
+        // Near miss: the same class's unmarked package-private helper.
+        let helper = member(2, "java", "Ext", "unused", &[]);
+        let facts = facts_for(
+            "java",
+            vec![def_of(&ext, &["Handler"]), def_of(&helper, &["Handler"])],
+        );
+        let g = graph_with(vec![main, ext, helper]);
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        let f = finding(&r, "p.Ext.handle");
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(f.evidence.iter().any(|e| matches!(
+            e,
+            Evidence::ImplementsExternalContract { contract } if contract == "Handler"
+        )));
+        assert_eq!(finding(&r, "p.Ext.unused").confidence, Confidence::High);
+    }
+
+    #[test]
+    fn an_override_of_an_in_tree_base_member_carries_no_external_contract() {
+        // The base declares it: the dispatch fan-out from the declaration
+        // is what reaches the override, not a cap.
+        let base = member(1, "java", "Base", "apply", &[]);
+        let kid = member(2, "java", "Kid", "apply", &["@Override"]);
+        let facts = facts_for("java", vec![def_of(&base, &[]), def_of(&kid, &["Base"])]);
+        let g = graph_with(vec![node(0, "p.Main.main", "main", "java"), base, kid]);
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        assert!(
+            !finding(&r, "p.Kid.apply")
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "implements-external-contract")
+        );
+    }
+
+    #[test]
+    fn csharp_explicit_interface_impl_of_an_outside_interface_is_not_high() {
+        let imp = member(1, "csharp", "Proc", "Tick", &["override"]);
+        let facts = facts_for("csharp", vec![def_of(&imp, &["IExternal"])]);
+        let g = graph_with(vec![node(0, "p.Main.Main", "Main", "csharp"), imp]);
+        let r = analyze(&g, &[], &facts, &opts_full("csharp"));
+        assert_eq!(finding(&r, "p.Proc.Tick").confidence, Confidence::Medium);
+    }
+
+    #[test]
+    fn python_method_of_a_class_with_an_outside_base_is_not_high() {
+        let hook = member(1, "python", "MyForm", "_save_m2m", &[]);
+        // Name-mangled: no base can call it by this name.
+        let mangled = member(2, "python", "MyForm", "__secret", &[]);
+        // No outside base at all.
+        let plain = member(3, "python", "Plain", "_helper", &[]);
+        let facts = facts_for(
+            "python",
+            vec![
+                def_of(&hook, &["ModelForm"]),
+                def_of(&mangled, &["ModelForm"]),
+                def_of(&plain, &[]),
+            ],
+        );
+        let g = graph_with(vec![
+            node(0, "p.main", "main", "python"),
+            hook,
+            mangled,
+            plain,
+        ]);
+        let r = analyze(&g, &[], &facts, &opts_full("python"));
+        assert_eq!(
+            finding(&r, "p.MyForm._save_m2m").confidence,
+            Confidence::Medium
+        );
+        assert_eq!(
+            finding(&r, "p.MyForm.__secret").confidence,
+            Confidence::High
+        );
+        assert_eq!(finding(&r, "p.Plain._helper").confidence, Confidence::High);
+    }
+
+    #[test]
+    fn rust_impl_of_an_outside_trait_is_not_high_but_an_in_tree_one_is_judged() {
+        let mut ext = vis_node(
+            1,
+            "crate::<Cors as Fairing>::info",
+            "info",
+            "",
+            Vis::Unknown,
+        );
+        ext.trait_impl_target = Some("Fairing".into());
+        let decl = vis_node(2, "crate::Store::load", "load", "", Vis::Private);
+        let mut imp =
+            vis_node(3, "crate::<Mem as Store>::load", "load", "", Vis::Unknown);
+        imp.trait_impl_target = Some("Store".into());
+        let g = graph_with(vec![node(0, "crate::main", "main", "rust"), ext, decl, imp]);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        let f = finding(&r, "crate::<Cors as Fairing>::info");
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(
+            !finding(&r, "crate::<Mem as Store>::load")
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "implements-external-contract")
+        );
+    }
+
+    fn unresolved_site(
+        name: &str,
+        hint: &str,
+        reason: UnresolvedReason,
+    ) -> AuditUnresolvedCall {
+        AuditUnresolvedCall::new(
+            Some(CallableId::new(0)),
+            cgg_core::ids::FileId::new(0),
+            3,
+            30,
+            name.into(),
+            hint.into(),
+            reason,
+        )
+    }
+
+    #[test]
+    fn a_variable_or_generic_receiver_is_doubt_and_an_unrelated_declared_type_is_not() {
+        let target = member(1, "java", "Worker", "process", &[]);
+        let other = member(2, "java", "Ledger", "post", &[]);
+        let facts = facts_for("java", vec![def_of(&target, &[]), def_of(&other, &[])]);
+        let base_graph = || {
+            graph_with(vec![
+                node(0, "p.Main.main", "main", "java"),
+                target.clone(),
+                other.clone(),
+            ])
+        };
+        for hint in ["orderService", "p", "T", "this.repo"] {
+            let mut g = base_graph();
+            g.unresolved.push(unresolved_site(
+                "process",
+                hint,
+                UnresolvedReason::NoCandidateInFile,
+            ));
+            let r = analyze(&g, &[], &facts, &opts_full("java"));
+            let f = finding(&r, "p.Worker.process");
+            assert_ne!(f.confidence, Confidence::High, "{hint}: {:?}", f.evidence);
+        }
+        // `Ledger` is a type the tree declares and `Worker` is not related
+        // to it: that site cannot be this method.
+        let mut g = base_graph();
+        g.unresolved.push(unresolved_site(
+            "process",
+            "Ledger",
+            UnresolvedReason::NoCandidateInFile,
+        ));
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
+    }
+
+    #[test]
+    fn an_over_cap_site_is_doubt_for_every_candidate_and_an_outside_super_is_not() {
+        let target = member(1, "java", "Worker", "process", &[]);
+        let other = member(2, "java", "Ledger", "post", &[]);
+        let facts = facts_for("java", vec![def_of(&target, &[]), def_of(&other, &[])]);
+        let mk = |hint: &str, reason: UnresolvedReason| {
+            let mut g = graph_with(vec![
+                node(0, "p.Main.main", "main", "java"),
+                target.clone(),
+                other.clone(),
+            ]);
+            g.unresolved.push(unresolved_site("process", hint, reason));
+            analyze(&g, &[], &facts, &opts_full("java"))
+        };
+        let r = mk(
+            "Ledger",
+            UnresolvedReason::FanoutCapExceeded { candidates: 9 },
+        );
+        assert_ne!(finding(&r, "p.Worker.process").confidence, Confidence::High);
+        let r = mk("super", UnresolvedReason::SuperBaseOutOfGraph);
+        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
+    }
+
+    #[test]
+    fn a_base_member_whose_override_is_called_is_a_dispatch_surface() {
+        let base = member(1, "java", "Shape", "draw", &[]);
+        let kid = member(2, "java", "Square", "draw", &["@Override"]);
+        let facts = facts_for("java", vec![def_of(&base, &[]), def_of(&kid, &["Shape"])]);
+        let mut g = graph_with(vec![node(0, "p.Main.main", "main", "java"), base, kid]);
+        // Uncalled override: the base member is plain dead code.
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        assert_eq!(finding(&r, "p.Shape.draw").confidence, Confidence::High);
+        // Called directly on the subclass: the base member is the surface.
+        link(&mut g, 0, 2);
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        let f = finding(&r, "p.Shape.draw");
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e.slug() == "implemented-trait-surface")
+        );
+    }
+
+    #[test]
+    fn a_site_that_cannot_legally_call_a_java_private_member_is_no_doubt() {
+        // `private` is the top-level class, which is the file: a site in
+        // another file is never this method's call.
+        let mut g = graph_with(vec![
+            node(0, "p.Main.main", "main", "java"),
+            member(1, "java", "Worker", "process", &[]),
+        ]);
+        g.add_file(cgg_core::graph::FileRecord {
+            id: cgg_core::ids::FileId::new(1),
+            path: std::path::PathBuf::from("o.java"),
+            language: "java".into(),
+            ..Default::default()
+        });
+        let mut u = unresolved_site("process", "x", UnresolvedReason::NoCandidateInFile);
+        u.file = cgg_core::ids::FileId::new(1);
+        g.unresolved.push(u.clone());
+        let facts = facts_for("java", vec![]);
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        assert_eq!(finding(&r, "p.Worker.process").confidence, Confidence::High);
+        // The same site in the member's own file is doubt.
+        u.file = cgg_core::ids::FileId::new(0);
+        g.unresolved = vec![u];
+        let r = analyze(&g, &[], &facts, &opts_full("java"));
+        assert_ne!(finding(&r, "p.Worker.process").confidence, Confidence::High);
     }
 }

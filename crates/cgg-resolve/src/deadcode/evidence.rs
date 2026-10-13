@@ -33,6 +33,11 @@ pub(crate) struct UnresolvedIndex<'a> {
     /// already stripped of anything that later resolved — so every entry
     /// here is genuinely unresolved.
     by_name: HashMap<(&'a str, &'a str), Vec<&'a AuditUnresolvedCall>>,
+    /// Parallel to `by_name`: each site's receiver hint reduced to the
+    /// type name it could be (`a.b.Foo` -> `Foo`), or `None` when it is
+    /// not type-shaped (a variable, an expression). Computed once per
+    /// site, not once per finding that shares its name.
+    hint_types: HashMap<(&'a str, &'a str), Vec<Option<&'a str>>>,
     /// From `AuditFileRecord::external_calls` only.
     ///
     /// Deliberately *not* from `stdlib_calls`: `new`, `len`, `push`,
@@ -61,6 +66,23 @@ impl<'a> UnresolvedIndex<'a> {
                 .push(u);
         }
 
+        let hint_types = by_name
+            .iter()
+            .map(|(k, v)| {
+                let types = v
+                    .iter()
+                    .map(|u| {
+                        let stem = crate::dispatch::type_stem(&u.receiver_hint);
+                        (!stem.is_empty()
+                            && cgg_core::looks_like_type_name(stem)
+                            && stem.chars().all(|c| c.is_alphanumeric() || c == '_'))
+                        .then_some(stem)
+                    })
+                    .collect();
+                (*k, types)
+            })
+            .collect();
+
         let mut external_by_name: HashMap<(&str, &str), u32> = HashMap::new();
         for fa in file_audits {
             for u in &fa.external_calls {
@@ -72,6 +94,7 @@ impl<'a> UnresolvedIndex<'a> {
 
         Self {
             by_name,
+            hint_types,
             external_by_name,
         }
     }
@@ -85,10 +108,16 @@ impl<'a> UnresolvedIndex<'a> {
 
     /// Evidence that this callable may in fact be called, from sites the
     /// resolver failed to place.
+    /// `contradicts(type)` says whether a site's receiver rules this
+    /// candidate out, given the receiver's type-shaped name (`None`: a
+    /// variable or expression). Consulted only for a hint that is not
+    /// empty, a self-reference, or the candidate's own owner.
     pub(crate) fn evidence_for(
         &self,
         graph: &Graph,
         node: &CallableNode,
+        contradicts: &dyn Fn(Option<&str>) -> bool,
+        can_reach: &dyn Fn(&AuditUnresolvedCall) -> bool,
     ) -> Vec<Evidence> {
         let key = (node.language.as_str(), node.simple_name.as_str());
         let mut out = Vec::new();
@@ -140,14 +169,39 @@ impl<'a> UnresolvedIndex<'a> {
         }
 
         // Sites whose receiver hint does not contradict this candidate.
+        // A site refused for too many candidates named every one of
+        // them, this one included: doubt for each, whatever its receiver.
+        let types = self.hint_types.get(&key).map_or(&[][..], |v| v.as_slice());
         let plausible: Vec<_> = sites
             .iter()
-            .filter(|u| {
+            .enumerate()
+            .filter(|(i, u)| {
                 let rh = u.receiver_hint.as_str();
+                // `super.m()` whose base chain left the tree: the
+                // resolver proved the target is not ours. Not Rust, whose
+                // `super::f()` names the parent module, not a base.
+                if matches!(u.reason, UnresolvedReason::SuperBaseOutOfGraph)
+                    && node.language != "rust"
+                {
+                    return false;
+                }
+                // A bare, self or own-owner site has always been doubt.
+                // A site doubted only because its receiver says nothing
+                // (a variable, a type parameter) or because it was refused
+                // over the cap must also be one that could legally call
+                // this callable: never a Java/C# `private` member from
+                // outside its class, or a package-private one from
+                // another package.
                 rh.is_empty()
                     || SELF_HINTS.contains(&rh)
                     || owner.is_some_and(|o| o == rh)
+                    || (can_reach(u)
+                        && (matches!(
+                            u.reason,
+                            UnresolvedReason::FanoutCapExceeded { .. }
+                        ) || !contradicts(types.get(*i).copied().flatten())))
             })
+            .map(|(_, u)| u)
             .collect();
 
         if let Some(first) = plausible.first() {

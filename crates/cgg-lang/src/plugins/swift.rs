@@ -32,6 +32,7 @@ impl LanguagePlugin for SwiftPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -42,6 +43,9 @@ struct SwiftWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Supertypes and protocols of the enclosing type, innermost last
+    /// (`class Sq: Base, Shape`, `extension Foo: Shape`).
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> SwiftWalker<'a> {
@@ -66,12 +70,23 @@ impl<'a> SwiftWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                self.bases.push(swift_bases(node, self.source));
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
                     self.scope.pop();
                 } else {
                     self.walk_children(node);
+                }
+                self.bases.pop();
+                return;
+            }
+            // `protocol P { func m() }`: a requirement with no body.
+            // Recorded as P's member so a call typed `P` binds to the
+            // declaration its conformers are dispatched from.
+            "protocol_function_declaration" => {
+                if !self.scope.is_empty() {
+                    self.record_requirement(node);
                 }
                 return;
             }
@@ -162,6 +177,37 @@ impl<'a> SwiftWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
+        });
+    }
+
+    fn record_requirement(&mut self, node: Node) {
+        let Some(name) = node
+            .child_by_field_name("name")
+            .filter(|n| n.kind() == "simple_identifier")
+            .map(|n| self.text(n).to_string())
+        else {
+            return;
+        };
+        if name.is_empty() {
+            return;
+        }
+        let qn = self.qn(&name);
+        self.facts.definitions.push(DefRecord {
+            simple_name: name,
+            qualified_name: qn,
+            variant: DefVariant::TraitMethod,
+            start_line: (node.start_position().row as u32) + 1,
+            end_line: (node.end_position().row as u32) + 1,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            // A declaration, not a target: duck-typed fan-out prefers
+            // the conformers when one survives.
+            attributes: vec!["abstract".to_string()],
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -219,6 +265,27 @@ impl<'a> SwiftWalker<'a> {
             ..Default::default()
         });
     }
+}
+
+/// The types a Swift type declaration inherits from or conforms to, as
+/// written minus generic arguments (`Base<T>` -> `Base`).
+fn swift_bases(node: Node, source: &[u8]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for c in node.children(&mut node.walk()) {
+        if c.kind() != "inheritance_specifier" {
+            continue;
+        }
+        let Some(t) = c.child_by_field_name("inherits_from") else {
+            continue;
+        };
+        let text = t.utf8_text(source).unwrap_or("");
+        let bare = text.split('<').next().unwrap_or(text).trim();
+        let bare = bare.rsplit('.').next().unwrap_or(bare);
+        if !bare.is_empty() && !out.iter().any(|x| x == bare) {
+            out.push(bare.to_string());
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -282,5 +349,25 @@ mod tests {
             "refs: {:?}",
             f.references
         );
+    }
+
+    #[test]
+    fn protocol_requirements_are_declarations_and_conformances_are_bases() {
+        let f = extract(
+            "protocol Shape: Base { func area() -> Double }\nclass Sq: Shape { func area() -> Double { return 1 } }\n",
+        );
+        let req = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Shape.area")
+            .expect("protocol requirement");
+        assert_eq!(req.variant, DefVariant::TraitMethod);
+        assert!(req.attributes.iter().any(|a| a == "abstract"));
+        let imp = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Sq.area")
+            .expect("conformer");
+        assert_eq!(imp.base_types, vec!["Shape"]);
     }
 }

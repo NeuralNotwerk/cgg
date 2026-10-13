@@ -563,6 +563,19 @@ pub fn link_file_with_cap(
             }
         }
 
+        // A bodiless interface/abstract member a plugin tagged `abstract`
+        // (TypeScript, Swift, Scala, Dart) is a declaration, not a body
+        // the call runs: when a concrete same-file candidate survives the
+        // narrowing above, the declaration is dropped. One-sided — a set
+        // of declarations only stands.
+        if candidates.len() > 1 {
+            let is_decl = |d: &DefRecord| d.attributes.iter().any(|a| a == "abstract");
+            if candidates.iter().any(|(_, d)| !is_decl(d))
+                && candidates.iter().any(|(_, d)| is_decl(d))
+            {
+                candidates.retain(|(_, d)| !is_decl(d));
+            }
+        }
         match candidates.as_slice() {
             [] => {
                 // Say which kind of "no candidate" this is. A bare call
@@ -1362,6 +1375,36 @@ mod tests {
         let out = link_file(&facts, &map);
         assert!(out.edges.is_empty());
         assert_eq!(out.unresolved[0].reason, UnresolvedReason::AmbiguousInFile);
+    }
+
+    #[test]
+    fn a_bodiless_declaration_yields_to_a_concrete_same_file_candidate() {
+        // Swift: `protocol P { func request(for:) }` beside
+        // `class D { func request(for:as:) }`; a bare `request(...)` in
+        // `D` runs D's body, never the protocol requirement.
+        let mut req = mk_def("request", "P.request", DefVariant::TraitMethod, (0, 20));
+        req.attributes = vec!["abstract".into()];
+        let defs = vec![
+            req.clone(),
+            mk_def("request", "D.request", DefVariant::InherentMethod, (20, 40)),
+            mk_def("go", "D.go", DefVariant::InherentMethod, (40, 80)),
+        ];
+        let facts = facts_with_lang("swift", defs, vec![mk_ref("request", 50)]);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.edges.len(), 1, "{out:?}");
+        assert_eq!(out.edges[0].dst, CallableId::new(1));
+        // Near miss: two declarations only stay ambiguous.
+        let mut req2 = mk_def("request", "Q.request", DefVariant::TraitMethod, (20, 40));
+        req2.attributes = vec!["abstract".into()];
+        let defs = vec![
+            req,
+            req2,
+            mk_def("go", "D.go", DefVariant::InherentMethod, (40, 80)),
+        ];
+        let facts = facts_with_lang("swift", defs, vec![mk_ref("request", 50)]);
+        let map = mk_map(&facts);
+        assert!(link_file(&facts, &map).edges.is_empty());
     }
 
     #[test]

@@ -100,19 +100,173 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
     edges
 }
 
-/// Python class inheritance as declaration → override fan-out.
+/// Languages whose methods dispatch on the runtime type of the receiver,
+/// so a call that lands on a base class's or interface's method may run
+/// a same-named method of a class below it. Each records its classes'
+/// bases (`DefRecord::base_types`, and `FileFacts::classes` where the
+/// plugin writes them). Not C++ — its methods are virtual only when
+/// declared so, which `cpp_virtual_dispatch` reads — and not Rust, whose
+/// implementations name their trait (`fanout`).
+pub(crate) const INHERITANCE_LANGS: &[&str] = &[
+    "python",
+    "java",
+    "csharp",
+    "kotlin",
+    "scala",
+    "groovy",
+    "typescript",
+    "javascript",
+    "swift",
+    "dart",
+    "php",
+    "ruby",
+];
+
+/// Languages whose plugin records every class with exactly its own bases
+/// (`FileFacts::classes`). For them a method record's `base_types` is
+/// not read into its owner's bases: a Java anonymous class body's
+/// methods carry the anonymous class's base, which the enclosing class
+/// does not have.
+pub(crate) const CLASS_RECORDS_ARE_EXACT: &[&str] = &["java", "csharp"];
+
+/// Every class the analyzed tree declares and the bases each names, per
+/// language, keyed by bare class name (the form a qualified name's owner
+/// segment and a base list both reduce to). Same-named classes in
+/// different packages share a key; their bases are unioned, which can
+/// only add an ancestor — the over-approximating direction, for a pass
+/// whose edges only ever mark code live.
+pub(crate) struct ClassHierarchy {
+    /// (language, class) -> bases, filtered of trivial roots, sorted.
+    bases: HashMap<(String, String), Vec<String>>,
+    /// (language, class) for every class declared in the tree: a class
+    /// record, or the owner of a method definition.
+    declared: std::collections::HashSet<(String, String)>,
+    /// Memoized [`ClassHierarchy::ancestors`]: dead-code asks for the same
+    /// class's chain once per finding and per unresolved site.
+    /// Keyed language → class, so a hit allocates nothing.
+    #[allow(clippy::type_complexity)]
+    memo: std::cell::RefCell<HashMap<String, HashMap<String, std::rc::Rc<Vec<String>>>>>,
+}
+
+impl ClassHierarchy {
+    pub(crate) fn build(facts: &[FileFacts]) -> Self {
+        let mut bases: HashMap<(String, String), Vec<String>> = HashMap::new();
+        let mut declared: std::collections::HashSet<(String, String)> =
+            std::collections::HashSet::new();
+        let mut add = |lang: &str, owner: &str, list: &[String]| {
+            let slot = bases
+                .entry((lang.to_string(), owner.to_string()))
+                .or_default();
+            for b in list {
+                let s = type_stem(b);
+                if is_inheritable_base(s) && s != owner && !slot.iter().any(|x| x == s) {
+                    slot.push(s.to_string());
+                }
+            }
+        };
+        for f in facts {
+            if !INHERITANCE_LANGS.contains(&f.language.as_str()) {
+                continue;
+            }
+            // Every class the plugin saw, including `class Middle(Base):
+            // pass`. A bodiless class has no method record, so seeding
+            // from definitions alone would end the chain at it and
+            // `Leaf.run` would never link to `Base.run`.
+            for c in &f.classes {
+                let name = type_stem(&c.class_qn);
+                if !looks_like_type(name) {
+                    continue;
+                }
+                declared.insert((f.language.clone(), name.to_string()));
+                add(&f.language, name, &c.base_types);
+            }
+            for d in &f.definitions {
+                let Some(owner) = owner_from_qn(&d.qualified_name) else {
+                    continue;
+                };
+                let owner = type_stem(owner);
+                if !looks_like_type(owner) {
+                    continue;
+                }
+                declared.insert((f.language.clone(), owner.to_string()));
+                if !d.base_types.is_empty()
+                    && !CLASS_RECORDS_ARE_EXACT.contains(&f.language.as_str())
+                {
+                    add(&f.language, owner, &d.base_types);
+                }
+            }
+        }
+        for v in bases.values_mut() {
+            v.sort();
+        }
+        ClassHierarchy {
+            bases,
+            declared,
+            memo: Default::default(),
+        }
+    }
+
+    /// The ancestors of `owner`, breadth first, bounded (depth 8) and
+    /// cycle-safe. Includes ancestors the tree does not declare.
+    pub(crate) fn ancestors(
+        &self,
+        language: &str,
+        owner: &str,
+    ) -> std::rc::Rc<Vec<String>> {
+        if let Some(v) = self.memo.borrow().get(language).and_then(|m| m.get(owner)) {
+            return v.clone();
+        }
+        let mut v = walk_bases(language, owner, &self.bases);
+        v.retain(|a| a != owner);
+        let v = std::rc::Rc::new(v);
+        self.memo
+            .borrow_mut()
+            .entry(language.to_string())
+            .or_default()
+            .insert(owner.to_string(), v.clone());
+        v
+    }
+
+    /// Whether the tree declares a class of this name.
+    pub(crate) fn declares(&self, language: &str, class: &str) -> bool {
+        self.declared
+            .contains(&(language.to_string(), class.to_string()))
+    }
+
+    /// (language, base) -> the classes naming it as a base, sorted.
+    pub(crate) fn derived_index(&self) -> HashMap<(String, String), Vec<String>> {
+        let mut out: HashMap<(String, String), Vec<String>> = HashMap::new();
+        for ((lang, owner), bases) in &self.bases {
+            for b in bases {
+                out.entry((lang.clone(), b.clone()))
+                    .or_default()
+                    .push(owner.clone());
+            }
+        }
+        for v in out.values_mut() {
+            v.sort();
+            v.dedup();
+        }
+        out
+    }
+}
+
+/// Class inheritance as declaration → override fan-out.
 ///
 /// `class Child(Parent): def foo` is the same shape as a Rust trait
 /// impl: a call that resolves to `Parent.foo` may run `Child.foo` at
 /// runtime. Immediate bases are not enough — `class C(B): def foo`
 /// still overrides `A.foo` when `B` does not define `foo` — so this
-/// walks the recorded `base_types` chain (bounded, cyclic-safe) and
-/// emits a `Via::Dynamic` edge from every ancestor method of the same
-/// name.
+/// walks the recorded bases (bounded, cyclic-safe) and emits a
+/// `Via::Dynamic` edge from every ancestor method of the same name.
+/// Java, C#, Kotlin, Scala, TypeScript and the other
+/// [`INHERITANCE_LANGS`] dispatch the same way, interfaces included: an
+/// `implements Shape` class's `draw` runs for a call typed `Shape.draw`.
 ///
-/// Nested functions, constructors and trivial bases (`object`,
-/// `Exception`, …) are skipped: those are not virtual overrides in the
-/// sense dead-code cares about.
+/// Nested functions, constructors, static methods (outside Python, whose
+/// `@staticmethod` is still looked up through `self`) and trivial bases
+/// (`object`, `Exception`, …) are skipped: those are not virtual
+/// overrides in the sense dead-code cares about.
 pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
     let resolver = ResolverId::new("dispatch:inheritance");
 
@@ -126,66 +280,26 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
         by_span.insert((c.file, c.start_byte), c.id);
         if let Some(owner) = owner_from_qn(&c.qualified_name) {
             by_owner_method
-                .entry((c.language.clone(), owner.to_string(), c.simple_name.clone()))
+                .entry((
+                    c.language.clone(),
+                    type_stem(owner).to_string(),
+                    c.simple_name.clone(),
+                ))
                 .or_default()
                 .push(c.id);
         }
     }
 
-    let mut by_class_bases: HashMap<(String, String), Vec<String>> = HashMap::new();
-    for f in facts {
-        if f.language != "python" {
-            continue;
-        }
-        // Every class the plugin saw, including `class Middle(Base):
-        // pass`. A bodiless class has no method record, so seeding from
-        // definitions alone would end the chain at it and `Leaf.run`
-        // would never link to `Base.run`.
-        for c in &f.classes {
-            let name = c.class_qn.rsplit('.').next().unwrap_or(&c.class_qn);
-            if !looks_like_type(name) {
-                continue;
-            }
-            by_class_bases
-                .entry((f.language.clone(), name.to_string()))
-                .or_insert_with(|| {
-                    c.base_types
-                        .iter()
-                        .map(|b| type_stem(b).to_string())
-                        .filter(|s| is_inheritable_base(s))
-                        .collect()
-                });
-        }
-        for d in &f.definitions {
-            if d.base_types.is_empty() {
-                continue;
-            }
-            let Some(owner) = owner_from_qn(&d.qualified_name) else {
-                continue;
-            };
-            if !looks_like_type(owner) {
-                continue;
-            }
-            by_class_bases
-                .entry((f.language.clone(), owner.to_string()))
-                .or_insert_with(|| {
-                    d.base_types
-                        .iter()
-                        .map(|b| type_stem(b).to_string())
-                        .filter(|s| is_inheritable_base(s))
-                        .collect()
-                });
-        }
-    }
+    let hierarchy = ClassHierarchy::build(facts);
 
     let mut edges = Vec::new();
     let mut seen: BTreeSet<(CallableId, CallableId)> = BTreeSet::new();
     for f in facts {
-        if f.language != "python" {
+        if !INHERITANCE_LANGS.contains(&f.language.as_str()) {
             continue;
         }
         for d in &f.definitions {
-            if !is_override_candidate(d) {
+            if !is_override_candidate(&f.language, d) {
                 continue;
             }
             let Some(&child) = by_span.get(&(f.file, d.start_byte)) else {
@@ -194,7 +308,24 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
             let Some(owner) = owner_from_qn(&d.qualified_name) else {
                 continue;
             };
-            for ancestor in walk_bases(&f.language, owner, &by_class_bases) {
+            // The class's ancestors, plus — for a Java anonymous class
+            // body — the anonymous class's base and its ancestors.
+            let mut up: Vec<String> =
+                hierarchy.ancestors(&f.language, type_stem(owner)).to_vec();
+            for b in &d.base_types {
+                let b = type_stem(b);
+                if !is_inheritable_base(b) || b == type_stem(owner) {
+                    continue;
+                }
+                for a in std::iter::once(b.to_string())
+                    .chain(hierarchy.ancestors(&f.language, b).iter().cloned())
+                {
+                    if !up.contains(&a) {
+                        up.push(a);
+                    }
+                }
+            }
+            for ancestor in up {
                 let Some(parents) = by_owner_method.get(&(
                     f.language.clone(),
                     ancestor.clone(),
@@ -229,24 +360,45 @@ pub fn inheritance_fanout(graph: &Graph, facts: &[FileFacts]) -> Vec<CallEdge> {
     edges
 }
 
-fn is_override_candidate(d: &DefRecord) -> bool {
-    if d.base_types.is_empty() {
-        return false;
-    }
+/// The Scala and Dart plugins record every function as a free function,
+/// members of a class, object, trait or mixin included; the owner segment
+/// of the qualified name is what makes one a member.
+pub(crate) fn free_variant_is_member(language: &str) -> bool {
+    matches!(language, "scala" | "dart")
+}
+
+/// Whether a definition can override a same-named member of a base.
+///
+/// Bases are walked from the owner's class record too, so a method
+/// whose own record carries no bases still qualifies when its class
+/// has some.
+pub(crate) fn is_override_candidate(language: &str, d: &DefRecord) -> bool {
     if matches!(
         d.variant,
         DefVariant::Constructor
             | DefVariant::Destructor
-            | DefVariant::FreeFunction
             | DefVariant::NamedLambda
             | DefVariant::NamedClosure
     ) {
         return false;
     }
+    if d.variant == DefVariant::FreeFunction && !free_variant_is_member(language) {
+        return false;
+    }
+    // A static member hides rather than overrides, except in Python,
+    // where `self.m()` still looks a `@staticmethod` up on the instance.
+    if d.variant == DefVariant::StaticMethod && language != "python" {
+        return false;
+    }
+    // A C# accessor is named for its keyword (`get`/`set`), not its
+    // property: two same-named accessors say nothing about each other.
+    if d.variant == DefVariant::Property && language == "csharp" {
+        return false;
+    }
     if matches!(d.simple_name.as_str(), "__init__" | "__new__" | "__del__") {
         return false;
     }
-    owner_from_qn(&d.qualified_name).is_some_and(looks_like_type)
+    owner_from_qn(&d.qualified_name).is_some_and(|o| looks_like_type(type_stem(o)))
 }
 
 fn walk_bases(
@@ -279,9 +431,9 @@ fn walk_bases(
     out
 }
 
-fn type_stem(name: &str) -> &str {
+pub(crate) fn type_stem(name: &str) -> &str {
     let s = name.split(['<', '[']).next().unwrap_or(name).trim();
-    s.rsplit(['.', ':']).next().unwrap_or(s)
+    s.rsplit(['.', ':', '\\']).next().unwrap_or(s)
 }
 
 fn looks_like_type(name: &str) -> bool {
@@ -536,5 +688,130 @@ mod tests {
         child.variant = DefVariant::Constructor;
         f.definitions.push(child);
         assert!(inheritance_fanout(&g, &[f]).is_empty());
+    }
+
+    fn lang_node(id: u32, lang: &str, qn: &str, start: u32) -> CallableNode {
+        let mut n = py_node(id, qn, start);
+        n.language = lang.into();
+        n.simple_name = qn.rsplit(['.', ':']).next().unwrap_or(qn).into();
+        n
+    }
+
+    fn lang_facts(lang: &str, defs: Vec<DefRecord>) -> FileFacts {
+        let mut f = FileFacts::new(FileId::new(0), std::path::PathBuf::from("x"), lang);
+        f.definitions = defs;
+        f
+    }
+
+    #[test]
+    fn java_interface_and_abstract_members_fan_out_to_implementations() {
+        let mut g = Graph::new();
+        g.add_callable(lang_node(0, "java", "p.Shape.draw", 10));
+        g.add_callable(lang_node(1, "java", "p.Square.draw", 40));
+        g.add_callable(lang_node(2, "java", "p.Other.draw", 70));
+        let f = lang_facts(
+            "java",
+            vec![
+                py_def("draw", "p.Shape.draw", 10, &[]),
+                py_def("draw", "p.Square.draw", 40, &["Shape"]),
+                // Near miss: same name, no relation.
+                py_def("draw", "p.Other.draw", 70, &[]),
+            ],
+        );
+        let edges = inheritance_fanout(&g, &[f]);
+        assert_eq!(edges.len(), 1, "{edges:?}");
+        assert_eq!(
+            (edges[0].src, edges[0].dst),
+            (CallableId::new(0), CallableId::new(1))
+        );
+    }
+
+    #[test]
+    fn java_chain_runs_through_a_class_with_no_methods() {
+        let mut g = Graph::new();
+        g.add_callable(lang_node(0, "java", "p.Base.get", 10));
+        g.add_callable(lang_node(1, "java", "p.Leaf.get", 40));
+        let mut f = lang_facts(
+            "java",
+            vec![
+                py_def("get", "p.Base.get", 10, &[]),
+                py_def("get", "p.Leaf.get", 40, &["Middle"]),
+            ],
+        );
+        f.classes.push(cgg_core::ClassDecl {
+            class_qn: "p.Middle".into(),
+            base_types: vec!["Base".into()],
+            line: 1,
+        });
+        let edges = inheritance_fanout(&g, &[f]);
+        assert_eq!(edges.len(), 1, "{edges:?}");
+    }
+
+    #[test]
+    fn static_members_and_csharp_accessors_do_not_override() {
+        let mut g = Graph::new();
+        g.add_callable(lang_node(0, "java", "p.A.make", 10));
+        g.add_callable(lang_node(1, "java", "p.B.make", 40));
+        g.add_callable(lang_node(2, "csharp", "N.A.get", 70));
+        g.add_callable(lang_node(3, "csharp", "N.B.get", 90));
+        let mut st = py_def("make", "p.B.make", 40, &["A"]);
+        st.variant = DefVariant::StaticMethod;
+        let java = lang_facts("java", vec![py_def("make", "p.A.make", 10, &[]), st]);
+        let mut acc = py_def("get", "N.B.get", 90, &["A"]);
+        acc.variant = DefVariant::Property;
+        let cs = lang_facts("csharp", vec![py_def("get", "N.A.get", 70, &[]), acc]);
+        assert!(inheritance_fanout(&g, &[java, cs]).is_empty());
+    }
+
+    #[test]
+    fn scala_and_dart_members_recorded_as_free_functions_still_override() {
+        let mut g = Graph::new();
+        g.add_callable(lang_node(0, "scala", "Shape::area", 10));
+        g.add_callable(lang_node(1, "scala", "Square::area", 40));
+        let mut decl = py_def("area", "Shape::area", 10, &[]);
+        decl.variant = DefVariant::TraitMethod;
+        let mut imp = py_def("area", "Square::area", 40, &["Shape"]);
+        imp.variant = DefVariant::FreeFunction;
+        let edges = inheritance_fanout(&g, &[lang_facts("scala", vec![decl, imp])]);
+        assert_eq!(edges.len(), 1, "{edges:?}");
+    }
+
+    #[test]
+    fn cpp_and_rust_are_left_to_their_own_passes() {
+        let mut g = Graph::new();
+        g.add_callable(lang_node(0, "cpp", "A::f", 10));
+        g.add_callable(lang_node(1, "cpp", "B::f", 40));
+        let f = lang_facts(
+            "cpp",
+            vec![
+                py_def("f", "A::f", 10, &[]),
+                py_def("f", "B::f", 40, &["A"]),
+            ],
+        );
+        assert!(inheritance_fanout(&g, &[f]).is_empty());
+    }
+
+    #[test]
+    fn hierarchy_reports_declared_and_outside_ancestors() {
+        let mut f = lang_facts(
+            "java",
+            vec![py_def("handle", "p.Ext.handle", 10, &["Handler<String>"])],
+        );
+        f.classes.push(cgg_core::ClassDecl {
+            class_qn: "p.Ext".into(),
+            base_types: vec!["Handler<String>".into()],
+            line: 1,
+        });
+        f.classes.push(cgg_core::ClassDecl {
+            class_qn: "p.Loop".into(),
+            base_types: vec!["Loop".into()],
+            line: 1,
+        });
+        let h = ClassHierarchy::build(&[f]);
+        assert_eq!(*h.ancestors("java", "Ext"), vec!["Handler".to_string()]);
+        assert!(h.declares("java", "Ext"));
+        assert!(!h.declares("java", "Handler"));
+        // A class naming itself terminates and is not its own ancestor.
+        assert!(h.ancestors("java", "Loop").is_empty());
     }
 }

@@ -224,6 +224,9 @@ pub fn render_text(
                         trait_name,
                         ..
                     } => format!("{}:{trait_name}", e.slug()),
+                    cgg_core::deadcode::Evidence::ImplementsExternalContract {
+                        contract,
+                    } if !contract.is_empty() => format!("{}:{contract}", e.slug()),
                     // `public-visibility:protected` — the entry also
                     // covers protected members, and the slug alone
                     // would call them public.

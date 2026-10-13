@@ -2886,6 +2886,86 @@ fn super_resolves_through_the_declared_base_chain() {
     assert!(net.is_empty(), "external base: {net:?}");
 }
 
+/// Java and C# record every class, so `super.m()` / `base.M()` whose
+/// chain leaves the tree is refused rather than bound by name onto an
+/// unrelated workspace `m`; an in-tree base still binds.
+#[test]
+fn java_and_csharp_super_into_an_outside_base_is_refused() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "q/E.java",
+        b"package q;\nimport org.other.*;\npublic class E extends Widget {\n    @Override public void stop() { super.stop(); }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "q/B.java",
+        b"package q;\npublic class B { public void stop() { } }\nclass C extends B {\n    @Override public void stop() { super.stop(); }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "W.cs",
+        b"namespace App {\n  class W : ExternalBase {\n    protected override void Layout() { base.Layout(); }\n  }\n  class Other { internal void Layout() { } }\n}\n",
+    );
+    let (e, _) = edges_and_external(tmp.path(), "q.E.stop");
+    assert!(e.is_empty(), "outside base: {e:?}");
+    let (c, _) = edges_and_external(tmp.path(), "q.C.stop");
+    assert_eq!(c, vec!["q.B.stop"]);
+    let (w, _) = edges_and_external(tmp.path(), "App.W.Layout");
+    assert!(w.is_empty(), "outside base: {w:?}");
+    // An anonymous subclass's `super` is its own base, not the enclosing
+    // class's (`F` extends nothing).
+    write(
+        tmp.path(),
+        "q/F.java",
+        b"package q;\npublic class F {\n    void go() {\n        B b = new B() {\n            @Override public void stop() { super.stop(); }\n        };\n    }\n}\n",
+    );
+    let (f, _) = edges_and_external(tmp.path(), "q.F.stop");
+    assert_eq!(f, vec!["q.B.stop"]);
+}
+
+/// Dead code: an override reached only by dispatch from a called base
+/// declaration is live; an override of an outside contract is never in
+/// the top band; an unrelated private method still is.
+#[test]
+fn dispatch_through_declared_bases_keeps_overrides_out_of_the_top_band() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/p/V.java",
+        concat!(
+            "package p;\nimport org.thirdparty.Handler;\n",
+            "abstract class Validator { abstract String member(int x); }\n",
+            "final class Input extends Validator { @Override String member(int x) { return \"i\"; } }\n",
+            "class Ext extends Handler { @Override void handle(int c) { } }\n",
+            "public class V {\n    public static void main(String[] a) { Validator v = pick(); v.member(1); }\n",
+            "    private static Validator pick() { return null; }\n    private void orphan() { }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args(["--no-graph", "--dead-code", "--dead-code-format", "json"])
+        .arg("--dead-code-report")
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let conf = |qn: &str| {
+        parsed["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["qualified_name"] == qn)
+            .map(|f| f["confidence"].as_str().unwrap().to_string())
+    };
+    assert_eq!(conf("p.Input.member"), None, "dispatched to");
+    assert_eq!(conf("p.Ext.handle").as_deref(), Some("medium"));
+    assert_eq!(conf("p.V.orphan").as_deref(), Some("high"));
+}
+
 /// A Kotlin extension function in scope — declared in the calling file or
 /// imported by name — is what `expr.ext()` calls, whatever the receiver
 /// expression; a receiver of a known type that declares the member keeps

@@ -163,7 +163,9 @@ impl<'a> JsWalker<'a> {
                 self.walk_children(node);
                 return;
             }
-            "class_declaration" | "class" => {
+            // `abstract class` is its own node kind in TypeScript; it is a
+            // class, and its members are owned by it.
+            "class_declaration" | "class" | "abstract_class_declaration" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
@@ -182,6 +184,37 @@ impl<'a> JsWalker<'a> {
             "method_definition" => {
                 self.record_method(node);
                 self.walk_children(node);
+                return;
+            }
+            // TypeScript `interface I extends J { m(): void }`: a type
+            // whose members are declarations. Owned like a class's, so a
+            // call typed `I` binds to `I.m` — the declaration the
+            // implementations below it are dispatched from.
+            "interface_declaration" => {
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if name.is_empty() {
+                    return;
+                }
+                self.bases.push(super::attrs::base_types(node, self.source));
+                self.scope.push(name);
+                self.walk_children(node);
+                self.scope.pop();
+                self.bases.pop();
+                return;
+            }
+            // A member with no body: an interface's method, or an
+            // `abstract` method of an abstract class. Not a method
+            // signature inside an object type (`type T = { m(): void }`),
+            // which belongs to no class.
+            "method_signature" | "abstract_method_signature" => {
+                let owned = node.kind() == "abstract_method_signature"
+                    || node.parent().is_some_and(|p| p.kind() == "interface_body");
+                if owned && !self.scope.is_empty() {
+                    self.record_signature(node);
+                }
                 return;
             }
             "lexical_declaration" | "variable_declaration" => {
@@ -315,6 +348,43 @@ impl<'a> JsWalker<'a> {
             // TypeScript decorators (`@Get('/users')`) are shape A and
             // carry the whole NestJS routing surface.
             attributes: super::attrs::collect_with_preceding(node, self.source),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
+        });
+    }
+
+    /// A bodiless member declaration: an interface method or an abstract
+    /// method. Tagged `abstract` so duck-typed fan-out prefers the
+    /// implementations, as it does a Python `@abstractmethod`.
+    fn record_signature(&mut self, node: Node) {
+        let Some(name_node) = node.child_by_field_name("name") else {
+            return;
+        };
+        let simple = self.text(name_node).to_string();
+        if simple.is_empty() {
+            return;
+        }
+        let qn = self.qn(&simple);
+        let (sl, el) = line_range(node);
+        let mut attributes = super::attrs::collect_with_preceding(node, self.source);
+        attributes.push("abstract".to_string());
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple,
+            qualified_name: qn,
+            variant: DefVariant::TraitMethod,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            // Interface members are public; an abstract method says.
+            vis: if node.kind() == "method_signature" {
+                cgg_core::Vis::Public
+            } else {
+                class_member_vis(node)
+            },
+            attributes,
             base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });

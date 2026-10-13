@@ -98,6 +98,24 @@ impl<'a> ScalaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `def area: Double` with no body: an abstract member of a
+            // trait or abstract class. Recorded so a call typed to the
+            // trait binds to the declaration its implementations are
+            // dispatched from; tagged `abstract` so duck-typed fan-out
+            // prefers an implementation when one survives.
+            "function_declaration" => {
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if !name.is_empty() && !self.scope.is_empty() {
+                    self.record_def(&name, node, DefVariant::TraitMethod);
+                    if let Some(d) = self.facts.definitions.last_mut() {
+                        d.attributes.push("abstract".to_string());
+                    }
+                }
+                return;
+            }
             "import_declaration" => {
                 self.record_import(node);
                 self.walk_children(node);
@@ -253,5 +271,19 @@ mod tests {
             "{:?}",
             f.definitions
         );
+    }
+
+    #[test]
+    fn abstract_defs_are_bodiless_declarations() {
+        let f = extract("trait Shape { def area(): Double }\ndef top(): Int\n");
+        let d = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Shape::area")
+            .expect("abstract member");
+        assert_eq!(d.variant, DefVariant::TraitMethod);
+        assert!(d.attributes.iter().any(|a| a == "abstract"));
+        // Outside any type there is nothing to own it.
+        assert!(f.definitions.iter().all(|d| d.simple_name != "top"));
     }
 }

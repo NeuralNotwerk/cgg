@@ -114,6 +114,15 @@ impl<'a> JavaWalker<'a> {
                     .unwrap_or_default();
                 let bases = super::attrs::base_types(node, self.source);
                 if !name.is_empty() {
+                    // Every class, bodiless ones included, so an
+                    // inheritance chain does not end at a class with no
+                    // methods — and so a chain that finds nothing proves
+                    // the member lives outside the tree (`super.m()`).
+                    self.facts.classes.push(cgg_core::ClassDecl {
+                        class_qn: self.qn(&name),
+                        base_types: bases.clone(),
+                        line: (node.start_position().row as u32) + 1,
+                    });
                     self.scope.push(name);
                     self.bases.push(bases);
                     self.walk_children(node);
@@ -166,7 +175,26 @@ impl<'a> JavaWalker<'a> {
                         });
                     }
                 }
-                self.walk_children(node);
+                // `new Base() { @Override void m() { super.m(); } }`: the
+                // body's methods belong to an anonymous subclass of `Base`,
+                // so `Base` — not the enclosing class's bases — is what
+                // they override and what their `super` names. Their
+                // qualified names stay under the enclosing class.
+                let anon_base = node
+                    .children(&mut node.walk())
+                    .any(|c| c.kind() == "class_body")
+                    .then(|| node.child_by_field_name("type"))
+                    .flatten()
+                    .map(|t| self.text(t).to_string())
+                    .filter(|t| !t.is_empty());
+                match anon_base {
+                    Some(b) => {
+                        self.bases.push(vec![b]);
+                        self.walk_children(node);
+                        self.bases.pop();
+                    }
+                    None => self.walk_children(node),
+                }
                 return;
             }
             _ => {}
@@ -679,5 +707,41 @@ mod tests {
         assert_eq!(vis_of(&f, "r"), Vis::Internal);
         // A class constructor with no modifier is package-private.
         assert_eq!(vis_of(&f, "K"), Vis::Internal);
+    }
+
+    #[test]
+    fn every_class_is_recorded_with_its_bases_bodiless_ones_included() {
+        let f = extract(
+            "package p;\nclass Middle extends Base {}\ninterface I extends J, K { void m(); }\nclass Leaf extends Middle implements I { public void m() {} }\n",
+        );
+        let by: Vec<(&str, Vec<&str>)> = f
+            .classes
+            .iter()
+            .map(|c| {
+                (
+                    c.class_qn.as_str(),
+                    c.base_types.iter().map(|b| b.as_str()).collect(),
+                )
+            })
+            .collect();
+        assert!(by.contains(&("p.Middle", vec!["Base"])), "{by:?}");
+        assert!(by.contains(&("p.I", vec!["J", "K"])), "{by:?}");
+        assert!(by.contains(&("p.Leaf", vec!["Middle", "I"])), "{by:?}");
+    }
+
+    #[test]
+    fn anonymous_class_methods_carry_the_anonymous_base() {
+        let f = extract(
+            "package p;\nclass Outer extends Top {\n  void go() {\n    Runnable r = new Task() { @Override public void run() { } };\n  }\n  void after() { }\n}\n",
+        );
+        let bases = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .map(|d| d.base_types.clone())
+                .unwrap()
+        };
+        assert_eq!(bases("run"), vec!["Task"]);
+        assert_eq!(bases("after"), vec!["Top"]);
     }
 }

@@ -35,6 +35,7 @@ impl LanguagePlugin for DartPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         // The package this file belongs to (`pubspec.yaml` `name:`), and
@@ -58,6 +59,8 @@ struct DartWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Supertypes of the enclosing class, innermost last.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> DartWalker<'a> {
@@ -74,11 +77,15 @@ impl<'a> DartWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
-            "class_declaration" => {
+            // A mixin owns its members as a class does.
+            "class_declaration" | "mixin_declaration" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // `extends A with M implements I`: superclass, mixins and
+                // interfaces, which a call typed to any of them reaches.
+                self.bases.push(super::attrs::base_types(node, self.source));
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
@@ -86,6 +93,33 @@ impl<'a> DartWalker<'a> {
                 } else {
                     self.walk_children(node);
                 }
+                self.bases.pop();
+                return;
+            }
+            // `double area();` in a class body: an abstract member (a
+            // `declaration` holding a bare signature, no body). Recorded
+            // so a call typed to the class binds to the declaration its
+            // implementations are dispatched from; tagged `abstract` so
+            // duck-typed fan-out prefers an implementation.
+            "declaration"
+                if !self.scope.is_empty()
+                    && node.parent().is_some_and(|p| p.kind() == "class_member") =>
+            {
+                if let Some(sig) = node
+                    .children(&mut node.walk())
+                    .find(|c| c.kind() == "function_signature")
+                    && let Some(name) = sig
+                        .child_by_field_name("name")
+                        .map(|n| self.text(n).to_string())
+                    && !name.is_empty()
+                {
+                    self.record_def(&name, node, DefVariant::TraitMethod);
+                    if let Some(d) = self.facts.definitions.last_mut() {
+                        d.attributes.push("abstract".to_string());
+                    }
+                    return;
+                }
+                self.walk_children(node);
                 return;
             }
             "function_declaration" | "local_function_declaration" => {
@@ -195,6 +229,7 @@ impl<'a> DartWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
             attributes: Vec::new(),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
     }
@@ -580,5 +615,27 @@ mod tests {
                 .iter()
                 .any(|i| i.kind == "part-of" && i.path == "lib.dart")
         );
+    }
+
+    #[test]
+    fn abstract_members_are_declarations_and_supertypes_are_bases() {
+        let f = extract(
+            "abstract class Shape { double area(); final int n = 1; }\nclass Sq extends Shape with M implements I { double area() => 1; }\nmixin M { void mm() {} }\n",
+        );
+        let decl = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Shape::area")
+            .expect("abstract member");
+        assert_eq!(decl.variant, DefVariant::TraitMethod);
+        assert!(decl.attributes.iter().any(|a| a == "abstract"));
+        let imp = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Sq::area")
+            .expect("implementation");
+        assert_eq!(imp.base_types, vec!["Shape", "M", "I"]);
+        assert!(f.definitions.iter().any(|d| d.qualified_name == "M::mm"));
+        assert!(f.definitions.iter().all(|d| d.simple_name != "n"));
     }
 }
