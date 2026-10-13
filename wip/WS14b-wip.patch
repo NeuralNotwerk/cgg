@@ -1,0 +1,428 @@
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index c538c98..75c5b0f 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -369,6 +369,12 @@ pub struct RefRecord {
+     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+     pub arrow: bool,
+ 
++    /// Set when the call is a macro invocation (Rust `err!(…)`). Macros
++    /// live in their own namespace: a local value of the same name
++    /// (`Err(err) => err!(…)`) does not shadow one.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub macro_call: bool,
++
+     /// How many arguments the call passes, where the language makes a
+     /// function's arity part of its identity — Erlang's `f/1` and `f/2`
+     /// are different functions that share a name. `None` when unknown or
+diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
+index 0c1c3e7..afcec1f 100644
+--- a/crates/cgg-lang/src/locals.rs
++++ b/crates/cgg-lang/src/locals.rs
+@@ -53,6 +53,15 @@ struct Binder {
+     /// first child of this kind (Swift `if let x = x() {`: the body, not
+     /// the condition).
+     from_child: &'static str,
++    /// An `Own`-scoped binder whose bound name is in scope only after its
++    /// child under this field (Rust `if let Some(k) = k(..)`, `for x in
++    /// x()`: the scrutinee still sees the outer name).
++    after_field: &'static str,
++    /// With `after_field`: the conditional the binder is the condition of
++    /// (`if_expression`, `while_expression`), whose body (field
++    /// `consequence` or `body`) the binding is in scope over. One wrapper
++    /// between the two (a `let_chain`) is climbed through.
++    extends_to: &'static [&'static str],
+ }
+ 
+ const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) -> Binder {
+@@ -64,6 +73,8 @@ const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) ->
+         parent: "",
+         after: &[],
+         from_child: "",
++        after_field: "",
++        extends_to: &[],
+     }
+ }
+ 
+@@ -76,6 +87,8 @@ const fn b1(kind: &'static str, scope: Scope) -> Binder {
+         parent: "",
+         after: &[],
+         from_child: "",
++        after_field: "",
++        extends_to: &[],
+     }
+ }
+ 
+@@ -92,6 +105,8 @@ const fn bp(
+         parent,
+         after: &[],
+         from_child: "",
++        after_field: "",
++        extends_to: &[],
+     }
+ }
+ 
+@@ -100,6 +115,16 @@ const fn from_child(mut b: Binder, kind: &'static str) -> Binder {
+     b
+ }
+ 
++const fn after_value(
++    mut b: Binder,
++    field: &'static str,
++    extends_to: &'static [&'static str],
++) -> Binder {
++    b.after_field = field;
++    b.extends_to = extends_to;
++    b
++}
++
+ const fn after(mut b: Binder, parents: &'static [&'static str]) -> Binder {
+     b.after = parents;
+     b
+@@ -264,8 +289,12 @@ const RUST_SPEC: Spec = Spec {
+         b("parameter", &["pattern"], Scope::Param),
+         b("closure_parameters", &[""], Scope::Param),
+         b("let_declaration", &["pattern"], Scope::Decl),
+-        b("for_expression", &["pattern"], Scope::Own),
+-        b("let_condition", &["pattern"], Scope::Own),
++        after_value(b("for_expression", &["pattern"], Scope::Own), "value", &[]),
++        after_value(
++            b("let_condition", &["pattern"], Scope::Own),
++            "value",
++            &["if_expression", "while_expression"],
++        ),
+         b("match_arm", &["pattern"], Scope::Own),
+     ],
+     functions: &["function_item", "closure_expression"],
+@@ -562,6 +591,27 @@ fn scope_of(
+                 .find(|ch| ch.kind() == form.from_child)?;
+             Some((from.start_byte() as u32, binder.end_byte() as u32))
+         }
++        Scope::Own if !form.after_field.is_empty() => {
++            let from = binder
++                .child_by_field_name(form.after_field)
++                .map_or(binder.start_byte(), |v| v.end_byte());
++            // The conditional this binder is the condition of (directly,
++            // or through one wrapper such as a `let_chain`): in scope over
++            // its body, not its `else`.
++            let cond = above
++                .iter()
++                .rev()
++                .take(2)
++                .map(|(n, _)| *n)
++                .find(|n| form.extends_to.contains(&n.kind()));
++            let end = cond
++                .and_then(|c| {
++                    c.child_by_field_name("consequence")
++                        .or_else(|| c.child_by_field_name("body"))
++                })
++                .map_or(binder.end_byte(), |b| b.end_byte().max(binder.end_byte()));
++            Some((from as u32, end as u32))
++        }
+         Scope::Own => Some(span(binder)),
+         Scope::Decl => {
+             let block = above
+@@ -626,6 +676,26 @@ mod tests {
+                 tree_sitter_rust::LANGUAGE.into(),
+                 "fn f() { let now = now(); now; }",
+             ),
++            (
++                "rust",
++                tree_sitter_rust::LANGUAGE.into(),
++                "fn f() { if let Some(now) = now(1) { now; } }",
++            ),
++            (
++                "rust",
++                tree_sitter_rust::LANGUAGE.into(),
++                "fn f() { while let Some(now) = now(1) { now; } }",
++            ),
++            (
++                "rust",
++                tree_sitter_rust::LANGUAGE.into(),
++                "fn f() { if a && let Some(now) = now(1) { now; } }",
++            ),
++            (
++                "rust",
++                tree_sitter_rust::LANGUAGE.into(),
++                "fn f() { for now in now() { now; } }",
++            ),
+             (
+                 "javascript",
+                 tree_sitter_javascript::LANGUAGE.into(),
+@@ -663,6 +733,22 @@ mod tests {
+         }
+     }
+ 
++    /// `if let Some(k) = k(..) { .. } else { k() }`: the `else` branch
++    /// does not see the pattern's binding.
++    #[test]
++    fn an_if_let_binding_is_not_in_scope_in_its_else() {
++        let src = "fn f() { if let Some(k) = k(1) { k; } else { k(2); } }";
++        let mut p = tree_sitter::Parser::new();
++        p.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let got = collect("rust", &tree, src.as_bytes());
++        let b = got.iter().find(|b| b.name == "k").expect("k bound");
++        let body = src.find("k;").unwrap() as u32;
++        let other = src.find("k(2)").unwrap() as u32;
++        assert!(b.start_byte <= body && body < b.end_byte, "{b:?}");
++        assert!(other >= b.end_byte, "{b:?} covers the else branch");
++    }
++
+     /// `var pick = H.pick` names the same function under its own name:
+     /// no shadow. `var pick = choose()` is a value: a shadow.
+     #[test]
+diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
+index ab1049f..369d9ec 100644
+--- a/crates/cgg-lang/src/plugins/clojure.rs
++++ b/crates/cgg-lang/src/plugins/clojure.rs
+@@ -335,6 +335,7 @@ impl<'a> ClojureWalker<'a> {
+                         path_receiver: false,
+                         dot_call: false,
+                         arrow: false,
++                        macro_call: false,
+                         arity: None,
+                         name: s,
+                         receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+@@ -362,6 +363,7 @@ impl<'a> ClojureWalker<'a> {
+                         path_receiver: false,
+                         dot_call: false,
+                         arrow: false,
++                        macro_call: false,
+                         arity: None,
+                         name: t.to_string(),
+                         receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+@@ -431,6 +433,7 @@ impl<'a> ClojureWalker<'a> {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: simple,
+             receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
+index b01a91a..5cee53d 100644
+--- a/crates/cgg-lang/src/plugins/elixir.rs
++++ b/crates/cgg-lang/src/plugins/elixir.rs
+@@ -448,6 +448,7 @@ impl<'a> ElixirWalker<'a> {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             name,
+             receiver_hint: hint.to_string(),
+             site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
+index ccdcdb2..e987973 100644
+--- a/crates/cgg-lang/src/plugins/javascript.rs
++++ b/crates/cgg-lang/src/plugins/javascript.rs
+@@ -1297,6 +1297,7 @@ impl<'a> JsWalker<'a> {
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
+index a532745..895333c 100644
+--- a/crates/cgg-lang/src/plugins/perl.rs
++++ b/crates/cgg-lang/src/plugins/perl.rs
+@@ -379,6 +379,7 @@ impl<'a> PerlWalker<'a> {
+                     path_receiver: false,
+                     dot_call: false,
+                     arrow: false,
++                    macro_call: false,
+                     arity: None,
+                     name: s,
+                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+@@ -397,6 +398,7 @@ impl<'a> PerlWalker<'a> {
+                     path_receiver: false,
+                     dot_call: false,
+                     arrow: false,
++                    macro_call: false,
+                     arity: None,
+                     name,
+                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+@@ -483,6 +485,7 @@ impl<'a> PerlWalker<'a> {
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
+index 72e83eb..fa217b1 100644
+--- a/crates/cgg-lang/src/plugins/registrar.rs
++++ b/crates/cgg-lang/src/plugins/registrar.rs
+@@ -469,6 +469,7 @@ pub(crate) fn capture(
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: s,
+                 receiver_hint: STRING_REF_HINT.to_string(),
+@@ -627,6 +628,7 @@ fn collect_value_refs(
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: format!("{owner}::{method}"),
+                 receiver_hint: STRING_REF_HINT.to_string(),
+@@ -646,6 +648,7 @@ fn collect_value_refs(
+                     path_receiver: false,
+                     dot_call: false,
+                     arrow: false,
++                    macro_call: false,
+                     arity: None,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+@@ -678,6 +681,7 @@ fn collect_value_refs(
+                     path_receiver: false,
+                     dot_call: false,
+                     arrow: false,
++                    macro_call: false,
+                     arity: None,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+@@ -745,6 +749,7 @@ fn collect_value_refs(
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: last_segment(&callee).to_string(),
+                 receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -775,6 +780,7 @@ fn collect_value_refs(
+                     path_receiver: false,
+                     dot_call: false,
+                     arrow: false,
++                    macro_call: false,
+                     arity: None,
+                     name: owner.to_string(),
+                     receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -815,6 +821,7 @@ fn collect_value_refs(
+         path_receiver: false,
+         dot_call: false,
+         arrow: false,
++        macro_call: false,
+         arity: None,
+         name: simple.to_string(),
+         receiver_hint: VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
+index 1a1cb83..0854dc9 100644
+--- a/crates/cgg-lang/src/plugins/ruby.rs
++++ b/crates/cgg-lang/src/plugins/ruby.rs
+@@ -314,6 +314,7 @@ impl<'a> RubyWalker<'a> {
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
+index ec1966e..b79c1d3 100644
+--- a/crates/cgg-lang/src/plugins/rust.rs
++++ b/crates/cgg-lang/src/plugins/rust.rs
+@@ -1565,6 +1565,7 @@ impl<'a> Walker<'a> {
+             site_line: node.start_position().row as u32 + 1,
+             site_byte: node.start_byte() as u32,
+             receiver_hint: String::new(),
++            macro_call: true,
+             ..Default::default()
+         })
+     }
+@@ -1906,6 +1907,7 @@ impl<'a> Walker<'a> {
+                 path_receiver: false,
+                 dot_call: false,
+                 arrow: false,
++                macro_call: false,
+                 arity: None,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index 645882e..f71b71b 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -1860,6 +1860,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -1893,6 +1894,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -1912,6 +1914,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -1938,6 +1941,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "user_id".into(),
+             receiver_hint: STRING_REF_HINT.to_string(),
+@@ -1989,6 +1993,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+@@ -2024,6 +2029,7 @@ mod tests {
+             path_receiver: false,
+             dot_call: false,
+             arrow: false,
++            macro_call: false,
+             arity: None,
+             name: "on_mouse_pos".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+diff --git a/crates/cgg-resolve/src/scope.rs b/crates/cgg-resolve/src/scope.rs
+index 3f029ba..d4df246 100644
+--- a/crates/cgg-resolve/src/scope.rs
++++ b/crates/cgg-resolve/src/scope.rs
+@@ -118,6 +118,7 @@ impl FileLocals {
+     pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
+         r.receiver_hint.is_empty()
+             && !r.dot_call
++            && !r.macro_call
+             && !self.imported.contains(r.name.as_str())
+             && self.binds(&r.name, r.site_byte)
+     }
+@@ -182,6 +183,17 @@ mod tests {
+         assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
+     }
+ 
++    /// `Err(cb) => cb!(…)`: a macro is not a value, so a binding of the
++    /// same name does not shadow it.
++    #[test]
++    fn a_macro_invocation_is_not_shadowed_by_a_value() {
++        let l = FileLocals::build(&facts());
++        let mut m = call("cb", "", 20);
++        m.macro_call = true;
++        assert!(!l.shadows_bare_call(&m));
++        assert!(l.shadows_bare_call(&call("cb", "", 20)));
++    }
++
+     #[test]
+     fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
+         // `const cb = require('./cb')`: the declaration (from byte 5) makes
