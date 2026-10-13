@@ -87,3 +87,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-13 16:22: tick — WS14 agent active (16:21); bins up to v5, A/B ab/WS14-v5 running (10 min); working PHP include-chain narrowing. Diff +1324/-46 + new files.
 - 2026-10-13 16:26: tick — WS14 agent active (16:25); v5 A/B done; now gating locals collection on minified files (longest_line_bytes) for the JS bundle-churn check; rebuilding toward v6.
 - 2026-10-13 18:22: tick — WS14 agent active (18:19); bins up to v9; running final perf_subset (WS14-before vs v9, 10 repos, 5 reps) into perf/WS14.md and updating CHANGELOG. Awaiting report.
+- 2026-10-13 18:25: tick — WS14 agent active; final perf_subset (before vs v9) still running (started 18:19). No change since 18:22.
