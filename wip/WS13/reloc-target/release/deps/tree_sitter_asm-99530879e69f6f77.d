@@ -1,0 +1,9 @@
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/tree_sitter_asm-99530879e69f6f77.d: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../src/node-types.json /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../queries/asm/highlights.scm
+
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/libtree_sitter_asm-99530879e69f6f77.rlib: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../src/node-types.json /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../queries/asm/highlights.scm
+
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/libtree_sitter_asm-99530879e69f6f77.rmeta: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../src/node-types.json /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../queries/asm/highlights.scm
+
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/lib.rs:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../src/node-types.json:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-asm-0.24.0/bindings/rust/../../queries/asm/highlights.scm:

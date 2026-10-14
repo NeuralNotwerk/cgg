@@ -1,0 +1,34 @@
+[package]
+name        = "cgg-py"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Python bindings for the cgg call-graph generator."
+# Not published to crates.io: the artifact anyone wants is the wheel, built
+# by `scripts/build-python.sh`.
+publish     = false
+
+[lib]
+name = "_cgg"
+# cdylib only: loaded by CPython, never linked by another Rust crate.
+# `test = false` because the tests that matter are the pytest suite under
+# tests/, which needs the installed module.
+crate-type = ["cdylib"]
+test       = false
+doctest    = false
+
+[dependencies]
+# The pipeline. This crate is a translation layer over `cgg::analyze` and
+# holds no analysis logic of its own.
+cgg        = { workspace = true }
+cgg-core   = { workspace = true }
+cgg-format = { workspace = true }
+
+pyo3       = { workspace = true }
+anyhow     = { workspace = true }
+
+# Mirrors main.rs. Safe in a cdylib: GlobalAlloc governs only this
+# library's Rust allocations, and PyO3 copies into CPython-managed memory
+# at the boundary. Worth ~6% — 153-155 ms with, 164 ms without, on
+# ./crates, minimum of 7 runs.
+mimalloc   = { workspace = true }

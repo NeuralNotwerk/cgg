@@ -26,3 +26,7 @@ pub fn make_bytes(s: String) -> Bytes {
 pub fn make_one() -> Bytes {
     <Bytes as From<u8>>::from(1)
 }
+
+pub fn make_lit() -> Bytes {
+    Bytes::from("x".to_string())
+}

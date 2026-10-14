@@ -1,0 +1,607 @@
+//! Command-line interface.
+//!
+//! The flag surface here is the frozen contract from the design:
+//!
+//! ```text
+//! cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
+//!               [--node-ids short|hash] [--locations]
+//!               [--filter PATTERN]... [-n N]
+//!               [--max-paths N]
+//!               [--rollup BUDGET] [--rollup-by LEVEL]
+//!               [--from-graph FILE]
+//!               [--include-tests] [--ignore-file PATH]
+//!               [--jobs N] [--lang rust,python,...]
+//!               [--audit-format json|jsonl] [--metrics FILE]
+//!               [-v|-vv|-q]
+//! ```
+
+use clap::{ArgAction, Parser, ValueEnum};
+use std::path::PathBuf;
+
+/// `cgg` — offline call-graph generator.
+///
+/// Point it at one or more source folders, pick a format with `-t`,
+/// optionally narrow the view with `--filter` + `-n`.
+#[derive(Debug, Parser)]
+#[command(
+    name = "cgg",
+    version,
+    about = "Call graph generator — point at folders, get a graph.",
+    long_about = None,
+    arg_required_else_help = true,
+)]
+pub struct Cli {
+    /// One or more source directories or files to analyze.
+    ///
+    /// Optional only with `--from-graph`, which replays a graph that was
+    /// already analyzed instead of reading source.
+    #[arg(
+        value_name = "PATH",
+        required_unless_present = "from_graph",
+        num_args = 1..
+    )]
+    pub paths: Vec<PathBuf>,
+
+    /// Write output to FILE instead of stdout. Use `-` for stdout.
+    #[arg(short = 'o', long = "output", value_name = "FILE")]
+    pub output: Option<PathBuf>,
+
+    /// Output format.
+    #[arg(short = 't', long = "type", value_enum, default_value_t = OutputFormatArg::Mermaid)]
+    pub format: OutputFormatArg,
+
+    /// How node ids are named in the output.
+    ///
+    /// Defaults to `short` for mermaid and `hash` everywhere else. A
+    /// mermaid id is repeated on every edge that touches its node, and
+    /// mermaid's reader is usually an agent's context window, so
+    /// numbering the nodes costs about a quarter fewer bytes — and more
+    /// than that in tokens, since `N7` is one token where the base36
+    /// hash `Cu7kwiat260` is several.
+    ///
+    /// `hash` is the graph's content-derived id: stable across runs, so
+    /// two renderings of different revisions diff meaningfully, and
+    /// comparable against `-t json`. `short` is positional — inserting a
+    /// callable renumbers everything after it.
+    ///
+    /// Ignored for `-t json`, whose ids are the identity `--from-graph`
+    /// reads back rather than a rendering choice.
+    #[arg(long = "node-ids", value_enum, value_name = "SCHEME")]
+    pub node_ids: Option<NodeIdsArg>,
+
+    /// Annotate each call with the file and line where it occurs.
+    ///
+    /// Off by default, so mermaid, DOT and GraphML stay byte-identical.
+    /// Mermaid and DOT still draw one arrow per caller/callee pair and
+    /// list every site on it (`src/lib.rs:42,88`). A rolled-up arrow has
+    /// no single site and keeps its `Nx` count, as does an edge whose
+    /// caller is synthetic. Does not apply to `-t json`, which already
+    /// records `site_line` on every edge; asking for it there warns
+    /// rather than changing the document.
+    #[arg(long = "locations", action = ArgAction::SetTrue)]
+    pub locations: bool,
+
+    /// Filter callables by pattern. Repeatable. Regex by default; prefix
+    /// with `glob:` to use glob syntax. Matched against fully-qualified
+    /// names.
+    #[arg(long = "filter", value_name = "PATTERN")]
+    pub filter: Vec<String>,
+
+    /// Seed `--filter` from the functions touched by a git revspec.
+    /// Anything `git diff` accepts works: `HEAD~5`, `main..HEAD`,
+    /// `abc123..def456`, `main...feature`. The resolved seeds are
+    /// *added* to any explicit `--filter` patterns — they do not
+    /// replace them.
+    ///
+    // rustdoc warns "unclosed HTML tag" on the `<ref>` below. Leave it:
+    // clap renders these doc comments as `--help` text, so escaping it for
+    // rustdoc puts literal backticks in front of the user.
+    /// A bare ref (e.g. `HEAD~5`) is interpreted by git as
+    /// "<ref> vs working tree", which includes uncommitted edits. Use
+    /// `HEAD~5..HEAD` if you want committed changes only.
+    ///
+    /// Requires `git` on PATH and the analysis path to be inside a
+    /// repository.
+    #[arg(long = "since", value_name = "REVSPEC")]
+    pub since: Option<String>,
+
+    /// Exclude callables whose qualified name contains SUBSTRING.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-partial", value_name = "SUBSTRING")]
+    pub exclude_partial: Vec<String>,
+
+    /// Exclude callables whose qualified name matches a glob pattern.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-glob", value_name = "PATTERN")]
+    pub exclude_glob: Vec<String>,
+
+    /// Exclude callables whose qualified name matches a regex.
+    /// Repeatable. Applied after --filter.
+    #[arg(long = "exclude-regex", value_name = "PATTERN")]
+    pub exclude_regex: Vec<String>,
+
+    /// Neighborhood depth around each `--filter` match. `-n 0` enumerates
+    /// full entry-to-exit call paths passing through matches.
+    #[arg(short = 'n', long = "hops", value_name = "N", default_value_t = -1)]
+    pub hops: i32,
+
+    /// Cap per-match path count in `-n 0` mode. Overflow is recorded in
+    /// the audit log.
+    #[arg(long = "max-paths", value_name = "N", default_value_t = 1000)]
+    pub max_paths: u32,
+
+    /// List callables that nothing references, in place of the graph.
+    ///
+    /// Not `--dead-code`: no reachability, so no cascade and no inherited
+    /// doubt. A callable is listed when no edge points at it, and entries
+    /// cgg already considers roots are bucketed separately.
+    #[arg(long = "report-unreferenced")]
+    pub report_unreferenced: bool,
+
+    /// Suppress the call-graph output, leaving only the report a run was
+    /// asked for. `--dead-code --no-graph` prints the report and nothing
+    /// else; with `--dead-code-format json` the report takes stdout.
+    #[arg(long = "no-graph")]
+    pub no_graph: bool,
+
+    /// Roll the graph up to a coarser granularity if rendering it would
+    /// exceed BUDGET tokens. Accepts `100000`, `100k`, `1.5m`.
+    ///
+    /// Nodes are replaced by one node per group — per module, per file,
+    /// per directory — climbing to coarser groupings until the rendered
+    /// output fits. A run that already fits is left completely alone, so
+    /// this is safe to leave on in a wrapper script.
+    ///
+    /// BUDGET IS AN ESTIMATE. cgg ships no tokenizer (it would cost more
+    /// than the rest of the binary), so the count is
+    /// `max(words * 2.5, bytes / 1.8)`. The divisor is measured, not a
+    /// rule of thumb: cgg's own mermaid runs 1.78-2.25 bytes per token
+    /// because 40% of it is base36 node ids and `::`-dense names. It sits
+    /// at the bottom of that range deliberately, so the estimate is a
+    /// bound with 10-25% slack rather than a midpoint you can land over.
+    ///
+    /// Every run that rolls up says so on stderr, in the graph itself,
+    /// and in the audit log.
+    #[arg(long = "rollup", value_name = "BUDGET", value_parser = crate::rollup::parse_budget)]
+    pub rollup: Option<u64>,
+
+    /// Granularity to roll the graph up to:
+    /// `callable` (no rollup), `type`, `module`, `file`, `package`,
+    /// `dir:N`, `language`.
+    ///
+    /// On its own this is applied exactly. Combined with `--rollup` it is
+    /// a floor: the search starts here and coarsens further only if the
+    /// budget demands it.
+    ///
+    /// `package` is the nearest ancestor directory holding a build
+    /// manifest (`Cargo.toml`, `package.json`, `go.mod`, `pyproject.toml`
+    /// and friends), which is the only level that reads the filesystem.
+    /// Where it cannot find one it falls back to `dir:1` and says so.
+    #[arg(
+        long = "rollup-by",
+        value_name = "LEVEL",
+        alias = "rollup-filter",
+        value_parser = clap::value_parser!(crate::rollup::RollupLevel)
+    )]
+    pub rollup_by: Option<crate::rollup::RollupLevel>,
+
+    /// Re-query a graph written by an earlier `-t json` run, instead of
+    /// analyzing source.
+    ///
+    /// `--filter`, `-n`, the `--exclude-*` family and `--rollup` all
+    /// apply to the loaded graph, so a single expensive analysis can be
+    /// sliced many ways without re-parsing anything.
+    ///
+    /// The saved graph is the *post-query* graph of that run: replaying a
+    /// filtered document can only narrow it further, never recover what
+    /// was pruned. cgg detects that case and says so.
+    #[arg(long = "from-graph", value_name = "FILE", alias = "filter-output")]
+    pub from_graph: Option<PathBuf>,
+
+    /// Max same-named candidates for a duck-typed method call before the
+    /// fan-out is dropped. Drops are recorded as `fanout-cap-exceeded`
+    /// with the candidate count. A single same-named candidate is still
+    /// a guess — the receiver may be a third-party object cgg never saw —
+    /// so `0` means "never guess": no duck-typed edge is emitted without
+    /// type evidence, and every suppressed guess is audited. Use it when a
+    /// false edge costs more than a missing one, e.g. reachability audits.
+    #[arg(
+        long = "fanout-cap",
+        value_name = "N",
+        default_value_t = cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32
+    )]
+    pub fanout_cap: u32,
+
+    /// Show dead-code findings that live in test scope.
+    ///
+    /// Test files are *always* walked, parsed and resolved, and a call
+    /// from a test always counts as a caller — this flag does not widen
+    /// analysis, it widens the report. Without it, findings categorised
+    /// `only-used-by-tests` and findings on test callables themselves
+    /// are withheld (and counted in the withheld total).
+    #[arg(long = "include-tests", action = ArgAction::SetTrue)]
+    pub include_tests: bool,
+
+    /// Path to an additional ignore file (gitignore syntax).
+    #[arg(long = "ignore-file", value_name = "PATH")]
+    pub ignore_file: Option<PathBuf>,
+
+    /// Skip minified JS/CSS: `name.min.{js,mjs,cjs,css}`, or any file
+    /// with one of those extensions averaging over 2,000 bytes per
+    /// line. Off by default.
+    ///
+    /// Bundled output carries no callable structure worth graphing and
+    /// dominates wall time on a mixed-language tree, but it is still
+    /// real source that parses — so the default walk analyzes it, and
+    /// dropping it is a decision you make rather than one cgg makes
+    /// for you. Skipped files are reported in the audit with
+    /// `skip_reason: minified` and counted in the run summary.
+    #[arg(long = "skip-minified", action = ArgAction::SetTrue)]
+    pub skip_minified: bool,
+
+    /// Number of parallel worker threads.
+    ///
+    /// `0` (the default) means auto: half the machine's **physical**
+    /// cores, detected at runtime, capped at 8 (32 once physical cores
+    /// reach 32) and bounded by any cgroup quota. The cap keeps cgg a
+    /// good guest on a large shared host — it is not a claim that more
+    /// threads stop helping. On a big tree they do help: pass
+    /// `--jobs 32` and expect roughly a 2x speedup over the small-host
+    /// default.
+    #[arg(long = "jobs", value_name = "N", default_value_t = 0)]
+    pub jobs: usize,
+
+    /// Restrict analysis to the given comma-separated language ids.
+    /// Example: `--lang rust,python`.
+    #[arg(long = "lang", value_name = "LIST", value_delimiter = ',')]
+    pub lang: Vec<String>,
+
+    /// Shape of the audit output. `json` = batched doc; `jsonl` =
+    /// streamed events (one per line, SIEM-friendly).
+    #[arg(long = "audit-format", value_enum, default_value_t = AuditFormatArg::Json)]
+    pub audit_format: AuditFormatArg,
+
+    /// No effect — accepted for compatibility. Stack-graphs deep
+    /// resolution was removed in the tree-sitter 0.26 upgrade (upstream
+    /// `tree-sitter-stack-graphs` pins tree-sitter 0.24). The cross-file
+    /// resolver and type propagation cover the same ground and run
+    /// unconditionally, so all three values behave identically.
+    #[arg(long = "stack-graphs", value_enum, default_value_t = StackGraphsArg::Auto)]
+    pub stack_graphs: StackGraphsArg,
+
+    /// Include calls into third-party code as deduplicated leaf "exit
+    /// nodes" — one node per external symbol, with each call site
+    /// collapsed onto it. Off by default; the edges are tagged so
+    /// consumers can filter them.
+    #[arg(long = "include-external", action = ArgAction::SetTrue)]
+    pub include_external: bool,
+
+    /// Include calls into the language standard library as deduplicated
+    /// leaf "exit nodes", same as `--include-external` but for the
+    /// stdlib bucket.
+    #[arg(long = "include-stdlib", action = ArgAction::SetTrue)]
+    pub include_stdlib: bool,
+
+    /// Emit interface/trait dynamic-dispatch fan-out edges (declaration
+    /// → each implementation), tagged `dynamic`/low-confidence. Also
+    /// fans Python class overrides out from inherited methods of the
+    /// same name. The exact call-site → declaration edge is always
+    /// emitted; this flag adds the over-approximated fan-out. Off by
+    /// default; `--dead-code` turns it on.
+    #[arg(long = "dynamic-dispatch", action = ArgAction::SetTrue)]
+    pub dynamic_dispatch: bool,
+
+    /// Suppress synthesized `<framework-entry>` nodes.
+    ///
+    /// Entry nodes are ON by default, unlike `--include-external` and
+    /// `--include-stdlib`. The asymmetry is deliberate: a route handler
+    /// with in-degree zero is not merely an incomplete graph, it is a
+    /// false claim that nothing calls it. An exit node, by contrast,
+    /// tells you nothing you did not already know from reading the call.
+    ///
+    /// BEST EFFORT: entry nodes are INFERRED from framework markers, not
+    /// observed. Coverage is partial, and every run prints a table
+    /// naming which frameworks were recognised and which were seen but
+    /// not understood.
+    #[arg(long = "no-entry-nodes", action = ArgAction::SetTrue)]
+    pub no_entry_nodes: bool,
+
+    /// Print the framework-coverage table even when nothing was
+    /// recognised. By default the table is printed only when at least
+    /// one framework was detected; the gap list is never suppressed.
+    #[arg(long = "framework-coverage", action = ArgAction::SetTrue)]
+    pub framework_coverage: bool,
+
+    /// Print a per-phase timing breakdown to stderr after the run.
+    ///
+    /// The four coarse buckets in the audit stop being useful once a
+    /// phase has sub-phases; this shows where the time inside them goes.
+    /// Off by default and free when off.
+    #[arg(long = "profile", action = ArgAction::SetTrue)]
+    pub profile: bool,
+
+    /// Emit reference edges for functions passed by name as values
+    /// (`register(handler)`), distinct from call edges and tagged
+    /// `reference`. Off by default.
+    #[arg(long = "reference-edges", action = ArgAction::SetTrue)]
+    pub reference_edges: bool,
+
+    /// Bind a Rust call the resolver could not place when exactly one
+    /// callable in the tree carries its name, as a `low`-confidence edge
+    /// tagged `cross-file:name-unique`. Off by default: a unique name is
+    /// evidence, not proof. Never applied to standard-library names, to a
+    /// typed receiver whose type lacks the method, to `self`, to a path
+    /// into an external crate, or to a test-module helper from
+    /// production code.
+    #[arg(long = "guess-unique-names", action = ArgAction::SetTrue)]
+    pub guess_unique_names: bool,
+
+    /// Report callables that nothing in the analyzed source appears to
+    /// call, marking them `unreferenced` in the normal graph output.
+    ///
+    /// BEST EFFORT: every finding is a hypothesis, not a fact. cgg
+    /// reports what it could not find a caller for, which is not the
+    /// same as proving no caller exists.
+    ///
+    /// The graph is emitted as usual in whatever `-t` selects; the
+    /// detailed report goes to a sidecar (see `--dead-code-report`).
+    #[arg(long = "dead-code", action = ArgAction::SetTrue)]
+    pub dead_code: bool,
+
+    /// Shape of the dead-code report. `text` = ranked and
+    /// agent-readable (default); `json` = the stable `cgg.deadcode.v1`
+    /// document.
+    #[arg(long = "dead-code-format", value_enum, default_value_t = DeadCodeFormatArg::Text)]
+    pub dead_code_format: DeadCodeFormatArg,
+
+    /// Lowest confidence band to report. `high` (default) shows only
+    /// findings with no mitigating signal on record. `medium` and `low`
+    /// widen it. Withheld counts are always printed, whatever the band.
+    #[arg(long = "dead-code-confidence", value_enum, default_value_t = DeadCodeConfidenceArg::High)]
+    pub dead_code_confidence: DeadCodeConfidenceArg,
+
+    /// Suppress dead-code findings whose qualified name matches
+    /// PATTERN. Repeatable. Regex by default; prefix with `glob:` for
+    /// glob syntax.
+    ///
+    /// Suppression is report-only: the callable still counts as a
+    /// caller, so its callees do not become findings as a side effect.
+    #[arg(long = "ignore-names", value_name = "PATTERN")]
+    pub ignore_names: Vec<String>,
+
+    /// Declared roots and accepted findings (TOML). Default: the
+    /// nearest `cgg-deadcode.toml`, searching upward from each analyzed
+    /// path first and then from the working directory, so
+    /// `cgg /path/to/project` picks up that project's rules wherever it
+    /// was launched from. Passing this disables that search.
+    ///
+    /// `roots` entries are entry points: a match is live, and so is
+    /// everything it transitively calls. `[[allow]]` entries are
+    /// reviewed findings; they are suppressed from the report but are
+    /// NOT made live, so anything they reference is still reported.
+    #[arg(long = "roots", value_name = "FILE")]
+    pub roots: Option<PathBuf>,
+
+    /// Write a `cgg-deadcode.toml` accepting every finding of this run,
+    /// for adopting the tool on an existing codebase. Goes to the
+    /// primary output *instead of* the graph; cgg never edits files in
+    /// place. Implies `--dead-code`.
+    #[arg(long = "write-roots", action = ArgAction::SetTrue)]
+    pub write_roots: bool,
+
+    /// Suppress dead-code findings on callables carrying a matching
+    /// attribute or decorator (`#[no_mangle]`, `glob:@app.route*`).
+    /// Repeatable; same pattern syntax as `--ignore-names`.
+    ///
+    /// Only some plugins capture attributes; on the rest this matches
+    /// nothing. The per-language capability table in the report names
+    /// which is which, and a run where nothing matched says so on
+    /// stderr with the current list.
+    #[arg(long = "ignore-attributes", value_name = "PATTERN")]
+    pub ignore_attributes: Vec<String>,
+
+    /// Explain why a callable is considered live: print the shortest
+    /// path from a root, preferring high-confidence direct edges and
+    /// non-test roots. Repeatable; same pattern syntax as `--filter`.
+    /// Implies `--dead-code`.
+    #[arg(long = "why-live", value_name = "PATTERN")]
+    pub why_live: Vec<String>,
+
+    /// Write the detailed dead-code report (evidence, roots, per-language
+    /// capability table) to FILE.
+    ///
+    /// Defaults to a sidecar beside `-o`, named for the format:
+    /// `<output>.deadcode.txt` or `<output>.deadcode.json`. With no
+    /// `-o`, the text report goes to stderr and the JSON report needs
+    /// this flag.
+    #[arg(long = "dead-code-report", value_name = "FILE")]
+    pub dead_code_report: Option<PathBuf>,
+
+    /// Exit 3 when the dead-code report is non-empty. Off by default —
+    /// cgg's exit status is unchanged unless you ask for this.
+    #[arg(long = "fail-on-dead", action = ArgAction::SetTrue)]
+    pub fail_on_dead: bool,
+
+    /// Force a sidecar metrics file. Useful when `-t json` already
+    /// embeds the audit but an external tool wants a split file.
+    #[arg(long = "metrics", value_name = "FILE")]
+    pub metrics: Option<PathBuf>,
+
+    /// Increase verbosity. Repeat: `-v`, `-vv`.
+    #[arg(short = 'v', long = "verbose", action = ArgAction::Count)]
+    pub verbose: u8,
+
+    /// Silence everything except errors.
+    #[arg(short = 'q', long = "quiet", action = ArgAction::SetTrue)]
+    pub quiet: bool,
+
+    /// No effect — accepted for compatibility. cgg makes no network
+    /// calls at all: the update check that this flag used to disable was
+    /// removed, along with the HTTP/TLS dependency it required. Use
+    /// `cargo install-update` (from the `cargo-update` crate) if you want
+    /// installed binaries refreshed on your own schedule.
+    #[arg(long = "no-update-check", action = ArgAction::SetTrue)]
+    pub no_update_check: bool,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum OutputFormatArg {
+    Mermaid,
+    Json,
+    Dot,
+    Graphml,
+}
+
+impl From<OutputFormatArg> for cgg_format::OutputFormat {
+    fn from(v: OutputFormatArg) -> Self {
+        match v {
+            OutputFormatArg::Mermaid => cgg_format::OutputFormat::Mermaid,
+            OutputFormatArg::Json => cgg_format::OutputFormat::Json,
+            OutputFormatArg::Dot => cgg_format::OutputFormat::Dot,
+            OutputFormatArg::Graphml => cgg_format::OutputFormat::Graphml,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum NodeIdsArg {
+    /// Number the nodes `N0`, `N1`, … in graph order. Compact; unique
+    /// within the document; not comparable across runs.
+    Short,
+    /// The graph's base36 content hash, `Cu7kwiat260`. Stable across
+    /// runs and comparable against `-t json`.
+    Hash,
+}
+
+impl From<NodeIdsArg> for cgg_format::NodeIds {
+    fn from(v: NodeIdsArg) -> Self {
+        match v {
+            NodeIdsArg::Short => cgg_format::NodeIds::Short,
+            NodeIdsArg::Hash => cgg_format::NodeIds::Hash,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum DeadCodeFormatArg {
+    /// Ranked, agent-readable text report.
+    Text,
+    /// `cgg.deadcode.v1` JSON document.
+    Json,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum DeadCodeConfidenceArg {
+    /// Only findings with no mitigating signal on record.
+    High,
+    /// ...plus findings with one over-approximation caveat.
+    Medium,
+    /// ...plus findings cgg has positive reason to doubt.
+    Low,
+}
+
+impl From<DeadCodeConfidenceArg> for cgg_core::graph::Confidence {
+    fn from(v: DeadCodeConfidenceArg) -> Self {
+        match v {
+            DeadCodeConfidenceArg::High => cgg_core::graph::Confidence::High,
+            DeadCodeConfidenceArg::Medium => cgg_core::graph::Confidence::Medium,
+            DeadCodeConfidenceArg::Low => cgg_core::graph::Confidence::Low,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum AuditFormatArg {
+    /// Single JSON document (pretty).
+    Json,
+    /// One JSON object per line.
+    Jsonl,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub enum StackGraphsArg {
+    /// Run with 60-second timeout; fall back if exceeded.
+    Auto,
+    /// Always run (no timeout).
+    On,
+    /// Skip entirely.
+    Off,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn help_renders() {
+        // Ensures clap doesn't panic on help text assembly and keeps the
+        // command name stable. Snapshot-style comparison handled by a
+        // separate integration test.
+        let cmd = Cli::command();
+        let name = cmd.get_name().to_string();
+        assert_eq!(name, "cgg");
+    }
+
+    #[test]
+    fn requires_path() {
+        // No paths -> should fail parsing.
+        let res = Cli::try_parse_from(["cgg"]);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn parses_full_surface() {
+        let cli = Cli::try_parse_from([
+            "cgg",
+            "./a",
+            "./b",
+            "-o",
+            "out.json",
+            "-t",
+            "json",
+            "--filter",
+            "foo",
+            "--filter",
+            "glob:bar_*",
+            "--exclude-partial",
+            "tests::",
+            "--exclude-glob",
+            "*::internal::*",
+            "--exclude-regex",
+            "^test_.*",
+            "-n",
+            "2",
+            "--max-paths",
+            "50",
+            "--jobs",
+            "4",
+            "--lang",
+            "rust,python",
+            "--audit-format",
+            "jsonl",
+            "-vv",
+        ])
+        .expect("should parse");
+        assert_eq!(cli.paths.len(), 2);
+        assert_eq!(cli.filter.len(), 2);
+        assert_eq!(cli.exclude_partial, vec!["tests::".to_string()]);
+        assert_eq!(cli.exclude_glob, vec!["*::internal::*".to_string()]);
+        assert_eq!(cli.exclude_regex, vec!["^test_.*".to_string()]);
+        assert_eq!(cli.hops, 2);
+        assert_eq!(cli.max_paths, 50);
+        assert_eq!(cli.jobs, 4);
+        assert_eq!(cli.lang, vec!["rust".to_string(), "python".to_string()]);
+        assert!(matches!(cli.format, OutputFormatArg::Json));
+        assert!(matches!(cli.audit_format, AuditFormatArg::Jsonl));
+        assert_eq!(cli.verbose, 2);
+    }
+
+    #[test]
+    fn default_hops_is_sentinel_minus_one() {
+        let cli = Cli::try_parse_from(["cgg", "./a"]).unwrap();
+        // -1 means "no hop limit / no filtering active" — Task 10 reads
+        // this as "emit the full graph".
+        assert_eq!(cli.hops, -1);
+    }
+}

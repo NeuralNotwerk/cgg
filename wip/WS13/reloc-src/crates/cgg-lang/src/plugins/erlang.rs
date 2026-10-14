@@ -1,0 +1,325 @@
+//! Erlang plugin — callable extraction.
+
+use crate::LanguagePlugin;
+use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::path::Path;
+use tree_sitter::{Node, Tree};
+
+#[derive(Debug)]
+pub struct ErlangPlugin;
+
+impl LanguagePlugin for ErlangPlugin {
+    fn id(&self) -> &'static str {
+        "erlang"
+    }
+    fn extensions(&self) -> &'static [&'static str] {
+        &[".erl", ".hrl"]
+    }
+    fn shebangs(&self) -> &'static [&'static str] {
+        &["escript"]
+    }
+    fn ts_language(&self) -> tree_sitter::Language {
+        tree_sitter_erlang::LANGUAGE.into()
+    }
+
+    fn extract(
+        &self,
+        _ctx: &crate::ExtractCtx<'_>,
+        file: FileId,
+        path: &Path,
+        tree: &Tree,
+        source: &[u8],
+    ) -> FileFacts {
+        let mut facts = FileFacts::new(file, path.to_path_buf(), "erlang");
+        let mut w = ErlangWalker {
+            source,
+            facts: &mut facts,
+            module: String::new(),
+        };
+        w.walk(tree.root_node());
+        facts
+    }
+}
+
+struct ErlangWalker<'a> {
+    source: &'a [u8],
+    facts: &'a mut FileFacts,
+    module: String,
+}
+
+impl<'a> ErlangWalker<'a> {
+    fn text(&self, n: Node) -> &str {
+        n.utf8_text(self.source).unwrap_or("")
+    }
+    fn qn(&self, simple: &str) -> String {
+        if self.module.is_empty() {
+            simple.to_string()
+        } else {
+            format!("{}:{simple}", self.module)
+        }
+    }
+
+    fn walk(&mut self, node: Node) {
+        match node.kind() {
+            "module_attribute" => {
+                self.extract_module(node);
+                self.walk_children(node);
+            }
+            "import_attribute" => {
+                self.record_import(node);
+                self.walk_children(node);
+            }
+            // `-include_lib("eunit/include/eunit.hrl").` is how an Erlang
+            // module pulls in a library's macros — for eunit, the only
+            // evidence the module is a test suite.
+            "pp_include_lib" | "pp_include" => {
+                if let Some(file) = node.child_by_field_name("file") {
+                    let path = self.text(file).trim_matches('"').to_string();
+                    if !path.is_empty() {
+                        self.facts.imports.push(ImportRecord {
+                            kind: if node.kind() == "pp_include_lib" {
+                                "include_lib"
+                            } else {
+                                "include"
+                            }
+                            .to_string(),
+                            path,
+                            alias: String::new(),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                self.walk_children(node);
+            }
+            // `-behaviour(gen_server).` is how Erlang declares that a
+            // module implements an OTP contract, and it is the ONLY
+            // evidence of it — the callbacks are ordinary exported
+            // functions. Without recording it no Erlang framework rule
+            // can detect anything, since `-import` is rare in practice.
+            "attribute" | "behaviour_attribute" => {
+                self.record_behaviour(node);
+                self.walk_children(node);
+            }
+            "function_clause" | "function" => {
+                self.record_function(node);
+                self.walk_children(node);
+            }
+            "call" => {
+                self.record_call(node);
+                self.walk_children(node);
+            }
+            _ => self.walk_children(node),
+        }
+    }
+
+    fn walk_children(&mut self, node: Node) {
+        let mut c = node.walk();
+        if c.goto_first_child() {
+            loop {
+                self.walk(c.node());
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+    }
+
+    fn extract_module(&mut self, node: Node) {
+        // -module(name).
+        // Find the atom child
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom"
+            {
+                self.module = self.text(child).to_string();
+                break;
+            }
+        }
+    }
+
+    fn record_import(&mut self, node: Node) {
+        // -import(module, [func/arity, ...]).
+        let mut module_name = String::new();
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom"
+                && module_name.is_empty()
+            {
+                module_name = self.text(child).to_string();
+                break;
+            }
+        }
+        if !module_name.is_empty() {
+            self.facts.imports.push(ImportRecord {
+                kind: "import".to_string(),
+                path: module_name,
+                alias: String::new(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+            });
+        }
+    }
+
+    /// `-behaviour(gen_server).` / `-behavior(...)` (both spellings).
+    fn record_behaviour(&mut self, node: Node) {
+        let text = self.text(node);
+        let t = text.trim_start_matches('-').trim_start();
+        if !(t.starts_with("behaviour") || t.starts_with("behavior")) {
+            return;
+        }
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i as u32)
+                && child.kind() == "atom"
+            {
+                let name = self.text(child).to_string();
+                if name.is_empty() || name.starts_with("behavi") {
+                    continue;
+                }
+                self.facts.imports.push(ImportRecord {
+                    kind: "behaviour".to_string(),
+                    path: name,
+                    alias: String::new(),
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                });
+                return;
+            }
+        }
+    }
+
+    fn record_function(&mut self, node: Node) {
+        // function_clause: atom ( ... ) -> ... ;
+        // Extract the atom (function name)
+        if let Some(name_node) = node.child(0)
+            && name_node.kind() == "atom"
+        {
+            let name = self.text(name_node).to_string();
+            let qn = self.qn(&name);
+            let (sl, el) = (
+                (node.start_position().row as u32) + 1,
+                (node.end_position().row as u32) + 1,
+            );
+            self.facts.definitions.push(DefRecord {
+                simple_name: name,
+                qualified_name: qn,
+                variant: DefVariant::FreeFunction,
+                start_line: sl,
+                end_line: el,
+                start_byte: node.start_byte() as u32,
+                end_byte: node.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(node)),
+                visibility: String::new(),
+                attributes: Vec::new(),
+                ..Default::default()
+            });
+        }
+    }
+
+    fn record_call(&mut self, node: Node) {
+        // call: atom ( ... ) or module:function ( ... )
+        // First child is the function/module reference
+        if let Some(func_node) = node.child(0) {
+            let mut name = self.text(func_node).to_string();
+            if name.is_empty() {
+                return;
+            }
+            // `m:f(…)` parses as `remote(module: m, fun: call(f, …))`: the
+            // module is the parent's, and names the callee (`m:f`).
+            if let Some(parent) = node.parent()
+                && parent.kind() == "remote"
+                && parent
+                    .child_by_field_name("fun")
+                    .is_some_and(|f| f.id() == node.id())
+                && let Some(module) = parent
+                    .child_by_field_name("module")
+                    .and_then(|m| m.child_by_field_name("module").or(Some(m)))
+                && module.kind() == "atom"
+                && !name.contains(':')
+            {
+                name = format!("{}:{name}", self.text(module));
+            }
+
+            let receiver_hint = if name.contains(':') {
+                let parts: Vec<&str> = name.split(':').collect();
+                if parts.len() == 2 {
+                    parts[0].to_string()
+                } else {
+                    String::new()
+                }
+            } else {
+                String::new()
+            };
+
+            // `f(A, B)` is `f/2`; the arity is part of the callee's name.
+            let arity = node
+                .child_by_field_name("args")
+                .map(|a| a.named_child_count() as u32);
+            self.facts.references.push(RefRecord {
+                name,
+                receiver_hint,
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+                arity,
+                ..Default::default()
+            });
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cgg_core::ids::FileId;
+    use std::path::PathBuf;
+    use tree_sitter::Parser;
+
+    fn extract(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_erlang::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ErlangPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.erl"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    #[test]
+    fn module_and_functions() {
+        let src = "-module(mymod).\n\ngreet(Name) ->\n    io:format(\"Hello, ~s~n\", [Name]).\n";
+        let f = extract(src);
+        assert!(!f.definitions.is_empty(), "Expected definitions, got none");
+        assert_eq!(f.definitions[0].simple_name, "greet");
+    }
+
+    /// FINDINGS R14: `m:f(…)` names module `m` — the resolver binds it
+    /// to `m`'s `f` only, so the module must reach it as the receiver.
+    #[test]
+    fn a_remote_call_records_its_module_as_the_receiver() {
+        let f = extract("-module(a).\nrun(X) -> other_mod:gen(X), local(X).\n");
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(refs, vec![("other_mod:gen", "other_mod"), ("local", "")]);
+    }
+
+    #[test]
+    fn include_lib_is_recorded() {
+        let f = extract(
+            "-module(m).\n-include_lib(\"eunit/include/eunit.hrl\").\nf() -> ok.\n",
+        );
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "include_lib" && i.path == "eunit/include/eunit.hrl"),
+            "{:?}",
+            f.imports
+        );
+    }
+}

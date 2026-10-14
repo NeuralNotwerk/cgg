@@ -1,0 +1,595 @@
+# Release artifacts: Python wheels for every platform, CLI binaries, and
+# the C ABI shared library.
+#
+# Why a matrix at all: `crates/cgg-py` and `crates/cgg-ffi` are compiled
+# extensions, so a wheel or a `.so` only runs on the platform it was built
+# for. Cross-compiling to macOS needs Apple's SDK and to Windows needs the
+# MSVC toolchain, neither of which is practical from a Linux box — so each
+# target gets a runner that is already that platform.
+#
+# `abi3-py39` keeps this small: one wheel per PLATFORM covers every
+# CPython from 3.9 up, so this is six wheels rather than six times seven.
+#
+# Triggered by a `v*` tag. `workflow_dispatch` builds everything but
+# publishes nothing, so the matrix can be exercised without a release.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # to attach binaries to the GitHub release
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wheels:
+    name: wheel (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # one platform failing should not hide the others
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-gnu, manylinux: "2014" }
+          # Built under QEMU in a manylinux container. Slow (tens of
+          # minutes for 44 grammars) but it needs no ARM runner.
+          - { name: linux-aarch64, os: ubuntu-latest, target: aarch64-unknown-linux-gnu, manylinux: "2_28" }
+          - { name: macos-x86_64, os: macos-latest, target: x86_64-apple-darwin }
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          # `auto` on Linux picks the oldest glibc it can, which is what
+          # makes the wheel installable on more than just the runner.
+          # PyPI rejects a plain `linux_x86_64` tag outright.
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist -m crates/cgg-py/Cargo.toml
+          sccache: "true"
+
+      # Prove the wheel imports and analyses before it is ever uploaded.
+      # A wheel that builds and does not load is the failure this catches.
+      - name: Smoke test
+        if: matrix.name != 'linux-aarch64' && matrix.name != 'macos-x86_64' # host cannot execute the target
+        shell: bash
+        run: |
+          python -m pip install --find-links dist --no-index cgg-callgraphgenerator
+          python -c "
+          import cgg
+          g = cgg.analyze('crates/cgg-walk')
+          assert len(g.callables) > 0, 'no callables'
+          assert g.to_mermaid().startswith('flowchart'), 'bad mermaid'
+          print('ok', cgg.__version__, len(g.callables), 'callables')
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.name }}
+          path: dist/*.whl
+
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist -m crates/cgg-py/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # Node.js. The per-platform packages are npm's standard model for a
+  # native module (esbuild, swc and napi-rs itself all ship this way): the
+  # main package lists them as optionalDependencies, and npm installs only
+  # the one matching the host. It needs no install script, so it survives
+  # `npm ci --ignore-scripts` — which a source-build postinstall does not.
+  node:
+    name: node (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64-gnu, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { name: linux-arm64-gnu, os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { name: darwin-x64, os: macos-latest, target: x86_64-apple-darwin }
+          - { name: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: win32-x64-msvc, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # `npx @napi-rs/cli@<exact>` rather than `npm ci` + `npx napi`.
+      # The CLI's *-wasm32-wasi optional dependencies resolve differently
+      # on a runner than they did locally, and `npm ci` fails hard on that
+      # ("lock file's @emnapi/runtime@1.11.2 does not satisfy 2.0.0-alpha.3").
+      # Nothing here needs a reproducible node_modules — the .node is
+      # determined by Rust — so pinning the one tool we invoke is both
+      # simpler and stricter than trusting a lock across platforms.
+      # cgg compiles C — blake3, and the vendored tree-sitter grammars —
+      # so an ARM build needs a cross-compiler the x86 runner does not
+      # ship. (The Python ARM wheel does not need this because maturin's
+      # manylinux container brings its own.)
+      - name: Install ARM cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      # MUST run BEFORE the build. `napi build` REGENERATES index.js, so
+      # every step after it sees a freshly-correct file — while `publish`
+      # ships the COMMITTED one from the tag. That gap is not theoretical:
+      # 0.8.4 went out with every job green and a root package nobody could
+      # `require()`, because the committed index.js demanded 0.8.3 bindings
+      # while the platform packages shipped 0.8.4. The smoke test below
+      # cannot see it, by construction. This is the check that can.
+      #
+      # Same assertion as scripts/docs-check.py check 13, repeated here
+      # because docs-check only runs in the pre-commit hook: a --no-verify
+      # commit, a clone that never ran scripts/install-hooks.sh, or an edit
+      # made in the GitHub web UI reaches this workflow unchecked.
+      - name: The committed loader accepts the version we ship
+        shell: bash
+        working-directory: crates/cgg-node
+        run: |
+          want=$(node -p "require('./package.json').version")
+          got=$(grep -oE 'expected [0-9]+\.[0-9]+\.[0-9]+ but' index.js \
+                | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          n=$(grep -c 'expected .* but' index.js || true)
+          echo "package.json ships $want; committed index.js accepts '$got' ($n sites)"
+          if [ -z "$got" ]; then
+            echo "::error::no binding-version assertions found in the committed" \
+                 "crates/cgg-node/index.js — it is not a napi-generated loader"
+            exit 1
+          fi
+          if [ "$got" != "$want" ]; then
+            echo "::error::committed crates/cgg-node/index.js accepts native binding" \
+                 "version '$got' but package.json ships $want — require() would throw" \
+                 "'Native binding package version mismatch' on every platform." \
+                 "Regenerate and commit it: cd crates/cgg-node &&" \
+                 "npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release"
+            exit 1
+          fi
+
+      - name: Build
+        working-directory: crates/cgg-node
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release --target ${{ matrix.target }}
+
+      # The build just rewrote index.js. If that changed anything, the file
+      # in git is not the file napi would produce for this commit — publish
+      # would ship the stale one. Reported as a diff, not just a version.
+      - name: The build did not change the committed loader
+        shell: bash
+        working-directory: crates/cgg-node
+        run: |
+          if ! git diff --quiet -- index.js index.d.ts; then
+            echo "::error::napi build regenerated crates/cgg-node/index.js or" \
+                 "index.d.ts differently from what is committed. publish ships the" \
+                 "COMMITTED file, so the difference below is what users would get." \
+                 "Commit the regenerated files."
+            git --no-pager diff --stat -- index.js index.d.ts
+            git --no-pager diff -- index.js index.d.ts | head -60
+            exit 1
+          fi
+          echo "committed index.js/index.d.ts match what napi generates here"
+
+      # Load the module and make it analyse a real tree. A .node that
+      # builds and does not load is the failure a build-only matrix ships.
+      - name: Smoke test
+        if: matrix.name != 'linux-arm64-gnu' && matrix.name != 'darwin-x64' # host cannot execute the target
+        shell: bash
+        working-directory: crates/cgg-node
+        run: |
+          node -e "
+          const cgg = require('./index.js');
+          const pkg = require('./package.json');
+
+          // The version is ASSERTED, not printed. It used to be logged only,
+          // so a loader/native/package disagreement scrolled past in green.
+          // This reads the version out of the compiled .node — the one thing
+          // here that cannot be satisfied by a stale or hand-edited file.
+          const v = cgg.version();
+          if (v !== pkg.version) {
+            throw new Error(
+              'version mismatch: native binding reports ' + v +
+              ' but package.json ships ' + pkg.version +
+              ' — the .node was built from a different tree than the manifest');
+          }
+
+          const g = cgg.analyzeSync('../cgg-walk');
+          if (g.callableCount < 1) { throw new Error('no callables'); }
+          if (!g.toMermaid().startsWith('flowchart')) { throw new Error('bad mermaid'); }
+          console.log('ok', v, g.callableCount, 'callables');
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.name }}
+          path: crates/cgg-node/*.node
+
+  binaries:
+    name: binaries (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          # Cross-compiled on the x86 runner, the same way the node job
+          # builds linux-arm64-gnu. Wheels have shipped for this target
+          # while the CLI did not, so `cargo install` was the only route
+          # on ARM Linux — a gap in the matrix, not a limitation.
+          # Verified before adding: cross-built on x86 and run on real
+          # aarch64 hardware, where its mermaid, dot and graphml output
+          # is byte-identical to a natively-built binary.
+          - { name: linux-aarch64, os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin }
+          - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # cgg compiles C — mimalloc, blake3 and 44 tree-sitter grammars —
+      # so an ARM build needs a cross-compiler the x86 runner does not
+      # ship. Same reason and same packages as the node job; the Python
+      # ARM wheel avoids it only because maturin's manylinux container
+      # brings its own.
+      - name: Install ARM cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      # The CLI and the C ABI together: someone linking libcgg needs the
+      # header, and someone using the CLI needs neither. Shipping them in
+      # one archive per platform keeps the release page short.
+      # Two invocations, not `-p cgg -p cgg-ffi`. Building the binary and
+      # the staticlib in one command fails to link on Windows with a wall
+      # of LNK2019 unresolved-symbol errors out of clap and alloc; built
+      # separately, each links cleanly.
+      - name: Build
+        env:
+          # Ignored by every target that does not need them.
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p cgg
+          cargo build --release --target ${{ matrix.target }} -p cgg-ffi
+
+      # An x86 runner cannot execute an ARM binary, so the most this can
+      # check is that the artifact is for the architecture it claims. A
+      # cross-build that silently produced an x86 binary would otherwise
+      # ship under an ARM name and fail on a user's first run.
+      - name: Confirm the artifact is actually ARM
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          f="target/${{ matrix.target }}/release/cgg"
+          readelf -h "$f" | grep -E "Class|Machine"
+          readelf -h "$f" | grep -q "Machine:.*AArch64" || {
+            echo "::error::$f is not an AArch64 binary"; exit 1; }
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p out
+          T="target/${{ matrix.target }}/release"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$T/cgg.exe" out/
+            cp "$T/cgg.dll" out/ 2>/dev/null || true
+            cp "$T/cgg.lib" out/ 2>/dev/null || true
+          else
+            cp "$T/cgg" out/
+            # Explicit extensions, not `libcgg.*`: that glob also matched
+            # `libcgg.d` (a make-style dep-info file) and `libcgg.rlib`
+            # (the Rust lib target's archive, unusable from C), both of
+            # which shipped in the v0.6.4 tarballs.
+            cp "$T"/libcgg.so out/ 2>/dev/null || true
+            cp "$T"/libcgg.dylib out/ 2>/dev/null || true
+            cp "$T"/libcgg.a out/ 2>/dev/null || true
+          fi
+          cp crates/cgg-ffi/include/cgg.h out/
+          cp README.md LICENSE-APACHE LICENSE-MIT out/
+          tar czf "cgg-${{ github.ref_name }}-${{ matrix.name }}.tar.gz" -C out .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.name }}
+          path: cgg-*.tar.gz
+
+  # Everything a release needs, checked before anything is published.
+  #
+  # A missing CARGO_REGISTRY_TOKEN would otherwise surface at the very
+  # end: GitHub, PyPI and npm all publish, then `crates` dies on an auth
+  # error and three of four registries sit at the new version while the
+  # fourth needs a manual run. The credential is knowable up front, so a
+  # release that cannot finish should stop before it starts rather than
+  # after it is half done.
+  #
+  # Deliberately not part of `crates`. Checking there would be correct and
+  # useless — by then the irreversible ordering has already released the
+  # recoverable channels.
+  # Runs on `workflow_dispatch` too, not just on a tag. It publishes
+  # nothing, so there is no reason to gate it — and gating it would have
+  # made the one job whose entire purpose is "find out before the release
+  # whether the release can finish" impossible to exercise before a
+  # release. `publish` is still tag-only, so a dispatch run checks the
+  # credentials and stops there.
+  preflight:
+    name: preflight
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Every publish credential is present
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          missing=""
+          [ -n "$CARGO_REGISTRY_TOKEN" ] || missing="$missing CARGO_REGISTRY_TOKEN"
+          [ -n "$PYPI_API_TOKEN" ]       || missing="$missing PYPI_API_TOKEN"
+          [ -n "$NPM_TOKEN" ]            || missing="$missing NPM_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secret(s):$missing — add them at"
+            echo "::error::Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          echo "all publish credentials present"
+
+  # Every publishable crate packaged and VERIFIED — rebuilt in isolation
+  # against crates.io, the way `cargo install cgg` builds it — before any
+  # registry receives anything. crates.io publishes last, so without this a
+  # crate that cannot build (a `[patch]` that does not travel with the
+  # package, a git dependency) would fail only after PyPI and npm had
+  # already shipped the version.
+  package-verify:
+    name: crates package-verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Package and verify every publishable crate
+        run: >-
+          cargo package --workspace
+          --exclude cgg-py --exclude cgg-ffi --exclude cgg-node
+
+  publish:
+    name: publish
+    needs: [preflight, package-verify, wheels, sdist, binaries, node]
+    runs-on: ubuntu-latest
+    # Only on a tag. A manual run builds and tests everything but
+    # publishes nothing, so the matrix is safe to exercise any time.
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: release # gate this in repo settings if you want approval
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: Collect
+        run: |
+          mkdir -p dist bin
+          find artifacts -name '*.whl' -o -name '*.tar.gz' | while read -r f; do
+            case "$f" in
+              *cgg-v*) cp "$f" bin/ ;;
+              *) cp "$f" dist/ ;;
+            esac
+          done
+          ls -la dist bin
+
+      - name: Attach binaries to the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*
+
+      # Trusted publishing: no token in secrets at all. Configure the
+      # publisher once at
+      # https://pypi.org/manage/project/cgg-callgraphgenerator/settings/publishing/
+      # (owner NeuralNotwerk, repo cgg, workflow release.yml, environment
+      # release). Delete the `password:` line below once that is set up.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # A re-run of a tag must not fail on files already uploaded.
+          skip-existing: true
+
+      - uses: actions/checkout@v4
+        with: { path: src }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, registry-url: "https://registry.npmjs.org" }
+
+      # `napi prepublish` moves each .node into its npm/<triple>/ package,
+      # publishes those, then publishes the main package that depends on
+      # them. Order matters: the main package's optionalDependencies must
+      # already exist.
+      - name: Publish to npm
+        working-directory: src/crates/cgg-node
+        env:
+          # NPM_TOKEN must be an *automation* token, or a granular token
+          # with "bypass 2FA" enabled. A classic read/publish token on a
+          # 2FA-protected account is rejected with:
+          #   403 … Two-factor authentication or granular access token
+          #   with bypass 2fa enabled is required to publish packages.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Last gate before an irreversible act. This job publishes the
+          # index.js that is COMMITTED at the tag — no step here regenerates
+          # it — so this is the file users get, and npm will not let the
+          # version be republished once it is wrong. 0.8.4 is the precedent.
+          # The node matrix checks this too; it is repeated here because
+          # this is the only place that is provably looking at the bytes
+          # about to be uploaded.
+          want=$(node -p "require('./package.json').version")
+          got=$(grep -oE 'expected [0-9]+\.[0-9]+\.[0-9]+ but' index.js \
+                | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
+          if [ "$got" != "$want" ]; then
+            echo "::error::refusing to publish: index.js accepts '$got'," \
+                 "package.json ships $want. Regenerate crates/cgg-node/index.js" \
+                 "with @napi-rs/cli@3.8.5 and re-tag."
+            exit 1
+          fi
+          echo "npm root: index.js and package.json agree on $want"
+
+          # `napi artifacts` is not optional: `prepublish` validates that
+          # every npm/<triple>/ package already CONTAINS its .node, and
+          # aborts with "Release package … is incomplete" otherwise.
+          # Copying the files to the crate root is not enough.
+          npx --yes --package=@napi-rs/cli@3.8.5 -- napi artifacts \
+              -d ../../../artifacts --npm-dir npm
+          find npm -name '*.node' -exec ls -la {} \;
+          # `--gh-release` is opt-IN in @napi-rs/cli v3; there is no
+          # `--skip-gh-release`, and passing it aborts with "Unsupported
+          # option name". The GitHub release is created by the step above.
+          # `prepublish` publishes ONLY the per-platform packages. The
+          # root package — the one users actually install — needs its own
+          # `npm publish`. Without it the job goes green, five platform
+          # packages ship, and `npm install cgg-callgraphgenerator` still
+          # resolves to the previous release. That happened on v0.6.5.
+          #
+          # It also tries to attach the .node files to a GitHub release
+          # that the step above already created, which 400s. Those errors
+          # are logged and swallowed, so they cannot be relied on to fail
+          # the job either.
+          npx --yes --package=@napi-rs/cli@3.8.5 -- napi prepublish -t npm
+          # `--ignore-scripts`: the root package's `prepublishOnly` runs
+          # `napi prepublish` a *second* time, and `napi` is not on PATH
+          # in this step — it was invoked through `npx` above. On v0.6.6
+          # that failed with `sh: 1: napi: not found` and exit 127, after
+          # the five platform packages had already shipped, leaving the
+          # root at the previous version: the exact split-brain the check
+          # below exists to catch. The prepublish work is already done on
+          # the line above, so re-running it is redundant as well as
+          # broken.
+          npm publish --ignore-scripts
+
+          # Belt and braces: a publish path that can succeed without
+          # publishing has to be checked, not trusted.
+          #
+          # Polled, not read once. The registry is a CDN and `dist-tags`
+          # takes a few seconds to propagate — on v0.6.7 this read 0.6.6
+          # *one second* after a successful `+ cgg-callgraphgenerator@0.6.7`
+          # and failed the job, which is a false alarm on exactly the
+          # check whose job is to be trustworthy. A check that cries wolf
+          # is worse than no check, because the next real split-brain gets
+          # waved through as "just the propagation thing".
+          LOCAL="$(node -p "require('./package.json').version")"
+          for attempt in $(seq 1 20); do
+            PUBLISHED="$(npm view cgg-callgraphgenerator version 2>/dev/null || echo unknown)"
+            echo "attempt $attempt: npm latest=$PUBLISHED local=$LOCAL"
+            [ "$PUBLISHED" = "$LOCAL" ] && break
+            sleep 15
+          done
+          [ "$PUBLISHED" = "$LOCAL" ] || {
+            echo "::error::npm still reports $PUBLISHED after publishing $LOCAL (5 minutes)"
+            exit 1
+          }
+
+          # The platform packages too. On 0.9.1 the root was visible while
+          # the 105 MB linux-x64-gnu package was not, and `npm install`
+          # silently skipped the missing optional dependency — `require()`
+          # then failed with "Cannot find native binding". A release is not
+          # installable until every platform package it pins is served.
+          for pkg in $(node -p "Object.keys(require('./package.json').optionalDependencies).join(' ')"); do
+            for attempt in $(seq 1 20); do
+              V="$(npm view "$pkg@$LOCAL" version 2>/dev/null || true)"
+              [ "$V" = "$LOCAL" ] && break
+              sleep 15
+            done
+            [ "$V" = "$LOCAL" ] || {
+              echo "::error::npm does not serve $pkg@$LOCAL after 5 minutes"
+              exit 1
+            }
+            echo "npm serves $pkg@$LOCAL"
+          done
+
+  # crates.io goes LAST, and only if every other registry already
+  # succeeded.
+  #
+  # The ordering is forced by what crates.io is: a version can never be
+  # re-uploaded, only yanked. Every other channel here is recoverable —
+  # PyPI takes `skip-existing`, npm can be re-run, a GitHub release can be
+  # recreated — so they all get to prove themselves first, and the one
+  # irreversible act happens only after they have. `needs: publish` is
+  # the whole safety argument: if the wheels, the npm packages or the
+  # release binaries failed, no crate is uploaded and the version number
+  # is still free.
+  crates:
+    name: crates.io
+    needs: publish
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    # Same gate as `publish`; require an approval here in repo settings
+    # if you want a human in front of the irreversible step.
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The tag and the manifest must agree. `publish-crates.sh` checks
+      # that the internal pins match each other, but nothing checks them
+      # against the tag being released — and the retry path treats "already
+      # uploaded" as success so a half-finished run can be resumed. Those
+      # two together would let a `v0.8.2` tag whose manifest still said
+      # 0.8.1 report success while publishing nothing, which is the exact
+      # silent-failure shape this file already guards against for npm.
+      - name: Tag and manifest must agree
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST="$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)"
+          echo "tag=$TAG manifest=$MANIFEST"
+          [ "$TAG" = "$MANIFEST" ] || {
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml $MANIFEST"
+            exit 1
+          }
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        # --yes: no tty in CI. The typed-version confirmation exists for a
+        # human who can still change their mind; here the safety is
+        # `needs: publish` plus the tag check above.
+        run: scripts/publish-crates.sh --yes
+
+      # Same belt-and-braces as npm: a publish path that can exit 0
+      # without publishing has to be checked, not trusted. The script
+      # waits for each crate on the sparse index, so this is the
+      # independent read.
+      - name: Verify every crate is live
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          fail=0
+          for c in cgg-core cgg-walk cgg-format cgg-lang cgg-resolve cgg; do
+            got="$(curl -sA "cgg-release-verify" \
+                   "https://crates.io/api/v1/crates/$c" \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin)["crate"]["max_version"])' \
+                   2>/dev/null || echo unknown)"
+            echo "$c: $got"
+            [ "$got" = "$VERSION" ] || { echo "::error::$c reports $got, expected $VERSION"; fail=1; }
+          done
+          exit $fail

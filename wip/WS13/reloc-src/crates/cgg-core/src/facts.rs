@@ -1,0 +1,982 @@
+//! Intermediate facts produced by the per-file extraction pass.
+//!
+//! Each language plugin walks its tree-sitter AST once and emits a
+//! [`FileFacts`] value describing the callables defined in the file
+//! and the call sites referencing other callables. Every later stage —
+//! the intra-file linker, the scope-aware cross-file resolvers, the FFI
+//! linker — consumes this same shape.
+//!
+//! The shape follows codescope's "definition vs reference" split but
+//! is strongly typed, carries fully-qualified names from day one, and
+//! tracks byte ranges alongside line ranges (byte ranges are what
+//! tree-sitter speaks natively and the intra-file linker needs for
+//! smallest-enclosing-range containment).
+
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+
+use crate::graph::CallableKind;
+use crate::ids::FileId;
+
+/// Sentinel `RefRecord::receiver_hint` value marking a function
+/// referenced as a *value* (passed by name to a registrar/callback)
+/// rather than called — Issue 4. The leading control char can never
+/// appear in real source, so it cannot collide with a real receiver.
+/// The resolver turns these into `Via::Reference` edges (gated behind
+/// `--reference-edges`) and never lets them reach the unresolved /
+/// external buckets.
+pub const VALUE_REF_HINT: &str = "\u{1}value-ref";
+
+/// Sentinel `RefRecord::receiver_hint` value marking a *string literal*
+/// argument of a registration call — `Route::get('/x', 'C@method')`,
+/// `get 'photos', to: 'photos#index'`. `name` holds the literal
+/// verbatim; decoding it into a symbol is framework-specific and
+/// therefore belongs to the framework rule engine, not to a plugin.
+///
+/// Like [`VALUE_REF_HINT`] this never reaches the unresolved / external
+/// buckets, and per §8 of the design it never manufactures an edge on
+/// its own: a string that happens to look like a method name is not
+/// evidence of a call. It only feeds entry-node synthesis, where the
+/// framework rule supplies the missing premise that the framework does
+/// invoke whatever that string names.
+pub const STRING_REF_HINT: &str = "\u{1}string-ref";
+
+/// Variant tag on a definition, refining the callable kind with
+/// language-specific hints. The pipeline collapses this onto the
+/// [`CallableKind`] enum when building the final graph node.
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DefVariant {
+    #[default]
+    FreeFunction,
+    InherentMethod,
+    TraitMethod,
+    TraitDefaultMethod,
+    AsyncFunction,
+    Constructor,
+    Destructor,
+    NamedClosure,
+    NamedLambda,
+    StaticMethod,
+    ClassMethod,
+    Property,
+}
+
+impl DefVariant {
+    /// The variant as its serialized (snake_case) name.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DefVariant::FreeFunction => "free_function",
+            DefVariant::InherentMethod => "inherent_method",
+            DefVariant::TraitMethod => "trait_method",
+            DefVariant::TraitDefaultMethod => "trait_default_method",
+            DefVariant::AsyncFunction => "async_function",
+            DefVariant::Constructor => "constructor",
+            DefVariant::Destructor => "destructor",
+            DefVariant::NamedClosure => "named_closure",
+            DefVariant::NamedLambda => "named_lambda",
+            DefVariant::StaticMethod => "static_method",
+            DefVariant::ClassMethod => "class_method",
+            DefVariant::Property => "property",
+        }
+    }
+
+    pub fn to_callable_kind(self) -> CallableKind {
+        match self {
+            DefVariant::FreeFunction | DefVariant::AsyncFunction => {
+                CallableKind::Function
+            }
+            DefVariant::InherentMethod
+            | DefVariant::TraitMethod
+            | DefVariant::TraitDefaultMethod
+            | DefVariant::StaticMethod
+            | DefVariant::ClassMethod => CallableKind::Method,
+            DefVariant::Constructor => CallableKind::Constructor,
+            DefVariant::Destructor => CallableKind::Destructor,
+            DefVariant::NamedClosure | DefVariant::NamedLambda => CallableKind::Closure,
+            DefVariant::Property => CallableKind::Property,
+        }
+    }
+}
+
+/// Normalized cross-language visibility.
+///
+/// The language-native spelling stays in [`DefRecord::visibility`]
+/// (`"pub(crate)"`, `"fileprivate"`, `"protected internal"`); this is
+/// its canonical projection. Normalization happens in the *plugin*,
+/// because only the plugin knows the language's default rule — Java's
+/// absent modifier means package-private, Kotlin's means public, C#'s
+/// means private, and Go encodes visibility in the identifier's first
+/// letter. A downstream normalizer could not tell `""` meaning
+/// "language default" from `""` meaning "cgg never looked".
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Vis {
+    /// Not determined. Cross-check `PluginSignals::visibility` to learn
+    /// whether that means "not extractable" or "not implemented".
+    #[default]
+    Unknown,
+    /// Visible outside the compilation unit.
+    Public,
+    /// Visible within the crate / assembly / package, but not outside.
+    Internal,
+    /// Declaring type and its subtypes only.
+    Protected,
+    /// Declaring type / file / module only.
+    Private,
+}
+
+impl Vis {
+    pub fn is_unknown(&self) -> bool {
+        matches!(self, Vis::Unknown)
+    }
+    /// Whether a caller could exist outside the analyzed unit.
+    pub fn escapes_unit(&self) -> bool {
+        matches!(self, Vis::Public | Vis::Unknown)
+    }
+}
+
+/// What role a definition plays in a test suite.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TestRole {
+    /// A test case, invoked by a harness and never by project code.
+    Case,
+    /// A harness lifecycle hook (`setUp`, `@BeforeEach`, a pytest
+    /// fixture, `TestMain`).
+    Fixture,
+    /// Not a test itself, but lexically inside a test-only container
+    /// such as `#[cfg(test)] mod tests` or a `describe` block.
+    Support,
+}
+
+/// A callable referenced by an identifier-shaped literal rather than by
+/// a call — `getattr(o, "method")`, `Class.forName("...")`, `send(:sym)`.
+///
+/// This is a **suppression-only** signal. It never creates an edge:
+/// doing so would put a guess into the call graph, which is the one
+/// thing cgg refuses to do. It exists so the dead-code report can say
+/// "something names this string, so cgg may simply be unable to see the
+/// call".
+/// [`DynUse::via`] values that load a *module* by name (`require("x")`,
+/// `importlib.import_module("x")`) rather than look a member up. The
+/// literal names a file or package, not a callable, so it is reported but
+/// does not cap a same-named callable's dead-code finding.
+pub const DYN_MODULE_LOADERS: &[&str] = &["require", "importScripts", "import_module"];
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DynUse {
+    /// The identifier-shaped literal.
+    pub name: String,
+    /// The construct that named it (`getattr`, `send`, `forName`).
+    pub via: String,
+    pub site_line: u32,
+    pub site_byte: u32,
+}
+
+/// A callable *named* somewhere cgg cannot turn into an edge: a function
+/// passed as a value inside a macro's arguments (`format!("{}",
+/// x.map(iso_day))`), or a path written in an attribute string
+/// (`#[serde(default = "default_hops")]`).
+///
+/// Suppression-only, like [`DynUse`]: it never becomes an edge and never
+/// reaches the unresolved buckets. The dead-code report uses it to say
+/// "this callable is named here, so cgg may be blind to its caller" —
+/// resolved relative to the naming file, never by simple name across the
+/// workspace, because helper names like `default_true` repeat per module.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NameMention {
+    /// The name or path as written (`iso_day`, `Vec::is_empty`).
+    pub name: String,
+    /// What named it: `macro-arg`, or `attr:<key>` (`attr:default`).
+    pub via: String,
+    pub site_line: u32,
+    pub site_byte: u32,
+}
+
+/// A region of code that cannot be reached because control cannot get
+/// there — statements after an unconditional terminator.
+///
+/// Unlike everything else in a dead-code report, this is a proof rather
+/// than a hypothesis: it is derived from the shape of the syntax tree,
+/// not from whether cgg could find a caller.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UnreachableRegion {
+    pub start_line: u32,
+    pub end_line: u32,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    /// `"after-return"`, `"after-throw"`, `"after-break"`,
+    /// `"after-continue"`, `"after-panic"`.
+    pub cause: String,
+}
+
+/// A name this file makes visible to other modules.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ExportRecord {
+    /// The exported name as other modules see it.
+    pub name: String,
+    /// `"__all__"`, `"export"`, `"pub-use"`, `"capitalized"`.
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub target: String,
+}
+
+/// A single callable definition extracted from a file.
+///
+/// `Default` is derived so plugins can construct a record with
+/// `..Default::default()` and stay source-compatible as optional
+/// extraction signals are added.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct DefRecord {
+    /// Last segment of `qualified_name`, i.e. the identifier as
+    /// written in source.
+    pub simple_name: String,
+    /// Fully-qualified name. Joiner is `::` for Rust, `.` for Python
+    /// and other `.`-ish languages, `/` for Go (package path + func).
+    pub qualified_name: String,
+    pub variant: DefVariant,
+
+    /// Inclusive 1-based line numbers for human display.
+    pub start_line: u32,
+    pub end_line: u32,
+
+    /// Half-open byte range in the source.
+    pub start_byte: u32,
+    pub end_byte: u32,
+
+    /// Optional single-line signature preview.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub signature_hint: String,
+
+    /// Language-native visibility (`"pub"`, `"public"`, `""`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub visibility: String,
+
+    /// Attributes / decorators attached at the definition site
+    /// (`"#[get]"`, `"@app.route('/x')"`, `"@Override"`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attributes: Vec<String>,
+
+    /// Normalized visibility. See [`Vis`].
+    #[serde(default, skip_serializing_if = "Vis::is_unknown")]
+    pub vis: Vis,
+
+    /// Test role, when this definition is part of a test suite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_role: Option<TestRole>,
+
+    /// Base classes / interfaces of the type owning this definition —
+    /// `class Encoder(nn.Module)`, `implements Runnable`, `: IJob`.
+    ///
+    /// Recorded on the *method*, not the type, because cgg's model has
+    /// no node for a type: the only thing a framework rule can mark is a
+    /// callable, so the contract has to travel with one. Names are
+    /// stored as written, including any qualifier (`nn.Module`), since
+    /// the matcher compares both the full path and the last segment.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub base_types: Vec<String>,
+
+    /// This definition has a function body (or is `= default` / `= delete`).
+    ///
+    /// A C-family header prototype and the out-of-line definition are the
+    /// same function. The driver drops the prototype when a body with the
+    /// same qualified name and parameter list exists, so callers land on
+    /// the node whose span contains the calls. A pure declaration —
+    /// nothing in the tree defines it — stays, with this flag false. The
+    /// C, C++ and Objective-C plugins set it from the grammar node;
+    /// `..Default::default()` leaves it false and the prototype is never
+    /// absorbed. Not copied onto the graph.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub has_body: bool,
+
+    /// Declared inside a conditional statement (PHP `if (!function_exists
+    /// ('f')) { function f() … }`): a fallback that exists only when no
+    /// other definition was loaded. Not copied onto the graph.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub conditional: bool,
+}
+
+/// A single call-site reference extracted from a file.
+///
+/// `Default` is derived so plugins can construct a record with
+/// `..Default::default()` and stay source-compatible as optional
+/// fields are added — the same contract [`DefRecord`] already has.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct RefRecord {
+    /// Identifier at the call site as written (`foo`, `do_thing`,
+    /// `obj.method`'s `method`).
+    pub name: String,
+    /// Fully-qualified receiver path when determinable from the
+    /// source alone (e.g. `a::b::c` in a Rust path; `self.method`
+    /// yields `self.method`). Empty if no path information is
+    /// available; resolution is the job of Task 6+.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub receiver_hint: String,
+
+    pub site_line: u32,
+    pub site_byte: u32,
+
+    /// The registrar call this reference sits inside, when it is an
+    /// argument to one: `app.get`, `Route::get`, `router.HandleFunc`.
+    /// Empty for an ordinary call site.
+    ///
+    /// This is the landing zone for framework route metadata. Nothing
+    /// else could hold it: `attribute_key` discards arguments by design
+    /// (`@app.route('/x')` normalizes to `app.route`), and `DynUse` is
+    /// suppression-only by explicit contract. Without it an entry node
+    /// could say *that* a route exists but never *which* — and a list of
+    /// anonymous routes is not an attack surface map.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub context: String,
+
+    /// First string literal argument of `context`'s call — the route
+    /// path, queue name, or command string. Empty when there was none.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub route: String,
+    /// Keyword-argument names at the call site (`f(data=1, ctx=2)` ->
+    /// `["data", "ctx"]`).
+    ///
+    /// Used to eliminate duck-typed fan-out candidates whose signature
+    /// cannot accept the call: a call passing `data=`/`context=` is not
+    /// reaching a method that takes `w, x, y, z`. Empty when the call
+    /// passes none, or when the plugin does not capture them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kwargs: Vec<String>,
+
+    /// Set when this reference was extracted from inside a macro's raw
+    /// token tree (Rust `refs_from_token_tree`), where any `receiver_hint`
+    /// was inferred from bare token adjacency rather than a typed
+    /// expression, and can therefore name a type alias's bare name or a
+    /// file-wide `var_types` guess that turns out wrong in a way an
+    /// ordinary expression's receiver cannot. `context` already carries
+    /// registrar/route metadata for Rust (`refs_from_args`), so this is a
+    /// separate field rather than an overload: the resolver uses it as
+    /// permission to retry a failed qualified lookup with the receiver
+    /// dropped, once, and only on a crate-wide-unique simple name.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub from_macro_arg: bool,
+
+    /// Set when `receiver_hint` is a *path* the call was written through
+    /// (Rust `serde_json::from_str`, receiver `serde_json`) rather than a
+    /// value (`parser.from_str`). A one-segment path carries no `::` of
+    /// its own, so without this the resolver cannot tell an external
+    /// crate head from a local variable and fans the call out by name
+    /// to every same-named method in the workspace.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub path_receiver: bool,
+
+    /// Set when the call is a method call (`… . name (`) whose receiver
+    /// the extractor could not recover — a chain inside a macro's tokens.
+    /// An empty `receiver_hint` then does not mean a bare call, so the
+    /// bare-call rule (a bare name is never a method) must not apply.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub dot_call: bool,
+
+    /// Set when the call is written through `->` (`recv->name()`, C/C++):
+    /// the receiver is dereferenced. A receiver declared as a class
+    /// template then reaches what its `operator->` returns — the template's
+    /// first argument, recorded under [`DEREF_SUFFIX`] — while `recv.name()`
+    /// reaches the template itself.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub arrow: bool,
+
+    /// Set when the call is a macro invocation (Rust `err!(…)`). Macros
+    /// live in their own namespace: a local value of the same name
+    /// (`Err(err) => err!(…)`) does not shadow one.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub macro_call: bool,
+
+    /// Set when the receiver is the enclosing method's invocant — a
+    /// Perl `my $self = shift;` / `my ($class, …) = @_;` / signature's
+    /// first parameter, or `shift->m()`. The call then names a method of
+    /// the caller's own package or one it inherits.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub invocant: bool,
+
+    /// Set when `receiver_hint` is an implicit receiver the call was not
+    /// written through: a bare call inside a Kotlin `x.run { … }` /
+    /// `x.apply { … }` / `with(x) { … }` lambda, whose receiver `x` is
+    /// recorded. The call is `x`'s member when its type declares one, and
+    /// otherwise a call to an enclosing scope (a bare call).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub implicit_receiver: bool,
+
+    /// The start byte of a same-file definition the call cannot be to:
+    /// the non-recursive binding it sits in (OCaml `let f x = f (x + 1)`
+    /// without `rec` calls an earlier `f`, never itself).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not_def: Option<u32>,
+
+    /// How many arguments the call passes, where the language makes a
+    /// function's arity part of its identity — Erlang's `f/1` and `f/2`
+    /// are different functions that share a name. `None` when unknown or
+    /// irrelevant. Only the Erlang and Elixir plugins set it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arity: Option<u32>,
+
+    /// Set when the site *names* a callable as a value without calling
+    /// it, written in a shape that carries its receiver: a Java method
+    /// reference (`this::m`, `Type::m`, `Type::new`), a C# method group
+    /// (`Select(F)`, `evt += this.H`, `Func<int> f = F`). The record is
+    /// resolved exactly as a call through that receiver would be, and
+    /// every edge it produces is a [`crate::graph::Via::Reference`] edge —
+    /// gated behind `--reference-edges` like every other reference.
+    ///
+    /// Unlike a [`VALUE_REF_HINT`] record, whose receiver is plumbing,
+    /// `receiver_hint` here is a real receiver. Plugins emit these only
+    /// when the run asked for reference sites (`ExtractCtx`), so an
+    /// ordinary run's graph and audit are untouched.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub value_ref: bool,
+
+    /// Set when the site names a member with no argument list, in a
+    /// language where that is either a value read or a call to a method
+    /// declared without parameters (Scala `b.size`, a bare `helper`).
+    /// Such a record is kept only when some callable of its language is
+    /// declared without a parameter list under that name and no local
+    /// binding shadows it (`cgg_resolve::value_refs::prune_paren_less`);
+    /// otherwise it is a value read, not a call, and is dropped before
+    /// resolution.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub paren_less: bool,
+
+    /// Set when `receiver_hint` is a *type* rather than an expression:
+    /// the call's receiver was a cast (`((Foo) o).m()`, `(o as Foo).M()`,
+    /// `o.(Foo).M()`), a construction (`new Foo().m()`, `Foo().m()`,
+    /// `Foo{A: 1}.M()`), read from the tree by the plugin. The receiver
+    /// is then an instance of that type whatever its spelling: a
+    /// lowercase type name (`&server{}`) is still a type, never a
+    /// variable to fan out by name over. (Type propagation does not set
+    /// it: a value it types keeps the reading it always had.)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub typed_receiver: bool,
+}
+
+/// The two-phase AST pass output for a single file.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct FileFacts {
+    pub file: FileId,
+    pub path: PathBuf,
+    pub language: String,
+    pub definitions: Vec<DefRecord>,
+    pub references: Vec<RefRecord>,
+    /// Import / use / package declarations, serialized as the raw
+    /// source slice with a structural tag. Task 6 consumes these for
+    /// scope-aware resolution.
+    pub imports: Vec<ImportRecord>,
+    /// Local variable type annotations: (var_name, type_name, scope_byte).
+    /// Used by the type propagator to rewrite receiver_hints.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub local_types: Vec<LocalType>,
+    /// Class fields (`StreamOutput* streams` on `Kernel`). The call is
+    /// usually in another file from the declaration, so the propagator
+    /// indexes these across the whole run and walks one `->` / `.` hop.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub field_types: Vec<FieldType>,
+    /// Object-like macros (`#define THEKERNEL Kernel::instance`). The
+    /// replacement is kept as text; the type propagator expands chains
+    /// of such macros and field hops against [`Self::field_types`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub macro_aliases: Vec<MacroAlias>,
+    /// `&Type::method` stored into a table that an indexed `->*` call
+    /// later dispatches through.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub member_ptr_takes: Vec<MemberPtrTake>,
+    /// Names this file makes visible to other modules.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub exports: Vec<ExportRecord>,
+    /// Identifier-shaped literals used for dynamic dispatch.
+    /// Suppression-only; never becomes an edge.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dyn_uses: Vec<DynUse>,
+    /// Callables named where no edge can be drawn (macro arguments,
+    /// attribute strings). Suppression-only; never becomes an edge.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub name_mentions: Vec<NameMention>,
+    /// Statements that control flow cannot reach.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unreachable: Vec<UnreachableRegion>,
+    /// Class-level field declarations: `name = Type(...)`.
+    ///
+    /// Framework-agnostic: the Python plugin records every class-level
+    /// assignment whose RHS is a call, without interpreting what the
+    /// type means.  Framework rules consume these — e.g. Kivy's rule
+    /// uses them to recognise `on_<field>` methods as property observers.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_fields: Vec<ClassFieldDecl>,
+    pub classes: Vec<ClassDecl>,
+    /// C++ declarations this file made that were merged into a body in
+    /// another file, as `(simple_name, qualified_name)`. The prototype is
+    /// gone from `definitions`, but a file that `#include`s this one still
+    /// sees the name — the include closure reads this list too.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unified_decls: Vec<(String, String)>,
+    /// C++ type aliases, `using Rect = TRect<float>;` and `typedef Foo Bar;`,
+    /// as (alias, aliased type as written). A receiver typed `Rect` is a
+    /// `TRect`; without the alias its methods are looked up on a class
+    /// that does not exist.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_aliases: Vec<MacroAlias>,
+    /// C++ receivers the type propagator rewrote, as (site_byte, call
+    /// name, receiver as written). When the typed lookup then finds
+    /// nothing — the class is a template, an alias chain it cannot
+    /// follow, a COM interface, or declared in a header parsed as C —
+    /// the resolver retries with the receiver as written, so typing can
+    /// only add precision, never drop a call 0.8.5 resolved.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub untyped_receivers: Vec<(u32, String, String)>,
+    /// Package / namespace / module names under which this file's code
+    /// is importable by the rest of the tree, as the language's own
+    /// declarations or manifests state them: the Java or Kotlin
+    /// `package`, every C# `namespace` the file declares (nested blocks
+    /// joined), the `module` path of the Go file's enclosing `go.mod`
+    /// (and of every module a local `replace` points into the tree), the
+    /// `name` of the JS/TS file's enclosing `package.json`, the dotted
+    /// module name of a Python file (`pkg.sub.mod`; a package's
+    /// `__init__.py` is `pkg.sub`).
+    ///
+    /// The resolver unions them across the run to tell an import of a
+    /// workspace package from one of an external dependency — a call
+    /// through the latter is never name-matched onto a workspace
+    /// callable — and maps a Python import onto the file it names.
+    /// Empty for C++ (judged from file paths and qualified names).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub packages: Vec<String>,
+    /// Names bound to a *value* — a parameter, a local variable, a
+    /// closure's parameter — over the byte span where the binding is in
+    /// scope (from the declaration to the end of its block or function).
+    /// A bare call through such a name (`cb()`, `debug("x")` after
+    /// `const debug = makeDebug()`) calls whatever value the name holds,
+    /// never a same-named function elsewhere in the tree; a receiver
+    /// headed by one (`c.json()` with a parameter `c`) is not an import
+    /// of that name. Recorded only inside callables; a function the code
+    /// declares by name is a definition, not one of these.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locals: Vec<LocalBinding>,
+    /// Named container types and the span of their body (Zig `const
+    /// Surface = struct { … }`, recorded by path: `Outer.Inner`). A
+    /// language whose qualified names carry no owner places a method in
+    /// its type by span instead. A name bound to `@This()` is recorded
+    /// with the span of the container it names (the whole file at file
+    /// level).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_spans: Vec<TypeSpan>,
+    /// Names whose type is written and whose scope is narrower than any
+    /// callable: a closure's typed parameter (`(Foo x) => …`, `(x: Foo)
+    /// => …`) or a typed pattern (`case x: Foo => …`), each with the span
+    /// it is in scope over. A receiver inside that span named by one is an
+    /// instance of its type, whatever an outer binding of the same name is.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scoped_types: Vec<ScopedType>,
+    /// Closures with untyped parameters passed as a positional argument
+    /// of a bare call (`each((x) => x.run())`, `withTempDir { dir => … }`).
+    /// When every definition of the callee in the tree declares that
+    /// parameter as the same callback type, its parameter types become the
+    /// closure's [`FileFacts::scoped_types`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub closure_args: Vec<ClosureArg>,
+    /// Function-like macros this file defines (C/C++ `#define F(a, b) …`).
+    /// Consumed and cleared by the C-family macro expansion pass before
+    /// resolution (`cgg_lang::plugins::c_macro::expand`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fn_macros: Vec<FnMacro>,
+    /// Call-shaped `NAME(…)` written where items go (file, namespace or
+    /// class scope, C/C++): candidate invocations of a function-like macro
+    /// that may define functions. Consumed and cleared with
+    /// [`Self::fn_macros`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub macro_invocations: Vec<MacroInvocation>,
+}
+
+/// A function-like preprocessor macro (see [`FileFacts::fn_macros`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FnMacro {
+    pub name: String,
+    /// Parameter names in order; a variadic `...` is `__VA_ARGS__`, a
+    /// GNU named variadic `args...` is `args`.
+    pub params: Vec<String>,
+    pub variadic: bool,
+    /// The replacement text, line continuations removed. Kept only when it
+    /// contains a `{` (it could define a function); empty otherwise.
+    pub body: String,
+    pub start_byte: u32,
+}
+
+/// A call-shaped invocation at item position (see
+/// [`FileFacts::macro_invocations`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MacroInvocation {
+    pub name: String,
+    /// The text between the invocation's parentheses.
+    pub args: String,
+    /// From the name's first byte to one past the closing parenthesis.
+    pub start_byte: u32,
+    pub end_byte: u32,
+    pub line: u32,
+    /// The enclosing namespace and class names, outermost first (C++).
+    pub scope: Vec<String>,
+    /// How many of the innermost `scope` entries are classes.
+    pub classes: u32,
+}
+
+/// An untyped closure passed to a bare call (see
+/// [`FileFacts::closure_args`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureArg {
+    /// The called name.
+    pub callee: String,
+    /// Position among the call's positional arguments.
+    pub arg_index: u32,
+    /// The closure's parameter names, in order.
+    pub params: Vec<String>,
+    pub start_byte: u32,
+    pub end_byte: u32,
+}
+
+/// A typed name and the byte span it is in scope over (see
+/// [`FileFacts::scoped_types`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScopedType {
+    pub name: String,
+    /// The declared type, read through [`crate::declared_type`] and
+    /// without type arguments.
+    pub type_name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+}
+
+/// A container type's name and body span (see [`FileFacts::type_spans`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypeSpan {
+    pub name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    /// What declares it, where the language distinguishes (Scala
+    /// `class` / `trait` / `object`, `anon` for `new T { … }`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub kind: String,
+    /// Its supertypes as written (`QueryTest`, `catalyst.SQLHelper`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bases: Vec<String>,
+    /// The package it is declared in (Scala).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub package: String,
+    /// Value declarations of the container, name and value as written
+    /// (Zig `pub const frame = Functions(@This()).frame;`): a member that
+    /// is another name for a function.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub decls: Vec<(String, String)>,
+}
+
+/// A name bound to a value over `start_byte..end_byte` (see
+/// [`FileFacts::locals`]).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LocalBinding {
+    pub name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    /// Where the binding's declaration starts (`const m = require('./m')`
+    /// starts at `m`, its scope after the initializer): an import the
+    /// declaration itself makes lies in `decl_byte..start_byte`.
+    #[serde(default)]
+    pub decl_byte: u32,
+}
+
+/// A class-level `name = Type(...)` assignment.
+///
+/// Extracted generically by the Python plugin (and potentially others);
+/// interpreted by framework rules.  Useful for Kivy (`StringProperty`),
+/// Django (`models.CharField`), SQLAlchemy (`Column`), Pydantic
+/// (`Field`), attrs (`attrib`) — any library that uses descriptors or
+/// metaclass-driven class fields.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ClassFieldDecl {
+    /// Qualified name of the owning class (`module.ClassName`).
+    pub class_qn: String,
+    /// Field name as written (`text`, `name`, `created_at`).
+    pub field_name: String,
+    /// Type / constructor name as written (`StringProperty`, `Column`).
+    pub type_name: String,
+    pub line: u32,
+}
+
+/// A class declaration and the bases it names, recorded for every
+/// class the plugin sees — including one with no methods at all.
+///
+/// Method records carry `base_types` too, but a bodiless class
+/// (`class Middle(Base): pass`) has no method record, so an inheritance
+/// chain seeded from methods alone ends at it and an override two
+/// levels down never links to the base method it overrides.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ClassDecl {
+    /// Qualified name of the class (`module.ClassName`).
+    pub class_qn: String,
+    /// Base types as written, in declaration order.
+    pub base_types: Vec<String>,
+    pub line: u32,
+}
+
+/// A top-level import / use / include descriptor — not yet interpreted.
+///
+/// Task 4 emits the raw path; Task 6's resolvers parse it according to
+/// language-specific rules.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ImportRecord {
+    /// `"use"`, `"import"`, `"from-import"`, `"include"`, `"package"`.
+    pub kind: String,
+    pub path: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub alias: String,
+    pub site_line: u32,
+    pub site_byte: u32,
+}
+
+/// A local variable with a known type (from explicit declaration).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalType {
+    pub var_name: String,
+    pub type_name: String,
+    /// Byte offset of the enclosing scope (function body start).
+    pub scope_byte: u32,
+}
+
+/// A field of a class or struct, recorded so `obj->field->method()` can
+/// be typed from the field's declaration rather than from the call site.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FieldType {
+    /// Bare class name (`Kernel`), matching the owner segment of a method.
+    pub owner: String,
+    pub field: String,
+    /// Bare nominal type (`StreamOutput`), pointers and qualifiers removed.
+    pub type_name: String,
+}
+
+/// An object-like `#define NAME replacement` whose replacement is an
+/// identifier, a qualified name, another such macro, or a field hop
+/// through one (`THEKERNEL->robot`). Function-like macros are callables
+/// instead and are not stored here.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MacroAlias {
+    pub name: String,
+    /// Replacement tokens as written, whitespace-collapsed.
+    pub replacement: String,
+}
+
+/// One address-taken member, with the table it was stored into.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberPtrTake {
+    /// Initializer being filled (`kernel_callback_functions`).
+    pub table: String,
+    /// Class the pointer names (`Module` in `&Module::on_idle`).
+    pub owner: String,
+    pub method: String,
+}
+
+impl FileFacts {
+    pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
+        Self {
+            file,
+            path,
+            language: language.into(),
+            definitions: Vec::new(),
+            references: Vec::new(),
+            imports: Vec::new(),
+            local_types: Vec::new(),
+            field_types: Vec::new(),
+            macro_aliases: Vec::new(),
+            member_ptr_takes: Vec::new(),
+            exports: Vec::new(),
+            dyn_uses: Vec::new(),
+            name_mentions: Vec::new(),
+            unreachable: Vec::new(),
+            class_fields: Vec::new(),
+            classes: Vec::new(),
+            unified_decls: Vec::new(),
+            type_aliases: Vec::new(),
+            untyped_receivers: Vec::new(),
+            packages: Vec::new(),
+            locals: Vec::new(),
+            type_spans: Vec::new(),
+            scoped_types: Vec::new(),
+            closure_args: Vec::new(),
+            fn_macros: Vec::new(),
+            macro_invocations: Vec::new(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.definitions.is_empty()
+            && self.references.is_empty()
+            && self.imports.is_empty()
+    }
+}
+
+/// True when `s` looks like a type name: starts with an uppercase
+/// letter after stripping leading underscores (PEP 8 private classes
+/// like `_MarkerHoverToolTip`).
+///
+/// Shared between the extraction plugin (`starts_uppercase` in
+/// `python.rs`) and the resolver (`looks_like_type` in `dispatch.rs`).
+pub fn looks_like_type_name(s: &str) -> bool {
+    s.trim_start_matches('_')
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_uppercase())
+}
+
+/// The last `::` segment of a C++ type name that is outside every
+/// template argument list: `std::map<std::string, H>` → `map<std::string,
+/// H>`, `Foo<Bar>::Inner` → `Inner`. A plain `rsplit("::")` lands inside
+/// the argument list of the first and reads it as `string, H>`.
+pub fn last_scope_segment(s: &str) -> &str {
+    let mut depth = 0i32;
+    let mut start = 0usize;
+    let bytes = s.as_bytes();
+    let mut i = 0usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'<' => depth += 1,
+            b'>' => depth -= 1,
+            b':' if depth == 0 && bytes.get(i + 1) == Some(&b':') => {
+                start = i + 2;
+                i += 1;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    s[start..].trim()
+}
+
+/// Attribute a plugin puts on one part of a method split across the
+/// parts of a type: a C# `partial` method, declared (bodiless) in one part
+/// and implemented in another. One half is routinely generated (designer
+/// files, source generators) or outside the tree, and calls to an
+/// unimplemented one are compiled away, so the dead-code report treats
+/// it as a contract member (capped at medium), never as corroborated
+/// dead code.
+pub const PARTIAL_DECLARATION: &str = "partial-declaration";
+
+/// Key suffix under which a C/C++ variable or field declared as a class
+/// template records the type its `operator->` reaches: `p#deref` is the
+/// `Kernel` of `std::unique_ptr<Kernel> p`, used only for `p->m()`. The
+/// variable's own type stays under its plain name, so `p.reset()` is never
+/// read as a call on `Kernel`.
+pub const DEREF_SUFFIX: &str = "#deref";
+
+/// The first template argument of a C++ class-template type — `Kernel` of
+/// `std::unique_ptr<Kernel>`, `DisplayList` of `sk_sp<DisplayList>`,
+/// `Widget` of `std::vector<Widget>` — or `None` for a type that is not a
+/// template. It is what `x->m()` reaches when `x` is declared with that
+/// type (only a pointer-like template has an `operator->`), and never the
+/// type of `x` itself.
+///
+/// Shared between the extraction plugin (`cpp.rs`) and the resolver
+/// (`type_hints.rs`).
+pub fn template_pointee(s: &str) -> Option<&str> {
+    first_template_arg(last_scope_segment(s))
+}
+
+/// First template argument of `unique_ptr<Kernel, Deleter>` → `Kernel`.
+///
+/// See [`template_pointee`] for what a caller should read it as.
+pub fn first_template_arg(s: &str) -> Option<&str> {
+    let open = s.find('<')?;
+    let mut depth = 0i32;
+    for (i, ch) in s[open..].char_indices() {
+        match ch {
+            '<' => depth += 1,
+            '>' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(s[open + 1..open + i].trim()).filter(|a| !a.is_empty());
+                }
+            }
+            ',' if depth == 1 => {
+                return Some(s[open + 1..open + i].trim()).filter(|a| !a.is_empty());
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ids::FileId;
+    use std::path::PathBuf;
+
+    #[test]
+    fn the_last_scope_segment_is_read_outside_template_arguments() {
+        assert_eq!(
+            last_scope_segment("std::map<std::string, H>"),
+            "map<std::string, H>"
+        );
+        assert_eq!(last_scope_segment("Foo<Bar>::Inner"), "Inner");
+        assert_eq!(last_scope_segment("Widget"), "Widget");
+        assert_eq!(last_scope_segment("::g::Widget"), "Widget");
+    }
+
+    #[test]
+    fn a_template_pointee_is_its_first_argument() {
+        assert_eq!(template_pointee("std::unique_ptr<Kernel>"), Some("Kernel"));
+        assert_eq!(template_pointee("unique_ptr<Kernel, Del>"), Some("Kernel"));
+        assert_eq!(template_pointee("sk_sp<DisplayList>"), Some("DisplayList"));
+        assert_eq!(
+            template_pointee("Microsoft::WRL::ComPtr<IFoo>"),
+            Some("IFoo")
+        );
+        assert_eq!(
+            template_pointee("std::map<std::string, H>"),
+            Some("std::string")
+        );
+        assert_eq!(template_pointee("Foo<Bar>::Inner"), None);
+        assert_eq!(template_pointee("Kernel"), None);
+    }
+
+    #[test]
+    fn variant_to_callable_kind_mapping() {
+        use CallableKind as K;
+        assert_eq!(DefVariant::FreeFunction.to_callable_kind(), K::Function);
+        assert_eq!(DefVariant::InherentMethod.to_callable_kind(), K::Method);
+        assert_eq!(DefVariant::TraitDefaultMethod.to_callable_kind(), K::Method);
+        assert_eq!(DefVariant::Constructor.to_callable_kind(), K::Constructor);
+        assert_eq!(DefVariant::NamedClosure.to_callable_kind(), K::Closure);
+        assert_eq!(DefVariant::Property.to_callable_kind(), K::Property);
+    }
+
+    #[test]
+    fn facts_round_trip() {
+        let mut f = FileFacts::new(FileId::new(0), PathBuf::from("a.py"), "python");
+        f.definitions.push(DefRecord {
+            simple_name: "foo".into(),
+            qualified_name: "mod.foo".into(),
+            variant: DefVariant::FreeFunction,
+            start_line: 1,
+            end_line: 3,
+            start_byte: 0,
+            end_byte: 20,
+            signature_hint: String::new(),
+            visibility: String::new(),
+            attributes: Vec::new(),
+            ..Default::default()
+        });
+        let s = serde_json::to_string(&f).unwrap();
+        let f2: FileFacts = serde_json::from_str(&s).unwrap();
+        assert_eq!(f, f2);
+    }
+
+    #[test]
+    fn looks_like_type_name_strips_underscores() {
+        assert!(looks_like_type_name("Foo"));
+        assert!(looks_like_type_name("_Foo"));
+        assert!(looks_like_type_name("__Foo"));
+        assert!(looks_like_type_name("_MarkerHoverToolTip"));
+        assert!(!looks_like_type_name("foo"));
+        assert!(!looks_like_type_name("_foo"));
+        assert!(!looks_like_type_name("__init__"));
+        assert!(!looks_like_type_name(""));
+    }
+}

@@ -1,0 +1,14 @@
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/serde-fcf7173dfa039eda.d: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /storage/cgg/target/remediation/wip/WS13/reloc-target/release/build/serde-89e24ad759b3647e/out/private.rs
+
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/libserde-fcf7173dfa039eda.rlib: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /storage/cgg/target/remediation/wip/WS13/reloc-target/release/build/serde-89e24ad759b3647e/out/private.rs
+
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/deps/libserde-fcf7173dfa039eda.rmeta: /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /storage/cgg/target/remediation/wip/WS13/reloc-target/release/build/serde-89e24ad759b3647e/out/private.rs
+
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/garrettgalloway/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/storage/cgg/target/remediation/wip/WS13/reloc-target/release/build/serde-89e24ad759b3647e/out/private.rs:
+
+# env-dep:OUT_DIR=/storage/cgg/target/remediation/wip/WS13/reloc-target/release/build/serde-89e24ad759b3647e/out

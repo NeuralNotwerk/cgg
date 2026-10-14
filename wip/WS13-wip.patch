@@ -1,8 +1,24 @@
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
-index 842aeef..de92a28 100644
+index 842aeef..49517a3 100644
 --- a/crates/cgg-core/src/facts.rs
 +++ b/crates/cgg-core/src/facts.rs
-@@ -469,6 +469,10 @@ pub struct FileFacts {
+@@ -451,6 +451,15 @@ pub struct RefRecord {
+     /// it: a value it types keeps the reading it always had.)
+     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+     pub typed_receiver: bool,
++
++    /// The type of the call's single argument, where its syntax states it
++    /// (a literal, `format!`, a `.to_string()` call): `&str`, `String`,
++    /// `char`, `u8`. A Rust type implementing one generic trait several
++    /// times (`impl From<&str> for T`, `impl From<u8> for T`) is called
++    /// through whichever impl the argument's type selects; this picks it.
++    /// `None` when unknown. Only the Rust plugin sets it.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub arg_type: Option<String>,
+ }
+ 
+ /// The two-phase AST pass output for a single file.
+@@ -469,6 +478,10 @@ pub struct FileFacts {
      /// Used by the type propagator to rewrite receiver_hints.
      #[serde(default, skip_serializing_if = "Vec::is_empty")]
      pub local_types: Vec<LocalType>,
@@ -13,7 +29,7 @@ index 842aeef..de92a28 100644
      /// Class fields (`StreamOutput* streams` on `Kernel`). The call is
      /// usually in another file from the declaration, so the propagator
      /// indexes these across the whole run and walks one `->` / `.` hop.
-@@ -741,6 +745,22 @@ pub struct LocalType {
+@@ -741,6 +754,22 @@ pub struct LocalType {
      pub scope_byte: u32,
  }
  
@@ -36,7 +52,7 @@ index 842aeef..de92a28 100644
  /// A field of a class or struct, recorded so `obj->field->method()` can
  /// be typed from the field's declaration rather than from the call site.
  #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-@@ -783,6 +803,7 @@ impl FileFacts {
+@@ -783,6 +812,7 @@ impl FileFacts {
              references: Vec::new(),
              imports: Vec::new(),
              local_types: Vec::new(),
@@ -44,24 +60,298 @@ index 842aeef..de92a28 100644
              field_types: Vec::new(),
              macro_aliases: Vec::new(),
              member_ptr_takes: Vec::new(),
+diff --git a/crates/cgg-core/src/frameworks/rules.rs b/crates/cgg-core/src/frameworks/rules.rs
+index 30f913b..061e2a6 100644
+--- a/crates/cgg-core/src/frameworks/rules.rs
++++ b/crates/cgg-core/src/frameworks/rules.rs
+@@ -73,6 +73,20 @@ const HTTP_VERBS: &[&str] = &[
+     "get", "post", "put", "delete", "patch", "head", "options", "trace", "connect",
+ ];
+ 
++/// Web-framework traits whose method the framework calls on a handler's
++/// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
++pub const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
++
++/// Generic wrappers that convert themselves (`Json<T>` serializes `T`; it
++/// never calls `T`'s own conversion) or that are not responses at all.
++/// A type named only inside one of these is not handed to the framework.
++/// The web-framework response bodies are listed with the std containers
++/// that are never responses either.
++pub const SELF_CONVERTING_WRAPPERS: &[&str] = &[
++    "Json", "Html", "Form", "Xml", "Sse", "Protobuf", "Msgpack", "Cbor", "Vec",
++    "HashMap", "BTreeMap", "HashSet", "Box", "Arc", "Rc", "Cow",
++];
++
+ pub const SPECS: &[RuleSpec] = &[
+     // ---------------------------------------------------------------
+     // Python
 diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
-index df42079..4a33930 100644
+index df42079..d5995fb 100644
 --- a/crates/cgg-core/src/lib.rs
 +++ b/crates/cgg-core/src/lib.rs
-@@ -51,7 +51,7 @@ pub use external::{
+@@ -49,12 +49,12 @@ pub use external::{
+     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
+ };
  pub use facts::{
-     ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord,
-     DefVariant, DynUse, ExportRecord, FieldType, FileFacts, FnMacro, ImportRecord,
+-    ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord,
+-    DefVariant, DynUse, ExportRecord, FieldType, FileFacts, FnMacro, ImportRecord,
 -    LocalBinding, LocalType, MacroAlias, MacroInvocation, MemberPtrTake, NameMention,
-+    AssocCallLocal, LocalBinding, LocalType, MacroAlias, MacroInvocation, MemberPtrTake, NameMention,
-     PARTIAL_DECLARATION, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
-     UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
-     looks_like_type_name, template_pointee,
+-    PARTIAL_DECLARATION, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
+-    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
+-    looks_like_type_name, template_pointee,
++    AssocCallLocal, ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX,
++    DYN_MODULE_LOADERS, DefRecord, DefVariant, DynUse, ExportRecord, FieldType,
++    FileFacts, FnMacro, ImportRecord, LocalBinding, LocalType, MacroAlias,
++    MacroInvocation, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
++    STRING_REF_HINT, ScopedType, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT,
++    Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+ };
+ pub use frameworks::{
+     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+diff --git a/crates/cgg-core/src/rust_types.rs b/crates/cgg-core/src/rust_types.rs
+index b3334d6..9d2dd39 100644
+--- a/crates/cgg-core/src/rust_types.rs
++++ b/crates/cgg-core/src/rust_types.rs
+@@ -59,6 +59,46 @@ const NOT_DEREF_TO_ARG: &[&str] = &[
+     "Duration",
+ ];
+ 
++/// Smart pointers and locks whose contents a method call reaches —
++/// through `Deref`, or through the guard `lock()`/`read()`/`borrow()`
++/// hands back. A parameter typed as one of these is, for resolving its
++/// methods, the type inside. All std except `ArcSwap`, which is a library
++/// type (the `arc-swap` crate) listed for the same reason.
++pub const SMART_POINTERS_AND_LOCKS: &[&str] = &[
++    "Arc", "Rc", "Box", "Pin", "Mutex", "RwLock", "RefCell", "Cell", "ArcSwap",
++];
++
++/// Wrappers a value is constructed through (`Arc::new(Inner::new())`)
++/// that forward every method call to their contents via `Deref` or a
++/// guard, so a local built through one is typed as the contents.
++pub const DEREF_TRANSPARENT_WRAPPERS: &[&str] = &[
++    "Arc", "Rc", "Box", "RefCell", "Cell", "Mutex", "RwLock", "Pin", "Cow",
++];
++
++/// The wrappers a `self.<field>` type is seen through: those whose
++/// contents a direct method call reaches. `Option`/`Vec` are absent on
++/// purpose — `self.opt.m()` is the container's own method or an
++/// extension trait implemented for the container.
++pub const FIELD_WRAPPERS: &[&str] = &["Arc", "Rc", "Box", "RefCell", "Mutex", "RwLock"];
++
++/// Wrappers whose guard (`lock()`/`write()`/`borrow()`) dereferences to
++/// the contents.
++pub const LOCK_WRAPPERS: &[&str] = &["Mutex", "RwLock", "RefCell"];
++
++/// Single-argument wrappers a function's declared return type is seen
++/// through when asking which type the call produces: `Option<T>`,
++/// pointers and locks around `T`. Any type named `…Result` (`Result`,
++/// `io::Result`, `anyhow::Result`) is one too, see [`is_return_wrapper`].
++pub const RETURN_WRAPPERS: &[&str] = &[
++    "Option", "Box", "Arc", "Rc", "Pin", "Cow", "Mutex", "RwLock",
++];
++
++/// Whether `name` (a bare type name) wraps the type a function returns:
++/// one of [`RETURN_WRAPPERS`] or a `Result` alias.
++pub fn is_return_wrapper(name: &str) -> bool {
++    name.ends_with("Result") || RETURN_WRAPPERS.contains(&name)
++}
++
+ /// `Outer<Inner>` -> `(Outer, Inner)` when the hint has exactly one plain
+ /// type argument (a path whose last segment is capitalised, no lifetimes,
+ /// no nested generics) and `Outer` is not in [`NOT_DEREF_TO_ARG`]. `Outer`
+diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
+index a198741..9ccdd93 100644
+--- a/crates/cgg-lang/src/plugins/clojure.rs
++++ b/crates/cgg-lang/src/plugins/clojure.rs
+@@ -333,6 +333,7 @@ impl<'a> ClojureWalker<'a> {
+                         continue;
+                     }
+                     out.push(RefRecord {
++                        arg_type: None,
+                         from_macro_arg: false,
+                         path_receiver: false,
+                         dot_call: false,
+@@ -367,6 +368,7 @@ impl<'a> ClojureWalker<'a> {
+                     }
+                     named_target = true;
+                     out.push(RefRecord {
++                        arg_type: None,
+                         from_macro_arg: false,
+                         path_receiver: false,
+                         dot_call: false,
+@@ -443,6 +445,7 @@ impl<'a> ClojureWalker<'a> {
+             ..Default::default()
+         });
+         out.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
+index 7a382a8..42245ab 100644
+--- a/crates/cgg-lang/src/plugins/elixir.rs
++++ b/crates/cgg-lang/src/plugins/elixir.rs
+@@ -602,6 +602,7 @@ impl<'a> ElixirWalker<'a> {
+         route: &str,
+     ) {
+         self.facts.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
+index 89f13d5..63b7302 100644
+--- a/crates/cgg-lang/src/plugins/javascript.rs
++++ b/crates/cgg-lang/src/plugins/javascript.rs
+@@ -1313,6 +1313,7 @@ impl<'a> JsWalker<'a> {
+                 ..Default::default()
+             });
+             self.facts.references.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
+index cb38647..af91e64 100644
+--- a/crates/cgg-lang/src/plugins/perl.rs
++++ b/crates/cgg-lang/src/plugins/perl.rs
+@@ -547,6 +547,7 @@ impl<'a> PerlWalker<'a> {
+                     continue;
+                 }
+                 out.push(RefRecord {
++                    arg_type: None,
+                     from_macro_arg: false,
+                     path_receiver: false,
+                     dot_call: false,
+@@ -572,6 +573,7 @@ impl<'a> PerlWalker<'a> {
+ 
+             if let Some(name) = self.value_ref_name(*arg, i, &items) {
+                 out.push(RefRecord {
++                    arg_type: None,
+                     from_macro_arg: false,
+                     path_receiver: false,
+                     dot_call: false,
+@@ -665,6 +667,7 @@ impl<'a> PerlWalker<'a> {
+                 ..Default::default()
+             });
+             self.facts.references.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
+index 4d17274..01403f1 100644
+--- a/crates/cgg-lang/src/plugins/registrar.rs
++++ b/crates/cgg-lang/src/plugins/registrar.rs
+@@ -465,6 +465,7 @@ pub(crate) fn capture(
+                 continue;
+             }
+             out.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+@@ -630,6 +631,7 @@ fn collect_value_refs(
+         // `[C::class, 'method']` is one target, not two loose names.
+         if let Some((owner, method)) = class_method_pair(arg, source) {
+             out.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+@@ -656,6 +658,7 @@ fn collect_value_refs(
+         for child in arg.named_children(&mut cursor) {
+             if let Some(s) = string_within(child, source) {
+                 out.push(RefRecord {
++                    arg_type: None,
+                     from_macro_arg: false,
+                     path_receiver: false,
+                     dot_call: false,
+@@ -704,6 +707,7 @@ fn collect_value_refs(
+             }
+             if let Some(s) = string_within(child, source) {
+                 out.push(RefRecord {
++                    arg_type: None,
+                     from_macro_arg: false,
+                     path_receiver: false,
+                     dot_call: false,
+@@ -778,6 +782,7 @@ fn collect_value_refs(
+         }
+         if out.len() == before {
+             out.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+@@ -815,6 +820,7 @@ fn collect_value_refs(
+                 && let Some(owner) = qualifier_of(&callee)
+             {
+                 out.push(RefRecord {
++                    arg_type: None,
+                     from_macro_arg: false,
+                     path_receiver: false,
+                     dot_call: false,
+@@ -862,6 +868,7 @@ fn collect_value_refs(
+         return;
+     }
+     out.push(RefRecord {
++        arg_type: None,
+         from_macro_arg: false,
+         path_receiver: false,
+         dot_call: false,
+diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
+index b5cfef7..ca7fe28 100644
+--- a/crates/cgg-lang/src/plugins/ruby.rs
++++ b/crates/cgg-lang/src/plugins/ruby.rs
+@@ -451,6 +451,7 @@ impl<'a> RubyWalker<'a> {
+                 ..Default::default()
+             });
+             self.facts.references.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
 diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
-index c5eb807..ca4cb72 100644
+index c5eb807..0e98275 100644
 --- a/crates/cgg-lang/src/plugins/rust.rs
 +++ b/crates/cgg-lang/src/plugins/rust.rs
-@@ -877,20 +877,24 @@ impl<'a> Walker<'a> {
+@@ -622,6 +622,9 @@ impl<'a> Walker<'a> {
+                 if self.expand_item_macro(node) {
+                     return;
+                 }
++                if is_item_position(node) {
++                    self.mentions_from_item_macro(node);
++                }
+                 self.refs_from_token_tree(node);
+                 self.walk_children(node);
+                 return;
+@@ -747,12 +750,20 @@ impl<'a> Walker<'a> {
+         // token here means "inherited", not "private" — reporting a
+         // method of a `pub trait` as private would tell a dead-code
+         // reader that no out-of-tree caller can exist, which for a
+-        // library crate's own API is false. cgg does not compute the
+-        // inherited value, so it says `Unknown` and claims nothing.
++        // library crate's own API is false. A declaration inside a
++        // `pub trait` is public — the trait is the enclosing node, so that
++        // much is read; a restricted or private trait, and every impl
++        // side (whose trait may be declared anywhere), stay `Unknown` and
++        // claim nothing.
+         let vis = match self.scope.last() {
+-            Some(ScopeSegment::Trait(_) | ScopeSegment::TraitImpl(_))
+-                if visibility.is_empty() =>
+-            {
++            Some(ScopeSegment::Trait(_)) if visibility.is_empty() => {
++                if self.enclosing_trait_is_pub(node) {
++                    cgg_core::Vis::Public
++                } else {
++                    cgg_core::Vis::Unknown
++                }
++            }
++            Some(ScopeSegment::TraitImpl(_)) if visibility.is_empty() => {
+                 cgg_core::Vis::Unknown
+             }
+             _ => rust_vis(&visibility),
+@@ -877,20 +888,24 @@ impl<'a> Walker<'a> {
                          && is_deref_transparent_wrapper(wrapper_name)
                      {
                          let locked = is_lock_wrapper(wrapper_name);
@@ -90,7 +380,7 @@ index c5eb807..ca4cb72 100644
                              });
                          }
                          // <inner> isn't a `Type::assoc_fn()` call we can read.
-@@ -915,6 +919,13 @@ impl<'a> Walker<'a> {
+@@ -915,6 +930,17 @@ impl<'a> Walker<'a> {
                          }
                          return;
                      }
@@ -99,27 +389,36 @@ index c5eb807..ca4cb72 100644
 +                    // checked, as before. The resolver confirms a plain
 +                    // path call against `f`'s declared return type.
 +                    if func.kind() == "scoped_identifier" {
-+                        self.push_assoc_local(&var_name, node.start_byte() as u32, assoc_fn);
++                        self.push_assoc_local(
++                            &var_name,
++                            node.start_byte() as u32,
++                            assoc_fn,
++                        );
 +                    }
                      self.facts.local_types.push(cgg_core::LocalType {
                          var_name,
                          type_name: type_part.to_string(),
-@@ -994,7 +1005,7 @@ impl<'a> Walker<'a> {
+@@ -994,7 +1020,11 @@ impl<'a> Walker<'a> {
      /// match it in full rather than by bare owner name.
      /// The bool is whether a lock (`Mutex`/`RwLock`/`RefCell`) was among
      /// the wrappers seen through.
 -    fn inner_wrapped_type(&self, call: Node, depth: u8) -> Option<(String, bool)> {
-+    fn inner_wrapped_type(&self, call: Node, depth: u8) -> Option<(String, bool, String)> {
++    fn inner_wrapped_type(
++        &self,
++        call: Node,
++        depth: u8,
++    ) -> Option<(String, bool, String)> {
          let args = call.child_by_field_name("arguments")?;
          let mut cursor = args.walk();
          let first_arg = args.named_children(&mut cursor).next()?;
-@@ -1013,9 +1024,29 @@ impl<'a> Walker<'a> {
+@@ -1013,9 +1043,29 @@ impl<'a> Walker<'a> {
              }
              return self
                  .inner_wrapped_type(inner, depth - 1)
 -                .map(|(t, locked)| (t, locked || is_lock_wrapper(&last)));
 +                .map(|(t, locked, f)| (t, locked || is_lock_wrapper(&last), f));
-+        }
+         }
+-        Some((type_part, false))
 +        // Only a plain path call names an associated function whose
 +        // return type can be checked; a chain's last method is not `f`.
 +        let assoc_fn = if func.kind() == "scoped_identifier" {
@@ -135,8 +434,7 @@ index c5eb807..ca4cb72 100644
 +    fn push_assoc_local(&mut self, var_name: &str, scope_byte: u32, assoc_fn: &str) {
 +        if assoc_fn.is_empty() {
 +            return;
-         }
--        Some((type_part, false))
++        }
 +        self.facts.assoc_call_locals.push(cgg_core::AssocCallLocal {
 +            var_name: var_name.to_string(),
 +            scope_byte,
@@ -145,7 +443,23 @@ index c5eb807..ca4cb72 100644
      }
  
      /// `call` is `W::clone(<arg>)`; read `<arg>`'s bare identifier name, so
-@@ -1535,6 +1566,10 @@ impl<'a> Walker<'a> {
+@@ -1427,14 +1477,7 @@ impl<'a> Walker<'a> {
+         if self.expanding || self.macros.is_empty() {
+             return false;
+         }
+-        let at_item = |n: Node| matches!(n.kind(), "source_file" | "declaration_list");
+-        let Some(parent) = node.parent() else {
+-            return false;
+-        };
+-        let item_position = at_item(parent)
+-            || (parent.kind() == "expression_statement"
+-                && parent.parent().is_some_and(at_item));
+-        if !item_position {
++        if !is_item_position(node) {
+             return false;
+         }
+         let Some(name_node) = node.child_by_field_name("macro") else {
+@@ -1535,12 +1578,84 @@ impl<'a> Walker<'a> {
              lt.scope_byte = remap(lt.scope_byte);
              self.facts.local_types.push(lt);
          }
@@ -156,11 +470,501 @@ index c5eb807..ca4cb72 100644
          for (k, v) in sub_fields {
              self.struct_fields.entry(k).or_insert(v);
          }
+         true
+     }
+ 
++    /// Whether the `trait_item` declaring `node` (a trait member) is
++    /// declared plain `pub` — not `pub(crate)` or another restriction.
++    fn enclosing_trait_is_pub(&self, node: Node) -> bool {
++        let Some(tr) = node
++            .parent()
++            .and_then(|p| p.parent())
++            .filter(|t| t.kind() == "trait_item")
++        else {
++            return false;
++        };
++        tr.children(&mut tr.walk())
++            .find(|c| c.kind() == "visibility_modifier")
++            .is_some_and(|v| self.text(v).trim() == "pub")
++    }
++
++    /// Names an item-position macro invocation passes in its arguments,
++    /// recorded as mentions (never edges). Outside any function there are
++    /// no local variables, so a lowercase identifier there names an item:
++    /// `make_error! { Io(IoErr): has_source, api_error }` hands
++    /// `has_source` and `api_error` to the macro, which calls them from
++    /// code cgg does not expand (a repetition arm, or a macro defined in
++    /// another crate). A name followed by an argument list is a call, and
++    /// [`Self::refs_from_token_tree`] records it as one.
++    fn mentions_from_item_macro(&mut self, node: Node) {
++        let Some(tt) = node
++            .children(&mut node.walk())
++            .find(|c| c.kind() == "token_tree")
++        else {
++            return;
++        };
++        let mut stack = vec![tt];
++        while let Some(n) = stack.pop() {
++            let kids: Vec<Node> = n.children(&mut n.walk()).collect();
++            for (i, k) in kids.iter().enumerate() {
++                if k.kind() == "token_tree" {
++                    stack.push(*k);
++                    continue;
++                }
++                if k.kind() != "identifier" {
++                    continue;
++                }
++                let prev = i.checked_sub(1).map(|j| kids[j].kind());
++                let next = kids.get(i + 1);
++                // A field (`x.y`), a macro variable (`$x`), a macro call
++                // (`m!`) or a call (`f(..)`) is not a bare name.
++                if matches!(prev, Some("." | "$"))
++                    || next.is_some_and(|nx| {
++                        nx.kind() == "!"
++                            || (nx.kind() == "token_tree"
++                                && self.text(*nx).starts_with('('))
++                    })
++                {
++                    continue;
++                }
++                let name = self.text(*k);
++                if name.starts_with(|c: char| c.is_lowercase() || c == '_') && name != "_"
++                {
++                    self.facts.name_mentions.push(cgg_core::NameMention {
++                        name: name.to_string(),
++                        via: "macro-arg".into(),
++                        site_line: k.start_position().row as u32 + 1,
++                        site_byte: k.start_byte() as u32,
++                    });
++                }
++            }
++        }
++    }
++
+     fn ref_from_macro_invocation(&self, node: Node) -> Option<RefRecord> {
+         // macro_invocation: first child is the macro name (identifier or scoped_identifier)
+         let macro_node = node
+@@ -1750,16 +1865,90 @@ impl<'a> Walker<'a> {
+             return None;
+         }
+         let start_line = (node.start_position().row as u32) + 1;
++        let arg_type = node
++            .child_by_field_name("arguments")
++            .and_then(|args| {
++                let mut cur = args.walk();
++                let mut it = args.named_children(&mut cur).filter(|c| {
++                    c.kind() != "line_comment" && c.kind() != "block_comment"
++                });
++                let only = it.next()?;
++                it.next().is_none().then_some(only)
++            })
++            .and_then(|arg| self.literal_arg_type(arg));
+         Some(RefRecord {
+             name,
+             path_receiver: path_receiver && !receiver_hint.is_empty(),
+             receiver_hint,
+             site_line: start_line,
+             site_byte: node.start_byte() as u32,
++            arg_type,
+             ..Default::default()
+         })
+     }
+ 
++    /// The type an argument expression's own syntax states, for
++    /// [`RefRecord::arg_type`]: a literal, a `format!`, a `.to_string()`.
++    /// `None` for anything whose type needs inference.
++    fn literal_arg_type(&self, arg: Node) -> Option<String> {
++        let text = self.text(arg);
++        let ty = match arg.kind() {
++            "string_literal" | "raw_string_literal" => {
++                if text.starts_with('b') {
++                    "&[u8]"
++                } else if text.starts_with('c') {
++                    return None;
++                } else {
++                    "&str"
++                }
++            }
++            "char_literal" => {
++                if text.starts_with('b') {
++                    "u8"
++                } else {
++                    "char"
++                }
++            }
++            "boolean_literal" => "bool",
++            "integer_literal" | "float_literal" => {
++                // Only a suffixed literal (`1u8`, `2.0f32`) states its type.
++                const SUFFIXES: &[&str] = &[
++                    "u8", "u16", "u32", "u64", "u128", "usize", "i8", "i16", "i32",
++                    "i64", "i128", "isize", "f32", "f64",
++                ];
++                return SUFFIXES
++                    .iter()
++                    .find(|s| text.ends_with(*s) && !text.starts_with("0x"))
++                    .map(|s| s.to_string());
++            }
++            "macro_invocation" => {
++                let name = arg
++                    .child_by_field_name("macro")
++                    .map(|m| self.text(m))
++                    .unwrap_or("");
++                match name {
++                    "format" | "std::format" | "alloc::format" => "String",
++                    _ => return None,
++                }
++            }
++            "call_expression" => {
++                let f = arg.child_by_field_name("function")?;
++                let method = if f.kind() == "field_expression" {
++                    f.child_by_field_name("field").map(|n| self.text(n))
++                } else {
++                    None
++                };
++                match method {
++                    // `ToString::to_string` always produces a `String`.
++                    Some("to_string") => "String",
++                    _ => return None,
++                }
++            }
++            _ => return None,
++        };
++        Some(ty.to_string())
++    }
++
+     /// Serde attribute keys whose string value is a path to a function
+     /// serde calls — the allowlist the serde rule's own gap text names.
+     /// Everything else in an attribute string (`rename`, `alias`, doc
+@@ -1903,6 +2092,7 @@ impl<'a> Walker<'a> {
+             // would win, which on axum was the context-less one — every
+             // real route lost its path.
+             self.facts.references.push(RefRecord {
++                arg_type: None,
+                 from_macro_arg: false,
+                 path_receiver: false,
+                 dot_call: false,
+@@ -2087,7 +2277,7 @@ fn simplify_rust_type(raw: &str) -> String {
+         let Some(open) = s.find('<') else { break };
+         let head = &s[..open];
+         let head = head.rsplit("::").next().unwrap_or(head);
+-        if !["Arc", "Rc", "Box", "RefCell", "Mutex", "RwLock"].contains(&head) {
++        if !cgg_core::rust_types::FIELD_WRAPPERS.contains(&head) {
+             break;
+         }
+         let Some(end) = matching_angle(&s[open + 1..]) else {
+@@ -2436,15 +2626,23 @@ fn ctor_type_of(text: &str) -> Option<(String, String, String)> {
+ /// it cannot collide with a real local.
+ pub(crate) const GUARD_SUFFIX: &str = "#guard";
+ 
++/// Whether a `macro_invocation` sits where items go: at file or module
++/// level, or in an `impl`/`trait` body — outside any function.
++fn is_item_position(node: Node) -> bool {
++    let at_item = |n: Node| matches!(n.kind(), "source_file" | "declaration_list");
++    node.parent().is_some_and(|parent| {
++        at_item(parent)
++            || (parent.kind() == "expression_statement"
++                && parent.parent().is_some_and(at_item))
++    })
++}
++
+ fn is_lock_wrapper(name: &str) -> bool {
+-    matches!(name, "Mutex" | "RwLock" | "RefCell")
++    cgg_core::rust_types::LOCK_WRAPPERS.contains(&name)
+ }
+ 
+ fn is_deref_transparent_wrapper(name: &str) -> bool {
+-    matches!(
+-        name,
+-        "Arc" | "Rc" | "Box" | "RefCell" | "Cell" | "Mutex" | "RwLock" | "Pin" | "Cow"
+-    )
++    cgg_core::rust_types::DEREF_TRANSPARENT_WRAPPERS.contains(&name)
+ }
+ 
+ /// The byte range of the nearest enclosing function/closure body around
+@@ -3147,6 +3345,8 @@ impl R for S { fn r(&self) {} }
+     fn trait_items_inherit_visibility_rather_than_claiming_private() {
+         let src = r#"
+ pub trait R { fn decl(&self); fn dflt(&self) {} }
++pub(crate) trait Q { fn restricted(&self); }
++trait P { fn hidden(&self); }
+ struct S;
+ impl R for S { fn decl(&self) {} }
+ impl S { fn inherent(&self) {} pub fn exported(&self) {} }
+@@ -3160,12 +3360,19 @@ fn free() {}
+                 .unwrap_or_else(|| panic!("no def named {simple}"))
+                 .vis
+         };
+-        // A method of a `pub trait` is callable from outside the crate,
+-        // so claiming `Private` would let a dead-code report assert no
+-        // out-of-tree caller can exist. cgg does not resolve the
+-        // inherited value, so it claims nothing.
+-        assert_eq!(vis_of("decl"), cgg_core::Vis::Unknown);
+-        assert_eq!(vis_of("dflt"), cgg_core::Vis::Unknown);
++        // A method of a `pub trait` is callable from outside the crate:
++        // it is as public as its trait, which encloses it.
++        assert_eq!(
++            f.definitions
++                .iter()
++                .find(|d| d.qualified_name.ends_with("R::decl"))
++                .map(|d| d.vis),
++            Some(cgg_core::Vis::Public)
++        );
++        assert_eq!(vis_of("dflt"), cgg_core::Vis::Public);
++        // A restricted or private trait claims nothing.
++        assert_eq!(vis_of("restricted"), cgg_core::Vis::Unknown);
++        assert_eq!(vis_of("hidden"), cgg_core::Vis::Unknown);
+         // Same for the implementing side, where the trait may not even
+         // be declared in this file.
+         assert!(
+@@ -3180,6 +3387,105 @@ fn free() {}
+         assert_eq!(vis_of("free"), cgg_core::Vis::Private);
+     }
+ 
++    /// WS13: a `let` typed from a plain `Type::f(..)` path call records
++    /// `f` for the resolver to check; a chain after it or a
++    /// method-call form does not.
++    #[test]
++    fn path_call_locals_record_the_associated_function() {
++        let src = r#"
++fn run() {
++    let a = Loader::load("x");
++    let b = Arc::new(Store::open(p));
++    let c = Loader::new().with(1);
++    let d = Loader { x: 1 };
++}
++"#;
++        let f = extract(src);
++        let rec = |v: &str| {
++            f.assoc_call_locals
++                .iter()
++                .find(|a| a.var_name == v)
++                .map(|a| a.assoc_fn.as_str())
++        };
++        assert_eq!(rec("a"), Some("load"));
++        assert_eq!(rec("b"), Some("open"));
++        assert_eq!(rec("c"), None);
++        assert_eq!(rec("d"), None);
++        // Every record names a local type at the same scope.
++        for a in &f.assoc_call_locals {
++            assert!(
++                f.local_types
++                    .iter()
++                    .any(|lt| lt.var_name == a.var_name && lt.scope_byte == a.scope_byte)
++            );
++        }
++    }
++
++    /// WS13: a single argument whose syntax states its type is recorded;
++    /// anything needing inference is not.
++    #[test]
++    fn literal_argument_types_are_recorded() {
++        let src = r#"
++fn run(s: String) {
++    Bytes::from("abc");
++    Bytes::from(b"abc");
++    Bytes::from('c');
++    Bytes::from(7u8);
++    Bytes::from(7);
++    Bytes::from(format!("{}", 1));
++    Bytes::from(s.to_string());
++    Bytes::from(s);
++    Bytes::from("a", "b");
++}
++"#;
++        let f = extract(src);
++        let tys: Vec<Option<&str>> = f
++            .references
++            .iter()
++            .filter(|r| r.name == "from")
++            .map(|r| r.arg_type.as_deref())
++            .collect();
++        assert_eq!(
++            tys,
++            vec![
++                Some("&str"),
++                Some("&[u8]"),
++                Some("char"),
++                Some("u8"),
++                None,
++                Some("String"),
++                Some("String"),
++                None,
++                None
++            ]
++        );
++    }
++
++    /// WS13: names an item-position macro invocation passes (a macro whose
++    /// arms cgg cannot expand) are mentions; calls stay calls, and a
++    /// macro invoked inside a function records no mention.
++    #[test]
++    fn item_position_macro_arguments_are_mentions() {
++        let src = r#"
++macro_rules! table { ( $( $n:ident : $f:expr ),+ ) => {}; }
++fn has_source() {}
++table! { one: has_source, two: helper(), Three: Upper }
++fn body() { table! { x: local_only } }
++"#;
++        let f = extract(src);
++        let mentioned: Vec<&str> = f
++            .name_mentions
++            .iter()
++            .filter(|m| m.via == "macro-arg")
++            .map(|m| m.name.as_str())
++            .collect();
++        assert!(mentioned.contains(&"has_source"), "{mentioned:?}");
++        assert!(mentioned.contains(&"one"), "{mentioned:?}");
++        assert!(!mentioned.contains(&"helper"), "{mentioned:?}");
++        assert!(!mentioned.contains(&"Upper"), "{mentioned:?}");
++        assert!(!mentioned.contains(&"local_only"), "{mentioned:?}");
++    }
++
+     #[test]
+     fn mod_prefix() {
+         let f = extract("mod a { mod b { fn c() {} } }");
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index e25e48e..9b7d5cf 100644
+index e25e48e..15b09af 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
-@@ -5314,6 +5314,13 @@ fn try_resolve_ref(
+@@ -4262,6 +4262,137 @@ fn narrow_specializations(
+     Some(cids.to_vec())
+ }
+ 
++/// The `<Owner as Trait<Args>>` parts of a Rust trait-impl callable's
++/// qualified name: (owner, trait path without arguments, arguments as
++/// written). `None` for anything else.
++fn rust_impl_parts(qn: &str) -> Option<(String, String, String)> {
++    let (prefix, _) = crate::names::split_last_segment(qn)?;
++    let (_, wrapper) = crate::names::split_last_segment(prefix)?;
++    let inner = wrapper.trim().strip_prefix('<')?.strip_suffix('>')?;
++    let (owner, tr) = inner.split_once(" as ")?;
++    let (path, args) = match tr.find('<') {
++        Some(i) => (&tr[..i], tr[i..].trim()),
++        None => (tr, ""),
++    };
++    let compact = |t: &str| t.split_whitespace().collect::<String>();
++    Some((compact(owner), compact(path), args.to_string()))
++}
++
++/// A trait argument list as written (`<&'static str>`) compared with a
++/// call's [`cgg_core::RefRecord::arg_type`] (`&str`): lifetimes and
++/// whitespace ignored; a sized byte array matches a byte-slice literal.
++fn trait_arg_matches(args: &str, arg_type: &str) -> bool {
++    let Some(inner) = args.strip_prefix('<').and_then(|a| a.strip_suffix('>')) else {
++        return false;
++    };
++    let mut t = String::with_capacity(inner.len());
++    let mut chars = inner.chars().peekable();
++    while let Some(c) = chars.next() {
++        if c == '\'' {
++            // A lifetime: skip its name.
++            while chars
++                .peek()
++                .is_some_and(|n| n.is_alphanumeric() || *n == '_')
++            {
++                chars.next();
++            }
++            continue;
++        }
++        if !c.is_whitespace() {
++            t.push(c);
++        }
++    }
++    let t = t.replace("&mut", "&");
++    if t == arg_type {
++        return true;
++    }
++    arg_type == "&[u8]" && t.starts_with("&[u8;")
++}
++
++/// Narrow a Rust typed lookup that landed on several implementations of
++/// one generic trait for one type — `<Bytes as From<&str>>::from`,
++/// `<Bytes as From<u8>>::from`, … — which are not alternatives the
++/// receiver leaves open but overloads its argument selects.
++///
++/// * The call's argument type ([`cgg_core::RefRecord::arg_type`]) picks
++///   the one implementation it names, when exactly one does.
++/// * Otherwise more implementations than `--fanout-cap` are not drawn as
++///   edges to all of them (all but one are wrong): a workspace trait with
++///   exactly one declaration in the graph binds to that declaration —
++///   the dispatch surface, as `homogeneous_trait_declaration` does for a
++///   duck-typed receiver — and anything else (a std trait such as
++///   `From`, with no declaration node) is refused as
++///   `fanout-cap-exceeded`, the count recorded.
++/// * Within the cap, or for any other candidate set, nothing changes.
++fn narrow_trait_overloads(
++    graph: &Graph,
++    cids: &[CallableId],
++    r: &cgg_core::RefRecord,
++    fanout_cap: usize,
++    capped: &mut u32,
++    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
++) -> Option<Vec<CallableId>> {
++    if cids.len() < 2 {
++        return Some(cids.to_vec());
++    }
++    let mut parts: Vec<(CallableId, String)> = Vec::with_capacity(cids.len());
++    let mut group: Option<(String, String)> = None;
++    for c in cids {
++        let Some((owner, path, args)) = graph
++            .callables
++            .get(c)
++            .and_then(|n| rust_impl_parts(&n.qualified_name))
++        else {
++            return Some(cids.to_vec());
++        };
++        match &group {
++            None => group = Some((owner, path)),
++            Some(g) if g.0 == owner && g.1 == path => {}
++            Some(_) => return Some(cids.to_vec()),
++        }
++        parts.push((*c, args));
++    }
++    let distinct: std::collections::BTreeSet<&str> =
++        parts.iter().map(|(_, a)| a.as_str()).collect();
++    if distinct.len() < 2 {
++        return Some(cids.to_vec());
++    }
++    if let Some(at) = r.arg_type.as_deref() {
++        let picked: Vec<CallableId> = parts
++            .iter()
++            .filter(|(_, a)| trait_arg_matches(a, at))
++            .map(|(c, _)| *c)
++            .collect();
++        if !picked.is_empty() {
++            return Some(picked);
++        }
++    }
++    if cids.len() <= fanout_cap {
++        return Some(cids.to_vec());
++    }
++    let (_, path) = group?;
++    let trait_last = path.rsplit("::").next().unwrap_or(&path).to_string();
++    let decls: Vec<CallableId> = by_owner_method
++        .get(&("rust".to_string(), trait_last, r.name.clone()))
++        .map(|v| {
++            v.iter()
++                .copied()
++                .filter(|c| {
++                    graph.callables.get(c).is_some_and(|n| {
++                        !n.qualified_name.contains(" as ")
++                            && n.trait_impl_target.is_none()
++                    })
++                })
++                .collect()
++        })
++        .unwrap_or_default();
++    if let [d] = decls.as_slice() {
++        return Some(vec![*d]);
++    }
++    *capped = cids.len() as u32;
++    None
++}
++
+ /// The package a Perl sub belongs to: its qualified name minus the sub,
+ /// with the implicit `main` spelled as the empty package.
+ fn perl_package(qn: &str) -> &str {
+@@ -5314,6 +5445,22 @@ fn try_resolve_ref(
                      .next()
                      .is_some_and(|c| c.is_uppercase()))
          {
@@ -169,12 +973,21 @@ index e25e48e..9b7d5cf 100644
 +            // was imported by.
 +            let owner_rh = crate::names::normalize_owner(rh);
 +            let imported_external_type = (lang == "rust" && !rh.contains("::"))
-+                .then(|| rust_external_import(owner_rh, rust_path_heads, workspace_owner_names, direct_imports, module_aliases, caller_qn))
++                .then(|| {
++                    rust_external_import(
++                        owner_rh,
++                        rust_path_heads,
++                        workspace_owner_names,
++                        direct_imports,
++                        module_aliases,
++                        caller_qn,
++                    )
++                })
 +                .flatten();
              let external = lang == "rust"
                  && rh.contains("::")
                  && is_external_rust_head(
-@@ -5333,6 +5340,35 @@ fn try_resolve_ref(
+@@ -5333,6 +5480,35 @@ fn try_resolve_ref(
                  {
                      return Some(cids.clone());
                  }
@@ -210,7 +1023,24 @@ index e25e48e..9b7d5cf 100644
              } else {
                  // The owner key in the index is the *bare* type name. A
                  // receiver can arrive as a multi-segment path (`Utils::Platforms`,
-@@ -5582,7 +5618,18 @@ fn try_resolve_ref(
+@@ -5508,6 +5684,16 @@ fn try_resolve_ref(
+                                 graph, &seen, rh, fanout_cap, capped,
+                             );
+                         }
++                        if lang == "rust" {
++                            return narrow_trait_overloads(
++                                graph,
++                                cids,
++                                r,
++                                fanout_cap,
++                                capped,
++                                by_owner_method,
++                            );
++                        }
+                         return narrow_specializations(
+                             graph, cids, rh, fanout_cap, capped,
+                         );
+@@ -5582,7 +5768,20 @@ fn try_resolve_ref(
              let derefs_to_arg = bases_by_owner
                  .get(&(lang.to_string(), outer_last.to_string()))
                  .is_some_and(|b| b.iter().any(|x| x == DEREF_TO_ARG));
@@ -226,11 +1056,13 @@ index e25e48e..9b7d5cf 100644
 +                    caller_qn,
 +                )
 +                .is_some();
-+            if (!workspace_owner_names.contains(outer_last) || derefs_to_arg || outer_foreign)
++            if (!workspace_owner_names.contains(outer_last)
++                || derefs_to_arg
++                || outer_foreign)
                  && let Some(cids) = by_owner_method.get(&(
                      lang.to_string(),
                      inner_last.to_string(),
-@@ -6014,6 +6061,36 @@ fn is_external_rust_head(
+@@ -6014,6 +6213,42 @@ fn is_external_rust_head(
          && !via_glob()
  }
  
@@ -250,11 +1082,17 @@ index e25e48e..9b7d5cf 100644
 +    let first = paths.first()?;
 +    // Every import of the name must agree; a `use` that renames a
 +    // workspace type into this name keeps the workspace reading.
-+    if !first.contains("::") || paths.iter().any(|p| p.split("::").next() != first.split("::").next()) {
++    if !first.contains("::")
++        || paths
++            .iter()
++            .any(|p| p.split("::").next() != first.split("::").next())
++    {
 +        return None;
 +    }
++    // Judged by the path's own head: `use reporter::Trait;` names a child
++    // module of the caller's crate, `use actix_web::web::Data;` a crate.
 +    is_external_rust_head(
-+        name,
++        first.split("::").next().unwrap_or(first),
 +        rust_path_heads,
 +        workspace_owner_names,
 +        direct_imports,
@@ -267,11 +1105,416 @@ index e25e48e..9b7d5cf 100644
  /// What cgg knows about Rust path vocabulary in this workspace: the
  /// crate roots it indexed and every module path beneath them. Built
  /// sorted-insensitive (a set, only ever probed), so `--jobs` cannot
+@@ -7691,6 +7926,208 @@ mod tests {
+         assert_eq!(hit, [60, 80, 90], "{:?}", out.edges);
+     }
+ 
++    /// WS13: a type name the file `use`s from a crate outside the
++    /// workspace is not a same-named workspace type. Its wrapper form
++    /// still reaches the type argument; a file importing the workspace
++    /// type keeps binding to it.
++    #[test]
++    fn rust_externally_imported_type_is_not_a_workspace_type() {
++        let mut g = Graph::new();
++        g.add_file(mk_file(0, "lib.rs", "rust"));
++        g.add_file(mk_file(1, "ext_user.rs", "rust"));
++        g.add_file(mk_file(2, "ws_user.rs", "rust"));
++        let defs = [
++            (0, "pool", "other::Data::pool"),
++            (1, "pool", "app::Ctx::pool"),
++            (2, "size", "other::Data::size"),
++            (3, "emit", "app::reporter::Sink::emit"),
++        ];
++        let mut def_records = vec![];
++        for (id, name, qn) in defs {
++            g.add_callable(mk_callable(
++                id,
++                name,
++                qn,
++                0,
++                "rust",
++                (id * 50, id * 50 + 40),
++            ));
++            def_records.push(mk_def(
++                name,
++                qn,
++                DefVariant::InherentMethod,
++                (id * 50, id * 50 + 40),
++            ));
++        }
++        g.add_callable(mk_callable(8, "h", "app::h", 1, "rust", (0, 400)));
++        g.add_callable(mk_callable(9, "w", "app::w", 2, "rust", (0, 400)));
++        let r = |name: &str, hint: &str, byte| RefRecord {
++            name: name.into(),
++            receiver_hint: hint.into(),
++            site_line: 5,
++            site_byte: byte,
++            ..Default::default()
++        };
++        let imp = |path: &str| ImportRecord {
++            kind: "use".into(),
++            path: path.into(),
++            alias: String::new(),
++            site_line: 1,
++            site_byte: 0,
++        };
++        let ext_user = facts_for(
++            1,
++            "ext_user.rs",
++            "rust",
++            vec![mk_def("h", "app::h", DefVariant::FreeFunction, (0, 400))],
++            vec![
++                r("pool", "Data<Ctx>", 60),
++                r("size", "Data", 70),
++                r("emit", "Sink", 90),
++            ],
++            // `reporter` is a child module of the caller's crate.
++            vec![imp("extweb::web::Data"), imp("reporter::Sink")],
++        );
++        let ws_user = facts_for(
++            2,
++            "ws_user.rs",
++            "rust",
++            vec![mk_def("w", "app::w", DefVariant::FreeFunction, (0, 400))],
++            vec![r("size", "Data", 80)],
++            vec![imp("other::Data")],
++        );
++        let facts = [
++            facts_for(0, "lib.rs", "rust", def_records, vec![], vec![]),
++            ext_user,
++            ws_user,
++        ];
++        let out = resolve_default(&g, &facts);
++        let mut hit: Vec<(u32, u32)> = out
++            .edges
++            .iter()
++            .map(|e| (e.site_byte, e.dst.as_u32()))
++            .collect();
++        hit.sort();
++        // `Data<Ctx>.pool()` reaches `Ctx::pool`; the foreign `Data`'s
++        // own `size` binds nothing; the workspace import still binds.
++        assert_eq!(hit, [(60, 1), (80, 2), (90, 3)], "{:?}", out.edges);
++    }
++
++    /// WS13: a type implementing one generic trait many times is called
++    /// through the impl its argument selects. A literal argument picks it;
++    /// otherwise more impls than the cap are refused (a std trait) or
++    /// bound to the declaration (a workspace trait); within the cap the
++    /// set stands.
++    #[test]
++    fn rust_trait_overloads_respect_the_cap_and_the_argument_type() {
++        let mut g = Graph::new();
++        g.add_file(mk_file(0, "lib.rs", "rust"));
++        g.add_file(mk_file(1, "user.rs", "rust"));
++        let mut def_records = vec![];
++        let mut id = 0u32;
++        let mut add = |g: &mut Graph, name: &str, qn: &str, v: DefVariant| {
++            g.add_callable(mk_callable(
++                id,
++                name,
++                qn,
++                0,
++                "rust",
++                (id * 50, id * 50 + 40),
++            ));
++            def_records.push(mk_def(name, qn, v, (id * 50, id * 50 + 40)));
++            id += 1;
++            id - 1
++        };
++        let mut from_ids = vec![];
++        for arg in [
++            "u8",
++            "u16",
++            "u32",
++            "u64",
++            "&'static str",
++            "String",
++            "Vec<u8>",
++        ] {
++            from_ids.push(add(
++                &mut g,
++                "from",
++                &format!("k::<Bytes as From<{arg}>>::from"),
++                DefVariant::TraitMethod,
++            ));
++        }
++        for arg in ["u8", "u16", "u32"] {
++            add(
++                &mut g,
++                "from",
++                &format!("k::<Small as From<{arg}>>::from"),
++                DefVariant::TraitMethod,
++            );
++        }
++        let decl = add(
++            &mut g,
++            "conv",
++            "k::Conv::conv",
++            DefVariant::TraitDefaultMethod,
++        );
++        for arg in ["A", "B", "C", "D", "E", "F"] {
++            add(
++                &mut g,
++                "conv",
++                &format!("k::<W as Conv<{arg}>>::conv"),
++                DefVariant::TraitMethod,
++            );
++        }
++        g.add_callable(mk_callable(99, "main", "app::main", 1, "rust", (0, 900)));
++        let r = |name: &str, hint: &str, arg: Option<&str>, byte| RefRecord {
++            name: name.into(),
++            receiver_hint: hint.into(),
++            path_receiver: true,
++            site_line: 5,
++            site_byte: byte,
++            arg_type: arg.map(str::to_string),
++            ..Default::default()
++        };
++        let user = facts_for(
++            1,
++            "user.rs",
++            "rust",
++            vec![mk_def(
++                "main",
++                "app::main",
++                DefVariant::FreeFunction,
++                (0, 900),
++            )],
++            vec![
++                r("from", "Bytes", Some("&str"), 100),
++                r("from", "Bytes", None, 200),
++                r("from", "Small", None, 300),
++                r("conv", "W", None, 400),
++                r("from", "Bytes", Some("bool"), 500),
++            ],
++            vec![],
++        );
++        let facts = [
++            facts_for(0, "lib.rs", "rust", def_records, vec![], vec![]),
++            user,
++        ];
++        let out = resolve_default(&g, &facts);
++        let at = |b: u32| -> Vec<u32> {
++            let mut v: Vec<u32> = out
++                .edges
++                .iter()
++                .filter(|e| e.site_byte == b)
++                .map(|e| e.dst.as_u32())
++                .collect();
++            v.sort();
++            v
++        };
++        assert_eq!(at(100), vec![from_ids[4]]);
++        assert!(at(200).is_empty());
++        assert_eq!(at(300).len(), 3);
++        assert_eq!(at(400), vec![decl]);
++        assert!(at(500).is_empty());
++    }
++
+     // A crate made only of re-exports contributes no qualified name, but
+     // its crate-root record still makes it a workspace crate; and a file
+     // outside any Cargo crate (`crate::…`) is never judged by one-segment
+diff --git a/crates/cgg-resolve/src/deadcode/roots.rs b/crates/cgg-resolve/src/deadcode/roots.rs
+index 954b4cf..6d6d75d 100644
+--- a/crates/cgg-resolve/src/deadcode/roots.rs
++++ b/crates/cgg-resolve/src/deadcode/roots.rs
+@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
+ 
+ use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
+ use cgg_core::deadcode::{RootKind, RootRecord};
++use cgg_core::frameworks::rules::{RESPONSE_TRAITS, SELF_CONVERTING_WRAPPERS};
+ use cgg_core::graph::Graph;
+ use cgg_core::ids::CallableId;
+ use cgg_core::{FileFacts, ImportRecord};
+@@ -347,23 +348,6 @@ fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
+     None
+ }
+ 
+-/// Discover roots.
+-///
+-/// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
+-/// caller; matching is left to the caller so this module stays free of
+-/// regex/glob policy.
+-/// Web-framework traits whose method the framework calls on a handler's
+-/// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
+-const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
+-
+-/// Generic wrappers that convert themselves (`Json<T>` serializes `T`; it
+-/// never calls `T`'s own conversion) or that are not responses at all.
+-/// A type named only inside one of these is not handed to the framework.
+-const SELF_CONVERTING_WRAPPERS: &[&str] = &[
+-    "Json", "Html", "Form", "Xml", "Sse", "Protobuf", "Msgpack", "Cbor", "Vec",
+-    "HashMap", "BTreeMap", "HashSet", "Box", "Arc", "Rc", "Cow",
+-];
+-
+ /// Every type name a Rust function's return type mentions outside a
+ /// [`SELF_CONVERTING_WRAPPERS`] generic: `-> Result<Json<A>, AppError>`
+ /// yields `Result`, `AppError` — never `A`.
+@@ -417,6 +401,11 @@ fn rust_returned_types(graph: &Graph) -> HashSet<String> {
+     out
+ }
+ 
++/// Discover roots.
++///
++/// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
++/// caller; matching is left to the caller so this module stays free of
++/// regex/glob policy.
+ pub(crate) fn discover(
+     graph: &Graph,
+     facts: &[FileFacts],
+@@ -578,6 +567,55 @@ pub(crate) fn discover(
+         }
+     }
+ 
++    // --- Rule: Rust macro invoked by path outside any function ---------
++    //
++    // `crate::for_each_tuple!(impls);` at module level uses the macro, but
++    // a path-written macro name is screened before resolution and never
++    // reaches the unresolved list the top-level rule reads. The macro is
++    // credited by its last path segment, and only a callable that is
++    // itself a `macro_rules!` qualifies.
++    let mut rust_macro_sites: HashMap<&str, (&FileFacts, u32)> = HashMap::new();
++    for f in facts.iter().filter(|f| f.language == "rust") {
++        for r in f.references.iter().filter(|r| r.macro_call) {
++            let inside = f
++                .definitions
++                .iter()
++                .any(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte);
++            if inside {
++                continue;
++            }
++            let last = r.name.rsplit("::").next().unwrap_or(&r.name);
++            rust_macro_sites.entry(last).or_insert((f, r.site_line));
++        }
++    }
++    if !rust_macro_sites.is_empty() {
++        let mut ids: Vec<(&CallableId, &cgg_core::graph::CallableNode)> = graph
++            .callables
++            .iter()
++            .filter(|(_, n)| {
++                n.language == "rust"
++                    && !n.synthetic
++                    && n.attributes.iter().any(|a| a == "macro")
++            })
++            .collect();
++        ids.sort_by_key(|(id, _)| **id);
++        for (id, node) in ids {
++            if let Some((f, line)) = rust_macro_sites.get(node.simple_name.as_str()) {
++                set.push(
++                    graph,
++                    *id,
++                    RootKind::TopLevelInvocation,
++                    "toplevel:macro-invocation",
++                    format!(
++                        "macro invoked outside any function at {}:{line}",
++                        f.path.display()
++                    ),
++                    &mut seen,
++                );
++            }
++        }
++    }
++
+     // --- Remaining per-node rules ---------------------------------------
+     for (id, node) in &graph.callables {
+         if node.synthetic {
+@@ -1055,4 +1093,39 @@ mod tests {
+         assert_eq!(set.production.len(), 1, "{:?}", set.records);
+         assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
+     }
++
++    // WS13: `crate::m!(..)` outside any function credits the macro `m`;
++    // the same invocation inside a function does not (its call is an
++    // edge or an unresolved site of its own), and a non-macro callable
++    // of that name is never credited.
++    #[test]
++    fn a_rust_macro_invoked_by_path_at_module_level_is_a_root() {
++        let mut m = node(0, "k::each", "each", "rust");
++        m.attributes = vec!["macro".into()];
++        let f = node(1, "k::other::each", "each", "rust");
++        let mut inner = node(2, "k::inner", "inner", "rust");
++        inner.attributes = vec!["macro".into()];
++        let g = graph_with(vec![m, f, inner]);
++        let mut facts = FileFacts::new(cgg_core::FileId::new(0), "a.rs".into(), "rust");
++        facts.definitions.push(cgg_core::DefRecord {
++            simple_name: "body".into(),
++            qualified_name: "k::body".into(),
++            start_byte: 100,
++            end_byte: 200,
++            ..Default::default()
++        });
++        for (name, byte) in [("crate::each", 10), ("crate::inner", 150)] {
++            facts.references.push(cgg_core::RefRecord {
++                name: name.into(),
++                site_byte: byte,
++                site_line: 1,
++                macro_call: true,
++                ..Default::default()
++            });
++        }
++        let set = discover(&g, &[facts], &[], &[]);
++        let rooted: Vec<u32> = set.records.iter().map(|r| r.id.as_u32()).collect();
++        assert_eq!(rooted, vec![0], "{:?}", set.records);
++        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
++    }
+ }
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index b47ac29..4dd5fdc 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -2203,6 +2203,7 @@ mod tests {
+         let g = graph_with(vec![handler]);
+         let mut f = facts_with_import("javascript", "app.js", "express");
+         f.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+@@ -2243,6 +2244,7 @@ mod tests {
+ 
+         let mut bare = facts_with_import("rust", "s.rs", "axum");
+         bare.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+@@ -2269,6 +2271,7 @@ mod tests {
+         // so it needs no route of its own.
+         let mut free = facts_with_import("rust", "s.rs", "axum");
+         free.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+@@ -2302,6 +2305,7 @@ mod tests {
+         let g = graph_with(vec![handler]);
+         let mut f = facts_with_import("rust", "s.rs", "axum");
+         f.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+@@ -2360,6 +2364,7 @@ mod tests {
+         let g = graph_with(vec![node(0, "app.other", "other", "javascript")]);
+         let mut f = facts_with_import("javascript", "app.js", "express");
+         f.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
+@@ -2402,6 +2407,7 @@ mod tests {
+ 
+         let mut f = facts_with_import("python", "ui.py", "kivy");
+         f.references.push(RefRecord {
++            arg_type: None,
+             from_macro_arg: false,
+             path_receiver: false,
+             dot_call: false,
 diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
-index a1d5815..1b0dc8c 100644
+index a1d5815..36152c3 100644
 --- a/crates/cgg-resolve/src/type_hints.rs
 +++ b/crates/cgg-resolve/src/type_hints.rs
-@@ -847,6 +847,162 @@ pub fn propagate_types_with_fields(
+@@ -847,6 +847,158 @@ pub fn propagate_types_with_fields(
      }
  }
  
@@ -316,12 +1559,7 @@ index a1d5815..1b0dc8c 100644
 +        }
 +        let head = t.split('<').next().unwrap_or(t).trim();
 +        let last = head.rsplit("::").next().unwrap_or(head);
-+        let peel = last.ends_with("Result")
-+            || matches!(
-+                last,
-+                "Option" | "Box" | "Arc" | "Rc" | "Pin" | "Cow" | "Mutex" | "RwLock"
-+            );
-+        if peel
++        if cgg_core::rust_types::is_return_wrapper(last)
 +            && let Some(open) = t.find('<')
 +            && let Some(close) = t.rfind('>')
 +            && close > open
@@ -413,7 +1651,8 @@ index a1d5815..1b0dc8c 100644
 +            };
 +            let ty = {
 +                let t = &f.local_types[idx].type_name;
-+                crate::names::normalize_owner(t.rsplit("::").next().unwrap_or(t)).to_string()
++                crate::names::normalize_owner(t.rsplit("::").next().unwrap_or(t))
++                    .to_string()
 +            };
 +            let Some(vs) = verdicts.get(&(ty, a.assoc_fn.clone())) else {
 +                continue;
@@ -434,6 +1673,144 @@ index a1d5815..1b0dc8c 100644
  /// Type the parameters of untyped closures passed to a bare call
  /// ([`FileFacts::closure_args`]) from the callee's declared callback type:
  /// `each((x) => x.run())` with `void each(void Function(Foo) cb)` types `x`
+@@ -1465,13 +1617,7 @@ fn skip_string(chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>, quote
+ /// lock guard dereferences to.
+ const GUARD_SUFFIX: &str = "#guard";
+ 
+-/// Smart pointers and locks whose contents a method call reaches —
+-/// through `Deref`, or through the guard `lock()`/`read()`/`borrow()`
+-/// hands back. A parameter typed as one of these is, for resolving its
+-/// methods, the type inside.
+-const RUST_WRAPPERS: &[&str] = &[
+-    "Arc", "Rc", "Box", "Pin", "Mutex", "RwLock", "RefCell", "Cell", "ArcSwap",
+-];
++use cgg_core::rust_types::SMART_POINTERS_AND_LOCKS as RUST_WRAPPERS;
+ 
+ /// Rust `name: Type`, seeing through wrapper chains: `x: Arc<Mutex<dyn
+ /// Reporter>>` is a `Reporter`, not an `Arc`. The generic `parse_colon_param`
+@@ -1501,10 +1647,8 @@ fn parse_colon_param_rust(param: &str) -> Option<(&str, &str, bool)> {
+         if close <= open {
+             break;
+         }
+-        locked |= matches!(
+-            head.rsplit("::").next().unwrap_or(head),
+-            "Mutex" | "RwLock" | "RefCell"
+-        );
++        locked |= cgg_core::rust_types::LOCK_WRAPPERS
++            .contains(&head.rsplit("::").next().unwrap_or(head));
+         ty = &ty[open + 1..close];
+     }
+     // `State<AppState>`: kept whole, see `deref_wrapper_split`.
+@@ -2300,6 +2444,109 @@ mod tests {
+         }
+     }
+ 
++    /// WS13: `let x = Type::f(..)` is typed `Type` only when `f` returns
++    /// it. Another named return type retypes the local; a primitive
++    /// leaves it untyped; a type with no declaration of `f` in the tree
++    /// (an external constructor) keeps the reading.
++    #[test]
++    fn assoc_call_locals_follow_the_declared_return_type() {
++        let lib = mk_facts(
++            vec![
++                mk_def("app::Loader::new", "pub fn new(p: String) -> Self", 0, 10),
++                mk_def(
++                    "app::Loader::load",
++                    "pub fn load(p: &str) -> Config",
++                    10,
++                    20,
++                ),
++                mk_def(
++                    "app::Loader::open",
++                    "fn open(p: &str) -> io::Result<Loader>",
++                    20,
++                    30,
++                ),
++                mk_def("app::Loader::count", "fn count() -> usize", 30, 40),
++                mk_def(
++                    "app::Loader::wrap",
++                    "fn wrap(cb: impl Fn(u8) -> Config) -> Option<Arc<Self>>",
++                    40,
++                    50,
++                ),
++            ],
++            vec![],
++        );
++        let mut user = FileFacts::new(FileId::new(1), PathBuf::from("/tmp/u.rs"), "rust");
++        for (var, ty, f) in [
++            ("a", "Loader", "new"),
++            ("b", "Loader", "load"),
++            ("c", "app::Loader", "open"),
++            ("d", "Loader", "count"),
++            ("e", "Loader", "wrap"),
++            ("g", "File", "open"),
++        ] {
++            user.local_types.push(cgg_core::LocalType {
++                var_name: var.into(),
++                type_name: ty.into(),
++                scope_byte: 100,
++            });
++            user.assoc_call_locals.push(cgg_core::AssocCallLocal {
++                var_name: var.into(),
++                scope_byte: 100,
++                assoc_fn: f.into(),
++            });
++        }
++        // Typed some other way (a parameter): never revisited.
++        user.local_types.push(cgg_core::LocalType {
++            var_name: "h".into(),
++            type_name: "Loader".into(),
++            scope_byte: 100,
++        });
++        let mut all = vec![lib, user];
++        settle_assoc_call_locals(&mut all);
++        let ty = |v: &str| {
++            all[1]
++                .local_types
++                .iter()
++                .find(|lt| lt.var_name == v)
++                .map(|lt| lt.type_name.as_str())
++        };
++        assert_eq!(ty("a"), Some("Loader"));
++        assert_eq!(ty("b"), Some("Config"));
++        assert_eq!(ty("c"), Some("app::Loader"));
++        assert_eq!(ty("d"), None);
++        assert_eq!(ty("e"), Some("Loader"));
++        assert_eq!(ty("g"), Some("File"));
++        assert_eq!(ty("h"), Some("Loader"));
++        assert!(all[1].assoc_call_locals.is_empty());
++    }
++
++    /// Two declarations of `f` on same-named types that disagree leave
++    /// the local untyped rather than pick one.
++    #[test]
++    fn disagreeing_assoc_declarations_leave_the_local_untyped() {
++        let lib = mk_facts(
++            vec![
++                mk_def("a::Store::get", "fn get() -> Self", 0, 10),
++                mk_def("b::Store::get", "fn get() -> Entry", 10, 20),
++            ],
++            vec![],
++        );
++        let mut user = FileFacts::new(FileId::new(1), PathBuf::from("/tmp/u.rs"), "rust");
++        user.local_types.push(cgg_core::LocalType {
++            var_name: "s".into(),
++            type_name: "Store".into(),
++            scope_byte: 5,
++        });
++        user.assoc_call_locals.push(cgg_core::AssocCallLocal {
++            var_name: "s".into(),
++            scope_byte: 5,
++            assoc_fn: "get".into(),
++        });
++        let mut all = vec![lib, user];
++        settle_assoc_call_locals(&mut all);
++        assert!(all[1].local_types.is_empty());
++    }
++
+     /// FINDINGS A5, Go: a parameter of a package-qualified type keeps its
+     /// qualifier (`t *util.T` → `util.T`), names declared together share
+     /// the type, unqualified and composite types stay untyped, and a
 diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
 index 82645ce..9075d1e 100644
 --- a/crates/cgg/src/lib.rs

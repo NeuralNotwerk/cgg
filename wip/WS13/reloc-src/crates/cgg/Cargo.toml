@@ -1,0 +1,53 @@
+[package]
+name        = "cgg"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+description = "Call graph generator — point at folders, get a graph."
+repository  = { workspace = true }
+homepage    = { workspace = true }
+keywords    = { workspace = true }
+rust-version = { workspace = true }
+readme      = "README.md"
+categories  = ["development-tools", "command-line-utilities", "visualization"]
+default-run = "cgg"
+
+# The pipeline is a library so more than one front end can drive it —
+# the `cgg` binary below, and the PyO3 extension module in
+# `crates/cgg-py`. Both call `cgg::run`, so the resolver ordering that
+# CLAUDE.md calls load-bearing exists in exactly one place.
+[lib]
+name = "cgg"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cgg"
+path = "src/main.rs"
+
+[dependencies]
+cgg-core    = { workspace = true }
+cgg-lang    = { workspace = true }
+cgg-resolve = { workspace = true }
+cgg-format  = { workspace = true }
+cgg-walk    = { workspace = true }
+
+blake3 = { workspace = true }
+
+anyhow             = { workspace = true }
+clap               = { workspace = true }
+glob               = { workspace = true }
+rayon              = { workspace = true }
+mimalloc           = { workspace = true }
+regex              = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+toml               = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror          = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+insta      = { workspace = true }
+tempfile   = { workspace = true }
