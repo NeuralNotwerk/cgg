@@ -1,0 +1,1288 @@
+diff --git a/crates/cgg-core/src/frameworks.rs b/crates/cgg-core/src/frameworks.rs
+index fcea017..25486db 100644
+--- a/crates/cgg-core/src/frameworks.rs
++++ b/crates/cgg-core/src/frameworks.rs
+@@ -304,6 +304,8 @@ impl FrameworkRule {
+             // "seen, no rules" — claiming a gap that does not exist.
+             || !rules::visibility_entries_for(&self.id, &self.language).is_empty()
+             || !rules::self_module_markers_for(&self.id, &self.language).is_empty()
++            || !rules::member_sources_for(&self.id, &self.language).is_empty()
++            || !rules::signature_methods_for(&self.id, &self.language).is_empty()
+             || !self.observer_types.is_empty()
+     }
+ }
+diff --git a/crates/cgg-core/src/frameworks/rules.rs b/crates/cgg-core/src/frameworks/rules.rs
+index 2252f73..0fa2b21 100644
+--- a/crates/cgg-core/src/frameworks/rules.rs
++++ b/crates/cgg-core/src/frameworks/rules.rs
+@@ -2573,7 +2573,7 @@ pub const SPECS: &[RuleSpec] = &[
+         methods: NONE,
+         string_targets: false,
+         node: false,
+-        gap: "cgg has no entry rules for xUnit; the runner — not any code in the tree — constructs the test class and invokes it. [Fact] and [Theory] methods are already root-marked by cgg's dead-code root pass, but the surrounding harness is not: the test class CONSTRUCTOR runs once per test, IClassFixture<T>/ICollectionFixture<T> fixture types are instantiated by the runner, and IAsyncLifetime.InitializeAsync/DisposeAsync plus IDisposable.Dispose are called around every test. [MemberData]/[ClassData] name their data source by STRING or by typeof, so those provider members have no caller either. Treat all of them as roots, not as dead code.",
++        gap: "cgg has no entry rules for xUnit; the runner — not any code in the tree — constructs the test class and invokes it. [Fact] and [Theory] methods are already root-marked by cgg's dead-code root pass, but the surrounding harness is not: the test class CONSTRUCTOR runs once per test, IClassFixture<T>/ICollectionFixture<T> fixture types are instantiated by the runner, and IAsyncLifetime.InitializeAsync/DisposeAsync plus IDisposable.Dispose are called around every test. [MemberData]/[ClassData] name their data source by STRING, nameof or typeof; those provider members are rooted by the companion `xunit-data` rule. Treat the rest as roots, not as dead code.",
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
+@@ -2590,7 +2590,78 @@ pub const SPECS: &[RuleSpec] = &[
+         methods: NONE,
+         string_targets: false,
+         node: false,
+-        gap: "cgg has no entry rules for NUnit; the runner invokes the members of a [TestFixture] class directly. [Test] is already root-marked by cgg's dead-code root pass, but these are not: [TestCase], [TestCaseSource], [ValueSource], [Theory], and the fixture hooks [SetUp], [TearDown], [OneTimeSetUp], [OneTimeTearDown] and the whole [SetUpFixture] class. [TestCaseSource]/[ValueSource] additionally name a static member by STRING, so the data provider itself has no caller. Treat all of them as roots, not as dead code.",
++        gap: "cgg has no entry rules for NUnit; the runner invokes the members of a [TestFixture] class directly. [Test] is root-marked by cgg's dead-code root pass, and the companion `nunit-runner` rule roots [TestCase], [TestCaseSource], [Theory] and the fixture hooks [SetUp], [TearDown], [OneTimeSetUp], [OneTimeTearDown], plus the member a [TestCaseSource] names by STRING or nameof. Not covered: [ValueSource] on a parameter (parameter attributes are not recorded) and the whole [SetUpFixture] class. Treat those as roots, not as dead code.",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // NUnit invokes these directly; `[TestCaseSource]` names its data source
++    // by string or `nameof` (`member_sources_for`).
++    RuleSpec {
++        id: "nunit-runner",
++        language: "csharp",
++        kind: TrustKind::Test,
++        detect: &["NUnit.Framework"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "TestCase",
++            "TestCaseSource",
++            "Theory",
++            "SetUp",
++            "TearDown",
++            "OneTimeSetUp",
++            "OneTimeTearDown",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // xUnit data sources: `[MemberData(nameof(X))]` names a member and
++    // `[ClassData(typeof(T))]` a type the runner enumerates
++    // (`member_sources_for`).
++    RuleSpec {
++        id: "xunit-data",
++        language: "csharp",
++        kind: TrustKind::Test,
++        detect: &["Xunit"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: NONE,
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Serialization callbacks, invoked by the serializer around (de)serializing.
++    RuleSpec {
++        id: "dotnet-serialization",
++        language: "csharp",
++        kind: TrustKind::Lifecycle,
++        detect: &["System.Runtime.Serialization", "Newtonsoft.Json"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "OnDeserialized",
++            "OnDeserializing",
++            "OnSerialized",
++            "OnSerializing",
++            "OnError",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
+@@ -6969,7 +7040,7 @@ pub const SPECS: &[RuleSpec] = &[
+         methods: NONE,
+         string_targets: false,
+         node: false,
+-        gap: "cgg cannot enumerate JUnit's indirect test sources, and every one of them leaves a real method with no caller. @MethodSource(\"name\"), @ArgumentsSource(X.class), @EnumSource and @CsvFileSource name their provider by STRING or by a class literal, so the provider method itself is referenced nowhere in Java source. @Nested inner classes and the test class CONSTRUCTOR are instantiated by the runner. @RunWith(Parameterized.class) invokes the @Parameters method and then the constructor once per row. Every org.junit.jupiter.api.extension.Extension implementation (BeforeEachCallback, AfterEachCallback, ParameterResolver, TestInstancePostProcessor) runs only through @ExtendWith, @RegisterExtension or a META-INF/services file. Read the string argument of each @MethodSource/@ArgumentsSource and the type argument of each @ExtendWith/@RunWith, and treat the members they name as roots.",
++        gap: "cgg cannot enumerate JUnit's indirect test sources, and every one of them leaves a real method with no caller. @MethodSource(\"name\") and @ArgumentsSource(X.class) are read by the companion `junit-sources` rule, which roots the provider they name; @EnumSource and @CsvFileSource name theirs by a class literal or a resource path. @Nested inner classes and the test class CONSTRUCTOR are instantiated by the runner. @RunWith(Parameterized.class) invokes the @Parameters method and then the constructor once per row. Every org.junit.jupiter.api.extension.Extension implementation (BeforeEachCallback, AfterEachCallback, ParameterResolver, TestInstancePostProcessor) runs only through @ExtendWith, @RegisterExtension or a META-INF/services file. Read the string argument of each @MethodSource/@ArgumentsSource and the type argument of each @ExtendWith/@RunWith, and treat the members they name as roots.",
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
+@@ -7024,6 +7095,339 @@ pub const SPECS: &[RuleSpec] = &[
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
++    // Common Annotations (JSR-250): the container calls these once after
++    // injection and once before disposal. Nothing in source calls them.
++    RuleSpec {
++        id: "jsr250-lifecycle",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["javax.annotation", "jakarta.annotation"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["PostConstruct", "PreDestroy"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Spring's application context: `@Bean` factory methods are invoked to
++    // build the context, event listeners are invoked by the event multicaster.
++    RuleSpec {
++        id: "spring-context",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &[
++            "org.springframework.context",
++            "org.springframework.transaction.event",
++        ],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["Bean", "EventListener", "TransactionalEventListener"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Guice calls provider methods and injectable methods reflectively.
++    RuleSpec {
++        id: "guice",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["com.google.inject"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "Provides",
++            "ProvidesIntoSet",
++            "ProvidesIntoMap",
++            "ProvidesIntoOptional",
++            "Inject",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Dagger's generated components call module methods; the generated code
++    // is not in the tree, so the module method has no caller in source.
++    RuleSpec {
++        id: "dagger",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["dagger"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "Provides",
++            "Binds",
++            "BindsOptionalOf",
++            "Multibinds",
++            "ContributesAndroidInjector",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // JSR-330 method injection: the injector calls an `@Inject` method.
++    RuleSpec {
++        id: "jsr330-inject",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["javax.inject", "jakarta.inject"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["Inject"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Gradle runs a task's `@TaskAction` method and reads its annotated input
++    // and output property getters reflectively.
++    RuleSpec {
++        id: "gradle-task",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["org.gradle.api"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "TaskAction",
++            "Input",
++            "InputFile",
++            "InputFiles",
++            "InputDirectory",
++            "OutputFile",
++            "OutputFiles",
++            "OutputDirectory",
++            "OutputDirectories",
++            "Nested",
++            "Classpath",
++            "CompileClasspath",
++            "Console",
++            "LocalState",
++            "Destroys",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Gradle's service registry calls `@Provides` factory, decorator and
++    // `configure(ServiceRegistration)` methods of a registered service
++    // provider reflectively.
++    RuleSpec {
++        id: "gradle-services",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["org.gradle.internal.service"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["Provides"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Gradle's software-model rule methods, invoked by the model registry.
++    RuleSpec {
++        id: "gradle-model-rules",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["org.gradle.model", "org.gradle.platform.base"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "Model",
++            "Mutate",
++            "Defaults",
++            "Finalize",
++            "Validate",
++            "Rules",
++            "ComponentType",
++            "ComponentBinaries",
++            "BinaryTasks",
++            "LanguageType",
++            "BinaryType",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Jackson calls annotated creators, accessors and any-setters while
++    // (de)serializing.
++    RuleSpec {
++        id: "jackson",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &[
++            "com.fasterxml.jackson.annotation",
++            "org.codehaus.jackson.annotate",
++        ],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "JsonCreator",
++            "JsonValue",
++            "JsonAnySetter",
++            "JsonAnyGetter",
++            "JsonGetter",
++            "JsonSetter",
++            "JsonProperty",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Moshi calls `@FromJson`/`@ToJson` adapter methods while (de)serializing.
++    RuleSpec {
++        id: "moshi",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["com.squareup.moshi"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["FromJson", "ToJson"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // An event bus delivers posted events to `@Subscribe` methods reflectively.
++    RuleSpec {
++        id: "eventbus",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["com.google.common.eventbus", "org.greenrobot.eventbus"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["Subscribe"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Java serialization calls private hooks found by exact name AND parameter
++    // list (`signature_methods_for`), so a same-named method with another
++    // signature is not one.
++    RuleSpec {
++        id: "java-serialization",
++        language: "java",
++        kind: TrustKind::Lifecycle,
++        detect: &["java.io"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: NONE,
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // Test data sources. `@MethodSource("p")` names its factory by STRING
++    // (`member_sources_for`); a JUnit 4 `@Parameters` method is called by the
++    // Parameterized runner.
++    RuleSpec {
++        id: "junit-sources",
++        language: "java",
++        kind: TrustKind::Test,
++        detect: &["org.junit.jupiter.params", "org.junit.runners"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &["Parameters"],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // TestNG invokes annotated methods; `@Test(dataProvider = "x")` names its
++    // provider by the provider's `name`, so the `@DataProvider` marker itself
++    // is what roots the provider.
++    RuleSpec {
++        id: "testng",
++        language: "java",
++        kind: TrustKind::Test,
++        detect: &["org.testng"],
++        detect_paths: NONE,
++        detect_calls: NONE,
++        attributes: &[
++            "Test",
++            "DataProvider",
++            "Factory",
++            "BeforeMethod",
++            "AfterMethod",
++            "BeforeClass",
++            "AfterClass",
++            "BeforeSuite",
++            "AfterSuite",
++            "BeforeTest",
++            "AfterTest",
++            "BeforeGroups",
++            "AfterGroups",
++        ],
++        registrars: NONE,
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
+     RuleSpec {
+         id: "junit",
+         language: "kotlin",
+@@ -7469,7 +7873,7 @@ pub const SPECS: &[RuleSpec] = &[
+         methods: NONE,
+         string_targets: false,
+         node: false,
+-        gap: "C++ registers callbacks by passing a function pointer, lambda or member pointer as an argument, and cgg's C++ plugin records neither value references nor closures (it never calls the registrar-capture pass), so NONE of these produce an edge and every target reads as dead: std::signal(SIGINT, handler) and sigaction; atexit / at_quick_exit; pthread_create(&t, 0, start_routine, 0) start routines and pthread_key_create destructors; std::thread t(fn) and std::async(fn); qsort(base, n, sz, cmp) and std::sort comparators; std::function / std::bind targets stored in members; Qt connect(...) slots, signals and Q_INVOKABLE methods; __attribute__((constructor)) / __attribute__((destructor)) functions; constructors and destructors of file-scope static objects; and interrupt vector tables. Compounding this, the plugin records ONLY quoted #include \"...\" — angle-bracket system headers such as <csignal> and <thread> are invisible — so this rule cannot even be detected in most projects. Grep for signal(, atexit(, pthread_create(, qsort(, connect( and __attribute__((constructor and treat the functions they name as roots.",
++        gap: "C++ registers callbacks by passing a function pointer, lambda or member pointer as an argument. A function named by identifier in a call to signal, atexit, at_quick_exit, on_exit, pthread_create, pthread_once, pthread_key_create, qsort, bsearch or std::call_once is rooted by the companion `cpp-callbacks` rule. Not covered: sigaction handlers; std::thread t(fn) (a declaration, not a call) and std::async(fn); std::sort and other algorithm comparators; std::function / std::bind targets stored in members; Qt connect(...) slots, signals and Q_INVOKABLE methods; __attribute__((constructor)) / __attribute__((destructor)) functions; constructors and destructors of file-scope static objects; and interrupt vector tables. Grep for std::thread, connect( and __attribute__((constructor and treat the functions they name as roots.",
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
+@@ -7494,7 +7898,90 @@ pub const SPECS: &[RuleSpec] = &[
+         methods: NONE,
+         string_targets: false,
+         node: false,
+-        gap: "C hands control to a function pointer, and cgg's C plugin extracts no attributes, no base types and no value references at all — it never runs the registrar-capture pass — so every callback target is invisible: signal(SIGINT, handler) and sigaction(sig, &act, 0) handlers; atexit / at_quick_exit / on_exit functions; pthread_create(&t, 0, start_routine, arg) start routines, pthread_once init functions and pthread_key_create destructors; qsort / bsearch comparators; __attribute__((constructor)) and __attribute__((destructor)) functions that run before and after main; interrupt service routines wired through a vector table or a linker script; longjmp targets; and any function pointer stored in a struct (the vtable pattern that carries most C plugin and driver architectures). Compounding this, the plugin records ONLY quoted #include \"...\" — <signal.h>, <stdlib.h> and <pthread.h> in angle brackets are dropped — so this rule cannot even be detected in most C projects. Grep for signal(, sigaction(, atexit(, pthread_create(, qsort(, bsearch(, __attribute__((constructor and for struct fields of function-pointer type, and treat the functions they name as roots.",
++        gap: "C hands control to a function pointer. A function named by identifier in a call to signal, atexit, at_quick_exit, on_exit, pthread_create, pthread_once, pthread_key_create, qsort or bsearch is rooted by the companion `c-callbacks` rule. Everything else stays invisible, because cgg's C plugin extracts no attributes, no base types and no other value references: sigaction(sig, &act, 0) handlers (the function sits in a struct field); __attribute__((constructor)) and __attribute__((destructor)) functions that run before and after main; interrupt service routines wired through a vector table or a linker script; longjmp targets; a callback passed through a variable or a cast rather than by name; and any function pointer stored in a struct (the vtable pattern that carries most C plugin and driver architectures). Grep for sigaction(, __attribute__((constructor and for struct fields of function-pointer type, and treat the functions they name as roots.",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // The C runtime calls back into functions handed to it by NAME: a signal
++    // handler, an atexit hook, a thread start routine, a qsort comparator.
++    // The registration call is the evidence, so it is also the detection gate
++    // (angle-bracket includes are not recorded, so an import gate would never
++    // fire). Only an identifier argument that names an in-tree function is
++    // rooted; every other argument names nothing and is dropped.
++    RuleSpec {
++        id: "c-callbacks",
++        language: "c",
++        kind: TrustKind::Lifecycle,
++        detect: NONE,
++        detect_paths: NONE,
++        detect_calls: &[
++            "signal",
++            "atexit",
++            "at_quick_exit",
++            "on_exit",
++            "pthread_create",
++            "pthread_once",
++            "pthread_key_create",
++            "qsort",
++            "bsearch",
++        ],
++        attributes: NONE,
++        registrars: &[
++            "signal",
++            "atexit",
++            "at_quick_exit",
++            "on_exit",
++            "pthread_create",
++            "pthread_once",
++            "pthread_key_create",
++            "qsort",
++            "bsearch",
++        ],
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
++        observer_types: NONE,
++        handler_on_enclosing_owner: false,
++    },
++    // The C++ counterpart of `c-callbacks`, plus `std::call_once`.
++    RuleSpec {
++        id: "cpp-callbacks",
++        language: "cpp",
++        kind: TrustKind::Lifecycle,
++        detect: NONE,
++        detect_paths: NONE,
++        detect_calls: &[
++            "signal",
++            "atexit",
++            "at_quick_exit",
++            "on_exit",
++            "pthread_create",
++            "pthread_once",
++            "pthread_key_create",
++            "qsort",
++            "bsearch",
++            "call_once",
++        ],
++        attributes: NONE,
++        registrars: &[
++            "signal",
++            "atexit",
++            "at_quick_exit",
++            "on_exit",
++            "pthread_create",
++            "pthread_once",
++            "pthread_key_create",
++            "qsort",
++            "bsearch",
++            "call_once",
++        ],
++        base_types: NONE,
++        methods: NONE,
++        string_targets: false,
++        node: false,
++        gap: "",
+         observer_types: NONE,
+         handler_on_enclosing_owner: false,
+     },
+@@ -10535,6 +11022,116 @@ pub fn visibility_entries_for(id: &str, language: &str) -> &'static [&'static st
+     }
+ }
+ 
++/// An attribute whose *arguments* name the members a framework invokes.
++///
++/// `@MethodSource("words")`, `[TestCaseSource(nameof(Cases))]` and
++/// `[MemberData(nameof(Data), MemberType = typeof(Shared))]` sit on a
++/// test, but what they make live is the member they name — which no
++/// call in source ever reaches. The matcher reads every string literal
++/// and `nameof(…)` argument as a member name (`Class#member` and
++/// `T.member` qualify the owner), and a `typeof(T)` / `T.class`
++/// argument as the owning type.
++///
++/// Kept out of [`FrameworkRule`] alongside [`visibility_entries_for`]:
++/// it is a property of a built-in framework's attribute grammar, not a
++/// matcher a user-authored rule should be declaring.
++#[derive(Debug)]
++pub struct MemberSource {
++    /// Attribute key, compared like [`RuleSpec::attributes`].
++    pub attribute: &'static str,
++    /// With no member named at all, the framework looks up a member
++    /// with the annotated method's own name (JUnit's bare `@MethodSource`).
++    pub default_self: bool,
++    /// With a type named but no member, the members of that type the
++    /// framework invokes (`[ClassData(typeof(T))]` enumerates `T`).
++    pub type_members: &'static [&'static str],
++}
++
++/// The member-naming attributes of one built-in rule.
++pub fn member_sources_for(id: &str, language: &str) -> &'static [MemberSource] {
++    match (id, language) {
++        ("junit-sources", "java") => &[
++            MemberSource {
++                attribute: "MethodSource",
++                default_self: true,
++                type_members: NONE,
++            },
++            MemberSource {
++                attribute: "ArgumentsSource",
++                default_self: false,
++                type_members: &["provideArguments"],
++            },
++        ],
++        ("nunit-runner", "csharp") => &[
++            MemberSource {
++                attribute: "TestCaseSource",
++                default_self: false,
++                type_members: &["GetEnumerator"],
++            },
++            MemberSource {
++                attribute: "ValueSource",
++                default_self: false,
++                type_members: &["GetEnumerator"],
++            },
++        ],
++        ("xunit-data", "csharp") => &[
++            MemberSource {
++                attribute: "MemberData",
++                default_self: false,
++                type_members: NONE,
++            },
++            MemberSource {
++                attribute: "ClassData",
++                default_self: false,
++                type_members: &["GetEnumerator"],
++            },
++        ],
++        _ => &[],
++    }
++}
++
++/// A method the runtime invokes by exact name *and* parameter list.
++///
++/// Java serialization finds `readObject(ObjectInputStream)` reflectively
++/// on the class being (de)serialized; a `readObject(String path)` helper
++/// is not one and must stay reportable. `params` are the parameter type
++/// names in order (last segment, generics stripped); empty means the
++/// method takes none.
++#[derive(Debug)]
++pub struct SignatureMethod {
++    pub name: &'static str,
++    pub params: &'static [&'static str],
++}
++
++/// The signature-keyed hooks of one built-in rule.
++pub fn signature_methods_for(id: &str, language: &str) -> &'static [SignatureMethod] {
++    match (id, language) {
++        ("java-serialization", "java") => &[
++            SignatureMethod {
++                name: "readObject",
++                params: &["ObjectInputStream"],
++            },
++            SignatureMethod {
++                name: "writeObject",
++                params: &["ObjectOutputStream"],
++            },
++            SignatureMethod {
++                name: "readObjectNoData",
++                params: NONE,
++            },
++            SignatureMethod {
++                name: "readResolve",
++                params: NONE,
++            },
++            SignatureMethod {
++                name: "writeReplace",
++                params: NONE,
++            },
++        ],
++        _ => &[],
++    }
++}
++
+ /// Call names that alone prove a framework is present, for ecosystems
+ /// with no import records. Returned separately from [`FrameworkRule`]
+ /// because it is a detection input, not a matcher, and a user-authored
+@@ -10668,7 +11265,9 @@ mod tests {
+                 || !s.base_types.is_empty()
+                 || !s.methods.is_empty()
+                 || !visibility_entries_for(s.id, s.language).is_empty()
+-                || !self_module_markers_for(s.id, s.language).is_empty();
++                || !self_module_markers_for(s.id, s.language).is_empty()
++                || !member_sources_for(s.id, s.language).is_empty()
++                || !signature_methods_for(s.id, s.language).is_empty();
+             assert!(
+                 has_matchers || !s.gap.is_empty(),
+                 "{}/{} has no matchers and no stated gap",
+diff --git a/crates/cgg-lang/src/plugins/c.rs b/crates/cgg-lang/src/plugins/c.rs
+index abd32a1..32f7a46 100644
+--- a/crates/cgg-lang/src/plugins/c.rs
++++ b/crates/cgg-lang/src/plugins/c.rs
+@@ -48,6 +48,7 @@ impl LanguagePlugin for CPlugin {
+         let mut w = CWalker {
+             source,
+             facts: &mut facts,
++            ctx: *ctx,
+         };
+         w.walk(tree.root_node());
+         let mut out = facts;
+@@ -62,6 +63,10 @@ impl LanguagePlugin for CPlugin {
+ struct CWalker<'a> {
+     source: &'a [u8],
+     facts: &'a mut FileFacts,
++    /// The registrar-verb gate. C hands control to a function by passing
++    /// its name to a runtime API (`signal(SIGINT, on_sigint)`); without
++    /// the capture those handlers have no reference at all.
++    ctx: crate::ExtractCtx<'a>,
+ }
+ 
+ impl<'a> CWalker<'a> {
+@@ -95,6 +100,12 @@ impl<'a> CWalker<'a> {
+             }
+             "call_expression" => {
+                 self.record_call(node);
++                if let Some(callee) = node.child_by_field_name("function") {
++                    let context = self.text(callee).to_string();
++                    let extra =
++                        super::registrar::capture(&self.ctx, node, self.source, &context);
++                    self.facts.references.extend(extra);
++                }
+                 self.walk_children(node);
+                 return;
+             }
+@@ -405,6 +416,25 @@ mod tests {
+         assert!(refs.contains(&("run", "ptr")), "got: {refs:?}");
+     }
+ 
++    // B4: a function handed to a runtime registration API by name is a
++    // value reference the framework rules can root. An identifier passed
++    // to an ordinary call is not captured by this path.
++    #[test]
++    fn functions_passed_to_runtime_registrars_are_value_refs() {
++        let src = "void h(int s) {}\nvoid g(void) {}\n\
++                   int main(void) { signal(SIGINT, h); atexit(g); log_it(g); return 0; }\n";
++        let f = extract(src);
++        let vals: Vec<(&str, &str)> = f
++            .references
++            .iter()
++            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
++            .map(|r| (r.name.as_str(), r.context.as_str()))
++            .collect();
++        assert!(vals.contains(&("h", "signal")), "got: {vals:?}");
++        assert!(vals.contains(&("g", "atexit")), "got: {vals:?}");
++        assert!(!vals.iter().any(|(_, c)| *c == "log_it"), "got: {vals:?}");
++    }
++
+     #[test]
+     fn macro_call_looks_like_call() {
+         let src = "#define SQUARE(x) ((x)*(x))\nint f() { return SQUARE(3); }\n";
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index cd4dac5..a4f3e8b 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -147,6 +147,14 @@ pub fn detect(
+                 let _s = cgg_core::profile::span("frameworks::match-observers");
+                 match_observer_callbacks(graph, facts, rule, &mut entries);
+             }
++            {
++                let _s = cgg_core::profile::span("frameworks::match-member-sources");
++                match_member_sources(graph, names, rule, &mut entries);
++            }
++            {
++                let _s = cgg_core::profile::span("frameworks::match-signatures");
++                match_signature_methods(graph, rule, &mut entries);
++            }
+             entries.into_iter()
+         })
+         .collect();
+@@ -802,6 +810,314 @@ fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEnt
+     }
+ }
+ 
++/// One argument list of an attribute, read for the members it names.
++#[derive(Debug, Default, PartialEq)]
++struct NamedMembers {
++    /// `typeof(T)` / `T.class`, last segment: the owner of the members.
++    owner_type: Option<String>,
++    /// `(qualifier, member)` per string literal or `nameof(…)`.
++    members: Vec<(Option<String>, String)>,
++}
++
++/// Split `s` at top-level commas, ignoring commas inside brackets and
++/// string literals.
++fn split_top_level_args(s: &str) -> Vec<&str> {
++    let mut out = Vec::new();
++    let (mut depth, mut start, mut quote): (i32, usize, Option<char>) = (0, 0, None);
++    let mut escaped = false;
++    for (i, c) in s.char_indices() {
++        if let Some(q) = quote {
++            if escaped {
++                escaped = false;
++            } else if c == '\\' {
++                escaped = true;
++            } else if c == q {
++                quote = None;
++            }
++            continue;
++        }
++        match c {
++            '"' | '\'' => quote = Some(c),
++            '(' | '[' | '{' | '<' => depth += 1,
++            ')' | ']' | '}' | '>' => depth -= 1,
++            ',' if depth == 0 => {
++                out.push(s[start..i].trim());
++                start = i + 1;
++            }
++            _ => {}
++        }
++    }
++    let last = s[start..].trim();
++    if !last.is_empty() {
++        out.push(last);
++    }
++    out
++}
++
++/// The type named by a `typeof(T)` or `T.class` argument, last segment.
++fn type_literal(arg: &str) -> Option<String> {
++    let a = arg.trim();
++    let inner = if let Some(rest) = a.strip_prefix("typeof(") {
++        rest.strip_suffix(')')?
++    } else {
++        a.strip_suffix(".class")?
++    };
++    let bare = inner.split('<').next().unwrap_or(inner).trim();
++    let last = bare.rsplit(['.', ':']).next().unwrap_or(bare).trim();
++    (!last.is_empty()).then(|| last.to_string())
++}
++
++/// Members named by one positional argument: a string literal, a
++/// `nameof(…)`, or an array initializer of either.
++fn members_in(arg: &str, out: &mut Vec<(Option<String>, String)>) {
++    let a = arg.trim();
++    if let Some(inner) = a.strip_prefix('{').and_then(|r| r.strip_suffix('}')) {
++        for el in split_top_level_args(inner) {
++            members_in(el, out);
++        }
++        return;
++    }
++    if let Some(inner) = a.strip_prefix("nameof(").and_then(|r| r.strip_suffix(')')) {
++        let mut parts = inner.trim().rsplitn(2, '.');
++        let member = parts.next().unwrap_or("").trim();
++        let qual = parts
++            .next()
++            .map(|q| q.rsplit('.').next().unwrap_or(q).trim().to_string());
++        if is_identifierish(member) {
++            out.push((qual, member.to_string()));
++        }
++        return;
++    }
++    if (a.starts_with('"') && a.ends_with('"') && a.len() >= 2)
++        || (a.starts_with('\'') && a.ends_with('\'') && a.len() >= 2)
++    {
++        let body = &a[1..a.len() - 1];
++        // `com.x.Shared#factory(java.lang.String)` -> (Shared, factory).
++        let body = body.split('(').next().unwrap_or(body).trim();
++        let (qual, member) = match body.rsplit_once('#') {
++            Some((q, m)) => (
++                Some(q.rsplit(['.', '$']).next().unwrap_or(q).to_string()),
++                m,
++            ),
++            None => (None, body),
++        };
++        if is_identifierish(member) {
++            out.push((qual, member.to_string()));
++        }
++    }
++}
++
++/// Read an attribute's arguments for the members and type they name.
++///
++/// Named arguments contribute only a type (`MemberType = typeof(T)`),
++/// except Java's implicit `value` element, which is the positional one.
++/// Of the positional arguments, type literals give the owner and the
++/// FIRST other one names the members — later positionals are parameters
++/// handed to the source (`[MemberData(nameof(D), 3)]`), never names.
++fn named_members(attr: &str) -> NamedMembers {
++    let mut out = NamedMembers::default();
++    let Some(open) = attr.find('(') else {
++        return out;
++    };
++    let Some(close) = attr.rfind(')') else {
++        return out;
++    };
++    if close <= open {
++        return out;
++    }
++    let mut member_arg_seen = false;
++    for arg in split_top_level_args(&attr[open + 1..close]) {
++        let (name, value) = match arg.split_once('=') {
++            Some((n, v))
++                if is_identifierish(n.trim())
++                    && !v.starts_with('=')
++                    && !n.contains(['"', '\'', '(']) =>
++            {
++                (Some(n.trim()), v.trim())
++            }
++            _ => (None, arg),
++        };
++        if let Some(t) = type_literal(value) {
++            out.owner_type.get_or_insert(t);
++            continue;
++        }
++        let positional = name.is_none_or(|n| n == "value");
++        if positional && !member_arg_seen {
++            member_arg_seen = true;
++            members_in(value, &mut out.members);
++        }
++    }
++    out
++}
++
++/// **Shape E, attribute form** — a test-data attribute names the member
++/// the runner calls.
++///
++/// `@MethodSource("words")` sits on a test, but what it makes live is
++/// `words`, which no call reaches. Each named member is looked up on the
++/// owner the attribute names, or on the annotated method's own class;
++/// a definition in the annotated method's file wins, and otherwise only
++/// a unique one is taken. Marks a root only — never an edge.
++fn match_member_sources(
++    graph: &Graph,
++    index: &NameIndex,
++    rule: &FrameworkRule,
++    out: &mut Vec<FrameworkEntry>,
++) {
++    let sources = rules::member_sources_for(&rule.id, &rule.language);
++    if sources.is_empty() {
++        return;
++    }
++    for (id, node) in &graph.callables {
++        if node.language != rule.language || node.synthetic {
++            continue;
++        }
++        for attr in &node.attributes {
++            let key = attribute_key(attr);
++            let verb = attribute_verb(attr);
++            let Some(src) = sources.iter().find(|s| {
++                s.attribute.eq_ignore_ascii_case(key)
++                    || s.attribute.eq_ignore_ascii_case(verb)
++            }) else {
++                continue;
++            };
++            let own_owner = crate::names::owner_from_qn(&node.qualified_name);
++            let named = named_members(attr);
++            let mut wanted: Vec<(Option<String>, String)> = Vec::new();
++            for (qual, member) in &named.members {
++                let owner = qual
++                    .clone()
++                    .or_else(|| named.owner_type.clone())
++                    .or_else(|| own_owner.map(str::to_string));
++                wanted.push((owner, member.clone()));
++            }
++            if named.members.is_empty() {
++                if let Some(t) = &named.owner_type {
++                    for m in src.type_members {
++                        wanted.push((Some(t.clone()), (*m).to_string()));
++                    }
++                } else if src.default_self {
++                    wanted
++                        .push((own_owner.map(str::to_string), node.simple_name.clone()));
++                }
++            }
++            for (owner, member) in wanted {
++                let Some(owner) = owner else { continue };
++                for target in index.owner_members(graph, &owner, &member, node.file) {
++                    if target == *id {
++                        continue;
++                    }
++                    let Some(t) = graph.callables.get(&target) else {
++                        continue;
++                    };
++                    out.push(FrameworkEntry {
++                        framework: rule.id.clone(),
++                        kind: rule.kind,
++                        shape: EntryShape::StringTarget,
++                        route: String::new(),
++                        target,
++                        target_name: t.qualified_name.clone(),
++                        evidence: format!(
++                            "named by `{}` on `{}`",
++                            attr.trim(),
++                            node.qualified_name
++                        ),
++                        file: node.file,
++                        site_line: node.start_line,
++                        node: rule.node,
++                    });
++                }
++            }
++        }
++    }
++}
++
++/// The parameter type names of a signature, last segment, generics and
++/// array brackets stripped: `void f(final java.io.ObjectInputStream in)`
++/// -> `["ObjectInputStream"]`. `None` when no parameter list is found.
++fn param_types(signature: &str, name: &str) -> Option<Vec<String>> {
++    let start = signature.find(&format!("{name}("))? + name.len() + 1;
++    let mut depth = 1i32;
++    let mut end = None;
++    for (i, c) in signature[start..].char_indices() {
++        match c {
++            '(' => depth += 1,
++            ')' => {
++                depth -= 1;
++                if depth == 0 {
++                    end = Some(start + i);
++                    break;
++                }
++            }
++            _ => {}
++        }
++    }
++    let inner = &signature[start..end?];
++    let mut out = Vec::new();
++    for p in split_top_level_args(inner) {
++        let words: Vec<&str> = p
++            .split_whitespace()
++            .filter(|w| !w.starts_with('@') && *w != "final")
++            .collect();
++        // Type then name; a lone word is a type with the name elided.
++        let ty = match words.as_slice() {
++            [] => continue,
++            [t] => *t,
++            [.., t, _name] => *t,
++        };
++        let bare = ty.split(['<', '[']).next().unwrap_or(ty);
++        let bare = bare.trim_end_matches("...");
++        out.push(bare.rsplit('.').next().unwrap_or(bare).to_string());
++    }
++    Some(out)
++}
++
++/// **Shape D, signature form** — a runtime hook found by exact name and
++/// parameter list (Java serialization's `readObject(ObjectInputStream)`).
++/// A same-named method with any other parameter list is not one.
++fn match_signature_methods(
++    graph: &Graph,
++    rule: &FrameworkRule,
++    out: &mut Vec<FrameworkEntry>,
++) {
++    let hooks = rules::signature_methods_for(&rule.id, &rule.language);
++    if hooks.is_empty() {
++        return;
++    }
++    for (id, node) in &graph.callables {
++        if node.language != rule.language || node.synthetic {
++            continue;
++        }
++        let Some(hook) = hooks.iter().find(|h| h.name == node.simple_name) else {
++            continue;
++        };
++        let Some(params) = param_types(&node.signature_hint, hook.name) else {
++            continue;
++        };
++        if params.len() != hook.params.len()
++            || params.iter().zip(hook.params).any(|(a, b)| a != b)
++        {
++            continue;
++        }
++        out.push(FrameworkEntry {
++            framework: rule.id.clone(),
++            kind: rule.kind,
++            shape: EntryShape::BaseType,
++            route: String::new(),
++            target: *id,
++            target_name: node.qualified_name.clone(),
++            evidence: format!(
++                "`{}({})` is a runtime hook",
++                hook.name,
++                hook.params.join(", ")
++            ),
++            file: node.file,
++            site_line: node.start_line,
++            node: rule.node,
++        });
++    }
++}
++
+ /// Prefer a value-ref handler on the same type as the registrar call.
+ ///
+ /// `self.bind(on_x=self.handler)` is looked up by bare name first, and
+@@ -1511,6 +1827,37 @@ impl NameIndex {
+         }
+     }
+ 
++    /// Every definition of `owner.member`: those in `from`'s file when
++    /// there are any, otherwise the one definition if it is unique.
++    /// Overloads in one file are all returned — a data source may be
++    /// overloaded, and rooting is a claim about the name, not an edge.
++    fn owner_members(
++        &self,
++        graph: &Graph,
++        owner: &str,
++        member: &str,
++        from: FileId,
++    ) -> Vec<CallableId> {
++        let Some(ids) = self
++            .by_owner_method
++            .get(&(owner.to_string(), member.to_string()))
++        else {
++            return Vec::new();
++        };
++        let local: Vec<CallableId> = ids
++            .iter()
++            .copied()
++            .filter(|i| graph.callables.get(i).is_some_and(|c| c.file == from))
++            .collect();
++        if !local.is_empty() {
++            return local;
++        }
++        match ids.as_slice() {
++            [one] => vec![*one],
++            _ => Vec::new(),
++        }
++    }
++
+     fn by_owner_method(
+         &self,
+         owner: Option<&str>,
+@@ -2354,4 +2701,169 @@ mod tests {
+             out.entries
+         );
+     }
++
++    fn rooted(out: &FrameworkOutcome) -> Vec<String> {
++        let mut v: Vec<String> =
++            out.entries.iter().map(|e| e.target_name.clone()).collect();
++        v.sort();
++        v
++    }
++
++    #[test]
++    fn attribute_arguments_name_members_and_owner_types() {
++        let m = named_members("@MethodSource({\"alpha\", \"demo.Shared#beta(int)\"})");
++        assert_eq!(
++            m.members,
++            vec![
++                (None, "alpha".to_string()),
++                (Some("Shared".to_string()), "beta".to_string())
++            ]
++        );
++        let m = named_members("TestCaseSource(typeof(Other), nameof(Other.Remote))");
++        assert_eq!(m.owner_type.as_deref(), Some("Other"));
++        assert_eq!(
++            m.members,
++            vec![(Some("Other".to_string()), "Remote".to_string())]
++        );
++        let m = named_members("MemberData(nameof(Ext.Data), MemberType = typeof(Ext))");
++        assert_eq!(m.owner_type.as_deref(), Some("Ext"));
++        assert_eq!(
++            m.members,
++            vec![(Some("Ext".to_string()), "Data".to_string())]
++        );
++        // Later positionals are parameters for the source, not names.
++        let m = named_members("MemberData(nameof(Data), \"abc\", 3)");
++        assert_eq!(m.members, vec![(None, "Data".to_string())]);
++        // Java's implicit `value` element is the positional one.
++        let m = named_members("@MethodSource(value = \"rows\")");
++        assert_eq!(m.members, vec![(None, "rows".to_string())]);
++        assert_eq!(named_members("@MethodSource"), NamedMembers::default());
++        let m = named_members("@ArgumentsSource(Rows.class)");
++        assert_eq!(m.owner_type.as_deref(), Some("Rows"));
++        assert!(m.members.is_empty());
++    }
++
++    // B4: a data source is named by a string on the test, not called.
++    #[test]
++    fn method_source_roots_the_named_member_and_not_its_neighbours() {
++        let mut t1 = node(0, "demo.T.named", "named", "java");
++        t1.attributes = vec![
++            "@ParameterizedTest".into(),
++            "@MethodSource(\"words\")".into(),
++        ];
++        let mut t2 = node(1, "demo.T.same", "same", "java");
++        t2.attributes = vec!["@MethodSource".into()];
++        let g = graph_with(vec![
++            t1,
++            t2,
++            node(2, "demo.T.words", "words", "java"),
++            node(3, "demo.T.same", "same", "java"),
++            node(4, "demo.T.unused", "unused", "java"),
++            // Same member name on another class: not the source.
++            node(5, "demo.U.words", "words", "java"),
++        ]);
++        let facts = vec![facts_with_import(
++            "java",
++            "T.java",
++            "org.junit.jupiter.params.provider.MethodSource",
++        )];
++        let out = detect(&g, &facts, &[]);
++        let ids: Vec<u32> = out
++            .entries
++            .iter()
++            .filter(|e| e.framework == "junit-sources")
++            .map(|e| e.target.as_u32())
++            .collect();
++        assert!(ids.contains(&2), "{:?}", out.entries);
++        assert!(ids.contains(&3), "bare @MethodSource names its own name");
++        assert!(
++            !ids.contains(&1),
++            "the annotated test is not its own source"
++        );
++        assert!(!ids.contains(&4) && !ids.contains(&5), "{:?}", out.entries);
++        assert!(out.entries.iter().all(|e| !e.node), "roots only, no nodes");
++    }
++
++    #[test]
++    fn member_sources_need_the_framework_detected() {
++        let mut t = node(0, "demo.T.named", "named", "java");
++        t.attributes = vec!["@MethodSource(\"words\")".into()];
++        let g = graph_with(vec![t, node(1, "demo.T.words", "words", "java")]);
++        let facts = vec![facts_with_import("java", "T.java", "java.util.List")];
++        assert!(rooted(&detect(&g, &facts, &[])).is_empty());
++    }
++
++    #[test]
++    fn xunit_and_nunit_sources_follow_nameof_and_typeof() {
++        let mut a = node(0, "Demo.X.Member", "Member", "csharp");
++        a.attributes =
++            vec!["MemberData(nameof(Ext.Rows), MemberType = typeof(Ext))".into()];
++        let mut b = node(1, "Demo.X.Cls", "Cls", "csharp");
++        b.attributes = vec!["ClassData(typeof(Gen))".into()];
++        let g = graph_with(vec![
++            a,
++            b,
++            node(2, "Demo.Ext.Rows", "Rows", "csharp"),
++            node(3, "Demo.Gen.GetEnumerator", "GetEnumerator", "csharp"),
++            node(4, "Demo.Gen.Other", "Other", "csharp"),
++        ]);
++        let facts = vec![facts_with_import("csharp", "X.cs", "Xunit")];
++        assert_eq!(
++            rooted(&detect(&g, &facts, &[])),
++            vec![
++                "Demo.Ext.Rows".to_string(),
++                "Demo.Gen.GetEnumerator".to_string()
++            ]
++        );
++    }
++
++    #[test]
++    fn serialization_hooks_match_by_name_and_parameter_list() {
++        let mut r = node(0, "demo.Rec.readObject", "readObject", "java");
++        r.signature_hint =
++            "private void readObject(final java.io.ObjectInputStream in) throws IOException"
++                .into();
++        let mut w = node(1, "demo.Rec.writeReplace", "writeReplace", "java");
++        w.signature_hint = "private Object writeReplace()".into();
++        // Near misses: the name without the serialization signature.
++        let mut n1 = node(2, "demo.Io.readObject", "readObject", "java");
++        n1.signature_hint = "private Object readObject(String path)".into();
++        let mut n2 = node(3, "demo.Io.readResolve", "readResolve", "java");
++        n2.signature_hint = "Object readResolve(int depth)".into();
++        let g = graph_with(vec![r, w, n1, n2]);
++        let facts = vec![facts_with_import(
++            "java",
++            "Rec.java",
++            "java.io.Serializable",
++        )];
++        assert_eq!(
++            rooted(&detect(&g, &facts, &[])),
++            vec![
++                "demo.Rec.readObject".to_string(),
++                "demo.Rec.writeReplace".to_string()
++            ]
++        );
++    }
++
++    #[test]
++    fn lifecycle_annotations_root_only_the_annotated_method() {
++        let mut a = node(0, "demo.S.init", "init", "java");
++        a.attributes = vec!["@PostConstruct".into()];
++        let mut b = node(1, "demo.S.make", "make", "java");
++        b.attributes = vec!["@Provides".into()];
++        let g = graph_with(vec![a, b, node(2, "demo.S.initLater", "initLater", "java")]);
++        let facts = vec![
++            facts_with_import("java", "S.java", "javax.annotation.PostConstruct"),
++            facts_with_import("java", "M.java", "com.google.inject.Provides"),
++        ];
++        let out = detect(&g, &facts, &[]);
++        assert_eq!(
++            rooted(&out),
++            vec!["demo.S.init".to_string(), "demo.S.make".to_string()]
++        );
++        assert!(
++            out.entries.iter().all(|e| !e.node),
++            "lifecycle mints no node"
++        );
++    }
+ }
