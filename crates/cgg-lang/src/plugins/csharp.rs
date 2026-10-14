@@ -63,6 +63,14 @@ impl LanguagePlugin for CSharpPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "csharp");
+        // A tree the grammar could not parse because `#if`/`#else` split a
+        // statement or a declaration is re-read from a copy with the
+        // directives blanked out (byte offsets and lines unchanged).
+        let reparsed = reparse_without_conditionals(tree, source);
+        let (tree, source) = match &reparsed {
+            Some((t, s)) => (t, s.as_slice()),
+            None => (tree, source),
+        };
         let mut w = Walker {
             ctx: *ctx,
             source,
@@ -177,6 +185,16 @@ impl<'a> Walker<'a> {
             }
             "method_declaration" | "local_function_statement" => {
                 self.record_method(node, DefVariant::InherentMethod);
+                // `partial void OnLoaded();` and its implementing part: a
+                // hook whose other half is often generated (designer
+                // files, source generators) or outside the tree; calls to
+                // an unimplemented one are compiled away.
+                if node.kind() == "method_declaration"
+                    && has_modifier(node, "partial")
+                    && let Some(d) = self.facts.definitions.last_mut()
+                {
+                    d.attributes.push(PARTIAL_DECLARATION.to_string());
+                }
                 self.walk_children(node);
                 return;
             }
@@ -530,6 +548,12 @@ impl<'a> Walker<'a> {
                 // reading applies.
                 let recv = if expr.kind() == "base" {
                     "super".to_string()
+                } else if let Some(ty) = constructed_type(expr) {
+                    // `new Alpha().Run()`: the receiver is an `Alpha`, so the
+                    // call is looked up on that type and up its bases, as
+                    // a call through a variable of that type would be.
+                    let t = self.text(ty);
+                    t[..t.find('<').unwrap_or(t.len())].trim().to_string()
                 } else {
                     self.text(expr).to_string()
                 };
@@ -572,6 +596,91 @@ fn line_range(n: Node) -> (u32, u32) {
 /// rather than the text means an attribute argument
 /// (`[Obsolete("x")] public void F()`) can neither fake a modifier nor
 /// hide one.
+/// Attribute on a `partial` method part; see
+/// `cgg_core::PARTIAL_DECLARATION`.
+use cgg_core::PARTIAL_DECLARATION;
+
+/// Re-parse a C# file whose tree has errors after blanking its
+/// conditional-compilation directives — first keeping every branch, then,
+/// if that still does not parse, keeping only the first branch of each
+/// `#if` group. Returns `None` when the original tree is error-free, has
+/// no `#if`, or neither copy parses cleanly (the original stands).
+fn reparse_without_conditionals(tree: &Tree, source: &[u8]) -> Option<(Tree, Vec<u8>)> {
+    if !tree.root_node().has_error() {
+        return None;
+    }
+    let parse = |src: &[u8]| {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into()).ok()?;
+        p.parse(src, None).filter(|t| !t.root_node().has_error())
+    };
+    for first_branch_only in [false, true] {
+        let masked = mask_conditionals(source, first_branch_only)?;
+        if let Some(t) = parse(&masked) {
+            return Some((t, masked));
+        }
+    }
+    None
+}
+
+/// The directive word of a preprocessor line (`#if`, `# endif`), if any.
+fn directive(line: &[u8]) -> Option<&[u8]> {
+    let t = line.trim_ascii_start();
+    let rest = t.strip_prefix(b"#")?.trim_ascii_start();
+    let end = rest
+        .iter()
+        .position(|b| !b.is_ascii_alphabetic())
+        .unwrap_or(rest.len());
+    Some(&rest[..end])
+}
+
+/// A copy of `source` with every `#if`/`#elif`/`#else`/`#endif` line
+/// replaced by spaces; with `first_branch_only`, the lines of every
+/// `#elif`/`#else` branch too. Newlines are kept, so every byte offset
+/// and line number is the original's. `None` when there is no `#if`.
+fn mask_conditionals(source: &[u8], first_branch_only: bool) -> Option<Vec<u8>> {
+    let mut out = source.to_vec();
+    // Per open `#if` group: whether it has reached an `#elif`/`#else`.
+    let mut groups: Vec<bool> = Vec::new();
+    let mut saw_if = false;
+    let mut start = 0usize;
+    while start < source.len() {
+        let end = source[start..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(source.len(), |i| start + i);
+        let line = &source[start..end];
+        let skipping = first_branch_only && groups.iter().any(|&in_else| in_else);
+        let blank = match directive(line) {
+            Some(b"if") => {
+                saw_if = true;
+                groups.push(false);
+                true
+            }
+            Some(b"elif") | Some(b"else") => {
+                if let Some(g) = groups.last_mut() {
+                    *g = true;
+                }
+                true
+            }
+            Some(b"endif") => {
+                groups.pop();
+                true
+            }
+            _ => skipping,
+        };
+        if blank {
+            for b in &mut out[start..end] {
+                if *b != b'\r' {
+                    *b = b' ';
+                }
+            }
+        }
+        start = end + 1;
+    }
+    saw_if.then_some(out)
+}
+
 fn has_modifier(node: Node, kw: &str) -> bool {
     node.children(&mut node.walk())
         .filter(|c| c.kind() == "modifier")
@@ -631,6 +740,28 @@ fn csharp_vis(node: Node) -> cgg_core::Vis {
     }
 }
 
+/// The type a construction receiver builds (`new Alpha()` / `new
+/// N.Alpha(x)` / `new Box<int>()` → `Alpha` / `N.Alpha` / `Box`), looking
+/// through parentheses. `None` for any other receiver, and for a
+/// target-typed `new()` that names no type.
+fn constructed_type(expr: Node) -> Option<Node> {
+    let mut e = expr;
+    while e.kind() == "parenthesized_expression" {
+        e = e.named_child(0)?;
+    }
+    if e.kind() != "object_creation_expression" {
+        return None;
+    }
+    let ty = e.child_by_field_name("type")?;
+    match ty.kind() {
+        "identifier" | "qualified_name" => Some(ty),
+        "generic_name" => ty
+            .children(&mut ty.walk())
+            .find(|c| c.kind() == "identifier"),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -668,6 +799,56 @@ mod tests {
 
     /// B3: a method group in a value position is recorded through its
     /// receiver; an invoked member and a declared variable's name are not.
+    #[test]
+    fn conditional_compilation_split_code_is_reparsed() {
+        // `#if` in an else-if chain and `#if`/`#else` method headers: the
+        // grammar reads a callable named `if`, or two headers; blanking
+        // the directives (and, if needed, all but the first branch) gives
+        // the code one configuration compiles.
+        let src = "namespace N {\n  public class D {\n    public bool Has(int k)\n    {\n        if (a) { return Foo(k); }\n#if X\n        else if (b) { return Bar(k); }\n#endif\n        else { return Baz(k); }\n    }\n#if ASYNC\n    public async Task<int> Load()\n#else\n    public int Load()\n#endif\n    {\n      return Foo(1);\n    }\n  }\n}\n";
+        let f = extract(src);
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert_eq!(qns, vec!["N.D.Has", "N.D.Load"], "{qns:?}");
+        let has = &f.definitions[0];
+        let bar = f.references.iter().find(|r| r.name == "Bar").unwrap();
+        assert!(has.start_byte <= bar.site_byte && bar.site_byte < has.end_byte);
+        // Byte offsets are the original file's.
+        let load = &f.definitions[1];
+        assert_eq!(load.start_line, 12);
+    }
+
+    #[test]
+    fn construction_receivers_name_their_type_and_partial_methods_are_marked() {
+        let f = extract(
+            "class U { void G() { new Alpha().Run(); new N.Box<int>(1).Get(); (new Beta()).Go(); x.Run(); } }\npartial class P { partial void OnLoaded(); void M() {} }\n",
+        );
+        let recv = |n: &str| {
+            f.references
+                .iter()
+                .find(|r| r.name == n)
+                .map(|r| r.receiver_hint.clone())
+                .unwrap()
+        };
+        assert_eq!(recv("Run"), "Alpha");
+        assert_eq!(recv("Get"), "N.Box");
+        assert_eq!(recv("Go"), "Beta");
+        let partial = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap()
+                .attributes
+                .iter()
+                .any(|a| a == cgg_core::PARTIAL_DECLARATION)
+        };
+        assert!(partial("OnLoaded"));
+        assert!(!partial("M"));
+    }
+
     #[test]
     fn method_groups_are_value_refs() {
         let src = "class P { event System.EventHandler E; void Run(int[] xs) {\n\

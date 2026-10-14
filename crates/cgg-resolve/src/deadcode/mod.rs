@@ -482,6 +482,17 @@ impl<'a> Contracts<'a> {
                 contract: t.to_string(),
             });
         }
+        // A partial method part: its other half and the callers it
+        // stands for are routinely generated code or outside the tree.
+        if nd
+            .attributes
+            .iter()
+            .any(|a| a == cgg_core::PARTIAL_DECLARATION)
+        {
+            return Some(Evidence::ImplementsExternalContract {
+                contract: "partial".to_string(),
+            });
+        }
         let owner = owner_stem(&nd.qualified_name)?;
         let marked = nd
             .attributes
@@ -2189,6 +2200,31 @@ mod tests {
             Evidence::ImplementsExternalContract { contract } if contract == "Handler"
         )));
         assert_eq!(finding(&r, "p.Ext.unused").confidence, Confidence::High);
+    }
+
+    #[test]
+    fn a_partial_method_part_is_a_contract_member_not_high() {
+        // C# `partial void OnLoaded();`: its other half and its callers
+        // are routinely generated or outside the tree.
+        let part = member(
+            1,
+            "csharp",
+            "Data",
+            "OnLoaded",
+            &[cgg_core::PARTIAL_DECLARATION],
+        );
+        let plain = member(2, "csharp", "Data", "Helper", &[]);
+        let facts = facts_for("csharp", vec![def_of(&part, &[]), def_of(&plain, &[])]);
+        let g = graph_with(vec![node(0, "p.Main.main", "main", "csharp"), part, plain]);
+        let r = analyze(&g, &[], &facts, &opts_full("csharp"));
+        let has = |qn: &str| {
+            finding(&r, qn)
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "implements-external-contract")
+        };
+        assert!(has("p.Data.OnLoaded"));
+        assert!(!has("p.Data.Helper"));
     }
 
     #[test]

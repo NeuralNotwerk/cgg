@@ -1249,8 +1249,21 @@ fn rust_guard_base(rh: &str) -> Option<&str> {
 }
 
 fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
-    // "x: Service" or "x: &Service" or "x: *Service"
-    let (name, rest) = param.split_once(':')?;
+    // "x: Service" or "x: &Service" or "x: *Service". The separator is a
+    // lone `:` — never half of a `::` path separator, which a C++ or C#
+    // type-first parameter (`ns::Foo x`, `global::A.B y`) contains and
+    // which made `ns` the parameter's name.
+    let bytes = param.as_bytes();
+    let at = (0..bytes.len()).find(|&i| {
+        bytes[i] == b':'
+            && (i == 0 || bytes[i - 1] != b':')
+            && bytes.get(i + 1) != Some(&b':')
+    })?;
+    let (name, rest) = (&param[..at], &param[at + 1..]);
+    // `x :: xs : List α` (a Lean cons pattern) binds no single name.
+    if name.contains("::") {
+        return None;
+    }
     let name = name
         .trim()
         .trim_start_matches("mut ")
@@ -1855,6 +1868,17 @@ mod tests {
     /// qualifier (`t *util.T` → `util.T`), names declared together share
     /// the type, unqualified and composite types stay untyped, and a
     /// method's receiver list is not its parameters.
+    #[test]
+    fn a_scope_separator_is_not_a_name_type_colon() {
+        // `ns::Foo x` (C++) / `global::A.B y` (C#) are type-first; only a
+        // lone `:` separates a name from its type.
+        assert_eq!(parse_colon_param("ns::Foo x"), None);
+        assert_eq!(parse_colon_param("const ns::Foo& y"), None);
+        assert_eq!(parse_colon_param("x: a::Store"), Some(("x", "a::Store")));
+        assert_eq!(parse_colon_param("svc: Service"), Some(("svc", "Service")));
+        assert_eq!(parse_colon_param("x :: xs : List α"), None);
+    }
+
     #[test]
     fn go_parameters_of_a_package_type_keep_the_package() {
         let d = mk_def(

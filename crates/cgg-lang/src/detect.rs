@@ -318,6 +318,7 @@ fn has_cpp_content(path: &Path) -> bool {
         if contains_word(t, "constexpr")
             || contains_word(t, "noexcept")
             || t.contains("::")
+            || has_virtual_member(t)
         {
             return true;
         }
@@ -552,6 +553,19 @@ fn has_access_specifier(line: &str) -> bool {
     false
 }
 
+/// `virtual` introducing a member declaration (`virtual void f() = 0;`,
+/// `virtual ~Shape()`): the keyword at the start of the line, followed by
+/// a name or a destructor's `~`. C has no `virtual`; a C identifier of
+/// that name is never followed by another name.
+fn has_virtual_member(line: &str) -> bool {
+    line.strip_prefix("virtual").is_some_and(|rest| {
+        rest.starts_with(char::is_whitespace)
+            && rest
+                .trim_start()
+                .starts_with(|c: char| c.is_ascii_alphabetic() || c == '_' || c == '~')
+    })
+}
+
 fn contains_word(line: &str, word: &str) -> bool {
     let b = line.as_bytes();
     let w = word.as_bytes();
@@ -727,6 +741,29 @@ mod tests {
         let r = det.detect(&tmp.path().join("x.h"));
         assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
         assert_eq!(r.detected_via, "header-heuristic:cpp");
+    }
+
+    #[test]
+    fn header_with_virtual_members_is_cpp() {
+        // A struct of pure virtuals uses no other C++-only construct.
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let tmp = TempDir::new().unwrap();
+        write(
+            tmp.path(),
+            "shape.h",
+            b"struct Shape {\n  virtual ~Shape() {}\n  virtual double area() const = 0;\n};\n",
+        );
+        write(
+            tmp.path(),
+            "plain.h",
+            b"struct S { int virtual; };\nint virtual_count(void);\n",
+        );
+        let r = det.detect(&tmp.path().join("shape.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
+        assert_eq!(r.detected_via, "header-content:cpp");
+        let r = det.detect(&tmp.path().join("plain.h"));
+        assert_eq!(r.verdict, DetectVerdict::Language("c"));
     }
 
     #[test]

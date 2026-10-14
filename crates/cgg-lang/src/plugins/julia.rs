@@ -90,7 +90,17 @@ impl<'a> JuliaWalker<'a> {
                         }
                     }
                 }
-                self.walk_children(node);
+                // The signature `foo(x)` parses as a call to `foo`: walking
+                // it as one recorded every function as calling itself.
+                // Only its arguments (default values) are walked.
+                let mut c = node.walk();
+                for child in node.children(&mut c) {
+                    if child.kind() == "signature" {
+                        self.walk_signature(child);
+                    } else {
+                        self.walk(child);
+                    }
+                }
                 return;
             }
             "short_function_definition" => {
@@ -155,6 +165,23 @@ impl<'a> JuliaWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// Walk a function signature without its head: the outermost call
+    /// (`foo(x = g())`) contributes its arguments, never itself.
+    fn walk_signature(&mut self, node: Node) {
+        if node.kind() == "call_expression" {
+            for i in 1..node.child_count() {
+                if let Some(ch) = node.child(i as u32) {
+                    self.walk(ch);
+                }
+            }
+            return;
+        }
+        let mut c = node.walk();
+        for child in node.children(&mut c) {
+            self.walk_signature(child);
+        }
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -269,6 +296,16 @@ mod tests {
     }
     fn refs(f: &FileFacts) -> Vec<String> {
         f.references.iter().map(|r| r.name.clone()).collect()
+    }
+
+    #[test]
+    fn a_function_signature_is_not_a_call_to_itself() {
+        let f = extract("function foo(x = bar())\n    baz()\nend\n");
+        let r = refs(&f);
+        assert!(!r.contains(&"foo".to_string()), "{r:?}");
+        // Default values and the body are still walked.
+        assert!(r.contains(&"bar".to_string()), "{r:?}");
+        assert!(r.contains(&"baz".to_string()), "{r:?}");
     }
 
     #[test]

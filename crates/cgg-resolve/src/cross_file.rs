@@ -3781,7 +3781,36 @@ struct BareScope<'s> {
     scala_wild: &'s std::collections::BTreeSet<String>,
 }
 
-/// `start` and every type it inherits from through recorded bases (bare
+/// The type a C# extension method extends, from its signature
+/// (`static Box<P> Wrap(this P _)` → `P`), bare of namespace and
+/// type arguments, and whether that type is one of the method's own type
+/// parameters (`static T Or<T>(this T x, …)` extends every type).
+/// `None` for a method whose first parameter is not `this`.
+fn csharp_extension_target(sig: &str) -> Option<(String, bool)> {
+    let open = sig.find('(')?;
+    let rest = sig[open + 1..].trim_start().strip_prefix("this ")?;
+    let ty = rest.trim_start();
+    let end = ty
+        .char_indices()
+        .find(|(_, c)| c.is_whitespace() || matches!(c, '<' | '[' | '?' | ',' | ')'))
+        .map_or(ty.len(), |(i, _)| i);
+    let ty = &ty[..end];
+    let bare = ty.rsplit('.').next().unwrap_or(ty).to_string();
+    if bare.is_empty() {
+        return None;
+    }
+    // The method's own type parameters: `Name<T, U>(` just before `(`.
+    let head = &sig[..open];
+    let generic = head.ends_with('>')
+        && head.rfind('<').is_some_and(|lt| {
+            head[lt + 1..head.len() - 1]
+                .split(',')
+                .any(|p| p.trim() == bare)
+        });
+    Some((bare, generic))
+}
+
+/// `start` and every type it inherits from through recorded bases (bare/// `start` and every type it inherits from through recorded bases (bare
 /// names, depth 8).
 fn with_ancestors(
     lang: &str,
@@ -3830,9 +3859,13 @@ fn with_ancestors(
 ///   have: Kotlin (a lambda with receiver, `apply {}`/`with(x) {}`),
 ///   Groovy (closure delegates — the Gradle DSL, Spock), C++
 ///   (argument-dependent lookup; namespace
-///   functions are recorded like members); and Swift, Dart, Objective-C,
+///   functions are recorded like members); and Swift, Objective-C,
 ///   whose plugins record no base types, so an inherited member cannot be
 ///   told from an unrelated one.
+/// * Dart, Ruby (WS8): a bare name reaches library-level / top-level
+///   functions and the members of the calling class and the types it
+///   inherits or mixes in (the bases its methods record); never a method
+///   of an unrelated class.
 ///
 /// A call written with a dot whose receiver the plugin could not capture
 /// (`dot_call`) is not a bare call. Every other language is unchanged.
@@ -3877,7 +3910,23 @@ fn bare_call_reaches(
         CallableKind::Method | CallableKind::Destructor | CallableKind::Property
     ) || (lang == "rust" && rust_type_owned(&c.qualified_name));
     match lang {
-        "python" | "rust" | "javascript" | "typescript" | "php" | "fsharp" => !member,
+        "python" | "rust" | "javascript" | "typescript" | "php" | "fsharp" | "lua" => {
+            !member
+        }
+        // Dart: a bare call is a library-level function, or (implicit
+        // `this`) a member of the calling class or a type it inherits —
+        // never a method of an unrelated class. Ruby the same: a bare
+        // `helper` / `helper(x)` is `self`'s method — the class's, a
+        // superclass's or an included module's — or a top-level one.
+        "dart" | "ruby" => match owner_from_qn(&c.qualified_name) {
+            // A top-level definition (Ruby records `def` as a method
+            // whatever its scope).
+            None => true,
+            Some(_) if !member => true,
+            Some(co) => caller_qn.and_then(owner_from_qn).is_some_and(|own| {
+                with_ancestors(lang, vec![own.to_string()], bases_by_owner).contains(co)
+            }),
+        },
         "go" => {
             let dir = |f: &FileId| graph.files.get(f).and_then(|r| r.path.parent());
             !member
@@ -4140,6 +4189,19 @@ fn try_resolve_ref(
     // initializer, so the caller can say that rather than "no candidate".
     no_ctor: &mut bool,
 ) -> Option<Vec<CallableId>> {
+    // A paren-less member site (`b.size`) binds only through a receiver
+    // typed by `type_hints` (rewritten to a type name), `this`/`super`, or
+    // as a bare name; through an untyped value nothing can bind it (it is
+    // never fanned out by name), so it is not looked up at all.
+    if r.paren_less {
+        let rh = r.receiver_hint.trim();
+        if !rh.is_empty()
+            && !matches!(rh, "this" | "super" | "self")
+            && !rh.starts_with(char::is_uppercase)
+        {
+            return None;
+        }
+    }
     // Descriptor / interface-definition languages (Smithy, Protobuf,
     // GraphQL). Their references are shape/message/type names that are
     // effectively unique identifiers within the model, so a global
@@ -4291,7 +4353,7 @@ fn try_resolve_ref(
     // through its re-exports — never by name across the tree. A module
     // that provides nothing the call can name is a refusal, recorded by
     // the caller; it does not fall through to the name matching below.
-    if matches!(lang, "javascript" | "typescript" | "python" | "go")
+    if matches!(lang, "javascript" | "typescript" | "python" | "go" | "lua")
         && !heads.locals.shadows_receiver_head(r)
         && let Some(scoped) = file_mods.resolve(
             modix,
@@ -4509,7 +4571,9 @@ fn try_resolve_ref(
         };
         // Java/C#: a bare name is a member of the calling class or one it
         // inherits before any static import (see `member_of_calling_class`).
-        if matches!(lang, "java" | "csharp")
+        // Ruby (WS8): a bare `helper` is `self`'s — the class's, a
+        // superclass's or an included module's.
+        if matches!(lang, "java" | "csharp" | "ruby")
             && let Some(caller) = caller_qn
             && let Some(member) = member_of_calling_class(
                 graph,
@@ -4794,7 +4858,7 @@ fn try_resolve_ref(
         let has_imports = !direct_imports.is_empty()
             || !module_aliases.is_empty()
             || !unqualified_prefixes.is_empty();
-        if has_imports {
+        if has_imports && !r.paren_less {
             let is_stdlib = cgg_core::stdlib::stdlib_names(lang)
                 .is_some_and(|s| s.contains(r.name.as_str()));
             if !is_stdlib
@@ -5338,6 +5402,33 @@ fn try_resolve_ref(
             return None;
         }
 
+        // Step 4d (C#, WS8): `x.M()` on a receiver typed `T` — a variable
+        // of that type, or a construction `new T()` — that neither `T`
+        // nor its bases declare is an extension method: a static
+        // `M(this U …)` whose extended type `U` is `T`, a base of `T`, or
+        // a type parameter of `M`. Without this a typed receiver lost
+        // every extension call it makes.
+        if lang == "csharp" && !r.paren_less && rh.starts_with(char::is_uppercase) {
+            let recv = rh.rsplit('.').next().unwrap_or(rh);
+            let recv = recv.split('<').next().unwrap_or(recv).trim();
+            let family = with_ancestors(lang, vec![recv.to_string()], bases_by_owner);
+            if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
+                let ext: Vec<CallableId> = cids
+                    .iter()
+                    .copied()
+                    .filter(|c| {
+                        signatures
+                            .get(c)
+                            .and_then(|sig| csharp_extension_target(sig))
+                            .is_some_and(|(t, generic)| generic || family.contains(&t))
+                    })
+                    .collect();
+                if !ext.is_empty() && ext.len() <= fanout_cap {
+                    return Some(ext);
+                }
+            }
+        }
+
         // Step 5: Trait/interface method dispatch.
         // When receiver_hint is a variable name (lowercase) and the method
         // name exists on definitions in other files, find all callables
@@ -5345,7 +5436,11 @@ fn try_resolve_ref(
         // formatter is a trait object — we emit edges to all implementors.
         // Only applies when the method name is NOT a common stdlib method
         // (to avoid matching `vec.is_empty()` to `WalkOutcome::is_empty`).
+        // A paren-less site (`b.size`) through an untyped receiver is a
+        // field read far more often than a parameterless method: it binds
+        // only where the receiver is typed, never by name fan-out.
         if !rh.is_empty()
+            && !r.paren_less
             && rh != "self"
             && rh != "Self"
             && rh != "cls"
@@ -9787,6 +9882,78 @@ mod tests {
             })
             .collect();
         (dsts, out.unresolved.into_iter().map(|u| u.reason).collect())
+    }
+
+    #[test]
+    fn lua_calls_through_a_require_bind_in_the_required_file_only() {
+        // `util.decode()` is the member of the table util.lua defines;
+        // `cjson.decode()` is a dependency's (no file of the tree is
+        // `cjson`), never the workspace `decode`; a name util.lua does not
+        // provide is refused, not matched elsewhere.
+        let files = vec![
+            mfile(
+                "lib/util.lua",
+                &["M.decode", "M:encode", "M.sub.deep"],
+                vec![],
+            ),
+            mfile("other.lua", &["N.decode", "N.missing"], vec![]),
+        ];
+        let caller = mfile(
+            "app.lua",
+            &["run"],
+            vec![
+                import("require", "util", "util"),
+                import("require", "cjson", "cjson"),
+            ],
+        );
+        let refs = vec![
+            call("decode", "util"),
+            RefRecord {
+                site_byte: 61,
+                ..call("encode", "util")
+            },
+            RefRecord {
+                site_byte: 62,
+                ..call("decode", "cjson")
+            },
+            RefRecord {
+                site_byte: 63,
+                ..call("missing", "util")
+            },
+            RefRecord {
+                site_byte: 64,
+                ..call("deep", "util")
+            },
+        ];
+        let (dsts, why) = module_case("lua", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("M.decode", "lib/util.lua"),
+                at("M:encode", "lib/util.lua")
+            ]
+        );
+        assert!(why.contains(&external("cjson")), "{why:?}");
+        assert!(why.contains(&refused("util")), "{why:?}");
+    }
+
+    #[test]
+    fn csharp_extension_targets_are_read_from_the_signature() {
+        assert_eq!(
+            csharp_extension_target("internal static Faker<P> GetFaker(this P _) =>"),
+            Some(("P".to_string(), false))
+        );
+        assert_eq!(
+            csharp_extension_target("public static T Or<T>(this T x, T y)"),
+            Some(("T".to_string(), true))
+        );
+        assert_eq!(
+            csharp_extension_target(
+                "static int N(this System.Collections.IList<int> xs)"
+            ),
+            Some(("IList".to_string(), false))
+        );
+        assert_eq!(csharp_extension_target("static int N(int x)"), None);
     }
 
     fn refused(module: &str) -> UnresolvedReason {

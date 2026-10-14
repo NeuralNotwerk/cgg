@@ -74,6 +74,31 @@ impl<'a> ElixirWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        // `&f/1`, `&Mod.f/2`: a function capture names `f` of that arity
+        // without calling it — a value reference, resolved as the call it
+        // stands for. Its operand `Mod.f` parses as a call with no
+        // arguments, which is not a call to `f/0`, so it is never walked.
+        if node.kind() == "unary_operator"
+            && let Some((target, arity)) = capture_target(node, self.source)
+        {
+            if self.ctx.reference_sites {
+                let name = self.text(target).to_string();
+                let receiver_hint = match name.split_once('.') {
+                    Some((m, f)) if !f.contains('.') => m.to_string(),
+                    _ => String::new(),
+                };
+                self.facts.references.push(RefRecord {
+                    name,
+                    receiver_hint,
+                    site_line: (target.start_position().row as u32) + 1,
+                    site_byte: target.start_byte() as u32,
+                    arity: Some(arity),
+                    value_ref: true,
+                    ..Default::default()
+                });
+            }
+            return;
+        }
         if node.kind() == "call" {
             // Get the first child which should be the function name
             let func_name = node
@@ -461,6 +486,7 @@ impl<'a> ElixirWalker<'a> {
             kwargs: Vec::new(),
             arity: None,
             value_ref: false,
+            paren_less: false,
         });
     }
 
@@ -524,6 +550,41 @@ impl<'a> ElixirWalker<'a> {
 ///
 /// `?` and `!` are kept: `:valid?` is the real name of the definition a
 /// rule would have to bind to, and trimming them would make it miss.
+/// The function a capture `&name/arity` names — the bare identifier or the
+/// argument-less `Mod.fun` call node — and its arity. `None` for any
+/// other `&` (`&(&1 + 1)`, `&Mod.fun(&1)`).
+fn capture_target<'t>(node: Node<'t>, source: &[u8]) -> Option<(Node<'t>, u32)> {
+    if node.child_by_field_name("operator").map(|o| o.kind()) != Some("&")
+        && node.child(0).map(|o| o.kind()) != Some("&")
+    {
+        return None;
+    }
+    let op = node.child_by_field_name("operand")?;
+    if op.kind() != "binary_operator"
+        || op.child_by_field_name("operator").map(|o| o.kind()) != Some("/")
+    {
+        return None;
+    }
+    let left = op.child_by_field_name("left")?;
+    let right = op.child_by_field_name("right")?;
+    if right.kind() != "integer" {
+        return None;
+    }
+    let arity: u32 = right.utf8_text(source).ok()?.trim().parse().ok()?;
+    match left.kind() {
+        "identifier" => Some((left, arity)),
+        "call"
+            if left.child_by_field_name("target").map(|t| t.kind()) == Some("dot")
+                && !left
+                    .named_children(&mut left.walk())
+                    .any(|c| c.kind() == "arguments") =>
+        {
+            Some((left, arity))
+        }
+        _ => None,
+    }
+}
+
 fn is_function_name(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 100
@@ -571,6 +632,42 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn function_captures_are_value_refs_with_their_arity() {
+        let src = "defmodule A do\n  def run(xs) do\n    Enum.map(xs, &f/1)\n    Enum.map(xs, &B.g/2)\n    Enum.map(xs, &(&1 + 1))\n  end\nend\n";
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_elixir::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let f = ElixirPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.ex"),
+            &tree,
+            src.as_bytes(),
+        );
+        let caps: Vec<(&str, &str, Option<u32>)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.arity))
+            .collect();
+        assert_eq!(caps, vec![("f", "", Some(1)), ("B.g", "B", Some(2))]);
+        // The capture's operand `B.g` is not a call of `g/0`.
+        assert!(
+            !f.references
+                .iter()
+                .any(|r| r.name == "B.g" && r.arity == Some(0))
+        );
+        // Without reference sites nothing is recorded for a capture.
+        assert!(
+            !extract(src)
+                .references
+                .iter()
+                .any(|r| r.value_ref || r.name == "f")
+        );
     }
 
     #[test]

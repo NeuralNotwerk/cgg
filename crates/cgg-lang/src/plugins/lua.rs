@@ -62,12 +62,48 @@ impl<'a> LuaWalker<'a> {
     fn walk(&mut self, node: Node) {
         match node.kind() {
             "function_declaration" => {
-                let name = node
-                    .child_by_field_name("name")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
-                if !name.is_empty() {
-                    self.record_def(&name, node, DefVariant::FreeFunction);
+                if let Some(name) = node.child_by_field_name("name") {
+                    self.record_named_def(name, node);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `M.f = function(…) … end`, `local f = function(…) … end`: a
+            // function bound by assignment, named by its target.
+            "assignment_statement" => {
+                let targets = node
+                    .children(&mut node.walk())
+                    .find(|c| c.kind() == "variable_list");
+                let values = node
+                    .children(&mut node.walk())
+                    .find(|c| c.kind() == "expression_list");
+                if let (Some(targets), Some(values)) = (targets, values) {
+                    let names: Vec<Node> =
+                        targets.named_children(&mut targets.walk()).collect();
+                    let vals: Vec<Node> =
+                        values.named_children(&mut values.walk()).collect();
+                    for (name, val) in names.iter().zip(vals.iter()) {
+                        if val.kind() == "function_definition" {
+                            self.record_named_def(*name, *val);
+                        }
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `local t = { f = function(…) … end }`: a function stored in a
+            // field of a named table is `t.f`.
+            "field" => {
+                if let (Some(name), Some(val)) = (
+                    node.child_by_field_name("name"),
+                    node.child_by_field_name("value"),
+                ) && name.kind() == "identifier"
+                    && val.kind() == "function_definition"
+                    && let Some(table) = self.table_binding(node)
+                {
+                    let simple = self.text(name).to_string();
+                    let qn = format!("{table}.{simple}");
+                    self.push_def(simple, qn, val);
                 }
                 self.walk_children(node);
                 return;
@@ -105,6 +141,94 @@ impl<'a> LuaWalker<'a> {
         }
     }
 
+    /// Record the function `node` under the name `name` gives it: a bare
+    /// identifier (`f`), a table field (`M.f`, `M.sub.f`) or a method
+    /// (`M:m`). The simple name is the last segment — the name a call
+    /// writes — and the qualified name the path as written.
+    fn record_named_def(&mut self, name: Node, node: Node) {
+        match name.kind() {
+            "identifier" => {
+                let n = self.text(name).to_string();
+                if !n.is_empty() {
+                    self.record_def(&n, node, DefVariant::FreeFunction);
+                }
+            }
+            "dot_index_expression" | "method_index_expression" => {
+                let leaf = name
+                    .child_by_field_name("field")
+                    .or_else(|| name.child_by_field_name("method"));
+                if let Some(leaf) = leaf {
+                    let simple = self.text(leaf).to_string();
+                    let qn: String = self.text(name).split_whitespace().collect();
+                    self.push_def(simple, qn, node);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The name a table constructor holding `field` is bound to (`t` in
+    /// `local t = { … }`, `M.cfg` in `M.cfg = { … }`), if any.
+    fn table_binding(&self, field: Node) -> Option<String> {
+        let table = field.parent().filter(|p| p.kind() == "table_constructor")?;
+        let values = table.parent().filter(|p| p.kind() == "expression_list")?;
+        let assign = values
+            .parent()
+            .filter(|p| p.kind() == "assignment_statement")?;
+        let idx = values
+            .named_children(&mut values.walk())
+            .position(|v| v == table)?;
+        let targets = assign
+            .children(&mut assign.walk())
+            .find(|c| c.kind() == "variable_list")?;
+        let target = targets.named_children(&mut targets.walk()).nth(idx)?;
+        matches!(target.kind(), "identifier" | "dot_index_expression")
+            .then(|| self.text(target).split_whitespace().collect())
+    }
+
+    /// The plain name a `require(…)` call's result is assigned to, when
+    /// the call is the whole value of the assignment (`local m =
+    /// require("m")`, `m = require "m"`).
+    fn require_binding(&self, call: Node) -> Option<String> {
+        let values = call.parent().filter(|p| p.kind() == "expression_list")?;
+        let assign = values
+            .parent()
+            .filter(|p| p.kind() == "assignment_statement")?;
+        let idx = values
+            .named_children(&mut values.walk())
+            .position(|v| v == call)?;
+        let targets = assign
+            .children(&mut assign.walk())
+            .find(|c| c.kind() == "variable_list")?;
+        let target = targets.named_children(&mut targets.walk()).nth(idx)?;
+        (target.kind() == "identifier").then(|| self.text(target).to_string())
+    }
+
+    fn push_def(&mut self, simple: String, qn: String, node: Node) {
+        if simple.is_empty() {
+            return;
+        }
+        let (sl, el) = (
+            (node.start_position().row as u32) + 1,
+            (node.end_position().row as u32) + 1,
+        );
+        // A function stored in a table field is reached through the table
+        // (`M.f()`, `obj:m()`), never by a bare `f()`.
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple,
+            qualified_name: qn,
+            variant: DefVariant::InherentMethod,
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: Vec::new(),
+            ..Default::default()
+        });
+    }
+
     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
         let qn = self.qn(name);
         let (sl, el) = (
@@ -127,10 +251,34 @@ impl<'a> LuaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let func = node
-            .child_by_field_name("name")
-            .map(|n| self.text(n).to_string())
-            .unwrap_or_default();
+        let Some(callee) = node.child_by_field_name("name") else {
+            return;
+        };
+        // `M.f()`, `a.b.f()`, `obj:m()`: the called name is the field or
+        // method; the table expression before it is the receiver.
+        if matches!(
+            callee.kind(),
+            "dot_index_expression" | "method_index_expression"
+        ) {
+            let leaf = callee
+                .child_by_field_name("field")
+                .or_else(|| callee.child_by_field_name("method"));
+            let table = callee.child_by_field_name("table");
+            if let (Some(leaf), Some(table)) = (leaf, table) {
+                let name = self.text(leaf).to_string();
+                if !name.is_empty() {
+                    self.facts.references.push(RefRecord {
+                        name,
+                        receiver_hint: self.text(table).split_whitespace().collect(),
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                        ..Default::default()
+                    });
+                }
+                return;
+            }
+        }
+        let func = self.text(callee).to_string();
         if func.is_empty() {
             return;
         }
@@ -149,10 +297,13 @@ impl<'a> LuaWalker<'a> {
                     .trim_matches('"')
                     .to_string();
                 if !path.is_empty() {
+                    // `local util = require("util")`: the name the module
+                    // is bound to, which calls through it are written with.
+                    let alias = self.require_binding(node).unwrap_or_default();
                     self.facts.imports.push(ImportRecord {
                         kind: "require".into(),
                         path,
-                        alias: String::new(),
+                        alias,
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
                     });
@@ -189,6 +340,40 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn table_functions_are_named_by_their_field_and_calls_split_their_receiver() {
+        let f = extract(
+            "local util = require(\"util\")\nlocal M = {}\nfunction M.f() return M.g() end\nfunction M:h() return self:f() end\nM.a = function() return util.x() end\nlocal t = { k = function() return helper() end }\nlocal function loc() end\nreturn M\n",
+        );
+        let defs: Vec<(&str, &str)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.as_str(), d.qualified_name.as_str()))
+            .collect();
+        assert_eq!(
+            defs,
+            vec![
+                ("f", "M.f"),
+                ("h", "M:h"),
+                ("a", "M.a"),
+                ("k", "t.k"),
+                ("loc", "loc")
+            ],
+            "{defs:?}"
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(calls.contains(&("g", "M")), "{calls:?}");
+        assert!(calls.contains(&("f", "self")), "{calls:?}");
+        assert!(calls.contains(&("x", "util")), "{calls:?}");
+        assert!(calls.contains(&("helper", "")), "{calls:?}");
+        let req = f.imports.iter().find(|i| i.kind == "require").unwrap();
+        assert_eq!((req.path.as_str(), req.alias.as_str()), ("util", "util"));
     }
 
     #[test]

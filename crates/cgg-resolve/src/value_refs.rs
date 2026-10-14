@@ -60,9 +60,96 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         }
         let known = names.get(&f.language).unwrap_or(&empty);
         let locals = crate::scope::FileLocals::build(f);
+        let defs = std::mem::take(&mut f.definitions);
         f.references.retain(|r| {
-            !r.value_ref || (known.contains(leaf(r)) && !locals.shadows_bare_call(r))
+            !r.value_ref || (known.contains(leaf(r)) && !shadowed(&locals, &defs, r))
         });
+        f.definitions = defs;
+    }
+}
+
+/// A local binding shadows the site's bare name — unless the binding's own
+/// declaration defines a function of that name (`f = lambda: …`, `const
+/// f = () => …`): then the local *is* that function, and naming it names
+/// the function.
+fn shadowed(
+    locals: &crate::scope::FileLocals,
+    defs: &[cgg_core::DefRecord],
+    r: &RefRecord,
+) -> bool {
+    if !locals.shadows_bare_call(r) {
+        return false;
+    }
+    let Some((start, _, decl)) = locals.binding_decl_at(&r.name, r.site_byte) else {
+        return true;
+    };
+    !defs
+        .iter()
+        .any(|d| d.simple_name == r.name && decl <= d.start_byte && d.start_byte < start)
+}
+
+/// Whether a definition is declared without a parameter list: the text
+/// after its name in the signature (past a `[…]` type-parameter group)
+/// does not open one. Scala's `def size: Int` is; `def size(): Int` is not.
+fn declares_no_parameters(sig: &str, name: &str) -> bool {
+    let Some(at) = sig.find(name) else {
+        return false;
+    };
+    let mut rest = sig[at + name.len()..].trim_start();
+    if rest.starts_with('[') {
+        let mut depth = 0usize;
+        let mut end = rest.len();
+        for (i, ch) in rest.char_indices() {
+            match ch {
+                '[' => depth += 1,
+                ']' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = i + 1;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        rest = rest[end..].trim_start();
+    }
+    !rest.starts_with('(')
+}
+
+/// Drop paren-less records ([`RefRecord::paren_less`]) that cannot be a
+/// call: no callable of the file's language is declared without a
+/// parameter list under that name, or the bare name is a local binding at
+/// the site. What remains is resolved as the call it is. Free on a run
+/// whose plugins record none.
+pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
+    if !all_facts
+        .iter()
+        .any(|f| f.references.iter().any(|r| r.paren_less))
+    {
+        return;
+    }
+    let mut names: HashMap<String, HashSet<String>> = HashMap::new();
+    for f in all_facts.iter() {
+        let set = names.entry(f.language.clone()).or_default();
+        for d in &f.definitions {
+            if declares_no_parameters(&d.signature_hint, &d.simple_name) {
+                set.insert(d.simple_name.clone());
+            }
+        }
+    }
+    let empty = HashSet::new();
+    for f in all_facts.iter_mut() {
+        if !f.references.iter().any(|r| r.paren_less) {
+            continue;
+        }
+        let known = names.get(&f.language).unwrap_or(&empty);
+        let locals = crate::scope::FileLocals::build(f);
+        let defs = std::mem::take(&mut f.definitions);
+        f.references.retain(|r| {
+            !r.paren_less || (known.contains(&r.name) && !shadowed(&locals, &defs, r))
+        });
+        f.definitions = defs;
     }
 }
 
@@ -131,6 +218,79 @@ mod tests {
             value_ref: true,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn paren_less_sites_survive_only_for_parameterless_callables() {
+        let pl = |name: &str, recv: &str, byte: u32| RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_byte: byte,
+            paren_less: true,
+            ..Default::default()
+        };
+        let mut a = facts(
+            "scala",
+            1,
+            &["go"],
+            vec![
+                pl("size", "b", 10),
+                pl("m", "b", 20),
+                pl("x", "", 30),
+                pl("size", "", 40),
+            ],
+        );
+        // `size` is the name of a local in scope at byte 40.
+        a.locals = vec![cgg_core::LocalBinding {
+            name: "size".into(),
+            start_byte: 35,
+            end_byte: 50,
+            decl_byte: 32,
+        }];
+        let mut b = facts("scala", 2, &["size", "m"], vec![]);
+        b.definitions[0].signature_hint = "def size: Int".into();
+        b.definitions[1].signature_hint = "def m(): Int".into();
+        let mut all = vec![a, b];
+        prune_paren_less(&mut all);
+        let kept: Vec<(&str, u32)> = all[0]
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.site_byte))
+            .collect();
+        // `m` takes a parameter list, `x` names nothing, the bare `size`
+        // at 40 is the local.
+        assert_eq!(kept, vec![("size", 10)]);
+        assert!(declares_no_parameters("def get[T]: T", "get"));
+        assert!(!declares_no_parameters("def get[T](k: K): T", "get"));
+    }
+
+    #[test]
+    fn a_local_bound_to_its_own_function_does_not_shadow_it() {
+        // `f = lambda: …` then `return f`: the local is the closure the
+        // declaration defines, so naming it names the function.
+        let mut a = facts(
+            "python",
+            1,
+            &["main", "f"],
+            vec![RefRecord {
+                site_byte: 80,
+                ..vref("f", "")
+            }],
+        );
+        a.definitions[1].start_byte = 25;
+        a.locals = vec![cgg_core::LocalBinding {
+            name: "f".into(),
+            start_byte: 40,
+            end_byte: 100,
+            decl_byte: 20,
+        }];
+        let mut all = vec![a];
+        prune(&mut all);
+        assert_eq!(all[0].references.len(), 1);
+        // Near-miss: a local bound to something else still shadows.
+        all[0].definitions[1].start_byte = 5;
+        prune(&mut all);
+        assert!(all[0].references.is_empty());
     }
 
     #[test]

@@ -561,6 +561,71 @@ otherwise change the default graph.
   algorithm comparators; Newtonsoft.Json's `#if`-split methods misparsed
   as callables named `if` (extraction, WS8).
 
+- **Extraction bugs across twelve languages (WS8, FINDINGS A8, A9, A10,
+  C5).** Each one either hid callables (so their calls had no source or
+  no target) or minted callables and edges that do not exist:
+  - **Dart**: a class method's callable covered only its signature, so
+    every call in a method body had no source (dart-flame: zero edges
+    from any method). Methods, getters, setters, operators and
+    constructors now span their bodies. A bare call inside a method is
+    first the enclosing class's member, and across files reaches only a
+    library function or a member of the calling class's ancestry, never
+    a method of an unrelated class.
+  - **Scala**: `b.m()` was recorded as one name `b.m`; the member and its
+    receiver are now split (`new T(…).m()` reads as a `T` receiver).
+    Paren-less sites (`b.size`, a bare `helper`) are recorded too, kept
+    only when some `def` is declared without a parameter list under that
+    name, bound only through a typed receiver or scope (never by name
+    fan-out), and leave no audit record when they bind nothing (a value
+    read, not a call). The same rule applies to the new paren-less sites
+    of Ruby and is what `RefRecord::paren_less` marks.
+  - **C**: functions returning a pointer (`char *f(void)`) were dropped;
+    a pointer-to-function variable (`int (*fp)(int);`) was recorded as a
+    function; a macro invocation with no `;` (`LIST(X)` then `int
+    helper(void) {…}`) named the next function after the macro and drew
+    an edge to it (A8).
+  - **C/C++ headers**: a `.h` whose only C++ is `virtual` members was read
+    as C and lost them.
+  - **C++**: a local constructed with arguments (`std::ifstream
+    info(path);`) became a callable (A9); `ns::Foo x` parameters were
+    read as `name: Type` and named `ns`; a definition under a macro
+    folded its return type into its qualified name (`std::string
+    to_string`, `ERL_NIF_TERM wxeReturn::make_bool`).
+  - **Julia**: every `function f()` drew a `high` self-edge from its own
+    signature (A10).
+  - **C#**: `#if`/`#else` splitting a statement or a method header
+    produced callables named `if` and namespaces named after `#if`
+    symbols (Newtonsoft.Json); a file that does not parse is re-read with
+    its conditional directives blanked (offsets unchanged). `new
+    Alpha().Run()` now resolves on `Alpha` and up its bases; a call
+    through a typed receiver its type does not declare reaches an
+    extension method on that type (`p.Faker()`, `new P().Faker()`).
+    `partial` method parts cap at medium in the dead-code report.
+  - **Ruby**: a bare paren-less call (`helper`) is recorded unless a local
+    of that name is in scope (Ruby's own rule); a bare call reaches the
+    calling class's method, a superclass's or an included module's, or a
+    top-level one — never an unrelated class's method.
+  - **PHP**: `$this->m()` bound nothing; it now resolves on the calling
+    class, its bases and its `use`d traits, and through a dependency's
+    base is external (`$this->assertCount()` is PHPUnit's).
+  - **Lua**: `function M.f()` was named `M.f` as one simple name and
+    calls as `M.f` / `obj:m` text, so cross-file calls never matched;
+    names and receivers are split, assigned functions (`M.f = function`)
+    and named-table fields are callables, a call through a `require`d
+    module binds in that module's file (a module no file is: external),
+    and a bare call never reaches a table member.
+  - **Elixir**: a capture `&f/1` / `&M.f/2` is a value reference of that
+    arity (with `--reference-edges` / `--dead-code`), and its operand is
+    no longer a phantom call to `f/0`.
+  - **Python**: a local bound to its own lambda (`f = lambda: …; return
+    f`) is that function when named as a value.
+  - **Kotlin**: a top-level one-line `object X { fun f() = 1 }`, which the
+    grammar misparses, keeps its scope (`X.f`).
+  - **Java**: the `static` checks read the keyword token, not text an
+    annotation argument can contain.
+- Already fixed by earlier work: TypeScript `private`/`protected`
+  visibility (WS2) and `abstract class` scope (WS5).
+
 ### Compatibility
 
 - **The default graph changes.** Full corpus, 283 repositories:
@@ -775,6 +840,36 @@ otherwise change the default graph.
   untyped objects, or Moose accessors), PHP 5 of 39. Latency (perf/WS14b.md, 9 repositories, median of 5):
   none slower by 1 s or more; largest `scala-spark` +0.67 s (+7.4%),
   `zig-zig` +0.48 s, `app-wordpress` +0.29 s; total +2.1%.
+- **WS8 changes the default graph** (full corpus, 283 repositories,
+  `hcl-terraform-aws` timed out on both sides; edges by confidence,
+  removed / added): C high 950 / 42,385,
+  medium 587 / 13,409 (pointer-returning functions; removals are macro
+  attribute names now named correctly, swallowed headers, and 139 dual
+  C/C++ MIDL headers now read as C++); C++ high 3,569 / 3,650, medium
+  14,036 / 7,527, 1,898 medium → high (mostly qualified-name renames of
+  macro-misparsed definitions, decoys dropped by `ns::Foo` parameter
+  typing, edges to constructed locals removed); C# high 265 / 11,686,
+  medium 3,772 / 11,454 (Newtonsoft.Json re-parsed: renames out of the
+  misparsed namespaces; 507 sites now over the fan-out cap); Dart high
+  4 / 27,101, medium 10,773 / 44,312 (method bodies now sources; the
+  removed are duck-typed sites now over the cap, recorded); Scala
+  high 0 / 17,353, medium 0 / 80,465; PHP high 0 / 52,599, medium
+  1,591 / 22,353 (`$this` resolved; removed: `static::`/`self::` fan-out
+  to unrelated classes); Lua high 115 / 7,515, medium 1,638 / 16,379
+  (rebound through the split names); Ruby high 0 / 4,482, medium 486 /
+  3,150 (removed: bare calls bound to unrelated classes); Julia high 997,
+  medium 1,059 removed (signature self-edges); Kotlin 9 rebound;
+  Elixir 2 removed (phantom capture calls). Unresolved records: Scala
+  +196.6k and Lua +73.7k (receiver-qualified calls formerly screened as
+  whole dotted names), PHP −99.3k, C −25.3k, C# −25.4k, Dart −20.3k.
+  Dead code: 56 C# findings leave `high` (misparsed `#if` callables
+  gone), 22 drop to medium (partial methods), none newly `high`.
+  Two audit-merge loops that scanned a file's buckets (or every file
+  record) once per cross-file record are now indexed; without that the
+  extra Scala/Lua sites cost scala-spark 3.9 s. Latency (perf/WS8.md, 10
+  repositories, median of 5): none slower by 1 s or more; largest
+  `scala-spark` +0.79 s (+8.4%, 42% more edges), `lua-neovim` +0.12 s;
+  total −0.9%.
 
 ## [0.10.2] - 2026-10-11
 

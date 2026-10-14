@@ -2094,7 +2094,30 @@ impl PhpIndex {
                     .first()?;
                 self.class_fqn(file, r.site_byte, base)
             }
-            "self" | "static" => return None,
+            // `$this->m()`, `self::m()`, `static::m()`: the calling class's
+            // method, or one it inherits or a trait mixes in; through a
+            // dependency's base, external (WS8).
+            "this" | "self" | "static" => {
+                let (owner, _) = caller_qn?.split_once("::")?;
+                let fqn = self.class_fqn(file, r.site_byte, owner);
+                return match self.class_method(&fqn, &r.name, 0) {
+                    ClassLookup::Found(cids, certain) => {
+                        Some(match self.one_copy(file, cids) {
+                            Scoped::Bound { cids, certain: c } => Scoped::Bound {
+                                cids,
+                                certain: c && certain,
+                            },
+                            other => other,
+                        })
+                    }
+                    ClassLookup::External => Some(Scoped::External(fqn)),
+                    // Undecided: `static::m()` binds late, to a subclass's
+                    // `m`, and keeps the readings it had; `$this->m()` is
+                    // left unbound rather than matched by name.
+                    ClassLookup::Unknown if lower == "this" => Some(Scoped::Ambiguous),
+                    ClassLookup::Unknown => None,
+                };
+            }
             _ if rh.starts_with('$')
                 || !rh
                     .chars()

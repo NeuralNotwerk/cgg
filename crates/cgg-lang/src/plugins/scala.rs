@@ -206,9 +206,70 @@ impl<'a> ScalaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `b.size`, a bare `helper`: a member named with no argument
+            // list is a value read or a call to a parameterless `def`.
+            // Recorded as a paren-less site; the resolver keeps it only
+            // when such a `def` exists by that name.
+            "identifier" | "field_expression" if paren_less_position(node) => {
+                self.record_paren_less(node);
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// A receiver as the resolver reads it: its text with whitespace
+    /// removed, except that a construction without a body (`new
+    /// Auction(…)`, `new Box[Int]()`) is the type it constructs.
+    fn receiver_text(&self, v: Node) -> String {
+        if v.kind() == "instance_expression"
+            && !v
+                .named_children(&mut v.walk())
+                .any(|c| c.kind() == "template_body")
+            && let Some(ty) = v.named_children(&mut v.walk()).find(|c| {
+                matches!(
+                    c.kind(),
+                    "type_identifier" | "generic_type" | "stable_type_identifier"
+                )
+            })
+        {
+            let ty = if ty.kind() == "generic_type" {
+                ty.child_by_field_name("type").unwrap_or(ty)
+            } else {
+                ty
+            };
+            return self.text(ty).split_whitespace().collect();
+        }
+        self.text(v).split_whitespace().collect()
+    }
+
+    fn record_paren_less(&mut self, node: Node) {
+        let (name, receiver) = match node.kind() {
+            "field_expression" => {
+                let Some(field) = node.child_by_field_name("field") else {
+                    return;
+                };
+                let recv = node
+                    .child_by_field_name("value")
+                    .map(|v| self.receiver_text(v))
+                    .unwrap_or_default();
+                (self.text(field).to_string(), recv)
+            }
+            _ => (self.text(node).to_string(), String::new()),
+        };
+        if name.is_empty() || matches!(name.as_str(), "this" | "super" | "_") {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: receiver,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            paren_less: true,
+            ..Default::default()
+        });
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -274,10 +335,32 @@ impl<'a> ScalaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let func = node
-            .child_by_field_name("function")
-            .map(|n| self.text(n).to_string())
-            .unwrap_or_default();
+        let Some(function) = node.child_by_field_name("function") else {
+            return;
+        };
+        // `b.m()`, `this.m()`, `a.b.m()`: the member is the field, the
+        // receiver everything before it — never the whole dotted text as
+        // one name.
+        if function.kind() == "field_expression"
+            && let Some(field) = function.child_by_field_name("field")
+        {
+            let name = self.text(field).to_string();
+            let receiver = function
+                .child_by_field_name("value")
+                .map(|v| self.receiver_text(v))
+                .unwrap_or_default();
+            if !name.is_empty() {
+                self.facts.references.push(RefRecord {
+                    name,
+                    receiver_hint: receiver,
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                    ..Default::default()
+                });
+            }
+            return;
+        }
+        let func = self.text(function).to_string();
         if func.is_empty() {
             return;
         }
@@ -304,6 +387,34 @@ impl<'a> ScalaWalker<'a> {
     }
 }
 
+/// Whether `node` (an identifier or a field access) stands where an
+/// expression is evaluated: a block statement, an argument, an operand, a
+/// definition's value or body, a branch, the receiver of a further access.
+/// Names, patterns, parameters, types and the callee of a call with an
+/// argument list are not.
+fn paren_less_position(node: Node) -> bool {
+    let Some(p) = node.parent() else {
+        return false;
+    };
+    let is = |field: &str| p.child_by_field_name(field) == Some(node);
+    match p.kind() {
+        "block"
+        | "arguments"
+        | "parenthesized_expression"
+        | "tuple_expression"
+        | "return_expression"
+        | "interpolation"
+        | "prefix_expression" => true,
+        "infix_expression" => is("left") || is("right"),
+        "field_expression" => is("value"),
+        "val_definition" | "var_definition" | "match_expression" => is("value"),
+        "function_definition" | "lambda_expression" | "case_clause" => is("body"),
+        "if_expression" => is("consequence") || is("alternative"),
+        "assignment_expression" => is("right"),
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,6 +433,40 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn member_calls_split_receiver_and_paren_less_sites_are_marked() {
+        // `b.m()` is `m` through `b`, never a name "b.m"; `b.size` and a
+        // bare `helper` are paren-less sites; names, params and the
+        // callee of a call with arguments are not.
+        let f = extract(
+            "object Main {\n  def go(b: B): Int = {\n    b.m()\n    b.size\n    helper\n    helper2()\n  }\n}\n",
+        );
+        let calls: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.paren_less))
+            .collect();
+        assert!(calls.contains(&("m", "b", false)), "{calls:?}");
+        let g = extract("object O { def f() = new Auction(1).behavior(2) }\n");
+        assert!(
+            g.references
+                .iter()
+                .any(|r| r.name == "behavior" && r.receiver_hint == "Auction")
+        );
+        assert!(calls.contains(&("size", "b", true)), "{calls:?}");
+        assert!(calls.contains(&("helper", "", true)), "{calls:?}");
+        assert!(calls.contains(&("helper2", "", false)), "{calls:?}");
+        assert!(!calls.iter().any(|(n, _, _)| n.contains('.')), "{calls:?}");
+        // Near-miss: the definition name, the parameter and the callee
+        // `helper2` are never paren-less sites.
+        assert!(
+            !calls
+                .iter()
+                .any(|(n, _, p)| *p && matches!(*n, "go" | "helper2" | "Main")),
+            "{calls:?}"
+        );
     }
 
     #[test]

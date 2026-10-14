@@ -1303,6 +1303,7 @@ impl<'a> JsWalker<'a> {
                 not_def: None,
                 arity: None,
                 value_ref: false,
+                paren_less: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

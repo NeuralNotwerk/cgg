@@ -49,9 +49,9 @@ pub use external::{
 pub use facts::{
     ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant,
     DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding, LocalType,
-    MacroAlias, MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole,
-    TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
-    last_scope_segment, looks_like_type_name, template_pointee,
+    MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
+    STRING_REF_HINT, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis,
+    first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

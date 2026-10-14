@@ -230,9 +230,13 @@ impl<'a> JavaWalker<'a> {
         if simple.is_empty() {
             return;
         }
+        // The `static` keyword token among the modifiers — not the text,
+        // which an annotation argument (`@SuppressWarnings("static-access")`)
+        // or name (`@StaticResource`) also contains.
         let is_static = node
             .children(&mut node.walk())
-            .any(|c| c.kind() == "modifiers" && self.text(c).contains("static"));
+            .filter(|c| c.kind() == "modifiers")
+            .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == "static"));
         let variant = if is_static {
             DefVariant::StaticMethod
         } else {
@@ -288,9 +292,10 @@ impl<'a> JavaWalker<'a> {
             return;
         }
 
-        // Check for `static` modifier
-        let text = self.text(node);
-        let is_static = text.contains("static ");
+        // `import static …`: the keyword token, not a substring of the path.
+        let is_static = node
+            .children(&mut node.walk())
+            .any(|c| c.kind() == "static");
 
         if is_static {
             // `import static a.b.C.*;` imports every static member of `C`:
@@ -575,6 +580,24 @@ mod tests {
 
     /// B3: a method reference names its method through its receiver, the
     /// way the call it stands for would; `Type::new` is `new Type()`.
+    #[test]
+    fn static_is_the_keyword_not_a_substring() {
+        let f = extract(
+            "import static a.b.C.m;\nimport a.staticx.D;\nclass K {\n  @SuppressWarnings(\"static-access\") void inst() {}\n  static void stat() {}\n}\n",
+        );
+        let variant = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap()
+                .variant
+        };
+        assert_eq!(variant("inst"), DefVariant::InherentMethod);
+        assert_eq!(variant("stat"), DefVariant::StaticMethod);
+        let kinds: Vec<&str> = f.imports.iter().map(|i| i.kind.as_str()).collect();
+        assert_eq!(kinds, vec!["from-import", "import"], "{kinds:?}");
+    }
+
     #[test]
     fn method_references_are_value_refs_through_their_receiver() {
         let src = "class A extends B { void f(java.util.List<String> xs, H h) {\n\

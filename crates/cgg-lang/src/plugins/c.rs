@@ -49,6 +49,7 @@ impl LanguagePlugin for CPlugin {
             source,
             facts: &mut facts,
             ctx: *ctx,
+            skip_call: None,
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -67,6 +68,9 @@ struct CWalker<'a> {
     /// its name to a runtime API (`signal(SIGINT, on_sigint)`); without
     /// the capture those handlers have no reference at all.
     ctx: crate::ExtractCtx<'a>,
+    /// The swallowed function header inside the definition being walked
+    /// (see [`swallowed_header`]): not a call.
+    skip_call: Option<usize>,
 }
 
 impl<'a> CWalker<'a> {
@@ -78,7 +82,18 @@ impl<'a> CWalker<'a> {
         match node.kind() {
             "function_definition" => {
                 self.record_function_def(node);
+                // When a macro invocation with no `;` precedes a function,
+                // the declarator holds the swallowed header (`helper(void)`),
+                // which is the definition's name, not a call. Everything
+                // else is walked as before (an attribute macro after the
+                // parameters stays a reference to that macro).
+                let swallowed = node
+                    .child_by_field_name("declarator")
+                    .and_then(swallowed_header)
+                    .map(|n| n.id());
+                let prev = std::mem::replace(&mut self.skip_call, swallowed);
                 self.walk_children(node);
+                self.skip_call = prev;
                 return;
             }
             "declaration" => {
@@ -96,6 +111,10 @@ impl<'a> CWalker<'a> {
             }
             "preproc_include" => {
                 self.record_include(node);
+                return;
+            }
+            "call_expression" if self.skip_call == Some(node.id()) => {
+                self.walk_children(node);
                 return;
             }
             "call_expression" => {
@@ -130,7 +149,16 @@ impl<'a> CWalker<'a> {
         let Some(decl) = node.child_by_field_name("declarator") else {
             return;
         };
-        let name = self.fn_name_from_declarator(decl);
+        // `FIELDS(DECL)\nint helper(void) { … }`: a macro invocation with
+        // no trailing `;` makes the grammar read the invocation as the
+        // declarator (`FIELDS(DECL)`) and the real header as stray
+        // children of it — a `call_expression` `helper(void)`. That
+        // header names the function.
+        let name = swallowed_header(decl)
+            .and_then(|call| call.child_by_field_name("function"))
+            .filter(|f| f.kind() == "identifier")
+            .map(|f| self.text(f).to_string())
+            .unwrap_or_else(|| self.fn_name_from_declarator(decl));
         if name.is_empty() {
             return;
         }
@@ -158,7 +186,11 @@ impl<'a> CWalker<'a> {
         // A declaration that contains a function_declarator is a prototype.
         let mut c = node.walk();
         for child in node.children(&mut c) {
-            if child.kind() == "function_declarator" {
+            // `char *f(void);` wraps the function declarator in a pointer
+            // declarator for its return type.
+            if matches!(child.kind(), "function_declarator" | "pointer_declarator")
+                && !self.fn_name_from_declarator(child).is_empty()
+            {
                 let name = self.fn_name_from_declarator(child);
                 if !name.is_empty() {
                     let (sl, el) = line_range(node);
@@ -181,40 +213,35 @@ impl<'a> CWalker<'a> {
         }
     }
 
+    /// The function a declarator declares, looking through the pointer,
+    /// parenthesis and attribute layers a return type wraps around its
+    /// `function_declarator` (`char *f(void)`, `int (*f(void))(int)`).
+    /// Empty when the identifier is not the direct declarator of a
+    /// function declarator: `int (*fp)(int);` declares a pointer variable,
+    /// not a function.
     fn fn_name_from_declarator(&self, decl: Node) -> String {
-        // function_declarator -> declarator: identifier | pointer_declarator -> ...
-        if let Some(d) = decl.child_by_field_name("declarator") {
-            match d.kind() {
-                "identifier" => return self.text(d).to_string(),
-                "pointer_declarator" => {
-                    // *fn_ptr — dig for identifier
-                    let mut cc = d.walk();
-                    for c in d.children(&mut cc) {
-                        if c.kind() == "identifier" {
-                            return self.text(c).to_string();
-                        }
-                    }
-                }
-                "parenthesized_declarator" => {
-                    let mut cc = d.walk();
-                    for c in d.children(&mut cc) {
-                        if c.kind() == "pointer_declarator" || c.kind() == "identifier" {
-                            let mut inner = c.walk();
-                            for ic in c.children(&mut inner) {
-                                if ic.kind() == "identifier" {
-                                    return self.text(ic).to_string();
-                                }
-                            }
-                            if c.kind() == "identifier" {
-                                return self.text(c).to_string();
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
+        fn inner(n: Node) -> Option<Node> {
+            n.child_by_field_name("declarator")
+                .or_else(|| n.named_children(&mut n.walk()).last())
         }
-        String::new()
+        match decl.kind() {
+            "function_declarator" => match decl.child_by_field_name("declarator") {
+                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
+                Some(d) => self.fn_name_from_declarator(d),
+                None => String::new(),
+            },
+            // `int (f)(int)` declares the function `f` (a macro-built name
+            // `RET NAME_MACRO(f)(…)` parses so); `int (*fp)(int)` does not.
+            "parenthesized_declarator" => match inner(decl) {
+                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
+                Some(d) => self.fn_name_from_declarator(d),
+                None => String::new(),
+            },
+            "pointer_declarator" | "attributed_declarator" => {
+                inner(decl).map_or_else(String::new, |d| self.fn_name_from_declarator(d))
+            }
+            _ => String::new(),
+        }
     }
 
     fn record_macro_def(&mut self, node: Node) {
@@ -320,6 +347,51 @@ fn line_range(n: Node) -> (u32, u32) {
     )
 }
 
+/// The function header a macro invocation without `;` pushed inside a
+/// function declarator: a `call_expression` among the declarator's own
+/// children that follows a return-type token (`int helper(void)` is
+/// `identifier` `int`, then the call). A call right after the parameter
+/// list is an attribute macro (`f(int a) ATTR_NONNULL(1)`), not a header.
+fn swallowed_header(decl: Node) -> Option<Node> {
+    if decl.kind() != "function_declarator" {
+        return None;
+    }
+    // The outer "parameters" are the macro's arguments (`FIELDS(DECL)`):
+    // bare names with no declarator. A real parameter list names its
+    // parameters (or is `void` / empty), and then a call after it is an
+    // attribute macro (`f(win_T *w) ATTR_PURE ATTR_NONNULL(1)`).
+    let params = decl.child_by_field_name("parameters")?;
+    let mut pc = params.walk();
+    let ps: Vec<Node> = params.named_children(&mut pc).collect();
+    let macro_args = !ps.is_empty()
+        && ps.iter().all(|p| {
+            p.kind() == "parameter_declaration"
+                && p.child_by_field_name("declarator").is_none()
+                && p.child_by_field_name("type")
+                    .is_some_and(|t| t.kind() == "type_identifier")
+        });
+    if !macro_args {
+        return None;
+    }
+    let mut c = decl.walk();
+    let kids: Vec<Node> = decl.named_children(&mut c).collect();
+    kids.windows(2)
+        .rev()
+        .find(|w| {
+            w[1].kind() == "call_expression"
+                && matches!(
+                    w[0].kind(),
+                    "identifier"
+                        | "primitive_type"
+                        | "type_identifier"
+                        | "sized_type_specifier"
+                        | "storage_class_specifier"
+                        | "type_qualifier"
+                )
+        })
+        .map(|w| w[1])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,6 +410,55 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn pointer_returning_functions_are_named_and_pointer_variables_are_not() {
+        let f = extract(
+            "char *make(void) { return 0; }\nstatic const char **two(int n) { return 0; }\nint (*get(void))(int) { return 0; }\nchar *proto(void);\nint (*fp)(int);\n",
+        );
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        let g = extract(
+            "static ETHR_INLINE ethr_sint_t ETHR_ATMC_FUNC__(xchg)(ethr_atomic_t *var, ethr_sint_t val)\n{\n  return 0;\n}\n",
+        );
+        assert!(g.definitions.iter().any(|d| d.simple_name == "xchg"));
+        for n in ["make", "two", "get", "proto"] {
+            assert!(names.contains(&n), "{n} missing: {names:?}");
+        }
+        // A pointer-to-function variable declares no function.
+        assert!(!names.contains(&"fp"), "{names:?}");
+    }
+
+    #[test]
+    fn a_macro_invocation_without_semicolon_does_not_swallow_the_next_function() {
+        // `LIST(X)` with no `;` makes the grammar read it as the
+        // declarator and the real header as stray children of it.
+        let f = extract("LIST(DECL)\nint helper(void) { return other(); }\n");
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert_eq!(names, vec!["helper"], "{names:?}");
+        let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        // The swallowed header is not a call; the body's call is.
+        assert!(!refs.contains(&"helper"), "{refs:?}");
+        assert!(refs.contains(&"other"), "{refs:?}");
+        // Near-miss: an attribute macro after the parameter list names
+        // nothing; the function keeps its own name.
+        let f = extract(
+            "bool f(int *p)\n  ATTR_PURE ATTR_NONNULL(1)\n{\n  return g(p);\n}\n",
+        );
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert_eq!(names, vec!["f"], "{names:?}");
     }
 
     #[test]

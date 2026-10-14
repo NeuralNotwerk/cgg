@@ -49,7 +49,7 @@ pub struct LinkOutcome {
 fn bare_call_is_never_a_method(language: &str) -> bool {
     matches!(
         language,
-        "python" | "rust" | "go" | "javascript" | "typescript" | "php"
+        "python" | "rust" | "go" | "javascript" | "typescript" | "php" | "lua"
     )
 }
 
@@ -443,7 +443,12 @@ pub fn link_file_with_cap(
         // even when a same-named function exists elsewhere in the file.
         // Narrow only when some candidate is such a member; otherwise the
         // set stands.
-        if rh.is_empty() && facts.language == "cpp" && candidates.len() > 1 {
+        // Dart the same: a bare call in a method is first the enclosing
+        // class's member (implicit `this`).
+        if rh.is_empty()
+            && matches!(facts.language.as_str(), "cpp" | "dart")
+            && candidates.len() > 1
+        {
             if let Some(owner) = enclosing
                 .and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
             {
@@ -559,9 +564,10 @@ pub fn link_file_with_cap(
                     })
                 });
             } else {
+                // Segments split at `::`, `.` and a lone `:` (Lua's
+                // `Repo:zlist` method is the `zlist` field of `Repo`).
                 candidates.retain(|(_, d)| {
-                    d.qualified_name.split("::").any(|seg| seg == rh)
-                        || d.qualified_name.split('.').any(|seg| seg == rh)
+                    d.qualified_name.split([':', '.']).any(|seg| seg == rh)
                 });
             }
         }
@@ -1489,6 +1495,30 @@ mod tests {
             .collect();
         // `use_own` -> `Repo::zlist`; `top` -> `main::zlist2` only.
         assert_eq!(bound, vec![(50, 1), (130, 0)]);
+        assert_eq!(
+            out.unresolved[0].reason,
+            UnresolvedReason::NotInScopeForBareCall { methods: 1 }
+        );
+    }
+
+    /// Lua: a bare `zlist()` reaches a function bound to a plain name,
+    /// never one stored in a table field (`Repo:zlist`), which is only
+    /// reached through the table.
+    #[test]
+    fn a_lua_bare_call_never_reaches_a_table_member() {
+        let defs = vec![
+            mk_def("zlist", "Repo:zlist", DefVariant::InherentMethod, (0, 40)),
+            mk_def("top", "top", DefVariant::FreeFunction, (40, 100)),
+            mk_def("helper", "helper", DefVariant::FreeFunction, (100, 120)),
+        ];
+        let mut through = mk_ref("zlist", 70);
+        through.receiver_hint = "Repo".into();
+        let refs = vec![mk_ref("zlist", 50), mk_ref("helper", 60), through];
+        let facts = facts_with_lang("lua", defs, refs);
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        let bound: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
+        assert_eq!(bound, vec![60, 70]);
         assert_eq!(
             out.unresolved[0].reason,
             UnresolvedReason::NotInScopeForBareCall { methods: 1 }

@@ -421,9 +421,58 @@ impl<'a> CppWalker<'a> {
         };
         FnInfo {
             simple,
-            qual_tail: self.text(qual).to_string(),
+            qual_tail: self.clean_qualified(qual),
             variant,
         }
+    }
+
+    /// The text of a qualified declarator name, minus any scope the
+    /// grammar invented while recovering from an error: a macro in front
+    /// of a definition (`TPL_DECL std::string to_string(…)`) makes it read
+    /// the return type as a scope joined to the name by a missing `::`
+    /// (`std::string to_string`). Everything before a level with an error
+    /// child or a missing / absent `::` is dropped.
+    fn clean_qualified(&self, qual: Node) -> String {
+        self.clean_qualified_inner(qual).0
+    }
+
+    /// [`Self::clean_qualified`], and whether a broken level was cut.
+    fn clean_qualified_inner(&self, qual: Node) -> (String, bool) {
+        let whole = || self.text(qual).to_string();
+        if qual.kind() != "qualified_identifier" {
+            return (whole(), false);
+        }
+        let Some(name) = last_name_field(qual) else {
+            return (whole(), false);
+        };
+        let mut c = qual.walk();
+        let kids: Vec<Node> = qual.children(&mut c).collect();
+        let has_scope = qual.child_by_field_name("scope").is_some();
+        let sep = kids
+            .iter()
+            .position(|k| k.kind() == "::" && !k.is_missing());
+        let broken = kids.iter().any(|k| k.is_error() || k.is_missing())
+            || (has_scope && sep.is_none());
+        let (inner, cut) = self.clean_qualified_inner(name);
+        if cut {
+            return (inner, true);
+        }
+        if broken {
+            // `RET Klass::m` under a macro: the grammar takes `RET` as the
+            // scope and leaves `Klass` in an error node right before the
+            // real `::`. That last word is the scope.
+            let scope = sep
+                .and_then(|i| i.checked_sub(1))
+                .map(|i| kids[i])
+                .filter(|k| k.is_error())
+                .and_then(|k| self.text(k).split_whitespace().last())
+                .filter(|w| w.chars().all(|c| c.is_alphanumeric() || c == '_'));
+            return match scope {
+                Some(s) => (format!("{s}::{inner}"), true),
+                None => (inner, true),
+            };
+        }
+        (whole(), false)
     }
 
     /// `StreamOutput* streams` inside `class Kernel`. The call
@@ -520,6 +569,14 @@ impl<'a> CppWalker<'a> {
         // below catches it. Rejecting every error-recovered declaration
         // instead is too broad: `void Printf(const char *f, ...)
         // FORMAT(1, 2);` recovers the same way and is a real prototype.
+        // Inside a function body, `std::ifstream info(path);` is a local
+        // constructed with arguments that the grammar reads as a function
+        // declarator (the most vexing parse); a block-scope function
+        // prototype is too rare to be worth the phantom callable every
+        // such local would otherwise become.
+        if node.kind() == "declaration" && in_function_body(node) {
+            return;
+        }
         let mut c = node.walk();
         for child in node.children(&mut c) {
             if let Some(fn_decl) = unwrap_function_declarator(child) {
@@ -770,6 +827,22 @@ impl FnInfo {
 
 /// `int *Robot::foo()` nests the function declarator inside a pointer
 /// (or reference) declarator. Walk those wrappers down to it.
+/// Whether `node` sits inside a function or lambda body (a
+/// `compound_statement`), as opposed to namespace or class scope.
+fn in_function_body(node: Node) -> bool {
+    let mut cur = node.parent();
+    while let Some(p) = cur {
+        match p.kind() {
+            "compound_statement" => return true,
+            "translation_unit" | "declaration_list" | "field_declaration_list" => {
+                return false;
+            }
+            _ => cur = p.parent(),
+        }
+    }
+    false
+}
+
 fn unwrap_function_declarator(node: Node) -> Option<Node> {
     let mut n = node;
     loop {
@@ -1624,6 +1697,44 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn a_local_constructed_with_arguments_is_not_a_prototype() {
+        // `std::ifstream info(path);` in a body is a local (most vexing
+        // parse); a namespace-scope prototype still records.
+        let f = extract(
+            "#include <fstream>\nint read(const char* path) {\n  std::ifstream info(path);\n  return 0;\n}\nint proto(int x);\n",
+        );
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert!(!names.contains(&"info"), "{names:?}");
+        assert!(names.contains(&"proto"), "{names:?}");
+    }
+
+    #[test]
+    fn a_recovered_return_type_is_not_a_scope_of_the_name() {
+        // A macro before the definition makes the grammar read the return
+        // type `std::string` as a scope joined to the name by a missing
+        // `::`. A genuine qualified definition keeps its scope.
+        let f = extract(
+            "TPL_DECL\nstd::string to_string(const TPL& j)\n{\n    return j.dump();\n}\nvoid ns::K::run() {}\n",
+        );
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(qns.contains(&"to_string"), "{qns:?}");
+        assert!(!qns.iter().any(|q| q.contains(' ')), "{qns:?}");
+        assert!(qns.contains(&"ns::K::run"), "{qns:?}");
+        // The return type read as a scope, the class left in an error node
+        // before the real `::`: the class is the scope.
+        let f = extract("INLINE\nERL_TERM Ret::make(int v) {\n  return 1;\n}\n");
+        assert_eq!(f.definitions[0].qualified_name, "Ret::make");
     }
 
     #[test]

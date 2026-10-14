@@ -114,7 +114,28 @@ impl<'a> PhpWalker<'a> {
                         line: (node.start_position().row as u32) + 1,
                     });
                 }
-                self.bases.push(super::attrs::base_types(node, self.source));
+                // `use T1, T2;` in the body mixes the traits' methods in:
+                // `$this->m()` reaches them as it reaches a base's.
+                let mut bases = super::attrs::base_types(node, self.source);
+                if let Some(body) = node.child_by_field_name("body") {
+                    let mut c = body.walk();
+                    for u in body
+                        .named_children(&mut c)
+                        .filter(|n| n.kind() == "use_declaration")
+                    {
+                        let mut uc = u.walk();
+                        for n in u
+                            .named_children(&mut uc)
+                            .filter(|n| matches!(n.kind(), "name" | "qualified_name"))
+                        {
+                            let t = self.text(n).to_string();
+                            if !bases.contains(&t) {
+                                bases.push(t);
+                            }
+                        }
+                    }
+                }
+                self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.walk_children(node);
@@ -325,6 +346,14 @@ impl<'a> PhpWalker<'a> {
             .or_else(|| node.child_by_field_name("scope"))
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
+        // `$this->m()` is a call on the enclosing class's instance: spelled
+        // `this` the way every other language spells it, so the resolver's
+        // own-class reading applies (the written `$this` matched nothing).
+        let recv = if recv == "$this" {
+            "this".to_string()
+        } else {
+            recv
+        };
         let context = if recv.is_empty() {
             func.clone()
         } else {
@@ -382,6 +411,27 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn used_traits_are_bases() {
+        let f =
+            extract("<?php\nclass A extends B { use T1, \\N\\T2; function m() {} }\n");
+        assert_eq!(f.definitions[0].base_types, vec!["B", "T1", "\\N\\T2"]);
+    }
+
+    #[test]
+    fn this_receiver_is_spelled_this() {
+        let f = extract(
+            "<?php\nclass A { function r() { $this->h(); $o->h(); } function h() {} }\n",
+        );
+        let recv: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "h")
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(recv, vec!["this", "$o"]);
     }
 
     #[test]

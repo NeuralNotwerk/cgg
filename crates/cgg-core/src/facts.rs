@@ -429,6 +429,17 @@ pub struct RefRecord {
     /// ordinary run's graph and audit are untouched.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub value_ref: bool,
+
+    /// Set when the site names a member with no argument list, in a
+    /// language where that is either a value read or a call to a method
+    /// declared without parameters (Scala `b.size`, a bare `helper`).
+    /// Such a record is kept only when some callable of its language is
+    /// declared without a parameter list under that name and no local
+    /// binding shadows it (`cgg_resolve::value_refs::prune_paren_less`);
+    /// otherwise it is a value read, not a call, and is dropped before
+    /// resolution.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub paren_less: bool,
 }
 
 /// The two-phase AST pass output for a single file.
@@ -740,6 +751,15 @@ pub fn last_scope_segment(s: &str) -> &str {
     }
     s[start..].trim()
 }
+
+/// Attribute a plugin puts on one part of a method split across the
+/// parts of a type: a C# `partial` method, declared (bodiless) in one part
+/// and implemented in another. One half is routinely generated (designer
+/// files, source generators) or outside the tree, and calls to an
+/// unimplemented one are compiled away, so the dead-code report treats
+/// it as a contract member (capped at medium), never as corroborated
+/// dead code.
+pub const PARTIAL_DECLARATION: &str = "partial-declaration";
 
 /// Key suffix under which a C/C++ variable or field declared as a class
 /// template records the type its `operator->` reaches: `p#deref` is the

@@ -2,6 +2,7 @@
 
 use crate::LanguagePlugin;
 use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use std::collections::HashSet;
 use std::path::Path;
 use tree_sitter::{Node, Tree};
 
@@ -46,6 +47,7 @@ impl LanguagePlugin for RubyPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             bases: Vec::new(),
+            locals: vec![HashSet::new()],
         };
         w.walk(tree.root_node());
         if ctx.deadcode_signals {
@@ -66,9 +68,95 @@ struct RubyWalker<'a> {
     /// Sidekiq::Job`, which is a call rather than a superclass, so both
     /// forms have to land in the same slot.
     bases: Vec<Vec<String>>,
+    /// Local variables in scope, innermost last. Ruby's own parser decides
+    /// that a bare `x` is a variable when an assignment to `x` (or a
+    /// parameter `x`) precedes it in the scope, and a method call
+    /// otherwise; the grammar does not, so the walker does. `def`, `class`
+    /// and `module` open a fresh scope; a block sees its enclosing one.
+    locals: Vec<HashSet<String>>,
 }
 
 impl<'a> RubyWalker<'a> {
+    /// Run `f` in a new local scope: fresh, or (`inherit`) a copy of the
+    /// enclosing one, with the names `params` binds already in it.
+    fn in_scope(
+        &mut self,
+        inherit: bool,
+        params: Option<Node>,
+        f: impl FnOnce(&mut Self),
+    ) {
+        let mut set = if inherit {
+            self.locals.last().cloned().unwrap_or_default()
+        } else {
+            HashSet::new()
+        };
+        if let Some(p) = params {
+            self.collect_param_names(p, &mut set);
+        }
+        self.locals.push(set);
+        f(self);
+        self.locals.pop();
+    }
+
+    /// The names a parameter list binds: its identifiers and the `name`
+    /// of each optional/keyword/splat/block parameter, through
+    /// destructuring — never a default value's expression.
+    fn collect_param_names(&self, n: Node, out: &mut HashSet<String>) {
+        let mut c = n.walk();
+        for ch in n.named_children(&mut c) {
+            match ch.kind() {
+                "identifier" => {
+                    out.insert(self.text(ch).to_string());
+                }
+                "destructured_parameter" => self.collect_param_names(ch, out),
+                _ => {
+                    if let Some(name) = ch.child_by_field_name("name") {
+                        out.insert(self.text(name).to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    /// Bind the variables an assignment target names (`x = …`,
+    /// `a, (b, *c) = …`).
+    fn bind_target(&mut self, n: Node) {
+        match n.kind() {
+            "identifier" => {
+                let name = self.text(n).to_string();
+                if let Some(top) = self.locals.last_mut() {
+                    top.insert(name);
+                }
+            }
+            "left_assignment_list"
+            | "destructured_left_assignment"
+            | "rest_assignment" => {
+                let mut c = n.walk();
+                let kids: Vec<Node> = n.named_children(&mut c).collect();
+                for k in kids {
+                    self.bind_target(k);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// A bare identifier that is not a variable in scope: Ruby calls the
+    /// method of that name with no arguments.
+    fn record_bare_identifier(&mut self, node: Node) {
+        let name = self.text(node);
+        if name.is_empty() || self.locals.last().is_some_and(|l| l.contains(name)) {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name: name.to_string(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            paren_less: true,
+            ..Default::default()
+        });
+    }
+
     fn text(&self, n: Node) -> &str {
         n.utf8_text(self.source).unwrap_or("")
     }
@@ -95,13 +183,15 @@ impl<'a> RubyWalker<'a> {
                     .collect::<Vec<_>>();
                 bases.extend(self.included_modules(node));
                 self.bases.push(bases);
-                if !name.is_empty() {
-                    self.scope.push(name);
-                    self.walk_children(node);
-                    self.scope.pop();
-                } else {
-                    self.walk_children(node);
-                }
+                self.in_scope(false, None, |w| {
+                    if !name.is_empty() {
+                        w.scope.push(name);
+                        w.walk_children(node);
+                        w.scope.pop();
+                    } else {
+                        w.walk_children(node);
+                    }
+                });
                 self.bases.pop();
                 return;
             }
@@ -110,23 +200,57 @@ impl<'a> RubyWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                if !name.is_empty() {
-                    self.scope.push(name);
-                    self.walk_children(node);
-                    self.scope.pop();
+                self.in_scope(false, None, |w| {
+                    if !name.is_empty() {
+                        w.scope.push(name);
+                        w.walk_children(node);
+                        w.scope.pop();
+                    } else {
+                        w.walk_children(node);
+                    }
+                });
+                return;
+            }
+            "method" | "singleton_method" => {
+                let variant = if node.kind() == "method" {
+                    DefVariant::InherentMethod
                 } else {
-                    self.walk_children(node);
+                    DefVariant::StaticMethod
+                };
+                self.record_method(node, variant);
+                let params = node.child_by_field_name("parameters");
+                self.in_scope(false, params, |w| w.walk_children(node));
+                return;
+            }
+            "block" | "do_block" | "lambda" => {
+                let params = node.child_by_field_name("parameters");
+                self.in_scope(true, params, |w| w.walk_children(node));
+                return;
+            }
+            "assignment" | "operator_assignment" => {
+                if let Some(left) = node.child_by_field_name("left") {
+                    self.bind_target(left);
+                }
+                self.walk_children(node);
+                return;
+            }
+            "exception_variable" => {
+                let mut c = node.walk();
+                let kids: Vec<Node> = node.named_children(&mut c).collect();
+                for k in kids {
+                    self.bind_target(k);
                 }
                 return;
             }
-            "method" => {
-                self.record_method(node, DefVariant::InherentMethod);
+            "for" => {
+                if let Some(pattern) = node.child_by_field_name("pattern") {
+                    self.bind_target(pattern);
+                }
                 self.walk_children(node);
                 return;
             }
-            "singleton_method" => {
-                self.record_method(node, DefVariant::StaticMethod);
-                self.walk_children(node);
+            "identifier" if bare_call_position(node) => {
+                self.record_bare_identifier(node);
                 return;
             }
             "call" => {
@@ -324,6 +448,7 @@ impl<'a> RubyWalker<'a> {
                 not_def: None,
                 arity: None,
                 value_ref: false,
+                paren_less: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,
@@ -333,6 +458,45 @@ impl<'a> RubyWalker<'a> {
                 kwargs: Vec::new(),
             });
         }
+    }
+}
+
+/// Whether an identifier stands where Ruby evaluates it: a statement, an
+/// operand, an argument, an assigned value, a condition or branch, the
+/// receiver of a call. Names, parameters and assignment targets are not.
+fn bare_call_position(node: Node) -> bool {
+    let Some(p) = node.parent() else {
+        return false;
+    };
+    let is = |field: &str| p.child_by_field_name(field) == Some(node);
+    match p.kind() {
+        "body_statement"
+        | "then"
+        | "else"
+        | "begin"
+        | "ensure"
+        | "parenthesized_statements"
+        | "argument_list"
+        | "interpolation"
+        | "array"
+        | "if_modifier"
+        | "unless_modifier"
+        | "while_modifier"
+        | "until_modifier"
+        | "splat_argument"
+        | "hash_splat_argument"
+        | "block_argument"
+        | "block_body" => true,
+        "binary" => is("left") || is("right"),
+        "unary" => is("operand"),
+        "assignment" | "operator_assignment" => is("right"),
+        "if" | "unless" | "while" | "until" | "elsif" => is("condition"),
+        "conditional" => is("condition") || is("consequence") || is("alternative"),
+        "call" => is("receiver"),
+        "element_reference" => is("object"),
+        "pair" => is("value"),
+        "range" => is("begin") || is("end"),
+        _ => false,
     }
 }
 
@@ -354,6 +518,26 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn a_bare_identifier_that_is_no_local_is_a_paren_less_call() {
+        // Ruby's parser rule: an identifier assigned (or a parameter)
+        // earlier in the scope is a variable; otherwise a method call.
+        let f = extract(
+            "class Foo\n  def run(a)\n    x = 1\n    helper\n    x\n    a\n    y = helper + x\n    [1].each { |e| e; helper }\n  end\n  def other\n    x\n  end\nend\n",
+        );
+        let bare: Vec<(&str, u32)> = f
+            .references
+            .iter()
+            .filter(|r| r.paren_less)
+            .map(|r| (r.name.as_str(), r.site_line))
+            .collect();
+        assert_eq!(
+            bare,
+            vec![("helper", 4), ("helper", 7), ("helper", 8), ("x", 11)],
+            "{bare:?}"
+        );
     }
 
     #[test]

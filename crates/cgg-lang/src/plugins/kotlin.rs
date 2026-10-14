@@ -86,6 +86,21 @@ impl<'a> KtWalker<'a> {
             self.implicit.pop();
             return;
         }
+        // A top-level `object X { … }` whose body closes on a line of
+        // its members is misparsed as `object` `X` `{ … }` — an infix
+        // expression of an empty object literal, a name and a lambda.
+        // Its members are still the object's.
+        if let Some((name, body)) = misparsed_object(node, self.source) {
+            self.record_class(node, &name, &[]);
+            self.implicit.push(String::new());
+            self.bases.push(Vec::new());
+            self.scope.push(name);
+            self.walk_children(body);
+            self.scope.pop();
+            self.bases.pop();
+            self.implicit.pop();
+            return;
+        }
         self.walk_decl(node);
     }
 
@@ -662,6 +677,27 @@ fn kotlin_vis(node: Node) -> cgg_core::Vis {
     cgg_core::Vis::Public
 }
 
+/// The name and body of a top-level `object X { … }` the grammar read as
+/// an infix expression: an `object_literal` that is the bare keyword, a
+/// `simple_identifier`, and a `lambda_literal` holding the members.
+fn misparsed_object<'t>(node: Node<'t>, source: &[u8]) -> Option<(String, Node<'t>)> {
+    if node.kind() != "infix_expression" || node.parent()?.kind() != "source_file" {
+        return None;
+    }
+    let mut c = node.walk();
+    let kids: Vec<Node> = node.named_children(&mut c).collect();
+    let [kw, name, body] = kids.as_slice() else {
+        return None;
+    };
+    (kw.kind() == "object_literal"
+        && kw.named_child_count() == 0
+        && kw.utf8_text(source).ok()?.trim() == "object"
+        && name.kind() == "simple_identifier"
+        && body.kind() == "lambda_literal")
+        .then(|| (name.utf8_text(source).unwrap_or("").to_string(), *body))
+        .filter(|(n, _)| !n.is_empty())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -681,6 +717,23 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn a_one_line_top_level_object_keeps_its_scope() {
+        // The grammar reads `object X { fun f() = 1 }` at top level as an
+        // infix expression; its members are still `X`'s.
+        let f = extract(
+            "package a\nobject X { fun f() = 1 }\nclass C {\n  object Inner { fun i() = 1 }\n}\n",
+        );
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert!(qns.contains(&"a.X.f"), "{qns:?}");
+        assert!(qns.contains(&"a.C.Inner.i"), "{qns:?}");
+        assert!(f.classes.iter().any(|c| c.class_qn == "a.X"));
     }
 
     #[test]

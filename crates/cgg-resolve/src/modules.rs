@@ -180,10 +180,14 @@ pub(crate) struct ModuleIndex<'a> {
     go_imports: HashMap<FileId, Vec<(String, String, bool)>>,
     /// The file each indexed callable is declared in.
     file_of: HashMap<CallableId, FileId>,
+    /// Lua: module name's last segment (a file stem, or the directory of
+    /// an `init.lua`) → each file's path segments as a module path
+    /// (`a/b.lua` and `a/b/init.lua` are both `a.b`).
+    lua_by_last: HashMap<String, Vec<(Vec<String>, FileId)>>,
 }
 
 fn indexed(lang: &str) -> bool {
-    matches!(lang, "javascript" | "typescript" | "python" | "go")
+    matches!(lang, "javascript" | "typescript" | "python" | "go" | "lua")
 }
 
 impl<'a> ModuleIndex<'a> {
@@ -246,6 +250,19 @@ impl<'a> ModuleIndex<'a> {
             ix.paths.insert(f.file, f.path.as_path());
             ix.facts.insert(f.file, f);
             match f.language.as_str() {
+                "lua" => {
+                    let mut segs =
+                        normal_components(&normalize(&f.path.with_extension("")));
+                    if segs.last().is_some_and(|l| l == "init") {
+                        segs.pop();
+                    }
+                    if let Some(last) = segs.last() {
+                        ix.lua_by_last
+                            .entry(last.clone())
+                            .or_default()
+                            .push((segs.clone(), f.file));
+                    }
+                }
                 "javascript" | "typescript" => ix.add_js_file(f),
                 "python" => {
                     if let Some(m) = f.packages.first() {
@@ -1262,6 +1279,56 @@ impl<'a> ModuleIndex<'a> {
         Vec::new()
     }
 
+    /// The files a Lua `require` names: those whose module path (path
+    /// segments, `init.lua` standing for its directory) ends with the
+    /// module's dotted segments. Several copies (vendored, per-platform)
+    /// are all returned; the caller narrows them.
+    fn lua_files(&self, module: &str) -> Vec<FileId> {
+        let segs: Vec<&str> =
+            module.split(['.', '/']).filter(|s| !s.is_empty()).collect();
+        let Some(cands) = segs.last().and_then(|l| self.lua_by_last.get(*l)) else {
+            return Vec::new();
+        };
+        let mut out: Vec<FileId> = cands
+            .iter()
+            .filter(|(path, _)| {
+                path.len() >= segs.len()
+                    && path[path.len() - segs.len()..]
+                        .iter()
+                        .zip(&segs)
+                        .all(|(a, b)| a == b)
+            })
+            .map(|(_, f)| *f)
+            .collect();
+        out.sort();
+        out.dedup();
+        out
+    }
+
+    /// The functions a Lua module file provides under `name`: members of
+    /// one table (`M.name`, `M:name`) — the table the module returns —
+    /// never a function nested deeper (`M.sub.name`) or a local one.
+    fn lua_members(&self, file: FileId, name: &str) -> Vec<CallableId> {
+        let mut out: Vec<CallableId> = self
+            .by_file_simple
+            .get(&(file, name))
+            .into_iter()
+            .flatten()
+            .copied()
+            .filter(|id| {
+                self.qn_of.get(id).is_some_and(|qn| {
+                    qn.strip_suffix(name)
+                        .and_then(|p| p.strip_suffix(['.', ':']))
+                        .is_some_and(|owner| {
+                            !owner.is_empty() && !owner.contains(['.', ':'])
+                        })
+                })
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
     /// The calling Go file's own package: callables named `name` at
     /// package level in the files of its directory that share its package
     /// clause.
@@ -1322,6 +1389,8 @@ pub(crate) struct FileModules {
     /// Simple names the file defines: a bare call to one may be the
     /// local definition shadowing an import.
     own_defs: HashSet<String>,
+    /// Lua: local name → the module a `require` bound to it.
+    lua: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1357,6 +1426,25 @@ impl FileModules {
             ..FileModules::default()
         };
         match facts.language.as_str() {
+            "lua" => {
+                // A name bound by two different requires is left alone.
+                let mut conflicted: HashSet<&str> = HashSet::new();
+                for imp in facts.imports.iter().filter(|i| i.kind == "require") {
+                    let (name, path) = (imp.alias.trim(), imp.path.trim());
+                    if name.is_empty() || path.is_empty() || conflicted.contains(name) {
+                        continue;
+                    }
+                    match fm.lua.get(name) {
+                        Some(p) if p != path => {
+                            fm.lua.remove(name);
+                            conflicted.insert(name);
+                        }
+                        _ => {
+                            fm.lua.insert(name.to_string(), path.to_string());
+                        }
+                    }
+                }
+            }
             "javascript" | "typescript" => {
                 // A name two imports bind is left to the old reading.
                 let mut conflicted: HashSet<String> = HashSet::new();
@@ -1549,7 +1637,70 @@ impl FileModules {
             }
             "python" => self.resolve_py(ix, file, r, rh, bases),
             "go" => self.resolve_go(ix, file, r, rh, bases),
+            "lua" => self.resolve_lua(ix, file, r, rh),
             _ => None,
+        }
+    }
+
+    /// A Lua call through a name a `require` bound (`util.f()`,
+    /// `util:f()`): the member of the table the required module file
+    /// defines; a module no file of the tree is, a dependency. A deeper
+    /// path (`util.sub.f()`) is a dependency's when the module is, and
+    /// otherwise left to the other readings.
+    fn resolve_lua(
+        &self,
+        ix: &ModuleIndex<'_>,
+        file: FileId,
+        r: &RefRecord,
+        rh: &str,
+    ) -> Option<Scoped> {
+        if rh.is_empty() {
+            return None;
+        }
+        let head = leading_ident(rh);
+        let module = self.lua.get(head)?;
+        let files = ix.lua_files(module);
+        if files.is_empty() {
+            return Some(Scoped::External(module.clone()));
+        }
+        if rh != head {
+            return None;
+        }
+        // Copies of one module: those nearest the caller (longest shared
+        // directory prefix) provide the call.
+        let caller_dir = ix
+            .paths
+            .get(&file)
+            .and_then(|p| p.parent())
+            .map(|p| normal_components(&normalize(p)))
+            .unwrap_or_default();
+        let shared = |f: &FileId| {
+            let dir = ix
+                .paths
+                .get(f)
+                .and_then(|p| p.parent())
+                .map(|p| normal_components(&normalize(p)))
+                .unwrap_or_default();
+            dir.iter()
+                .zip(&caller_dir)
+                .take_while(|(a, b)| a == b)
+                .count()
+        };
+        let mut provs: Vec<(usize, Vec<CallableId>)> = files
+            .iter()
+            .map(|f| (shared(f), ix.lua_members(*f, &r.name)))
+            .filter(|(_, ids)| !ids.is_empty())
+            .collect();
+        let Some(best) = provs.iter().map(|(n, _)| *n).max() else {
+            return Some(Scoped::Refused(module.clone()));
+        };
+        provs.retain(|(n, _)| *n == best);
+        match provs.as_slice() {
+            [(_, ids)] => Some(Scoped::Bound {
+                cids: ids.clone(),
+                certain: true,
+            }),
+            _ => Some(Scoped::Ambiguous),
         }
     }
 

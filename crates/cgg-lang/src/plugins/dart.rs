@@ -138,15 +138,13 @@ impl<'a> DartWalker<'a> {
                 return;
             }
             "method_declaration" => {
-                // method_declaration -> signature -> first identifier is the name
+                // method_declaration -> signature: method_signature ->
+                // function/getter/setter/operator/constructor signature,
+                // then `body`. The callable spans the whole declaration,
+                // so the calls in its body have it as their source.
                 let name = node
                     .child_by_field_name("signature")
-                    .and_then(|sig| {
-                        (0..sig.child_count())
-                            .filter_map(|i| sig.child(i as u32))
-                            .find(|ch| ch.kind() == "identifier")
-                    })
-                    .map(|n| self.text(n).to_string())
+                    .and_then(|sig| self.member_signature_name(sig))
                     .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::InherentMethod);
@@ -155,11 +153,16 @@ impl<'a> DartWalker<'a> {
                 return;
             }
             "function_signature" | "method_signature" => {
-                // Only record if not inside a declaration (avoid double-counting)
-                if node
-                    .parent()
-                    .is_none_or(|p| !p.kind().ends_with("declaration"))
-                {
+                // Only record if not inside a declaration (avoid
+                // double-counting): neither directly, nor as the inner
+                // signature of a `method_declaration`'s `method_signature`.
+                let in_declaration = |p: Node| p.kind().ends_with("declaration");
+                let inside = |p: Node| {
+                    in_declaration(p)
+                        || (p.kind() == "method_signature"
+                            && p.parent().is_some_and(in_declaration))
+                };
+                if !node.parent().is_some_and(inside) {
                     let name = node
                         .child_by_field_name("name")
                         .or_else(|| {
@@ -210,6 +213,38 @@ impl<'a> DartWalker<'a> {
                 }
             }
         }
+    }
+
+    /// The member name a `method_signature` declares: the `name` of its
+    /// function, getter or setter signature; the class name for an
+    /// unnamed constructor and the suffix for a named one (`K.named`);
+    /// `operator+` for an operator.
+    fn member_signature_name(&self, sig: Node) -> Option<String> {
+        let mut c = sig.walk();
+        let inner: Vec<Node> = sig.named_children(&mut c).collect();
+        for n in inner {
+            match n.kind() {
+                "function_signature" | "getter_signature" | "setter_signature" => {
+                    return n
+                        .child_by_field_name("name")
+                        .map(|x| self.text(x).to_string());
+                }
+                "constructor_signature" | "factory_constructor_signature" => {
+                    let mut c = n.walk();
+                    return n
+                        .children_by_field_name("name", &mut c)
+                        .last()
+                        .map(|x| self.text(x).to_string());
+                }
+                "operator_signature" => {
+                    return n
+                        .child_by_field_name("operator")
+                        .map(|x| format!("operator{}", self.text(x)));
+                }
+                _ => {}
+            }
+        }
+        None
     }
 
     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
@@ -511,6 +546,28 @@ mod tests {
             "defs: {:?}",
             defs(&f)
         );
+    }
+
+    #[test]
+    fn a_method_spans_its_body_and_is_recorded_once() {
+        // The method's name sits one level down (method_signature ->
+        // function_signature); recording only the inner signature left
+        // every call in the body without a source.
+        let src = "class K {\n  K(this.x) {\n    a();\n  }\n  int get v => b();\n  void run() {\n    c();\n  }\n  int x;\n}\n";
+        let f = extract(src);
+        let run: Vec<_> = f
+            .definitions
+            .iter()
+            .filter(|d| d.qualified_name == "K::run")
+            .collect();
+        assert_eq!(run.len(), 1, "{:?}", defs(&f));
+        assert_eq!((run[0].start_line, run[0].end_line), (6, 8));
+        // Constructor and getter bodies are callables too.
+        assert!(defs(&f).contains(&"K::K".to_string()), "{:?}", defs(&f));
+        assert!(defs(&f).contains(&"K::v".to_string()), "{:?}", defs(&f));
+        // A bodiless abstract member still records once, as before.
+        let f = extract("abstract class A {\n  void m();\n}\n");
+        assert_eq!(defs(&f), vec!["A::m".to_string()]);
     }
 
     #[test]

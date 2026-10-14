@@ -675,6 +675,12 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // references: drop them before they read as calls. A no-op unless
     // the run records reference sites.
     cgg_resolve::value_refs::prune(&mut all_facts);
+    // Paren-less member sites (Scala `b.size`) that no parameterless
+    // callable is named by are value reads, not calls.
+    {
+        let _s = cgg_core::profile::span("resolve::prune-paren-less");
+        cgg_resolve::value_refs::prune_paren_less(&mut all_facts);
+    }
     let link_started = Instant::now();
     let return_types_owned: HashMap<String, String> = {
         let _s = cgg_core::profile::span("resolve::type-hints");
@@ -852,40 +858,78 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             )
         });
     {
+        // Per file, in the records' order: one pass over each bucket
+        // rather than a scan of the file's buckets per record (the latter
+        // is quadratic in a file's site count).
         let mut moved_out_of_unresolved: HashSet<(FileId, u32, String)> = HashSet::new();
+        let mut by_file: Vec<(usize, Vec<cgg_core::audit::AuditUnresolvedCall>)> =
+            Vec::new();
+        let mut slot_of: HashMap<usize, usize> = HashMap::new();
         for u in cf_external {
             let Some(&i) = rec_idx.get(&u.file) else {
                 continue;
             };
+            let slot = *slot_of.entry(i).or_insert_with(|| {
+                by_file.push((i, Vec::new()));
+                by_file.len() - 1
+            });
+            by_file[slot].1.push(u);
+        }
+        for (i, us) in by_file {
             let rec = &mut file_records[i];
-            let same = |c: &cgg_core::audit::AuditUnresolvedCall| {
-                c.site_byte == u.site_byte && c.name == u.name
-            };
-            if rec.stdlib_calls.iter().any(same) {
-                continue;
-            }
             let lang = graph
                 .files
-                .get(&u.file)
+                .get(&rec.file)
                 .map(|f| f.language.clone())
                 .unwrap_or_default();
-            let before = rec.unresolved_calls.len();
-            rec.unresolved_calls.retain(|c| !same(c));
-            let moved = (before - rec.unresolved_calls.len()) as u64;
-            if moved > 0 {
-                metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(moved);
-                if let Some(b) = metrics.by_language.get_mut(&lang) {
-                    b.unresolved = b.unresolved.saturating_sub(moved);
+            let in_stdlib: HashSet<(u32, &str)> = rec
+                .stdlib_calls
+                .iter()
+                .map(|c| (c.site_byte, c.name.as_str()))
+                .collect();
+            let us: Vec<_> = us
+                .into_iter()
+                .filter(|u| !in_stdlib.contains(&(u.site_byte, u.name.as_str())))
+                .collect();
+            let keys: HashSet<(u32, String)> =
+                us.iter().map(|u| (u.site_byte, u.name.clone())).collect();
+            // How many unresolved records each moving key removes; the
+            // first record of a key takes them all, as the per-record
+            // `retain` did.
+            let mut removed: HashMap<(u32, String), u64> = HashMap::new();
+            rec.unresolved_calls.retain(|c| {
+                let k = (c.site_byte, c.name.clone());
+                if keys.contains(&k) {
+                    *removed.entry(k).or_default() += 1;
+                    false
+                } else {
+                    true
                 }
-                moved_out_of_unresolved.insert((u.file, u.site_byte, u.name.clone()));
+            });
+            let mut ext_at: HashMap<(u32, String), usize> = HashMap::new();
+            for (j, c) in rec.external_calls.iter().enumerate() {
+                ext_at.entry((c.site_byte, c.name.clone())).or_insert(j);
             }
-            if let Some(e) = rec.external_calls.iter_mut().find(|c| same(c)) {
-                e.reason = u.reason.clone();
-            } else {
-                rec.external_calls.push(u);
-                metrics.external_calls += 1;
-                if let Some(b) = metrics.by_language.get_mut(&lang) {
-                    b.external += 1;
+            for u in us {
+                let k = (u.site_byte, u.name.clone());
+                let moved = removed.remove(&k).unwrap_or(0);
+                if moved > 0 {
+                    metrics.unresolved_calls =
+                        metrics.unresolved_calls.saturating_sub(moved);
+                    if let Some(b) = metrics.by_language.get_mut(&lang) {
+                        b.unresolved = b.unresolved.saturating_sub(moved);
+                    }
+                    moved_out_of_unresolved.insert((u.file, u.site_byte, u.name.clone()));
+                }
+                if let Some(&j) = ext_at.get(&k) {
+                    rec.external_calls[j].reason = u.reason.clone();
+                } else {
+                    ext_at.insert(k, rec.external_calls.len());
+                    rec.external_calls.push(u);
+                    metrics.external_calls += 1;
+                    if let Some(b) = metrics.by_language.get_mut(&lang) {
+                        b.external += 1;
+                    }
                 }
             }
         }
@@ -901,7 +945,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // fills so the dead-code name correlation sees them, and into the
     // per-file audit records so `--metrics` still explains every site.
     for u in &cf_unresolved {
-        if let Some(rec) = file_records.iter_mut().find(|r| r.file == u.file) {
+        if let Some(rec) = rec_idx.get(&u.file).map(|&i| &mut file_records[i]) {
             rec.unresolved_calls.push(u.clone());
         }
         if let Some(lang) = graph.files.get(&u.file).map(|f| f.language.clone())
@@ -1005,13 +1049,25 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             slot.insert(segs[segs.len() - 2].to_string());
         }
     }
-    let call_leaf = |name: &str| -> String {
-        name.rsplit(['.', ':']).next().unwrap_or(name).to_string()
-    };
+    // A paren-less site (Scala `b.size`, a Ruby bare `helper`) that bound
+    // nothing is a value read, not a call: it leaves no audit record.
+    let paren_less_sites: HashSet<(FileId, u32, &str)> = all_facts
+        .iter()
+        .flat_map(|f| {
+            f.references
+                .iter()
+                .filter(|r| r.paren_less)
+                .map(move |r| (f.file, r.site_byte, r.name.as_str()))
+        })
+        .collect();
+    fn leaf_of(name: &str) -> &str {
+        name.rsplit(['.', ':']).next().unwrap_or(name)
+    }
     let resolved_at = |file: FileId, byte: u32, name: &str| -> bool {
         resolved_names
             .get(&(file, byte))
-            .is_some_and(|names| names.contains(&call_leaf(name)) || names.contains(name))
+            .is_some_and(|names| names.contains(leaf_of(name)) || names.contains(name))
+            || paren_less_sites.contains(&(file, byte, name))
     };
 
     let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();
@@ -1093,22 +1149,30 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         use cgg_core::audit::UnresolvedReason as UR;
         let specific = |r: &UR| !matches!(r, UR::NoCandidateInFile | UR::Other(_));
         // Per call, not per site: a chained call's two calls share a site.
-        let mut best: std::collections::HashMap<(FileId, u32, String), usize> =
-            std::collections::HashMap::new();
-        for (i, c) in graph.unresolved.iter().enumerate() {
-            let key = (c.file, c.site_byte, call_leaf(&c.name));
-            match best.get(&key) {
-                Some(&j)
-                    if specific(&graph.unresolved[j].reason) || !specific(&c.reason) => {}
-                _ => {
-                    best.insert(key, i);
+        // Keyed by borrowed leaf names: no allocation per record.
+        let keep: Vec<bool> = {
+            let mut best: std::collections::HashMap<(FileId, u32, &str), usize> =
+                std::collections::HashMap::new();
+            for (i, c) in graph.unresolved.iter().enumerate() {
+                let key = (c.file, c.site_byte, leaf_of(&c.name));
+                match best.get(&key) {
+                    Some(&j)
+                        if specific(&graph.unresolved[j].reason)
+                            || !specific(&c.reason) => {}
+                    _ => {
+                        best.insert(key, i);
+                    }
                 }
             }
-        }
-        let keep: std::collections::HashSet<usize> = best.into_values().collect();
+            let mut keep = vec![false; graph.unresolved.len()];
+            for i in best.into_values() {
+                keep[i] = true;
+            }
+            keep
+        };
         let mut i = 0;
         graph.unresolved.retain(|_| {
-            let k = keep.contains(&i);
+            let k = keep[i];
             i += 1;
             k
         });
