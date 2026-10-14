@@ -1,0 +1,7 @@
+kotlin: HIGH net -12, MEDIUM net -48 | add h/m 4/58 drop h/m 5/117 m->h 8 h->m 19
+ocaml: HIGH net -385, MEDIUM net +83 | add h/m 0/83 drop h/m 385/0 m->h 0 h->m 0
+perl: HIGH net +3328, MEDIUM net -212 | add h/m 3214/0 drop h/m 0/98 m->h 114 h->m 0
+php: HIGH net +0, MEDIUM net +88 | add h/m 0/88 drop h/m 0/0 m->h 0 h->m 0
+rust: HIGH net +21, MEDIUM net +15 | add h/m 22/15 drop h/m 1/0 m->h 0 h->m 0
+scala: HIGH net +8631, MEDIUM net -10390 | add h/m 844/4342 drop h/m 235/6710 m->h 8022 h->m 0
+zig: HIGH net +42704, MEDIUM net -10851 | add h/m 34531/3328 drop h/m 48/5958 m->h 8262 h->m 41

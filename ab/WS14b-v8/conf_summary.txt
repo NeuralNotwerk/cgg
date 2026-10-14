@@ -1,0 +1,23 @@
+kotlin | removed {'medium': 117, 'high': 5} | added {'medium': 58, 'high': 4} | rescored {'medium->high': 8, 'high->medium': 19}
+       92 external/stdlib or still bound (same name, kept target)
+       25 now unresolved: candidates-in-other-files
+       5 rebound to another target
+ocaml | removed {'high': 385} | added {'medium': 83} | rescored {}
+       193 now unresolved: candidates-in-other-files
+       89 now unresolved: shadowed-by-local
+       79 rebound to another target
+       24 now unresolved: ambiguous-in-file
+perl | removed {'medium': 98} | added {'high': 3214} | rescored {'medium->high': 114}
+       98 external/stdlib or still bound (same name, kept target)
+php | removed {} | added {'medium': 88} | rescored {}
+rust | removed {'high': 1} | added {'high': 22, 'medium': 15} | rescored {}
+       1 now unresolved: shadowed-by-local
+scala | removed {'medium': 6710, 'high': 235} | added {'high': 844, 'medium': 4342} | rescored {'medium->high': 8022}
+       3860 rebound to another target
+       3085 external/stdlib or still bound (same name, kept target)
+zig | removed {'medium': 5958, 'high': 48} | added {'medium': 3328, 'high': 34531} | rescored {'medium->high': 8262, 'high->medium': 41}
+       4905 external/stdlib or still bound (same name, kept target)
+       756 rebound to another target
+       246 now unresolved: not-in-imported-module
+       94 now unresolved: candidates-in-other-files
+       5 now unresolved: fanout-cap-exceeded

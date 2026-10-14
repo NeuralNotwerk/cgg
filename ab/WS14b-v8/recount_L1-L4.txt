@@ -1,0 +1,22 @@
+rust v9 dropped edges 49 (high 22 )
+    22 recovered same target (high)  [was-high: 22 ]
+    15 recovered same target (medium)  [was-high: 0 ]
+    12 unresolved: shadowed-by-local  [was-high: 0 ]
+zig v9 dropped edges 437 (high 44 )
+    235 unresolved: candidates-in-other-files  [was-high: 32 ]
+    95 bound to another target  [was-high: 1 ]
+    92 recovered same target (high)  [was-high: 11 ]
+    13 recovered same target (medium)  [was-high: 0 ]
+    2 unresolved: not-in-imported-module  [was-high: 0 ]
+zig-shadow v9 dropped edges 266 (high 75 )
+    167 unresolved: shadowed-by-local  [was-high: 43 ]
+    67 recovered same target (medium)  [was-high: 0 ]
+    32 recovered same target (high)  [was-high: 32 ]
+perl v9 dropped edges 291 (high 31 )
+    234 unresolved: candidates-in-other-files  [was-high: 3 ]
+    29 unresolved: external/none  [was-high: 0 ]
+    28 recovered same target (high)  [was-high: 28 ]
+php v9 dropped edges 39 (high 0 )
+    25 unresolved: candidates-in-other-files  [was-high: 0 ]
+    9 bound to another target  [was-high: 0 ]
+    5 recovered same target (medium)  [was-high: 0 ]
