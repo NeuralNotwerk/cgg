@@ -502,6 +502,65 @@ otherwise change the default graph.
   function references (`::f`, `f _`); a reflective lookup caps every
   same-named callable of the language, not only the receiver's type's.
 
+- **Methods a framework or runtime invokes by annotation, signature or
+  registration are dead-code roots** (WS7, FINDINGS B4). Each was
+  reported `high` dead code because nothing in source calls it. New
+  framework rules (all `node: false`: they mark a root and mint no entry
+  node) cover:
+  - Java lifecycle and DI: `@PostConstruct`/`@PreDestroy` (JSR-250),
+    Spring `@Bean`/`@EventListener`/`@TransactionalEventListener`, Guice
+    `@Provides`/`@ProvidesInto*`/`@Inject`, Dagger `@Provides`/`@Binds`/
+    `@Multibinds`/`@ContributesAndroidInjector`, JSR-330 `@Inject`,
+    Gradle `@TaskAction` and task input/output getters, Gradle's service
+    registry (`@Provides`, and `configure` on a
+    `ServiceRegistrationProvider`), Gradle model rules, Jackson/Moshi
+    (de)serialization members, EventBus `@Subscribe`.
+  - Java serialization: `readObject(ObjectInputStream)`,
+    `writeObject(ObjectOutputStream)`, `readObjectNoData()`,
+    `readResolve()`, `writeReplace()` — matched by name *and* parameter
+    list (`signature_methods_for`), so a `readObject(String)` helper
+    stays reportable.
+  - Test data sources (`--include-tests`): the member a JUnit
+    `@MethodSource("p")` (bare form: the test's own name;
+    `Class#m` qualifies the owner) or `@ArgumentsSource(X.class)`, an NUnit
+    `[TestCaseSource("X")]`/`nameof(X)`/`typeof(T)`, or an xUnit
+    `[MemberData(nameof(X), MemberType = typeof(T))]`/`[ClassData(typeof(T))]`
+    names (`member_sources_for`); TestNG `@DataProvider` and lifecycle
+    annotations; NUnit `[TestCase]`, `[TestCaseSource]` and fixture hooks;
+    JUnit 4 `@Parameters`. Names in attribute arguments are read only to
+    root a member of the named (or the annotated) class — never as an edge.
+  - C# `[OnDeserialized]`/`[OnDeserializing]`/`[OnSerialized]`/
+    `[OnSerializing]` and Newtonsoft `[OnError]`.
+  - C/C++: a function named by identifier in `signal`, `atexit`,
+    `at_quick_exit`, `on_exit`, `pthread_create`, `pthread_once`,
+    `pthread_key_create`, `qsort`, `bsearch` (and `std::call_once`). The
+    C plugin now runs the registrar-argument capture the C++ plugin
+    already had.
+  - The C/C++ → asm FFI linker no longer turns a *value* reference into a
+    call edge (`atexit(_fini)`, `run_handler(name, …)`).
+  - **The default graph is unchanged except one wrong edge** (full corpus,
+    283 repositories, `hcl-terraform-aws` timed out on the old side): one
+    C++ `ffi` edge removed (`run_handler(name, value)` bound to an asm
+    label `name`); 0 added or rescored; no `<framework-entry>` node or
+    edge changes. Audit records: +83 C/C++ `value-ref-*` unresolved
+    records for registration arguments that name no callable (data
+    pointers in `qsort(entries, …)`).
+  - Dead code, full corpus, none newly `high`: 1,644 findings leave `high`
+    — Java 1,609 (DI providers 704, serialization hooks 469, Dagger
+    bindings 217, Gradle model rules 78, Spring 53, Jackson/Moshi 34,
+    Gradle tasks 16, service-provider `configure` 13, JSR-250 10, other
+    live through a newly rooted caller 15), C# 35 (serialization
+    callbacks). With `--include-tests`: 2,178 (Java 2,130, adding 440
+    test data sources; C# 48). groovy-gradle 639 → 44, storm 453 → 11,
+    kapua 240 → 11, nextcloud-android 164 → 4, JabRef with tests
+    304 → 10, Newtonsoft.Json 116 → 83.
+- Not covered (WS7): NUnit `[ValueSource]` (parameter attributes are not
+  recorded); a data source inherited from a base test class and not
+  qualified; Kotlin/Groovy copies of these annotations; C `sigaction`
+  handlers, function pointers in struct fields, `std::thread t(fn)` and
+  algorithm comparators; Newtonsoft.Json's `#if`-split methods misparsed
+  as callables named `if` (extraction, WS8).
+
 ### Compatibility
 
 - **The default graph changes.** Full corpus, 283 repositories:

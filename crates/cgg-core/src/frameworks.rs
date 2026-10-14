@@ -304,6 +304,8 @@ impl FrameworkRule {
             // "seen, no rules" — claiming a gap that does not exist.
             || !rules::visibility_entries_for(&self.id, &self.language).is_empty()
             || !rules::self_module_markers_for(&self.id, &self.language).is_empty()
+            || !rules::member_sources_for(&self.id, &self.language).is_empty()
+            || !rules::signature_methods_for(&self.id, &self.language).is_empty()
             || !self.observer_types.is_empty()
     }
 }

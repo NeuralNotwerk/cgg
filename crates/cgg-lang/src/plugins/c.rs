@@ -48,6 +48,7 @@ impl LanguagePlugin for CPlugin {
         let mut w = CWalker {
             source,
             facts: &mut facts,
+            ctx: *ctx,
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -62,6 +63,10 @@ impl LanguagePlugin for CPlugin {
 struct CWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
+    /// The registrar-verb gate. C hands control to a function by passing
+    /// its name to a runtime API (`signal(SIGINT, on_sigint)`); without
+    /// the capture those handlers have no reference at all.
+    ctx: crate::ExtractCtx<'a>,
 }
 
 impl<'a> CWalker<'a> {
@@ -95,6 +100,12 @@ impl<'a> CWalker<'a> {
             }
             "call_expression" => {
                 self.record_call(node);
+                if let Some(callee) = node.child_by_field_name("function") {
+                    let context = self.text(callee).to_string();
+                    let extra =
+                        super::registrar::capture(&self.ctx, node, self.source, &context);
+                    self.facts.references.extend(extra);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -403,6 +414,25 @@ mod tests {
         assert!(refs.contains(&("add", "")), "got: {refs:?}");
         // ptr->run() is a field_expression
         assert!(refs.contains(&("run", "ptr")), "got: {refs:?}");
+    }
+
+    // B4: a function handed to a runtime registration API by name is a
+    // value reference the framework rules can root. An identifier passed
+    // to an ordinary call is not captured by this path.
+    #[test]
+    fn functions_passed_to_runtime_registrars_are_value_refs() {
+        let src = "void h(int s) {}\nvoid g(void) {}\n\
+                   int main(void) { signal(SIGINT, h); atexit(g); log_it(g); return 0; }\n";
+        let f = extract(src);
+        let vals: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| (r.name.as_str(), r.context.as_str()))
+            .collect();
+        assert!(vals.contains(&("h", "signal")), "got: {vals:?}");
+        assert!(vals.contains(&("g", "atexit")), "got: {vals:?}");
+        assert!(!vals.iter().any(|(_, c)| *c == "log_it"), "got: {vals:?}");
     }
 
     #[test]

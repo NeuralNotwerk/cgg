@@ -2573,7 +2573,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "cgg has no entry rules for xUnit; the runner — not any code in the tree — constructs the test class and invokes it. [Fact] and [Theory] methods are already root-marked by cgg's dead-code root pass, but the surrounding harness is not: the test class CONSTRUCTOR runs once per test, IClassFixture<T>/ICollectionFixture<T> fixture types are instantiated by the runner, and IAsyncLifetime.InitializeAsync/DisposeAsync plus IDisposable.Dispose are called around every test. [MemberData]/[ClassData] name their data source by STRING or by typeof, so those provider members have no caller either. Treat all of them as roots, not as dead code.",
+        gap: "cgg has no entry rules for xUnit; the runner — not any code in the tree — constructs the test class and invokes it. [Fact] and [Theory] methods are already root-marked by cgg's dead-code root pass, but the surrounding harness is not: the test class CONSTRUCTOR runs once per test, IClassFixture<T>/ICollectionFixture<T> fixture types are instantiated by the runner, and IAsyncLifetime.InitializeAsync/DisposeAsync plus IDisposable.Dispose are called around every test. [MemberData]/[ClassData] name their data source by STRING, nameof or typeof; those provider members are rooted by the companion `xunit-data` rule. Treat the rest as roots, not as dead code.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -2590,7 +2590,78 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "cgg has no entry rules for NUnit; the runner invokes the members of a [TestFixture] class directly. [Test] is already root-marked by cgg's dead-code root pass, but these are not: [TestCase], [TestCaseSource], [ValueSource], [Theory], and the fixture hooks [SetUp], [TearDown], [OneTimeSetUp], [OneTimeTearDown] and the whole [SetUpFixture] class. [TestCaseSource]/[ValueSource] additionally name a static member by STRING, so the data provider itself has no caller. Treat all of them as roots, not as dead code.",
+        gap: "cgg has no entry rules for NUnit; the runner invokes the members of a [TestFixture] class directly. [Test] is root-marked by cgg's dead-code root pass, and the companion `nunit-runner` rule roots [TestCase], [TestCaseSource], [Theory] and the fixture hooks [SetUp], [TearDown], [OneTimeSetUp], [OneTimeTearDown], plus the member a [TestCaseSource] names by STRING or nameof. Not covered: [ValueSource] on a parameter (parameter attributes are not recorded) and the whole [SetUpFixture] class. Treat those as roots, not as dead code.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // NUnit invokes these directly; `[TestCaseSource]` names its data source
+    // by string or `nameof` (`member_sources_for`).
+    RuleSpec {
+        id: "nunit-runner",
+        language: "csharp",
+        kind: TrustKind::Test,
+        detect: &["NUnit.Framework"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "TestCase",
+            "TestCaseSource",
+            "Theory",
+            "SetUp",
+            "TearDown",
+            "OneTimeSetUp",
+            "OneTimeTearDown",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // xUnit data sources: `[MemberData(nameof(X))]` names a member and
+    // `[ClassData(typeof(T))]` a type the runner enumerates
+    // (`member_sources_for`).
+    RuleSpec {
+        id: "xunit-data",
+        language: "csharp",
+        kind: TrustKind::Test,
+        detect: &["Xunit"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Serialization callbacks, invoked by the serializer around (de)serializing.
+    RuleSpec {
+        id: "dotnet-serialization",
+        language: "csharp",
+        kind: TrustKind::Lifecycle,
+        detect: &["System.Runtime.Serialization", "Newtonsoft.Json"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "OnDeserialized",
+            "OnDeserializing",
+            "OnSerialized",
+            "OnSerializing",
+            "OnError",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -6969,7 +7040,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "cgg cannot enumerate JUnit's indirect test sources, and every one of them leaves a real method with no caller. @MethodSource(\"name\"), @ArgumentsSource(X.class), @EnumSource and @CsvFileSource name their provider by STRING or by a class literal, so the provider method itself is referenced nowhere in Java source. @Nested inner classes and the test class CONSTRUCTOR are instantiated by the runner. @RunWith(Parameterized.class) invokes the @Parameters method and then the constructor once per row. Every org.junit.jupiter.api.extension.Extension implementation (BeforeEachCallback, AfterEachCallback, ParameterResolver, TestInstancePostProcessor) runs only through @ExtendWith, @RegisterExtension or a META-INF/services file. Read the string argument of each @MethodSource/@ArgumentsSource and the type argument of each @ExtendWith/@RunWith, and treat the members they name as roots.",
+        gap: "cgg cannot enumerate JUnit's indirect test sources, and every one of them leaves a real method with no caller. @MethodSource(\"name\") and @ArgumentsSource(X.class) are read by the companion `junit-sources` rule, which roots the provider they name; @EnumSource and @CsvFileSource name theirs by a class literal or a resource path. @Nested inner classes and the test class CONSTRUCTOR are instantiated by the runner. @RunWith(Parameterized.class) invokes the @Parameters method and then the constructor once per row. Every org.junit.jupiter.api.extension.Extension implementation (BeforeEachCallback, AfterEachCallback, ParameterResolver, TestInstancePostProcessor) runs only through @ExtendWith, @RegisterExtension or a META-INF/services file. Read the string argument of each @MethodSource/@ArgumentsSource and the type argument of each @ExtendWith/@RunWith, and treat the members they name as roots.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -7021,6 +7092,340 @@ pub const SPECS: &[RuleSpec] = &[
         string_targets: false,
         node: false,
         gap: "Java hands control to code that cgg's Java plugin does not turn into a callable or a reference. A `static { … }` class initializer and an instance `{ … }` initializer block are NOT extracted as callables at all — verified: a probe with `static { boot(); }` produced zero edges and left `boot` with in-degree zero — so everything an initializer calls reads as dead. Runtime.getRuntime().addShutdownHook(new Thread(…)) passes a Thread OBJECT, not a named function, so the hook body has no caller. protected void finalize() is invoked only by the garbage collector. And reflection names its target by string: Class.forName(String), Class.getMethod(String), Constructor.newInstance, java.beans property accessors, and every annotation processor. Grep for `static {`, `addShutdownHook`, `Class.forName` and `.getMethod(` and treat what they reach as roots.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Common Annotations (JSR-250): the container calls these once after
+    // injection and once before disposal. Nothing in source calls them.
+    RuleSpec {
+        id: "jsr250-lifecycle",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["javax.annotation", "jakarta.annotation"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["PostConstruct", "PreDestroy"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Spring's application context: `@Bean` factory methods are invoked to
+    // build the context, event listeners are invoked by the event multicaster.
+    RuleSpec {
+        id: "spring-context",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &[
+            "org.springframework.context",
+            "org.springframework.transaction.event",
+        ],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["Bean", "EventListener", "TransactionalEventListener"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Guice calls provider methods and injectable methods reflectively.
+    RuleSpec {
+        id: "guice",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["com.google.inject"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "Provides",
+            "ProvidesIntoSet",
+            "ProvidesIntoMap",
+            "ProvidesIntoOptional",
+            "Inject",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Dagger's generated components call module methods; the generated code
+    // is not in the tree, so the module method has no caller in source.
+    RuleSpec {
+        id: "dagger",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["dagger"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "Provides",
+            "Binds",
+            "BindsOptionalOf",
+            "Multibinds",
+            "ContributesAndroidInjector",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // JSR-330 method injection: the injector calls an `@Inject` method.
+    RuleSpec {
+        id: "jsr330-inject",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["javax.inject", "jakarta.inject"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["Inject"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Gradle runs a task's `@TaskAction` method and reads its annotated input
+    // and output property getters reflectively.
+    RuleSpec {
+        id: "gradle-task",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["org.gradle.api"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "TaskAction",
+            "Input",
+            "InputFile",
+            "InputFiles",
+            "InputDirectory",
+            "OutputFile",
+            "OutputFiles",
+            "OutputDirectory",
+            "OutputDirectories",
+            "Nested",
+            "Classpath",
+            "CompileClasspath",
+            "Console",
+            "LocalState",
+            "Destroys",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Gradle's service registry calls the `@Provides` factory and decorator
+    // methods of a registered service provider reflectively, and the
+    // `configure(ServiceRegistration)` method of every
+    // `ServiceRegistrationProvider`, which carries no annotation.
+    RuleSpec {
+        id: "gradle-services",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["org.gradle.internal.service"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["Provides"],
+        registrars: NONE,
+        base_types: &["ServiceRegistrationProvider"],
+        methods: &["configure"],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Gradle's software-model rule methods, invoked by the model registry.
+    RuleSpec {
+        id: "gradle-model-rules",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["org.gradle.model", "org.gradle.platform.base"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "Model",
+            "Mutate",
+            "Defaults",
+            "Finalize",
+            "Validate",
+            "Rules",
+            "ComponentType",
+            "ComponentBinaries",
+            "BinaryTasks",
+            "LanguageType",
+            "BinaryType",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Jackson calls annotated creators, accessors and any-setters while
+    // (de)serializing.
+    RuleSpec {
+        id: "jackson",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &[
+            "com.fasterxml.jackson.annotation",
+            "org.codehaus.jackson.annotate",
+        ],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "JsonCreator",
+            "JsonValue",
+            "JsonAnySetter",
+            "JsonAnyGetter",
+            "JsonGetter",
+            "JsonSetter",
+            "JsonProperty",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Moshi calls `@FromJson`/`@ToJson` adapter methods while (de)serializing.
+    RuleSpec {
+        id: "moshi",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["com.squareup.moshi"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["FromJson", "ToJson"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // An event bus delivers posted events to `@Subscribe` methods reflectively.
+    RuleSpec {
+        id: "eventbus",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["com.google.common.eventbus", "org.greenrobot.eventbus"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["Subscribe"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Java serialization calls private hooks found by exact name AND parameter
+    // list (`signature_methods_for`), so a same-named method with another
+    // signature is not one.
+    RuleSpec {
+        id: "java-serialization",
+        language: "java",
+        kind: TrustKind::Lifecycle,
+        detect: &["java.io"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Test data sources. `@MethodSource("p")` names its factory by STRING
+    // (`member_sources_for`); a JUnit 4 `@Parameters` method is called by the
+    // Parameterized runner.
+    RuleSpec {
+        id: "junit-sources",
+        language: "java",
+        kind: TrustKind::Test,
+        detect: &["org.junit.jupiter.params", "org.junit.runners"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["Parameters"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // TestNG invokes annotated methods; `@Test(dataProvider = "x")` names its
+    // provider by the provider's `name`, so the `@DataProvider` marker itself
+    // is what roots the provider.
+    RuleSpec {
+        id: "testng",
+        language: "java",
+        kind: TrustKind::Test,
+        detect: &["org.testng"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "Test",
+            "DataProvider",
+            "Factory",
+            "BeforeMethod",
+            "AfterMethod",
+            "BeforeClass",
+            "AfterClass",
+            "BeforeSuite",
+            "AfterSuite",
+            "BeforeTest",
+            "AfterTest",
+            "BeforeGroups",
+            "AfterGroups",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -7469,7 +7874,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "C++ registers callbacks by passing a function pointer, lambda or member pointer as an argument, and cgg's C++ plugin records neither value references nor closures (it never calls the registrar-capture pass), so NONE of these produce an edge and every target reads as dead: std::signal(SIGINT, handler) and sigaction; atexit / at_quick_exit; pthread_create(&t, 0, start_routine, 0) start routines and pthread_key_create destructors; std::thread t(fn) and std::async(fn); qsort(base, n, sz, cmp) and std::sort comparators; std::function / std::bind targets stored in members; Qt connect(...) slots, signals and Q_INVOKABLE methods; __attribute__((constructor)) / __attribute__((destructor)) functions; constructors and destructors of file-scope static objects; and interrupt vector tables. Compounding this, the plugin records ONLY quoted #include \"...\" — angle-bracket system headers such as <csignal> and <thread> are invisible — so this rule cannot even be detected in most projects. Grep for signal(, atexit(, pthread_create(, qsort(, connect( and __attribute__((constructor and treat the functions they name as roots.",
+        gap: "C++ registers callbacks by passing a function pointer, lambda or member pointer as an argument. A function named by identifier in a call to signal, atexit, at_quick_exit, on_exit, pthread_create, pthread_once, pthread_key_create, qsort, bsearch or std::call_once is rooted by the companion `cpp-callbacks` rule. Not covered: sigaction handlers; std::thread t(fn) (a declaration, not a call) and std::async(fn); std::sort and other algorithm comparators; std::function / std::bind targets stored in members; Qt connect(...) slots, signals and Q_INVOKABLE methods; __attribute__((constructor)) / __attribute__((destructor)) functions; constructors and destructors of file-scope static objects; and interrupt vector tables. Grep for std::thread, connect( and __attribute__((constructor and treat the functions they name as roots.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -7494,7 +7899,90 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "C hands control to a function pointer, and cgg's C plugin extracts no attributes, no base types and no value references at all — it never runs the registrar-capture pass — so every callback target is invisible: signal(SIGINT, handler) and sigaction(sig, &act, 0) handlers; atexit / at_quick_exit / on_exit functions; pthread_create(&t, 0, start_routine, arg) start routines, pthread_once init functions and pthread_key_create destructors; qsort / bsearch comparators; __attribute__((constructor)) and __attribute__((destructor)) functions that run before and after main; interrupt service routines wired through a vector table or a linker script; longjmp targets; and any function pointer stored in a struct (the vtable pattern that carries most C plugin and driver architectures). Compounding this, the plugin records ONLY quoted #include \"...\" — <signal.h>, <stdlib.h> and <pthread.h> in angle brackets are dropped — so this rule cannot even be detected in most C projects. Grep for signal(, sigaction(, atexit(, pthread_create(, qsort(, bsearch(, __attribute__((constructor and for struct fields of function-pointer type, and treat the functions they name as roots.",
+        gap: "C hands control to a function pointer. A function named by identifier in a call to signal, atexit, at_quick_exit, on_exit, pthread_create, pthread_once, pthread_key_create, qsort or bsearch is rooted by the companion `c-callbacks` rule. Everything else stays invisible, because cgg's C plugin extracts no attributes, no base types and no other value references: sigaction(sig, &act, 0) handlers (the function sits in a struct field); __attribute__((constructor)) and __attribute__((destructor)) functions that run before and after main; interrupt service routines wired through a vector table or a linker script; longjmp targets; a callback passed through a variable or a cast rather than by name; and any function pointer stored in a struct (the vtable pattern that carries most C plugin and driver architectures). Grep for sigaction(, __attribute__((constructor and for struct fields of function-pointer type, and treat the functions they name as roots.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // The C runtime calls back into functions handed to it by NAME: a signal
+    // handler, an atexit hook, a thread start routine, a qsort comparator.
+    // The registration call is the evidence, so it is also the detection gate
+    // (angle-bracket includes are not recorded, so an import gate would never
+    // fire). Only an identifier argument that names an in-tree function is
+    // rooted; every other argument names nothing and is dropped.
+    RuleSpec {
+        id: "c-callbacks",
+        language: "c",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: &[
+            "signal",
+            "atexit",
+            "at_quick_exit",
+            "on_exit",
+            "pthread_create",
+            "pthread_once",
+            "pthread_key_create",
+            "qsort",
+            "bsearch",
+        ],
+        attributes: NONE,
+        registrars: &[
+            "signal",
+            "atexit",
+            "at_quick_exit",
+            "on_exit",
+            "pthread_create",
+            "pthread_once",
+            "pthread_key_create",
+            "qsort",
+            "bsearch",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // The C++ counterpart of `c-callbacks`, plus `std::call_once`.
+    RuleSpec {
+        id: "cpp-callbacks",
+        language: "cpp",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: &[
+            "signal",
+            "atexit",
+            "at_quick_exit",
+            "on_exit",
+            "pthread_create",
+            "pthread_once",
+            "pthread_key_create",
+            "qsort",
+            "bsearch",
+            "call_once",
+        ],
+        attributes: NONE,
+        registrars: &[
+            "signal",
+            "atexit",
+            "at_quick_exit",
+            "on_exit",
+            "pthread_create",
+            "pthread_once",
+            "pthread_key_create",
+            "qsort",
+            "bsearch",
+            "call_once",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -10535,6 +11023,116 @@ pub fn visibility_entries_for(id: &str, language: &str) -> &'static [&'static st
     }
 }
 
+/// An attribute whose *arguments* name the members a framework invokes.
+///
+/// `@MethodSource("words")`, `[TestCaseSource(nameof(Cases))]` and
+/// `[MemberData(nameof(Data), MemberType = typeof(Shared))]` sit on a
+/// test, but what they make live is the member they name — which no
+/// call in source ever reaches. The matcher reads every string literal
+/// and `nameof(…)` argument as a member name (`Class#member` and
+/// `T.member` qualify the owner), and a `typeof(T)` / `T.class`
+/// argument as the owning type.
+///
+/// Kept out of [`FrameworkRule`] alongside [`visibility_entries_for`]:
+/// it is a property of a built-in framework's attribute grammar, not a
+/// matcher a user-authored rule should be declaring.
+#[derive(Debug)]
+pub struct MemberSource {
+    /// Attribute key, compared like [`RuleSpec::attributes`].
+    pub attribute: &'static str,
+    /// With no member named at all, the framework looks up a member
+    /// with the annotated method's own name (JUnit's bare `@MethodSource`).
+    pub default_self: bool,
+    /// With a type named but no member, the members of that type the
+    /// framework invokes (`[ClassData(typeof(T))]` enumerates `T`).
+    pub type_members: &'static [&'static str],
+}
+
+/// The member-naming attributes of one built-in rule.
+pub fn member_sources_for(id: &str, language: &str) -> &'static [MemberSource] {
+    match (id, language) {
+        ("junit-sources", "java") => &[
+            MemberSource {
+                attribute: "MethodSource",
+                default_self: true,
+                type_members: NONE,
+            },
+            MemberSource {
+                attribute: "ArgumentsSource",
+                default_self: false,
+                type_members: &["provideArguments"],
+            },
+        ],
+        ("nunit-runner", "csharp") => &[
+            MemberSource {
+                attribute: "TestCaseSource",
+                default_self: false,
+                type_members: &["GetEnumerator"],
+            },
+            MemberSource {
+                attribute: "ValueSource",
+                default_self: false,
+                type_members: &["GetEnumerator"],
+            },
+        ],
+        ("xunit-data", "csharp") => &[
+            MemberSource {
+                attribute: "MemberData",
+                default_self: false,
+                type_members: NONE,
+            },
+            MemberSource {
+                attribute: "ClassData",
+                default_self: false,
+                type_members: &["GetEnumerator"],
+            },
+        ],
+        _ => &[],
+    }
+}
+
+/// A method the runtime invokes by exact name *and* parameter list.
+///
+/// Java serialization finds `readObject(ObjectInputStream)` reflectively
+/// on the class being (de)serialized; a `readObject(String path)` helper
+/// is not one and must stay reportable. `params` are the parameter type
+/// names in order (last segment, generics stripped); empty means the
+/// method takes none.
+#[derive(Debug)]
+pub struct SignatureMethod {
+    pub name: &'static str,
+    pub params: &'static [&'static str],
+}
+
+/// The signature-keyed hooks of one built-in rule.
+pub fn signature_methods_for(id: &str, language: &str) -> &'static [SignatureMethod] {
+    match (id, language) {
+        ("java-serialization", "java") => &[
+            SignatureMethod {
+                name: "readObject",
+                params: &["ObjectInputStream"],
+            },
+            SignatureMethod {
+                name: "writeObject",
+                params: &["ObjectOutputStream"],
+            },
+            SignatureMethod {
+                name: "readObjectNoData",
+                params: NONE,
+            },
+            SignatureMethod {
+                name: "readResolve",
+                params: NONE,
+            },
+            SignatureMethod {
+                name: "writeReplace",
+                params: NONE,
+            },
+        ],
+        _ => &[],
+    }
+}
+
 /// Call names that alone prove a framework is present, for ecosystems
 /// with no import records. Returned separately from [`FrameworkRule`]
 /// because it is a detection input, not a matcher, and a user-authored
@@ -10668,7 +11266,9 @@ mod tests {
                 || !s.base_types.is_empty()
                 || !s.methods.is_empty()
                 || !visibility_entries_for(s.id, s.language).is_empty()
-                || !self_module_markers_for(s.id, s.language).is_empty();
+                || !self_module_markers_for(s.id, s.language).is_empty()
+                || !member_sources_for(s.id, s.language).is_empty()
+                || !signature_methods_for(s.id, s.language).is_empty();
             assert!(
                 has_matchers || !s.gap.is_empty(),
                 "{}/{} has no matchers and no stated gap",

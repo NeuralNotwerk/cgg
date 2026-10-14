@@ -147,6 +147,14 @@ pub fn detect(
                 let _s = cgg_core::profile::span("frameworks::match-observers");
                 match_observer_callbacks(graph, facts, rule, &mut entries);
             }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-member-sources");
+                match_member_sources(graph, names, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-signatures");
+                match_signature_methods(graph, rule, &mut entries);
+            }
             entries.into_iter()
         })
         .collect();
@@ -794,6 +802,314 @@ fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEnt
             evidence: format!(
                 "`{}` satisfies an implicitly-implemented {} interface",
                 node.simple_name, rule.id
+            ),
+            file: node.file,
+            site_line: node.start_line,
+            node: rule.node,
+        });
+    }
+}
+
+/// One argument list of an attribute, read for the members it names.
+#[derive(Debug, Default, PartialEq)]
+struct NamedMembers {
+    /// `typeof(T)` / `T.class`, last segment: the owner of the members.
+    owner_type: Option<String>,
+    /// `(qualifier, member)` per string literal or `nameof(…)`.
+    members: Vec<(Option<String>, String)>,
+}
+
+/// Split `s` at top-level commas, ignoring commas inside brackets and
+/// string literals.
+fn split_top_level_args(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let (mut depth, mut start, mut quote): (i32, usize, Option<char>) = (0, 0, None);
+    let mut escaped = false;
+    for (i, c) in s.char_indices() {
+        if let Some(q) = quote {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == q {
+                quote = None;
+            }
+            continue;
+        }
+        match c {
+            '"' | '\'' => quote = Some(c),
+            '(' | '[' | '{' | '<' => depth += 1,
+            ')' | ']' | '}' | '>' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(s[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    let last = s[start..].trim();
+    if !last.is_empty() {
+        out.push(last);
+    }
+    out
+}
+
+/// The type named by a `typeof(T)` or `T.class` argument, last segment.
+fn type_literal(arg: &str) -> Option<String> {
+    let a = arg.trim();
+    let inner = if let Some(rest) = a.strip_prefix("typeof(") {
+        rest.strip_suffix(')')?
+    } else {
+        a.strip_suffix(".class")?
+    };
+    let bare = inner.split('<').next().unwrap_or(inner).trim();
+    let last = bare.rsplit(['.', ':']).next().unwrap_or(bare).trim();
+    (!last.is_empty()).then(|| last.to_string())
+}
+
+/// Members named by one positional argument: a string literal, a
+/// `nameof(…)`, or an array initializer of either.
+fn members_in(arg: &str, out: &mut Vec<(Option<String>, String)>) {
+    let a = arg.trim();
+    if let Some(inner) = a.strip_prefix('{').and_then(|r| r.strip_suffix('}')) {
+        for el in split_top_level_args(inner) {
+            members_in(el, out);
+        }
+        return;
+    }
+    if let Some(inner) = a.strip_prefix("nameof(").and_then(|r| r.strip_suffix(')')) {
+        let mut parts = inner.trim().rsplitn(2, '.');
+        let member = parts.next().unwrap_or("").trim();
+        let qual = parts
+            .next()
+            .map(|q| q.rsplit('.').next().unwrap_or(q).trim().to_string());
+        if is_identifierish(member) {
+            out.push((qual, member.to_string()));
+        }
+        return;
+    }
+    if (a.starts_with('"') && a.ends_with('"') && a.len() >= 2)
+        || (a.starts_with('\'') && a.ends_with('\'') && a.len() >= 2)
+    {
+        let body = &a[1..a.len() - 1];
+        // `com.x.Shared#factory(java.lang.String)` -> (Shared, factory).
+        let body = body.split('(').next().unwrap_or(body).trim();
+        let (qual, member) = match body.rsplit_once('#') {
+            Some((q, m)) => (
+                Some(q.rsplit(['.', '$']).next().unwrap_or(q).to_string()),
+                m,
+            ),
+            None => (None, body),
+        };
+        if is_identifierish(member) {
+            out.push((qual, member.to_string()));
+        }
+    }
+}
+
+/// Read an attribute's arguments for the members and type they name.
+///
+/// Named arguments contribute only a type (`MemberType = typeof(T)`),
+/// except Java's implicit `value` element, which is the positional one.
+/// Of the positional arguments, type literals give the owner and the
+/// FIRST other one names the members — later positionals are parameters
+/// handed to the source (`[MemberData(nameof(D), 3)]`), never names.
+fn named_members(attr: &str) -> NamedMembers {
+    let mut out = NamedMembers::default();
+    let Some(open) = attr.find('(') else {
+        return out;
+    };
+    let Some(close) = attr.rfind(')') else {
+        return out;
+    };
+    if close <= open {
+        return out;
+    }
+    let mut member_arg_seen = false;
+    for arg in split_top_level_args(&attr[open + 1..close]) {
+        let (name, value) = match arg.split_once('=') {
+            Some((n, v))
+                if is_identifierish(n.trim())
+                    && !v.starts_with('=')
+                    && !n.contains(['"', '\'', '(']) =>
+            {
+                (Some(n.trim()), v.trim())
+            }
+            _ => (None, arg),
+        };
+        if let Some(t) = type_literal(value) {
+            out.owner_type.get_or_insert(t);
+            continue;
+        }
+        let positional = name.is_none_or(|n| n == "value");
+        if positional && !member_arg_seen {
+            member_arg_seen = true;
+            members_in(value, &mut out.members);
+        }
+    }
+    out
+}
+
+/// **Shape E, attribute form** — a test-data attribute names the member
+/// the runner calls.
+///
+/// `@MethodSource("words")` sits on a test, but what it makes live is
+/// `words`, which no call reaches. Each named member is looked up on the
+/// owner the attribute names, or on the annotated method's own class;
+/// a definition in the annotated method's file wins, and otherwise only
+/// a unique one is taken. Marks a root only — never an edge.
+fn match_member_sources(
+    graph: &Graph,
+    index: &NameIndex,
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let sources = rules::member_sources_for(&rule.id, &rule.language);
+    if sources.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        for attr in &node.attributes {
+            let key = attribute_key(attr);
+            let verb = attribute_verb(attr);
+            let Some(src) = sources.iter().find(|s| {
+                s.attribute.eq_ignore_ascii_case(key)
+                    || s.attribute.eq_ignore_ascii_case(verb)
+            }) else {
+                continue;
+            };
+            let own_owner = crate::names::owner_from_qn(&node.qualified_name);
+            let named = named_members(attr);
+            let mut wanted: Vec<(Option<String>, String)> = Vec::new();
+            for (qual, member) in &named.members {
+                let owner = qual
+                    .clone()
+                    .or_else(|| named.owner_type.clone())
+                    .or_else(|| own_owner.map(str::to_string));
+                wanted.push((owner, member.clone()));
+            }
+            if named.members.is_empty() {
+                if let Some(t) = &named.owner_type {
+                    for m in src.type_members {
+                        wanted.push((Some(t.clone()), (*m).to_string()));
+                    }
+                } else if src.default_self {
+                    wanted
+                        .push((own_owner.map(str::to_string), node.simple_name.clone()));
+                }
+            }
+            for (owner, member) in wanted {
+                let Some(owner) = owner else { continue };
+                for target in index.owner_members(graph, &owner, &member, node.file) {
+                    if target == *id {
+                        continue;
+                    }
+                    let Some(t) = graph.callables.get(&target) else {
+                        continue;
+                    };
+                    out.push(FrameworkEntry {
+                        framework: rule.id.clone(),
+                        kind: rule.kind,
+                        shape: EntryShape::StringTarget,
+                        route: String::new(),
+                        target,
+                        target_name: t.qualified_name.clone(),
+                        evidence: format!(
+                            "named by `{}` on `{}`",
+                            attr.trim(),
+                            node.qualified_name
+                        ),
+                        file: node.file,
+                        site_line: node.start_line,
+                        node: rule.node,
+                    });
+                }
+            }
+        }
+    }
+}
+
+/// The parameter type names of a signature, last segment, generics and
+/// array brackets stripped: `void f(final java.io.ObjectInputStream in)`
+/// -> `["ObjectInputStream"]`. `None` when no parameter list is found.
+fn param_types(signature: &str, name: &str) -> Option<Vec<String>> {
+    let start = signature.find(&format!("{name}("))? + name.len() + 1;
+    let mut depth = 1i32;
+    let mut end = None;
+    for (i, c) in signature[start..].char_indices() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = Some(start + i);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let inner = &signature[start..end?];
+    let mut out = Vec::new();
+    for p in split_top_level_args(inner) {
+        let words: Vec<&str> = p
+            .split_whitespace()
+            .filter(|w| !w.starts_with('@') && *w != "final")
+            .collect();
+        // Type then name; a lone word is a type with the name elided.
+        let ty = match words.as_slice() {
+            [] => continue,
+            [t] => *t,
+            [.., t, _name] => *t,
+        };
+        let bare = ty.split(['<', '[']).next().unwrap_or(ty);
+        let bare = bare.trim_end_matches("...");
+        out.push(bare.rsplit('.').next().unwrap_or(bare).to_string());
+    }
+    Some(out)
+}
+
+/// **Shape D, signature form** — a runtime hook found by exact name and
+/// parameter list (Java serialization's `readObject(ObjectInputStream)`).
+/// A same-named method with any other parameter list is not one.
+fn match_signature_methods(
+    graph: &Graph,
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let hooks = rules::signature_methods_for(&rule.id, &rule.language);
+    if hooks.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        let Some(hook) = hooks.iter().find(|h| h.name == node.simple_name) else {
+            continue;
+        };
+        let Some(params) = param_types(&node.signature_hint, hook.name) else {
+            continue;
+        };
+        if params.len() != hook.params.len()
+            || params.iter().zip(hook.params).any(|(a, b)| a != b)
+        {
+            continue;
+        }
+        out.push(FrameworkEntry {
+            framework: rule.id.clone(),
+            kind: rule.kind,
+            shape: EntryShape::BaseType,
+            route: String::new(),
+            target: *id,
+            target_name: node.qualified_name.clone(),
+            evidence: format!(
+                "`{}({})` is a runtime hook",
+                hook.name,
+                hook.params.join(", ")
             ),
             file: node.file,
             site_line: node.start_line,
@@ -1511,6 +1827,37 @@ impl NameIndex {
         }
     }
 
+    /// Every definition of `owner.member`: those in `from`'s file when
+    /// there are any, otherwise the one definition if it is unique.
+    /// Overloads in one file are all returned — a data source may be
+    /// overloaded, and rooting is a claim about the name, not an edge.
+    fn owner_members(
+        &self,
+        graph: &Graph,
+        owner: &str,
+        member: &str,
+        from: FileId,
+    ) -> Vec<CallableId> {
+        let Some(ids) = self
+            .by_owner_method
+            .get(&(owner.to_string(), member.to_string()))
+        else {
+            return Vec::new();
+        };
+        let local: Vec<CallableId> = ids
+            .iter()
+            .copied()
+            .filter(|i| graph.callables.get(i).is_some_and(|c| c.file == from))
+            .collect();
+        if !local.is_empty() {
+            return local;
+        }
+        match ids.as_slice() {
+            [one] => vec![*one],
+            _ => Vec::new(),
+        }
+    }
+
     fn by_owner_method(
         &self,
         owner: Option<&str>,
@@ -2225,6 +2572,29 @@ mod tests {
         assert_eq!(out.entries[0].shape, EntryShape::BaseType);
     }
 
+    // A service provider's `configure(ServiceRegistration)` carries no
+    // annotation; the contract it implements is the evidence. The same
+    // name on a class outside the contract stays reportable.
+    #[test]
+    fn a_service_provider_contract_roots_configure_only() {
+        let mut hook = node(0, "g.ScopeServices.configure", "configure", "java");
+        hook.start_byte = 100;
+        let mut other = node(1, "g.Plain.configure", "configure", "java");
+        other.start_byte = 300;
+        let g = graph_with(vec![hook, other]);
+        let mut f =
+            facts_with_import("java", "S.java", "org.gradle.internal.service.Provides");
+        f.definitions.push(DefRecord {
+            simple_name: "configure".into(),
+            qualified_name: "g.ScopeServices.configure".into(),
+            start_byte: 100,
+            base_types: vec!["ServiceRegistrationProvider".into()],
+            ..Default::default()
+        });
+        let out = detect(&g, &[f], &[]);
+        assert_eq!(rooted(&out), vec!["g.ScopeServices.configure".to_string()]);
+    }
+
     #[test]
     fn a_cyclic_base_chain_terminates() {
         let mut map: HashMap<String, Vec<String>> = HashMap::new();
@@ -2352,6 +2722,171 @@ mod tests {
             out.entries.is_empty(),
             "no field declaration, no observer entry: {:?}",
             out.entries
+        );
+    }
+
+    fn rooted(out: &FrameworkOutcome) -> Vec<String> {
+        let mut v: Vec<String> =
+            out.entries.iter().map(|e| e.target_name.clone()).collect();
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn attribute_arguments_name_members_and_owner_types() {
+        let m = named_members("@MethodSource({\"alpha\", \"demo.Shared#beta(int)\"})");
+        assert_eq!(
+            m.members,
+            vec![
+                (None, "alpha".to_string()),
+                (Some("Shared".to_string()), "beta".to_string())
+            ]
+        );
+        let m = named_members("TestCaseSource(typeof(Other), nameof(Other.Remote))");
+        assert_eq!(m.owner_type.as_deref(), Some("Other"));
+        assert_eq!(
+            m.members,
+            vec![(Some("Other".to_string()), "Remote".to_string())]
+        );
+        let m = named_members("MemberData(nameof(Ext.Data), MemberType = typeof(Ext))");
+        assert_eq!(m.owner_type.as_deref(), Some("Ext"));
+        assert_eq!(
+            m.members,
+            vec![(Some("Ext".to_string()), "Data".to_string())]
+        );
+        // Later positionals are parameters for the source, not names.
+        let m = named_members("MemberData(nameof(Data), \"abc\", 3)");
+        assert_eq!(m.members, vec![(None, "Data".to_string())]);
+        // Java's implicit `value` element is the positional one.
+        let m = named_members("@MethodSource(value = \"rows\")");
+        assert_eq!(m.members, vec![(None, "rows".to_string())]);
+        assert_eq!(named_members("@MethodSource"), NamedMembers::default());
+        let m = named_members("@ArgumentsSource(Rows.class)");
+        assert_eq!(m.owner_type.as_deref(), Some("Rows"));
+        assert!(m.members.is_empty());
+    }
+
+    // B4: a data source is named by a string on the test, not called.
+    #[test]
+    fn method_source_roots_the_named_member_and_not_its_neighbours() {
+        let mut t1 = node(0, "demo.T.named", "named", "java");
+        t1.attributes = vec![
+            "@ParameterizedTest".into(),
+            "@MethodSource(\"words\")".into(),
+        ];
+        let mut t2 = node(1, "demo.T.same", "same", "java");
+        t2.attributes = vec!["@MethodSource".into()];
+        let g = graph_with(vec![
+            t1,
+            t2,
+            node(2, "demo.T.words", "words", "java"),
+            node(3, "demo.T.same", "same", "java"),
+            node(4, "demo.T.unused", "unused", "java"),
+            // Same member name on another class: not the source.
+            node(5, "demo.U.words", "words", "java"),
+        ]);
+        let facts = vec![facts_with_import(
+            "java",
+            "T.java",
+            "org.junit.jupiter.params.provider.MethodSource",
+        )];
+        let out = detect(&g, &facts, &[]);
+        let ids: Vec<u32> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework == "junit-sources")
+            .map(|e| e.target.as_u32())
+            .collect();
+        assert!(ids.contains(&2), "{:?}", out.entries);
+        assert!(ids.contains(&3), "bare @MethodSource names its own name");
+        assert!(
+            !ids.contains(&1),
+            "the annotated test is not its own source"
+        );
+        assert!(!ids.contains(&4) && !ids.contains(&5), "{:?}", out.entries);
+        assert!(out.entries.iter().all(|e| !e.node), "roots only, no nodes");
+    }
+
+    #[test]
+    fn member_sources_need_the_framework_detected() {
+        let mut t = node(0, "demo.T.named", "named", "java");
+        t.attributes = vec!["@MethodSource(\"words\")".into()];
+        let g = graph_with(vec![t, node(1, "demo.T.words", "words", "java")]);
+        let facts = vec![facts_with_import("java", "T.java", "java.util.List")];
+        assert!(rooted(&detect(&g, &facts, &[])).is_empty());
+    }
+
+    #[test]
+    fn xunit_and_nunit_sources_follow_nameof_and_typeof() {
+        let mut a = node(0, "Demo.X.Member", "Member", "csharp");
+        a.attributes =
+            vec!["MemberData(nameof(Ext.Rows), MemberType = typeof(Ext))".into()];
+        let mut b = node(1, "Demo.X.Cls", "Cls", "csharp");
+        b.attributes = vec!["ClassData(typeof(Gen))".into()];
+        let g = graph_with(vec![
+            a,
+            b,
+            node(2, "Demo.Ext.Rows", "Rows", "csharp"),
+            node(3, "Demo.Gen.GetEnumerator", "GetEnumerator", "csharp"),
+            node(4, "Demo.Gen.Other", "Other", "csharp"),
+        ]);
+        let facts = vec![facts_with_import("csharp", "X.cs", "Xunit")];
+        assert_eq!(
+            rooted(&detect(&g, &facts, &[])),
+            vec![
+                "Demo.Ext.Rows".to_string(),
+                "Demo.Gen.GetEnumerator".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn serialization_hooks_match_by_name_and_parameter_list() {
+        let mut r = node(0, "demo.Rec.readObject", "readObject", "java");
+        r.signature_hint =
+            "private void readObject(final java.io.ObjectInputStream in) throws IOException"
+                .into();
+        let mut w = node(1, "demo.Rec.writeReplace", "writeReplace", "java");
+        w.signature_hint = "private Object writeReplace()".into();
+        // Near misses: the name without the serialization signature.
+        let mut n1 = node(2, "demo.Io.readObject", "readObject", "java");
+        n1.signature_hint = "private Object readObject(String path)".into();
+        let mut n2 = node(3, "demo.Io.readResolve", "readResolve", "java");
+        n2.signature_hint = "Object readResolve(int depth)".into();
+        let g = graph_with(vec![r, w, n1, n2]);
+        let facts = vec![facts_with_import(
+            "java",
+            "Rec.java",
+            "java.io.Serializable",
+        )];
+        assert_eq!(
+            rooted(&detect(&g, &facts, &[])),
+            vec![
+                "demo.Rec.readObject".to_string(),
+                "demo.Rec.writeReplace".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn lifecycle_annotations_root_only_the_annotated_method() {
+        let mut a = node(0, "demo.S.init", "init", "java");
+        a.attributes = vec!["@PostConstruct".into()];
+        let mut b = node(1, "demo.S.make", "make", "java");
+        b.attributes = vec!["@Provides".into()];
+        let g = graph_with(vec![a, b, node(2, "demo.S.initLater", "initLater", "java")]);
+        let facts = vec![
+            facts_with_import("java", "S.java", "javax.annotation.PostConstruct"),
+            facts_with_import("java", "M.java", "com.google.inject.Provides"),
+        ];
+        let out = detect(&g, &facts, &[]);
+        assert_eq!(
+            rooted(&out),
+            vec!["demo.S.init".to_string(), "demo.S.make".to_string()]
+        );
+        assert!(
+            out.entries.iter().all(|e| !e.node),
+            "lifecycle mints no node"
         );
     }
 }

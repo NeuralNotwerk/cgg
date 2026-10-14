@@ -121,6 +121,13 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
             // For each ref in a C-family file whose target name (or its
             // `_name` variant) matches an asm label, link C → asm.
             for r in &f.references {
+                // A function handed to `atexit(_fini)` is a value, not a
+                // call made here; an FFI *call* edge would claim one.
+                if r.receiver_hint == cgg_core::VALUE_REF_HINT
+                    || r.receiver_hint == cgg_core::STRING_REF_HINT
+                {
+                    continue;
+                }
                 let stripped = r.name.trim_start_matches('_');
                 let names = [r.name.as_str(), stripped];
                 let asm_targets: Vec<CallableId> = names
@@ -907,6 +914,42 @@ mod tests {
         let out = link_ffi(&g, &[], 5);
         assert_eq!(out.edges.len(), 1, "one cross-language edge expected");
         assert!(matches!(out.edges[0].via, Via::Ffi(ref fam) if fam == "wasm-bindgen"));
+    }
+
+    // B4: `atexit(_fini)` hands an asm label over as a value. The call
+    // `_fini()` is an FFI call; the value is not, and must not become one.
+    #[test]
+    fn a_value_reference_to_an_asm_label_is_not_an_ffi_call() {
+        let mut g = mk_graph();
+        for (id, lang) in [(0u32, "c"), (1, "asm")] {
+            let f = g.files.get_mut(&FileId::new(id)).unwrap();
+            f.language = lang.into();
+        }
+        for (id, qn, lang) in [(0u32, "start", "c"), (1, "_fini", "asm")] {
+            let c = g.callables.get_mut(&CallableId::new(id)).unwrap();
+            c.qualified_name = qn.into();
+            c.simple_name = qn.into();
+            c.language = lang.into();
+            c.attributes.clear();
+        }
+        let mut facts = FileFacts::new(FileId::new(0), PathBuf::from("crt.c"), "c");
+        facts.references.push(cgg_core::RefRecord {
+            name: "_fini".into(),
+            site_line: 1,
+            site_byte: 10,
+            ..Default::default()
+        });
+        facts.references.push(cgg_core::RefRecord {
+            name: "_fini".into(),
+            receiver_hint: cgg_core::VALUE_REF_HINT.into(),
+            context: "atexit".into(),
+            site_line: 2,
+            site_byte: 20,
+            ..Default::default()
+        });
+        let out = link_ffi(&g, &[facts], 5);
+        let sites: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
+        assert_eq!(sites, vec![10], "{:?}", out.edges);
     }
 
     #[test]
