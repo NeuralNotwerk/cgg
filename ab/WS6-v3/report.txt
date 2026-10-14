@@ -1,0 +1,61 @@
+old=target/remediation/bins/WS6-before
+new=target/remediation/bins/WS6-after-v3
+repos=283 elapsed=447s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 55
+  app-akka-samples: edges 405->405 (-0 +0 ~0) callables 531->531 unresolved 325->325 files 115->115 deadhigh 43->0 
+  app-avalonia-samples: edges 3857->3857 (-0 +0 ~0) callables 2357->2357 unresolved 1548->1548 files 309->309 deadhigh 36->4 
+  app-bambufarm-vaadin: edges 1216->1216 (-0 +0 ~0) callables 579->579 unresolved 269->269 files 58->58 deadhigh 15->0 
+  app-basedosdados-prefect: edges 15525->15525 (-0 +0 ~0) callables 7879->7879 unresolved 46460->46460 files 1829->1829 deadhigh 30->3 
+  app-black-click: edges 2055->2055 (-0 +0 ~0) callables 2608->2608 unresolved 2893->2897 files 339->339 deadhigh 0->0 
+  app-blazor-samples: edges 833->833 (-0 +0 ~0) callables 3129->3129 unresolved 582->582 files 1053->1053 deadhigh 33->18 
+  app-cdk-examples: edges 1038->1038 (-0 +0 ~0) callables 1267->1267 unresolved 1726->1726 files 931->931 deadhigh 1->0 
+  app-cljdoc-pedestal: edges 903->903 (-0 +0 ~0) callables 1176->1176 unresolved 620->620 files 216->216 deadhigh 1->0 
+  app-dataverse-jsf: edges 98841->98841 (-0 +0 ~0) callables 19756->19756 unresolved 31263->31263 files 1750->1750 deadhigh 61->60 
+  app-django-netbox: edges 16749->16749 (-0 +0 ~0) callables 10521->10521 unresolved 81866->81866 files 1273->1273 deadhigh 3->0 
+  app-druid-jaxrs: edges 374829->374829 (-0 +0 ~0) callables 92454->92454 unresolved 150986->150986 files 9932->9932 deadhigh 148->52 
+  app-eshop-aspnet: edges 853->853 (-0 +0 ~0) callables 2576->2576 unresolved 574->574 files 542->542 deadhigh 22->4 
+  app-godot-demos: edges 104->104 (-0 +0 ~0) callables 284->284 unresolved 55->55 files 37->37 deadhigh 44->16 
+  app-hypothesis-pyramid: edges 16370->16370 (-0 +0 ~0) callables 12698->12698 unresolved 30985->30989 files 1060->1060 deadhigh 3->3 
+  app-jabref-javafx: edges 72551->72551 (-0 +0 ~0) callables 21972->21972 unresolved 33747->33747 files 3037->3037 deadhigh 267->12 
+  app-jupyterhub-tornado: edges 4119->4119 (-0 +0 ~0) callables 2316->2316 unresolved 5735->5735 files 207->207 deadhigh 10->5 
+  app-kapua-camel: edges 66239->66239 (-0 +0 ~0) callables 26559->26559 unresolved 22584->22584 files 4501->4501 deadhigh 246->240 
+  app-ksql-kafkastreams: edges 88471->88471 (-0 +0 ~0) callables 28306->28306 unresolved 40293->40293 files 3147->3147 deadhigh 250->24 
+  app-kythe-bazel: edges 22269->22269 (-0 +0 ~0) callables 13623->13623 unresolved 7992->7992 files 1715->1715 deadhigh 11->4 
+  app-marquez-dropwizard: edges 11967->11967 (-0 +0 ~0) callables 3467->3467 unresolved 5533->5533 files 631->631 deadhigh 6->1 
+  app-masstransit-sample: edges 18->18 (-0 +0 ~0) callables 217->217 unresolved 8->8 files 56->56 deadhigh 2->0 
+  app-monogame-samples: edges 3308->3308 (-0 +0 ~0) callables 4570->4570 unresolved 2190->2190 files 506->506 deadhigh 143->6 
+  app-nextcloud-android: edges 21233->21233 (-0 +0 ~0) callables 10669->10669 unresolved 9568->9568 files 1245->1245 deadhigh 169->164 
+  app-oldata-dagster: edges 5526->5526 (-0 +0 ~0) callables 3448->3448 unresolved 6033->6033 files 429->429 deadhigh 61->54 
+  app-ombi-quartz: edges 6507->6507 (-0 +0 ~0) callables 14989->14989 unresolved 6573->6573 files 1710->1710 deadhigh 4->2 
+  app-orleans-samples: edges 13301->13301 (-0 +0 ~0) callables 20843->20843 unresolved 18940->18940 files 3171->3171 deadhigh 492->105 
+  app-powertools-lambda: edges 18481->18481 (-0 +0 ~0) callables 13285->13285 unresolved 28718->28718 files 1372->1372 deadhigh 19->17 
+  app-saleor-celery: edges 75579->75579 (-0 +0 ~0) callables 23721->23721 unresolved 75287->75288 files 4299->4299 deadhigh 24->20 
+  app-sdwebui-gradio: edges 4169->4169 (-0 +0 ~0) callables 2595->2595 unresolved 5239->5240 files 245->245 deadhigh 1->1 
+  app-storm-starter: edges 62851->62851 (-0 +0 ~0) callables 31133->31133 unresolved 35245->35245 files 2163->2163 deadhigh 460->453 
+  app-thingsboard-concurrent: edges 169734->169734 (-0 +0 ~0) callables 49833->49833 unresolved 88067->88067 files 6599->6599 deadhigh 117->33 
+  app-torch-ultralytics: edges 5634->5634 (-0 +0 ~0) callables 3290->3290 unresolved 4845->4845 files 299->299 deadhigh 8->7 
+  app-unity-boat: edges 493->493 (-0 +0 ~0) callables 661->661 unresolved 101->101 files 89->89 deadhigh 50->18 
+  app-unity-gamekit: edges 1145->1145 (-0 +0 ~0) callables 814->814 unresolved 529->529 files 100->100 deadhigh 32->2 
+  app-wordpress-android: edges 102927->102927 (-0 +0 ~0) callables 40573->40573 unresolved 34038->34038 files 4259->4259 deadhigh 131->126 
+  csharp-mediatr: edges 466->466 (-0 +0 ~0) callables 946->946 unresolved 280->280 files 157->157 deadhigh 11->2 
+  csharp-newtonsoft: edges 52294->52294 (-0 +0 ~0) callables 11718->11718 unresolved 18615->18615 files 950->950 deadhigh 144->116 
+  csharp-serilog: edges 3768->3768 (-0 +0 ~0) callables 1689->1689 unresolved 992->992 files 218->218 deadhigh 2->0 
+  dart-flutter: edges 578534->578534 (-0 +0 ~0) callables 86296->86296 unresolved 362079->362079 files 10771->10771 deadhigh 19->18 
+  fsharp-paket: edges 7197->7197 (-0 +0 ~0) callables 3894->3894 unresolved 5236->5236 files 494->494 deadhigh 2->1 
+  groovy-gradle: edges 167819->167819 (-0 +0 ~0) callables 107086->107086 unresolved 254363->254363 files 24272->24272 deadhigh 862->639 
+  java-spring-batch: edges 24444->24444 (-0 +0 ~0) callables 10675->10675 unresolved 10210->10210 files 1682->1682 deadhigh 3->2 
+  kivy-carvera: edges 4586->4586 (-0 +0 ~0) callables 2877->2877 unresolved 2110->2110 files 193->193 deadhigh 2->0 
+  kotlin-okio: edges 24364->24364 (-0 +0 ~0) callables 4456->4456 unresolved 6459->6459 files 356->356 deadhigh 1->0 
+  py-dash: edges 25595->25595 (-0 +0 ~0) callables 5728->5728 unresolved 9394->9402 files 984->984 deadhigh 21->10 
+  py-falcon: edges 9472->9472 (-0 +0 ~0) callables 4065->4065 unresolved 5895->5896 files 272->272 deadhigh 9->5 
+  py-huey: edges 2876->2876 (-0 +0 ~0) callables 1483->1483 unresolved 1467->1468 files 79->79 deadhigh 1->0 
+  py-litestar: edges 10503->10503 (-0 +0 ~0) callables 6830->6830 unresolved 14377->14377 files 1138->1138 deadhigh 7->2 
+  py-quart: edges 1391->1391 (-0 +0 ~0) callables 979->979 unresolved 1081->1081 files 72->72 deadhigh 2->1 
+  python-flask: edges 2146->2146 (-0 +0 ~0) callables 1736->1736 unresolved 1269->1270 files 84->84 deadhigh 1->1 
+  python-httpie: edges 1366->1366 (-0 +0 ~0) callables 1079->1079 unresolved 1467->1470 files 141->141 deadhigh 2->1 
+  rust-bat: edges 1987->1987 (-0 +0 ~0) callables 1973->1973 unresolved 2182->2195 files 178->178 deadhigh 3->3 
+  scala-play: edges 46251->46251 (-0 +0 ~0) callables 13219->13219 unresolved 19455->19455 files 1617->1617 deadhigh 25->3 
+  scala-spark: edges 203191->203191 (-0 +0 ~0) callables 105507->105507 unresolved 589148->589148 files 9201->9201 deadhigh 100->77 
+  smithy-protocol-tests: edges 79383->79383 (-0 +0 ~0) callables 23479->23479 unresolved 35775->35775 files 3663->3663 deadhigh 57->9 
+by language: see by_language.tsv

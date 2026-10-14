@@ -1,3 +1,60 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b7d87e1..dd2d730 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -456,6 +456,52 @@ otherwise change the default graph.
+   `__`); Scala bare calls bound in-file to another class's same-named
+   member; Kotlin primary-constructor properties as receiver types.
+ 
++- **Functions passed as values are references in Java, C# and more Python
++  positions; reflective lookups by a literal name are doubt** (WS6,
++  FINDINGS B3). Java never read a method reference and C# never read a
++  method group, yet both plugins declared the value-reference signal, so
++  a method whose only use was `xs.forEach(this::onItem)`,
++  `new Thread(this::run)`, `Type::new`, `Select(Double)`,
++  `evt += OnChanged`, `new EventHandler(this.OnClick)`,
++  `Func<int,int> f = Triple` or `nameof(Named)` was reported `high`
++  dead code. Such a site is now recorded as the call through its
++  receiver it stands for (`RefRecord::value_ref`) — resolved by the same
++  steps a call is (typed receivers, `this`/`super`/`base`, the calling
++  class and its bases, imports) — and every edge it yields is tagged
++  `reference`. A C# member read through a variable (`value.Value`) is not
++  taken as a method group: it is a property far more often. Python now
++  also reads `return f`, `yield f`, a bare decorator `@deco`, a default
++  `cb=f`, a comprehension value `{k: f for …}`, `x is f` (each kept only
++  where the file defines or imports the name, or through `self`/`cls` or
++  an imported module), and `a = b = f`. A value-position name no callable
++  carries, or that a local binding shadows, is dropped before
++  resolution.
++  - These sites are recorded only when reference edges are kept
++    (`--reference-edges`, or `--dead-code`, which turns it on): **the
++    default graph is unchanged** (full corpus, 283 repositories: 0 edges
++    added, removed or rescored; 37 more Python `value-ref-*` unresolved
++    records, all from chained assignments).
++  - Reflection: Java `getMethod`/`getDeclaredMethod("m")`, C#
++    `GetMethod("M")`, Ruby `send(:m)` and PHP `call_user_func('f')` are
++    now captured (Java's call node has no `function` field, and the C#,
++    Ruby and PHP plugins never ran the capture), and a reflective lookup
++    by a literal name caps a same-named finding at `medium`
++    (`name-collides-with-screened-site`, screen `reflection`) — it never
++    becomes an edge. A module load (`require("x")`, `import_module("x")`)
++    names a file and caps nothing (screen `module-load`).
++  - A plain value reference naming a function or method from its own
++    file is doubt for that callable as well as for a closure.
++  - Dead code, full corpus: 1,873 findings leave `high` and none enter it
++    — Java 1,059 (708 live through a reference from live code, 322
++    referenced only from dead code, 26 reflection, 3 unresolved
++    reference sites), C# 723 (629 / 75 / 1 / 18), Python 91 (85 / 5 /
++    0 / 1). JabRef 267 → 12, Avalonia samples 36 → 4, eShop 22 → 4,
++    MediatR 11 → 2, Newtonsoft.Json 144 → 116.
++- Not covered (WS6): a C# method group or Python attribute reached
++  through a variable (`handler.OnClick`); Kotlin/Scala/Swift/Dart
++  function references (`::f`, `f _`); a reflective lookup caps every
++  same-named callable of the language, not only the receiver's type's.
++
+ ### Compatibility
+ 
+ - **The default graph changes.** Full corpus, 283 repositories:
 diff --git a/crates/cgg-core/src/deadcode.rs b/crates/cgg-core/src/deadcode.rs
 index 124a548..9795af4 100644
 --- a/crates/cgg-core/src/deadcode.rs
