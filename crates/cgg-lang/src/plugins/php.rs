@@ -128,6 +128,11 @@ impl<'a> PhpWalker<'a> {
                     .unwrap_or_default();
                 if !name.is_empty() {
                     self.record_def(&name, node, DefVariant::FreeFunction);
+                    if is_conditional(node)
+                        && let Some(d) = self.facts.definitions.last_mut()
+                    {
+                        d.conditional = true;
+                    }
                 }
                 self.walk_children(node);
                 return;
@@ -336,6 +341,24 @@ impl<'a> PhpWalker<'a> {
     }
 }
 
+/// Whether a function declaration sits in a conditional statement of
+/// the code around it (`if (!function_exists('f')) { function f() … }`),
+/// rather than unconditionally at the top of its file or namespace.
+fn is_conditional(def: Node) -> bool {
+    let mut cur = def.parent();
+    while let Some(n) = cur {
+        match n.kind() {
+            "if_statement" | "else_clause" | "else_if_clause" => return true,
+            "function_definition"
+            | "method_declaration"
+            | "class_declaration"
+            | "program" => return false,
+            _ => cur = n.parent(),
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,5 +418,26 @@ mod tests {
         assert_eq!(uses, vec![("Foo\\Bar", ""), ("Foo\\Baz", "Q")]);
         assert_eq!(f.classes.len(), 1);
         assert_eq!(f.classes[0].class_qn, "App\\Http\\C");
+    }
+
+    /// WS14b: a function declared inside an `if` (a `function_exists`
+    /// fallback, either block syntax) is marked conditional; one at file
+    /// level or in a namespace is not.
+    #[test]
+    fn a_guarded_function_is_conditional() {
+        let f = extract(
+            "<?php\nfunction a() {}\nif (!function_exists('b')) :\n  function b() {}\nendif;\n\
+             if (!function_exists('c')) { function c() {} }\n",
+        );
+        let cond: Vec<(&str, bool)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.as_str(), d.conditional))
+            .collect();
+        assert_eq!(
+            cond,
+            vec![("a", false), ("b", true), ("c", true)],
+            "{cond:?}"
+        );
     }
 }

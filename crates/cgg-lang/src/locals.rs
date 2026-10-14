@@ -53,6 +53,15 @@ struct Binder {
     /// first child of this kind (Swift `if let x = x() {`: the body, not
     /// the condition).
     from_child: &'static str,
+    /// An `Own`-scoped binder whose bound name is in scope only after its
+    /// child under this field (Rust `if let Some(k) = k(..)`, `for x in
+    /// x()`: the scrutinee still sees the outer name).
+    after_field: &'static str,
+    /// With `after_field`: the conditional the binder is the condition of
+    /// (`if_expression`, `while_expression`), whose body (field
+    /// `consequence` or `body`) the binding is in scope over. One wrapper
+    /// between the two (a `let_chain`) is climbed through.
+    extends_to: &'static [&'static str],
 }
 
 const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) -> Binder {
@@ -64,6 +73,8 @@ const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) ->
         parent: "",
         after: &[],
         from_child: "",
+        after_field: "",
+        extends_to: &[],
     }
 }
 
@@ -76,6 +87,8 @@ const fn b1(kind: &'static str, scope: Scope) -> Binder {
         parent: "",
         after: &[],
         from_child: "",
+        after_field: "",
+        extends_to: &[],
     }
 }
 
@@ -92,11 +105,23 @@ const fn bp(
         parent,
         after: &[],
         from_child: "",
+        after_field: "",
+        extends_to: &[],
     }
 }
 
 const fn from_child(mut b: Binder, kind: &'static str) -> Binder {
     b.from_child = kind;
+    b
+}
+
+const fn after_value(
+    mut b: Binder,
+    field: &'static str,
+    extends_to: &'static [&'static str],
+) -> Binder {
+    b.after_field = field;
+    b.extends_to = extends_to;
     b
 }
 
@@ -264,8 +289,12 @@ const RUST_SPEC: Spec = Spec {
         b("parameter", &["pattern"], Scope::Param),
         b("closure_parameters", &[""], Scope::Param),
         b("let_declaration", &["pattern"], Scope::Decl),
-        b("for_expression", &["pattern"], Scope::Own),
-        b("let_condition", &["pattern"], Scope::Own),
+        after_value(b("for_expression", &["pattern"], Scope::Own), "value", &[]),
+        after_value(
+            b("let_condition", &["pattern"], Scope::Own),
+            "value",
+            &["if_expression", "while_expression"],
+        ),
         b("match_arm", &["pattern"], Scope::Own),
     ],
     functions: &["function_item", "closure_expression"],
@@ -384,7 +413,7 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
         let is_ident = spec.idents.contains(&node.kind());
         if is_ident
             && functions > 0
-            && let Some(b) = binding(spec, node, field, &chain, source)
+            && let Some(b) = binding(spec, node, field, &chain, source, &out)
         {
             out.push(b);
         }
@@ -426,6 +455,7 @@ fn binding(
     leaf_field: &'static str,
     chain: &[(Node<'_>, &'static str)],
     source: &[u8],
+    prior: &[LocalBinding],
 ) -> Option<LocalBinding> {
     let name = leaf.utf8_text(source).ok()?.trim();
     if name.is_empty() || name == "_" {
@@ -450,7 +480,7 @@ fn binding(
             // `var pick = H.pick`, `const Range = require("./range").Range`,
             // `x = obj.x`: the local is another name for the member it
             // reads, which carries the same name; it shadows nothing.
-            if aliases_same_member(parent, name, source) {
+            if aliases_same_member(parent, name, source, prior) {
                 return None;
             }
             // The binder's own ancestors (and itself) for the scope walk.
@@ -500,10 +530,24 @@ fn binding(
 
 /// Whether a declaration's value is a member access ending in the very
 /// name it declares (`pick = H.pick`).
-fn aliases_same_member(binder: Node<'_>, name: &str, source: &[u8]) -> bool {
+fn aliases_same_member(
+    binder: Node<'_>,
+    name: &str,
+    source: &[u8],
+    prior: &[LocalBinding],
+) -> bool {
+    // Zig's `const f = std.process.f;` names its value by no field: the
+    // declaration's last named child.
     let Some(value) = binder
         .child_by_field_name("value")
         .or_else(|| binder.child_by_field_name("right"))
+        .or_else(|| {
+            (binder.kind() == "variable_declaration")
+                .then(|| {
+                    binder.named_child(binder.named_child_count().checked_sub(1)? as u32)
+                })
+                .flatten()
+        })
     else {
         return false;
     };
@@ -520,6 +564,24 @@ fn aliases_same_member(binder: Node<'_>, name: &str, source: &[u8]) -> bool {
         .or_else(|| {
             value.named_child(value.named_child_count().saturating_sub(1) as u32)
         });
+    // Zig (WS14b): a read of a local value's member (`const surface =
+    // core.rt_surface.surface;` with a local `core`) is that value, not
+    // another name for a declaration of a module.
+    let zig = binder.kind() == "variable_declaration";
+    let head = value
+        .utf8_text(source)
+        .ok()
+        .and_then(|t| t.split(['.', '[', '(']).next())
+        .map(str::trim)
+        .unwrap_or("");
+    let at = value.start_byte() as u32;
+    if zig
+        && prior
+            .iter()
+            .any(|b| b.name == head && b.start_byte <= at && at < b.end_byte)
+    {
+        return false;
+    }
     last.and_then(|n| n.utf8_text(source).ok())
         .is_some_and(|t| t.trim().trim_start_matches('.') == name)
 }
@@ -561,6 +623,27 @@ fn scope_of(
                 .children(&mut c)
                 .find(|ch| ch.kind() == form.from_child)?;
             Some((from.start_byte() as u32, binder.end_byte() as u32))
+        }
+        Scope::Own if !form.after_field.is_empty() => {
+            let from = binder
+                .child_by_field_name(form.after_field)
+                .map_or(binder.start_byte(), |v| v.end_byte());
+            // The conditional this binder is the condition of (directly,
+            // or through one wrapper such as a `let_chain`): in scope over
+            // its body, not its `else`.
+            let cond = above
+                .iter()
+                .rev()
+                .take(2)
+                .map(|(n, _)| *n)
+                .find(|n| form.extends_to.contains(&n.kind()));
+            let end = cond
+                .and_then(|c| {
+                    c.child_by_field_name("consequence")
+                        .or_else(|| c.child_by_field_name("body"))
+                })
+                .map_or(binder.end_byte(), |b| b.end_byte().max(binder.end_byte()));
+            Some((from as u32, end as u32))
         }
         Scope::Own => Some(span(binder)),
         Scope::Decl => {
@@ -627,6 +710,26 @@ mod tests {
                 "fn f() { let now = now(); now; }",
             ),
             (
+                "rust",
+                tree_sitter_rust::LANGUAGE.into(),
+                "fn f() { if let Some(now) = now(1) { now; } }",
+            ),
+            (
+                "rust",
+                tree_sitter_rust::LANGUAGE.into(),
+                "fn f() { while let Some(now) = now(1) { now; } }",
+            ),
+            (
+                "rust",
+                tree_sitter_rust::LANGUAGE.into(),
+                "fn f() { if a && let Some(now) = now(1) { now; } }",
+            ),
+            (
+                "rust",
+                tree_sitter_rust::LANGUAGE.into(),
+                "fn f() { for now in now() { now; } }",
+            ),
+            (
                 "javascript",
                 tree_sitter_javascript::LANGUAGE.into(),
                 "function f() { const now = now(); now; }",
@@ -661,6 +764,35 @@ mod tests {
             let after = src.rfind("now").unwrap() as u32;
             assert!(b.start_byte <= after && after < b.end_byte, "{lang}: {b:?}");
         }
+    }
+
+    /// `if let Some(k) = k(..) { .. } else { k() }`: the `else` branch
+    /// does not see the pattern's binding.
+    #[test]
+    fn an_if_let_binding_is_not_in_scope_in_its_else() {
+        let src = "fn f() { if let Some(k) = k(1) { k; } else { k(2); } }";
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let got = collect("rust", &tree, src.as_bytes());
+        let b = got.iter().find(|b| b.name == "k").expect("k bound");
+        let body = src.find("k;").unwrap() as u32;
+        let other = src.find("k(2)").unwrap() as u32;
+        assert!(b.start_byte <= body && body < b.end_byte, "{b:?}");
+        assert!(other >= b.end_byte, "{b:?} covers the else branch");
+    }
+
+    /// Zig `const fatal = std.process.fatal;` in a function names the
+    /// same function: no shadow; `const op = pick();` is a value.
+    #[test]
+    fn a_zig_same_named_member_alias_is_not_a_binding() {
+        let src = "fn f(core: *C) void { const fatal = std.process.fatal; const op = pick(); \
+                   const surface = core.rt.surface; }";
+        let got = names("zig", tree_sitter_zig::LANGUAGE.into(), src);
+        assert!(!got.contains(&"fatal".to_string()), "{got:?}");
+        assert!(got.contains(&"op".to_string()), "{got:?}");
+        // A member of a local value is a value.
+        assert!(got.contains(&"surface".to_string()), "{got:?}");
     }
 
     /// `var pick = H.pick` names the same function under its own name:

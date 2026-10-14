@@ -703,6 +703,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             );
         });
     }
+    cgg_resolve::type_hints::settle_implicit_receivers(&mut all_facts);
     let known_names = build_known_names(&all_facts);
     // Hoisted out of the per-file loop below. It was rebuilt for every
     // file from the same `known_names`, which is O(files x names) — on

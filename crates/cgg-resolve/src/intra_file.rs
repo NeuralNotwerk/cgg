@@ -260,6 +260,9 @@ pub fn link_file_with_cap(
                 d.simple_name == rref.name
                     || (erlang_own && d.qualified_name == rref.name)
             })
+            // A non-recursive binding is not in scope in its own body
+            // (OCaml `let f x = f …` without `rec`, WS14b).
+            .filter(|(_, d)| rref.not_def != Some(d.start_byte))
             .map(|(i, d)| (i as u32, d))
             .collect();
 
@@ -1081,6 +1084,27 @@ mod tests {
             "{:?}",
             out.unresolved
         );
+    }
+
+    /// WS14b: `let helper x = helper (x * 2)` without `rec` calls the
+    /// earlier `helper`, never the binding it sits in.
+    #[test]
+    fn a_non_recursive_binding_is_not_its_own_callee() {
+        let defs = vec![
+            mk_def("helper", "helper", DefVariant::FreeFunction, (0, 20)),
+            mk_def("helper", "helper", DefVariant::FreeFunction, (30, 60)),
+        ];
+        let mut call = mk_ref("helper", 45);
+        call.not_def = Some(30);
+        let facts = facts_with_lang("ocaml", defs.clone(), vec![call]);
+        let out = link_file(&facts, &mk_map(&facts));
+        let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
+        assert_eq!(dsts, vec![0], "{dsts:?}");
+        // Near miss: under `let rec` (no `not_def`) it is itself.
+        let facts = facts_with_lang("ocaml", defs, vec![mk_ref("helper", 45)]);
+        let out = link_file(&facts, &mk_map(&facts));
+        let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
+        assert_eq!(dsts, vec![1], "{dsts:?}");
     }
 
     /// WS14: a local bound by assignment may hold a closure another

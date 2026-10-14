@@ -118,6 +118,7 @@ impl FileLocals {
     pub(crate) fn shadows_bare_call(&self, r: &RefRecord) -> bool {
         r.receiver_hint.is_empty()
             && !r.dot_call
+            && !r.macro_call
             && !self.imported.contains(r.name.as_str())
             && self.binds(&r.name, r.site_byte)
     }
@@ -180,6 +181,17 @@ mod tests {
         assert!(l.shadows_receiver_head(&call("json", "c", 20)));
         assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
         assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
+    }
+
+    /// `Err(cb) => cb!(…)`: a macro is not a value, so a binding of the
+    /// same name does not shadow it.
+    #[test]
+    fn a_macro_invocation_is_not_shadowed_by_a_value() {
+        let l = FileLocals::build(&facts());
+        let mut m = call("cb", "", 20);
+        m.macro_call = true;
+        assert!(!l.shadows_bare_call(&m));
+        assert!(l.shadows_bare_call(&call("cb", "", 20)));
     }
 
     #[test]

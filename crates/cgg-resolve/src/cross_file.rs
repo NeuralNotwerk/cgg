@@ -2382,68 +2382,95 @@ pub fn resolve(
                 // it with — and anything that finds is a guess, so medium.
                 let mut untyped_fallback = false;
                 let resolved = match resolved {
-                    None if lang == "cpp" => facts
-                        .untyped_receivers
-                        .iter()
-                        .find(|(b, n, _)| *b == r.site_byte && *n == r.name)
-                        .and_then(|(_, _, orig)| {
-                            let mut r2 = r.clone();
-                            r2.receiver_hint = orig.clone();
-                            let (mut c2, mut n2) = (0u32, false);
-                            let mut e2: Option<String> = None;
-                            let (mut m2, mut mc2) = (None, false);
-                            try_resolve_ref(
-                                graph,
-                                facts.file,
-                                &lang,
-                                &r2,
-                                &heads,
-                                &vocab,
-                                &mut e2,
-                                &direct_imports,
-                                &module_aliases,
-                                &unqualified_prefixes,
-                                &scoped_simple,
-                                &module_files,
-                                &by_qn,
-                                &by_simple,
-                                &by_owner_method,
-                                &by_full_owner_method,
-                                &std_owner_trait_impls,
-                                &reexports,
-                                &bases_by_owner,
-                                &derived_by_base,
-                                &zig_packages,
-                                &known_owners,
-                                &stub_ids,
-                                &signatures,
-                                &var_types,
-                                caller_qn,
-                                enclosing,
-                                fanout_cap,
-                                &rust_path_heads,
-                                &workspace_owner_names,
-                                &class_record_langs,
-                                &own_bases,
-                                &kotlin_extensions,
-                                &modix,
-                                &file_mods,
-                                &libix,
-                                &phpix,
-                                &scala_wild,
-                                &qn_collisions,
-                                &overloads,
-                                &mut m2,
-                                &mut mc2,
-                                &mut c2,
-                                &mut n2,
-                            )
-                        })
-                        .inspect(|_| {
-                            untyped_fallback = true;
-                            external = None;
-                        }),
+                    // Zig (WS14b): a receiver typed as something the
+                    // container lookup could not follow (a generic's
+                    // `const T = Fn(…)` alias) is read as written; a type
+                    // that was followed and refused, or led out of the
+                    // tree, stands.
+                    None if lang == "cpp"
+                        || (lang == "zig"
+                            && refused_module.is_none()
+                            && external.is_none()) =>
+                    {
+                        facts
+                            .untyped_receivers
+                            .iter()
+                            .find(|(b, n, _)| *b == r.site_byte && *n == r.name)
+                            .and_then(|(_, _, orig)| {
+                                let mut r2 = r.clone();
+                                r2.receiver_hint = orig.clone();
+                                let (mut c2, mut n2) = (0u32, false);
+                                let mut e2: Option<String> = None;
+                                let (mut m2, mut mc2) = (None, false);
+                                try_resolve_ref(
+                                    graph,
+                                    facts.file,
+                                    &lang,
+                                    &r2,
+                                    &heads,
+                                    &vocab,
+                                    &mut e2,
+                                    &direct_imports,
+                                    &module_aliases,
+                                    &unqualified_prefixes,
+                                    &scoped_simple,
+                                    &module_files,
+                                    &by_qn,
+                                    &by_simple,
+                                    &by_owner_method,
+                                    &by_full_owner_method,
+                                    &std_owner_trait_impls,
+                                    &reexports,
+                                    &bases_by_owner,
+                                    &derived_by_base,
+                                    &zig_packages,
+                                    &known_owners,
+                                    &stub_ids,
+                                    &signatures,
+                                    &var_types,
+                                    caller_qn,
+                                    enclosing,
+                                    fanout_cap,
+                                    &rust_path_heads,
+                                    &workspace_owner_names,
+                                    &class_record_langs,
+                                    &own_bases,
+                                    &kotlin_extensions,
+                                    &modix,
+                                    &file_mods,
+                                    &libix,
+                                    &phpix,
+                                    &scala_wild,
+                                    &qn_collisions,
+                                    &overloads,
+                                    &mut m2,
+                                    &mut mc2,
+                                    &mut c2,
+                                    &mut n2,
+                                )
+                            })
+                            .inspect(|_| {
+                                untyped_fallback = true;
+                                external = None;
+                            })
+                    }
                     other => other,
+                };
+                // A non-recursive binding is not the callee of a call in
+                // its own body (OCaml `let f x = f …`, WS14b).
+                let resolved = match (resolved, r.not_def) {
+                    (Some(cids), Some(b)) => {
+                        let kept: Vec<CallableId> = cids
+                            .into_iter()
+                            .filter(|c| {
+                                graph.callables.get(c).is_none_or(|n| {
+                                    !(n.file == facts.file && n.start_byte == b)
+                                })
+                            })
+                            .collect();
+                        (!kept.is_empty()).then_some(kept)
+                    }
+                    (other, _) => other,
                 };
                 // `--guess-unique-names`: a Rust site nothing placed, whose
                 // name exactly one callable in the tree carries. Opt-in and
@@ -4352,6 +4379,30 @@ fn try_resolve_ref(
             crate::modules::Scoped::NoCtor => return None,
         }
     }
+    // WS14b: a Perl method call on the caller's invocant (`$self->m()`)
+    // is the caller's package's `m` or one it inherits; inherited from a
+    // base outside the tree, external.
+    if lang == "perl"
+        && let Some(scoped) = libix.resolve_perl(r, caller_qn)
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, certain } => {
+                *module_certain = certain && cids.len() == 1;
+                return Some(cids);
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Ambiguous | crate::modules::Scoped::NoCtor => {
+                return None;
+            }
+        }
+    }
     // WS14: PHP namespaces and `use` imports. `X::m()` is the method of
     // the class `X` names through them (a dependency's class is
     // external); `parent::m()` the caller's base's; `f()` the namespace's
@@ -4420,6 +4471,28 @@ fn try_resolve_ref(
     // answered by whichever same-named callable was indexed last.
     let bare_qns = matches!(lang, "javascript" | "typescript");
 
+    // WS14b: a Scala bare call is a member of the type around it or one
+    // it inherits, its bases resolved through the declaring file's
+    // imports and package (not by simple name); a companion object's
+    // members are not the class's.
+    if lang == "scala"
+        && (r.receiver_hint.is_empty() || r.receiver_hint == "this")
+        && !r.dot_call
+    {
+        match libix.resolve_scala_bare(caller_file, r) {
+            Some(crate::modules::Scoped::Bound { cids, certain }) => {
+                *module_certain = certain;
+                return Some(cids);
+            }
+            Some(crate::modules::Scoped::External(module))
+                if r.receiver_hint.is_empty() =>
+            {
+                *external_out = Some(module);
+                return None;
+            }
+            _ => {}
+        }
+    }
     // Step 1: direct import match — `foo()` where `foo` was
     // imported.
     if r.receiver_hint.is_empty() {
@@ -9634,6 +9707,22 @@ mod tests {
         tweak: impl FnOnce(&mut FileFacts),
     ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
         let mut tweak = Some(tweak);
+        module_case_each(lang, files, caller, refs, |is_caller, _, f| {
+            if is_caller && let Some(t) = tweak.take() {
+                t(f);
+            }
+        })
+    }
+
+    /// [`module_case`] with every file's facts adjusted before resolving
+    /// (`(is the caller, file index, facts)`).
+    fn module_case_each(
+        lang: &str,
+        files: Vec<MFile<'_>>,
+        caller: MFile<'_>,
+        refs: Vec<RefRecord>,
+        mut tweak: impl FnMut(bool, usize, &mut FileFacts),
+    ) -> (Vec<(String, String)>, Vec<UnresolvedReason>) {
         let mut g = Graph::new();
         let mut facts = Vec::new();
         let mut all: Vec<MFile<'_>> = files;
@@ -9681,11 +9770,7 @@ mod tests {
                 f.imports,
             );
             ff.packages = f.packages.iter().map(|p| p.to_string()).collect();
-            if fi == n - 1
-                && let Some(t) = tweak.take()
-            {
-                t(&mut ff);
-            }
+            tweak(fi == n - 1, fi, &mut ff);
             facts.push(ff);
         }
         let out = resolve_default(&g, &facts);
@@ -11724,6 +11809,251 @@ mod tests {
             dsts,
             vec![at("checksum", "src/vsr/checksum.zig")],
             "{dsts:?}"
+        );
+    }
+
+    /// WS14b (Zig): a receiver typed as a container (`s.close()` with
+    /// `s: *Surface`, `Surface = @import("surface.zig").Surface`) reaches
+    /// the member that container declares, not a same-named method of
+    /// another container in the same or another file; a name the
+    /// container does not declare is refused. A call on a type
+    /// function's result through a dependency is external.
+    #[test]
+    fn zig_container_typed_receiver_reaches_its_member() {
+        let files = vec![
+            // `pub const Surface = struct { fn close }` and
+            // `pub const Window = struct { fn close }` in one file.
+            mfile("src/surface.zig", &["close", "close"], vec![]),
+            mfile("src/other.zig", &["close", "missing", "init"], vec![]),
+        ];
+        let caller = mfile(
+            "src/split_tree.zig",
+            &["closeActive"],
+            vec![
+                import("import-member", "surface.zig#Surface", "Surface"),
+                import("import", "std", "std"),
+            ],
+        );
+        let refs = vec![
+            call("close", "Surface"),
+            RefRecord {
+                site_byte: 30,
+                ..call("missing", "Surface")
+            },
+            RefRecord {
+                site_byte: 40,
+                ..call("init", "std.array_list.Managed(T)")
+            },
+        ];
+        let spans = |is_caller: bool, fi: usize, f: &mut FileFacts| {
+            if !is_caller && fi == 0 {
+                // Defs of a non-caller file sit at 2000.. and 2010...
+                f.type_spans = vec![
+                    cgg_core::TypeSpan {
+                        name: "Surface".into(),
+                        start_byte: 1990,
+                        end_byte: 2008,
+                        ..Default::default()
+                    },
+                    cgg_core::TypeSpan {
+                        name: "Window".into(),
+                        start_byte: 2008,
+                        end_byte: 2020,
+                        ..Default::default()
+                    },
+                ];
+            }
+        };
+        let (dsts, why) =
+            module_case_each("zig", files.clone(), caller.clone(), refs, spans);
+        assert_eq!(dsts.len(), 1, "{dsts:?} {why:?}");
+        assert_eq!(dsts[0].1, "src/surface.zig", "{dsts:?}");
+        assert!(why.contains(&refused("Surface")), "{why:?}");
+        assert!(why.contains(&external("std")), "{why:?}");
+        // Near miss: without the container spans the same call is not
+        // bound to either `close` by name.
+        let (dsts, _) = module_case("zig", files, caller, vec![call("close", "Surface")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+    }
+
+    /// WS14b (Perl): `$self->m()` on the caller's invocant is the caller
+    /// package's `m`, else the first up its bases (depth-first); with
+    /// the chain leaving the tree it is external. A same-named sub of an
+    /// unrelated package is never the callee, and a receiver that is not
+    /// the invocant keeps the old reading.
+    #[test]
+    fn perl_invocant_call_reaches_the_package_and_its_bases() {
+        let files = vec![
+            mfile(
+                "lib/My/Domain.pm",
+                &["My::Domain::is_public", "My::Domain::base_only"],
+                vec![import("perl-package", "My::Domain", "")],
+            ),
+            mfile(
+                "lib/My/Other.pm",
+                &[
+                    "My::Other::is_public",
+                    "My::Other::base_only",
+                    "My::Other::render",
+                ],
+                vec![import("perl-package", "My::Other", "")],
+            ),
+        ];
+        let caller = mfile(
+            "lib/My/Domain/Void.pm",
+            &["My::Domain::Void::status"],
+            vec![
+                import("perl-package", "My::Domain::Void", ""),
+                import("perl-isa", "My::Domain", "My::Domain::Void"),
+                import("perl-isa", "Ext::Base", "My::Domain::Void"),
+            ],
+        );
+        let inv = |name: &str, at: u32| RefRecord {
+            invocant: true,
+            site_byte: at,
+            ..call(name, "$self")
+        };
+        let refs = vec![inv("base_only", 10), inv("render", 20)];
+        let (dsts, why) = module_case("perl", files.clone(), caller.clone(), refs);
+        assert_eq!(
+            dsts,
+            vec![at("My::Domain::base_only", "lib/My/Domain.pm")],
+            "{dsts:?}"
+        );
+        assert!(why.contains(&external("Ext::Base")), "{why:?}");
+        // Near miss: not the invocant — not bound through the bases.
+        let (dsts, _) = module_case("perl", files, caller, vec![call("base_only", "$x")]);
+        assert!(
+            !dsts.contains(&at("My::Domain::base_only", "lib/My/Domain.pm"))
+                || dsts.len() > 1,
+            "{dsts:?}"
+        );
+    }
+
+    /// WS14b (PHP): a global function declared in several files none of
+    /// which the caller's include chain reaches binds to the one
+    /// unconditional definition when every other copy is a conditional
+    /// fallback (`if (!function_exists(…))`); with two unconditional
+    /// copies it stays refused.
+    #[test]
+    fn php_unconditional_definition_beats_guarded_fallbacks() {
+        let files = vec![
+            mfile("inc/cache.php", &["get_multi", "dup"], vec![]),
+            mfile("inc/compat.php", &["get_multi"], vec![]),
+            mfile("admin/noop.php", &["dup"], vec![]),
+        ];
+        let caller = mfile("lib/client.php", &["run"], vec![]);
+        let refs = vec![
+            call("get_multi", ""),
+            RefRecord {
+                site_byte: 70,
+                ..call("dup", "")
+            },
+        ];
+        let (dsts, _) =
+            module_case_each("php", files, caller, refs, |is_caller, fi, f| {
+                if !is_caller && fi == 1 {
+                    f.definitions[0].conditional = true;
+                }
+            });
+        assert_eq!(dsts, vec![at("get_multi", "inc/cache.php")], "{dsts:?}");
+    }
+
+    /// WS14b (Scala): a bare call inherited through `extends QueryTest`
+    /// reaches the `QueryTest` the caller's file imports, not a same-named
+    /// trait of another package, nor the companion object's member.
+    #[test]
+    fn scala_base_is_resolved_through_the_declaring_files_imports() {
+        let ts = |name: &str, kind: &str, pkg: &str, bases: &[&str], s: u32, e: u32| {
+            cgg_core::TypeSpan {
+                name: name.into(),
+                start_byte: s,
+                end_byte: e,
+                kind: kind.into(),
+                bases: bases.iter().map(|b| b.to_string()).collect(),
+                package: pkg.into(),
+                decls: vec![],
+            }
+        };
+        let files = vec![
+            // trait QueryTest { def check }  /  object QueryTest { def check }
+            mfile(
+                "core/QueryTest.scala",
+                &["QueryTest::check", "QueryTest::check"],
+                vec![],
+            ),
+            mfile("connect/QueryTest.scala", &["QueryTest::check"], vec![]),
+        ];
+        let caller = mfile(
+            "hive/Suite.scala",
+            &["Suite::run"],
+            vec![import("import", "org.ex.sql.QueryTest", "")],
+        );
+        let (dsts, _) = module_case_each(
+            "scala",
+            files,
+            caller,
+            vec![call("check", "")],
+            |is_caller, fi, f| {
+                f.type_spans = match (is_caller, fi) {
+                    (true, _) => vec![ts(
+                        "Suite",
+                        "class",
+                        "org.ex.sql.hive",
+                        &["QueryTest"],
+                        0,
+                        1000,
+                    )],
+                    (false, 0) => vec![
+                        ts("QueryTest", "trait", "org.ex.sql", &[], 1990, 2008),
+                        ts("QueryTest", "object", "org.ex.sql", &[], 2008, 2020),
+                    ],
+                    _ => vec![ts(
+                        "QueryTest",
+                        "class",
+                        "org.ex.sql.connect",
+                        &[],
+                        1990,
+                        2008,
+                    )],
+                };
+            },
+        );
+        assert_eq!(
+            dsts,
+            vec![at("QueryTest::check", "core/QueryTest.scala")],
+            "{dsts:?}"
+        );
+
+        // N1: a bare name an explicit import brings in from a package the
+        // tree does not declare is external, not a workspace `render`.
+        let files = vec![mfile("ui/Other.scala", &["Other::render"], vec![])];
+        let caller = mfile(
+            "ui/Page.scala",
+            &["Page::show"],
+            vec![import(
+                "import",
+                "org.json4s.JsonMethods.{compact,render}",
+                "",
+            )],
+        );
+        let (dsts, why) = module_case_each(
+            "scala",
+            files,
+            caller,
+            vec![call("render", "")],
+            |is_caller, _, f| {
+                f.type_spans = if is_caller {
+                    vec![ts("Page", "class", "org.ex.ui", &[], 0, 1000)]
+                } else {
+                    vec![ts("Other", "class", "org.ex.ui", &[], 1990, 2008)]
+                };
+            },
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        assert!(
+            why.contains(&external("org.json4s.JsonMethods.render")),
+            "{why:?}"
         );
     }
 

@@ -528,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(3435 callables, 9332 edges, 2184 cross-file, 349ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(3492 callables, 9538 edges, 2188 cross-file, 348ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -613,7 +613,8 @@ flowchart LR
   N71["cgg_resolve::type_hints::resolve_macro_types"]
   N72["cgg_resolve::type_hints::build_return_type_map"]
   N73["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N74["cgg_walk::walk"]
+  N74["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N75["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N14
@@ -639,7 +640,7 @@ flowchart LR
   N3 --> N0
   N3 --> N46
   N3 --> N41
-  N3 --> N74
+  N3 --> N75
   N3 --> N50
   N3 --> N44
   N3 --> N53
@@ -674,6 +675,7 @@ flowchart LR
   N3 --> N71
   N3 --> N69
   N3 --> N73
+  N3 --> N74
   N3 --> N34
   N3 --> N65
   N3 --> N32
@@ -720,6 +722,7 @@ flowchart LR
   N64 -->|10x| N42
   N65 -->|5x| N66
   N73 -->|3x| N42
+  N74 --> N66
 ```
 <!-- cgg:end:self -->
 

@@ -283,6 +283,12 @@ pub struct DefRecord {
     /// absorbed. Not copied onto the graph.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub has_body: bool,
+
+    /// Declared inside a conditional statement (PHP `if (!function_exists
+    /// ('f')) { function f() … }`): a fallback that exists only when no
+    /// other definition was loaded. Not copied onto the graph.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub conditional: bool,
 }
 
 /// A single call-site reference extracted from a file.
@@ -368,6 +374,33 @@ pub struct RefRecord {
     /// reaches the template itself.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub arrow: bool,
+
+    /// Set when the call is a macro invocation (Rust `err!(…)`). Macros
+    /// live in their own namespace: a local value of the same name
+    /// (`Err(err) => err!(…)`) does not shadow one.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub macro_call: bool,
+
+    /// Set when the receiver is the enclosing method's invocant — a
+    /// Perl `my $self = shift;` / `my ($class, …) = @_;` / signature's
+    /// first parameter, or `shift->m()`. The call then names a method of
+    /// the caller's own package or one it inherits.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub invocant: bool,
+
+    /// Set when `receiver_hint` is an implicit receiver the call was not
+    /// written through: a bare call inside a Kotlin `x.run { … }` /
+    /// `x.apply { … }` / `with(x) { … }` lambda, whose receiver `x` is
+    /// recorded. The call is `x`'s member when its type declares one, and
+    /// otherwise a call to an enclosing scope (a bare call).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub implicit_receiver: bool,
+
+    /// The start byte of a same-file definition the call cannot be to:
+    /// the non-recursive binding it sits in (OCaml `let f x = f (x + 1)`
+    /// without `rec` calls an earlier `f`, never itself).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not_def: Option<u32>,
 
     /// How many arguments the call passes, where the language makes a
     /// function's arity part of its identity — Erlang's `f/1` and `f/2`
@@ -478,6 +511,37 @@ pub struct FileFacts {
     /// declares by name is a definition, not one of these.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub locals: Vec<LocalBinding>,
+    /// Named container types and the span of their body (Zig `const
+    /// Surface = struct { … }`, recorded by path: `Outer.Inner`). A
+    /// language whose qualified names carry no owner places a method in
+    /// its type by span instead. A name bound to `@This()` is recorded
+    /// with the span of the container it names (the whole file at file
+    /// level).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_spans: Vec<TypeSpan>,
+}
+
+/// A container type's name and body span (see [`FileFacts::type_spans`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TypeSpan {
+    pub name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    /// What declares it, where the language distinguishes (Scala
+    /// `class` / `trait` / `object`, `anon` for `new T { … }`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub kind: String,
+    /// Its supertypes as written (`QueryTest`, `catalyst.SQLHelper`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bases: Vec<String>,
+    /// The package it is declared in (Scala).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub package: String,
+    /// Value declarations of the container, name and value as written
+    /// (Zig `pub const frame = Functions(@This()).frame;`): a member that
+    /// is another name for a function.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub decls: Vec<(String, String)>,
 }
 
 /// A name bound to a value over `start_byte..end_byte` (see
@@ -608,6 +672,7 @@ impl FileFacts {
             untyped_receivers: Vec::new(),
             packages: Vec::new(),
             locals: Vec::new(),
+            type_spans: Vec::new(),
         }
     }
 

@@ -1565,6 +1565,7 @@ impl<'a> Walker<'a> {
             site_line: node.start_position().row as u32 + 1,
             site_byte: node.start_byte() as u32,
             receiver_hint: String::new(),
+            macro_call: true,
             ..Default::default()
         })
     }
@@ -1906,6 +1907,10 @@ impl<'a> Walker<'a> {
                 path_receiver: false,
                 dot_call: false,
                 arrow: false,
+                macro_call: false,
+                invocant: false,
+                implicit_receiver: false,
+                not_def: None,
                 arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),

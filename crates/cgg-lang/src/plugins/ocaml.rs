@@ -35,6 +35,7 @@ impl LanguagePlugin for OcamlPlugin {
             source,
             facts: &mut facts,
             module: String::new(),
+            lets: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -45,6 +46,9 @@ struct OcamlWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     module: String,
+    /// Enclosing `let` bindings, innermost last: name, start byte, and
+    /// whether the name is in scope in its own body (`let rec`).
+    lets: Vec<(String, u32, bool)>,
 }
 
 impl<'a> OcamlWalker<'a> {
@@ -82,7 +86,21 @@ impl<'a> OcamlWalker<'a> {
                 self.extract_import(node);
                 self.walk_children(node);
             }
-            "let_binding" | "value_definition" => {
+            "let_binding" => {
+                self.extract_function(node);
+                let rec = node.parent().is_some_and(|p| {
+                    let mut c = p.walk();
+                    p.children(&mut c).any(|ch| ch.kind() == "rec")
+                });
+                let name = node
+                    .child_by_field_name("pattern")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                self.lets.push((name, node.start_byte() as u32, rec));
+                self.walk_children(node);
+                self.lets.pop();
+            }
+            "value_definition" => {
                 self.extract_function(node);
                 self.walk_children(node);
             }
@@ -227,11 +245,22 @@ impl<'a> OcamlWalker<'a> {
         {
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
+                // `let f x = f (x + 1)` without `rec`: the innermost
+                // binding of that name around the call does not see
+                // itself (WS14b).
+                let not_def = self
+                    .lets
+                    .iter()
+                    .rev()
+                    .find(|(n, _, _)| *n == name)
+                    .filter(|(_, _, rec)| !rec)
+                    .map(|(_, b, _)| *b);
                 self.facts.references.push(RefRecord {
                     name,
                     receiver_hint: String::new(),
                     site_line: (node.start_position().row as u32) + 1,
                     site_byte: node.start_byte() as u32,
+                    not_def,
                     ..Default::default()
                 });
             }
@@ -304,5 +333,28 @@ mod tests {
             .map(|i| i.path.as_str())
             .collect();
         assert_eq!(uses, ["Alcotest", "Cmdliner"], "{:?}", f.imports);
+    }
+
+    /// WS14b: a call to the name of the non-recursive `let` it sits in
+    /// names that binding as one it cannot reach; under `let rec` it can.
+    #[test]
+    fn a_non_recursive_let_does_not_see_itself() {
+        let f = extract(
+            "let helper x = x + 1\nlet helper x = helper (x * 2)\n\
+             let rec loop n = loop (n - 1)\n",
+        );
+        let second = f
+            .definitions
+            .iter()
+            .filter(|d| d.simple_name == "helper")
+            .nth(1)
+            .map(|d| d.start_byte);
+        let calls: Vec<(&str, Option<u32>)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.not_def))
+            .collect();
+        assert!(second.is_some(), "{:?}", f.definitions);
+        assert_eq!(calls, vec![("helper", second), ("loop", None)], "{calls:?}");
     }
 }

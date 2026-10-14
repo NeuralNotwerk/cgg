@@ -41,6 +41,7 @@ impl LanguagePlugin for KotlinPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            implicit: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -58,6 +59,11 @@ struct KtWalker<'a> {
     /// is the *identical* contract Java's rule matches on, and it
     /// produced nothing.
     bases: Vec<Vec<String>>,
+    /// Implicit receivers of the `x.run { … }` / `x.apply { … }` /
+    /// `with(x) { … }` lambdas being walked, innermost last; `""` where a
+    /// declaration nested in one (a local `fun`, a class, an object
+    /// expression) starts a scope of its own.
+    implicit: Vec<String>,
 }
 
 impl<'a> KtWalker<'a> {
@@ -74,6 +80,53 @@ impl<'a> KtWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if matches!(node.kind(), "class_declaration" | "object_declaration") {
+            self.implicit.push(String::new());
+            self.walk_decl(node);
+            self.implicit.pop();
+            return;
+        }
+        self.walk_decl(node);
+    }
+
+    /// The implicit receiver a scope-function call gives its trailing
+    /// lambda: `x` of `x.run { … }` / `x.apply { … }` / `with(x) { … }`,
+    /// when `x` is a plain name.
+    fn scope_receiver(&self, call: Node) -> Option<String> {
+        let callee = call.child(0)?;
+        let plain =
+            |n: Node| (n.kind() == "simple_identifier").then(|| self.text(n).to_string());
+        match callee.kind() {
+            "navigation_expression" => {
+                let name = nav_suffix_name(callee, self.source)?;
+                if !cgg_core::stdlib::KOTLIN_RECEIVER_SCOPE_EXTENSIONS.contains(&name) {
+                    return None;
+                }
+                plain(callee.named_child(0)?)
+            }
+            "simple_identifier"
+                if cgg_core::stdlib::KOTLIN_RECEIVER_SCOPE_FUNCTIONS
+                    .contains(&self.text(callee)) =>
+            {
+                let suffix = call.child_by_field_name("suffix").or_else(|| {
+                    let mut c = call.walk();
+                    call.children(&mut c).find(|n| n.kind() == "call_suffix")
+                })?;
+                let mut c = suffix.walk();
+                let args = suffix
+                    .children(&mut c)
+                    .find(|n| n.kind() == "value_arguments")?;
+                let mut ac = args.walk();
+                let first = args
+                    .named_children(&mut ac)
+                    .find(|n| n.kind() == "value_argument")?;
+                plain(first.named_child(0)?)
+            }
+            _ => None,
+        }
+    }
+
+    fn walk_decl(&mut self, node: Node) {
         match node.kind() {
             "package_header" => {
                 // package com.example
@@ -168,12 +221,42 @@ impl<'a> KtWalker<'a> {
             }
             "function_declaration" => {
                 self.record_function(node);
+                self.implicit.push(String::new());
                 self.walk_children(node);
+                self.implicit.pop();
+                return;
+            }
+            "object_literal" => {
+                self.implicit.push(String::new());
+                self.walk_children(node);
+                self.implicit.pop();
                 return;
             }
             "call_expression" => {
                 self.record_call(node);
-                self.walk_children(node);
+                // `x.run { m() }`: inside the lambda `m` is first `x`'s.
+                match self.scope_receiver(node) {
+                    Some(recv) => {
+                        let mut c = node.walk();
+                        for child in node.children(&mut c) {
+                            if child.kind() == "call_suffix" {
+                                let mut cc = child.walk();
+                                for part in child.children(&mut cc) {
+                                    if part.kind() == "annotated_lambda" {
+                                        self.implicit.push(recv.clone());
+                                        self.walk(part);
+                                        self.implicit.pop();
+                                    } else {
+                                        self.walk(part);
+                                    }
+                                }
+                            } else {
+                                self.walk(child);
+                            }
+                        }
+                    }
+                    None => self.walk_children(node),
+                }
                 return;
             }
             "property_declaration" => {
@@ -387,12 +470,18 @@ impl<'a> KtWalker<'a> {
         // A receiver the text could not be recovered for is still a
         // receiver: the call must not be read as a bare one.
         let dot_call = recv.is_empty() && callee.kind() == "navigation_expression";
+        // A bare call in a scope-function lambda: its implicit receiver.
+        let (recv, implicit_receiver) = match self.implicit.last() {
+            Some(x) if recv.is_empty() && !dot_call && !x.is_empty() => (x.clone(), true),
+            _ => (recv, false),
+        };
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             dot_call,
+            implicit_receiver,
             ..Default::default()
         });
     }
@@ -866,5 +955,48 @@ mod tests {
         assert_eq!(vis_of(&f, "d"), cgg_core::Vis::Public);
         assert_eq!(vis_of(&f, "e"), cgg_core::Vis::Public);
         assert_eq!(vis_of(&f, "g"), cgg_core::Vis::Public);
+    }
+
+    /// WS14b: a bare call in a `x.run { … }` / `x.apply { … }` /
+    /// `with(x) { … }` lambda carries `x` as its implicit receiver; one in
+    /// the argument list, in a plain lambda, or in an object expression
+    /// nested in the lambda does not.
+    #[test]
+    fn scope_function_lambdas_give_bare_calls_their_receiver() {
+        let f = extract(
+            "fun f(c: Codec) {\n  c.run { decode() }\n  with(c) { encode(1) }\n  \
+             c.apply { open(); object : I { override fun m() { inner() } } }\n  \
+             with(make()) { other() }\n  list.forEach { plain() }\n}\n",
+        );
+        let got: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .filter(|r| {
+                matches!(
+                    r.name.as_str(),
+                    "decode" | "encode" | "open" | "inner" | "make" | "other" | "plain"
+                )
+            })
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.implicit_receiver,
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("decode", "c", true),
+                ("encode", "c", true),
+                ("open", "c", true),
+                ("inner", "", false),
+                ("make", "", false),
+                ("other", "", false),
+                ("plain", "", false),
+            ],
+            "{got:?}"
+        );
     }
 }

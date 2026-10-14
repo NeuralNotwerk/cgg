@@ -8,6 +8,26 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+/// Perl: modules whose `use M 'Base', …` names the using package's base
+/// classes (the core `parent` / `base` pragmas, and `Mojo::Base`, whose
+/// first string argument is the base). Arguments starting with `-` are
+/// flags (`-norequire`, `-base`, `-strict`).
+pub const PERL_BASE_PRAGMAS: &[&str] = &["parent", "base", "Mojo::Base"];
+
+/// Perl: OO keywords (Moose / Moo / Mouse) whose string arguments name
+/// where the package's methods come from: `extends 'Base'` its base
+/// classes, `with 'Role'` the roles composed into it.
+pub const PERL_BASE_KEYWORDS: &[&str] = &["extends", "with"];
+
+/// Kotlin standard-library scope functions whose lambda runs with the
+/// receiver as `this`: `x.run { m() }`, `x.apply { m() }` (extension
+/// form, receiver before the dot).
+pub const KOTLIN_RECEIVER_SCOPE_EXTENSIONS: &[&str] = &["run", "apply"];
+
+/// Kotlin scope functions taking the receiver as their first argument:
+/// `with(x) { m() }`.
+pub const KOTLIN_RECEIVER_SCOPE_FUNCTIONS: &[&str] = &["with"];
+
 static RUST: &str = include_str!("stdlib/rust.txt");
 static PYTHON: &str = include_str!("stdlib/python.txt");
 static GO: &str = include_str!("stdlib/go.txt");

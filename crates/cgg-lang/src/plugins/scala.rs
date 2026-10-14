@@ -36,6 +36,7 @@ impl LanguagePlugin for ScalaPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            package: String::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -52,6 +53,8 @@ struct ScalaWalker<'a> {
     /// language was inert — the contract is identical to Java's and
     /// matched nothing.
     bases: Vec<Vec<String>>,
+    /// The package in effect (`package a.b` clauses, chained or block).
+    package: String,
 }
 
 impl<'a> ScalaWalker<'a> {
@@ -68,12 +71,89 @@ impl<'a> ScalaWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
+            "package_clause" => {
+                let name = node
+                    .child_by_field_name("name")
+                    .map(|n| self.text(n).split_whitespace().collect::<String>())
+                    .unwrap_or_default();
+                let joined = if self.package.is_empty() {
+                    name
+                } else {
+                    format!("{}.{name}", self.package)
+                };
+                match node.child_by_field_name("body") {
+                    // `package a { … }`: in effect inside the block only.
+                    Some(_) => {
+                        let outer = std::mem::replace(&mut self.package, joined);
+                        self.walk_children(node);
+                        self.package = outer;
+                    }
+                    // `package a.b` then `package c`: the rest of the file.
+                    None => {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "scala-package".into(),
+                            path: joined.clone(),
+                            alias: String::new(),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                        self.package = joined;
+                    }
+                }
+                return;
+            }
+            // `new T { … }`: an anonymous class extending `T`; its members
+            // see `T`'s (WS14b).
+            "instance_expression" => {
+                let mut c = node.walk();
+                let has_body = node.children(&mut c).any(|n| n.kind() == "template_body");
+                if has_body {
+                    let mut c = node.walk();
+                    let bases: Vec<String> = node
+                        .named_children(&mut c)
+                        .filter(|n| {
+                            n.kind() != "template_body" && n.kind() != "arguments"
+                        })
+                        .map(|n| self.text(n).to_string())
+                        .collect();
+                    self.facts.type_spans.push(cgg_core::TypeSpan {
+                        name: String::new(),
+                        start_byte: node.start_byte() as u32,
+                        end_byte: node.end_byte() as u32,
+                        kind: "anon".into(),
+                        bases,
+                        package: self.package.clone(),
+                        ..Default::default()
+                    });
+                }
+                self.walk_children(node);
+                return;
+            }
             "class_definition" | "object_definition" | "trait_definition" => {
                 let name = node
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 let class_bases = super::attrs::base_types(node, self.source);
+                if !name.is_empty() {
+                    // The type by its path in the package (`Outer.Inner`),
+                    // with its kind and bases, so a member lookup can walk
+                    // the bases the declaring file's imports name (WS14b).
+                    let mut path = self.scope.join(".");
+                    if !path.is_empty() {
+                        path.push('.');
+                    }
+                    path.push_str(&name);
+                    self.facts.type_spans.push(cgg_core::TypeSpan {
+                        name: path,
+                        start_byte: node.start_byte() as u32,
+                        end_byte: node.end_byte() as u32,
+                        kind: node.kind().trim_end_matches("_definition").to_string(),
+                        bases: class_bases.clone(),
+                        package: self.package.clone(),
+                        ..Default::default()
+                    });
+                }
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.bases.push(class_bases.clone());
@@ -201,6 +281,18 @@ impl<'a> ScalaWalker<'a> {
         if func.is_empty() {
             return;
         }
+        // `this(…)` in an auxiliary constructor delegates to a constructor
+        // of the enclosing class (the primary one, or another `def this`
+        // the arguments select): a construction of that class, never a
+        // by-name match of the `this` members (WS14b).
+        let func = if func == "this" {
+            match self.scope.last() {
+                Some(class) => class.clone(),
+                None => return,
+            }
+        } else {
+            func
+        };
 
         self.facts.references.push(RefRecord {
             name: func,
@@ -285,5 +377,42 @@ mod tests {
         assert!(d.attributes.iter().any(|a| a == "abstract"));
         // Outside any type there is nothing to own it.
         assert!(f.definitions.iter().all(|d| d.simple_name != "top"));
+    }
+
+    /// WS14b: types are recorded with their package path, kind and bases
+    /// (a companion object apart from its class), and `this(…)` in an
+    /// auxiliary constructor is a construction of the enclosing class,
+    /// not a call named `this`.
+    #[test]
+    fn types_packages_and_constructor_delegation() {
+        let f = extract(
+            "package org.ex\npackage sql\n\
+             trait Q extends Base { def a = 1 }\nobject Q { def a = 2 }\n\
+             class C(n: Int) extends Q with T { def this(s: String) = this(s.length) }\n",
+        );
+        let types: Vec<(&str, &str, &str, Vec<&str>)> = f
+            .type_spans
+            .iter()
+            .map(|t| {
+                (
+                    t.name.as_str(),
+                    t.kind.as_str(),
+                    t.package.as_str(),
+                    t.bases.iter().map(String::as_str).collect(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            types,
+            vec![
+                ("Q", "trait", "org.ex.sql", vec!["Base"]),
+                ("Q", "object", "org.ex.sql", vec![]),
+                ("C", "class", "org.ex.sql", vec!["Q", "T"]),
+            ],
+            "{types:?}"
+        );
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(names.contains(&"C"), "{names:?}");
+        assert!(!names.contains(&"this"), "{names:?}");
     }
 }

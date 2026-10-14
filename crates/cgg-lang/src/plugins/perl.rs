@@ -42,6 +42,7 @@ impl LanguagePlugin for PerlPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            invocants: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -54,6 +55,9 @@ struct PerlWalker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// The invocant variable of each sub being walked, innermost last
+    /// (`$self` after `my $self = shift;`); empty when it has none.
+    invocants: Vec<String>,
 }
 
 impl<'a> PerlWalker<'a> {
@@ -80,6 +84,13 @@ impl<'a> PerlWalker<'a> {
                         if child.kind() == "package_name" {
                             let name = self.text(child).to_string();
                             if !name.is_empty() {
+                                self.facts.imports.push(ImportRecord {
+                                    kind: "perl-package".into(),
+                                    path: name.clone(),
+                                    alias: String::new(),
+                                    site_line: (node.start_position().row as u32) + 1,
+                                    site_byte: node.start_byte() as u32,
+                                });
                                 self.scope.clear();
                                 self.scope.push(name);
                             }
@@ -100,6 +111,32 @@ impl<'a> PerlWalker<'a> {
                         self.record_def(node, &name, DefVariant::FreeFunction);
                     }
                 }
+                let inv = self.invocant_of(node).unwrap_or_default();
+                self.invocants.push(inv);
+                self.walk_children(node);
+                self.invocants.pop();
+                return;
+            }
+            // `use parent -norequire, 'Base';` (its own node kind).
+            "use_parent_statement" => {
+                self.record_bases(node);
+                self.walk_children(node);
+                return;
+            }
+            // `our @ISA = ('Base');`
+            "binary_expression"
+                if node
+                    .child_by_field_name("operator")
+                    .is_some_and(|o| self.text(o) == "=")
+                    && node.child(0).is_some_and(|l| {
+                        let t = self.text(l);
+                        t.trim_start_matches("our").trim() == "@ISA"
+                    }) =>
+            {
+                if let Some(rhs) = node.child(node.child_count().saturating_sub(1) as u32)
+                {
+                    self.record_bases(rhs);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -110,6 +147,14 @@ impl<'a> PerlWalker<'a> {
             // resolution resolved nothing.
             "use_no_statement" | "use_statement" | "require_statement" => {
                 self.record_import(node);
+                // `use base qw(A B);`, `use Mojo::Base 'Base';`
+                let module = node
+                    .child_by_field_name("package_name")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if cgg_core::stdlib::PERL_BASE_PRAGMAS.contains(&module.as_str()) {
+                    self.record_bases(node);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -117,6 +162,18 @@ impl<'a> PerlWalker<'a> {
             | "call_expression_with_args_with_brackets"
             | "call_expression_with_bareword"
             | "call_expression_with_spaced_args" => {
+                // `extends 'Base';`, `with 'Role';`
+                if node.kind() == "call_expression_with_spaced_args"
+                    && node
+                        .child(0)
+                        .and_then(|c| c.child_by_field_name("function_name"))
+                        .is_some_and(|f| {
+                            cgg_core::stdlib::PERL_BASE_KEYWORDS.contains(&self.text(f))
+                        })
+                    && let Some(args) = node.child_by_field_name("args")
+                {
+                    self.record_bases(args);
+                }
                 self.record_call(node);
                 self.walk_children(node);
                 return;
@@ -140,6 +197,105 @@ impl<'a> PerlWalker<'a> {
                     break;
                 }
             }
+        }
+    }
+
+    /// The sub's invocant: its signature's first parameter (`sub m ($self,
+    /// …)`), else the variable its first statement takes from `@_`
+    /// (`my $self = shift;`, `my ($class, %args) = @_;`, `my $self =
+    /// $_[0];`).
+    fn invocant_of(&self, def: Node) -> Option<String> {
+        let mut c = def.walk();
+        if let Some(sig) = def
+            .children(&mut c)
+            .find(|n| n.kind() == "function_signature")
+        {
+            let mut sc = sig.walk();
+            return sig
+                .named_children(&mut sc)
+                .next()
+                .filter(|n| n.kind() == "scalar_variable")
+                .map(|n| self.text(n).to_string());
+        }
+        let body = def.child_by_field_name("body")?;
+        let mut bc = body.walk();
+        let first = body.named_children(&mut bc).next()?;
+        if first.kind() != "binary_expression" {
+            return None;
+        }
+        let lhs = first.child(0)?;
+        let rhs = first.child(first.child_count().checked_sub(1)? as u32)?;
+        if lhs.kind() != "variable_declaration" || !self.text(lhs).starts_with("my") {
+            return None;
+        }
+        let mut lc = lhs.walk();
+        let list = lhs.named_children(&mut lc).find(|n| n.kind() == "array");
+        let var = match list {
+            Some(a) => {
+                let mut ac = a.walk();
+                a.named_children(&mut ac)
+                    .next()
+                    .filter(|n| n.kind() == "scalar_variable")?
+            }
+            None => {
+                let mut lc = lhs.walk();
+                lhs.named_children(&mut lc)
+                    .find(|n| n.kind() == "scalar_variable")?
+            }
+        };
+        let rhs_text: String = self.text(rhs).split_whitespace().collect();
+        let takes_first = match list {
+            Some(_) => rhs_text == "@_",
+            None => matches!(
+                rhs_text.as_str(),
+                "shift" | "shift()" | "shift@_" | "shift(@_)" | "$_[0]"
+            ),
+        };
+        takes_first.then(|| self.text(var).to_string())
+    }
+
+    /// Record the package names `node` lists (quoted strings, `qw(…)`
+    /// items; `-flag`s skipped) as bases of the current package.
+    fn record_bases(&mut self, node: Node) {
+        let pkg = if self.scope.is_empty() {
+            "main".to_string()
+        } else {
+            self.scope.join("::")
+        };
+        let mut stack = vec![node];
+        let mut found: Vec<(String, u32)> = Vec::new();
+        while let Some(n) = stack.pop() {
+            match n.kind() {
+                k if k.starts_with("string") || k == "list_item" => {
+                    let t = self
+                        .text(n)
+                        .trim()
+                        .trim_matches(|c| c == '\'' || c == '"')
+                        .trim();
+                    if !t.is_empty()
+                        && !t.starts_with('-')
+                        && t.chars()
+                            .all(|c| c.is_alphanumeric() || c == '_' || c == ':')
+                    {
+                        found.push((t.to_string(), n.start_byte() as u32));
+                    }
+                }
+                _ => {
+                    let mut c = n.walk();
+                    stack.extend(n.children(&mut c));
+                }
+            }
+        }
+        found.sort_by_key(|(_, b)| *b);
+        // `use Mojo::Base 'Base'` names one base, its first argument.
+        for (base, at) in found {
+            self.facts.imports.push(ImportRecord {
+                kind: "perl-isa".into(),
+                path: base,
+                alias: pkg.clone(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: at,
+            });
         }
     }
 
@@ -249,11 +405,27 @@ impl<'a> PerlWalker<'a> {
                     .or_else(|| node.child_by_field_name("package_name"))
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // `$self->m()` with `my $self = shift;`, `shift->m()`.
+                let invocant = receiver_hint == "shift"
+                    || self
+                        .invocants
+                        .last()
+                        .is_some_and(|v| !v.is_empty() && *v == receiver_hint);
+                // `$self->SUPER::m()`: the bases' `m`.
+                let is_super = invocant && {
+                    let mut c = node.walk();
+                    node.children(&mut c).any(|n| n.kind() == "super")
+                };
                 self.facts.references.push(RefRecord {
                     name: name.clone(),
-                    receiver_hint: receiver_hint.clone(),
+                    receiver_hint: if is_super {
+                        "SUPER".to_string()
+                    } else {
+                        receiver_hint.clone()
+                    },
                     site_line: (node.start_position().row as u32) + 1,
                     site_byte: node.start_byte() as u32,
+                    invocant,
                     ..Default::default()
                 });
                 // Mojolicious routes are method calls on a router
@@ -379,6 +551,10 @@ impl<'a> PerlWalker<'a> {
                     path_receiver: false,
                     dot_call: false,
                     arrow: false,
+                    macro_call: false,
+                    invocant: false,
+                    implicit_receiver: false,
+                    not_def: None,
                     arity: None,
                     name: s,
                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
@@ -397,6 +573,10 @@ impl<'a> PerlWalker<'a> {
                     path_receiver: false,
                     dot_call: false,
                     arrow: false,
+                    macro_call: false,
+                    invocant: false,
+                    implicit_receiver: false,
+                    not_def: None,
                     arity: None,
                     name,
                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
@@ -483,6 +663,10 @@ impl<'a> PerlWalker<'a> {
                 path_receiver: false,
                 dot_call: false,
                 arrow: false,
+                macro_call: false,
+                invocant: false,
+                implicit_receiver: false,
+                not_def: None,
                 arity: None,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
@@ -757,5 +941,54 @@ mod tests {
         let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(!names.contains(&"name"), "{names:?}");
         assert!(names.contains(&"helper"), "{names:?}");
+    }
+
+    /// WS14b: a method call on the sub's invocant is marked (`my $self =
+    /// shift;`, `my ($c, %a) = @_;`, a signature's first parameter,
+    /// `shift->m`), `SUPER::` keeps that in the receiver, and a package's
+    /// bases are recorded from `use parent`, `use base qw(…)`, `@ISA`
+    /// and `extends`. Another variable is not the invocant.
+    #[test]
+    fn invocant_calls_and_bases_are_recorded() {
+        let f = extract(
+            "package A::B;\nuse parent -norequire, 'X::Y';\nuse base qw(P Q);\n\
+             extends 'E::F';\nour @ISA = ('I::J');\n\
+             sub m1 { my $self = shift; $self->x; shift->y; $self->SUPER::new(); $other->z; }\n\
+             sub m2 { my ($c, %a) = @_; $c->w; }\nsub m3 ($s, $t) { $s->v; $t->u; }\n",
+        );
+        let inv: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.invocant)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(
+            inv,
+            vec![
+                ("x", "$self"),
+                ("y", "shift"),
+                ("new", "SUPER"),
+                ("w", "$c"),
+                ("v", "$s")
+            ],
+            "{:?}",
+            f.references
+        );
+        let bases: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "perl-isa")
+            .map(|i| (i.alias.as_str(), i.path.as_str()))
+            .collect();
+        assert_eq!(
+            bases,
+            vec![
+                ("A::B", "X::Y"),
+                ("A::B", "P"),
+                ("A::B", "Q"),
+                ("A::B", "E::F"),
+                ("A::B", "I::J")
+            ]
+        );
     }
 }

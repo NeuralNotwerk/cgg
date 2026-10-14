@@ -411,6 +411,10 @@ pub fn propagate_types_with_fields(
     // Go records a value made through a package at the end of its `:=`
     // statement, so Rust's scoped lookup applies to it (Strategy 3).
     let go = facts.language == "go";
+    // Zig records its locals' types at the end of their declaration
+    // (WS14b), so they are looked up where they are in scope, as Rust's.
+    let zig = facts.language == "zig";
+    let kotlin = facts.language == "kotlin";
     let param_store: Vec<(u32, String, String)> = facts
         .definitions
         .iter()
@@ -418,6 +422,11 @@ pub fn propagate_types_with_fields(
             let mut v = collect_param_types(d, cpp, rust);
             if go {
                 v.extend(go_package_param_types(d));
+            }
+            if zig {
+                for (_, _, ty) in &mut v {
+                    *ty = zig_peel_type(ty).to_string();
+                }
             }
             v
         })
@@ -461,7 +470,7 @@ pub fn propagate_types_with_fields(
         }
     }
 
-    let rust_lets = if rust || go {
+    let rust_lets = if rust || go || zig {
         RustLets::build(facts)
     } else {
         RustLets::default()
@@ -647,6 +656,24 @@ pub fn propagate_types_with_fields(
             rewrites.push((i, ty.to_string()));
             continue;
         }
+        // Kotlin (WS14b): a lambda or an object expression's method sees
+        // the parameters of the functions around it.
+        if kotlin
+            && let Some(ty) = facts
+                .definitions
+                .iter()
+                .filter(|d| d.start_byte <= rref.site_byte && rref.site_byte < d.end_byte)
+                .filter(|d| enclosing.is_none_or(|e| d.start_byte != e.start_byte))
+                // A function, not a class: a primary constructor's
+                // parameters are not its properties' declared types.
+                .filter(|d| d.variant != cgg_core::DefVariant::Constructor)
+                .max_by_key(|d| (d.start_byte, std::cmp::Reverse(d.end_byte)))
+                .and_then(|d| type_map.get(&(d.start_byte, rh)))
+        {
+            // `CacheRequest?` is a `CacheRequest` once the call is made.
+            rewrites.push((i, ty.trim_end_matches('?').to_string()));
+            continue;
+        }
 
         // Strategy 3: explicit local variable type declarations. C++ looks
         // them up per call site, scoped to the enclosing callable, so two
@@ -676,6 +703,12 @@ pub fn propagate_types_with_fields(
                     enclosing.map(|d| (d.start_byte, d.end_byte)),
                 )
                 .or_else(|| local_type_map.get(rh).copied())
+        } else if zig {
+            rust_lets.visible(
+                rh,
+                rref.site_byte,
+                enclosing.map(|d| (d.start_byte, d.end_byte)),
+            )
         } else if go {
             // Go's own reading stays file-wide, as before; only a value
             // made through a package is looked up where it is in scope.
@@ -693,6 +726,13 @@ pub fn propagate_types_with_fields(
         };
         if let Some(ty) = local_ty {
             rewrites.push((i, ty.to_string()));
+            continue;
+        }
+        // Zig locals are typed from what is written (WS14b): the name
+        // heuristics below would type a `page` as some `Page` a function
+        // returns, and the container lookup would take that guess as
+        // the receiver's type.
+        if zig {
             continue;
         }
 
@@ -747,7 +787,9 @@ pub fn propagate_types_with_fields(
         } else {
             ty
         };
-        if facts.language == "cpp" && facts.references[i].receiver_hint != ty {
+        if matches!(facts.language.as_str(), "cpp" | "zig")
+            && facts.references[i].receiver_hint != ty
+        {
             let r = &facts.references[i];
             facts.untyped_receivers.push((
                 r.site_byte,
@@ -756,6 +798,40 @@ pub fn propagate_types_with_fields(
             ));
         }
         facts.references[i].receiver_hint = ty;
+    }
+}
+
+/// Settle each Kotlin bare call made inside a `x.run { … }` /
+/// `x.apply { … }` / `with(x) { … }` lambda (`RefRecord::implicit_receiver`,
+/// receiver already typed): when the type `x` was typed as declares a
+/// member of that name, the call is that member's, through the receiver;
+/// otherwise it is a call to an enclosing scope, and goes back to being
+/// the bare call it was written as (WS14b).
+pub fn settle_implicit_receivers(all_facts: &mut [FileFacts]) {
+    if !all_facts
+        .iter()
+        .any(|f| f.references.iter().any(|r| r.implicit_receiver))
+    {
+        return;
+    }
+    let mut members: std::collections::HashSet<(String, String)> =
+        std::collections::HashSet::new();
+    for f in all_facts.iter().filter(|f| f.language == "kotlin") {
+        for d in &f.definitions {
+            if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
+                members.insert((owner.to_string(), d.simple_name.clone()));
+            }
+        }
+    }
+    for f in all_facts.iter_mut() {
+        for r in f.references.iter_mut().filter(|r| r.implicit_receiver) {
+            let ty = r.receiver_hint.rsplit('.').next().unwrap_or("");
+            let ty = ty.split('<').next().unwrap_or(ty).trim_end_matches('?');
+            if !members.contains(&(ty.to_string(), r.name.clone())) {
+                r.receiver_hint.clear();
+                r.implicit_receiver = false;
+            }
+        }
     }
 }
 
@@ -1685,6 +1761,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
     None
 }
 
+/// A Zig parameter type with its optional, pointer and `const` markers
+/// removed (`?*const Surface` → `Surface`), so the receiver is the type
+/// the resolver can follow through the file's imports.
+fn zig_peel_type(mut ty: &str) -> &str {
+    loop {
+        let t = ty.trim_start();
+        let next = t
+            .strip_prefix('?')
+            .or_else(|| t.strip_prefix('*'))
+            .or_else(|| t.strip_prefix("const "))
+            .or_else(|| t.strip_prefix("volatile "));
+        match next {
+            Some(n) => ty = n,
+            None => return t.trim(),
+        }
+    }
+}
+
 fn is_primitive(ty: &str) -> bool {
     matches!(
         ty,
@@ -2591,5 +2685,56 @@ mod tests {
         });
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "Controller");
+    }
+
+    /// WS14b: inside `b.apply { … }` a call the type of `b` declares stays
+    /// on `b`; one it does not (an enclosing class's member) becomes the
+    /// bare call it was written as. A lambda in an object expression sees
+    /// the enclosing function's parameter types.
+    #[test]
+    fn implicit_receivers_settle_by_the_receivers_members() {
+        let mut box_file = mk_facts(
+            vec![DefRecord {
+                simple_name: "open".into(),
+                qualified_name: "ex.Box.open".into(),
+                ..Default::default()
+            }],
+            vec![],
+        );
+        box_file.language = "kotlin".into();
+        let implicit = |name: &str, at: u32| RefRecord {
+            name: name.into(),
+            receiver_hint: "b".into(),
+            site_byte: at,
+            implicit_receiver: true,
+            ..Default::default()
+        };
+        let mut user = mk_facts(
+            vec![
+                mk_def("ex.go", "fun go(b: Box)", 0, 100),
+                mk_def("ex.go.inner", "override fun inner()", 10, 90),
+            ],
+            vec![implicit("open", 20), implicit("member", 30)],
+        );
+        user.language = "kotlin".into();
+        propagate_types_with_returns(&mut user, &ReturnTypeIndex::default());
+        let mut all = vec![box_file, user];
+        settle_implicit_receivers(&mut all);
+        let got: Vec<(&str, &str, bool)> = all[1]
+            .references
+            .iter()
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.implicit_receiver,
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            vec![("open", "Box", true), ("member", "", false)],
+            "{got:?}"
+        );
     }
 }
