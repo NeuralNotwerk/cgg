@@ -1,0 +1,109 @@
+{
+ "kotlin": {
+  "drop": {
+   "medium": 119,
+   "high": 5
+  },
+  "add": {
+   "medium": 41,
+   "high": 4
+  },
+  "chg": {
+   "medium->high": 8,
+   "high->medium": 19
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 84,
+   "rebound to another target": 5,
+   "now unresolved: candidates-in-other-files": 35
+  }
+ },
+ "ocaml": {
+  "drop": {
+   "high": 385
+  },
+  "add": {
+   "medium": 83
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 193,
+   "rebound to another target": 79,
+   "now unresolved: shadowed-by-local": 89,
+   "now unresolved: ambiguous-in-file": 24
+  }
+ },
+ "perl": {
+  "drop": {
+   "medium": 98
+  },
+  "add": {
+   "high": 3214
+  },
+  "chg": {
+   "medium->high": 114
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 98
+  }
+ },
+ "php": {
+  "drop": {},
+  "add": {
+   "medium": 88
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "rust": {
+  "drop": {
+   "high": 1
+  },
+  "add": {
+   "high": 22,
+   "medium": 15
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: shadowed-by-local": 1
+  }
+ },
+ "scala": {
+  "drop": {
+   "medium": 6710,
+   "high": 235
+  },
+  "add": {
+   "high": 844,
+   "medium": 4342
+  },
+  "chg": {
+   "medium->high": 8022
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 3085,
+   "rebound to another target": 3860
+  }
+ },
+ "zig": {
+  "drop": {
+   "medium": 5876,
+   "high": 48
+  },
+  "add": {
+   "high": 34499,
+   "medium": 3226
+  },
+  "chg": {
+   "medium->high": 8262,
+   "high->medium": 41
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 4895,
+   "rebound to another target": 756,
+   "now unresolved: not-in-imported-module": 246,
+   "now unresolved: candidates-in-other-files": 22,
+   "now unresolved: fanout-cap-exceeded": 5
+  }
+ }
+}

@@ -3594,7 +3594,7 @@ index 3f029ba..d4df246 100644
      fn a_local_that_holds_an_import_is_left_to_the_module_resolver() {
          // `const cb = require('./cb')`: the declaration (from byte 5) makes
 diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
-index ded74f3..34948a6 100644
+index ded74f3..37d8fe6 100644
 --- a/crates/cgg-resolve/src/type_hints.rs
 +++ b/crates/cgg-resolve/src/type_hints.rs
 @@ -411,6 +411,10 @@ pub fn propagate_types_with_fields(
@@ -3629,7 +3629,7 @@ index ded74f3..34948a6 100644
          RustLets::build(facts)
      } else {
          RustLets::default()
-@@ -647,6 +656,23 @@ pub fn propagate_types_with_fields(
+@@ -647,6 +656,24 @@ pub fn propagate_types_with_fields(
              rewrites.push((i, ty.to_string()));
              continue;
          }
@@ -3647,13 +3647,14 @@ index ded74f3..34948a6 100644
 +                .max_by_key(|d| (d.start_byte, std::cmp::Reverse(d.end_byte)))
 +                .and_then(|d| type_map.get(&(d.start_byte, rh)))
 +        {
-+            rewrites.push((i, ty.to_string()));
++            // `CacheRequest?` is a `CacheRequest` once the call is made.
++            rewrites.push((i, ty.trim_end_matches('?').to_string()));
 +            continue;
 +        }
  
          // Strategy 3: explicit local variable type declarations. C++ looks
          // them up per call site, scoped to the enclosing callable, so two
-@@ -676,6 +702,12 @@ pub fn propagate_types_with_fields(
+@@ -676,6 +703,12 @@ pub fn propagate_types_with_fields(
                      enclosing.map(|d| (d.start_byte, d.end_byte)),
                  )
                  .or_else(|| local_type_map.get(rh).copied())
@@ -3666,7 +3667,7 @@ index ded74f3..34948a6 100644
          } else if go {
              // Go's own reading stays file-wide, as before; only a value
              // made through a package is looked up where it is in scope.
-@@ -695,6 +727,13 @@ pub fn propagate_types_with_fields(
+@@ -695,6 +728,13 @@ pub fn propagate_types_with_fields(
              rewrites.push((i, ty.to_string()));
              continue;
          }
@@ -3680,7 +3681,7 @@ index ded74f3..34948a6 100644
  
          // Strategy 4: return-type inference. If the receiver variable
          // was assigned from a function call whose return type we know,
-@@ -747,7 +786,9 @@ pub fn propagate_types_with_fields(
+@@ -747,7 +787,9 @@ pub fn propagate_types_with_fields(
          } else {
              ty
          };
@@ -3691,7 +3692,7 @@ index ded74f3..34948a6 100644
              let r = &facts.references[i];
              facts.untyped_receivers.push((
                  r.site_byte,
-@@ -759,6 +800,40 @@ pub fn propagate_types_with_fields(
+@@ -759,6 +801,40 @@ pub fn propagate_types_with_fields(
      }
  }
  
@@ -3732,7 +3733,7 @@ index ded74f3..34948a6 100644
  /// Parameter `(enclosing_start_byte, name, type)` triples from one
  /// definition's `signature_hint`.
  ///
-@@ -1685,6 +1760,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
+@@ -1685,6 +1761,24 @@ fn extract_return_type(sig: &str) -> Option<&str> {
      None
  }
  
@@ -3757,7 +3758,7 @@ index ded74f3..34948a6 100644
  fn is_primitive(ty: &str) -> bool {
      matches!(
          ty,
-@@ -2592,4 +2685,55 @@ mod tests {
+@@ -2592,4 +2686,55 @@ mod tests {
          propagate_types(&mut facts);
          assert_eq!(facts.references[0].receiver_hint, "Controller");
      }
