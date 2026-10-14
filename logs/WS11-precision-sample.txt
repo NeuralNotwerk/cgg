@@ -1,0 +1,367 @@
+##### python 643
+-- [high] app-saleor-celery saleor/checkout/calculations.py:786
+   checkout.shipping_price = manager.calculate_checkout_shipping(
+   -> saleor.plugins.manager.PluginsManager.calculate_checkout_shipping
+   decl@759: manager: "PluginsManager",
+-- [high] app-bugbug-gcpfunctions services/hackbot-api/app/routers/webhooks.py:200
+   if not await authorizer.is_authorized(detected.user_login):
+   -> app.bugzilla_authorization.BugzillaAuthorizer.is_authorized
+   decl@178: authorizer: BugzillaAuthorizer = Depends(get_bugzilla_authorizer),
+-- [high] py-litestar tests/e2e/test_routing/test_validations.py:59
+   await socket.close()
+   -> litestar.connection.websocket.WebSocket.close
+   decl@58: await socket.send_json({"hello": "world"})
+-- [high] kivy-carvera carveracontroller/protocols/session.py:108
+   self._protocol.reset()
+   -> carveracontroller.protocols.base.CommunicationProtocol.reset
+   decl@100: self._protocol = create_protocol(DEFAULT_PROTOCOL)
+-- [high] app-saleor-celery saleor/warehouse/availability.py:80
+   if variant.is_preorder_active():
+   -> saleor.product.models.ProductVariant.is_preorder_active
+   decl@78: or there is not enough available preorder items for a variant.
+-- [medium] app-torch-ultralytics ultralytics/models/yolo/yoloe/val.py:170
+   model.set_classes(names, tpe)
+   -> ultralytics.models.yolo.model.YOLOE.set_classes
+   decl@165: vpe = self.get_visual_pe(self.dataloader, model)
+-- [medium] app-saleor-celery saleor/plugins/avatax/plugin.py:898
+   tax_description = obj.get_value_from_metadata(
+   -> saleor.core.models.ModelWithMetadata.get_value_from_metadata
+   decl@893: if isinstance(obj, ProductType):
+-- [medium] scala-spark python/pyspark/tests/test_worker.py:102
+   self.assertEqual(100, rdd.map(str).count())
+   -> pyspark.core.rdd.RDD.map
+   decl@101: rdd = self.sc.parallelize(range(100), 1)
+-- [medium] scala-spark python/pyspark/testing/pandasutils.py:163
+   "right": right.to_string(),
+   -> pyspark.pandas.frame.DataFrame.to_string
+   decl@156: if isinstance(left, pd.DataFrame) and isinstance(right, pd.DataFrame):
+-- [medium] app-saleor-celery saleor/permission/utils.py:89
+   return requestor.has_perms(perms)
+   -> saleor.account.models.User.has_perms
+   decl@88: if isinstance(requestor, User):
+##### php 269
+-- [high] app-symfony-messenger src/Symfony/Component/Security/Http/Tests/EventListener/IsGrantedAttributeListenerTest.php:240
+   $vote?->addReason('Because I can 😈.');
+   -> Vote::addReason
+   decl@238: protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = nul
+-- [high] app-symfony-messenger src/Symfony/Component/Messenger/Bridge/Amqp/Transport/Connection.php:391
+   $amqpStamp ? $amqpStamp->getFlags() : \AMQP_NOPARAM,
+   -> AmqpStamp::getFlags
+   decl@381: $attributes = $amqpStamp ? $amqpStamp->getAttributes() : [];
+-- [high] app-humhub-yii protected/humhub/modules/user/tests/codeception/unit/ApprovalTest.php:89
+   $this->assertTrue($group->addUser($user, $isGroupManager));
+   -> Group::addUser
+   decl@80: private function createUser(string $username, ?Group $group = null, bool $isGroupManager = false, int $status 
+-- [high] app-domainwatchdog-symfony src/Service/RDAPService.php:287
+   $domain->updateTimestamps();
+   -> Domain::updateTimestamps
+   decl@276: private function handleRdapException(\Exception $e, string $idnDomain, ?Domain $domain, ?ResponseInterface $re
+-- [high] app-humhub-yii protected/humhub/helpers/ThemeHelper.php:226
+   return $theme->variable('isFluid') == 'true';
+   -> Theme::variable
+   decl@220: public static function isFluid(?Theme $theme = null)
+-- [medium] app-humhub-yii protected/humhub/modules/user/models/User.php:778
+   if ($user->is($this)) {
+   -> ContentContainerActiveRecord::is
+   decl@768: public function canAccessPrivateContent(?User $user = null)
+-- [medium] app-symfony-messenger src/Symfony/Bundle/FrameworkBundle/Console/Application.php:43
+   $inputDefinition->addOption(new InputOption('--env', '-e', InputOption::VALUE_REQUIRED, 'The Environment name.
+   -> KernelInterface::getEnvironment
+   decl@38: private KernelInterface $kernel,
+-- [medium] app-symfony-messenger src/Symfony/Component/HttpFoundation/Session/Session.php:49
+   $this->attributeName = $attributes->getName();
+   -> SessionBagInterface::getName
+   decl@43: public function __construct(?SessionStorageInterface $storage = null, ?AttributeBagInterface $attributes = nul
+-- [medium] app-symfony-messenger src/Symfony/Component/Form/Extension/Validator/ValidatorExtension.php:46
+   $metadata = $validator->getMetadataFor(\Symfony\Component\Form\Form::class);
+   -> MetadataFactoryInterface::getMetadataFor
+   decl@34: private ValidatorInterface $validator,
+-- [medium] app-humhub-yii protected/humhub/modules/space/components/ActiveQuerySpace.php:53
+   if ($user->can(ManageSpaces::class)) {
+   -> ContentContainerActiveRecord::can
+   decl@40: public function visible(?User $user = null): ActiveQuery
+##### dart 18137
+-- [high] dart-flutter dev/benchmarks/microbenchmarks/lib/benchmark_collection.dart:62
+   ('stocks/animation_bench.dart', () => animation_bench.execute(binding)),
+   -> execute
+   decl@42: // BenchmarkingBinding is used by animation_bench, providing a simple
+-- [high] dart-flutter packages/flutter_tools/lib/src/widget_preview/dtd_types.dart:64
+   .map((item) => FlutterWidgetPreviewDetails.fromJson(item! as Map<String, Object?>))
+   -> FlutterWidgetPreviewDetails::fromJson
+-- [high] dart-flutter packages/flutter_test/lib/src/widget_tester.dart:194
+   await variant.tearDown(value, memento);
+   -> TestVariant::tearDown
+   decl@189: memento = await variant.setUp(value);
+-- [high] dart-flutter engine/src/flutter/lib/ui/text.dart:1977
+   result[6] = textHeightBehavior._encode();
+   -> TextHeightBehavior::_encode
+   decl@1947: TextHeightBehavior? textHeightBehavior,
+-- [high] dart-flutter packages/flutter/lib/src/painting/borders.dart:519
+   b?.lerpFrom(a, t) ?? a?.lerpTo(b, t) ?? b?.lerpTo(a, 1.0 - t) ?? a?.lerpFrom(b, 1.0 - t);
+   -> ShapeBorder::lerpTo
+   decl@516: return a;
+-- [medium] dart-flutter packages/flutter/test/material/carousel_test.dart:164
+   await tester.tap(find.ancestor(of: item2, matching: find.byType(Stack)));
+   -> WidgetController::tap
+   decl@160: await tester.pump();
+-- [medium] dart-flutter packages/flutter/test/widgets/navigator_test.dart:1912
+   final NavigatorState navigator = tester.state<NavigatorState>(find.byType(Navigator));
+   -> WidgetController::state
+   decl@1910: await tester.tap(find.text('/A')); // pushNamed('/B'), stack becomes /, /A, /B
+-- [medium] dart-flutter packages/flutter/test/material/flexible_space_bar_test.dart:28
+   Size size = tester.getSize(title);
+   -> WidgetController::getSize
+   decl@17: await tester.pumpWidget(
+-- [medium] app-immich-nestjs mobile/test/domain/services/local_sync_service_test.dart:166
+   verify(() => mockTrashedLocalAssetRepository.getToTrash()).called(1);
+   -> DriftTrashedLocalAssetRepository::getToTrash
+   decl@159: verify(() => mockTrashedLocalAssetRepository.processTrashSnapshot(captureAny())).captured.single
+-- [medium] dart-flutter packages/flutter/test/cupertino/tab_test.dart:51
+   await tester.tap(find.text('go to second page'));
+   -> WidgetController::tap
+   decl@32: await tester.pumpWidget(
+##### scala 2543
+-- [high] scala-spark sql/core/src/test/scala/org/apache/spark/sql/streaming/StreamTest.scala:821
+   e.runAction()
+   -> StreamTest::ExternalAction::runAction
+   decl@820: case e: ExternalAction =>
+-- [high] scala-spark sql/catalyst/src/test/scala/org/apache/spark/sql/connector/catalog/InMemoryBaseTable.scala:118
+   else id() == other.id() && version() == other.version()
+   -> InMemoryBaseTable::version
+   decl@116: if (this eq other) true
+-- [high] scala-spark mllib/src/main/scala/org/apache/spark/ml/tree/Split.scala:177
+   featureIndex == other.featureIndex && threshold == other.threshold
+   -> Split::featureIndex
+   decl@176: case other: ContinuousSplit =>
+-- [high] scala-spark core/src/main/scala/org/apache/spark/storage/BlockManagerId.scala:99
+   port == id.port &&
+   -> BlockManagerId::port
+   decl@97: case id: BlockManagerId =>
+-- [high] scala-spark sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/expressions/namedExpressions.scala:246
+   name == a.name && exprId == a.exprId && child == a.child && qualifier == a.qualifier &&
+   -> NamedExpression::name
+   decl@245: case a: Alias =>
+-- [medium] scala-spark sql/core/src/main/scala/org/apache/spark/sql/execution/bucketing/CoalesceBucketsInJoin.scala:128
+   case f: FileSourceScanExec if f.relation.bucketSpec.nonEmpty &&
+   -> FileSourceScanLike::relation
+   decl@122: case f: FileSourceScanExec => f.relation.bucketSpec.nonEmpty
+-- [medium] scala-spark sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/NormalizeFloatingNumbers.scala:111
+   e.copy(left = normalize(e.left), right = normalize(e.right))
+   -> BinaryLike::left
+   decl@110: case e: ArrayExcept if needNormalize(e.left) =>
+-- [medium] scala-spark sql/core/src/main/scala/org/apache/spark/sql/execution/CacheManager.scala:508
+   case b: BatchScanExec if txnTables.contains(b.table) => b.scan
+   -> DataSourceV2ScanExecBase::scan
+-- [medium] scala-spark sql/core/src/test/scala/org/apache/spark/sql/execution/joins/BroadcastJoinSuite.scala:413
+   w.children.head match {
+   -> TreeNode::children
+   decl@411: case w: WholeStageCodegenExec =>
+-- [medium] scala-spark sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/PropagateEmptyRelation.scala:172
+   case Aggregate(ge, _, _, _) if ge.nonEmpty && !p.isStreaming => empty(p)
+   -> LogicalPlan::isStreaming
+   decl@157: case _: RebalancePartitions => empty(p)
+##### java 1054
+-- [high] app-druid-jaxrs server/src/main/java/org/apache/druid/segment/loading/StorageLocation.java:578
+   evicted.unmount();
+   -> org.apache.druid.segment.loading.StorageLocation.WeakCacheEntry.unmount
+   decl@575: private void unmountEvictedWeakEntry(@Nullable WeakCacheEntry evicted)
+-- [high] app-wordpress-android libs/fluxc/src/main/java/org/wordpress/android/fluxc/network/rest/wpcom/media/MediaRestClient.java:220
+   mCurrentUploadCalls.put(media.getId(), call);
+   -> org.wordpress.android.fluxc.model.MediaModel.getId
+   decl@195: notifyMediaUploaded(media, error);
+-- [high] dart-flutter engine/src/flutter/shell/platform/android/io/flutter/plugin/common/BasicMessageChannel.java:195
+   messenger.send(BasicMessageChannel.CHANNEL_BUFFERS_CHANNEL, packet);
+   -> io.flutter.plugin.common.BinaryMessenger.send
+   decl@189: @NonNull BinaryMessenger messenger, @NonNull String channel, boolean warns) {
+-- [high] app-wordpress-android libs/fluxc/src/main/java/org/wordpress/android/fluxc/network/rest/wpcom/media/MediaRestClient.java:604
+   params.put(MediaFields.PARENT_ID.getFieldName(), String.valueOf(media.getPostId()));
+   -> org.wordpress.android.fluxc.model.MediaModel.getPostId
+   decl@596: private Map<String, Object> getEditRequestParams(@NonNull final MediaModel media) {
+-- [high] app-druid-jaxrs indexing-service/src/main/java/org/apache/druid/indexing/common/task/IndexTask.java:1076
+   if (ioConfig.getInputSource().needsFormat()) {
+   -> org.apache.druid.indexing.common.task.IndexTask.IndexIOConfig.getInputSource
+   decl@1068: IngestionMode ingestionMode = AbstractTask.computeBatchIngestionMode(ioConfig);
+-- [medium] dart-flutter engine/src/flutter/shell/platform/android/io/flutter/embedding/engine/systemchannels/MouseCursorChannel.java:68
+   result.error("error", "Unhandled error: " + e.getMessage(), null);
+   -> io.flutter.plugin.common.MethodChannel.Result.error
+   decl@41: public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
+-- [medium] app-ksql-kafkastreams ksqldb-execution/src/main/java/io/confluent/ksql/execution/plan/TableSourceV1.java:95
+   source = to.getSources().get(0);
+   -> io.confluent.ksql.execution.plan.ExecutionStep.getSources
+   decl@81: public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+-- [medium] app-thingsboard-concurrent application/src/main/java/org/thingsboard/server/controller/TbResourceController.java:228
+   resource.setTenantId(getTenantId());
+   -> org.thingsboard.server.common.data.ExportableEntity.setTenantId
+   decl@227: @RequestBody TbResource resource) throws Exception {
+-- [medium] app-druid-jaxrs processing/src/main/java/org/apache/druid/math/expr/ExpressionTypeConversion.java:134
+   if (type.isArray() || other.isArray()) {
+   -> org.apache.druid.segment.column.TypeSignature.isArray
+   decl@132: return type;
+-- [medium] java-spring-batch spring-batch-core/src/test/java/org/springframework/batch/core/repository/support/MongoStepExecutionDaoIntegrationTests.java:54
+   jobExecution = jobExecutionDao.createJobExecution(jobInstance, new JobParameters());
+   -> org.springframework.batch.core.repository.dao.JobExecutionDao.createJobExecution
+   decl@50: public void setUp(@Autowired JobInstanceDao jobInstanceDao, @Autowired JobExecutionDao jobExecutionDao)
+##### kotlin 1133
+-- [high] kotlin-okio okio/src/jvmTest/kotlin/okio/PipeKotlinTest.kt:269
+   assertEquals(0L, underlying.timeout().timeoutNanos())
+   -> okio.PipeKotlinTest.TimeoutWritingSink.timeout
+   decl@264: pipe.fold(underlying)
+-- [high] app-wordpress-android WordPress/src/main/java/org/wordpress/android/ui/jetpackplugininstall/fullplugin/onboarding/JetpackFullPluginInstallOnboardingDialogFragment.kt:90
+   onContactSupportClick = { viewModel.onContactSupportClick() },
+   -> org.wordpress.android.ui.jetpackplugininstall.fullplugin.onboarding.JetpackFullPluginInstallOnboardingViewModel.onContactSupportClick
+   decl@83: val uiState by viewModel.uiState.collectAsState()
+-- [high] kotlin-okio okio/src/jvmTest/kotlin/okio/PipeKotlinTest.kt:223
+   assertEquals(smallerTimeoutNanos, underlying.timeout().timeoutNanos())
+   -> okio.PipeKotlinTest.TimeoutFlushingSink.timeout
+   decl@218: pipe.fold(underlying)
+-- [high] kotlin-okio okio/src/jvmTest/kotlin/okio/PipeKotlinTest.kt:449
+   assertFalse(underlying.timeout().hasDeadline())
+   -> okio.PipeKotlinTest.TimeoutFlushingSink.timeout
+   decl@444: pipe.fold(underlying)
+-- [high] kotlin-okio okio/src/jvmTest/kotlin/okio/PipeKotlinTest.kt:178
+   assertEquals(biggerTimeoutNanos, underlying.timeout().timeoutNanos())
+   -> okio.PipeKotlinTest.TimeoutWritingSink.timeout
+   decl@173: pipe.fold(underlying)
+-- [medium] java-okhttp mockwebserver/src/main/kotlin/mockwebserver3/MockResponse.kt:314
+   headers_.add(header)
+   -> okhttp3.FormBody.Builder.add
+   decl@305: headers_ = Headers.Builder()
+-- [medium] app-nextcloud-android app/src/main/java/com/owncloud/android/ui/fragment/ActivitiesFragment.kt:128
+   actionListener?.onStop()
+   -> com.owncloud.android.ui.activities.ActivitiesContract.ActionListener.onStop
+   decl@78: actionListener = ActivitiesPresenter(activitiesRepository, filesRepository, this)
+-- [medium] app-nextcloud-android app/src/androidTest/java/com/nextcloud/client/files/download/TransferManagerConnectionTest.kt:77
+   verify { binder.registerTransferListener(capture(listeners)) }
+   -> com.nextcloud.client.jobs.transfer.TransferManager.registerTransferListener
+   decl@72: connection.onServiceConnected(componentName, binder)
+-- [medium] java-okhttp okhttp/src/jvmTest/kotlin/okhttp3/KotlinSourceModernTest.kt:328
+   builder = builder.allEnabledTlsVersions()
+   -> okhttp3.ConnectionSpec.Builder.allEnabledTlsVersions
+   decl@327: builder = builder.cipherSuites("", "")
+-- [medium] java-okhttp okhttp/src/jvmTest/kotlin/okhttp3/KotlinSourceModernTest.kt:599
+   builder = builder.set("", "")
+   -> okhttp3.Headers.Builder.set
+   decl@598: builder = builder.add("", Instant.EPOCH)
+##### csharp 3458
+-- [high] app-orleans-samples framework/wcf/Extensibility/Channels/ReliableSecureProfile/CS/MakeConnectionChannel/MakeConnectionRequestContext.cs:378
+   thisPtr.OnFaultCompletedCore(result);
+   -> Microsoft.Samples.ReliableSecureProfile.MakeConnectionRequestContext.OnFaultCompletedCore
+   decl@377: MakeConnectionRequestContext thisPtr = (MakeConnectionRequestContext)result.AsyncState;
+-- [high] app-orleans-samples framework/wcf/Extensibility/Transport/WseTcpInterop/CS/WseTcpDuplexSessionChannel.cs:894
+   completeSelf = thisPtr.CompleteReadData(result);
+   -> Microsoft.Samples.WseTcpTransport.WseTcpDuplexSessionChannel.ReadDataAsyncResult.CompleteReadData
+   decl@888: ReadDataAsyncResult thisPtr = (ReadDataAsyncResult)result.AsyncState;
+-- [high] app-orleans-samples framework/wcf/Extensibility/Channels/ReliableSecureProfile/CS/MakeConnectionChannel/MakeConnectionRequestContext.cs:103
+   thisPtr.SendAck();
+   -> Microsoft.Samples.ReliableSecureProfile.MakeConnectionRequestContext.SendAck
+   decl@100: MakeConnectionRequestContext thisPtr = (MakeConnectionRequestContext)state;
+-- [high] app-orleans-samples framework/wcf/Extensibility/Transport/WseTcpInterop/CS/WseTcpDuplexSessionChannel.cs:1309
+   completeSelf = thisPtr.CompletePreData(result);
+   -> Microsoft.Samples.WseTcpTransport.WseTcpDuplexSessionChannel.WriteDataAsyncResult.CompletePreData
+   decl@1304: WriteDataAsyncResult thisPtr = (WriteDataAsyncResult)result.AsyncState;
+-- [high] app-orleans-samples framework/wcf/Extensibility/Transport/WseTcpInterop/CS/WseTcpDuplexSessionChannel.cs:686
+   thisPtr.CompleteReadData(result);
+   -> Microsoft.Samples.WseTcpTransport.WseTcpDuplexSessionChannel.ReceiveAsyncResult.CompleteReadData
+   decl@681: ReceiveAsyncResult thisPtr = (ReceiveAsyncResult)result.AsyncState;
+-- [medium] csharp-newtonsoft Src/Newtonsoft.Json.Tests/JsonTextWriterAsyncTests.cs:1935
+   Assert.IsTrue(writer.WriteValueAsync(default(DateTimeOffset?), token).IsCanceled);
+   -> Newtonsoft.Json.JsonWriter.WriteValueAsync
+   decl@1903: var writer = new MinimalOverridesDerivedJsonWriter();
+-- [medium] csharp-newtonsoft Src/Newtonsoft.Json.Tests/JsonTextWriterAsyncTests.cs:1954
+   Assert.IsTrue(writer.WriteValueAsync(default(TimeSpan?), token).IsCanceled);
+   -> Newtonsoft.Json.JsonWriter.WriteValueAsync
+   decl@1903: var writer = new MinimalOverridesDerivedJsonWriter();
+-- [medium] csharp-serilog test/TestDummies/DummyLoggerConfigurationExtensions.cs:56
+   return loggerSinkConfiguration.Sink(LoggerSinkConfiguration.Wrap(
+   -> LoggerSinkConfiguration.Sink
+   decl@53: this LoggerSinkConfiguration loggerSinkConfiguration,
+-- [medium] csharp-newtonsoft Src/Newtonsoft.Json.Tests/JsonTextWriterAsyncTests.cs:1926
+   Assert.IsTrue(writer.WriteValueAsync(default(bool?), token).IsCanceled);
+   -> Newtonsoft.Json.JsonWriter.WriteValueAsync
+   decl@1903: var writer = new MinimalOverridesDerivedJsonWriter();
+-- [medium] csharp-newtonsoft Src/Newtonsoft.Json.Tests/Benchmarks/SerializeComparisonBenchmarks.cs:283
+   await writer.WriteValueAsync(c.Name);
+   -> Newtonsoft.Json.JsonTextWriter.WriteValueAsync
+   decl@282: await writer.WritePropertyNameAsync("Name");
+##### typescript 124
+-- [high] app-metabase-compojure frontend/src/embedding-sdk-bundle/lib/sdk-question/get-question-title.ts:24
+   const query = question.query();
+   -> Question.query
+   decl@13: if (!question) {
+-- [high] app-metabase-compojure frontend/src/embedding-sdk-bundle/lib/sdk-question/get-question-title.ts:17
+   const isSaved = question.isSaved();
+   -> Question.isSaved
+   decl@13: if (!question) {
+-- [high] app-metabase-compojure frontend/src/metabase/common/components/SaveQuestionForm/util.ts:189
+   originalQuestion.canWrite()
+   -> Question.canWrite
+   decl@180: name: getName(question, originalQuestion),
+-- [high] js-loopback packages/boot/src/mixins/boot.mixin.ts:210
+   return ctx.getSync<InstanceWithBooters>(componentKey);
+   -> Context.getSync
+   decl@202: function resolveComponentInstance(ctx: Readonly<Context>) {
+-- [high] app-metabase-compojure frontend/src/metabase/common/components/SaveQuestionForm/util.ts:151
+   return t`${originalQuestion.displayName()} - Modified`;
+   -> Question.displayName
+   decl@149: if (originalQuestion) {
+-- [medium] app-deno-std data_structures/deque.ts:706
+   unmappedValues = collection.toArray();
+   -> Deque.toArray
+   decl@698: collection,
+-- [medium] app-rn-expensify src/components/MoneyRequestReportView/MoneyRequestReportTransactionsNavigation.tsx:137
+   e?.preventDefault();
+   -> preventDefault
+   decl@136: const onNext = (e: GestureResponderEvent | KeyboardEvent | undefined) => {
+-- [medium] ts-typeorm packages/codemod/test/transforms/v1/fixtures/repository-find-by-ids/repository-find-by-ids-union-type.output.ts:13
+   return repo.findBy({
+   -> BaseEntity.findBy
+   decl@12: async function load(repo: FallbackRepo | Repository<User>) {
+-- [medium] app-rn-expensify src/components/MoneyRequestReportView/MoneyRequestReportTransactionsNavigation.tsx:209
+   e?.preventDefault();
+   -> preventDefault
+   decl@208: const onPrevious = (e: GestureResponderEvent | KeyboardEvent | undefined) => {
+-- [medium] app-rn-expensify src/components/MoneyRequestReportView/MoneyRequestReportTransactionsNavigation.tsx:137
+   e?.preventDefault();
+   -> preventDefault
+   decl@136: const onNext = (e: GestureResponderEvent | KeyboardEvent | undefined) => {
+##### swift 15
+-- [high] app-ora-swifttesting ora/Core/Services/Web/FaviconService.swift:122
+   colorCache[domain] = Color(favicon.averageColor())
+   -> NSImage.averageColor
+   decl@120: if let favicon {
+-- [medium] app-codeedit-combine CodeEdit/Features/LSP/Features/SemanticTokens/SemanticTokenHighlightProvider.swift:139
+   let ranges = lspRanges.compactMap { textView?.nsRangeFrom($0) }
+   -> TextView.nsRangeFrom
+   decl@135: private func applyDeltaResponse(_ data: SemanticTokensDelta, callback: EditCallback?, textView: TextView?) asy
+-- [medium] app-codeedit-combine CodeEdit/Features/Documents/Indexer/SearchIndexer+Memory.swift:53
+   properties.properties()
+   -> SearchIndexer.CreateProperties.properties
+   decl@47: public static func create(properties: CreateProperties = CreateProperties()) -> SearchIndexer.Memory? {
+-- [medium] app-ghostty-zig macos/Sources/Features/Terminal/TerminalController.swift:481
+   tabCreated = parent.addTabbedWindowSafely(window, ordered: .above)
+   -> NSWindow.addTabbedWindowSafely
+   decl@472: // then we use the last window in the tab group as the parent.
+-- [medium] app-ghostty-zig macos/Sources/Ghostty/Surface View/SurfaceView_AppKit.swift:1914
+   previous?.cancel(from: self)
+   -> Ghostty.ClipboardConfirmationRequest.cancel
+   decl@1913: guard previous !== pendingClipboardConfirmation else { return }
+-- [medium] app-codeedit-combine CodeEdit/Features/Documents/Indexer/SearchIndexer+File.swift:78
+   properties.properties()
+   -> SearchIndexer.CreateProperties.properties
+   decl@71: properties: CreateProperties = CreateProperties()
+-- [medium] app-codeedit-combine CodeEdit/Features/Documents/Indexer/SearchIndexer+Memory.swift:23
+   properties.properties()
+   -> SearchIndexer.CreateProperties.properties
+   decl@17: public init?(properties: CreateProperties = CreateProperties()) {
+-- [medium] app-alarik-vapor alarik/Sources/Services/S3Service.swift:251
+   name: "Content-Range", value: range.contentRange(fileSize: meta.size))
+   -> ByteRange.contentRange
+   decl@249: if let range = range {
+-- [medium] app-codeedit-combine CodeEdit/Features/Documents/Controllers/CodeEditWindowController.swift:47
+   self.toolbarCollapsed = workspace.getFromWorkspaceState(.toolbarCollapsed) as? Bool ?? false
+   -> WorkspaceDocument.getFromWorkspaceState
+   decl@46: self.workspace = workspace
+-- [medium] app-ghostty-zig macos/Sources/Ghostty/Surface View/SurfaceView_AppKit.swift:1488
+   return text.withCString { ptr in
+   -> Optional.withCString
+   decl@1487: if let text = text?.keyEventText {

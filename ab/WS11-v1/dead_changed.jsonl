@@ -1,0 +1,2 @@
+{"repo": "scala-spark", "lang": "python", "qn": "pyspark.sql.connect.observation.Observation._on", "path": "/storage/cgg-test_repos/scala-spark/python/pyspark/sql/connect/observation.py", "line": 61, "old": "high", "new": null}
+{"repo": "scala-spark", "lang": "python", "qn": "pyspark.sql.observation.Observation._on", "path": "/storage/cgg-test_repos/scala-spark/python/pyspark/sql/observation.py", "line": 109, "old": "high", "new": null}

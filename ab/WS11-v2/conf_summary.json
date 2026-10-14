@@ -1,0 +1,159 @@
+{
+ "csharp": {
+  "drop": {
+   "medium": 2789,
+   "high": 11
+  },
+  "add": {
+   "medium": 3425,
+   "high": 33
+  },
+  "chg": {
+   "medium->high": 2
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 44,
+   "now unresolved: candidates-in-other-files": 55,
+   "rebound to another target": 2701
+  }
+ },
+ "dart": {
+  "drop": {
+   "medium": 86529
+  },
+  "add": {
+   "high": 167,
+   "medium": 17970
+  },
+  "chg": {
+   "medium->high": 53
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 527,
+   "external/stdlib or still bound (same name, kept target)": 85623,
+   "rebound to another target": 379
+  }
+ },
+ "groovy": {
+  "drop": {
+   "medium": 5
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 5
+  }
+ },
+ "java": {
+  "drop": {
+   "medium": 2010,
+   "high": 28
+  },
+  "add": {
+   "medium": 1007,
+   "high": 47
+  },
+  "chg": {
+   "medium->high": 66,
+   "high->medium": 26
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 379,
+   "external/stdlib or still bound (same name, kept target)": 1647,
+   "rebound to another target": 12
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "medium": 1936,
+   "high": 29
+  },
+  "add": {
+   "medium": 1096,
+   "high": 37
+  },
+  "chg": {
+   "medium->high": 44,
+   "high->medium": 11
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1670,
+   "now unresolved: candidates-in-other-files": 203,
+   "rebound to another target": 92
+  }
+ },
+ "php": {
+  "drop": {},
+  "add": {
+   "high": 247,
+   "medium": 22
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "python": {
+  "drop": {
+   "medium": 469
+  },
+  "add": {
+   "medium": 353,
+   "high": 290
+  },
+  "chg": {
+   "medium->high": 125
+  },
+  "fate": {
+   "rebound to another target": 35,
+   "external/stdlib or still bound (same name, kept target)": 402,
+   "now unresolved: candidates-in-other-files": 32
+  }
+ },
+ "scala": {
+  "drop": {
+   "medium": 1095,
+   "high": 3
+  },
+  "add": {
+   "medium": 2428,
+   "high": 115
+  },
+  "chg": {
+   "medium->high": 6
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 222,
+   "now unresolved: candidates-in-other-files": 741,
+   "rebound to another target": 135
+  }
+ },
+ "swift": {
+  "drop": {
+   "high": 1
+  },
+  "add": {
+   "medium": 14,
+   "high": 1
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 1
+  }
+ },
+ "typescript": {
+  "drop": {
+   "medium": 97
+  },
+  "add": {
+   "medium": 73,
+   "high": 51
+  },
+  "chg": {
+   "medium->high": 17
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 59,
+   "now unresolved: candidates-in-other-files": 34,
+   "rebound to another target": 4
+  }
+ }
+}

@@ -1,0 +1,32 @@
+csharp | removed {'medium': 94} | added {'medium': 438} | rescored {'medium->high': 2}
+       50 now unresolved: candidates-in-other-files
+       44 external/stdlib or still bound (same name, kept target)
+dart | removed {'medium': 86529} | added {'high': 167, 'medium': 17970} | rescored {'medium->high': 53}
+       85623 external/stdlib or still bound (same name, kept target)
+       527 now unresolved: candidates-in-other-files
+       379 rebound to another target
+groovy | removed {'medium': 5} | added {} | rescored {}
+       5 now unresolved: candidates-in-other-files
+java | removed {'medium': 2010, 'high': 28} | added {'medium': 1007, 'high': 47} | rescored {'medium->high': 66, 'high->medium': 26}
+       1647 external/stdlib or still bound (same name, kept target)
+       379 now unresolved: candidates-in-other-files
+       12 rebound to another target
+kotlin | removed {'medium': 1984, 'high': 7} | added {'medium': 341, 'high': 13} | rescored {'medium->high': 44, 'high->medium': 11}
+       1474 external/stdlib or still bound (same name, kept target)
+       514 now unresolved: candidates-in-other-files
+       3 rebound to another target
+php | removed {} | added {'high': 247, 'medium': 22} | rescored {}
+python | removed {'medium': 469} | added {'medium': 353, 'high': 290} | rescored {'medium->high': 125}
+       402 external/stdlib or still bound (same name, kept target)
+       35 rebound to another target
+       32 now unresolved: candidates-in-other-files
+scala | removed {'medium': 1095, 'high': 3} | added {'medium': 2428, 'high': 115} | rescored {'medium->high': 6}
+       741 now unresolved: candidates-in-other-files
+       222 external/stdlib or still bound (same name, kept target)
+       135 rebound to another target
+swift | removed {'high': 1} | added {'medium': 14, 'high': 1} | rescored {}
+       1 now unresolved: candidates-in-other-files
+typescript | removed {'medium': 97} | added {'medium': 73, 'high': 51} | rescored {'medium->high': 17}
+       59 external/stdlib or still bound (same name, kept target)
+       34 now unresolved: candidates-in-other-files
+       4 rebound to another target
