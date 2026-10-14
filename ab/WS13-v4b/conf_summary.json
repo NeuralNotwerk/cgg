@@ -1,0 +1,22 @@
+{
+ "rust": {
+  "drop": {
+   "medium": 3450,
+   "high": 18
+  },
+  "add": {
+   "medium": 886,
+   "high": 34
+  },
+  "chg": {
+   "high->medium": 16
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1499,
+   "rebound to another target": 712,
+   "now unresolved: candidates-in-other-files": 188,
+   "now unresolved: fanout-cap-exceeded": 533,
+   "now unresolved: ambiguous-in-file": 536
+  }
+ }
+}

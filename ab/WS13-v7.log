@@ -1,0 +1,32 @@
+19:45:59 starting A/B with 253 GB available
+old=/storage/cgg/target/remediation/bins/WS13-before
+new=/storage/cgg/target/remediation/bins/WS13-after-v7
+repos=283 elapsed=360s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 24
+  app-actix-examples: edges 462->472 (-0 +10 ~0) callables 777->777 unresolved 1160->772 files 168->168 deadhigh 28->28 
+  app-aiproxy-hangfire: edges 26334->26334 (-0 +0 ~0) callables 11130->11130 unresolved 43129->43125 files 146->146 deadhigh 14->14 
+  app-axum-cratesio: edges 11782->11849 (-36 +103 ~30) callables 3481->3481 unresolved 9018->8003 files 900->900 deadhigh 11->9 
+  app-clashverge-tauri: edges 7493->7563 (-21 +91 ~12) callables 3099->3099 unresolved 3770->3103 files 416->416 deadhigh 10->6 
+  app-cloudflare-workers: edges 3541->3653 (-29 +141 ~3) callables 2157->2157 unresolved 2089->1729 files 228->228 deadhigh 8->6 
+  app-concordium-gotham: edges 19613->19597 (-20 +4 ~3) callables 20227->20227 unresolved 4254->3979 files 380->380 deadhigh 14->1 
+  app-lemmy-actix: edges 9953->9902 (-812 +761 ~2) callables 2330->2330 unresolved 7434->7129 files 572->572 deadhigh 15->15 
+  app-nanocl-ntex: edges 547->546 (-3 +2 ~8) callables 524->524 unresolved 531->498 files 69->69 deadhigh 24->24 
+  app-pydantic-core: edges 16205->16179 (-63 +37 ~2) callables 4174->4174 unresolved 7504->7057 files 249->249 deadhigh 57->56 
+  app-realworld-tide: edges 545->542 (-7 +4 ~0) callables 256->256 unresolved 199->111 files 77->77 deadhigh 0->0 
+  app-salvo-examples: edges 36149->35843 (-454 +148 ~56) callables 18013->18013 unresolved 45452->44155 files 447->447 deadhigh 22->7 
+  app-shuttle-examples: edges 432->432 (-0 +0 ~0) callables 597->597 unresolved 366->235 files 176->176 deadhigh 10->10 
+  app-tigerbeetle-zig: edges 25192->25194 (-0 +2 ~3) callables 6316->6316 unresolved 10681->10647 files 411->411 deadhigh 14->14 
+  app-torch-ultralytics: edges 5706->5706 (-0 +0 ~0) callables 3277->3277 unresolved 4787->4770 files 299->299 deadhigh 7->7 
+  app-vaultwarden-rocket: edges 6725->6714 (-68 +57 ~8) callables 2663->2663 unresolved 2992->2753 files 106->106 deadhigh 6->1 
+  app-wificonnect-iron: edges 166->166 (-0 +0 ~0) callables 90->90 unresolved 47->29 files 18->18 deadhigh 0->0 
+  app-workerstunnel-cloudflare: edges 40->40 (-0 +0 ~0) callables 35->35 unresolved 25->6 files 1->1 deadhigh 0->0 
+  lua-kong: edges 10519->10519 (-0 +0 ~0) callables 5141->5141 unresolved 30395->30393 files 1542->1542 deadhigh 6->6 
+  neurosymbolic_kb: edges 15254->15300 (-60 +106 ~83) callables 6312->6312 unresolved 24943->23105 files 274->274 deadhigh 16->14 
+  py-robyn: edges 1997->1993 (-8 +4 ~0) callables 1924->1924 unresolved 1790->1574 files 220->220 deadhigh 37->36 
+  rust-bat: edges 2006->2006 (-1 +1 ~57) callables 1979->1979 unresolved 2195->2052 files 178->178 deadhigh 3->3 
+  rust-ntex: edges 20608->18901 (-2198 +491 ~71) callables 5299->5299 unresolved 14456->13393 files 309->309 deadhigh 273->267 
+  rust-ripgrep: edges 8177->8147 (-53 +23 ~4) callables 2973->2973 unresolved 6850->6373 files 108->108 deadhigh 29->30 
+  rust-rtic: edges 4969->4973 (-9 +13 ~3) callables 4360->4360 unresolved 6572->6406 files 268->268 deadhigh 61->59 
+by language: see by_language.tsv
+

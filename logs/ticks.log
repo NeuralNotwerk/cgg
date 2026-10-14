@@ -18,3 +18,10 @@
 - 2026-10-14T18:25:32Z tick: WS13 agent running; WIP snapshotted + pushed
 2026-10-14T18:35:39Z literal audit: branch+0.10.2 clean of repo-specific names; inline framework/builtin lists assigned to WS13 for relocation
 2026-10-14T18:59:35Z WS13 agent interim: diff 16 files +1239/-67 incl relocation; A/B queued on memory gate (avail 13G)
+2026-10-14T19:07:39Z WS13 A/B started
+2026-10-14T19:30:43Z WS13 v6 A/B running
+2026-10-14T19:46:22Z WS13 v7 A/B running
+2026-10-14T19:59:45Z WS13 isolated comparison running
+2026-10-14T20:12:40Z WS13 v8 A/B running
+2026-10-14T20:23:52Z WS13 perf running (post v8)
+2026-10-14T20:25:28Z tick: WS13 perf phase

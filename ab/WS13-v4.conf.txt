@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/storage/cgg/target/remediation/tools/conf_summary.py", line 8, in <module>
+    for l in open(f'{ab}/dropped.jsonl'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'ab/WS13-v4/dropped.jsonl'

@@ -1,0 +1,2 @@
+{"repo": "app-clashverge-tauri", "lang": "rust", "qn": "clash_verge::feat::core_upgrade::StagedCore::publish", "path": "/storage/cgg-test_repos/app-clashverge-tauri/src-tauri/src/feat/core_upgrade.rs", "line": 399, "old": "high", "new": "medium"}
+{"repo": "rust-ripgrep", "lang": "rust", "qn": "grep_printer::color::UserColorSpec::merge_into", "path": "/storage/cgg-test_repos/rust-ripgrep/crates/printer/src/color.rs", "line": 265, "old": "high", "new": null}

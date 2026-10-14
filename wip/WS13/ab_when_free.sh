@@ -7,5 +7,6 @@ while true; do
   sleep 60
 done
 echo "$(date +%T) starting A/B with ${a} GB available"
+old=$(realpath "$1"); new=$(realpath "$2"); out=$(realpath -m "$3")
 cd /storage/cgg
-python3 target/remediation/tools/graph_ab.py "$1" "$2" "$3" --parallel 6
+python3 target/remediation/tools/graph_ab.py "$old" "$new" "$out" --parallel 6

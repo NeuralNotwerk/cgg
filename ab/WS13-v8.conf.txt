@@ -1,0 +1,7 @@
+rust | removed {'medium': 3557, 'high': 29} | added {'medium': 1285, 'high': 249} | rescored {'medium->high': 127, 'high->medium': 43}
+       1497 external/stdlib or still bound (same name, kept target)
+       732 rebound to another target
+       548 now unresolved: fanout-cap-exceeded
+       537 now unresolved: ambiguous-in-file
+       268 now unresolved: candidates-in-other-files
+       4 now unresolved: value-ref-ambiguous
