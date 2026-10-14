@@ -1,0 +1,526 @@
+[
+  {
+    "event": "run_started",
+    "cgg_version": "0.10.2",
+    "argv": [
+      "/storage/cgg/target/remediation/bins/WS13-before",
+      ".",
+      "--dead-code",
+      "-o",
+      "/storage/cgg/target/remediation/logs/WS13/fx.mmd"
+    ]
+  },
+  {
+    "event": "file_discovered",
+    "path": "./Cargo.toml"
+  },
+  {
+    "event": "file_skipped",
+    "path": "./Cargo.toml",
+    "reason": {
+      "kind": "unknown-extension"
+    }
+  },
+  {
+    "event": "file_discovered",
+    "path": "./app/Cargo.toml"
+  },
+  {
+    "event": "file_skipped",
+    "path": "./app/Cargo.toml",
+    "reason": {
+      "kind": "unknown-extension"
+    }
+  },
+  {
+    "event": "file_discovered",
+    "path": "./app/src/lib.rs"
+  },
+  {
+    "event": "file_discovered",
+    "path": "./other/Cargo.toml"
+  },
+  {
+    "event": "file_skipped",
+    "path": "./other/Cargo.toml",
+    "reason": {
+      "kind": "unknown-extension"
+    }
+  },
+  {
+    "event": "file_discovered",
+    "path": "./other/src/lib.rs"
+  },
+  {
+    "event": "file_analyzed",
+    "file": "F27hde2oqjx",
+    "path": "./app/src/lib.rs",
+    "language": "rust",
+    "detected_via": "extension:.rs",
+    "blake3": "81137ba557d5e87e22f7179d6e533c892c9fcd3db6c6ba06642aa14efebd9096",
+    "size_bytes": 1368,
+    "lines": 84,
+    "parse_ms": 0.580346,
+    "parse_status": "ok",
+    "callables": [
+      {
+        "id": "Caov436womb",
+        "qualified_name": "app::Ctx::pool",
+        "kind": "inherentmethod",
+        "start_line": 8,
+        "end_line": 10,
+        "start_byte": 71,
+        "end_byte": 119
+      },
+      {
+        "id": "C6nk0pyvkx9",
+        "qualified_name": "app::handler",
+        "kind": "freefunction",
+        "start_line": 14,
+        "end_line": 16,
+        "start_byte": 197,
+        "end_byte": 261
+      },
+      {
+        "id": "C116rm14xzq4",
+        "qualified_name": "app::Loader::new",
+        "kind": "inherentmethod",
+        "start_line": 27,
+        "end_line": 29,
+        "start_byte": 357,
+        "end_byte": 423
+      },
+      {
+        "id": "Cldllziiywg",
+        "qualified_name": "app::Loader::load",
+        "kind": "inherentmethod",
+        "start_line": 31,
+        "end_line": 33,
+        "start_byte": 479,
+        "end_byte": 560
+      },
+      {
+        "id": "C3idvl840sv",
+        "qualified_name": "app::Loader::value",
+        "kind": "inherentmethod",
+        "start_line": 34,
+        "end_line": 36,
+        "start_byte": 565,
+        "end_byte": 630
+      },
+      {
+        "id": "Cuy8p82m2ni",
+        "qualified_name": "app::Config::value",
+        "kind": "inherentmethod",
+        "start_line": 40,
+        "end_line": 42,
+        "start_byte": 652,
+        "end_byte": 701
+      },
+      {
+        "id": "C7jey4nqi3f",
+        "qualified_name": "app::use_loader",
+        "kind": "freefunction",
+        "start_line": 45,
+        "end_line": 49,
+        "start_byte": 705,
+        "end_byte": 836
+      },
+      {
+        "id": "Ccrg5s8wh33",
+        "qualified_name": "app::make_getter",
+        "kind": "freefunction",
+        "start_line": 51,
+        "end_line": 57,
+        "start_byte": 838,
+        "end_byte": 952
+      },
+      {
+        "id": "Czm0ckwuwkq",
+        "qualified_name": "app::answer",
+        "kind": "freefunction",
+        "start_line": 59,
+        "end_line": 59,
+        "start_byte": 955,
+        "end_byte": 974
+      },
+      {
+        "id": "C97v290g0rs",
+        "qualified_name": "app::has_source",
+        "kind": "freefunction",
+        "start_line": 61,
+        "end_line": 63,
+        "start_byte": 977,
+        "end_byte": 1015
+      },
+      {
+        "id": "Cmowmnay63j",
+        "qualified_name": "app::no_source",
+        "kind": "freefunction",
+        "start_line": 65,
+        "end_line": 67,
+        "start_byte": 1017,
+        "end_byte": 1055
+      },
+      {
+        "id": "Cwirep4ls0e",
+        "qualified_name": "app::table",
+        "kind": "freefunction",
+        "start_line": 69,
+        "end_line": 75,
+        "start_byte": 1057,
+        "end_byte": 1273
+      },
+      {
+        "id": "Cjbmbdm1ozm",
+        "qualified_name": "app::caller",
+        "kind": "freefunction",
+        "start_line": 82,
+        "end_line": 84,
+        "start_byte": 1328,
+        "end_byte": 1367
+      }
+    ],
+    "unresolved_calls": [
+      {
+        "src": null,
+        "file": "F27hde2oqjx",
+        "site_line": 59,
+        "site_byte": 954,
+        "name": "make_getter",
+        "reason": {
+          "stage": "no-enclosing-callable"
+        }
+      },
+      {
+        "src": null,
+        "file": "F27hde2oqjx",
+        "site_line": 77,
+        "site_byte": 1275,
+        "name": "table",
+        "reason": {
+          "stage": "no-enclosing-callable"
+        }
+      },
+      {
+        "src": "C7jey4nqi3f",
+        "file": "F27hde2oqjx",
+        "site_line": 47,
+        "site_byte": 791,
+        "name": "new",
+        "receiver_hint": "String",
+        "reason": {
+          "stage": "candidates-in-other-files",
+          "detail": {
+            "candidates": 1
+          }
+        }
+      }
+    ],
+    "stdlib_calls": [
+      {
+        "src": "Cldllziiywg",
+        "file": "F27hde2oqjx",
+        "site_line": 32,
+        "site_byte": 535,
+        "name": "len",
+        "receiver_hint": "path",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "stdlib"
+      },
+      {
+        "src": "C3idvl840sv",
+        "file": "F27hde2oqjx",
+        "site_line": 35,
+        "site_byte": 602,
+        "name": "len",
+        "receiver_hint": "String",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "stdlib"
+      },
+      {
+        "src": "C7jey4nqi3f",
+        "file": "F27hde2oqjx",
+        "site_line": 47,
+        "site_byte": 791,
+        "name": "new",
+        "receiver_hint": "String",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "stdlib"
+      }
+    ]
+  },
+  {
+    "event": "file_analyzed",
+    "file": "Fhlv3e5c6fv",
+    "path": "./other/src/lib.rs",
+    "language": "rust",
+    "detected_via": "extension:.rs",
+    "blake3": "af0979a8f0eab85887a215c123bdc1ce39070ad13b43bb440f0c731a1739085c",
+    "size_bytes": 874,
+    "lines": 28,
+    "parse_ms": 0.6495850000000001,
+    "parse_status": "ok",
+    "callables": [
+      {
+        "id": "C34qyg28i63",
+        "qualified_name": "other::Data::pool",
+        "kind": "inherentmethod",
+        "start_line": 7,
+        "end_line": 9,
+        "start_byte": 124,
+        "end_byte": 172
+      },
+      {
+        "id": "Cz6kfi8w0as",
+        "qualified_name": "other::<Bytes as From<u8>>::from",
+        "kind": "traitmethod",
+        "start_line": 14,
+        "end_line": 14,
+        "start_byte": 230,
+        "end_byte": 271
+      },
+      {
+        "id": "C4up60nukho",
+        "qualified_name": "other::<Bytes as From<u16>>::from",
+        "kind": "traitmethod",
+        "start_line": 15,
+        "end_line": 15,
+        "start_byte": 301,
+        "end_byte": 349
+      },
+      {
+        "id": "Crzl7qqscaa",
+        "qualified_name": "other::<Bytes as From<u32>>::from",
+        "kind": "traitmethod",
+        "start_line": 16,
+        "end_line": 16,
+        "start_byte": 379,
+        "end_byte": 427
+      },
+      {
+        "id": "Cd8wxfzyef9",
+        "qualified_name": "other::<Bytes as From<u64>>::from",
+        "kind": "traitmethod",
+        "start_line": 17,
+        "end_line": 17,
+        "start_byte": 457,
+        "end_byte": 505
+      },
+      {
+        "id": "Criaw4u7zf0",
+        "qualified_name": "other::<Bytes as From<i8>>::from",
+        "kind": "traitmethod",
+        "start_line": 18,
+        "end_line": 18,
+        "start_byte": 534,
+        "end_byte": 581
+      },
+      {
+        "id": "C75ldvtkwpn",
+        "qualified_name": "other::<Bytes as From<i16>>::from",
+        "kind": "traitmethod",
+        "start_line": 19,
+        "end_line": 19,
+        "start_byte": 611,
+        "end_byte": 659
+      },
+      {
+        "id": "Co7tzr7quep",
+        "qualified_name": "other::<Bytes as From<String>>::from",
+        "kind": "traitmethod",
+        "start_line": 20,
+        "end_line": 20,
+        "start_byte": 692,
+        "end_byte": 744
+      },
+      {
+        "id": "C5fd1yebz2x",
+        "qualified_name": "other::make_bytes",
+        "kind": "freefunction",
+        "start_line": 22,
+        "end_line": 24,
+        "start_byte": 748,
+        "end_byte": 808
+      },
+      {
+        "id": "Cx3gf7b71bk",
+        "qualified_name": "other::make_one",
+        "kind": "freefunction",
+        "start_line": 26,
+        "end_line": 28,
+        "start_byte": 810,
+        "end_byte": 873
+      }
+    ],
+    "external_calls": [
+      {
+        "src": "Cz6kfi8w0as",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 14,
+        "site_byte": 255,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "C4up60nukho",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 15,
+        "site_byte": 327,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "Crzl7qqscaa",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 16,
+        "site_byte": 405,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "Cd8wxfzyef9",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 17,
+        "site_byte": 483,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "Criaw4u7zf0",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 18,
+        "site_byte": 559,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "C75ldvtkwpn",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 19,
+        "site_byte": 637,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "Co7tzr7quep",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 20,
+        "site_byte": 721,
+        "name": "Bytes",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      },
+      {
+        "src": "Co7tzr7quep",
+        "file": "Fhlv3e5c6fv",
+        "site_line": 20,
+        "site_byte": 727,
+        "name": "into_bytes",
+        "receiver_hint": "x",
+        "reason": {
+          "stage": "no-candidate-in-file"
+        },
+        "name_screen_applied": "external"
+      }
+    ]
+  },
+  {
+    "event": "framework_coverage",
+    "coverage": {
+      "disclaimer": "BEST EFFORT — ENTRY NODES ARE INFERRED, NOT OBSERVED. cgg synthesizes these from framework markers it recognises: a decorator, a base type, a registration call. Nothing in your source states that the call happens. Coverage is partial — a framework cgg does not recognise contributes no entry nodes at all, and its handlers will still appear unreferenced. The coverage table states exactly which frameworks were recognised and which imports were seen but not understood. Absence of an entry node is not evidence that no entry exists.",
+      "recognised": [],
+      "seen_no_rules": [],
+      "no_markers": [],
+      "nodes_minted": 0,
+      "root_marks_only": 0
+    }
+  },
+  {
+    "event": "unresolved_by_module",
+    "modules": [
+      {
+        "module": "(unattributed)",
+        "count": 11,
+        "sample": [
+          "Bytes",
+          "into_bytes",
+          "make_getter",
+          "new",
+          "table"
+        ]
+      }
+    ]
+  },
+  {
+    "event": "run_finished",
+    "metrics": {
+      "wall_ms": 8.453868,
+      "phases": {
+        "walk_ms": 2.68032,
+        "parse_ms": 1.229931,
+        "extract_ms": 4.524137,
+        "resolve_ms": 0.0,
+        "link_ms": 1.548058,
+        "query_ms": 0.0,
+        "format_ms": 0.0
+      },
+      "files_discovered": 5,
+      "files_analyzed": 2,
+      "files_skipped": 3,
+      "files_errored": 0,
+      "bytes_processed": 2242,
+      "callables": 23,
+      "edges": 14,
+      "unresolved_calls": 3,
+      "stdlib_calls": 3,
+      "external_calls": 8,
+      "ffi_detected": 0,
+      "ffi_resolved": 0,
+      "peak_rss_bytes": 0,
+      "by_language": {
+        "rust": {
+          "files": 2,
+          "callables": 23,
+          "edges": 6,
+          "unresolved": 3,
+          "stdlib": 3,
+          "external": 8
+        }
+      },
+      "cycles": [],
+      "longest_path_len": 0,
+      "confidence_histogram": {
+        "high": 6,
+        "medium": 8,
+        "low": 0
+      }
+    }
+  }
+]

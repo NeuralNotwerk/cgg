@@ -1,0 +1,41 @@
+%% cgg: nodes tagged `unreferenced` are BEST-EFFORT findings —
+%% cgg could not find a caller, which is not proof none exists.
+flowchart LR
+  N0["app::Ctx::pool"]
+  N1["app::handler"]
+  N2["app::Loader::new"]
+  N3["app::Loader::load"]
+  N4["app::Loader::value"]
+  N5["app::Config::value"]
+  N6["app::use_loader"]
+  N7["app::make_getter"]
+  N8["app::answer"]
+  N9["app::has_source ⟨unreferenced⟩"]
+  N10["app::no_source ⟨unreferenced⟩"]
+  N11["app::table"]
+  N12["app::caller"]
+  N13["other::Data::pool"]
+  N14["other::&lt;Bytes as From&lt;u8&gt;&gt;::from"]
+  N15["other::&lt;Bytes as From&lt;u16&gt;&gt;::from"]
+  N16["other::&lt;Bytes as From&lt;u32&gt;&gt;::from"]
+  N17["other::&lt;Bytes as From&lt;u64&gt;&gt;::from"]
+  N18["other::&lt;Bytes as From&lt;i8&gt;&gt;::from"]
+  N19["other::&lt;Bytes as From&lt;i16&gt;&gt;::from"]
+  N20["other::&lt;Bytes as From&lt;String&gt;&gt;::from"]
+  N21["other::make_bytes"]
+  N22["other::make_one"]
+  classDef unreferenced stroke-dasharray: 4 3;
+  class N9,N10 unreferenced;
+  N6 --> N3
+  N6 --> N2
+  N6 -->|2x| N4
+  N12 --> N8
+  N22 --> N14
+  N1 --> N13
+  N21 --> N14
+  N21 --> N15
+  N21 --> N16
+  N21 --> N17
+  N21 --> N18
+  N21 --> N19
+  N21 --> N20

@@ -1,0 +1,816 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.10.2",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "rust",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "rust:implicit-trait",
+        "toplevel:invocation"
+      ],
+      "files": 2,
+      "callables": 23,
+      "roots": 9,
+      "reachable": 9,
+      "reachable_pct": 39,
+      "findings": 14,
+      "blind_spots": [
+        "calls inside macro arguments (format!, writeln!, vec!, assert_eq!)",
+        "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")]) — serde's are recorded as doubt, never as edges",
+        "functions passed as values inside macro arguments (format!(\"{}\", x.map(f))) — recorded as doubt, never as edges"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 23,
+    "edges": 14,
+    "unresolved_call_sites": 3,
+    "roots": 9,
+    "candidates": 14,
+    "reported": 14,
+    "regions": 9
+  },
+  "roots": [
+    {
+      "id": "Ccrg5s8wh33",
+      "qualified_name": "app::make_getter",
+      "language": "rust",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at ./app/src/lib.rs:59"
+    },
+    {
+      "id": "Cwirep4ls0e",
+      "qualified_name": "app::table",
+      "language": "rust",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at ./app/src/lib.rs:77"
+    },
+    {
+      "id": "Cz6kfi8w0as",
+      "qualified_name": "other::<Bytes as From<u8>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "C4up60nukho",
+      "qualified_name": "other::<Bytes as From<u16>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "Crzl7qqscaa",
+      "qualified_name": "other::<Bytes as From<u32>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "Cd8wxfzyef9",
+      "qualified_name": "other::<Bytes as From<u64>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "Criaw4u7zf0",
+      "qualified_name": "other::<Bytes as From<i8>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "C75ldvtkwpn",
+      "qualified_name": "other::<Bytes as From<i16>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    },
+    {
+      "id": "Co7tzr7quep",
+      "qualified_name": "other::<Bytes as From<String>>::from",
+      "language": "rust",
+      "kind": "lifecycle-callback",
+      "rule": "rust:implicit-trait",
+      "detail": "implements `From`, invoked implicitly"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Caov436womb"
+      ],
+      "anchors": [
+        "Caov436womb"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "C6nk0pyvkx9",
+        "C34qyg28i63"
+      ],
+      "anchors": [
+        "C6nk0pyvkx9"
+      ],
+      "files": [
+        "F27hde2oqjx",
+        "Fhlv3e5c6fv"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "C116rm14xzq4",
+        "Cldllziiywg",
+        "C3idvl840sv",
+        "C7jey4nqi3f"
+      ],
+      "anchors": [
+        "C7jey4nqi3f"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cuy8p82m2ni"
+      ],
+      "anchors": [
+        "Cuy8p82m2ni"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Czm0ckwuwkq",
+        "Cjbmbdm1ozm"
+      ],
+      "anchors": [
+        "Cjbmbdm1ozm"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "C97v290g0rs"
+      ],
+      "anchors": [
+        "C97v290g0rs"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 10,
+      "members": [
+        "Cmowmnay63j"
+      ],
+      "anchors": [
+        "Cmowmnay63j"
+      ],
+      "files": [
+        "F27hde2oqjx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 21,
+      "members": [
+        "C5fd1yebz2x"
+      ],
+      "anchors": [
+        "C5fd1yebz2x"
+      ],
+      "files": [
+        "Fhlv3e5c6fv"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cx3gf7b71bk"
+      ],
+      "anchors": [
+        "Cx3gf7b71bk"
+      ],
+      "files": [
+        "Fhlv3e5c6fv"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C97v290g0rs",
+      "qualified_name": "app::has_source",
+      "simple_name": "has_source",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 61,
+      "end_line": 63,
+      "size_lines": 3,
+      "signature_hint": "fn has_source(x: u32) -> u32",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 603,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmowmnay63j",
+      "qualified_name": "app::no_source",
+      "simple_name": "no_source",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 65,
+      "end_line": 67,
+      "size_lines": 3,
+      "signature_hint": "fn no_source(_x: u32) -> u32",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 603,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7jey4nqi3f",
+      "qualified_name": "app::use_loader",
+      "simple_name": "use_loader",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 45,
+      "end_line": 49,
+      "size_lines": 5,
+      "signature_hint": "pub fn use_loader() -> u32",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Caov436womb",
+      "qualified_name": "app::Ctx::pool",
+      "simple_name": "pool",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 8,
+      "end_line": 10,
+      "size_lines": 3,
+      "signature_hint": "pub fn pool(&self) -> u32",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6nk0pyvkx9",
+      "qualified_name": "app::handler",
+      "simple_name": "handler",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "pub fn handler(context: Data<Ctx>) -> u32",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cldllziiywg",
+      "qualified_name": "app::Loader::load",
+      "simple_name": "load",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 31,
+      "end_line": 33,
+      "size_lines": 3,
+      "signature_hint": "pub fn load(path: &str) -> Config",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 2,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7jey4nqi3f"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3idvl840sv",
+      "qualified_name": "app::Loader::value",
+      "simple_name": "value",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 34,
+      "end_line": 36,
+      "size_lines": 3,
+      "signature_hint": "pub fn value(&self) -> u32",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 2,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C7jey4nqi3f"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuy8p82m2ni",
+      "qualified_name": "app::Config::value",
+      "simple_name": "value",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 40,
+      "end_line": 42,
+      "size_lines": 3,
+      "signature_hint": "pub fn value(&self) -> u32",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjbmbdm1ozm",
+      "qualified_name": "app::caller",
+      "simple_name": "caller",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 82,
+      "end_line": 84,
+      "size_lines": 3,
+      "signature_hint": "pub fn caller() -> u32",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C34qyg28i63",
+      "qualified_name": "other::Data::pool",
+      "simple_name": "pool",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fhlv3e5c6fv",
+      "path": "./other/src/lib.rs",
+      "start_line": 7,
+      "end_line": 9,
+      "size_lines": 3,
+      "signature_hint": "pub fn pool(&self) -> u32",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 1,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C6nk0pyvkx9"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5fd1yebz2x",
+      "qualified_name": "other::make_bytes",
+      "simple_name": "make_bytes",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhlv3e5c6fv",
+      "path": "./other/src/lib.rs",
+      "start_line": 22,
+      "end_line": 24,
+      "size_lines": 3,
+      "signature_hint": "pub fn make_bytes(s: String) -> Bytes",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cx3gf7b71bk",
+      "qualified_name": "other::make_one",
+      "simple_name": "make_one",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhlv3e5c6fv",
+      "path": "./other/src/lib.rs",
+      "start_line": 26,
+      "end_line": 28,
+      "size_lines": 3,
+      "signature_hint": "pub fn make_one() -> Bytes",
+      "visibility": "pub",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czm0ckwuwkq",
+      "qualified_name": "app::answer",
+      "simple_name": "answer",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 59,
+      "end_line": 59,
+      "size_lines": 1,
+      "signature_hint": "pub fn answer() -> u32",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "macro-generated",
+          "macro_name": "make_getter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cjbmbdm1ozm"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C116rm14xzq4",
+      "qualified_name": "app::Loader::new",
+      "simple_name": "new",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F27hde2oqjx",
+      "path": "./app/src/lib.rs",
+      "start_line": 27,
+      "end_line": 29,
+      "size_lines": 3,
+      "signature_hint": "pub fn new(path: String) -> Loader",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "low",
+      "rank": -397,
+      "region": 2,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "new",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F27hde2oqjx",
+            "path": "./app/src/lib.rs",
+            "line": 47,
+            "name": "new",
+            "receiver_hint": "String"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7jey4nqi3f"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

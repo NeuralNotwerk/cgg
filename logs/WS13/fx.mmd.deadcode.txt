@@ -1,0 +1,41 @@
+cgg dead-code report — cgg.deadcode.v1
+
+  BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a
+  static over-approximation computed from an incomplete call graph.
+  Reflection, string-keyed dispatch, dynamic imports, calls inside macro
+  arguments, build-time codegen, conditional compilation, framework entry
+  points, FFI consumers outside this tree, and any language whose signals
+  cgg cannot extract are all invisible to it. cgg reports what it could
+  not find a caller for, which is not the same as proving no caller
+  exists. Every finding MUST be manually reviewed against the source
+  before it is acted on. See the per-language capability table for what
+  cgg could and could not see, each finding's evidence for why its
+  confidence is what it is, and --why-live to check the reasoning in the
+  opposite direction.
+
+analyzed  23 callables, 14 edges, 3 unresolved call site(s)
+roots     9 discovered · root-reachability enabled:min-coverage-25pct
+
+signal coverage — a "no" is a place cgg is guessing
+  language     files callables class          vis attrs  refs  disp  reach
+  rust             2        23 analyzable     yes   yes   yes   yes    39%
+  known blind spots for rust:
+    - calls inside macro arguments (format!, writeln!, vec!, assert_eq!)
+    - symbols named only in attribute string literals (#[serde(deserialize_with = "…")]) — serde's are recorded as doubt, never as edges
+    - functions passed as values inside macro arguments (format!("{}", x.map(f))) — recorded as doubt, never as edges
+
+findings  2 shown (high) · 11 withheld (medium) · 1 withheld (low)
+
+── high ──────────────────────────────────────────────────────────────────
+./app/src/lib.rs:61: unreferenced function 'app::has_source' (3 lines) [D001]
+    why:  no-incoming-edges, language-signals-complete, no-unresolved-site-with-name, private-visibility
+./app/src/lib.rs:65: unreferenced function 'app::no_source' (3 lines) [D001]
+    why:  no-incoming-edges, language-signals-complete, no-unresolved-site-with-name, private-visibility
+
+── next ────────────────────────────────────────────────────────────────
+  check one   cgg <path> --why-live 'app::has_source$'
+  as json     cgg <path> --dead-code --dead-code-format json
+
+  Reminder: BEST EFFORT. Every finding above is a hypothesis that
+  cgg could not find a caller for — not proof that none exists.
+  Verify each one against the source before acting on it.

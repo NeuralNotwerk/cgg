@@ -1,0 +1,450 @@
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 842aeef..de92a28 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -469,6 +469,10 @@ pub struct FileFacts {
+     /// Used by the type propagator to rewrite receiver_hints.
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     pub local_types: Vec<LocalType>,
++    /// Which of [`Self::local_types`] were read off a `Type::f(…)` path
++    /// call and still need `f`'s return type checked.
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub assoc_call_locals: Vec<AssocCallLocal>,
+     /// Class fields (`StreamOutput* streams` on `Kernel`). The call is
+     /// usually in another file from the declaration, so the propagator
+     /// indexes these across the whole run and walks one `->` / `.` hop.
+@@ -741,6 +745,22 @@ pub struct LocalType {
+     pub scope_byte: u32,
+ }
+ 
++/// A [`LocalType`] read off a path call (`let x = Type::f(…)`), typed as
++/// `Type` on the assumption that `f` constructs one. The resolver checks
++/// that assumption against `f`'s declared return type once every file's
++/// definitions are known (`type_hints::settle_assoc_call_locals`): an
++/// associated function that returns another type retypes the local, one
++/// that returns no nameable type leaves it untyped. Rust only.
++#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
++pub struct AssocCallLocal {
++    /// The [`LocalType::var_name`] this record qualifies.
++    pub var_name: String,
++    /// The [`LocalType::scope_byte`] this record qualifies.
++    pub scope_byte: u32,
++    /// The associated function called (`f` in `Type::f(…)`).
++    pub assoc_fn: String,
++}
++
+ /// A field of a class or struct, recorded so `obj->field->method()` can
+ /// be typed from the field's declaration rather than from the call site.
+ #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+@@ -783,6 +803,7 @@ impl FileFacts {
+             references: Vec::new(),
+             imports: Vec::new(),
+             local_types: Vec::new(),
++            assoc_call_locals: Vec::new(),
+             field_types: Vec::new(),
+             macro_aliases: Vec::new(),
+             member_ptr_takes: Vec::new(),
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index df42079..4a33930 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -51,7 +51,7 @@ pub use external::{
+ pub use facts::{
+     ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord,
+     DefVariant, DynUse, ExportRecord, FieldType, FileFacts, FnMacro, ImportRecord,
+-    LocalBinding, LocalType, MacroAlias, MacroInvocation, MemberPtrTake, NameMention,
++    AssocCallLocal, LocalBinding, LocalType, MacroAlias, MacroInvocation, MemberPtrTake, NameMention,
+     PARTIAL_DECLARATION, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
+     UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
+     looks_like_type_name, template_pointee,
+diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
+index c5eb807..ca4cb72 100644
+--- a/crates/cgg-lang/src/plugins/rust.rs
++++ b/crates/cgg-lang/src/plugins/rust.rs
+@@ -877,20 +877,24 @@ impl<'a> Walker<'a> {
+                         && is_deref_transparent_wrapper(wrapper_name)
+                     {
+                         let locked = is_lock_wrapper(wrapper_name);
+-                        if let Some((inner_type, inner_locked)) =
++                        if let Some((inner_type, inner_locked, inner_fn)) =
+                             self.inner_wrapped_type(call, 3)
+                         {
++                            let scope_byte = node.start_byte() as u32;
+                             if locked || inner_locked {
++                                let guard = format!("{var_name}{GUARD_SUFFIX}");
++                                self.push_assoc_local(&guard, scope_byte, &inner_fn);
+                                 self.facts.local_types.push(cgg_core::LocalType {
+-                                    var_name: format!("{var_name}{GUARD_SUFFIX}"),
++                                    var_name: guard,
+                                     type_name: inner_type.clone(),
+-                                    scope_byte: node.start_byte() as u32,
++                                    scope_byte,
+                                 });
+                             }
++                            self.push_assoc_local(&var_name, scope_byte, &inner_fn);
+                             self.facts.local_types.push(cgg_core::LocalType {
+                                 var_name,
+                                 type_name: inner_type,
+-                                scope_byte: node.start_byte() as u32,
++                                scope_byte,
+                             });
+                         }
+                         // <inner> isn't a `Type::assoc_fn()` call we can read.
+@@ -915,6 +919,13 @@ impl<'a> Walker<'a> {
+                         }
+                         return;
+                     }
++                    // `Type::f(..)` is read as constructing a `Type`; a
++                    // method chain after it (`Type::f(..).g()`) is not
++                    // checked, as before. The resolver confirms a plain
++                    // path call against `f`'s declared return type.
++                    if func.kind() == "scoped_identifier" {
++                        self.push_assoc_local(&var_name, node.start_byte() as u32, assoc_fn);
++                    }
+                     self.facts.local_types.push(cgg_core::LocalType {
+                         var_name,
+                         type_name: type_part.to_string(),
+@@ -994,7 +1005,7 @@ impl<'a> Walker<'a> {
+     /// match it in full rather than by bare owner name.
+     /// The bool is whether a lock (`Mutex`/`RwLock`/`RefCell`) was among
+     /// the wrappers seen through.
+-    fn inner_wrapped_type(&self, call: Node, depth: u8) -> Option<(String, bool)> {
++    fn inner_wrapped_type(&self, call: Node, depth: u8) -> Option<(String, bool, String)> {
+         let args = call.child_by_field_name("arguments")?;
+         let mut cursor = args.walk();
+         let first_arg = args.named_children(&mut cursor).next()?;
+@@ -1013,9 +1024,29 @@ impl<'a> Walker<'a> {
+             }
+             return self
+                 .inner_wrapped_type(inner, depth - 1)
+-                .map(|(t, locked)| (t, locked || is_lock_wrapper(&last)));
++                .map(|(t, locked, f)| (t, locked || is_lock_wrapper(&last), f));
++        }
++        // Only a plain path call names an associated function whose
++        // return type can be checked; a chain's last method is not `f`.
++        let assoc_fn = if func.kind() == "scoped_identifier" {
++            assoc_fn
++        } else {
++            String::new()
++        };
++        Some((type_part, false, assoc_fn))
++    }
++
++    /// Record that the local `var_name` was typed from `Type::assoc_fn(..)`
++    /// (see [`cgg_core::AssocCallLocal`]). Nothing for an empty name.
++    fn push_assoc_local(&mut self, var_name: &str, scope_byte: u32, assoc_fn: &str) {
++        if assoc_fn.is_empty() {
++            return;
+         }
+-        Some((type_part, false))
++        self.facts.assoc_call_locals.push(cgg_core::AssocCallLocal {
++            var_name: var_name.to_string(),
++            scope_byte,
++            assoc_fn: assoc_fn.to_string(),
++        });
+     }
+ 
+     /// `call` is `W::clone(<arg>)`; read `<arg>`'s bare identifier name, so
+@@ -1535,6 +1566,10 @@ impl<'a> Walker<'a> {
+             lt.scope_byte = remap(lt.scope_byte);
+             self.facts.local_types.push(lt);
+         }
++        for mut al in std::mem::take(&mut sub.assoc_call_locals) {
++            al.scope_byte = remap(al.scope_byte);
++            self.facts.assoc_call_locals.push(al);
++        }
+         for (k, v) in sub_fields {
+             self.struct_fields.entry(k).or_insert(v);
+         }
+diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
+index e25e48e..9b7d5cf 100644
+--- a/crates/cgg-resolve/src/cross_file.rs
++++ b/crates/cgg-resolve/src/cross_file.rs
+@@ -5314,6 +5314,13 @@ fn try_resolve_ref(
+                     .next()
+                     .is_some_and(|c| c.is_uppercase()))
+         {
++            // A bare type name the file `use`s from a crate outside the
++            // workspace (`use actix_web::web::Data;`), as the full path it
++            // was imported by.
++            let owner_rh = crate::names::normalize_owner(rh);
++            let imported_external_type = (lang == "rust" && !rh.contains("::"))
++                .then(|| rust_external_import(owner_rh, rust_path_heads, workspace_owner_names, direct_imports, module_aliases, caller_qn))
++                .flatten();
+             let external = lang == "rust"
+                 && rh.contains("::")
+                 && is_external_rust_head(
+@@ -5333,6 +5340,35 @@ fn try_resolve_ref(
+                 {
+                     return Some(cids.clone());
+                 }
++            } else if let Some(path) = imported_external_type {
++                // A type the file imports from another crate is not a
++                // same-named workspace type. No crate but the type's own
++                // can write an inherent `impl` for it, so only a trait
++                // implementation (`<T as Trait>::m`, which a workspace
++                // crate may write for a foreign type) can be the callee.
++                let impls: Vec<CallableId> = by_owner_method
++                    .get(&(lang.to_string(), owner_rh.to_string(), r.name.clone()))
++                    .map(|v| {
++                        v.iter()
++                            .copied()
++                            .filter(|c| {
++                                graph.callables.get(c).is_some_and(|n| {
++                                    n.trait_impl_target.is_some()
++                                        || n.qualified_name.contains(" as ")
++                                })
++                            })
++                            .collect()
++                    })
++                    .unwrap_or_default();
++                if !impls.is_empty() {
++                    return Some(impls);
++                }
++                // A wrapper with a type argument still reaches it (step
++                // 4b); anything else is the foreign type's own method.
++                if deref_inner.is_none() {
++                    *external_out = Some(path);
++                    return None;
++                }
+             } else {
+                 // The owner key in the index is the *bare* type name. A
+                 // receiver can arrive as a multi-segment path (`Utils::Platforms`,
+@@ -5582,7 +5618,18 @@ fn try_resolve_ref(
+             let derefs_to_arg = bases_by_owner
+                 .get(&(lang.to_string(), outer_last.to_string()))
+                 .is_some_and(|b| b.iter().any(|x| x == DEREF_TO_ARG));
+-            if (!workspace_owner_names.contains(outer_last) || derefs_to_arg)
++            let outer_foreign = lang == "rust"
++                && !outer.contains("::")
++                && rust_external_import(
++                    outer_last,
++                    rust_path_heads,
++                    workspace_owner_names,
++                    direct_imports,
++                    module_aliases,
++                    caller_qn,
++                )
++                .is_some();
++            if (!workspace_owner_names.contains(outer_last) || derefs_to_arg || outer_foreign)
+                 && let Some(cids) = by_owner_method.get(&(
+                     lang.to_string(),
+                     inner_last.to_string(),
+@@ -6014,6 +6061,36 @@ fn is_external_rust_head(
+         && !via_glob()
+ }
+ 
++/// The path a bare Rust type name was imported by, when the file `use`s
++/// it from a crate outside the workspace (`use actix_web::web::Data;`
++/// makes `Data` `actix_web::web::Data`). `None` for a name the file does
++/// not import by `use`, or imports from the workspace.
++fn rust_external_import(
++    name: &str,
++    rust_path_heads: &RustPathVocab,
++    workspace_owner_names: &std::collections::HashSet<String>,
++    direct_imports: &HashMap<String, Vec<String>>,
++    module_aliases: &HashMap<String, String>,
++    caller_qn: Option<&str>,
++) -> Option<String> {
++    let paths = direct_imports.get(name)?;
++    let first = paths.first()?;
++    // Every import of the name must agree; a `use` that renames a
++    // workspace type into this name keeps the workspace reading.
++    if !first.contains("::") || paths.iter().any(|p| p.split("::").next() != first.split("::").next()) {
++        return None;
++    }
++    is_external_rust_head(
++        name,
++        rust_path_heads,
++        workspace_owner_names,
++        direct_imports,
++        module_aliases,
++        caller_qn,
++    )
++    .then(|| first.clone())
++}
++
+ /// What cgg knows about Rust path vocabulary in this workspace: the
+ /// crate roots it indexed and every module path beneath them. Built
+ /// sorted-insensitive (a set, only ever probed), so `--jobs` cannot
+diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
+index a1d5815..1b0dc8c 100644
+--- a/crates/cgg-resolve/src/type_hints.rs
++++ b/crates/cgg-resolve/src/type_hints.rs
+@@ -847,6 +847,162 @@ pub fn propagate_types_with_fields(
+     }
+ }
+ 
++/// What an associated function's declared return type says about the
++/// value a `Type::f(..)` call produces.
++#[derive(Clone, Debug, PartialEq, Eq)]
++enum AssocReturn {
++    /// `Self`, or the owner type itself, possibly behind `Result`,
++    /// `Option`, a reference or a smart pointer.
++    OwnType,
++    /// Another named type (its last path segment).
++    Other(String),
++    /// Nothing nameable: `()`, a primitive, `impl Trait`, a tuple.
++    Unknown,
++}
++
++/// Reads a Rust signature's return type for [`AssocReturn`], with
++/// `owner` the bare name of the type the function is declared on.
++fn rust_assoc_return(sig: &str, owner: &str) -> AssocReturn {
++    let Some(params) = param_list(sig) else {
++        return AssocReturn::Unknown;
++    };
++    // The offset just past the parameter list's closing `)`.
++    let after = params.as_ptr() as usize - sig.as_ptr() as usize + params.len() + 1;
++    let Some(rest) = sig.get(after..) else {
++        return AssocReturn::Unknown;
++    };
++    let Some(arrow) = rest.find("->") else {
++        return AssocReturn::Unknown;
++    };
++    let mut t = return_type_text(&rest[arrow + 2..]);
++    for _ in 0..8 {
++        t = t.trim();
++        // `&'a mut T`, `&T`
++        if let Some(r) = t.strip_prefix('&') {
++            t = r.trim_start();
++            if t.starts_with('\'') {
++                t = t.split_once(' ').map_or("", |(_, r)| r);
++            }
++            t = t.trim_start().strip_prefix("mut ").unwrap_or(t);
++            continue;
++        }
++        let head = t.split('<').next().unwrap_or(t).trim();
++        let last = head.rsplit("::").next().unwrap_or(head);
++        let peel = last.ends_with("Result")
++            || matches!(
++                last,
++                "Option" | "Box" | "Arc" | "Rc" | "Pin" | "Cow" | "Mutex" | "RwLock"
++            );
++        if peel
++            && let Some(open) = t.find('<')
++            && let Some(close) = t.rfind('>')
++            && close > open
++        {
++            let args = &t[open + 1..close];
++            t = split_top_level(args, |c| c == ',', true)
++                .first()
++                .copied()
++                .unwrap_or("");
++            continue;
++        }
++        break;
++    }
++    let head = t.split(['<', ' ', '(', '[']).next().unwrap_or(t).trim();
++    let last = head.rsplit("::").next().unwrap_or(head);
++    if last == "Self" || last == owner {
++        AssocReturn::OwnType
++    } else if last.starts_with(char::is_uppercase) && !is_primitive(last) {
++        AssocReturn::Other(last.to_string())
++    } else {
++        AssocReturn::Unknown
++    }
++}
++
++/// Settle the Rust locals typed from a `Type::f(..)` path call
++/// ([`cgg_core::AssocCallLocal`]) against `f`'s declared return type.
++///
++/// The extractor types `let x = Type::f(..)` as `Type`, which is right
++/// for a constructor (`new`, `default`, `from`, `open`) and wrong for an
++/// associated function returning something else (`Type::load(..) ->
++/// Config`): every method call on `x` then looked for `Type`'s methods.
++/// Here, with every file's definitions known, the declarations of `f` on
++/// a type of that name decide:
++///
++/// * all return `Self` / the type (possibly as `Result`/`Option`/a
++///   pointer) — the reading stands;
++/// * all return one other named type — the local is retyped to it;
++/// * anything else (a primitive, `()`, `impl Trait`, declarations that
++///   disagree) — the local is left untyped, as any local cgg cannot type.
++///
++/// No declaration in the tree (an external type's `File::open`) leaves
++/// the constructor reading unchanged. Order-independent: the verdicts
++/// are compared as a set.
++pub fn settle_assoc_call_locals(all_facts: &mut [FileFacts]) {
++    if !all_facts.iter().any(|f| !f.assoc_call_locals.is_empty()) {
++        return;
++    }
++    let wanted: std::collections::HashSet<(String, String)> = all_facts
++        .iter()
++        .flat_map(|f| {
++            f.assoc_call_locals.iter().filter_map(move |a| {
++                let lt = f.local_types.iter().rev().find(|lt| {
++                    lt.var_name == a.var_name && lt.scope_byte == a.scope_byte
++                })?;
++                let ty = crate::names::normalize_owner(
++                    lt.type_name.rsplit("::").next().unwrap_or(&lt.type_name),
++                );
++                Some((ty.to_string(), a.assoc_fn.clone()))
++            })
++        })
++        .collect();
++    let mut verdicts: HashMap<(String, String), Vec<AssocReturn>> = HashMap::new();
++    for f in all_facts.iter().filter(|f| f.language == "rust") {
++        for d in &f.definitions {
++            let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) else {
++                continue;
++            };
++            let key = (owner.to_string(), d.simple_name.clone());
++            if !wanted.contains(&key) {
++                continue;
++            }
++            let v = rust_assoc_return(&d.signature_hint, owner);
++            let slot = verdicts.entry(key).or_default();
++            if !slot.contains(&v) {
++                slot.push(v);
++            }
++        }
++    }
++    for f in all_facts.iter_mut() {
++        if f.assoc_call_locals.is_empty() {
++            continue;
++        }
++        let pending = std::mem::take(&mut f.assoc_call_locals);
++        for a in pending {
++            let Some(idx) = f.local_types.iter().rposition(|lt| {
++                lt.var_name == a.var_name && lt.scope_byte == a.scope_byte
++            }) else {
++                continue;
++            };
++            let ty = {
++                let t = &f.local_types[idx].type_name;
++                crate::names::normalize_owner(t.rsplit("::").next().unwrap_or(t)).to_string()
++            };
++            let Some(vs) = verdicts.get(&(ty, a.assoc_fn.clone())) else {
++                continue;
++            };
++            match vs.as_slice() {
++                [AssocReturn::OwnType] => {}
++                [AssocReturn::Other(other)] => {
++                    f.local_types[idx].type_name = other.clone();
++                }
++                _ => {
++                    f.local_types.remove(idx);
++                }
++            }
++        }
++    }
++}
++
+ /// Type the parameters of untyped closures passed to a bare call
+ /// ([`FileFacts::closure_args`]) from the callee's declared callback type:
+ /// `each((x) => x.run())` with `void each(void Function(Foo) cb)` types `x`
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index 82645ce..9075d1e 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -720,6 +720,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     // Untyped closures passed to a workspace function take their
+     // parameter types from its declared callback type.
+     cgg_resolve::type_hints::settle_closure_args(&mut all_facts);
++    // `let x = Type::f(..)` was typed `Type`; check that against `f`'s
++    // declared return type now that every file's definitions are known.
++    cgg_resolve::type_hints::settle_assoc_call_locals(&mut all_facts);
+     {
+         // Per-file and independent: each call only mutates its own facts.
+         let _s = cgg_core::profile::span("resolve::type-propagate");
