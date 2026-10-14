@@ -1365,7 +1365,7 @@ index 5420a7c..e12b82e 100644
 +    }
  }
 diff --git a/crates/cgg-lang/src/plugins/zig.rs b/crates/cgg-lang/src/plugins/zig.rs
-index eafccf8..82c0940 100644
+index eafccf8..8e1233f 100644
 --- a/crates/cgg-lang/src/plugins/zig.rs
 +++ b/crates/cgg-lang/src/plugins/zig.rs
 @@ -31,8 +31,14 @@ impl LanguagePlugin for ZigPlugin {
@@ -1545,7 +1545,7 @@ index eafccf8..82c0940 100644
                  }
                  self.walk_children(node);
                  return;
-@@ -174,7 +308,344 @@ impl<'a> ZigWalker<'a> {
+@@ -174,7 +308,348 @@ impl<'a> ZigWalker<'a> {
          self.walk_children(node);
      }
  
@@ -1601,10 +1601,14 @@ index eafccf8..82c0940 100644
 +            return true;
 +        }
 +        // `pub const frame = Functions(@This()).frame;` in a container: a
-+        // declaration that may name a function (WS14b).
++        // declaration that may name a function, or a type a function
++        // builds (`const C = Common(Self);`), WS14b.
 +        if !in_fn
 +            && let Some((_, cs)) = self.containers.last()
-+            && matches!(value.kind(), "field_expression" | "identifier")
++            && matches!(
++                value.kind(),
++                "field_expression" | "identifier" | "call_expression"
++            )
 +        {
 +            let cs = *cs;
 +            let text = self.text(value).to_string();
@@ -1891,7 +1895,7 @@ index eafccf8..82c0940 100644
          let mut c = node.walk();
          let children: Vec<Node> = node.named_children(&mut c).collect();
          let Some(name) = children.iter().find(|n| n.kind() == "identifier") else {
-@@ -196,6 +667,9 @@ impl<'a> ZigWalker<'a> {
+@@ -196,6 +671,9 @@ impl<'a> ZigWalker<'a> {
              });
              return;
          }
@@ -1901,7 +1905,7 @@ index eafccf8..82c0940 100644
          let plain = path.split('.').count() >= 2
              && path.split('.').all(|seg| {
                  !seg.is_empty() && seg.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
-@@ -303,4 +777,50 @@ mod tests {
+@@ -303,4 +781,50 @@ mod tests {
              ("xev", "src/main.zig")
          );
      }
@@ -2575,7 +2579,7 @@ index 8b4e088..513450d 100644
      /// function of the file returns (`is_valid = factory(x)` then
      /// `is_valid(i)`): the nested definition stays its candidate; a
 diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
-index fd17edc..169d095 100644
+index fd17edc..f3aa039 100644
 --- a/crates/cgg-resolve/src/libscope.rs
 +++ b/crates/cgg-resolve/src/libscope.rs
 @@ -73,6 +73,42 @@ struct DartFile {
@@ -3150,7 +3154,7 @@ index fd17edc..169d095 100644
          let mut g = match g {
              Target::File(g) => g,
              Target::External(m) => return Some(Scoped::External(m)),
-@@ -840,6 +1361,272 @@ impl<'a> LibIndex<'a> {
+@@ -840,6 +1361,319 @@ impl<'a> LibIndex<'a> {
          None
      }
  
@@ -3185,7 +3189,9 @@ index fd17edc..169d095 100644
 +                            .get(&(g, s, e))
 +                            .and_then(|d| d.get(name))
 +                        {
-+                            Some(value) => self.zig_alias_call(g, value, depth + 1),
++                            Some(value) => {
++                                self.zig_alias_call(g, (s, e), value, depth + 1)
++                            }
 +                            None => Some(Scoped::Refused(segs.join("."))),
 +                        };
 +                    }
@@ -3205,7 +3211,13 @@ index fd17edc..169d095 100644
 +    /// `g` it is declared in: `Fn(args).member` (a type function's
 +    /// member) or `a.b.member` (a path). `None` when it is neither, or
 +    /// does not lead to one function.
-+    fn zig_alias_call(&self, g: FileId, value: &str, depth: u8) -> Option<Scoped> {
++    fn zig_alias_call(
++        &self,
++        g: FileId,
++        within: (u32, u32),
++        value: &str,
++        depth: u8,
++    ) -> Option<Scoped> {
 +        let value: String = value.split_whitespace().collect();
 +        if let Some(open) = value.find('(') {
 +            let close = value.rfind(')')?;
@@ -3222,6 +3234,24 @@ index fd17edc..169d095 100644
 +        let (member, prefix) = segs.split_last()?;
 +        if prefix.is_empty() {
 +            return None;
++        }
++        // `C.as` with `const C = Common(Self, Private);` in the same
++        // container: the member of the type `Common` builds.
++        if let [head] = prefix
++            && let Some(built) = self
++                .zig_decls
++                .get(&(g, within.0, within.1))
++                .and_then(|d| d.get(head.as_str()))
++        {
++            let built: String = built.split_whitespace().collect();
++            let open = built.find('(')?;
++            if !built.ends_with(')') {
++                return None;
++            }
++            return match self.zig_generic_call(g, &built[..open], member, depth + 1)? {
++                b @ Scoped::Bound { .. } => Some(b),
++                _ => None,
++            };
 +        }
 +        match self.zig_member_call(g, prefix, member, None, depth)? {
 +            b @ Scoped::Bound { .. } => Some(b),
@@ -3256,7 +3286,28 @@ index fd17edc..169d095 100644
 +        // The function called: of the file the prefix names (a module
 +        // path), or of the container it names (`IO.init`).
 +        let (g, fns) = if prefix.is_empty() {
-+            (file, self.zig_top.get(&file)?.get(fname.as_str())?)
++            match self.zig_top.get(&file).and_then(|t| t.get(fname.as_str())) {
++                Some(f) => (file, f),
++                // `const Common = @import("../class.zig").Common;`: the
++                // function the alias names, in its file.
++                None => {
++                    return match self.zig_binds.get(&file)?.get(fname.as_str())? {
++                        ZigBind::ImportMember(spec, members) => {
++                            match self.zig_target(file, spec) {
++                                Target::File(f2) => {
++                                    self.zig_generic_call(f2, members, name, depth + 1)
++                                }
++                                Target::External(m) => Some(Scoped::External(m)),
++                                Target::Unknown => None,
++                            }
++                        }
++                        ZigBind::Alias(path) if path != fname => {
++                            self.zig_generic_call(file, path, name, depth + 1)
++                        }
++                        _ => None,
++                    };
++                }
++            }
 +        } else {
 +            match self.zig_walk(file, prefix, 0).map(|(t, _)| t) {
 +                Some(Target::File(g)) => (g, self.zig_top.get(&g)?.get(fname.as_str())?),
@@ -3334,14 +3385,14 @@ index fd17edc..169d095 100644
 +                .any(|&(s2, e2)| s2 <= s && e <= e2 && (s2, e2) != (s, e))
 +        };
 +        let mut found: Vec<CallableId> = Vec::new();
-+        let mut aliased: Option<&str> = None;
++        let mut aliased: Option<((u32, u32), &str)> = None;
 +        for &(s, e) in inside.iter().filter(|&&k| outer(k)) {
 +            if let Some(m) = self.zig_members.get(&(g, s, e)).and_then(|m| m.get(name)) {
 +                found.extend(m.iter().copied());
 +            } else if let Some(v) =
 +                self.zig_decls.get(&(g, s, e)).and_then(|d| d.get(name))
 +            {
-+                aliased = Some(v.as_str());
++                aliased = Some(((s, e), v.as_str()));
 +            }
 +        }
 +        found.sort();
@@ -3351,7 +3402,7 @@ index fd17edc..169d095 100644
 +                cids: found,
 +                certain: false,
 +            }),
-+            ([], Some(v)) => self.zig_alias_call(g, v, depth + 1),
++            ([], Some((k, v))) => self.zig_alias_call(g, k, v, depth + 1),
 +            _ => refused(),
 +        }
 +    }
@@ -3423,7 +3474,7 @@ index fd17edc..169d095 100644
      /// Follow `segs` from `file` through file-level bindings to the file
      /// (or dependency) they name, with the import that started the path.
      fn zig_walk(
-@@ -909,6 +1696,9 @@ pub(crate) struct PhpIndex {
+@@ -909,6 +1743,9 @@ pub(crate) struct PhpIndex {
      /// `(file, lowercase class short name)` → its declared bases as
      /// written.
      bases: HashMap<(FileId, String), Vec<String>>,
@@ -3433,7 +3484,7 @@ index fd17edc..169d095 100644
  }
  
  fn php_ns_at(ns: &[(u32, String)], byte: u32) -> &str {
-@@ -1020,7 +1810,20 @@ impl PhpIndex {
+@@ -1020,7 +1857,20 @@ impl PhpIndex {
              .filter(|c| c.language == "php")
              .collect();
          ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
@@ -3454,7 +3505,7 @@ index fd17edc..169d095 100644
              ix.file_of.insert(c.id, c.file);
              match c.qualified_name.split_once("::") {
                  Some((owner, m)) => ix
-@@ -1093,7 +1896,29 @@ impl PhpIndex {
+@@ -1093,7 +1943,29 @@ impl PhpIndex {
                  let certain = cids.len() == 1;
                  Scoped::Bound { cids, certain }
              }
@@ -3485,7 +3536,7 @@ index fd17edc..169d095 100644
          }
      }
  
-@@ -1255,3 +2080,106 @@ enum ClassLookup {
+@@ -1255,3 +2127,106 @@ enum ClassLookup {
      /// Not decided here.
      Unknown,
  }
