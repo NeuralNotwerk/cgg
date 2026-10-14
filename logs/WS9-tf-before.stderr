@@ -1,0 +1,79 @@
+cgg: 686307 unresolved call(s) across 1068 module(s) — largest: github.com/hashicorp/terraform-plugin-testing/helper/resource (116935) github.com/hashicorp/terraform-plugin-testing/knownvalue (105687) github.com/hashicorp/terraform-plugin-testing/config (96920) … [full list in the audit log]
+cgg: 24947 files, 12825 analyzed, 12122 skipped (11442 unknown-extension, 592 builtin, 87 binary, 1 too-large); 108388 callables, 394438 edges (293059 cross-file), 31016 unresolved, 102356 stdlib, 655291 external (6882.1 ms)
+
+framework coverage
+  recognised     go-encoding (lifecycle, 12 entries)
+  seen, no rules cobra — found in 6 file(s), entries NOT enumerated
+                   cgg has no entry rules for Cobra. A command's body is the
+                   Run/RunE function-typed *field* of a cobra.Command struct
+                   literal, or an assignment to that field (`cmd.RunE =
+                   WrapCommandFuncForCobra(cmdStart)`) — never an argument
+                   to a registrar call, so cgg's registrar matcher, which only
+                   captures arguments of calls, cannot reach it and command
+                   bodies read as dead code. Inspect every
+                   `cobra.Command{...}` / `&cobra.Command{...}` literal for
+                   its Run, RunE, PreRun, PreRunE, PersistentPreRun,
+                   PersistentPreRunE, PostRun and PostRunE fields, grep for
+                   `.RunE =` / `.Run =` assignments, and follow
+                   rootCmd.AddCommand(...) to reconstruct the command tree.
+                 go-runtime — found in 6815 file(s), entries NOT enumerated
+                   Go's func values and implicit interfaces hide callers cgg
+                   cannot recover. A func literal handed to a route registrar
+                   (`r.GET("/x", func(c) { … })`) gets a `handler_at_<line>`
+                   node, but any other is not extracted as a callable, so the
+                   bodies of `go func(){ … }()`, `defer func(){ … }()`,
+                   `sync.Once.Do(func(){ … })`, `sort.Slice(x, func(i, j
+                   int) bool { … })`, `http.HandlerFunc(func(w, r){ … })`
+                   and `errgroup.Go(func() error { … })` have no node in the
+                   graph at all. A func value stored in a struct field, map or
+                   slice is invoked through the variable, never through the
+                   name. And nothing in Go source declares that a type
+                   implements an interface, so Read / Write / Close / Error /
+                   String / Len / Less / Swap / ServeHTTP / Scan / Value
+                   implementations are called by the standard library with no
+                   textual call site — cgg's rules cover only ServeHTTP
+                   (net/http) and the encoding Marshal/Unmarshal family,
+                   because the remaining names are too common to match safely.
+                   Scan the file for `func(` in argument position, and for
+                   method sets matching an interface the type is passed to,
+                   and treat those bodies as roots.
+                 go-testing — found in 3942 file(s), entries NOT enumerated
+                   `go test` invokes functions by NAME PREFIX, and cgg's Go
+                   root rule only recognises `Test*` (roots.rs is_test_name
+                   requires a `Test` prefix plus more). BenchmarkXxx(b
+                   *testing.B), FuzzXxx(f *testing.F) and ExampleXxx()
+                   therefore have no caller and are not root-marked, so they
+                   and everything they reach read as dead. Neither are the
+                   func literals that carry most modern Go test logic:
+                   t.Run("sub", func(t *testing.T){ … }), t.Cleanup(func(){
+                   … }), f.Fuzz(func(t *testing.T, b []byte){ … }) and
+                   b.RunParallel(func(pb *testing.PB){ … }) — a closure in
+                   argument position is not extracted as a callable by cgg's
+                   Go plugin, so its body has no node at all. Treat every
+                   Benchmark*/Fuzz*/Example* function, and every t.Run /
+                   t.Cleanup / f.Fuzz body, as a root.
+                 kotlin-runtime — found in 2 file(s), entries NOT enumerated
+                   Kotlin reaches members through syntax rather than a named
+                   call, and cgg's Kotlin plugin records no class supertypes
+                   and no value references, so none of it can be matched by
+                   rule. Not extracted as callables at all: `init { }` blocks,
+                   `companion object` initializers, and property
+                   `get()`/`set()` accessors. Invoked by syntax with no call
+                   expression: `operator fun` members (plus, minus, times,
+                   invoke, get, set, compareTo, contains, iterator, rangeTo,
+                   component1..N used by destructuring), `override fun
+                   toString/equals/hashCode`, and `getValue`/`setValue` on a
+                   `by` delegate. Invoked through a value: any function passed
+                   as `::name` or as a lambda to a higher-order function.
+                   Inspect every `init {`, `operator fun`, `by ` delegate,
+                   `::` reference and lambda argument in the file and treat
+                   the targets as roots.
+                 net-http — found in 28 file(s), entries NOT enumerated
+                   detected, but no entry point matched its rules
+                 py-argparse — found in 1 file(s), entries NOT enumerated
+                   detected, but no entry point matched its rules
+  no rules      3789 file(s) in languages with no framework rules (hcl, openapi)
+
+  Entry-node coverage is PARTIAL. Handlers of the frameworks listed under
+  "seen, no rules" are not represented and will still appear unreferenced.
+cgg: framework entries: 0 node(s) minted, 12 root-marked only — INFERRED, not observed

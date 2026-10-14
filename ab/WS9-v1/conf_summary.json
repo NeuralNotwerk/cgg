@@ -1,0 +1,51 @@
+{
+ "cpp": {
+  "drop": {
+   "medium": 155,
+   "high": 21
+  },
+  "add": {
+   "high": 2990,
+   "medium": 7001
+  },
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 176
+  }
+ },
+ "csharp": {
+  "drop": {},
+  "add": {
+   "medium": 9185,
+   "high": 22
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "dart": {
+  "drop": {},
+  "add": {
+   "medium": 2433,
+   "high": 1133
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "go": {
+  "drop": {},
+  "add": {
+   "high": 5555
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "scala": {
+  "drop": {},
+  "add": {
+   "medium": 1625,
+   "high": 576
+  },
+  "chg": {},
+  "fate": {}
+ }
+}
