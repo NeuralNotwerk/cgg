@@ -1,0 +1,44 @@
+asm | removed {'medium': 4} | added {'medium': 38} | rescored {}
+       4 external/stdlib or still bound (same name, kept target)
+c | removed {'high': 950, 'medium': 587} | added {'high': 42385, 'medium': 13409} | rescored {'medium->high': 6, 'high->medium': 2}
+       1132 rebound to another target
+       176 external/stdlib or still bound (same name, kept target)
+       90 now unresolved: ambiguous-in-file
+       59 now unresolved: candidates-in-other-files
+       52 now unresolved: no-enclosing-callable
+       28 now unresolved: no-candidate-in-file
+cpp | removed {'high': 3569, 'medium': 14036} | added {'high': 3650, 'medium': 7527} | rescored {'medium->high': 1898, 'high->medium': 13}
+       8708 external/stdlib or still bound (same name, kept target)
+       8553 rebound to another target
+       173 now unresolved: candidates-in-other-files
+       103 now unresolved: no-candidate-in-file
+       57 now unresolved: ambiguous-in-file
+       8 now unresolved: fanout-cap-exceeded
+csharp | removed {'medium': 3772, 'high': 265} | added {'medium': 11454, 'high': 11686} | rescored {'medium->high': 2}
+       3459 rebound to another target
+       507 now unresolved: fanout-cap-exceeded
+       53 now unresolved: candidates-in-other-files
+       18 external/stdlib or still bound (same name, kept target)
+dart | removed {'medium': 10773, 'high': 4} | added {'high': 27101, 'medium': 44312} | rescored {}
+       10773 now unresolved: fanout-cap-exceeded
+       4 rebound to another target
+elixir | removed {'high': 2} | added {} | rescored {}
+       2 external/stdlib or still bound (same name, kept target)
+julia | removed {'high': 997, 'medium': 1059} | added {} | rescored {}
+       2056 external/stdlib or still bound (same name, kept target)
+kotlin | removed {'high': 2, 'medium': 7} | added {'medium': 9, 'high': 2} | rescored {}
+       9 rebound to another target
+lua | removed {'high': 115, 'medium': 1638} | added {'medium': 16379, 'high': 7515} | rescored {'high->medium': 28, 'medium->high': 35}
+       1616 rebound to another target
+       96 now unresolved: candidates-in-other-files
+       37 external/stdlib or still bound (same name, kept target)
+       4 now unresolved: not-in-scope-for-bare-call
+php | removed {'medium': 1591} | added {'high': 52599, 'medium': 22353} | rescored {'medium->high': 1308}
+       1579 external/stdlib or still bound (same name, kept target)
+       12 rebound to another target
+ruby | removed {'medium': 486} | added {'high': 4482, 'medium': 3150} | rescored {'medium->high': 9}
+       393 now unresolved: candidates-in-other-files
+       89 external/stdlib or still bound (same name, kept target)
+       3 now unresolved: ambiguous-in-file
+       1 rebound to another target
+scala | removed {} | added {'high': 17353, 'medium': 80471} | rescored {}

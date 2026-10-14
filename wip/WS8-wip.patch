@@ -1,3 +1,109 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3a50681..026f734 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -561,6 +561,71 @@ otherwise change the default graph.
+   algorithm comparators; Newtonsoft.Json's `#if`-split methods misparsed
+   as callables named `if` (extraction, WS8).
+ 
++- **Extraction bugs across twelve languages (WS8, FINDINGS A8, A9, A10,
++  C5).** Each one either hid callables (so their calls had no source or
++  no target) or minted callables and edges that do not exist:
++  - **Dart**: a class method's callable covered only its signature, so
++    every call in a method body had no source (dart-flame: zero edges
++    from any method). Methods, getters, setters, operators and
++    constructors now span their bodies. A bare call inside a method is
++    first the enclosing class's member, and across files reaches only a
++    library function or a member of the calling class's ancestry, never
++    a method of an unrelated class.
++  - **Scala**: `b.m()` was recorded as one name `b.m`; the member and its
++    receiver are now split (`new T(…).m()` reads as a `T` receiver).
++    Paren-less sites (`b.size`, a bare `helper`) are recorded too, kept
++    only when some `def` is declared without a parameter list under that
++    name, bound only through a typed receiver or scope (never by name
++    fan-out), and leave no audit record when they bind nothing (a value
++    read, not a call). The same rule applies to the new paren-less sites
++    of Ruby and is what `RefRecord::paren_less` marks.
++  - **C**: functions returning a pointer (`char *f(void)`) were dropped;
++    a pointer-to-function variable (`int (*fp)(int);`) was recorded as a
++    function; a macro invocation with no `;` (`LIST(X)` then `int
++    helper(void) {…}`) named the next function after the macro and drew
++    an edge to it (A8).
++  - **C/C++ headers**: a `.h` whose only C++ is `virtual` members was read
++    as C and lost them.
++  - **C++**: a local constructed with arguments (`std::ifstream
++    info(path);`) became a callable (A9); `ns::Foo x` parameters were
++    read as `name: Type` and named `ns`; a definition under a macro
++    folded its return type into its qualified name (`std::string
++    to_string`, `ERL_NIF_TERM wxeReturn::make_bool`).
++  - **Julia**: every `function f()` drew a `high` self-edge from its own
++    signature (A10).
++  - **C#**: `#if`/`#else` splitting a statement or a method header
++    produced callables named `if` and namespaces named after `#if`
++    symbols (Newtonsoft.Json); a file that does not parse is re-read with
++    its conditional directives blanked (offsets unchanged). `new
++    Alpha().Run()` now resolves on `Alpha` and up its bases; a call
++    through a typed receiver its type does not declare reaches an
++    extension method on that type (`p.Faker()`, `new P().Faker()`).
++    `partial` method parts cap at medium in the dead-code report.
++  - **Ruby**: a bare paren-less call (`helper`) is recorded unless a local
++    of that name is in scope (Ruby's own rule); a bare call reaches the
++    calling class's method, a superclass's or an included module's, or a
++    top-level one — never an unrelated class's method.
++  - **PHP**: `$this->m()` bound nothing; it now resolves on the calling
++    class, its bases and its `use`d traits, and through a dependency's
++    base is external (`$this->assertCount()` is PHPUnit's).
++  - **Lua**: `function M.f()` was named `M.f` as one simple name and
++    calls as `M.f` / `obj:m` text, so cross-file calls never matched;
++    names and receivers are split, assigned functions (`M.f = function`)
++    and named-table fields are callables, a call through a `require`d
++    module binds in that module's file (a module no file is: external),
++    and a bare call never reaches a table member.
++  - **Elixir**: a capture `&f/1` / `&M.f/2` is a value reference of that
++    arity (with `--reference-edges` / `--dead-code`), and its operand is
++    no longer a phantom call to `f/0`.
++  - **Python**: a local bound to its own lambda (`f = lambda: …; return
++    f`) is that function when named as a value.
++  - **Kotlin**: a top-level one-line `object X { fun f() = 1 }`, which the
++    grammar misparses, keeps its scope (`X.f`).
++  - **Java**: the `static` checks read the keyword token, not text an
++    annotation argument can contain.
++- Already fixed by earlier work: TypeScript `private`/`protected`
++  visibility (WS2) and `abstract class` scope (WS5).
++
+ ### Compatibility
+ 
+ - **The default graph changes.** Full corpus, 283 repositories:
+@@ -775,6 +840,29 @@ otherwise change the default graph.
+   untyped objects, or Moose accessors), PHP 5 of 39. Latency (perf/WS14b.md, 9 repositories, median of 5):
+   none slower by 1 s or more; largest `scala-spark` +0.67 s (+7.4%),
+   `zig-zig` +0.48 s, `app-wordpress` +0.29 s; total +2.1%.
++- **WS8 changes the default graph** (full corpus, 283 repositories, none
++  excluded; edges by confidence, removed / added): C high 950 / 42,385,
++  medium 587 / 13,409 (pointer-returning functions; removals are macro
++  attribute names now named correctly, swallowed headers, and 139 dual
++  C/C++ MIDL headers now read as C++); C++ high 3,569 / 3,650, medium
++  14,036 / 7,527, 1,898 medium → high (mostly qualified-name renames of
++  macro-misparsed definitions, decoys dropped by `ns::Foo` parameter
++  typing, edges to constructed locals removed); C# high 265 / 11,686,
++  medium 3,772 / 11,454 (Newtonsoft.Json re-parsed: renames out of the
++  misparsed namespaces; 507 sites now over the fan-out cap); Dart high
++  4 / 27,101, medium 10,773 / 44,312 (method bodies now sources; the
++  removed are duck-typed sites now over the cap, recorded); Scala
++  high 0 / 17,353, medium 0 / 80,471; PHP high 0 / 52,599, medium
++  1,591 / 22,353 (`$this` resolved; removed: `static::`/`self::` fan-out
++  to unrelated classes); Lua high 115 / 7,515, medium 1,638 / 16,379
++  (rebound through the split names); Ruby high 0 / 4,482, medium 486 /
++  3,150 (removed: bare calls bound to unrelated classes); Julia high 997,
++  medium 1,059 removed (signature self-edges); Kotlin 9 rebound;
++  Elixir 2 removed (phantom capture calls). Unresolved records: Scala
++  +196.6k and Lua +73.7k (receiver-qualified calls formerly screened as
++  whole dotted names), PHP −99.3k, C −25.3k, C# −25.4k, Dart −20.3k.
++  Dead code: 56 C# findings leave `high` (misparsed `#if` callables
++  gone), 22 drop to medium (partial methods), none newly `high`.
+ 
+ ## [0.10.2] - 2026-10-11
+ 
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
 index 6d322b4..347416e 100644
 --- a/crates/cgg-core/src/facts.rs
@@ -116,28 +222,58 @@ index 66f9f19..990daef 100644
      fn header_without_cpp_sibling_is_c() {
          let reg = reg();
 diff --git a/crates/cgg-lang/src/plugins/c.rs b/crates/cgg-lang/src/plugins/c.rs
-index 32f7a46..ef32154 100644
+index 32f7a46..86a0478 100644
 --- a/crates/cgg-lang/src/plugins/c.rs
 +++ b/crates/cgg-lang/src/plugins/c.rs
-@@ -78,7 +78,16 @@ impl<'a> CWalker<'a> {
+@@ -49,6 +49,7 @@ impl LanguagePlugin for CPlugin {
+             source,
+             facts: &mut facts,
+             ctx: *ctx,
++            skip_call: None,
+         };
+         w.walk(tree.root_node());
+         let mut out = facts;
+@@ -67,6 +68,9 @@ struct CWalker<'a> {
+     /// its name to a runtime API (`signal(SIGINT, on_sigint)`); without
+     /// the capture those handlers have no reference at all.
+     ctx: crate::ExtractCtx<'a>,
++    /// The swallowed function header inside the definition being walked
++    /// (see [`swallowed_header`]): not a call.
++    skip_call: Option<usize>,
+ }
+ 
+ impl<'a> CWalker<'a> {
+@@ -78,7 +82,18 @@ impl<'a> CWalker<'a> {
          match node.kind() {
              "function_definition" => {
                  self.record_function_def(node);
--                self.walk_children(node);
-+                // The declarator holds no calls; when a macro invocation
-+                // with no `;` precedes a function, it holds the swallowed
-+                // header (`helper(void)`), which is not a call either.
-+                let decl = node.child_by_field_name("declarator");
-+                let mut c = node.walk();
-+                for child in node.children(&mut c) {
-+                    if Some(child) != decl {
-+                        self.walk(child);
-+                    }
-+                }
++                // When a macro invocation with no `;` precedes a function,
++                // the declarator holds the swallowed header (`helper(void)`),
++                // which is the definition's name, not a call. Everything
++                // else is walked as before (an attribute macro after the
++                // parameters stays a reference to that macro).
++                let swallowed = node
++                    .child_by_field_name("declarator")
++                    .and_then(swallowed_header)
++                    .map(|n| n.id());
++                let prev = std::mem::replace(&mut self.skip_call, swallowed);
+                 self.walk_children(node);
++                self.skip_call = prev;
                  return;
              }
              "declaration" => {
-@@ -130,7 +139,16 @@ impl<'a> CWalker<'a> {
+@@ -98,6 +113,10 @@ impl<'a> CWalker<'a> {
+                 self.record_include(node);
+                 return;
+             }
++            "call_expression" if self.skip_call == Some(node.id()) => {
++                self.walk_children(node);
++                return;
++            }
+             "call_expression" => {
+                 self.record_call(node);
+                 if let Some(callee) = node.child_by_field_name("function") {
+@@ -130,7 +149,16 @@ impl<'a> CWalker<'a> {
          let Some(decl) = node.child_by_field_name("declarator") else {
              return;
          };
@@ -155,7 +291,7 @@ index 32f7a46..ef32154 100644
          if name.is_empty() {
              return;
          }
-@@ -158,7 +176,11 @@ impl<'a> CWalker<'a> {
+@@ -158,7 +186,11 @@ impl<'a> CWalker<'a> {
          // A declaration that contains a function_declarator is a prototype.
          let mut c = node.walk();
          for child in node.children(&mut c) {
@@ -168,7 +304,7 @@ index 32f7a46..ef32154 100644
                  let name = self.fn_name_from_declarator(child);
                  if !name.is_empty() {
                      let (sl, el) = line_range(node);
-@@ -181,40 +203,35 @@ impl<'a> CWalker<'a> {
+@@ -181,40 +213,35 @@ impl<'a> CWalker<'a> {
          }
      }
  
@@ -235,7 +371,7 @@ index 32f7a46..ef32154 100644
      }
  
      fn record_macro_def(&mut self, node: Node) {
-@@ -320,6 +337,34 @@ fn line_range(n: Node) -> (u32, u32) {
+@@ -320,6 +347,51 @@ fn line_range(n: Node) -> (u32, u32) {
      )
  }
  
@@ -246,6 +382,23 @@ index 32f7a46..ef32154 100644
 +/// list is an attribute macro (`f(int a) ATTR_NONNULL(1)`), not a header.
 +fn swallowed_header(decl: Node) -> Option<Node> {
 +    if decl.kind() != "function_declarator" {
++        return None;
++    }
++    // The outer "parameters" are the macro's arguments (`FIELDS(DECL)`):
++    // bare names with no declarator. A real parameter list names its
++    // parameters (or is `void` / empty), and then a call after it is an
++    // attribute macro (`f(win_T *w) ATTR_PURE ATTR_NONNULL(1)`).
++    let params = decl.child_by_field_name("parameters")?;
++    let mut pc = params.walk();
++    let ps: Vec<Node> = params.named_children(&mut pc).collect();
++    let macro_args = !ps.is_empty()
++        && ps.iter().all(|p| {
++            p.kind() == "parameter_declaration"
++                && p.child_by_field_name("declarator").is_none()
++                && p.child_by_field_name("type")
++                    .is_some_and(|t| t.kind() == "type_identifier")
++        });
++    if !macro_args {
 +        return None;
 +    }
 +    let mut c = decl.walk();
@@ -270,7 +423,7 @@ index 32f7a46..ef32154 100644
  #[cfg(test)]
  mod tests {
      use super::*;
-@@ -340,6 +385,53 @@ mod tests {
+@@ -340,6 +412,55 @@ mod tests {
          )
      }
  
@@ -312,7 +465,9 @@ index 32f7a46..ef32154 100644
 +        assert!(refs.contains(&"other"), "{refs:?}");
 +        // Near-miss: an attribute macro after the parameter list names
 +        // nothing; the function keeps its own name.
-+        let f = extract("bool f(int *p)\n  ATTR_NONNULL(1)\n{\n  return g(p);\n}\n");
++        let f = extract(
++            "bool f(int *p)\n  ATTR_PURE ATTR_NONNULL(1)\n{\n  return g(p);\n}\n",
++        );
 +        let names: Vec<&str> = f
 +            .definitions
 +            .iter()
@@ -2091,7 +2246,7 @@ index e12b82e..c4c42c7 100644
      fn plugin_loads() {
          let plugin = ScalaPlugin;
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index af675dd..868101c 100644
+index af675dd..499ed43 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -3781,7 +3781,36 @@ struct BareScope<'s> {
@@ -2132,7 +2287,7 @@ index af675dd..868101c 100644
  /// names, depth 8).
  fn with_ancestors(
      lang: &str,
-@@ -3830,9 +3859,12 @@ fn with_ancestors(
+@@ -3830,9 +3859,13 @@ fn with_ancestors(
  ///   have: Kotlin (a lambda with receiver, `apply {}`/`with(x) {}`),
  ///   Groovy (closure delegates — the Gradle DSL, Spock), C++
  ///   (argument-dependent lookup; namespace
@@ -2140,13 +2295,14 @@ index af675dd..868101c 100644
 +///   functions are recorded like members); and Swift, Objective-C,
  ///   whose plugins record no base types, so an inherited member cannot be
  ///   told from an unrelated one.
-+/// * Dart (WS8): a bare name reaches library-level functions and the
-+///   members of the calling class and the types it inherits (the bases
-+///   its methods record); never a method of an unrelated class.
++/// * Dart, Ruby (WS8): a bare name reaches library-level / top-level
++///   functions and the members of the calling class and the types it
++///   inherits or mixes in (the bases its methods record); never a method
++///   of an unrelated class.
  ///
  /// A call written with a dot whose receiver the plugin could not capture
  /// (`dot_call`) is not a bare call. Every other language is unchanged.
-@@ -3877,7 +3909,23 @@ fn bare_call_reaches(
+@@ -3877,7 +3910,23 @@ fn bare_call_reaches(
          CallableKind::Method | CallableKind::Destructor | CallableKind::Property
      ) || (lang == "rust" && rust_type_owned(&c.qualified_name));
      match lang {
@@ -2156,22 +2312,42 @@ index af675dd..868101c 100644
 +        }
 +        // Dart: a bare call is a library-level function, or (implicit
 +        // `this`) a member of the calling class or a type it inherits —
-+        // never a method of an unrelated class.
-+        "dart" => {
-+            !member || {
-+                let cand_owner = owner_from_qn(&c.qualified_name);
-+                caller_qn.and_then(owner_from_qn).is_some_and(|own| {
-+                    cand_owner.is_some_and(|co| {
-+                        with_ancestors(lang, vec![own.to_string()], bases_by_owner)
-+                            .contains(co)
-+                    })
-+                })
-+            }
-+        }
++        // never a method of an unrelated class. Ruby the same: a bare
++        // `helper` / `helper(x)` is `self`'s method — the class's, a
++        // superclass's or an included module's — or a top-level one.
++        "dart" | "ruby" => match owner_from_qn(&c.qualified_name) {
++            // A top-level definition (Ruby records `def` as a method
++            // whatever its scope).
++            None => true,
++            Some(_) if !member => true,
++            Some(co) => caller_qn.and_then(owner_from_qn).is_some_and(|own| {
++                with_ancestors(lang, vec![own.to_string()], bases_by_owner).contains(co)
++            }),
++        },
          "go" => {
              let dir = |f: &FileId| graph.files.get(f).and_then(|r| r.path.parent());
              !member
-@@ -4291,7 +4339,7 @@ fn try_resolve_ref(
+@@ -4140,6 +4189,19 @@ fn try_resolve_ref(
+     // initializer, so the caller can say that rather than "no candidate".
+     no_ctor: &mut bool,
+ ) -> Option<Vec<CallableId>> {
++    // A paren-less member site (`b.size`) binds only through a receiver
++    // typed by `type_hints` (rewritten to a type name), `this`/`super`, or
++    // as a bare name; through an untyped value nothing can bind it (it is
++    // never fanned out by name), so it is not looked up at all.
++    if r.paren_less {
++        let rh = r.receiver_hint.trim();
++        if !rh.is_empty()
++            && !matches!(rh, "this" | "super" | "self")
++            && !rh.starts_with(char::is_uppercase)
++        {
++            return None;
++        }
++    }
+     // Descriptor / interface-definition languages (Smithy, Protobuf,
+     // GraphQL). Their references are shape/message/type names that are
+     // effectively unique identifiers within the model, so a global
+@@ -4291,7 +4353,7 @@ fn try_resolve_ref(
      // through its re-exports — never by name across the tree. A module
      // that provides nothing the call can name is a refusal, recorded by
      // the caller; it does not fall through to the name matching below.
@@ -2180,7 +2356,18 @@ index af675dd..868101c 100644
          && !heads.locals.shadows_receiver_head(r)
          && let Some(scoped) = file_mods.resolve(
              modix,
-@@ -4794,7 +4842,7 @@ fn try_resolve_ref(
+@@ -4509,7 +4571,9 @@ fn try_resolve_ref(
+         };
+         // Java/C#: a bare name is a member of the calling class or one it
+         // inherits before any static import (see `member_of_calling_class`).
+-        if matches!(lang, "java" | "csharp")
++        // Ruby (WS8): a bare `helper` is `self`'s — the class's, a
++        // superclass's or an included module's.
++        if matches!(lang, "java" | "csharp" | "ruby")
+             && let Some(caller) = caller_qn
+             && let Some(member) = member_of_calling_class(
+                 graph,
+@@ -4794,7 +4858,7 @@ fn try_resolve_ref(
          let has_imports = !direct_imports.is_empty()
              || !module_aliases.is_empty()
              || !unqualified_prefixes.is_empty();
@@ -2189,7 +2376,7 @@ index af675dd..868101c 100644
              let is_stdlib = cgg_core::stdlib::stdlib_names(lang)
                  .is_some_and(|s| s.contains(r.name.as_str()));
              if !is_stdlib
-@@ -5338,6 +5386,33 @@ fn try_resolve_ref(
+@@ -5338,6 +5402,33 @@ fn try_resolve_ref(
              return None;
          }
  
@@ -2223,7 +2410,7 @@ index af675dd..868101c 100644
          // Step 5: Trait/interface method dispatch.
          // When receiver_hint is a variable name (lowercase) and the method
          // name exists on definitions in other files, find all callables
-@@ -5345,7 +5420,11 @@ fn try_resolve_ref(
+@@ -5345,7 +5436,11 @@ fn try_resolve_ref(
          // formatter is a trait object — we emit edges to all implementors.
          // Only applies when the method name is NOT a common stdlib method
          // (to avoid matching `vec.is_empty()` to `WalkOutcome::is_empty`).
@@ -2235,7 +2422,7 @@ index af675dd..868101c 100644
              && rh != "self"
              && rh != "Self"
              && rh != "cls"
-@@ -9789,6 +9868,78 @@ mod tests {
+@@ -9789,6 +9884,78 @@ mod tests {
          (dsts, out.unresolved.into_iter().map(|u| u.reason).collect())
      }
  
@@ -2734,10 +2921,10 @@ index 3b85fc1..04fdef6 100644
          &self,
          ix: &ModuleIndex<'_>,
 diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
-index 37d8fe6..e011104 100644
+index 37d8fe6..a529d75 100644
 --- a/crates/cgg-resolve/src/type_hints.rs
 +++ b/crates/cgg-resolve/src/type_hints.rs
-@@ -1249,8 +1249,17 @@ fn rust_guard_base(rh: &str) -> Option<&str> {
+@@ -1249,8 +1249,21 @@ fn rust_guard_base(rh: &str) -> Option<&str> {
  }
  
  fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
@@ -2754,10 +2941,14 @@ index 37d8fe6..e011104 100644
 +            && bytes.get(i + 1) != Some(&b':')
 +    })?;
 +    let (name, rest) = (&param[..at], &param[at + 1..]);
++    // `x :: xs : List α` (a Lean cons pattern) binds no single name.
++    if name.contains("::") {
++        return None;
++    }
      let name = name
          .trim()
          .trim_start_matches("mut ")
-@@ -1855,6 +1864,16 @@ mod tests {
+@@ -1855,6 +1868,17 @@ mod tests {
      /// qualifier (`t *util.T` → `util.T`), names declared together share
      /// the type, unqualified and composite types stay untyped, and a
      /// method's receiver list is not its parameters.
@@ -2769,16 +2960,17 @@ index 37d8fe6..e011104 100644
 +        assert_eq!(parse_colon_param("const ns::Foo& y"), None);
 +        assert_eq!(parse_colon_param("x: a::Store"), Some(("x", "a::Store")));
 +        assert_eq!(parse_colon_param("svc: Service"), Some(("svc", "Service")));
++        assert_eq!(parse_colon_param("x :: xs : List α"), None);
 +    }
 +
      #[test]
      fn go_parameters_of_a_package_type_keep_the_package() {
          let d = mk_def(
 diff --git a/crates/cgg-resolve/src/value_refs.rs b/crates/cgg-resolve/src/value_refs.rs
-index 49708e8..eb2d74a 100644
+index 49708e8..bbded38 100644
 --- a/crates/cgg-resolve/src/value_refs.rs
 +++ b/crates/cgg-resolve/src/value_refs.rs
-@@ -60,9 +60,96 @@ pub fn prune(all_facts: &mut [FileFacts]) {
+@@ -60,9 +60,103 @@ pub fn prune(all_facts: &mut [FileFacts]) {
          }
          let known = names.get(&f.language).unwrap_or(&empty);
          let locals = crate::scope::FileLocals::build(f);
@@ -2846,6 +3038,13 @@ index 49708e8..eb2d74a 100644
 +/// the site. What remains is resolved as the call it is. Free on a run
 +/// whose plugins record none.
 +pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
++    if let Some(v) = std::env::var_os("WS8_DROP_PL") {
++        let bare = v == "bare";
++        for f in all_facts.iter_mut() {
++            f.references
++                .retain(|r| !r.paren_less || (r.receiver_hint.is_empty() != bare));
++        }
++    }
 +    if !all_facts
 +        .iter()
 +        .any(|f| f.references.iter().any(|r| r.paren_less))
@@ -2876,7 +3075,7 @@ index 49708e8..eb2d74a 100644
      }
  }
  
-@@ -133,6 +220,79 @@ mod tests {
+@@ -133,6 +227,79 @@ mod tests {
          }
      }
  
@@ -2957,23 +3156,139 @@ index 49708e8..eb2d74a 100644
      fn a_value_ref_naming_no_callable_is_dropped() {
          let mut all = vec![
 diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
-index b07f1a0..3732b5e 100644
+index b07f1a0..f8cc04d 100644
 --- a/crates/cgg/src/lib.rs
 +++ b/crates/cgg/src/lib.rs
-@@ -675,6 +675,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+@@ -675,6 +675,12 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
      // references: drop them before they read as calls. A no-op unless
      // the run records reference sites.
      cgg_resolve::value_refs::prune(&mut all_facts);
 +    // Paren-less member sites (Scala `b.size`) that no parameterless
 +    // callable is named by are value reads, not calls.
-+    cgg_resolve::value_refs::prune_paren_less(&mut all_facts);
++    {
++        let _s = cgg_core::profile::span("resolve::prune-paren-less");
++        cgg_resolve::value_refs::prune_paren_less(&mut all_facts);
++    }
      let link_started = Instant::now();
      let return_types_owned: HashMap<String, String> = {
          let _s = cgg_core::profile::span("resolve::type-hints");
-@@ -1008,10 +1011,22 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
-     let call_leaf = |name: &str| -> String {
-         name.rsplit(['.', ':']).next().unwrap_or(name).to_string()
-     };
+@@ -852,40 +858,78 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+             )
+         });
+     {
++        // Per file, in the records' order: one pass over each bucket
++        // rather than a scan of the file's buckets per record (the latter
++        // is quadratic in a file's site count).
+         let mut moved_out_of_unresolved: HashSet<(FileId, u32, String)> = HashSet::new();
++        let mut by_file: Vec<(usize, Vec<cgg_core::audit::AuditUnresolvedCall>)> =
++            Vec::new();
++        let mut slot_of: HashMap<usize, usize> = HashMap::new();
+         for u in cf_external {
+             let Some(&i) = rec_idx.get(&u.file) else {
+                 continue;
+             };
++            let slot = *slot_of.entry(i).or_insert_with(|| {
++                by_file.push((i, Vec::new()));
++                by_file.len() - 1
++            });
++            by_file[slot].1.push(u);
++        }
++        for (i, us) in by_file {
+             let rec = &mut file_records[i];
+-            let same = |c: &cgg_core::audit::AuditUnresolvedCall| {
+-                c.site_byte == u.site_byte && c.name == u.name
+-            };
+-            if rec.stdlib_calls.iter().any(same) {
+-                continue;
+-            }
+             let lang = graph
+                 .files
+-                .get(&u.file)
++                .get(&rec.file)
+                 .map(|f| f.language.clone())
+                 .unwrap_or_default();
+-            let before = rec.unresolved_calls.len();
+-            rec.unresolved_calls.retain(|c| !same(c));
+-            let moved = (before - rec.unresolved_calls.len()) as u64;
+-            if moved > 0 {
+-                metrics.unresolved_calls = metrics.unresolved_calls.saturating_sub(moved);
+-                if let Some(b) = metrics.by_language.get_mut(&lang) {
+-                    b.unresolved = b.unresolved.saturating_sub(moved);
++            let in_stdlib: HashSet<(u32, &str)> = rec
++                .stdlib_calls
++                .iter()
++                .map(|c| (c.site_byte, c.name.as_str()))
++                .collect();
++            let us: Vec<_> = us
++                .into_iter()
++                .filter(|u| !in_stdlib.contains(&(u.site_byte, u.name.as_str())))
++                .collect();
++            let keys: HashSet<(u32, String)> =
++                us.iter().map(|u| (u.site_byte, u.name.clone())).collect();
++            // How many unresolved records each moving key removes; the
++            // first record of a key takes them all, as the per-record
++            // `retain` did.
++            let mut removed: HashMap<(u32, String), u64> = HashMap::new();
++            rec.unresolved_calls.retain(|c| {
++                let k = (c.site_byte, c.name.clone());
++                if keys.contains(&k) {
++                    *removed.entry(k).or_default() += 1;
++                    false
++                } else {
++                    true
+                 }
+-                moved_out_of_unresolved.insert((u.file, u.site_byte, u.name.clone()));
++            });
++            let mut ext_at: HashMap<(u32, String), usize> = HashMap::new();
++            for (j, c) in rec.external_calls.iter().enumerate() {
++                ext_at.entry((c.site_byte, c.name.clone())).or_insert(j);
+             }
+-            if let Some(e) = rec.external_calls.iter_mut().find(|c| same(c)) {
+-                e.reason = u.reason.clone();
+-            } else {
+-                rec.external_calls.push(u);
+-                metrics.external_calls += 1;
+-                if let Some(b) = metrics.by_language.get_mut(&lang) {
+-                    b.external += 1;
++            for u in us {
++                let k = (u.site_byte, u.name.clone());
++                let moved = removed.remove(&k).unwrap_or(0);
++                if moved > 0 {
++                    metrics.unresolved_calls =
++                        metrics.unresolved_calls.saturating_sub(moved);
++                    if let Some(b) = metrics.by_language.get_mut(&lang) {
++                        b.unresolved = b.unresolved.saturating_sub(moved);
++                    }
++                    moved_out_of_unresolved.insert((u.file, u.site_byte, u.name.clone()));
++                }
++                if let Some(&j) = ext_at.get(&k) {
++                    rec.external_calls[j].reason = u.reason.clone();
++                } else {
++                    ext_at.insert(k, rec.external_calls.len());
++                    rec.external_calls.push(u);
++                    metrics.external_calls += 1;
++                    if let Some(b) = metrics.by_language.get_mut(&lang) {
++                        b.external += 1;
++                    }
+                 }
+             }
+         }
+@@ -901,7 +945,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     // fills so the dead-code name correlation sees them, and into the
+     // per-file audit records so `--metrics` still explains every site.
+     for u in &cf_unresolved {
+-        if let Some(rec) = file_records.iter_mut().find(|r| r.file == u.file) {
++        if let Some(rec) = rec_idx.get(&u.file).map(|&i| &mut file_records[i]) {
+             rec.unresolved_calls.push(u.clone());
+         }
+         if let Some(lang) = graph.files.get(&u.file).map(|f| f.language.clone())
+@@ -1005,13 +1049,25 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+             slot.insert(segs[segs.len() - 2].to_string());
+         }
+     }
+-    let call_leaf = |name: &str| -> String {
+-        name.rsplit(['.', ':']).next().unwrap_or(name).to_string()
+-    };
 +    // A paren-less site (Scala `b.size`, a Ruby bare `helper`) that bound
 +    // nothing is a value read, not a call: it leaves no audit record.
 +    let paren_less_sites: HashSet<(FileId, u32, &str)> = all_facts
@@ -2985,14 +3300,58 @@ index b07f1a0..3732b5e 100644
 +                .map(move |r| (f.file, r.site_byte, r.name.as_str()))
 +        })
 +        .collect();
++    fn leaf_of(name: &str) -> &str {
++        name.rsplit(['.', ':']).next().unwrap_or(name)
++    }
      let resolved_at = |file: FileId, byte: u32, name: &str| -> bool {
--        resolved_names
--            .get(&(file, byte))
+         resolved_names
+             .get(&(file, byte))
 -            .is_some_and(|names| names.contains(&call_leaf(name)) || names.contains(name))
-+        paren_less_sites.contains(&(file, byte, name))
-+            || resolved_names.get(&(file, byte)).is_some_and(|names| {
-+                names.contains(&call_leaf(name)) || names.contains(name)
-+            })
++            .is_some_and(|names| names.contains(leaf_of(name)) || names.contains(name))
++            || paren_less_sites.contains(&(file, byte, name))
      };
  
      let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();
+@@ -1093,22 +1149,30 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+         use cgg_core::audit::UnresolvedReason as UR;
+         let specific = |r: &UR| !matches!(r, UR::NoCandidateInFile | UR::Other(_));
+         // Per call, not per site: a chained call's two calls share a site.
+-        let mut best: std::collections::HashMap<(FileId, u32, String), usize> =
+-            std::collections::HashMap::new();
+-        for (i, c) in graph.unresolved.iter().enumerate() {
+-            let key = (c.file, c.site_byte, call_leaf(&c.name));
+-            match best.get(&key) {
+-                Some(&j)
+-                    if specific(&graph.unresolved[j].reason) || !specific(&c.reason) => {}
+-                _ => {
+-                    best.insert(key, i);
++        // Keyed by borrowed leaf names: no allocation per record.
++        let keep: Vec<bool> = {
++            let mut best: std::collections::HashMap<(FileId, u32, &str), usize> =
++                std::collections::HashMap::new();
++            for (i, c) in graph.unresolved.iter().enumerate() {
++                let key = (c.file, c.site_byte, leaf_of(&c.name));
++                match best.get(&key) {
++                    Some(&j)
++                        if specific(&graph.unresolved[j].reason)
++                            || !specific(&c.reason) => {}
++                    _ => {
++                        best.insert(key, i);
++                    }
+                 }
+             }
+-        }
+-        let keep: std::collections::HashSet<usize> = best.into_values().collect();
++            let mut keep = vec![false; graph.unresolved.len()];
++            for i in best.into_values() {
++                keep[i] = true;
++            }
++            keep
++        };
+         let mut i = 0;
+         graph.unresolved.retain(|_| {
+-            let k = keep.contains(&i);
++            let k = keep[i];
+             i += 1;
+             k
+         });
