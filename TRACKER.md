@@ -103,3 +103,4 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-14 00:25: tick — WS14b v6 A/B still running; mem 206 GB avail, nkb 45 GB.
 - 2026-10-14 03:35: WS14b agent died 01:34 on an API network error (EAI_AGAIN) after v9 A/B + perf batch 1; host then HARD-RESET ~03:24:36 (journal ends abruptly, no OOM/MCE/thermal logged; nkb last OOM 23:48). Post-boot: git fsck clean, NULs only in unmodified committed test files, WIP snapshot pushed. Agent resumed from transcript to finish perf/CHANGELOG/report. Duplicate tick cron 13fd93f6 removed (23e366ce kept).
 - 2026-10-14 03:50: WS14b COMMITTED ac9c94c + docs a849a88, pushed origin+backup, PATH cgg 0.10.2 verified. WS6 started; before = bins/WS6-before (= a849a88 build).
+- 2026-10-14 04:25: tick — WS6 agent active; v1 A/B done (ab/WS6-v1); diff 20 files +743/-26. Mem 217 GB avail, nkb 65 GB.
