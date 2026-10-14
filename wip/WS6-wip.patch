@@ -155,7 +155,7 @@ index 1aa7f51..c566fb4 100644
              receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
              site_line: line,
 diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
-index 739e1fc..1567a6e 100644
+index 739e1fc..a01fbed 100644
 --- a/crates/cgg-lang/src/plugins/csharp.rs
 +++ b/crates/cgg-lang/src/plugins/csharp.rs
 @@ -41,6 +41,7 @@ impl LanguagePlugin for CSharpPlugin {
@@ -200,7 +200,7 @@ index 739e1fc..1567a6e 100644
              "invocation_expression" => {
                  if let Some(r) = self.ref_from_invoke(node) {
                      // Shape B: `app.MapGet("/x", Handler)` — the minimal
-@@ -386,6 +407,109 @@ impl<'a> Walker<'a> {
+@@ -386,6 +407,116 @@ impl<'a> Walker<'a> {
          });
      }
  
@@ -275,6 +275,13 @@ index 739e1fc..1567a6e 100644
 +                };
 +                (name, recv)
 +            }
++            // `(Del) F`: a cast of a method group to a delegate type.
++            "cast_expression" if depth < 4 => {
++                if let Some(val) = v.child_by_field_name("value") {
++                    self.record_method_group(val, depth + 1);
++                }
++                return;
++            }
 +            // `c ? F : G`, `(F)`: the branches are the values.
 +            "conditional_expression" | "parenthesized_expression" if depth < 4 => {
 +                let parts: Vec<Node> = if v.kind() == "conditional_expression" {
@@ -310,7 +317,7 @@ index 739e1fc..1567a6e 100644
      fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
          let func = node.child_by_field_name("function")?;
          let (name, recv) = match func.kind() {
-@@ -521,6 +645,80 @@ mod tests {
+@@ -521,6 +652,81 @@ mod tests {
          )
      }
  
@@ -335,7 +342,7 @@ index 739e1fc..1567a6e 100644
 +        let src = "class P { event System.EventHandler E; void Run(int[] xs) {\n\
 +            xs.Select(Double); E += OnE; var h = new System.EventHandler(this.OnO);\n\
 +            System.Func<int,int> f = Triple; Log(nameof(Named)); System.Action a = P.S;\n\
-+            E -= c ? OnA : OnB; Go(base.Up); Call(); } }";
++            E -= c ? OnA : OnB; Go(base.Up); Call(); Agg((Del) Local); } }";
 +        let f = extract_refs(src);
 +        let got: Vec<(String, String)> = f
 +            .references
@@ -353,6 +360,7 @@ index 739e1fc..1567a6e 100644
 +            ("", "OnA"),
 +            ("", "OnB"),
 +            ("super", "Up"),
++            ("", "Local"),
 +        ]
 +        .iter()
 +        .map(|(a, b)| (a.to_string(), b.to_string()))
