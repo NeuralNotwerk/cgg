@@ -763,6 +763,74 @@ otherwise change the default graph.
       2.7k newtonsoft edges to the declared writer/reader type).
     - **Dead code:** 4 findings leave HIGH (2 C#, 2 Python), none
       become HIGH.
+- **Function-defining macros generate their functions** (WS12, FINDINGS
+  C4; C, C++). `#define DEF_GETTER(n) int get_##n(void) { … }` invoked as
+  `DEF_GETTER(x)` defined `get_x` for the compiler but not for cgg: the
+  generated names were not callables, calls to them were external or
+  unresolved (or bound to a header prototype only), and the macro read as
+  dead. An invocation written where items go — file, namespace or class
+  scope, with or without a trailing `;`, however the grammar happened to
+  parse it — is now expanded one level (parameters substituted, `#`
+  stringizing, `##` pasting, `__VA_ARGS__`, GNU `, ## __VA_ARGS__`; no
+  rescanning) when the macro is the last same-named `#define` earlier in
+  the file or the first one found in the file's `#include "…"` closure,
+  and the function definitions of the expansion that parse cleanly
+  become callables of the invoking file: methods of the enclosing class
+  and namespace in C++, tagged `macro:<name>` (kept out of by-name
+  fan-out, reported dead at no more than medium), spans placed inside
+  the invocation, calls inside them attributed to them. The expansion
+  runs after every C/C++ file is extracted and before header prototypes
+  are unified, so a prototype now merges into the generated body
+  (`uv__check_close`, `erts_port_task_pre_alloc_init_thread`). What the
+  grammar made of the invocation itself (a prototype or field named after
+  the macro) is dropped; a macro used as a function header (`TEST(a, b) {
+  … }`), an invocation inside a function body, and a file the grammar
+  cannot read as a translation unit are left alone. An item-position
+  invocation of a function-like macro is credited to it (a reference at
+  its first byte, outside every function; the dead-code root
+  `toplevel:macro-invocation`), an unexpanded one names its identifier
+  arguments (`name_mentions`) and credits an argument that is itself a
+  function-like macro (`LIST(DECLARE)`). A function header the grammar
+  folded behind such invocations (`DEF(x)\nint f(void) {…}`) now starts at
+  its own return type, so the invocations are no longer inside it.
+  Plugins record candidates in `FileFacts::fn_macros` /
+  `FileFacts::macro_invocations`; `cgg_lang::plugins::c_macro::expand`
+  consumes them.
+- **A quoted `def` inside a macro is not a definition** (WS12, FINDINGS
+  A11; Elixir, Clojure). Elixir `quote do def unquote(name)(…)` became a
+  callable named `unquote` with a HIGH self-edge from every `unquote(…)`
+  in its module; Clojure `` `(defn ~n …) `` became a callable named `~n`.
+  Definitions whose name is unquoted are no longer extracted (`quote`,
+  `unquote`, `unquote_splicing` join the Elixir stdlib list). Elixir
+  `defmacrop`, `defdelegate`, `defguard` and `defguardp` are now
+  definitions. Generating the callable a same-file macro invocation would
+  define is not done (the name is usually computed by interpolation).
+- **Elixir calls through a module resolve to that module** (WS12b).
+  `Mod.f()`, `&Mod.f/1` and `__MODULE__.f()` never resolved: the plugin
+  recorded the whole text (`MyApp.Accounts.get`) as the name. The call is
+  now recorded as `f` through the module path (`path_receiver`), and the
+  resolver binds it to the `f` of the module the path names — through the
+  file's `alias A.B`, `alias A.B, as: C` and `alias A.{B, C}` (now one
+  normalized `alias` import each), a module nested in the caller's (which
+  Elixir aliases automatically), or the full name — picking the clause
+  of the call's arity, never another module's `f`
+  (`LibIndex::resolve_elixir`). Modules come from `defmodule` (nested
+  modules joined with `.`, recorded as `elixir-module` imports). A module
+  the tree does not define, and Erlang modules not in the tree
+  (`:ets.new`), are external; `:mod.f()` for an Erlang module in the tree
+  binds to its `mod:f`. A tree module that declares no `f` is refused
+  (`not-in-imported-module`), or external when it `use`s a dependency
+  whose macros may have generated it.
+  - A/B (283 repos, none excluded), by confidence:
+    - **HIGH net:** Elixir +3,919 (4,060 added; 141 removed, all the
+      `unquote` self-edges and fake `unquote` callables), C +643, C++
+      +322, Clojure 0 (7 edges re-attributed from fake `~name` callables
+      to the enclosing `defmacro`).
+    - **MEDIUM net:** C++ +324 (994 added; 670 removed, see the
+      specialization cap below), C +156, Elixir −4.
+    - **Dead code:** no HIGH finding changes. Medium findings fall in
+      the repositories that changed: Elixir −831, C −95, Clojure −22,
+      C++ −16.
 
 ### Compatibility
 
@@ -1080,6 +1148,48 @@ otherwise change the default graph.
   - A multi-type union stays duck-typed at medium. In a 10-edge sample
     per language, Python and TypeScript union fan-outs were the
     incorrect ones (Python 7/10, TypeScript 6/10; HIGH 5/5 each).
+- Function-defining macros, quoted definitions and Elixir module calls
+  (WS12, WS12b): **the default graph changes**. Full corpus, 283
+  repositories, none excluded. Edges removed: C 616 high / 12 medium,
+  Elixir 141 high / 12 medium, Clojure 7, C++ 670 medium (all now
+  `fanout-cap-exceeded`, see below). Of the
+  C removals, 551 came from a misparsed function whose span had swallowed
+  the macro invocations after it (a callable named `__BITS`, `if`,
+  `lev_child_start`, … "calling" the macro) and now credit the macro from
+  outside any function; 65 were rebound from a header prototype to the
+  generated body it now merges into. The Elixir removals are the
+  `unquote` self-edges; the 12 medium ones were rebound to a
+  now-recorded `defmacrop` of the calling module.
+  - Precision (logs/WS12-precision-sample.txt): C 11/11 correct; Elixir
+    HIGH 6/6, medium 5/5; Clojure 7/7 (re-attributions). C++ HIGH 4/6
+    exact, the other 2 bind a call inside a generated method to the
+    nested macro's unexpanded template (`TypeOf<STRUCT>::serializeFields`);
+    C++ medium 6/8 correct (2 duck-typed decoys: a vendored gtest copy,
+    a CRTP `getDerived()` receiver).
+  - **Template specializations respect `--fanout-cap`.** A typed owner
+    lookup indexes every specialization under the bare template name, so
+    `TypeOf<T>::type()` reached all 114 `TypeOf<X>::type` specializations
+    (cmcppdap's, generated by the macros above, and hand-written ones
+    alike) with no cap. Such a lookup now binds to the specialization the
+    receiver writes exactly (`TypeOf<A>::type()`), and otherwise is
+    refused as `fanout-cap-exceeded` when more specializations than the
+    cap are involved (the cap counts specializations, not the overloads
+    each declares). A receiver written without template arguments, and a
+    Rust type's trait impls (`<T as From<U>>`), are unaffected. The 670
+    removed C++ medium edges are these over-cap sets: `TypeOf<…>` 169,
+    `AsStringView<…>` 162, `DenseMapInfo<…>` 110, `DartConverter<…>` 106,
+    gtest printers 96, cmake artifact getters 21. No other language
+    changes.
+  - Not covered: nested expansion (an X-macro list passing a
+    function-defining macro credits it but generates nothing); a macro
+    defined in a header the invoking file reaches only through `-I` paths
+    no `#include "…"` names; Elixir module-body macro calls through a
+    module (`MyApp.Gen.defgetter(:x)`) bind but, like every call outside
+    a function, draw no edge; functions injected by an in-tree `use`
+    macro are refused.
+  - Latency (perf/WS12.md, 17 C, C++, Elixir, Clojure, Rust and Java
+    repositories, median of 5): none slower by 1 s or more, largest
+    `dart-flutter` +0.32 s (+3.5%); total +1.6%.
 
 ## [0.10.2] - 2026-10-11
 

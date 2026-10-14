@@ -170,6 +170,7 @@ put_resp_content_type
 put_resp_header
 puts
 put_status
+quote
 random
 Range
 read
@@ -237,6 +238,8 @@ unessential
 unfold
 uniq
 unique
+unquote
+unquote_splicing
 unzip
 upcase
 update

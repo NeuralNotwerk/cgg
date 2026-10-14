@@ -73,6 +73,110 @@ impl<'a> ElixirWalker<'a> {
         }
     }
 
+    /// The full name of the module being walked (`Outer.Inner`); empty
+    /// outside any module.
+    fn module_full(&self) -> String {
+        self.scope.join(".")
+    }
+
+    /// `__MODULE__` / `__MODULE__.Sub` written as a module, expanded.
+    fn expand_module(&self, written: &str) -> String {
+        match written.strip_prefix("__MODULE__") {
+            Some(rest) if !self.scope.is_empty() => {
+                format!("{}{rest}", self.module_full())
+            }
+            _ => written.to_string(),
+        }
+    }
+
+    /// The module and function a remote call or capture operand names:
+    /// `MyApp.Accounts.get` → (`MyApp.Accounts`, `get`), `:ets.new` →
+    /// (`:ets`, `new`), `__MODULE__.f` → (the current module, `f`).
+    /// `None` when the receiver is not written as a module (a variable,
+    /// a call's result, a map field).
+    fn remote_target(&self, call: Node) -> Option<(String, String)> {
+        let target = call.child_by_field_name("target")?;
+        if target.kind() != "dot" {
+            return None;
+        }
+        let left = target.child_by_field_name("left")?;
+        let right = target.child_by_field_name("right")?;
+        if right.kind() != "identifier" {
+            return None;
+        }
+        let fun = self.text(right).to_string();
+        let written: String = self.text(left).split_whitespace().collect();
+        let module = match left.kind() {
+            "alias" => written,
+            "atom" if written.starts_with(':') && !written.contains('"') => written,
+            "identifier" | "dot"
+                if written.starts_with("__MODULE__")
+                    && written
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.') =>
+            {
+                if self.scope.is_empty() {
+                    return None;
+                }
+                self.expand_module(&written)
+            }
+            _ => return None,
+        };
+        (!module.is_empty() && !fun.is_empty()).then_some((module, fun))
+    }
+
+    /// `alias A.B`, `alias A.B, as: C`, `alias A.{B, C}`: one `alias`
+    /// import per name introduced, its path the full module.
+    fn record_alias(&mut self, node: Node) {
+        let Some(args) = node.child(1) else {
+            return;
+        };
+        let text: String = self.text(args).to_string();
+        let site_line = (node.start_position().row as u32) + 1;
+        let site_byte = node.start_byte() as u32;
+        let is_module = |m: &str| {
+            !m.is_empty()
+                && m.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+        };
+        let mut out: Vec<(String, String)> = Vec::new();
+        if let Some((prefix, rest)) = text.split_once(".{") {
+            let prefix = self.expand_module(prefix.trim());
+            let inner = rest.split('}').next().unwrap_or("");
+            for item in inner.split(',') {
+                let item: String = item.split_whitespace().collect();
+                if is_module(&item) && is_module(&prefix) {
+                    let last = item.rsplit('.').next().unwrap_or(&item).to_string();
+                    out.push((last, format!("{prefix}.{item}")));
+                }
+            }
+        } else {
+            let mut parts = text.splitn(2, ',');
+            let module = self.expand_module(parts.next().unwrap_or("").trim());
+            if !is_module(&module) {
+                return;
+            }
+            let alias = parts
+                .next()
+                .and_then(|opts| opts.split_once("as:"))
+                .map(|(_, a)| a.split(',').next().unwrap_or("").trim().to_string())
+                .filter(|a| is_module(a))
+                .unwrap_or_else(|| {
+                    module.rsplit('.').next().unwrap_or(&module).to_string()
+                });
+            out.push((alias, module));
+        }
+        for (alias, path) in out {
+            self.facts.imports.push(ImportRecord {
+                kind: "alias".into(),
+                path,
+                alias,
+                site_line,
+                site_byte,
+            });
+        }
+    }
+
     fn walk(&mut self, node: Node) {
         // `&f/1`, `&Mod.f/2`: a function capture names `f` of that arity
         // without calling it — a value reference, resolved as the call it
@@ -82,11 +186,11 @@ impl<'a> ElixirWalker<'a> {
             && let Some((target, arity)) = capture_target(node, self.source)
         {
             if self.ctx.reference_sites {
-                let name = self.text(target).to_string();
-                let receiver_hint = match name.split_once('.') {
-                    Some((m, f)) if !f.contains('.') => m.to_string(),
-                    _ => String::new(),
-                };
+                let (name, receiver_hint, path_receiver) =
+                    match self.remote_target(target) {
+                        Some((module, fun)) => (fun, module, true),
+                        None => (self.text(target).to_string(), String::new(), false),
+                    };
                 self.facts.references.push(RefRecord {
                     name,
                     receiver_hint,
@@ -94,6 +198,7 @@ impl<'a> ElixirWalker<'a> {
                     site_byte: target.start_byte() as u32,
                     arity: Some(arity),
                     value_ref: true,
+                    path_receiver,
                     ..Default::default()
                 });
             }
@@ -109,7 +214,18 @@ impl<'a> ElixirWalker<'a> {
             match func_name.as_str() {
                 "defmodule" => {
                     if let Some(module_name) = self.extract_defmodule_name(node) {
+                        let module_name = self.expand_module(&module_name);
                         self.scope.push(module_name);
+                        // The module's full name (nested modules join with
+                        // `.`), with the scope as the qualified names
+                        // spell it.
+                        self.facts.imports.push(ImportRecord {
+                            kind: "elixir-module".into(),
+                            path: self.module_full(),
+                            alias: self.scope.join("::"),
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
                         self.walk_children(node);
                         self.scope.pop();
                     } else {
@@ -117,7 +233,8 @@ impl<'a> ElixirWalker<'a> {
                     }
                     return;
                 }
-                "def" | "defp" | "defmacro" => {
+                "def" | "defp" | "defmacro" | "defmacrop" | "defdelegate"
+                | "defguard" | "defguardp" => {
                     self.record_function(node);
                     // `def run(x) do … end` parses its head, `run(x)`,
                     // as a nested `call` node. Walking it like any
@@ -138,7 +255,12 @@ impl<'a> ElixirWalker<'a> {
                     self.suppress_call_at = prev;
                     return;
                 }
-                "alias" | "import" | "use" | "require" => {
+                "alias" => {
+                    self.record_alias(node);
+                    self.walk_children(node);
+                    return;
+                }
+                "import" | "use" | "require" => {
                     self.record_import(node, &func_name);
                     self.walk_children(node);
                     return;
@@ -198,7 +320,9 @@ impl<'a> ElixirWalker<'a> {
                 .unwrap_or("")
                 .trim()
                 .to_string();
-            if name.is_empty() {
+            // `def unquote(name)(…)` inside a `quote`: a template whose
+            // name the macro computes, not a function of this module.
+            if name.is_empty() || name == "unquote" || name == "unquote_splicing" {
                 return;
             }
 
@@ -253,24 +377,33 @@ impl<'a> ElixirWalker<'a> {
                 return;
             }
 
-            let receiver_hint = if name.contains('.') {
-                let parts: Vec<&str> = name.split('.').collect();
-                if parts.len() == 2 {
-                    parts[0].to_string()
-                } else {
-                    String::new()
+            let context = name.clone();
+            // `Mod.f(…)`, `:ets.new(…)`, `__MODULE__.f(…)`: a call into the
+            // module the receiver names, written as a path.
+            let (name, receiver_hint, path_receiver) = match self.remote_target(node) {
+                Some((module, fun)) => (fun, module, true),
+                None => {
+                    let receiver_hint = if name.contains('.') {
+                        let parts: Vec<&str> = name.split('.').collect();
+                        if parts.len() == 2 {
+                            parts[0].to_string()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    };
+                    (name, receiver_hint, false)
                 }
-            } else {
-                String::new()
             };
 
-            let context = name.clone();
             self.facts.references.push(RefRecord {
                 name,
                 receiver_hint,
                 site_line: (node.start_position().row as u32) + 1,
                 site_byte: node.start_byte() as u32,
                 arity: Some(call_arity(node)),
+                path_receiver,
                 ..Default::default()
             });
             self.record_registrar(node, &context);
@@ -655,7 +788,7 @@ mod tests {
             .filter(|r| r.value_ref)
             .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.arity))
             .collect();
-        assert_eq!(caps, vec![("f", "", Some(1)), ("B.g", "B", Some(2))]);
+        assert_eq!(caps, vec![("f", "", Some(1)), ("g", "B", Some(2))]);
         // The capture's operand `B.g` is not a call of `g/0`.
         assert!(
             !f.references
@@ -690,6 +823,79 @@ mod tests {
             .collect();
         // `f(1)` is f/1; `a |> f(2)` is f/2.
         assert_eq!(arities, vec![Some(1), Some(2)]);
+    }
+
+    #[test]
+    fn remote_calls_name_their_module_and_aliases_are_expanded() {
+        let src = "defmodule Outer do\n  alias MyApp.Accounts\n  alias MyApp.Accounts.Cache, as: C\n  alias MyApp.{Repo, Other.Deep}\n  def run(x) do\n    Accounts.get(x)\n    MyApp.Accounts.list()\n    __MODULE__.helper(x)\n    :ets.new(:t, [])\n    conn.assigns()\n  end\nend\n";
+        let f = extract(src);
+        let calls: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.path_receiver))
+            .collect();
+        for want in [
+            ("get", "Accounts", true),
+            ("list", "MyApp.Accounts", true),
+            ("helper", "Outer", true),
+            ("new", ":ets", true),
+        ] {
+            assert!(calls.contains(&want), "{want:?} not in {calls:?}");
+        }
+        // A receiver that is a value is not a module path.
+        assert!(
+            calls.contains(&("conn.assigns", "conn", false)),
+            "{calls:?}"
+        );
+        let aliases: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "alias")
+            .map(|i| (i.alias.as_str(), i.path.as_str()))
+            .collect();
+        assert_eq!(
+            aliases,
+            vec![
+                ("Accounts", "MyApp.Accounts"),
+                ("C", "MyApp.Accounts.Cache"),
+                ("Repo", "MyApp.Repo"),
+                ("Deep", "MyApp.Other.Deep"),
+            ]
+        );
+        assert!(
+            f.imports
+                .iter()
+                .any(|i| i.kind == "elixir-module" && i.path == "Outer")
+        );
+    }
+
+    #[test]
+    fn nested_modules_are_recorded_by_full_name() {
+        let f =
+            extract("defmodule A.B do\n  defmodule C do\n    def f, do: 1\n  end\nend\n");
+        let mods: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "elixir-module")
+            .map(|i| (i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(mods, vec![("A.B", "A.B"), ("A.B.C", "A.B::C")]);
+    }
+
+    /// A11: the `def unquote(name)(…)` template inside a macro's `quote`
+    /// is not a function of the macro's module (it was, with a self-edge
+    /// from its body's `unquote(name)`); a literal-named def still is,
+    /// and so is a `defdelegate`.
+    #[test]
+    fn unquoted_def_names_are_not_definitions() {
+        let src = "defmodule G do\n  defmacro defgetter(name) do\n    quote do\n      def unquote(name)(), do: unquote(name)\n    end\n  end\n  defdelegate fetch(x), to: Other\n  def real, do: 1\nend\n";
+        let f = extract(src);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert_eq!(names, vec!["defgetter", "fetch", "real"]);
     }
 
     #[test]

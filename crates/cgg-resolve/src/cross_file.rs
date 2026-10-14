@@ -4179,6 +4179,89 @@ fn rust_type_owned(qn: &str) -> bool {
             .is_some_and(|o| o.starts_with(|c: char| c.is_uppercase()))
 }
 
+/// A typed owner lookup that reached several template specializations of
+/// one owner (`TypeOf<A>::type`, `TypeOf<B>::type`, …, all indexed under
+/// the bare `TypeOf`). A receiver that writes one of them exactly
+/// (`TypeOf<A>::type()`) binds to it; otherwise every specialization is a
+/// candidate, and like any other fan-out the set is refused when more
+/// owners than `--fanout-cap` are involved (`capped` records the
+/// candidate count, so the site is reported as `fanout-cap-exceeded`). An
+/// owner without specializations — overloads of one class, copies of it
+/// in several files, a Rust type's trait impls (`<T as From<U>>`) — is
+/// returned unchanged.
+fn narrow_specializations(
+    graph: &Graph,
+    cids: &[CallableId],
+    rh: &str,
+    fanout_cap: usize,
+    capped: &mut u32,
+) -> Option<Vec<CallableId>> {
+    // Fast path: no candidate's qualified name carries a template
+    // argument list, so there is nothing to narrow.
+    if cids.len() < 2
+        || !cids.iter().any(|c| {
+            graph
+                .callables
+                .get(c)
+                .is_some_and(|n| n.qualified_name.contains('<'))
+        })
+    {
+        return Some(cids.to_vec());
+    }
+    let compact = |s: &str| s.split_whitespace().collect::<String>();
+    let spec = |c: &CallableId| {
+        graph
+            .callables
+            .get(c)
+            .and_then(|n| crate::names::raw_owner(&n.qualified_name))
+            .map(compact)
+    };
+    // Trait-impl wrappers (`<T as Trait>`) are impls of the type itself,
+    // not specializations of it.
+    let owners: std::collections::BTreeSet<String> = cids
+        .iter()
+        .filter_map(spec)
+        .filter(|o| !o.starts_with('<'))
+        .collect();
+    if owners.len() < 2 || !owners.iter().any(|o| o.contains('<')) {
+        return Some(cids.to_vec());
+    }
+    // The receiver's last path segment, `::` inside template arguments
+    // ignored.
+    let mut depth = 0i32;
+    let mut cut = 0;
+    let b = rh.as_bytes();
+    for i in 0..b.len() {
+        match b[i] {
+            b'<' => depth += 1,
+            b'>' => depth -= 1,
+            b':' if depth == 0 && b.get(i + 1) == Some(&b':') => cut = i + 2,
+            _ => {}
+        }
+    }
+    let written = compact(&rh[cut.min(rh.len())..]);
+    // Only a receiver written with template arguments names one
+    // specialization; a bare `Server` is the generic `Server<A>` too.
+    let exact: Vec<CallableId> = if written.contains('<') {
+        cids.iter()
+            .copied()
+            .filter(|c| spec(c).as_deref() == Some(written.as_str()))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    if !exact.is_empty() {
+        return Some(exact);
+    }
+    // The cap counts the specializations, not the overloads each one
+    // declares.
+    if owners.len() > fanout_cap {
+        *capped = cids.len() as u32;
+        return None;
+    }
+    Some(cids.to_vec())
+}
+
 /// The package a Perl sub belongs to: its qualified name minus the sub,
 /// with the implicit `main` spelled as the empty package.
 fn perl_package(qn: &str) -> &str {
@@ -4562,6 +4645,32 @@ fn try_resolve_ref(
             }
             crate::modules::Scoped::Ambiguous => return None,
             crate::modules::Scoped::NoCtor => return None,
+        }
+    }
+    // WS12b: Elixir `Mod.f()` / `&Mod.f/1` / `__MODULE__.f()` / `:m.f()`
+    // name module `Mod` through the file's aliases: its `f` of the call's
+    // arity, never another module's `f`.
+    if lang == "elixir"
+        && let Some(scoped) = libix.resolve_elixir(caller_file, caller_qn, r)
+    {
+        match scoped {
+            crate::modules::Scoped::Bound { cids, .. } => {
+                let found =
+                    crate::intra_file::first_clause_per_arity(graph, &cids, r.arity);
+                *module_certain = found.len() == 1;
+                return Some(found);
+            }
+            crate::modules::Scoped::External(module) => {
+                *external_out = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Refused(module) => {
+                *refused_module = Some(module);
+                return None;
+            }
+            crate::modules::Scoped::Ambiguous | crate::modules::Scoped::NoCtor => {
+                return None;
+            }
         }
     }
     // Erlang `m:f(…)` names module `m` (FINDINGS R14): its `f`, the copy
@@ -5395,9 +5504,13 @@ fn try_resolve_ref(
                                 cs_hidden = true;
                                 continue;
                             }
-                            return Some(seen);
+                            return narrow_specializations(
+                                graph, &seen, rh, fanout_cap, capped,
+                            );
                         }
-                        return Some(cids.clone());
+                        return narrow_specializations(
+                            graph, cids, rh, fanout_cap, capped,
+                        );
                     }
                 }
                 if cs_hidden {
@@ -12483,6 +12596,149 @@ mod tests {
             vec![at("App.Helpers::h", "lib/helpers.ex")],
             "{dsts:?}"
         );
+    }
+
+    /// WS12: a typed owner lookup that reaches several template
+    /// specializations binds to the one the receiver writes exactly, and
+    /// otherwise is a fan-out like any other: refused over the cap and
+    /// recorded as `fanout-cap-exceeded`, kept under it.
+    #[test]
+    fn template_specializations_respect_the_fanout_cap() {
+        let big: Vec<String> = ["A", "B", "C", "D", "E", "F", "G"]
+            .iter()
+            .map(|t| format!("dap::TypeOf<{t}>::type"))
+            .collect();
+        let big: Vec<&str> = big.iter().map(String::as_str).collect();
+        let small = ["dap::Small<A>::get", "dap::Small<B>::get"];
+        let files = vec![
+            mfile("src/types.cpp", &big, vec![]),
+            mfile("src/small.cpp", &small, vec![]),
+        ];
+        let caller = mfile("src/use.cpp", &["dap::use"], vec![]);
+        let at_byte = |name: &str, recv: &str, b: u32| RefRecord {
+            path_receiver: true,
+            site_byte: b,
+            ..call(name, recv)
+        };
+        let refs = vec![
+            at_byte("type", "TypeOf<T>", 10),
+            at_byte("type", "TypeOf<A>", 20),
+            at_byte("get", "Small<T>", 30),
+        ];
+        let (dsts, why) = module_case("cpp", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("dap::TypeOf<A>::type", "src/types.cpp"),
+                at("dap::Small<A>::get", "src/small.cpp"),
+                at("dap::Small<B>::get", "src/small.cpp"),
+            ],
+            "{dsts:?}"
+        );
+        assert!(
+            why.contains(&UnresolvedReason::FanoutCapExceeded { candidates: 7 }),
+            "{why:?}"
+        );
+
+        // Near miss: a receiver written without template arguments is
+        // every specialization, the generic impl included, not just the
+        // owner spelled the same.
+        let files = vec![mfile(
+            "src/server.cpp",
+            &["s::Server::make", "s::Server<A>::make"],
+            vec![],
+        )];
+        let caller = mfile("src/use.cpp", &["s::use"], vec![]);
+        let (dsts, _) =
+            module_case("cpp", files, caller, vec![at_byte("make", "Server", 10)]);
+        assert_eq!(
+            dsts,
+            vec![
+                at("s::Server::make", "src/server.cpp"),
+                at("s::Server<A>::make", "src/server.cpp"),
+            ]
+        );
+
+        // Near miss: the cap counts specializations, not overloads — two
+        // owners declaring seven `bind`s between them stay bound.
+        let overloads = [
+            "p::Parser::bind",
+            "p::Parser<void>::bind",
+            "p::Parser<void>::bind",
+            "p::Parser<void>::bind",
+            "p::Parser<void>::bind",
+            "p::Parser<void>::bind",
+            "p::Parser<void>::bind",
+        ];
+        let files = vec![mfile("src/parser.cpp", &overloads, vec![])];
+        let caller = mfile("src/use.cpp", &["p::use"], vec![]);
+        let (dsts, why) = module_case(
+            "cpp",
+            files,
+            caller,
+            vec![at_byte("bind", "Parser<Args>", 10)],
+        );
+        assert_eq!(dsts.len(), 7, "{dsts:?} {why:?}");
+    }
+
+    /// WS12b: an Elixir call written through a module binds to that
+    /// module's function — through an `alias`, a module nested in the
+    /// caller's, or the full name — never to a same-named function of
+    /// another module; a module the tree does not define is external.
+    #[test]
+    fn elixir_module_qualified_calls_bind_to_the_named_module() {
+        let modq = |name: &str, recv: &str, byte: u32| RefRecord {
+            path_receiver: true,
+            site_byte: byte,
+            ..call(name, recv)
+        };
+        let files = vec![
+            mfile(
+                "lib/accounts.ex",
+                &["MyApp.Accounts::get", "MyApp.Accounts::Cache::fetch"],
+                vec![
+                    import("elixir-module", "MyApp.Accounts", "MyApp.Accounts"),
+                    import(
+                        "elixir-module",
+                        "MyApp.Accounts.Cache",
+                        "MyApp.Accounts::Cache",
+                    ),
+                ],
+            ),
+            mfile(
+                "lib/decoy.ex",
+                &["Decoy::get", "Decoy::fetch", "Decoy::insert"],
+                vec![import("elixir-module", "Decoy", "Decoy")],
+            ),
+        ];
+        let caller = mfile(
+            "lib/web.ex",
+            &["MyApp.Web::show"],
+            vec![
+                import("elixir-module", "MyApp.Web", "MyApp.Web"),
+                import("alias", "MyApp.Accounts", "Accounts"),
+                import("alias", "MyApp.Accounts.Cache", "C"),
+            ],
+        );
+        let refs = vec![
+            modq("get", "Accounts", 10),
+            modq("fetch", "C", 20),
+            modq("get", "MyApp.Accounts", 30),
+            // Not in the tree: external, never `Decoy::insert`.
+            modq("insert", "Repo", 40),
+            modq("new", ":ets", 50),
+        ];
+        let (dsts, why) = module_case("elixir", files, caller, refs);
+        assert_eq!(
+            dsts,
+            vec![
+                at("MyApp.Accounts::get", "lib/accounts.ex"),
+                at("MyApp.Accounts::Cache::fetch", "lib/accounts.ex"),
+                at("MyApp.Accounts::get", "lib/accounts.ex"),
+            ],
+            "{dsts:?}"
+        );
+        assert!(why.contains(&external("Repo")), "{why:?}");
     }
 
     /// Copies are files: the overloads or clauses one file declares

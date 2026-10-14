@@ -43,7 +43,7 @@ pub fn full_owner_from_qn(qn: &str) -> Option<&str> {
 /// of what remains as the (not yet normalized) owner. Shared by
 /// [`owner_from_qn`] and [`full_owner_from_qn`], which differ only in
 /// how they normalize.
-fn raw_owner(qn: &str) -> Option<&str> {
+pub(crate) fn raw_owner(qn: &str) -> Option<&str> {
     let (prefix, _simple) = split_last_segment(qn)?;
     // A trait-impl wrapper (`<A as Trait<...>>`) can have a `::` INSIDE
     // it — `A` or the trait's own generic argument can be a qualified

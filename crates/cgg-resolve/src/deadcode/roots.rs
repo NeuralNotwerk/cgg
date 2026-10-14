@@ -532,6 +532,52 @@ pub(crate) fn discover(
         }
     }
 
+    // --- Rule: C-family macro invoked outside any function -------------
+    //
+    // `DEF_GETTER(x)` at file scope uses the macro, but the `#define` is
+    // usually in a header the invoking file includes, which the intra-file
+    // pass cannot see: the site is on record with no enclosing callable
+    // and whichever reason resolution gave up with. Only a callable that
+    // is itself a macro is credited this way.
+    let mut macro_sites: HashMap<&str, &AuditUnresolvedCall> = HashMap::new();
+    for u in &graph.unresolved {
+        if u.src.is_none()
+            && graph
+                .files
+                .get(&u.file)
+                .is_some_and(|f| cgg_core::same_family(&f.language, "c"))
+        {
+            macro_sites.entry(u.name.as_str()).or_insert(u);
+        }
+    }
+    if !macro_sites.is_empty() {
+        for (id, node) in &graph.callables {
+            if !cgg_core::same_family(&node.language, "c")
+                || !node.attributes.iter().any(|a| a == "macro")
+            {
+                continue;
+            }
+            if let Some(u) = macro_sites.get(node.simple_name.as_str()) {
+                let path = graph
+                    .files
+                    .get(&u.file)
+                    .map(|f| f.path.display().to_string())
+                    .unwrap_or_default();
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:macro-invocation",
+                    format!(
+                        "macro invoked outside any function at {path}:{}",
+                        u.site_line
+                    ),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
     // --- Remaining per-node rules ---------------------------------------
     for (id, node) in &graph.callables {
         if node.synthetic {

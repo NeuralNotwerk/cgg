@@ -522,6 +522,16 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 c_family_facts.push(facts);
             }
         }
+        // Function-defining macros first: what they generate is a body
+        // a header prototype can be unified with.
+        {
+            let mut c_and_cpp: Vec<&mut FileFacts> = c_family_facts
+                .iter_mut()
+                .filter(|f| matches!(f.language.as_str(), "c" | "cpp"))
+                .map(|f| &mut **f)
+                .collect();
+            cgg_lang::plugins::c_macro::expand(&mut c_and_cpp, &extract_ctx);
+        }
         cgg_lang::plugins::cpp::unify_declarations(&mut c_family_facts);
     }
 

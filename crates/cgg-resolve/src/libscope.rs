@@ -192,6 +192,21 @@ pub(crate) struct LibIndex<'a> {
     /// Exported namespaces, computed on first use, and whether some
     /// export chain leaves the tree.
     ns_cache: Mutex<HashMap<FileId, (Arc<Namespace>, bool)>>,
+    /// Elixir: `(module full name, function)` → its definitions.
+    ex_funcs: HashMap<(String, String), Vec<CallableId>>,
+    /// Elixir: every module the tree defines, by full name (`A.B.C`).
+    ex_modules: HashSet<String>,
+    /// Elixir: module scopes as qualified names spell them (`A.B::C` for
+    /// `C` nested in `A.B`).
+    ex_scopes: HashSet<String>,
+    /// Elixir: file → `alias` name → full module.
+    ex_aliases: HashMap<FileId, HashMap<String, String>>,
+    /// Elixir: module → modules its file `use`s.
+    ex_uses: HashMap<String, Vec<String>>,
+    /// Erlang: `(module, function)` → its definitions, and every module,
+    /// for `:mod.f()` written in Elixir.
+    erl_funcs: HashMap<(String, String), Vec<CallableId>>,
+    erl_modules: HashSet<String>,
 }
 
 impl<'a> LibIndex<'a> {
@@ -200,6 +215,7 @@ impl<'a> LibIndex<'a> {
         ix.build_zig(graph, facts);
         ix.build_perl(graph, facts);
         ix.build_scala(graph, facts);
+        ix.build_elixir(graph, facts);
         if !facts.iter().any(|f| f.language == "dart") {
             return ix;
         }
@@ -986,6 +1002,147 @@ impl<'a> LibIndex<'a> {
             frontier = next;
         }
         None
+    }
+
+    fn build_elixir(&mut self, graph: &Graph, facts: &[FileFacts]) {
+        if !facts.iter().any(|f| f.language == "elixir") {
+            return;
+        }
+        let mut ids: Vec<&cgg_core::graph::CallableNode> = graph
+            .callables
+            .values()
+            .filter(|c| c.language == "elixir" || c.language == "erlang")
+            .collect();
+        ids.sort_by_key(|c| (c.file, c.start_byte, c.id));
+        for c in ids {
+            if c.language == "erlang" {
+                if let Some((m, f)) = c.qualified_name.split_once(':') {
+                    self.erl_modules.insert(m.to_string());
+                    self.erl_funcs
+                        .entry((m.to_string(), f.to_string()))
+                        .or_default()
+                        .push(c.id);
+                }
+                continue;
+            }
+            if let Some((owner, name)) = c.qualified_name.rsplit_once("::") {
+                self.ex_funcs
+                    .entry((owner.replace("::", "."), name.to_string()))
+                    .or_default()
+                    .push(c.id);
+            }
+        }
+        for f in facts.iter().filter(|f| f.language == "elixir") {
+            let mut uses: Vec<String> = Vec::new();
+            let mut modules: Vec<String> = Vec::new();
+            for imp in &f.imports {
+                match imp.kind.as_str() {
+                    "elixir-module" => {
+                        self.ex_modules.insert(imp.path.clone());
+                        self.ex_scopes.insert(imp.alias.clone());
+                        modules.push(imp.path.clone());
+                    }
+                    "alias" if !imp.alias.is_empty() => {
+                        self.ex_aliases
+                            .entry(f.file)
+                            .or_default()
+                            .insert(imp.alias.clone(), imp.path.clone());
+                    }
+                    "use" => {
+                        let m = imp.path.split(',').next().unwrap_or("").trim();
+                        if !m.is_empty() {
+                            uses.push(m.to_string());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            for m in modules {
+                self.ex_uses
+                    .entry(m)
+                    .or_default()
+                    .extend(uses.iter().cloned());
+            }
+        }
+    }
+
+    /// An Elixir call written through a module (`Mod.f()`, `&Mod.f/1`,
+    /// `__MODULE__.f()`, `:ets.new()`): the `f` of the module the receiver
+    /// names — through the file's `alias`es, else a module nested in the
+    /// caller's (which Elixir aliases automatically), else the name as
+    /// written. Never another module's `f`. A module the tree does not
+    /// define is external; one that defines no `f` is refused, unless it
+    /// `use`s a dependency (whose macros may have generated it). `None`
+    /// when the receiver is not a module path.
+    pub(crate) fn resolve_elixir(
+        &self,
+        caller_file: FileId,
+        caller_qn: Option<&str>,
+        r: &RefRecord,
+    ) -> Option<Scoped> {
+        if !r.path_receiver {
+            return None;
+        }
+        let rh = r.receiver_hint.trim();
+        if rh.is_empty() {
+            return None;
+        }
+        if let Some(erl) = rh.strip_prefix(':') {
+            if let Some(cids) = self.erl_funcs.get(&(erl.to_string(), r.name.clone())) {
+                return Some(Scoped::Bound {
+                    cids: cids.clone(),
+                    certain: true,
+                });
+            }
+            return Some(if self.erl_modules.contains(erl) {
+                Scoped::Refused(rh.to_string())
+            } else {
+                Scoped::External(rh.to_string())
+            });
+        }
+        let (head, rest) = match rh.split_once('.') {
+            Some((h, t)) => (h, Some(t)),
+            None => (rh, None),
+        };
+        let with_rest = |base: &str| match rest {
+            Some(t) => format!("{base}.{t}"),
+            None => base.to_string(),
+        };
+        let aliased = self
+            .ex_aliases
+            .get(&caller_file)
+            .and_then(|a| a.get(head))
+            .map(|m| with_rest(m));
+        let nested = || {
+            let owner = caller_qn?.rsplit_once("::")?.0;
+            let segs: Vec<&str> = owner.split("::").collect();
+            (0..segs.len()).rev().find_map(|i| {
+                let scope = segs[..=i].join("::");
+                self.ex_scopes
+                    .contains(&format!("{scope}::{head}"))
+                    .then(|| format!("{}.{rh}", segs[..=i].join(".")))
+            })
+        };
+        let full = aliased.or_else(nested).unwrap_or_else(|| rh.to_string());
+        if !self.ex_modules.contains(&full) {
+            return Some(Scoped::External(full));
+        }
+        if let Some(cids) = self.ex_funcs.get(&(full.clone(), r.name.clone())) {
+            return Some(Scoped::Bound {
+                cids: cids.clone(),
+                certain: true,
+            });
+        }
+        let outside_use = self
+            .ex_uses
+            .get(&full)
+            .into_iter()
+            .flatten()
+            .find(|u| !self.ex_modules.contains(*u));
+        Some(match outside_use {
+            Some(u) => Scoped::External(u.clone()),
+            None => Scoped::Refused(full),
+        })
     }
 
     fn build_perl(&mut self, graph: &Graph, facts: &[FileFacts]) {

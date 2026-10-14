@@ -576,6 +576,48 @@ pub struct FileFacts {
     /// closure's [`FileFacts::scoped_types`].
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub closure_args: Vec<ClosureArg>,
+    /// Function-like macros this file defines (C/C++ `#define F(a, b) …`).
+    /// Consumed and cleared by the C-family macro expansion pass before
+    /// resolution (`cgg_lang::plugins::c_macro::expand`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fn_macros: Vec<FnMacro>,
+    /// Call-shaped `NAME(…)` written where items go (file, namespace or
+    /// class scope, C/C++): candidate invocations of a function-like macro
+    /// that may define functions. Consumed and cleared with
+    /// [`Self::fn_macros`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub macro_invocations: Vec<MacroInvocation>,
+}
+
+/// A function-like preprocessor macro (see [`FileFacts::fn_macros`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FnMacro {
+    pub name: String,
+    /// Parameter names in order; a variadic `...` is `__VA_ARGS__`, a
+    /// GNU named variadic `args...` is `args`.
+    pub params: Vec<String>,
+    pub variadic: bool,
+    /// The replacement text, line continuations removed. Kept only when it
+    /// contains a `{` (it could define a function); empty otherwise.
+    pub body: String,
+    pub start_byte: u32,
+}
+
+/// A call-shaped invocation at item position (see
+/// [`FileFacts::macro_invocations`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MacroInvocation {
+    pub name: String,
+    /// The text between the invocation's parentheses.
+    pub args: String,
+    /// From the name's first byte to one past the closing parenthesis.
+    pub start_byte: u32,
+    pub end_byte: u32,
+    pub line: u32,
+    /// The enclosing namespace and class names, outermost first (C++).
+    pub scope: Vec<String>,
+    /// How many of the innermost `scope` entries are classes.
+    pub classes: u32,
 }
 
 /// An untyped closure passed to a bare call (see
@@ -758,6 +800,8 @@ impl FileFacts {
             type_spans: Vec::new(),
             scoped_types: Vec::new(),
             closure_args: Vec::new(),
+            fn_macros: Vec::new(),
+            macro_invocations: Vec::new(),
         }
     }
 

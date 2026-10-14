@@ -212,7 +212,9 @@ impl<'a> ClojureWalker<'a> {
         // (defn name [...] ...)
         if let Some(name_node) = node.named_child(1) {
             let name = self.text(name_node).to_string();
-            if name.is_empty() {
+            // `(defn ~n …)` / `(defn ~(symbol …) …)` inside a syntax-quote:
+            // a template whose name the macro computes, not a definition.
+            if name.is_empty() || name.starts_with('~') {
                 return;
             }
 
@@ -536,6 +538,19 @@ mod tests {
                 defs(&f)
             );
         }
+    }
+
+    /// A11: a `defn` inside a syntax-quote whose name is unquoted is a
+    /// template the macro fills in, not a definition.
+    #[test]
+    fn unquoted_defn_names_are_not_definitions() {
+        let f = extract(
+            "(ns app.gen)\n(defmacro defgetter [n]\n  `(defn ~(symbol (str \"get-\" n)) [] ~(str n)))\n(defmacro defh [n & body] `(defn ~n [] ~@body))\n(defn real [] 1)\n",
+        );
+        assert_eq!(
+            defs(&f),
+            vec!["app.gen/defgetter", "app.gen/defh", "app.gen/real"]
+        );
     }
 
     #[test]

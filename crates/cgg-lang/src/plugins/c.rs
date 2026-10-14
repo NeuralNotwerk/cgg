@@ -53,12 +53,34 @@ impl LanguagePlugin for CPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
+        out.macro_invocations =
+            super::c_macro::scan_invocations(tree.root_node(), source, false);
         if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
         out
     }
+}
+
+/// The definitions and calls of a macro expansion (see
+/// [`super::c_macro`]), extracted as a file's would be.
+pub(super) fn extract_fragment(
+    ctx: &crate::ExtractCtx<'_>,
+    file: FileId,
+    path: &Path,
+    tree: &Tree,
+    source: &[u8],
+) -> FileFacts {
+    let mut facts = FileFacts::new(file, path.to_path_buf(), "c");
+    let mut w = CWalker {
+        source,
+        facts: &mut facts,
+        ctx: *ctx,
+        skip_call: None,
+    };
+    w.walk(tree.root_node());
+    facts
 }
 
 struct CWalker<'a> {
@@ -154,22 +176,40 @@ impl<'a> CWalker<'a> {
         // declarator (`FIELDS(DECL)`) and the real header as stray
         // children of it — a `call_expression` `helper(void)`. That
         // header names the function.
-        let name = swallowed_header(decl)
+        let swallowed = swallowed_header(decl).filter(|call| {
+            call.child_by_field_name("function")
+                .is_some_and(|f| f.kind() == "identifier")
+        });
+        let name = swallowed
             .and_then(|call| call.child_by_field_name("function"))
-            .filter(|f| f.kind() == "identifier")
             .map(|f| self.text(f).to_string())
             .unwrap_or_else(|| self.fn_name_from_declarator(decl));
         if name.is_empty() {
             return;
         }
-        let (sl, el) = line_range(node);
+        // The definition starts at its own header's return type, not at
+        // the invocations the grammar folded in front of it: those are
+        // items of their own (see `c_macro`).
+        // `LIST(DECL)\nint g(void) {…}` parses the invocation as the return
+        // type (`macro_type_specifier`) and the real one as an error.
+        let after_macro_type = node
+            .child_by_field_name("type")
+            .filter(|t| t.kind() == "macro_type_specifier")
+            .and_then(|t| t.next_named_sibling())
+            .filter(|n| n.is_error());
+        let start = swallowed
+            .and_then(|call| call.prev_named_sibling())
+            .or(after_macro_type)
+            .unwrap_or(node);
+        let (_, el) = line_range(node);
+        let sl = start.start_position().row as u32 + 1;
         self.facts.definitions.push(DefRecord {
             simple_name: name.clone(),
             qualified_name: name,
             variant: DefVariant::FreeFunction,
             start_line: sl,
             end_line: el,
-            start_byte: node.start_byte() as u32,
+            start_byte: start.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
@@ -266,6 +306,9 @@ impl<'a> CWalker<'a> {
             attributes: vec!["macro".to_string()],
             ..Default::default()
         });
+        if let Some(m) = super::c_macro::record_fn_macro(node, self.source) {
+            self.facts.fn_macros.push(m);
+        }
     }
 
     fn record_include(&mut self, node: Node) {

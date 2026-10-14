@@ -3,6 +3,7 @@ pub mod asyncapi;
 pub(crate) mod attrs;
 pub mod bash;
 pub mod c;
+pub mod c_macro;
 pub mod cfg;
 pub mod clojure;
 pub mod cmake;

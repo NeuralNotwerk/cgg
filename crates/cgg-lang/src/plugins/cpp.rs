@@ -65,12 +65,40 @@ impl LanguagePlugin for CppPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
+        out.macro_invocations =
+            super::c_macro::scan_invocations(tree.root_node(), source, true);
         if ctx.deadcode_signals {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
         out
     }
+}
+
+/// The definitions and calls of a macro expansion (see
+/// [`super::c_macro`]), extracted as a file's would be with `scope` open
+/// around it — its last `classes` entries being classes.
+pub(super) fn extract_fragment(
+    ctx: &crate::ExtractCtx<'_>,
+    file: FileId,
+    path: &Path,
+    tree: &Tree,
+    source: &[u8],
+    scope: &[String],
+    classes: usize,
+) -> FileFacts {
+    let mut facts = FileFacts::new(file, path.to_path_buf(), "cpp");
+    let classes = classes.min(scope.len());
+    let mut w = CppWalker {
+        ctx: *ctx,
+        source,
+        facts: &mut facts,
+        scope: scope.to_vec(),
+        class_stack: scope[scope.len() - classes..].to_vec(),
+        bases: vec![Vec::new(); classes],
+    };
+    w.walk(tree.root_node());
+    facts
 }
 
 struct CppWalker<'a> {
@@ -619,6 +647,9 @@ impl<'a> CppWalker<'a> {
             attributes: vec!["macro".to_string()],
             ..Default::default()
         });
+        if let Some(m) = super::c_macro::record_fn_macro(node, self.source) {
+            self.facts.fn_macros.push(m);
+        }
     }
 
     /// `#define THEKERNEL Kernel::instance` — kept as text so the type
