@@ -1,0 +1,19 @@
+c | removed {'high': 616, 'medium': 12} | added {'high': 1259, 'medium': 168} | rescored {}
+       551 now unresolved: no-enclosing-callable
+       65 rebound to another target
+       12 now unresolved: candidates-in-other-files
+clojure | removed {'high': 6, 'medium': 1} | added {'high': 6, 'medium': 1} | rescored {}
+       7 rebound to another target
+cpp | removed {'medium': 1098} | added {'medium': 994, 'high': 322} | rescored {}
+       832 now unresolved: fanout-cap-exceeded
+       266 external/stdlib or still bound (same name, kept target)
+elixir | removed {'high': 141, 'medium': 12} | added {'high': 4060, 'medium': 8} | rescored {}
+       131 external/stdlib or still bound (same name, kept target)
+       20 rebound to another target
+       1 now unresolved: no-enclosing-callable
+       1 now unresolved: ambiguous-in-file
+rust | removed {'medium': 4781} | added {} | rescored {}
+       3627 now unresolved: fanout-cap-exceeded
+       773 now unresolved: ambiguous-in-file
+       301 external/stdlib or still bound (same name, kept target)
+       80 now unresolved: candidates-in-other-files

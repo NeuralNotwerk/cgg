@@ -1,0 +1,73 @@
+{
+ "c": {
+  "drop": {
+   "high": 616,
+   "medium": 12
+  },
+  "add": {
+   "high": 1259,
+   "medium": 168
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 65,
+   "now unresolved: no-enclosing-callable": 551,
+   "now unresolved: candidates-in-other-files": 12
+  }
+ },
+ "clojure": {
+  "drop": {
+   "high": 6,
+   "medium": 1
+  },
+  "add": {
+   "high": 6,
+   "medium": 1
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 7
+  }
+ },
+ "cpp": {
+  "drop": {
+   "medium": 936
+  },
+  "add": {
+   "medium": 994,
+   "high": 322
+  },
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 266,
+   "now unresolved: fanout-cap-exceeded": 670
+  }
+ },
+ "elixir": {
+  "drop": {
+   "high": 141,
+   "medium": 12
+  },
+  "add": {
+   "high": 4060,
+   "medium": 8
+  },
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 131,
+   "rebound to another target": 20,
+   "now unresolved: no-enclosing-callable": 1,
+   "now unresolved: ambiguous-in-file": 1
+  }
+ },
+ "rust": {
+  "drop": {
+   "medium": 215
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 215
+  }
+ }
+}
