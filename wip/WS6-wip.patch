@@ -1,0 +1,1466 @@
+diff --git a/crates/cgg-core/src/deadcode.rs b/crates/cgg-core/src/deadcode.rs
+index 124a548..9795af4 100644
+--- a/crates/cgg-core/src/deadcode.rs
++++ b/crates/cgg-core/src/deadcode.rs
+@@ -341,7 +341,10 @@ impl Evidence {
+             // callable from the file that would call it, so a "nothing
+             // calls it" verdict must not sit in the top band.
+             Evidence::NameCollidesWithScreenedSite { screen, .. }
+-                if matches!(screen.as_str(), "value-position" | "attribute-string") =>
++                if matches!(
++                    screen.as_str(),
++                    "value-position" | "attribute-string" | "reflection"
++                ) =>
+             {
+                 Some(Confidence::Medium)
+             }
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 2df1b83..6d322b4 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -158,6 +158,12 @@ pub enum TestRole {
+ /// thing cgg refuses to do. It exists so the dead-code report can say
+ /// "something names this string, so cgg may simply be unable to see the
+ /// call".
++/// [`DynUse::via`] values that load a *module* by name (`require("x")`,
++/// `importlib.import_module("x")`) rather than look a member up. The
++/// literal names a file or package, not a callable, so it is reported but
++/// does not cap a same-named callable's dead-code finding.
++pub const DYN_MODULE_LOADERS: &[&str] = &["require", "importScripts", "import_module"];
++
+ #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+ pub struct DynUse {
+     /// The identifier-shaped literal.
+@@ -408,6 +414,21 @@ pub struct RefRecord {
+     /// irrelevant. Only the Erlang and Elixir plugins set it.
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub arity: Option<u32>,
++
++    /// Set when the site *names* a callable as a value without calling
++    /// it, written in a shape that carries its receiver: a Java method
++    /// reference (`this::m`, `Type::m`, `Type::new`), a C# method group
++    /// (`Select(F)`, `evt += this.H`, `Func<int> f = F`). The record is
++    /// resolved exactly as a call through that receiver would be, and
++    /// every edge it produces is a [`crate::graph::Via::Reference`] edge —
++    /// gated behind `--reference-edges` like every other reference.
++    ///
++    /// Unlike a [`VALUE_REF_HINT`] record, whose receiver is plumbing,
++    /// `receiver_hint` here is a real receiver. Plugins emit these only
++    /// when the run asked for reference sites (`ExtractCtx`), so an
++    /// ordinary run's graph and audit are untouched.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub value_ref: bool,
+ }
+ 
+ /// The two-phase AST pass output for a single file.
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index 0faa86e..99cfd85 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -47,11 +47,11 @@ pub use external::{
+     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
+ };
+ pub use facts::{
+-    ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DefRecord, DefVariant, DynUse, ExportRecord,
+-    FieldType, FileFacts, ImportRecord, LocalBinding, LocalType, MacroAlias,
+-    MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole, TypeSpan,
+-    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
+-    looks_like_type_name, template_pointee,
++    ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant,
++    DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding, LocalType,
++    MacroAlias, MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole,
++    TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
++    last_scope_segment, looks_like_type_name, template_pointee,
+ };
+ pub use frameworks::{
+     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+diff --git a/crates/cgg-lang/src/lib.rs b/crates/cgg-lang/src/lib.rs
+index f9374d7..840b521 100644
+--- a/crates/cgg-lang/src/lib.rs
++++ b/crates/cgg-lang/src/lib.rs
+@@ -45,6 +45,16 @@ pub struct ExtractCtx<'a> {
+     /// benchmark corpus, so an ordinary run must not pay for them.
+     pub deadcode_signals: bool,
+ 
++    /// Record value references that carry a receiver (Java method
++    /// references, C# method groups) and the value positions added with
++    /// them (Python `return f`, `yield f`, `@deco`, defaults, …).
++    ///
++    /// Their only consumers are `--reference-edges` and `--dead-code`
++    /// (which turns reference edges on): an ordinary run drops every
++    /// reference edge, so recording these there would only add audit
++    /// noise and extraction time.
++    pub reference_sites: bool,
++
+     /// Registrar verbs contributed by user-authored framework rules,
+     /// pre-lowercased.
+     ///
+@@ -136,11 +146,22 @@ impl<'a> ExtractCtx<'a> {
+     ) -> Self {
+         Self {
+             deadcode_signals,
++            reference_sites: false,
+             extra_verbs,
+             language: "",
+         }
+     }
+ 
++    /// The same context, recording receiver-carrying value references
++    /// (see [`ExtractCtx::reference_sites`]).
++    #[must_use]
++    pub fn with_reference_sites(self, on: bool) -> Self {
++        Self {
++            reference_sites: on,
++            ..self
++        }
++    }
++
+     /// The same context, narrowed to one language's registrar verbs.
+     ///
+     /// Called once per file by the pipeline, which knows the language the
+@@ -157,6 +178,7 @@ impl<'a> ExtractCtx<'a> {
+     pub fn plain() -> ExtractCtx<'static> {
+         ExtractCtx {
+             deadcode_signals: false,
++            reference_sites: false,
+             extra_verbs: no_extra_verbs(),
+             language: "",
+         }
+diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
+index 1aa7f51..c566fb4 100644
+--- a/crates/cgg-lang/src/plugins/clojure.rs
++++ b/crates/cgg-lang/src/plugins/clojure.rs
+@@ -340,6 +340,7 @@ impl<'a> ClojureWalker<'a> {
+                         implicit_receiver: false,
+                         not_def: None,
+                         arity: None,
++                        value_ref: false,
+                         name: s,
+                         receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                         site_line: line,
+@@ -371,6 +372,7 @@ impl<'a> ClojureWalker<'a> {
+                         implicit_receiver: false,
+                         not_def: None,
+                         arity: None,
++                        value_ref: false,
+                         name: t.to_string(),
+                         receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                         site_line: line,
+@@ -444,6 +446,7 @@ impl<'a> ClojureWalker<'a> {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: simple,
+             receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+             site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
+index 739e1fc..dc9957b 100644
+--- a/crates/cgg-lang/src/plugins/csharp.rs
++++ b/crates/cgg-lang/src/plugins/csharp.rs
+@@ -41,6 +41,7 @@ impl LanguagePlugin for CSharpPlugin {
+     }
+     fn signals(&self) -> crate::PluginSignals {
+         crate::PluginSignals {
++            dyn_uses: true,
+             visibility: true,
+             attributes: true,
+             impls: true,
+@@ -70,6 +71,9 @@ impl LanguagePlugin for CSharpPlugin {
+             bases: Vec::new(),
+         };
+         w.walk(tree.root_node());
++        if ctx.deadcode_signals {
++            facts.dyn_uses = super::dynuse::extract(tree, source, "csharp");
++        }
+         facts
+     }
+ }
+@@ -212,6 +216,23 @@ impl<'a> Walker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // Value positions where a method group can stand: an argument
++            // (`Select(F)`, `new EventHandler(this.H)`, `nameof(F)`), the
++            // right of an assignment (`evt += H`, `f = F`), a variable
++            // initializer (`Func<int> f = F`), a `return`, an
++            // expression body, a collection initializer.
++            "argument"
++            | "assignment_expression"
++            | "variable_declarator"
++            | "return_statement"
++            | "arrow_expression_clause"
++            | "initializer_expression"
++                if self.ctx.reference_sites =>
++            {
++                self.record_method_groups(node);
++                self.walk_children(node);
++                return;
++            }
+             "invocation_expression" => {
+                 if let Some(r) = self.ref_from_invoke(node) {
+                     // Shape B: `app.MapGet("/x", Handler)` — the minimal
+@@ -386,6 +407,89 @@ impl<'a> Walker<'a> {
+         });
+     }
+ 
++    /// The value expressions of a value-position node, as listed on the
++    /// match arm in `walk`.
++    fn record_method_groups(&mut self, node: Node) {
++        let values: Vec<Node> = match node.kind() {
++            "assignment_expression" => {
++                node.child_by_field_name("right").into_iter().collect()
++            }
++            "argument" | "variable_declarator" => {
++                // The `name` field (`name: value`, the declared variable)
++                // is a label, not a value.
++                let label = node.child_by_field_name("name").map(|n| n.id());
++                let mut c = node.walk();
++                node.named_children(&mut c)
++                    .filter(|n| Some(n.id()) != label)
++                    .collect()
++            }
++            _ => {
++                let mut c = node.walk();
++                node.named_children(&mut c).collect()
++            }
++        };
++        for v in values {
++            self.record_method_group(v, 0);
++        }
++    }
++
++    /// A method group: a name or member access in a value position,
++    /// recorded as the call through that receiver it would be if invoked
++    /// and marked [`RefRecord::value_ref`]. The resolver binds it only
++    /// where a callable of that name exists, so a variable, field or
++    /// property in the same position costs nothing.
++    fn record_method_group(&mut self, v: Node, depth: u8) {
++        let (name_node, recv) = match v.kind() {
++            "identifier" => (v, String::new()),
++            "member_access_expression" => {
++                let (Some(expr), Some(name)) = (
++                    v.child_by_field_name("expression"),
++                    v.child_by_field_name("name"),
++                ) else {
++                    return;
++                };
++                if name.kind() != "identifier" {
++                    return;
++                }
++                let recv = if expr.kind() == "base" {
++                    "super".to_string()
++                } else {
++                    self.text(expr).to_string()
++                };
++                (name, recv)
++            }
++            // `c ? F : G`, `(F)`: the branches are the values.
++            "conditional_expression" | "parenthesized_expression" if depth < 4 => {
++                let parts: Vec<Node> = if v.kind() == "conditional_expression" {
++                    ["consequence", "alternative"]
++                        .iter()
++                        .filter_map(|f| v.child_by_field_name(f))
++                        .collect()
++                } else {
++                    let mut c = v.walk();
++                    v.named_children(&mut c).collect()
++                };
++                for p in parts {
++                    self.record_method_group(p, depth + 1);
++                }
++                return;
++            }
++            _ => return,
++        };
++        let name = self.text(name_node).to_string();
++        if name.is_empty() {
++            return;
++        }
++        self.facts.references.push(RefRecord {
++            name,
++            receiver_hint: recv,
++            site_line: (name_node.start_position().row as u32) + 1,
++            site_byte: name_node.start_byte() as u32,
++            value_ref: true,
++            ..Default::default()
++        });
++    }
++
+     fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
+         let func = node.child_by_field_name("function")?;
+         let (name, recv) = match func.kind() {
+@@ -521,6 +625,64 @@ mod tests {
+         )
+     }
+ 
++    fn extract_refs(src: &str) -> FileFacts {
++        let mut p = Parser::new();
++        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into())
++            .unwrap();
++        let tree = p.parse(src, None).unwrap();
++        CSharpPlugin.extract(
++            &crate::ExtractCtx::plain().with_reference_sites(true),
++            FileId::new(0),
++            &PathBuf::from("/tmp/__cgg_test__/x.cs"),
++            &tree,
++            src.as_bytes(),
++        )
++    }
++
++    /// B3: a method group in a value position is recorded through its
++    /// receiver; an invoked member and a declared variable's name are not.
++    #[test]
++    fn method_groups_are_value_refs() {
++        let src = "class P { event System.EventHandler E; void Run(int[] xs) {\n\
++            xs.Select(Double); E += OnE; var h = new System.EventHandler(this.OnO);\n\
++            System.Func<int,int> f = Triple; Log(nameof(Named)); System.Action a = P.S;\n\
++            E -= c ? OnA : OnB; Go(base.Up); Call(); } }";
++        let f = extract_refs(src);
++        let got: Vec<(String, String)> = f
++            .references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
++            .collect();
++        let want: Vec<(String, String)> = [
++            ("", "Double"),
++            ("", "OnE"),
++            ("", "Named"),
++            ("this", "OnO"),
++            ("", "Triple"),
++            ("P", "S"),
++            ("", "OnA"),
++            ("", "OnB"),
++            ("super", "Up"),
++        ]
++        .iter()
++        .map(|(a, b)| (a.to_string(), b.to_string()))
++        .collect();
++        let mut got_sorted = got.clone();
++        got_sorted.sort();
++        let mut want_sorted = want;
++        want_sorted.sort();
++        assert_eq!(got_sorted, want_sorted, "got {got:?}");
++        // The declared names `h`, `f`, `a` are not values.
++        assert!(!got.iter().any(|(_, n)| n == "h" || n == "f" || n == "a"));
++    }
++
++    #[test]
++    fn method_groups_need_reference_sites() {
++        let f = extract("class P { void Run(int[] xs) { xs.Select(Double); } }");
++        assert!(f.references.iter().all(|r| !r.value_ref));
++    }
++
+     #[test]
+     fn method_qualified_name_with_namespace_and_class() {
+         let src = r#"
+diff --git a/crates/cgg-lang/src/plugins/dynuse.rs b/crates/cgg-lang/src/plugins/dynuse.rs
+index eddfa12..69f3846 100644
+--- a/crates/cgg-lang/src/plugins/dynuse.rs
++++ b/crates/cgg-lang/src/plugins/dynuse.rs
+@@ -86,10 +86,20 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
+         let mut c = n.walk();
+         stack.extend(n.children(&mut c));
+ 
+-        if !n.kind().contains("call") {
++        // Java's `method_invocation` and C#'s `invocation_expression`
++        // are calls too; neither has "call" in its kind.
++        if !(n.kind().contains("call")
++            || matches!(n.kind(), "method_invocation" | "invocation_expression"))
++        {
+             continue;
+         }
+-        let Some(func) = n.child_by_field_name("function") else {
++        // The callee: `function` (Python, C#, PHP, JS), `name` (Java's
++        // `o.getMethod(…)` keeps the receiver in `object`), `method`
++        // (Ruby's `o.send(:m)`).
++        let Some(func) = ["function", "name", "method"]
++            .iter()
++            .find_map(|f| n.child_by_field_name(f))
++        else {
+             continue;
+         };
+         let fname = text(func).rsplit(['.', ':']).next().unwrap_or("").trim();
+@@ -101,6 +111,15 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
+         };
+         let mut ac = args.walk();
+         for a in args.children(&mut ac) {
++            // C# and PHP wrap each argument in an `argument` node.
++            let a = if a.kind() == "argument" {
++                match a.named_child(0) {
++                    Some(inner) => inner,
++                    None => continue,
++                }
++            } else {
++                a
++            };
+             let k = a.kind();
+             if !(k.contains("string") || k == "symbol" || k == "simple_symbol") {
+                 continue;
+@@ -159,6 +178,52 @@ mod tests {
+         assert!(extract(&t, src.as_bytes(), "python").is_empty());
+     }
+ 
++    #[test]
++    fn java_get_declared_method_names_a_method() {
++        let src = "class A { void f() throws Exception { A.class.getDeclaredMethod(\"m\").invoke(this); helper(\"n\"); } }";
++        let t = parse("java", src);
++        let d = extract(&t, src.as_bytes(), "java");
++        assert_eq!(
++            d.iter()
++                .map(|x| (x.name.as_str(), x.via.as_str()))
++                .collect::<Vec<_>>(),
++            vec![("m", "getDeclaredMethod")]
++        );
++    }
++
++    #[test]
++    fn csharp_get_method_names_a_method() {
++        let src = "class A { void F() { typeof(A).GetMethod(\"M\", 0); Log(\"N\"); } }";
++        let t = parse("csharp", src);
++        let d = extract(&t, src.as_bytes(), "csharp");
++        assert_eq!(
++            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
++            vec!["M"]
++        );
++    }
++
++    #[test]
++    fn ruby_send_names_a_method() {
++        let src = "class A\n  def f\n    send(:m)\n    puts(:n)\n  end\nend\n";
++        let t = parse("ruby", src);
++        let d = extract(&t, src.as_bytes(), "ruby");
++        assert_eq!(
++            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
++            vec!["m"]
++        );
++    }
++
++    #[test]
++    fn php_call_user_func_names_a_function() {
++        let src = "<?php\nfunction f() { call_user_func('m'); strlen('n'); }\n";
++        let t = parse("php", src);
++        let d = extract(&t, src.as_bytes(), "php");
++        assert_eq!(
++            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
++            vec!["m"]
++        );
++    }
++
+     #[test]
+     fn a_language_with_no_allowlist_yields_nothing() {
+         let src = "fn f() {}";
+diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
+index 1403e20..3c79cab 100644
+--- a/crates/cgg-lang/src/plugins/elixir.rs
++++ b/crates/cgg-lang/src/plugins/elixir.rs
+@@ -460,6 +460,7 @@ impl<'a> ElixirWalker<'a> {
+             route: route.to_string(),
+             kwargs: Vec::new(),
+             arity: None,
++            value_ref: false,
+         });
+     }
+ 
+diff --git a/crates/cgg-lang/src/plugins/java.rs b/crates/cgg-lang/src/plugins/java.rs
+index 187f2d8..d982c8b 100644
+--- a/crates/cgg-lang/src/plugins/java.rs
++++ b/crates/cgg-lang/src/plugins/java.rs
+@@ -22,6 +22,7 @@ impl LanguagePlugin for JavaPlugin {
+             attributes: true,
+             impls: true,
+             value_refs: true,
++            dyn_uses: true,
+             ..Default::default()
+         }
+     }
+@@ -156,6 +157,13 @@ impl<'a> JavaWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // `this::m`, `Type::m`, `Type::new`, `super::m`: a method
++            // named as a value. Only when the run keeps reference sites.
++            "method_reference" if self.ctx.reference_sites => {
++                self.record_method_reference(node);
++                self.walk_children(node);
++                return;
++            }
+             "local_variable_declaration" => {
+                 self.record_local_type(node);
+                 self.walk_children(node);
+@@ -345,6 +353,73 @@ impl<'a> JavaWalker<'a> {
+         self.facts.references.extend(extra);
+     }
+ 
++    /// A method reference names a method without calling it. It is
++    /// recorded the way the call it stands for is — `this::m` as `m`
++    /// through `this`, `h::consume` through the variable `h`, `Type::new`
++    /// as `new Type()` — and marked [`RefRecord::value_ref`] so whatever
++    /// it resolves to is a reference edge, not a call.
++    ///
++    /// The site is the method name's own byte (the `new` token for a
++    /// constructor reference), which no call expression starts at, so the
++    /// reference never shares a site with a call in the same expression.
++    fn record_method_reference(&mut self, node: Node) {
++        let mut c = node.walk();
++        let children: Vec<Node> = node.children(&mut c).collect();
++        let Some(recv_node) = children
++            .iter()
++            .copied()
++            .find(|n| n.is_named() && n.kind() != "type_arguments")
++        else {
++            return;
++        };
++        let site_line = (node.start_position().row as u32) + 1;
++        if let Some(new_tok) =
++            children.iter().find(|n| !n.is_named() && n.kind() == "new")
++        {
++            // `int[]::new` constructs an array: no callable.
++            if recv_node.kind() == "array_type" {
++                return;
++            }
++            let ty = self.text(recv_node);
++            let ty = ty.split('<').next().unwrap_or("").trim().to_string();
++            if ty.is_empty() {
++                return;
++            }
++            self.facts.references.push(RefRecord {
++                name: ty,
++                site_line,
++                site_byte: new_tok.start_byte() as u32,
++                value_ref: true,
++                ..Default::default()
++            });
++            return;
++        }
++        let Some(name_node) = children
++            .iter()
++            .rev()
++            .copied()
++            .find(|n| n.is_named() && n.kind() == "identifier")
++        else {
++            return;
++        };
++        if name_node.id() == recv_node.id() {
++            return;
++        }
++        let recv = if recv_node.kind() == "super" {
++            "super".to_string()
++        } else {
++            self.text(recv_node).to_string()
++        };
++        self.facts.references.push(RefRecord {
++            name: self.text(name_node).to_string(),
++            receiver_hint: recv,
++            site_line,
++            site_byte: name_node.start_byte() as u32,
++            value_ref: true,
++            ..Default::default()
++        });
++    }
++
+     fn record_local_type(&mut self, node: Node) {
+         // local_variable_declaration -> type_identifier + variable_declarator
+         let type_node = node
+@@ -477,6 +552,76 @@ mod tests {
+         )
+     }
+ 
++    fn extract_refs(src: &str) -> FileFacts {
++        let mut p = Parser::new();
++        p.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        JavaPlugin.extract(
++            &crate::ExtractCtx::plain().with_reference_sites(true),
++            FileId::new(0),
++            &PathBuf::from("/tmp/__cgg_test__/X.java"),
++            &tree,
++            src.as_bytes(),
++        )
++    }
++
++    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
++        f.references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
++            .collect()
++    }
++
++    /// B3: a method reference names its method through its receiver, the
++    /// way the call it stands for would; `Type::new` is `new Type()`.
++    #[test]
++    fn method_references_are_value_refs_through_their_receiver() {
++        let src = "class A extends B { void f(java.util.List<String> xs, H h) {\n\
++            xs.forEach(this::g); xs.map(A::s); new Thread(this::w);\n\
++            java.util.function.Supplier<H> n = H::new; xs.forEach(h::c);\n\
++            Runnable r = super::hook; java.util.function.IntFunction<int[]> a = int[]::new;\n\
++            java.util.function.Supplier<java.util.List<String>> l = java.util.ArrayList<String>::new; } }";
++        let f = extract_refs(src);
++        let got = value_refs(&f);
++        let want: Vec<(String, String)> = [
++            ("this", "g"),
++            ("A", "s"),
++            ("this", "w"),
++            ("", "H"),
++            ("h", "c"),
++            ("super", "hook"),
++            ("", "java.util.ArrayList"),
++        ]
++        .iter()
++        .map(|(a, b)| (a.to_string(), b.to_string()))
++        .collect();
++        assert_eq!(got, want);
++        // The site is the name's own token, never a call's start byte.
++        let call_sites: Vec<u32> = f
++            .references
++            .iter()
++            .filter(|r| !r.value_ref)
++            .map(|r| r.site_byte)
++            .collect();
++        assert!(
++            f.references
++                .iter()
++                .filter(|r| r.value_ref)
++                .all(|r| !call_sites.contains(&r.site_byte))
++        );
++    }
++
++    /// An ordinary run records no reference sites: its graph drops every
++    /// reference edge anyway.
++    #[test]
++    fn method_references_need_reference_sites() {
++        let f = extract(
++            "class A { void f(java.util.List<String> xs) { xs.forEach(this::g); } }",
++        );
++        assert!(f.references.iter().all(|r| !r.value_ref));
++    }
++
+     #[test]
+     fn a_native_method_is_marked_native() {
+         // `native` is the Java side of a JNI boundary: the body lives
+diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
+index fc07520..ed93446 100644
+--- a/crates/cgg-lang/src/plugins/javascript.rs
++++ b/crates/cgg-lang/src/plugins/javascript.rs
+@@ -1302,6 +1302,7 @@ impl<'a> JsWalker<'a> {
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
+index 9ecd41d..37860c8 100644
+--- a/crates/cgg-lang/src/plugins/perl.rs
++++ b/crates/cgg-lang/src/plugins/perl.rs
+@@ -556,6 +556,7 @@ impl<'a> PerlWalker<'a> {
+                     implicit_receiver: false,
+                     not_def: None,
+                     arity: None,
++                    value_ref: false,
+                     name: s,
+                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -578,6 +579,7 @@ impl<'a> PerlWalker<'a> {
+                     implicit_receiver: false,
+                     not_def: None,
+                     arity: None,
++                    value_ref: false,
+                     name,
+                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -668,6 +670,7 @@ impl<'a> PerlWalker<'a> {
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
+index f241248..8e3a3ec 100644
+--- a/crates/cgg-lang/src/plugins/php.rs
++++ b/crates/cgg-lang/src/plugins/php.rs
+@@ -20,6 +20,7 @@ impl LanguagePlugin for PhpPlugin {
+     }
+     fn signals(&self) -> crate::PluginSignals {
+         crate::PluginSignals {
++            dyn_uses: true,
+             attributes: true,
+             impls: true,
+             value_refs: true,
+@@ -49,6 +50,9 @@ impl LanguagePlugin for PhpPlugin {
+             namespace: String::new(),
+         };
+         w.walk(tree.root_node());
++        if ctx.deadcode_signals {
++            facts.dyn_uses = super::dynuse::extract(tree, source, "php");
++        }
+         facts
+     }
+ }
+diff --git a/crates/cgg-lang/src/plugins/python.rs b/crates/cgg-lang/src/plugins/python.rs
+index 19dd09a..a3c6855 100644
+--- a/crates/cgg-lang/src/plugins/python.rs
++++ b/crates/cgg-lang/src/plugins/python.rs
+@@ -190,6 +190,9 @@ impl<'a> Walker<'a> {
+     }
+ 
+     fn walk(&mut self, node: Node) {
++        if self.ctx.reference_sites {
++            self.capture_value_positions(node);
++        }
+         match node.kind() {
+             "class_definition" => {
+                 let name = node
+@@ -336,6 +339,107 @@ impl<'a> Walker<'a> {
+         }
+     }
+ 
++    /// Value positions no call encloses, when the run records reference
++    /// sites: `return _f`, `yield _f`, a bare decorator `@_deco`, a
++    /// default `cb=_f`, a comprehension's value `{k: _f for k in …}`, an
++    /// identity test `x is _f`. Each name is recorded the way the call it
++    /// would be if invoked is (`_f` bare, `self._m` through `self`),
++    /// marked `value_ref` so what it resolves to is a reference edge.
++    fn capture_value_positions(&mut self, node: Node) {
++        let values: Vec<Node> = match node.kind() {
++            "return_statement" | "yield" | "decorator" => {
++                let mut c = node.walk();
++                node.named_children(&mut c).collect()
++            }
++            "default_parameter" | "typed_default_parameter" => {
++                node.child_by_field_name("value").into_iter().collect()
++            }
++            "dictionary_comprehension"
++            | "list_comprehension"
++            | "set_comprehension"
++            | "generator_expression" => {
++                node.child_by_field_name("body").into_iter().collect()
++            }
++            "comparison_operator" => {
++                let mut c = node.walk();
++                let identity = node
++                    .children(&mut c)
++                    .any(|t| !t.is_named() && matches!(t.kind(), "is" | "is not"));
++                if !identity {
++                    return;
++                }
++                let mut c = node.walk();
++                node.named_children(&mut c).collect()
++            }
++            _ => return,
++        };
++        for v in values {
++            self.value_position_ref(v, 0);
++        }
++    }
++
++    fn value_position_ref(&mut self, v: Node, depth: u8) {
++        if depth > 4 {
++            return;
++        }
++        let (name_node, recv) = match v.kind() {
++            "identifier" => (v, String::new()),
++            "attribute" => {
++                let (Some(obj), Some(attr)) = (
++                    v.child_by_field_name("object"),
++                    v.child_by_field_name("attribute"),
++                ) else {
++                    return;
++                };
++                (attr, self.text(obj).to_string())
++            }
++            "pair" => {
++                if let Some(val) = v.child_by_field_name("value") {
++                    self.value_position_ref(val, depth + 1);
++                }
++                return;
++            }
++            "conditional_expression" => {
++                // `a if cond else b`: the condition is not a value.
++                let mut c = v.walk();
++                let parts: Vec<Node> = v.named_children(&mut c).collect();
++                for (i, p) in parts.into_iter().enumerate() {
++                    if i != 1 {
++                        self.value_position_ref(p, depth + 1);
++                    }
++                }
++                return;
++            }
++            "tuple"
++            | "list"
++            | "set"
++            | "expression_list"
++            | "dictionary"
++            | "parenthesized_expression"
++            | "boolean_operator" => {
++                let mut c = v.walk();
++                let parts: Vec<Node> = v.named_children(&mut c).collect();
++                for p in parts {
++                    self.value_position_ref(p, depth + 1);
++                }
++                return;
++            }
++            _ => return,
++        };
++        let name = self.text(name_node).to_string();
++        if name.is_empty() {
++            return;
++        }
++        self.facts.references.push(RefRecord {
++            name,
++            receiver_hint: recv,
++            site_line: (name_node.start_position().row as u32) + 1,
++            site_byte: name_node.start_byte() as u32,
++            value_ref: true,
++            ..Default::default()
++        });
++    }
++
+     /// Capture callables named on the right-hand side of an assignment.
+     ///
+     /// `DAEMONIZED_TASKS = {'check_status': _check_status}` and
+@@ -1082,6 +1186,68 @@ mod tests {
+         extract_with("m.py", src)
+     }
+ 
++    fn extract_refs(src: &str) -> FileFacts {
++        let mut parser = Parser::new();
++        parser
++            .set_language(&tree_sitter_python::LANGUAGE.into())
++            .unwrap();
++        let tree = parser.parse(src, None).unwrap();
++        PythonPlugin.extract(
++            &crate::ExtractCtx::plain().with_reference_sites(true),
++            FileId::new(0),
++            &PathBuf::from("m.py"),
++            &tree,
++            src.as_bytes(),
++        )
++    }
++
++    /// B3: value positions no call encloses.
++    #[test]
++    fn value_positions_are_value_refs() {
++        let src = "@_deco\ndef f(cb=_dflt):\n    x = {k: _comp for k in ks}\n    y = [_lc for _ in ks]\n    if x is _ident: pass\n    if x == _eq: pass\n    yield _y\n    return self._ret if c else _alt\n";
++        let f = extract_refs(src);
++        let mut got: Vec<(String, String)> = f
++            .references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
++            .collect();
++        got.sort();
++        let mut want: Vec<(String, String)> = [
++            ("", "_deco"),
++            ("", "_dflt"),
++            ("", "_comp"),
++            ("", "_lc"),
++            ("", "x"),
++            ("", "_ident"),
++            ("", "_y"),
++            ("self", "_ret"),
++            ("", "_alt"),
++        ]
++        .iter()
++        .map(|(a, b)| (a.to_string(), b.to_string()))
++        .collect();
++        want.sort();
++        // `x == _eq` is a comparison, not an identity test; the
++        // conditional's condition `c` is not a value.
++        assert_eq!(got, want);
++        let plain = extract(src);
++        assert!(plain.references.iter().all(|r| !r.value_ref));
++    }
++
++    /// `a = b = _f` nests the second assignment on the right of the first.
++    #[test]
++    fn chained_assignment_names_its_value() {
++        let f = extract("a = b = _chain\n");
++        assert!(
++            f.references.iter().any(
++                |r| r.name == "_chain" && r.receiver_hint == cgg_core::VALUE_REF_HINT
++            ),
++            "{:?}",
++            f.references
++        );
++    }
++
+     /// The name other modules import the file by, for the resolver to map
+     /// an import onto the file (FINDINGS A5). A package's `__init__.py` is
+     /// importable as the package itself.
+diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
+index b4a1b47..0aed7dd 100644
+--- a/crates/cgg-lang/src/plugins/registrar.rs
++++ b/crates/cgg-lang/src/plugins/registrar.rs
+@@ -474,6 +474,7 @@ pub(crate) fn capture(
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: s,
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -636,6 +637,7 @@ fn collect_value_refs(
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: format!("{owner}::{method}"),
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -659,6 +661,7 @@ fn collect_value_refs(
+                     implicit_receiver: false,
+                     not_def: None,
+                     arity: None,
++                    value_ref: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -674,6 +677,15 @@ fn collect_value_refs(
+         return;
+     }
+ 
++    // `a = b = _f`: tree-sitter nests the second assignment on the right
++    // of the first, and only its right-hand side is a value.
++    if kind == "assignment" {
++        if let Some(rhs) = arg.child_by_field_name("right") {
++            collect_value_refs(ctx, rhs, source, context, route, line, out, depth);
++        }
++        return;
++    }
++
+     // `f = a if c else b`: only capture consequence (child 0) and
+     // alternative (child 2), NOT the condition — `asgi` in
+     // `DummyResourceAsync() if asgi else DummyResource()` is a bare
+@@ -695,6 +707,7 @@ fn collect_value_refs(
+                     implicit_receiver: false,
+                     not_def: None,
+                     arity: None,
++                    value_ref: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -766,6 +779,7 @@ fn collect_value_refs(
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: last_segment(&callee).to_string(),
+                 receiver_hint: VALUE_REF_HINT.to_string(),
+                 site_line: line,
+@@ -800,6 +814,7 @@ fn collect_value_refs(
+                     implicit_receiver: false,
+                     not_def: None,
+                     arity: None,
++                    value_ref: false,
+                     name: owner.to_string(),
+                     receiver_hint: VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -844,6 +859,7 @@ fn collect_value_refs(
+         implicit_receiver: false,
+         not_def: None,
+         arity: None,
++        value_ref: false,
+         name: simple.to_string(),
+         receiver_hint: VALUE_REF_HINT.to_string(),
+         site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
+index 4c92f54..29a23c0 100644
+--- a/crates/cgg-lang/src/plugins/ruby.rs
++++ b/crates/cgg-lang/src/plugins/ruby.rs
+@@ -20,6 +20,7 @@ impl LanguagePlugin for RubyPlugin {
+     }
+     fn signals(&self) -> crate::PluginSignals {
+         crate::PluginSignals {
++            dyn_uses: true,
+             impls: true,
+             value_refs: true,
+             ..Default::default()
+@@ -47,6 +48,9 @@ impl LanguagePlugin for RubyPlugin {
+             bases: Vec::new(),
+         };
+         w.walk(tree.root_node());
++        if ctx.deadcode_signals {
++            facts.dyn_uses = super::dynuse::extract(tree, source, "ruby");
++        }
+         facts
+     }
+ }
+@@ -319,6 +323,7 @@ impl<'a> RubyWalker<'a> {
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
+index a476f94..9bbcd04 100644
+--- a/crates/cgg-lang/src/plugins/rust.rs
++++ b/crates/cgg-lang/src/plugins/rust.rs
+@@ -1912,6 +1912,7 @@ impl<'a> Walker<'a> {
+                 implicit_receiver: false,
+                 not_def: None,
+                 arity: None,
++                value_ref: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: (arg.start_position().row as u32) + 1,
+diff --git a/crates/cgg-resolve/src/deadcode/mod.rs b/crates/cgg-resolve/src/deadcode/mod.rs
+index aa2e11b..562dede 100644
+--- a/crates/cgg-resolve/src/deadcode/mod.rs
++++ b/crates/cgg-resolve/src/deadcode/mod.rs
+@@ -226,14 +226,17 @@ impl<'a> Mentions<'a> {
+     fn evidence_for(&self, nd: &CallableNode) -> Vec<Evidence> {
+         let name = nd.simple_name.as_str();
+         let mut hits: BTreeMap<&'static str, u32> = BTreeMap::new();
+-        // A plain value reference the resolver left unbound names a
+-        // callable it refuses to bind — a named closure (`x.map(to_ms)`).
+-        // For anything else the likelier reading is a same-named
+-        // variable, which must not cost a real finding its band.
+-        let closure = nd.kind == CallableKind::Closure;
++        // A plain value reference names the callable as a value from this
++        // file (or one importing it). The resolver binds a unique target
++        // as a reference edge, so a finding that still reaches here was
++        // named where no edge could be drawn: a named closure it refuses
++        // to bind (`x.map(to_ms)`), or a function or method that names
++        // itself as a value (`signal.connect(handler)` inside `handler`),
++        // a self-edge that proves nothing. Either way the source passes
++        // it somewhere cgg cannot follow: doubt, for named functions and
++        // methods as well as closures (WS6).
+         let hit = |screen: &'static str, hits: &mut BTreeMap<&'static str, u32>| {
+             let screen = match screen {
+-                "value-ref" if !closure => return,
+                 "value-ref" => "value-position",
+                 s => s,
+             };
+@@ -601,15 +604,27 @@ pub fn analyze(
+     let root_set = roots::discover(graph, facts, &opts.user_roots, &opts.framework_roots);
+ 
+     // Identifier-shaped literals in reflective positions. Never an edge
+-    // — only a reason to doubt a finding.
+-    let dyn_named: std::collections::HashSet<(&str, &str)> = facts
+-        .iter()
+-        .flat_map(|f| {
+-            f.dyn_uses
+-                .iter()
+-                .map(move |d| (f.language.as_str(), d.name.as_str()))
+-        })
+-        .collect();
++    // — only a reason to doubt a finding. A member lookup by a literal
++    // name (`getattr(o, "m")`, `getDeclaredMethod("m")`, `send(:m)`)
++    // caps the finding at medium; a module load (`require("x")`) names a
++    // file, not a callable, and is reported without a cap.
++    let mut dyn_named: std::collections::HashMap<(&str, &str), &'static str> =
++        std::collections::HashMap::new();
++    for f in facts {
++        for d in &f.dyn_uses {
++            let screen = if cgg_core::DYN_MODULE_LOADERS.contains(&d.via.as_str()) {
++                "module-load"
++            } else {
++                "reflection"
++            };
++            let slot = dyn_named
++                .entry((f.language.as_str(), d.name.as_str()))
++                .or_insert(screen);
++            if screen == "reflection" {
++                *slot = screen;
++            }
++        }
++    }
+ 
+     let variants = def_variants(facts);
+ 
+@@ -859,9 +874,11 @@ pub fn analyze(
+                 macro_name: m.to_string(),
+             });
+         }
+-        if dyn_named.contains(&(nd.language.as_str(), nd.simple_name.as_str())) {
++        if let Some(screen) =
++            dyn_named.get(&(nd.language.as_str(), nd.simple_name.as_str()))
++        {
+             ev.push(Evidence::NameCollidesWithScreenedSite {
+-                screen: "reflection".into(),
++                screen: (*screen).into(),
+                 sites: 1,
+             });
+         }
+@@ -1703,6 +1720,69 @@ mod tests {
+         assert_eq!(conf("crate::MultiIndex::is_empty"), Confidence::High);
+     }
+ 
++    // B3: a reflective lookup by a literal name (`getattr(o, "m")`,
++    // `getDeclaredMethod("m")`) caps a same-named finding at medium; a
++    // module load (`require("m")`) names a file and caps nothing; a
++    // callable nothing names stays high.
++    #[test]
++    fn reflective_lookups_cap_at_medium_module_loads_do_not() {
++        let g = graph_with(vec![
++            node(0, "crate::main", "main", "rust"),
++            vis_node(1, "crate::looked_up", "looked_up", "", Vis::Private),
++            vis_node(2, "crate::loaded", "loaded", "", Vis::Private),
++            vis_node(3, "crate::untouched", "untouched", "", Vis::Private),
++        ]);
++        let mut fa = FileFacts::new(cgg_core::ids::FileId::new(0), "a.rs".into(), "rust");
++        for (name, via) in [("looked_up", "getattr"), ("loaded", "require")] {
++            fa.dyn_uses.push(cgg_core::DynUse {
++                name: name.into(),
++                via: via.into(),
++                site_line: 1,
++                site_byte: 0,
++            });
++        }
++        let r = analyze(&g, &[], &[fa], &opts_rust_full());
++        let conf = |qn: &str| {
++            r.findings
++                .iter()
++                .find(|f| f.qualified_name == qn)
++                .map(|f| f.confidence)
++                .unwrap()
++        };
++        assert_eq!(conf("crate::looked_up"), Confidence::Medium);
++        assert_eq!(conf("crate::loaded"), Confidence::High);
++        assert_eq!(conf("crate::untouched"), Confidence::High);
++    }
++
++    // B3: a named function passing itself as a value (`connect(handler)`
++    // inside `handler`) is a self-reference, never an edge — but it is
++    // named as a value, so doubt, like a named closure. One named nowhere
++    // stays high.
++    #[test]
++    fn a_value_reference_to_a_named_function_is_doubt() {
++        let g = graph_with(vec![
++            node(0, "crate::main", "main", "rust"),
++            vis_node(1, "crate::handler", "handler", "", Vis::Private),
++            vis_node(2, "crate::other", "other", "", Vis::Private),
++        ]);
++        let mut fa = FileFacts::new(cgg_core::ids::FileId::new(0), "a.rs".into(), "rust");
++        fa.references.push(cgg_core::RefRecord {
++            name: "handler".into(),
++            receiver_hint: cgg_core::VALUE_REF_HINT.into(),
++            ..Default::default()
++        });
++        let r = analyze(&g, &[], &[fa], &opts_rust_full());
++        let conf = |qn: &str| {
++            r.findings
++                .iter()
++                .find(|f| f.qualified_name == qn)
++                .map(|f| f.confidence)
++                .unwrap()
++        };
++        assert_eq!(conf("crate::handler"), Confidence::Medium);
++        assert_eq!(conf("crate::other"), Confidence::High);
++    }
++
+     #[test]
+     fn a_language_with_no_signals_cannot_reach_high_confidence() {
+         let mut g = graph_with(vec![
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index d1ef909..cd4dac5 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -1865,6 +1865,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -1902,6 +1903,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -1925,6 +1927,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -1955,6 +1958,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "user_id".into(),
+             receiver_hint: STRING_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2010,6 +2014,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -2049,6 +2054,7 @@ mod tests {
+             implicit_receiver: false,
+             not_def: None,
+             arity: None,
++            value_ref: false,
+             name: "on_mouse_pos".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+diff --git a/crates/cgg-resolve/src/lib.rs b/crates/cgg-resolve/src/lib.rs
+index 5cead32..abd3e2e 100644
+--- a/crates/cgg-resolve/src/lib.rs
++++ b/crates/cgg-resolve/src/lib.rs
+@@ -26,6 +26,7 @@ pub mod names;
+ mod scope;
+ pub mod stack_graphs_resolver;
+ pub mod type_hints;
++pub mod value_refs;
+ 
+ use cgg_core::{CallableId, FileId};
+ use serde::{Deserialize, Serialize};
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index 5011f4f..b07f1a0 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -281,7 +281,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+         .map(|v| v.to_ascii_lowercase())
+         .collect();
+     // Every worker shares this by reference; extraction pays a pointer.
+-    let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs);
++    // Receiver-carrying value references only ever become reference
++    // edges, which an ordinary run drops — so only a run that keeps them
++    // (`--reference-edges`, or `--dead-code`, which forces it) records them.
++    let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs)
++        .with_reference_sites(opts.reference_edges);
+ 
+     if opts.profile {
+         cgg_core::profile::enable();
+@@ -666,6 +670,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+ 
+     // --- Phase 3: type propagation + intra-file link -----------------------
+     let _phase_resolve_intra_file = cgg_core::profile::span("resolve::intra-file");
++    // Receiver-carrying value references (Java `this::m`, C# method
++    // groups) that cannot name any callable are variables, not
++    // references: drop them before they read as calls. A no-op unless
++    // the run records reference sites.
++    cgg_resolve::value_refs::prune(&mut all_facts);
+     let link_started = Instant::now();
+     let return_types_owned: HashMap<String, String> = {
+         let _s = cgg_core::profile::span("resolve::type-hints");
+@@ -947,6 +956,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     // see them — `cross_file` also emits them now (it is what binds
+     // `app.get('/x', handler)` to a handler in another module), so
+     // filtering earlier let those escape the flag that gates them.
++    // A method reference or method group resolved like a call is still
++    // only a reference: its edges are tagged so the gate below applies.
++    cgg_resolve::value_refs::tag_reference_edges(&mut graph, &all_facts);
+     if !opts.reference_edges {
+         graph.edges.retain(|e| !matches!(e.via, Via::Reference));
+     }
+diff --git a/crates/cgg-resolve/src/value_refs.rs b/crates/cgg-resolve/src/value_refs.rs
+new file mode 100644
+index 0000000..6630da6
+--- /dev/null
++++ b/crates/cgg-resolve/src/value_refs.rs
+@@ -0,0 +1,195 @@
++//! Receiver-carrying value references (WS6, FINDINGS B3).
++//!
++//! A Java method reference (`this::m`, `Type::new`) or a C# method group
++//! (`Select(F)`, `evt += this.H`) names a method without calling it. The
++//! plugins record such a site as the call through that receiver it stands
++//! for, marked [`RefRecord::value_ref`], so it is resolved by exactly the
++//! machinery a call is — typed receivers, `super`, the calling class and
++//! its bases, imports — rather than by bare name across the workspace.
++//!
++//! Two things differ from a call, and both live here:
++//!
++//! * **Before resolution** ([`prune`]): a value position holds a variable,
++//!   field or property far more often than a method. A record whose name
++//!   no callable of its language carries, or whose bare name is a local
++//!   binding at the site, is data, not a reference to anything — it is
++//!   dropped, as an unmatched [`cgg_core::VALUE_REF_HINT`] record always
++//!   has been, instead of reaching the unresolved buckets as a call that
++//!   does not exist.
++//! * **After resolution** ([`tag_reference_edges`]): every edge drawn from
++//!   such a site is a [`Via::Reference`] edge, so it is gated behind
++//!   `--reference-edges` like every other reference.
++
++use std::collections::{HashMap, HashSet};
++
++use cgg_core::graph::{Graph, Via};
++use cgg_core::ids::FileId;
++use cgg_core::{FileFacts, RefRecord};
++
++/// The callable name a value-ref record must match: its last path
++/// segment (`a.b.Foo` for a constructor reference is `Foo`).
++fn leaf(r: &RefRecord) -> &str {
++    r.name.rsplit(['.', ':']).next().unwrap_or(&r.name)
++}
++
++/// Drop value-ref records that cannot name a callable: no callable of the
++/// file's language has that simple name, or the bare name is a local
++/// binding in scope at the site. Facts without a value-ref record are not
++/// touched, so this is free on a run that records none.
++pub fn prune(all_facts: &mut [FileFacts]) {
++    if !all_facts
++        .iter()
++        .any(|f| f.references.iter().any(|r| r.value_ref))
++    {
++        return;
++    }
++    let mut names: HashMap<&str, HashSet<&str>> = HashMap::new();
++    for f in all_facts.iter() {
++        let set = names.entry(f.language.as_str()).or_default();
++        set.extend(f.definitions.iter().map(|d| d.simple_name.as_str()));
++    }
++    // Owned so the facts can be borrowed mutably below.
++    let names: HashMap<String, HashSet<String>> = names
++        .into_iter()
++        .map(|(l, s)| (l.to_string(), s.into_iter().map(str::to_string).collect()))
++        .collect();
++    let empty = HashSet::new();
++    for f in all_facts.iter_mut() {
++        if !f.references.iter().any(|r| r.value_ref) {
++            continue;
++        }
++        let known = names.get(&f.language).unwrap_or(&empty);
++        let locals = crate::scope::FileLocals::build(f);
++        f.references.retain(|r| {
++            !r.value_ref || (known.contains(leaf(r)) && !locals.shadows_bare_call(r))
++        });
++    }
++}
++
++/// Re-tag every direct edge drawn from a value-ref site as a reference
++/// edge. Sites are keyed by (file, byte); the plugins place a value-ref
++/// site on the referenced name's own token, where no call starts, so a
++/// call in the same expression is never re-tagged.
++pub fn tag_reference_edges(graph: &mut Graph, all_facts: &[FileFacts]) {
++    let sites: HashSet<(FileId, u32)> = all_facts
++        .iter()
++        .flat_map(|f| {
++            f.references
++                .iter()
++                .filter(|r| r.value_ref)
++                .map(move |r| (f.file, r.site_byte))
++        })
++        .collect();
++    if sites.is_empty() {
++        return;
++    }
++    let file_of: HashMap<_, FileId> =
++        graph.callables.values().map(|c| (c.id, c.file)).collect();
++    for e in graph.edges.iter_mut() {
++        if e.via != Via::Direct {
++            continue;
++        }
++        if file_of
++            .get(&e.src)
++            .is_some_and(|file| sites.contains(&(*file, e.site_byte)))
++        {
++            e.via = Via::Reference;
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use cgg_core::DefRecord;
++
++    fn facts(lang: &str, file: u32, defs: &[&str], refs: Vec<RefRecord>) -> FileFacts {
++        let mut f = FileFacts::new(FileId::new(file), format!("f{file}").into(), lang);
++        f.definitions = defs
++            .iter()
++            .map(|n| DefRecord {
++                simple_name: (*n).to_string(),
++                qualified_name: (*n).to_string(),
++                ..Default::default()
++            })
++            .collect();
++        f.references = refs;
++        f
++    }
++
++    fn vref(name: &str, recv: &str) -> RefRecord {
++        RefRecord {
++            name: name.into(),
++            receiver_hint: recv.into(),
++            value_ref: true,
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn a_value_ref_naming_no_callable_is_dropped() {
++        let mut all = vec![
++            facts(
++                "csharp",
++                1,
++                &["Run"],
++                vec![vref("Count", "xs"), vref("Handle", "this")],
++            ),
++            facts("csharp", 2, &["Handle"], vec![]),
++        ];
++        prune(&mut all);
++        let names: Vec<&str> =
++            all[0].references.iter().map(|r| r.name.as_str()).collect();
++        assert_eq!(names, vec!["Handle"]);
++    }
++
++    #[test]
++    fn a_callable_of_another_language_does_not_keep_it() {
++        let mut all = vec![
++            facts("java", 1, &["run"], vec![vref("onItem", "this")]),
++            facts("python", 2, &["onItem"], vec![]),
++        ];
++        prune(&mut all);
++        assert!(all[0].references.is_empty());
++    }
++
++    #[test]
++    fn a_constructor_reference_matches_by_its_last_segment() {
++        let mut all = vec![facts("java", 1, &["Foo"], vec![vref("a.b.Foo", "")])];
++        prune(&mut all);
++        assert_eq!(all[0].references.len(), 1);
++    }
++
++    #[test]
++    fn ordinary_calls_are_never_pruned() {
++        let call = RefRecord {
++            name: "nothing".into(),
++            ..Default::default()
++        };
++        let mut all = vec![facts("java", 1, &["run"], vec![call, vref("x", "")])];
++        prune(&mut all);
++        assert_eq!(all[0].references.len(), 1);
++        assert!(!all[0].references[0].value_ref);
++    }
++
++    #[test]
++    fn edges_from_value_ref_sites_become_reference_edges() {
++        use crate::deadcode::testutil::{edge, graph_with, node};
++        let mut g = graph_with(vec![
++            node(0, "A.run", "run", "java"),
++            node(1, "A.m", "m", "java"),
++        ]);
++        let mut at_ref = edge(0, 1);
++        at_ref.site_byte = 40;
++        let mut a_call = edge(0, 1);
++        a_call.site_byte = 41;
++        g.edges.push(at_ref);
++        g.edges.push(a_call);
++        let mut r = vref("m", "this");
++        r.site_byte = 40;
++        let f = facts("java", 0, &["run", "m"], vec![r]);
++        tag_reference_edges(&mut g, &[f]);
++        let vias: Vec<Via> = g.edges.iter().map(|e| e.via.clone()).collect();
++        assert_eq!(vias, vec![Via::Reference, Via::Direct]);
++    }
++}
