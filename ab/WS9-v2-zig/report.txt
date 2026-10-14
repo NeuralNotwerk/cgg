@@ -1,0 +1,7 @@
+old=target/remediation/bins/WS9-before
+new=target/remediation/bins/WS9-after-v2
+repos=1 elapsed=108s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  zig-zig: edges 271103->272695 (-159 +1751 ~0) callables 362453->362453 unresolved 197963->199519 files 17350->17350 deadhigh -> dead rc old=124 new=124
+by language: see by_language.tsv
