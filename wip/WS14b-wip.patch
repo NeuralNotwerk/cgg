@@ -144,7 +144,7 @@ index fab9fc0..10c4ed4 100644
  static PYTHON: &str = include_str!("stdlib/python.txt");
  static GO: &str = include_str!("stdlib/go.txt");
 diff --git a/crates/cgg-lang/src/locals.rs b/crates/cgg-lang/src/locals.rs
-index 0c1c3e7..afcec1f 100644
+index 0c1c3e7..165f19e 100644
 --- a/crates/cgg-lang/src/locals.rs
 +++ b/crates/cgg-lang/src/locals.rs
 @@ -53,6 +53,15 @@ struct Binder {
@@ -222,7 +222,26 @@ index 0c1c3e7..afcec1f 100644
          b("match_arm", &["pattern"], Scope::Own),
      ],
      functions: &["function_item", "closure_expression"],
-@@ -562,6 +591,27 @@ fn scope_of(
+@@ -501,9 +530,18 @@ fn binding(
+ /// Whether a declaration's value is a member access ending in the very
+ /// name it declares (`pick = H.pick`).
+ fn aliases_same_member(binder: Node<'_>, name: &str, source: &[u8]) -> bool {
++    // Zig's `const f = std.process.f;` names its value by no field: the
++    // declaration's last named child.
+     let Some(value) = binder
+         .child_by_field_name("value")
+         .or_else(|| binder.child_by_field_name("right"))
++        .or_else(|| {
++            (binder.kind() == "variable_declaration")
++                .then(|| {
++                    binder.named_child(binder.named_child_count().checked_sub(1)? as u32)
++                })
++                .flatten()
++        })
+     else {
+         return false;
+     };
+@@ -562,6 +600,27 @@ fn scope_of(
                  .find(|ch| ch.kind() == form.from_child)?;
              Some((from.start_byte() as u32, binder.end_byte() as u32))
          }
@@ -250,7 +269,7 @@ index 0c1c3e7..afcec1f 100644
          Scope::Own => Some(span(binder)),
          Scope::Decl => {
              let block = above
-@@ -626,6 +676,26 @@ mod tests {
+@@ -626,6 +685,26 @@ mod tests {
                  tree_sitter_rust::LANGUAGE.into(),
                  "fn f() { let now = now(); now; }",
              ),
@@ -277,7 +296,7 @@ index 0c1c3e7..afcec1f 100644
              (
                  "javascript",
                  tree_sitter_javascript::LANGUAGE.into(),
-@@ -663,6 +733,22 @@ mod tests {
+@@ -663,6 +742,32 @@ mod tests {
          }
      }
  
@@ -295,6 +314,16 @@ index 0c1c3e7..afcec1f 100644
 +        let other = src.find("k(2)").unwrap() as u32;
 +        assert!(b.start_byte <= body && body < b.end_byte, "{b:?}");
 +        assert!(other >= b.end_byte, "{b:?} covers the else branch");
++    }
++
++    /// Zig `const fatal = std.process.fatal;` in a function names the
++    /// same function: no shadow; `const op = pick();` is a value.
++    #[test]
++    fn a_zig_same_named_member_alias_is_not_a_binding() {
++        let src = "fn f() void { const fatal = std.process.fatal; const op = pick(); }";
++        let got = names("zig", tree_sitter_zig::LANGUAGE.into(), src);
++        assert!(!got.contains(&"fatal".to_string()), "{got:?}");
++        assert!(got.contains(&"op".to_string()), "{got:?}");
 +    }
 +
      /// `var pick = H.pick` names the same function under its own name:
