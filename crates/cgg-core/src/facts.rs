@@ -440,6 +440,17 @@ pub struct RefRecord {
     /// resolution.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub paren_less: bool,
+
+    /// Set when `receiver_hint` is a *type* rather than an expression:
+    /// the call's receiver was a cast (`((Foo) o).m()`, `(o as Foo).M()`,
+    /// `o.(Foo).M()`), a construction (`new Foo().m()`, `Foo().m()`,
+    /// `Foo{A: 1}.M()`), read from the tree by the plugin. The receiver
+    /// is then an instance of that type whatever its spelling: a
+    /// lowercase type name (`&server{}`) is still a type, never a
+    /// variable to fan out by name over. (Type propagation does not set
+    /// it: a value it types keeps the reading it always had.)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub typed_receiver: bool,
 }
 
 /// The two-phase AST pass output for a single file.

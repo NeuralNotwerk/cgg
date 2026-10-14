@@ -1914,6 +1914,7 @@ impl<'a> Walker<'a> {
                 arity: None,
                 value_ref: false,
                 paren_less: false,
+                typed_receiver: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,

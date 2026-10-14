@@ -2460,6 +2460,7 @@ pub fn resolve(
                             .and_then(|(_, _, orig)| {
                                 let mut r2 = r.clone();
                                 r2.receiver_hint = orig.clone();
+                                r2.typed_receiver = false;
                                 let (mut c2, mut n2) = (0u32, false);
                                 let mut e2: Option<String> = None;
                                 let (mut m2, mut mc2) = (None, false);
@@ -4259,6 +4260,7 @@ fn try_resolve_ref(
         if !rh.is_empty()
             && !matches!(rh, "this" | "super" | "self")
             && !rh.starts_with(char::is_uppercase)
+            && !r.typed_receiver
         {
             return None;
         }
@@ -4379,7 +4381,7 @@ fn try_resolve_ref(
         // function import of the same name does not reach it there — and
         // the call is that member, not whatever else carries the name.
         let member_of_caller = if r.receiver_hint.is_empty()
-            && matches!(lang, "java" | "kotlin" | "csharp")
+            && matches!(lang, "java" | "kotlin" | "scala" | "csharp")
         {
             caller_qn.and_then(owner_from_qn).and_then(|own| {
                 by_owner_method
@@ -5179,6 +5181,10 @@ fn try_resolve_ref(
             && rh != "Self"
             && rh != "cls"
             && (relaxed_path_headed
+                // A receiver the plugin or type propagation read as a type
+                // (a cast, a construction, a typed value) is one whatever
+                // its case: Go's `&server{}`, a lowercase C struct.
+                || r.typed_receiver
                 // A PEP 8 private class (`_CollectErrors`) is still a
                 // type: the plugin types `x = _CollectErrors()` as one,
                 // and rejecting it here left the call bound to nothing.
@@ -5314,6 +5320,17 @@ fn try_resolve_ref(
                         );
                     }
                 }
+                // A class the calling file declares is the one a receiver
+                // of that name means there (a test's local `TestScript`),
+                // never a same-named class of another file. Python only:
+                // its classes are declared whole in one file (a C#
+                // `partial` class or a Rust type's `impl` blocks span
+                // files), and its receiver types keep the qualifier they
+                // were written with — a Java local `ObjectNode.Builder b`
+                // is recorded as a bare `Builder`, which a file's own
+                // nested `Builder` would wrongly claim.
+                let own_file_class = lang == "python";
+                let mut own_class_miss = false;
                 for owner in &owners {
                     if let Some(cids) = by_owner_method.get(&(
                         lang.to_string(),
@@ -5321,6 +5338,33 @@ fn try_resolve_ref(
                         r.name.clone(),
                     )) && !cids.is_empty()
                     {
+                        // Only for a type written unqualified: `ObjectNode.Builder`
+                        // names another class's `Builder`, whatever the
+                        // calling file's own `Builder` is.
+                        if own_file_class
+                            && *owner == rh
+                            && heads.own_classes.contains(*owner)
+                            && !cids.iter().any(|c| {
+                                graph
+                                    .callables
+                                    .get(c)
+                                    .is_some_and(|n| n.file == caller_file)
+                            })
+                        {
+                            // The file's own class does not declare it: an
+                            // inherited member, or nothing the tree has.
+                            if let Some(inherited) = resolve_via_bases(
+                                lang,
+                                owner,
+                                &r.name,
+                                by_owner_method,
+                                bases_by_owner,
+                            ) {
+                                return Some(inherited);
+                            }
+                            own_class_miss = true;
+                            continue;
+                        }
                         if cs_scoped {
                             let seen: Vec<CallableId> = cids
                                 .iter()
@@ -5346,6 +5390,9 @@ fn try_resolve_ref(
                 }
                 if cs_hidden {
                     *external_out = Some(rh.to_string());
+                    return None;
+                }
+                if own_class_miss {
                     return None;
                 }
                 if lang == "rust"
@@ -5466,7 +5513,10 @@ fn try_resolve_ref(
         // `M(this U …)` whose extended type `U` is `T`, a base of `T`, or
         // a type parameter of `M`. Without this a typed receiver lost
         // every extension call it makes.
-        if lang == "csharp" && !r.paren_less && rh.starts_with(char::is_uppercase) {
+        if lang == "csharp"
+            && !r.paren_less
+            && (rh.starts_with(char::is_uppercase) || r.typed_receiver)
+        {
             let recv = rh.rsplit('.').next().unwrap_or(rh);
             let recv = recv.split('<').next().unwrap_or(recv).trim();
             let family = with_ancestors(lang, vec![recv.to_string()], bases_by_owner);
@@ -5487,6 +5537,35 @@ fn try_resolve_ref(
             }
         }
 
+        // Step 4e (Solidity): `x.f()` on a receiver typed `T` that `T`
+        // does not declare — a library function attached by `using L for
+        // T;` (or `using L for *;`) in the calling file: `L.f(x)`.
+        // Without this a typed receiver lost every library call it makes,
+        // which an untyped one only reached by name fan-out.
+        if lang == "solidity"
+            && !r.paren_less
+            && (rh.starts_with(char::is_uppercase) || r.typed_receiver)
+        {
+            let recv = rh.rsplit('.').next().unwrap_or(rh).trim();
+            let mut lib_fns: Vec<CallableId> = Vec::new();
+            for lib in heads.libraries_for(recv) {
+                if let Some(cids) = by_owner_method.get(&(
+                    lang.to_string(),
+                    lib.to_string(),
+                    r.name.clone(),
+                )) {
+                    for c in cids {
+                        if !lib_fns.contains(c) {
+                            lib_fns.push(*c);
+                        }
+                    }
+                }
+            }
+            if !lib_fns.is_empty() && lib_fns.len() <= fanout_cap {
+                return Some(lib_fns);
+            }
+        }
+
         // Step 5: Trait/interface method dispatch.
         // When receiver_hint is a variable name (lowercase) and the method
         // name exists on definitions in other files, find all callables
@@ -5499,6 +5578,9 @@ fn try_resolve_ref(
         // only where the receiver is typed, never by name fan-out.
         if !rh.is_empty()
             && !r.paren_less
+            // A typed receiver is never fanned out by name: its type's
+            // own lookup (step 4) was the answer, hit or miss.
+            && !r.typed_receiver
             && rh != "self"
             && rh != "Self"
             && rh != "cls"

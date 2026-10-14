@@ -234,12 +234,25 @@ impl<'a> SwiftWalker<'a> {
         // call_expression -> first child is callee (simple_identifier or navigation_expression)
         let callee = node.child(0);
         let Some(callee) = callee else { return };
+        let mut typed_receiver = false;
         let (name, recv) = match callee.kind() {
             "simple_identifier" => (self.text(callee).to_string(), String::new()),
             "navigation_expression" => {
+                // `(f).m()`, `(o as! Foo).m()`, `Foo().m()`, `f!.m()`,
+                // `(try await x).m()`: the value or the type the
+                // receiver's shape stands for (`crate::receiver`).
                 let target = callee
                     .child_by_field_name("target")
-                    .map(|n| self.text(n).to_string())
+                    .map(|n| {
+                        let p = crate::receiver::peel("swift", n, self.source);
+                        match p.type_name() {
+                            Some(t) => {
+                                typed_receiver = true;
+                                t
+                            }
+                            None => self.text(p.node).to_string(),
+                        }
+                    })
                     .unwrap_or_default();
                 let suffix = callee
                     .children(&mut callee.walk())
@@ -268,6 +281,7 @@ impl<'a> SwiftWalker<'a> {
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
     }

@@ -719,18 +719,33 @@ impl<'a> CppWalker<'a> {
             return;
         };
         let func = unwrap_parens(func);
-        let arrow = func.kind() == "field_expression"
+        let mut arrow = func.kind() == "field_expression"
             && func
                 .child_by_field_name("operator")
                 .is_some_and(|op| op.kind() == "->");
+        let mut typed_receiver = false;
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             // `f<int>()`: a call of `f` with explicit template arguments.
             "template_function" => (callee_name(func, self.source), String::new()),
             "field_expression" => {
+                // `(f).m()`, `(*p).m()` (which is `p->m()`), `Foo().m()`,
+                // `Foo{}.m()`, `((Foo*)o)->m()`, `static_cast<Foo*>(o)->m()`:
+                // the value or the type the receiver's shape stands for
+                // (`crate::receiver`).
                 let arg = func
                     .child_by_field_name("argument")
-                    .map(|n| self.text(n).to_string())
+                    .map(|n| {
+                        let p = crate::receiver::peel("cpp", n, self.source);
+                        arrow |= p.deref;
+                        match p.type_name() {
+                            Some(t) => {
+                                typed_receiver = true;
+                                t
+                            }
+                            None => self.text(p.node).to_string(),
+                        }
+                    })
                     .unwrap_or_default();
                 let Some(field) = func.child_by_field_name("field") else {
                     return;
@@ -768,6 +783,7 @@ impl<'a> CppWalker<'a> {
             site_byte: node.start_byte() as u32,
             path_receiver,
             arrow,
+            typed_receiver,
             ..Default::default()
         });
     }

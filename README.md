@@ -528,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(3650 callables, 10038 edges, 2284 cross-file, 337ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(3695 callables, 10163 edges, 2306 cross-file, 840ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -593,7 +593,7 @@ flowchart LR
   N51["cgg_lang::locals::collect"]
   N52["cgg_lang::notebook::extract_python_source"]
   N53["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N54["cgg_lang::parser::ParserPool&lt;'r&gt;::parse"]
+  N54["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
   N55["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
   N56["cgg_lang::parser::exceeds_depth"]
   N57["cgg_lang::plugins::cpp::unify_declarations"]
@@ -636,7 +636,6 @@ flowchart LR
   N3 --> N10
   N3 --> N9
   N3 --> N8
-  N54 --> N54
   N3 --> N20
   N3 --> N1
   N3 --> N0

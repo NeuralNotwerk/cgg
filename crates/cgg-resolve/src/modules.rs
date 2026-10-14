@@ -1771,7 +1771,8 @@ impl FileModules {
                 }
             };
         }
-        let constructed = rh.starts_with("new ");
+        // `new Foo().m()` arrives as the type `Foo`, flagged as one.
+        let constructed = rh.starts_with("new ") || r.typed_receiver;
         let expr = rh.strip_prefix("new ").unwrap_or(rh).trim();
         let head = leading_ident(expr);
         let b = self.js.get(head)?;

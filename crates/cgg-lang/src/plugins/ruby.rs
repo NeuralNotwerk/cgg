@@ -384,11 +384,24 @@ impl<'a> RubyWalker<'a> {
         } else {
             format!("{recv}.{method}")
         };
+        // `(x).m`, `Foo.new.m`: the value or the class the receiver's
+        // shape stands for (`crate::receiver`).
+        let (recv, typed_receiver) = match node.child_by_field_name("receiver") {
+            Some(r) => {
+                let p = crate::receiver::peel("ruby", r, self.source);
+                match p.type_name() {
+                    Some(t) => (t, true),
+                    None => (self.text(p.node).to_string(), false),
+                }
+            }
+            None => (recv, false),
+        };
         self.facts.references.push(RefRecord {
             name: method,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
         // `config/routes.rb` is ordinary Ruby: `get 'photos', to:
@@ -449,6 +462,7 @@ impl<'a> RubyWalker<'a> {
                 arity: None,
                 value_ref: false,
                 paren_less: false,
+                typed_receiver: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

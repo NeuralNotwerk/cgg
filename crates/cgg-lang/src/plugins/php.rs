@@ -197,6 +197,8 @@ impl<'a> PhpWalker<'a> {
             }
             "function_call_expression"
             | "member_call_expression"
+            // `$x?->m()` is `$x->m()` when `$x` is not null.
+            | "nullsafe_member_call_expression"
             | "scoped_call_expression" => {
                 self.record_call(node);
                 self.walk_children(node);
@@ -341,10 +343,25 @@ impl<'a> PhpWalker<'a> {
             }
         }
 
+        // `($f)->m()`, `(new Foo())->m()`: the value or the class the
+        // receiver's shape stands for (`crate::receiver`).
+        let mut typed_receiver = false;
         let recv = node
             .child_by_field_name("object")
-            .or_else(|| node.child_by_field_name("scope"))
-            .map(|n| self.text(n).to_string())
+            .map(|n| {
+                let p = crate::receiver::peel("php", n, self.source);
+                match p.type_name() {
+                    Some(t) => {
+                        typed_receiver = true;
+                        t
+                    }
+                    None => self.text(p.node).to_string(),
+                }
+            })
+            .or_else(|| {
+                node.child_by_field_name("scope")
+                    .map(|n| self.text(n).to_string())
+            })
             .unwrap_or_default();
         // `$this->m()` is a call on the enclosing class's instance: spelled
         // `this` the way every other language spells it, so the resolver's
@@ -364,6 +381,7 @@ impl<'a> PhpWalker<'a> {
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
         // Laravel needs BOTH `'Controller@method'` strings (<= L7) and

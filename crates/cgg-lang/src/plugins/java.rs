@@ -333,10 +333,8 @@ impl<'a> JavaWalker<'a> {
             .child_by_field_name("name")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
-        let recv = node
-            .child_by_field_name("object")
-            .map(|n| self.text(n).to_string())
-            .unwrap_or_default();
+        let obj = node.child_by_field_name("object");
+        let recv = obj.map(|n| self.text(n).to_string()).unwrap_or_default();
         if name.is_empty() {
             return;
         }
@@ -345,11 +343,24 @@ impl<'a> JavaWalker<'a> {
         } else {
             format!("{recv}.{name}")
         };
+        // `(f).m()`, `((Foo) o).m()`, `new Foo().m()`: the value or the
+        // type the receiver's shape stands for (`crate::receiver`).
+        let (recv, typed_receiver) = match obj {
+            Some(o) => {
+                let p = crate::receiver::peel("java", o, self.source);
+                match p.type_name() {
+                    Some(t) => (t, true),
+                    None => (self.text(p.node).to_string(), false),
+                }
+            }
+            None => (recv, false),
+        };
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
         // Shape B/C: a handler passed in argument position. Inert unless

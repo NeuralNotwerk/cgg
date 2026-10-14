@@ -3119,3 +3119,264 @@ fn a_companion_imported_kotlin_extension_resolves() {
     let (dsts, _) = edges_and_external(tmp.path(), "app.go");
     assert_eq!(dsts, vec!["okhttp3.HttpUrl.toHttpUrl"]);
 }
+
+/// FINDINGS C2: a receiver written as a parenthesised value, a cast or a
+/// construction resolves exactly as its bare, typed form does — to the
+/// type's own member, never by name to a same-named decoy. A call on what
+/// a call returned (`make().m()`) stays the unresolved call it was.
+#[test]
+fn shaped_java_receivers_resolve_as_their_typed_form() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "Foo.java", b"class Foo { void m() {} }\n");
+    write(tmp.path(), "Bar.java", b"class Bar { void m() {} }\n");
+    write(
+        tmp.path(),
+        "Main.java",
+        concat!(
+            "class Main {\n  Object make() { return null; }\n",
+            "  void run(Object o, Foo f) {\n",
+            "    (f).m();\n    ((Foo) o).m();\n    new Foo().m();\n    (new Foo()).m();\n",
+            "  }\n  void near() { make().m(); }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "Main.run");
+    assert_eq!(dsts, vec!["Foo.m"; 4], "no edge to the Bar.m decoy");
+    // Near miss: a call's result has no known type, and keeps the
+    // by-name reading it always had.
+    let (near, _) = edges_and_external(tmp.path(), "Main.near");
+    assert_eq!(near, vec!["Bar.m", "Foo.m", "Main.make"]);
+}
+
+/// Go: a composite literal, its address and a type assertion are values
+/// of the type they name, lowercase or not; an unexported type is a type,
+/// never a variable to fan out over.
+#[test]
+fn shaped_go_receivers_name_their_type() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", b"module ex\n\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "a.go",
+        concat!(
+            "package main\ntype server struct{ A int }\nfunc (s server) M() {}\n",
+            "type other struct{}\nfunc (o other) M() {}\n",
+            "func run(v interface{}) {\n\tserver{A: 1}.M()\n\t(&server{}).M()\n\tv.(server).M()\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "main.run");
+    assert_eq!(dsts, vec!["main.server.M"; 3], "never other.M");
+}
+
+/// TypeScript: a `.ts` file is parsed with the TypeScript grammar, where
+/// `<Foo>o` is a type assertion — the TSX grammar read it as an unclosed
+/// JSX element and lost every call after it. Casts, `new` and parentheses
+/// all reach `Foo.m`.
+#[test]
+fn ts_type_assertions_parse_and_type_their_receiver() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.ts",
+        concat!(
+            "class Foo { m() {} }\nclass Bar { m() {} }\n",
+            "function run(o: any, f: Foo) {\n  (<Foo>o).m();\n  (o as Foo).m();\n",
+            "  new Foo().m();\n  (f).m();\n  f!.m();\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "run");
+    assert_eq!(dsts, vec!["Foo.m"; 5]);
+}
+
+/// Null-conditional calls are calls: Dart `x?.m()` and PHP `$x?->m()`
+/// were never recorded at all.
+#[test]
+fn null_conditional_calls_are_recorded_in_dart_and_php() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.dart",
+        b"class Foo { void m() {} }\nvoid run(Foo f) {\n  f?.m();\n}\n",
+    );
+    write(
+        tmp.path(),
+        "b.php",
+        b"<?php\nclass Baz { public function n() {} }\nfunction go(Baz $b) {\n    $b?->n();\n}\n",
+    );
+    let (dart, _) = edges_and_external(tmp.path(), "run");
+    assert_eq!(dart, vec!["Foo::m"]);
+    let (php, _) = edges_and_external(tmp.path(), "go");
+    assert_eq!(php, vec!["Baz::n"]);
+}
+
+/// Solidity `using L for T;`: a call on a value typed `T` that `T` does
+/// not declare is library `L`'s function — not a same-named function of
+/// another library, and not lost because the receiver is typed.
+#[test]
+fn solidity_using_for_reaches_the_library_on_a_typed_receiver() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Lib.sol",
+        concat!(
+            "pragma solidity ^0.8.0;\nstruct Pos { uint x; }\n",
+            "library PosLib { function shift(Pos memory p, uint d) internal pure returns (uint) { return p.x + d; } }\n",
+            "library Other { function shift(uint a, uint d) internal pure returns (uint) { return a + d; } }\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "Main.sol",
+        concat!(
+            "pragma solidity ^0.8.0;\nimport \"./Lib.sol\";\n",
+            "contract Main {\n    using PosLib for Pos;\n",
+            "    function run(Pos memory p) public pure returns (uint) { return p.shift(1); }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, _) = edges_and_external(tmp.path(), "Main.run");
+    assert_eq!(dsts, vec!["PosLib.shift"]);
+}
+
+/// Scala: `math.ceil(x)` is `scala.math.ceil` — every file sees the
+/// `scala` package's members without an import — and is never bound by
+/// name to a workspace `ceil`; an imported dependency's object is
+/// refused the same way. A member `val` of that name (`io`) or a
+/// parameter (`math`) is a value, and keeps its reading.
+#[test]
+fn scala_calls_through_standard_and_dependency_packages_are_external() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "B.scala",
+        b"package app.util\nclass Helper { def ceil(x: Double): Double = x; def escapeJava(s: String) = s }\n",
+    );
+    write(
+        tmp.path(),
+        "A.scala",
+        concat!(
+            "package app.core\nimport org.apache.commons.text.StringEscapeUtils\n",
+            "import app.util.Helper\n",
+            "class A {\n  val io = new Helper\n",
+            "  def run(h: Helper): Unit = {\n    math.ceil(1.0)\n    StringEscapeUtils.escapeJava(\"x\")\n",
+            "    io.ceil(2.0)\n  }\n",
+            "  def param(math: Helper): Unit = { math.ceil(3.0) }\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (dsts, ext) = edges_and_external(tmp.path(), "A::run");
+    assert_eq!(
+        dsts,
+        vec!["Helper::ceil"],
+        "only the member val's call binds"
+    );
+    let mut ext = ext;
+    ext.sort();
+    assert_eq!(
+        ext,
+        vec![
+            ("ceil".to_string(), "scala.math".to_string()),
+            (
+                "escapeJava".to_string(),
+                "org.apache.commons.text".to_string()
+            ),
+        ]
+    );
+    let (param, _) = edges_and_external(tmp.path(), "A::param");
+    assert_eq!(
+        param,
+        vec!["Helper::ceil"],
+        "a parameter named math is a value"
+    );
+}
+
+/// Ruby `Foo.new.m` and C++ `Foo{}.m()` / `(*p).m()`: constructions and
+/// dereferences are instances of their type.
+#[test]
+fn ruby_and_cpp_construction_receivers_name_their_type() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.rb",
+        b"class Foo\n  def m; end\nend\nclass Bar\n  def m; end\nend\nclass Main\n  def run\n    Foo.new.m\n  end\nend\n",
+    );
+    write(
+        tmp.path(),
+        "a.cpp",
+        concat!(
+            "struct Qux { void k() {} };\nstruct Quz { void k() {} };\n",
+            "void go(Qux* p, void* o) {\n  Qux{}.k();\n  (*p).k();\n  static_cast<Qux*>(o)->k();\n}\n",
+        )
+        .as_bytes(),
+    );
+    let (rb, _) = edges_and_external(tmp.path(), "Main::run");
+    assert_eq!(rb, vec!["Foo::m"]);
+    let (cpp, _) = edges_and_external(tmp.path(), "go");
+    assert_eq!(cpp, vec!["Qux::k"; 3]);
+}
+
+/// A class the calling file declares is what a receiver of that name
+/// means there: `TestScript().as_form()` in a test that declares its own
+/// `TestScript(Script)` reaches the inherited `Script.as_form`, never the
+/// `as_form` of another test file's same-named class.
+#[test]
+fn a_receiver_type_the_file_declares_is_that_files_class() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "scripts.py",
+        b"class Script:\n    def as_form(self):\n        pass\n",
+    );
+    write(
+        tmp.path(),
+        "test_a.py",
+        concat!(
+            "from scripts import Script\n",
+            "def test_a():\n    class TestScript(Script):\n        def as_form(self):\n            pass\n",
+            "    TestScript().as_form()\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "test_b.py",
+        concat!(
+            "from scripts import Script\n",
+            "def test_b():\n    class TestScript(Script):\n        pass\n",
+            "    TestScript().as_form()\n",
+        )
+        .as_bytes(),
+    );
+    let (b, _) = edges_and_external(tmp.path(), "test_b.test_b");
+    assert_eq!(b, vec!["scripts.Script.as_form"]);
+    let (a, _) = edges_and_external(tmp.path(), "test_a.test_a");
+    assert_eq!(a, vec!["test_a.test_a.TestScript.as_form"]);
+}
+
+/// Scala: an import that starts at a value (`import spark.implicits._`)
+/// does not make `spark` a package root, so `spark.sparkContext.f()` is
+/// not refused as a call into a package `spark`.
+#[test]
+fn a_scala_import_from_a_value_is_not_a_package_root() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "A.scala",
+        concat!(
+            "package org.acme.bench\nobject Misc extends Base {\n  import spark.implicits._\n",
+            "  def f(): Unit = {\n    spark.sparkContext.parallelize(Seq(1))\n  }\n}\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "B.scala",
+        b"package org.acme.ctx\nclass Ctx { def parallelize(x: Int) = x }\n",
+    );
+    let (dsts, ext) = edges_and_external(tmp.path(), "Misc::f");
+    assert_eq!(dsts, vec!["Ctx::parallelize"]);
+    assert!(ext.is_empty(), "{ext:?}");
+}

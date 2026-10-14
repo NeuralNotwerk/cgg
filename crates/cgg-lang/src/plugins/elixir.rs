@@ -487,6 +487,7 @@ impl<'a> ElixirWalker<'a> {
             arity: None,
             value_ref: false,
             paren_less: false,
+            typed_receiver: false,
         });
     }
 

@@ -456,7 +456,9 @@ impl<'a> KtWalker<'a> {
         let callee = node.child(0);
         let Some(callee) = callee else { return };
         let (name, recv) = match callee.kind() {
-            "simple_identifier" => (self.text(callee).to_string(), String::new()),
+            "simple_identifier" => {
+                (self.text(callee).to_string(), (String::new(), false))
+            }
             "navigation_expression" => {
                 // `obj.method()`: the method is the last navigation
                 // suffix, the receiver everything in front of it — a
@@ -472,13 +474,19 @@ impl<'a> KtWalker<'a> {
                 let Some(base) = callee.named_child(0) else {
                     return;
                 };
-                let recv = self
-                    .constructed_type(base)
-                    .unwrap_or_else(|| self.receiver_text(base));
+                // `Foo(x).m()`, `(x as Foo).m()`, `(x).m()`: the type a
+                // construction or cast names, or the parenthesised value
+                // (`crate::receiver`).
+                let p = crate::receiver::peel("kotlin", base, self.source);
+                let recv = match p.type_name() {
+                    Some(t) => (t, true),
+                    None => (self.receiver_text(p.node), false),
+                };
                 (name.to_string(), recv)
             }
             _ => return,
         };
+        let (recv, typed_receiver) = recv;
         if name.is_empty() {
             return;
         }
@@ -497,33 +505,9 @@ impl<'a> KtWalker<'a> {
             site_byte: node.start_byte() as u32,
             dot_call,
             implicit_receiver,
+            typed_receiver,
             ..Default::default()
         });
-    }
-
-    /// `Foo(x)` / `pkg.Foo(x)` in receiver position → `Foo` / `pkg.Foo`.
-    ///
-    /// Kotlin constructs without `new`, so a call whose callee is a type
-    /// name (capitalised last segment) builds a value of that type — the
-    /// rule `record_local_type` already types `val x = Foo(…)` by. The
-    /// receiver is recorded as the type, exactly what `val x = Foo(…);
-    /// x.m()` resolves through after type propagation: an owner lookup on
-    /// `Foo`, and, when `Foo` is imported from a dependency
-    /// (`File(p).readText()`), the external-module refusal.
-    fn constructed_type(&self, n: Node) -> Option<String> {
-        if n.kind() != "call_expression" {
-            return None;
-        }
-        let callee = n.child(0)?;
-        if !matches!(callee.kind(), "simple_identifier" | "navigation_expression") {
-            return None;
-        }
-        let path = self.receiver_text(callee);
-        let plain = path
-            .split('.')
-            .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'));
-        let last = path.rsplit('.').next()?;
-        (plain && last.starts_with(char::is_uppercase)).then_some(path)
     }
 
     /// The receiver expression as source text, rebuilt from the tree the
@@ -848,7 +832,7 @@ mod tests {
                 "x.y",
                 "list.map().filter()",
                 "\"\"",
-                "(y)",
+                "y",
             ],
             "refs: {:?}",
             f.references

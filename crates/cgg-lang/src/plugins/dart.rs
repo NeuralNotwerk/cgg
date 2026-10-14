@@ -443,9 +443,11 @@ impl<'a> DartWalker<'a> {
             };
             callee = inner;
         }
+        let mut typed_receiver = false;
         let (name, receiver) = match callee.kind() {
             "identifier" => (self.text(callee).to_string(), String::new()),
-            "member_expression" => {
+            // `x?.m()` is `x.m()` when `x` is not null.
+            "member_expression" | "null_aware_member_expression" => {
                 // Last identifier child is the called name; preceding text is the receiver.
                 let mut last_ident: Option<Node> = None;
                 let mut first_recv: Option<Node> = None;
@@ -473,8 +475,20 @@ impl<'a> DartWalker<'a> {
                 let name = name_node
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // `(f).m()`, `(o as Foo).m()`, `Foo().m()`, `(await f).m()`:
+                // the value or the type the receiver's shape stands for
+                // (`crate::receiver`).
                 let mut receiver = recv_node
-                    .map(|n| self.text(n).to_string())
+                    .map(|n| {
+                        let p = crate::receiver::peel("dart", n, self.source);
+                        match p.type_name() {
+                            Some(t) => {
+                                typed_receiver = true;
+                                t
+                            }
+                            None => self.text(p.node).to_string(),
+                        }
+                    })
                     .unwrap_or_default();
                 // If receiver == name (only one identifier was found), receiver is empty.
                 if name == receiver {
@@ -493,6 +507,7 @@ impl<'a> DartWalker<'a> {
             receiver_hint: receiver,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
     }

@@ -126,6 +126,33 @@ impl<'a> SolidityWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `using L for T;` / `using L for *;`: library `L`'s functions
+            // are callable as members of `T` (of every type for `*`),
+            // `x.f(a)` meaning `L.f(x, a)`. Recorded as an import of
+            // kind `using-for`: path `L`, alias `T` (or `*`).
+            "using_directive" => {
+                if let Some(lib) = self.child_kind(node, "type_alias") {
+                    let target = node
+                        .child_by_field_name("source")
+                        .map(|t| self.text(t).trim().to_string())
+                        .unwrap_or_else(|| {
+                            let mut c = node.walk();
+                            let any = node.children(&mut c).any(|ch| ch.kind() == "*");
+                            if any { "*".to_string() } else { String::new() }
+                        });
+                    let lib = self.text(lib).trim().to_string();
+                    if !lib.is_empty() && !target.is_empty() {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "using-for".into(),
+                            path: lib,
+                            alias: target,
+                            site_line: (node.start_position().row as u32) + 1,
+                            site_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);

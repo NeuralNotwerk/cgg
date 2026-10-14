@@ -233,9 +233,21 @@ impl<'a> GroovyWalker<'a> {
             .child_by_field_name("name")
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
+        // `(f).m()`, `((Foo) o).m()`, `new Foo().m()`: the value or the
+        // type the receiver's shape stands for (`crate::receiver`).
+        let mut typed_receiver = false;
         let recv = node
             .child_by_field_name("object")
-            .map(|n| self.text(n).to_string())
+            .map(|n| {
+                let p = crate::receiver::peel("groovy", n, self.source);
+                match p.type_name() {
+                    Some(t) => {
+                        typed_receiver = true;
+                        t
+                    }
+                    None => self.text(p.node).to_string(),
+                }
+            })
             .unwrap_or_default();
         if name.is_empty() {
             return;
@@ -245,6 +257,7 @@ impl<'a> GroovyWalker<'a> {
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
     }

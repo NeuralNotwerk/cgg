@@ -538,6 +538,10 @@ pub fn propagate_types_with_fields(
     let mut rewrites: Vec<(usize, String)> = Vec::new();
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
+        // A cast or construction receiver is already its type.
+        if rref.typed_receiver {
+            continue;
+        }
         if rh.is_empty()
             || rh == "self"
             || rh == "Self"
@@ -829,6 +833,7 @@ pub fn settle_implicit_receivers(all_facts: &mut [FileFacts]) {
             let ty = ty.split('<').next().unwrap_or(ty).trim_end_matches('?');
             if !members.contains(&(ty.to_string(), r.name.clone())) {
                 r.receiver_hint.clear();
+                r.typed_receiver = false;
                 r.implicit_receiver = false;
             }
         }

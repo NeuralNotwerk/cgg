@@ -201,6 +201,37 @@ impl<'a> ScalaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // A member value of a class, trait or object (`val io = …` in
+            // its body, `class A(val io: B)`): in scope throughout the
+            // type, where it shadows a package of the same name. Recorded
+            // so a receiver headed by it is never read as that package.
+            "val_definition" | "var_definition" | "val_declaration"
+            | "var_declaration" | "class_parameter"
+                if !self.scope.is_empty()
+                    && node.parent().is_some_and(|p| {
+                        matches!(p.kind(), "template_body" | "class_parameters")
+                    }) =>
+            {
+                let name = node
+                    .child_by_field_name("pattern")
+                    .or_else(|| node.child_by_field_name("name"))
+                    .filter(|n| n.kind() == "identifier")
+                    .map(|n| self.text(n).to_string())
+                    .unwrap_or_default();
+                if !name.is_empty() {
+                    self.facts.class_fields.push(cgg_core::ClassFieldDecl {
+                        class_qn: self.scope.join("::"),
+                        field_name: name,
+                        type_name: node
+                            .child_by_field_name("type")
+                            .map(|t| self.text(t).to_string())
+                            .unwrap_or_default(),
+                        line: (node.start_position().row as u32) + 1,
+                    });
+                }
+                self.walk_children(node);
+                return;
+            }
             "call_expression" => {
                 self.record_call(node);
                 self.walk_children(node);
@@ -245,6 +276,22 @@ impl<'a> ScalaWalker<'a> {
         self.text(v).split_whitespace().collect()
     }
 
+    /// A receiver read through its shape (`crate::receiver`): `(f)` is
+    /// `f`, `new Foo(…)`, `Foo(…)` and `o.asInstanceOf[Foo]` are a `Foo`
+    /// (flagged as a type). An anonymous class (`new Foo { … }`) keeps
+    /// its text: its members are its own body's.
+    fn shaped_receiver(&self, v: Node) -> (String, bool) {
+        let p = crate::receiver::peel("scala", v, self.source);
+        let anonymous = p.node.kind() == "instance_expression"
+            && p.node
+                .named_children(&mut p.node.walk())
+                .any(|c| c.kind() == "template_body");
+        match p.ty {
+            Some(t) if !anonymous => (t.split_whitespace().collect(), true),
+            _ => (self.receiver_text(p.node), false),
+        }
+    }
+
     fn record_paren_less(&mut self, node: Node) {
         let (name, receiver) = match node.kind() {
             "field_expression" => {
@@ -253,12 +300,13 @@ impl<'a> ScalaWalker<'a> {
                 };
                 let recv = node
                     .child_by_field_name("value")
-                    .map(|v| self.receiver_text(v))
+                    .map(|v| self.shaped_receiver(v))
                     .unwrap_or_default();
                 (self.text(field).to_string(), recv)
             }
-            _ => (self.text(node).to_string(), String::new()),
+            _ => (self.text(node).to_string(), (String::new(), false)),
         };
+        let (receiver, typed_receiver) = receiver;
         if name.is_empty() || matches!(name.as_str(), "this" | "super" | "_") {
             return;
         }
@@ -268,6 +316,7 @@ impl<'a> ScalaWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             paren_less: true,
+            typed_receiver,
             ..Default::default()
         });
     }
@@ -353,9 +402,9 @@ impl<'a> ScalaWalker<'a> {
             && let Some(field) = function.child_by_field_name("field")
         {
             let name = self.text(field).to_string();
-            let receiver = function
+            let (receiver, typed_receiver) = function
                 .child_by_field_name("value")
-                .map(|v| self.receiver_text(v))
+                .map(|v| self.shaped_receiver(v))
                 .unwrap_or_default();
             if !name.is_empty() {
                 self.facts.references.push(RefRecord {
@@ -363,6 +412,7 @@ impl<'a> ScalaWalker<'a> {
                     receiver_hint: receiver,
                     site_line: (node.start_position().row as u32) + 1,
                     site_byte: node.start_byte() as u32,
+                    typed_receiver,
                     ..Default::default()
                 });
             }

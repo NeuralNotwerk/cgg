@@ -85,6 +85,14 @@ pub(crate) struct WorkspaceVocab {
     /// qualified name, template arguments dropped, plus class names
     /// known only from their fields.
     cpp_scopes: HashSet<String>,
+    /// Java/Kotlin/Scala: every segment of every declared package — what
+    /// a Scala relative import (`import util.Helpers` inside `a.b`, for
+    /// `a.b.util`) can start with.
+    jvm_segments: HashSet<String>,
+    /// Scala: the name of every class, trait and object a Scala callable
+    /// is declared in, and every member value a Scala type declares
+    /// (`val io = …`): a name a receiver can be headed by in some class.
+    scala_owners: HashSet<String>,
 }
 
 impl WorkspaceVocab {
@@ -115,8 +123,25 @@ impl WorkspaceVocab {
                         }
                     }
                 }
+                "scala" => {
+                    v.scala_owners
+                        .extend(f.class_fields.iter().map(|cf| cf.field_name.clone()));
+                    for imp in f.imports.iter().filter(|i| i.kind == "scala-package") {
+                        let p = imp.path.trim();
+                        if p.is_empty() {
+                            continue;
+                        }
+                        v.jvm_packages.insert(p.to_string());
+                        insert_prefixes(p, &mut v.jvm_prefixes);
+                        if let Some(root) = p.split('.').next() {
+                            v.jvm_roots.insert(root.to_string());
+                        }
+                        v.jvm_segments.extend(p.split('.').map(str::to_string));
+                    }
+                }
                 "java" | "kotlin" => {
                     for p in &f.packages {
+                        v.jvm_segments.extend(p.split('.').map(str::to_string));
                         v.jvm_packages.insert(p.clone());
                         insert_prefixes(p, &mut v.jvm_prefixes);
                         if let Some(root) = p.split('.').next() {
@@ -155,6 +180,12 @@ impl WorkspaceVocab {
         }
         for c in graph.callables.values() {
             match c.language.as_str() {
+                "scala" => {
+                    let segs: Vec<&str> = c.qualified_name.split("::").collect();
+                    for s in &segs[..segs.len().saturating_sub(1)] {
+                        v.scala_owners.insert((*s).to_string());
+                    }
+                }
                 "python" => {
                     if let Some(head) = c.qualified_name.split('.').next() {
                         v.py_names.insert(head.to_string());
@@ -331,6 +362,12 @@ pub(crate) struct FileHeads {
     /// Parameters and locals: a receiver headed by one is that value,
     /// not an import of the same name.
     pub(crate) locals: crate::scope::FileLocals,
+    /// The simple names of the classes this file declares (from
+    /// `FileFacts::classes`).
+    pub(crate) own_classes: HashSet<String>,
+    /// Solidity `using L for T;` directives as `(L, T)`, `T` being `*`
+    /// for `using L for *;`. In declaration order.
+    pub(crate) using_for: Vec<(String, String)>,
 }
 
 impl FileHeads {
@@ -342,6 +379,13 @@ impl FileHeads {
                 .map(|d| d.simple_name.clone())
                 .collect(),
             locals: crate::scope::FileLocals::build(facts),
+            own_classes: facts
+                .classes
+                .iter()
+                .filter_map(|c| c.class_qn.rsplit(['.', ':', '\\']).next())
+                .filter(|n| !n.is_empty())
+                .map(str::to_string)
+                .collect(),
             ..FileHeads::default()
         };
         let lang = facts.language.as_str();
@@ -538,6 +582,46 @@ impl FileHeads {
                     }
                 }
             }
+            "scala" => {
+                for imp in &facts.imports {
+                    let path = imp.path.trim();
+                    // Only the file's own package names a package root: a
+                    // Scala import can start at a value (`import
+                    // spark.implicits._`), which is no package.
+                    if imp.kind == "scala-package"
+                        && let Some(root) = path.split('.').next()
+                    {
+                        h.jvm_roots.insert(root.to_string());
+                    }
+                    if imp.kind != "import" {
+                        continue;
+                    }
+                    for (local, full) in scala_import_bindings(path) {
+                        // A relative import (`import util.X` inside `a.b`)
+                        // whose head names some declared package segment
+                        // may be the tree's: kept.
+                        let head = full.split('.').next().unwrap_or("");
+                        let pkg = jvm_package_of(&full);
+                        let module_binding = !full
+                            .rsplit('.')
+                            .next()
+                            .is_some_and(|l| l.starts_with(char::is_uppercase));
+                        let external = !vocab.jvm_workspace(pkg)
+                            && !vocab.jvm_segments.contains(head)
+                            && !vocab.scala_owners.contains(head);
+                        let module = if module_binding { full.as_str() } else { pkg };
+                        bind(&local, module, external, module_binding);
+                    }
+                }
+            }
+            "solidity" => {
+                for imp in facts.imports.iter().filter(|i| i.kind == "using-for") {
+                    h.using_for.push((
+                        imp.path.trim().to_string(),
+                        imp.alias.trim().to_string(),
+                    ));
+                }
+            }
             "cpp" => {
                 for imp in facts.imports.iter().filter(|i| i.kind == "namespace-alias") {
                     h.cpp_aliases.insert(
@@ -549,6 +633,19 @@ impl FileHeads {
             _ => {}
         }
         h
+    }
+
+    /// Solidity: the libraries whose functions a value of type `ty` can
+    /// call as members here — `using L for ty;` and `using L for *;`.
+    pub(crate) fn libraries_for(&self, ty: &str) -> Vec<&str> {
+        let mut out: Vec<&str> = Vec::new();
+        for (lib, target) in &self.using_for {
+            let target = target.split(['[', ' ']).next().unwrap_or(target);
+            if (target == "*" || target == ty) && !out.contains(&lib.as_str()) {
+                out.push(lib);
+            }
+        }
+        out
     }
 
     /// The external module a call is written through, when it is one —
@@ -568,6 +665,7 @@ impl FileHeads {
                 | "go"
                 | "java"
                 | "kotlin"
+                | "scala"
                 | "csharp"
                 | "cpp"
         ) {
@@ -634,9 +732,38 @@ impl FileHeads {
         }
         match lang {
             "java" | "kotlin" => self.jvm_package_head(lang, rh, head, vocab),
+            "scala" => self.scala_package_head(rh, head, vocab),
             "csharp" => self.cs_namespace_head(rh, head, vocab),
             _ => None,
         }
+    }
+
+    /// Scala: `math.ceil(x)`, `scala.util.Try(…)`, `java.util.UUID.
+    /// randomUUID()` — a receiver headed by a package every Scala file
+    /// sees without an import (`cgg_core::stdlib::SCALA_IMPLICIT_PACKAGES`),
+    /// when nothing binds that name — a parameter or local in scope (the
+    /// caller checked), a definition of the file, a member `val` of some
+    /// Scala type, a package segment, a class or object of the tree. Any other dotted receiver goes through the
+    /// Java/Kotlin package reading.
+    fn scala_package_head(
+        &self,
+        rh: &str,
+        head: &str,
+        vocab: &WorkspaceVocab,
+    ) -> Option<String> {
+        if cgg_core::stdlib::SCALA_IMPLICIT_PACKAGES.contains(&head)
+            && rh.split('.').all(is_ident)
+            && !self.own_defs.contains(head)
+            && !vocab.jvm_segments.contains(head)
+            && !vocab.scala_owners.contains(head)
+        {
+            return Some(if cgg_core::stdlib::SCALA_ROOT_PACKAGES.contains(&head) {
+                head.to_string()
+            } else {
+                format!("scala.{head}")
+            });
+        }
+        self.jvm_package_head("scala", rh, head, vocab)
     }
 
     /// `java.lang.Integer.compare()`, `org.apache.x.Y.m()`,
@@ -820,6 +947,61 @@ fn jvm_package_of(path: &str) -> &str {
     } else {
         path.rsplit_once('.').map_or("", |(p, _)| p)
     }
+}
+
+/// The names a Scala import binds, as `(local name, imported path)`:
+/// `a.b.C` binds `C`; `a.b.{C, D => E}` binds `C` and `E` (as `a.b.D`);
+/// a wildcard (`a.b._`, `a.b.*`, `{_}`) and a hiding selector (`D => _`)
+/// bind nothing by name. The plugin keeps the import's text with its
+/// whitespace removed.
+fn scala_import_bindings(path: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    // `import a.b, c.d`: several imports in one clause.
+    for clause in split_top_commas(path) {
+        let clause = clause.trim();
+        if let Some((prefix, sel)) = clause.split_once(".{") {
+            for item in sel.trim_end_matches('}').split(',') {
+                let item = item.trim();
+                match item.split_once("=>") {
+                    Some((_, to)) if to.trim() == "_" => {}
+                    Some((from, to)) => out.push((
+                        to.trim().to_string(),
+                        format!("{prefix}.{}", from.trim()),
+                    )),
+                    None if item == "_" || item == "*" || item.is_empty() => {}
+                    None => out.push((item.to_string(), format!("{prefix}.{item}"))),
+                }
+            }
+            continue;
+        }
+        if clause.ends_with("._") || clause.ends_with(".*") {
+            continue;
+        }
+        if let Some((_, last)) = clause.rsplit_once('.') {
+            out.push((last.to_string(), clause.to_string()));
+        }
+    }
+    out.retain(|(l, p)| is_ident(l) && p.split('.').all(is_ident));
+    out
+}
+
+/// `s` split at the commas outside every `{…}`.
+fn split_top_commas(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let (mut depth, mut start) = (0i32, 0usize);
+    for (i, c) in s.char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(&s[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    out.push(&s[start..]);
+    out
 }
 
 /// The name a Go import binds when it has no alias: the package name,
@@ -1043,6 +1225,30 @@ mod tests {
         let vocab = WorkspaceVocab::build(&Graph::new(), &[lib, caller.clone()]);
         let h = FileHeads::build(&caller, &vocab);
         assert!(h.cs_candidate_visible(&vocab, FileId::new(1), "State.SetHandled"));
+    }
+
+    #[test]
+    fn scala_import_bindings_follow_selectors() {
+        let b = |p: &str| scala_import_bindings(p);
+        assert_eq!(
+            b("org.apache.X"),
+            vec![("X".to_string(), "org.apache.X".to_string())]
+        );
+        assert_eq!(
+            b("a.b.{C,D=>E,F=>_,_}"),
+            vec![
+                ("C".to_string(), "a.b.C".to_string()),
+                ("E".to_string(), "a.b.D".to_string()),
+            ]
+        );
+        assert!(b("a.b._").is_empty());
+        assert_eq!(
+            b("scala.collection.mutable"),
+            vec![(
+                "mutable".to_string(),
+                "scala.collection.mutable".to_string()
+            )]
+        );
     }
 
     #[test]

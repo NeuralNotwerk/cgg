@@ -45,6 +45,21 @@ impl LanguagePlugin for TypeScriptPlugin {
         tree_sitter_typescript::LANGUAGE_TSX.into()
     }
 
+    /// `.ts` / `.mts` / `.cts` files are parsed with the TypeScript
+    /// grammar, `.tsx` (and anything else) with the TSX one. The two
+    /// disagree on `<`: in a `.ts` file `<Foo>x` is a type assertion and
+    /// `<T>(x: T) => x` a generic arrow function, and the TSX grammar
+    /// reads both as an unclosed JSX element, turning the rest of the
+    /// file into one error node whose calls were never recorded.
+    fn ts_language_for(&self, path: &Path) -> tree_sitter::Language {
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if matches!(ext, "ts" | "mts" | "cts") {
+            tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
+        } else {
+            self.ts_language()
+        }
+    }
+
     fn extract(
         &self,
         ctx: &crate::ExtractCtx<'_>,
@@ -93,6 +108,40 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    /// A `.ts` file is parsed with the TypeScript grammar: `<Foo>o` is a
+    /// type assertion there, where the TSX grammar opened a JSX element
+    /// and lost every later call. A `.tsx` file keeps the TSX grammar.
+    #[test]
+    fn ts_files_use_the_typescript_grammar() {
+        let src = "function r(o: any) {\n  (<Foo>o).m();\n  later();\n}\n";
+        let path = PathBuf::from("/tmp/__cgg_test__/x.ts");
+        let mut p = Parser::new();
+        p.set_language(&TypeScriptPlugin.ts_language_for(&path))
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        assert!(!tree.root_node().has_error());
+        let f = TypeScriptPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(0),
+            &path,
+            &tree,
+            src.as_bytes(),
+        );
+        let m = f.references.iter().find(|r| r.name == "m").unwrap();
+        assert_eq!((m.receiver_hint.as_str(), m.typed_receiver), ("Foo", true));
+        assert!(f.references.iter().any(|r| r.name == "later"));
+        let tsx = PathBuf::from("/tmp/__cgg_test__/x.tsx");
+        let mut p = Parser::new();
+        p.set_language(&TypeScriptPlugin.ts_language_for(&tsx))
+            .unwrap();
+        assert!(
+            !p.parse("const a = <div/>;\n", None)
+                .unwrap()
+                .root_node()
+                .has_error()
+        );
     }
 
     /// `import x = require('./m')` binds `x` to the module, like a

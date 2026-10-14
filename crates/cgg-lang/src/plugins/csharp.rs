@@ -538,7 +538,7 @@ impl<'a> Walker<'a> {
     fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
         let (name, recv) = match func.kind() {
-            "identifier" => (self.text(func).to_string(), String::new()),
+            "identifier" => (self.text(func).to_string(), (String::new(), false)),
             "member_access_expression" => {
                 let expr = func.child_by_field_name("expression")?;
                 let name = func.child_by_field_name("name")?;
@@ -547,20 +547,19 @@ impl<'a> Walker<'a> {
                 // other language spells it so the resolver's base-chain
                 // reading applies.
                 let recv = if expr.kind() == "base" {
-                    "super".to_string()
-                } else if let Some(ty) = constructed_type(expr) {
-                    // `new Alpha().Run()`: the receiver is an `Alpha`, so the
+                    ("super".to_string(), false)
+                } else {
+                    // `new Alpha().Run()`, `((Alpha)o).Run()`, `(o as
+                    // Alpha).Run()`: the receiver is an `Alpha`, so the
                     // call is looked up on that type and up its bases, as
                     // a call through a variable of that type would be.
-                    let t = self.text(ty);
-                    t[..t.find('<').unwrap_or(t.len())].trim().to_string()
-                } else {
-                    self.receiver_text(expr)
+                    // `(x).Run()` / `(await t).Run()` are `x` / `t`.
+                    self.shaped_receiver(expr)
                 };
                 (self.callee_name(name), recv)
             }
             // `Foo<T>()`: the name without its type arguments.
-            "generic_name" => (self.callee_name(func), String::new()),
+            "generic_name" => (self.callee_name(func), (String::new(), false)),
             // `x?.M()`: the null-conditional form of `x.M()`. The binding
             // (`.M`) names the method; the condition is the receiver.
             "conditional_access_expression" => {
@@ -569,10 +568,11 @@ impl<'a> Walker<'a> {
                     .named_children(&mut func.walk())
                     .find(|c| c.kind() == "member_binding_expression")?;
                 let name = binding.child_by_field_name("name")?;
-                (self.callee_name(name), self.receiver_text(cond))
+                (self.callee_name(name), self.shaped_receiver(cond))
             }
             _ => return None,
         };
+        let (recv, typed_receiver) = recv;
         if name.is_empty() {
             return None;
         }
@@ -582,12 +582,24 @@ impl<'a> Walker<'a> {
             receiver_hint: recv,
             site_line,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         })
     }
 }
 
 impl Walker<'_> {
+    /// A receiver read through its shape (`crate::receiver`): the type a
+    /// cast or construction names, flagged as a type, or the text of the
+    /// value inside parentheses, `await` and `!`.
+    fn shaped_receiver(&self, expr: Node) -> (String, bool) {
+        let p = crate::receiver::peel("csharp", expr, self.source);
+        match p.type_name() {
+            Some(t) => (t, true),
+            None => (self.receiver_text(p.node), false),
+        }
+    }
+
     /// The written name of a callee, without explicit type arguments:
     /// `M<string>` is a call of `M`. Read from the tree (`generic_name`'s
     /// identifier), so a name that legitimately contains no type
@@ -774,28 +786,6 @@ fn csharp_vis(node: Node) -> cgg_core::Vis {
         // interface implementations (`void IFoo.Bar()`), which are
         // reachable only through the interface.
         _ => cgg_core::Vis::Private,
-    }
-}
-
-/// The type a construction receiver builds (`new Alpha()` / `new
-/// N.Alpha(x)` / `new Box<int>()` → `Alpha` / `N.Alpha` / `Box`), looking
-/// through parentheses. `None` for any other receiver, and for a
-/// target-typed `new()` that names no type.
-fn constructed_type(expr: Node) -> Option<Node> {
-    let mut e = expr;
-    while e.kind() == "parenthesized_expression" {
-        e = e.named_child(0)?;
-    }
-    if e.kind() != "object_creation_expression" {
-        return None;
-    }
-    let ty = e.child_by_field_name("type")?;
-    match ty.kind() {
-        "identifier" | "qualified_name" => Some(ty),
-        "generic_name" => ty
-            .children(&mut ty.walk())
-            .find(|c| c.kind() == "identifier"),
-        _ => None,
     }
 }
 

@@ -28,6 +28,65 @@ pub const KOTLIN_RECEIVER_SCOPE_EXTENSIONS: &[&str] = &["run", "apply"];
 /// `with(x) { m() }`.
 pub const KOTLIN_RECEIVER_SCOPE_FUNCTIONS: &[&str] = &["with"];
 
+/// Cast operators spelled as a call rather than as syntax: the target
+/// type is the call's type argument and the value is what is cast
+/// (`static_cast<Foo*>(o)`, Scala `o.asInstanceOf[Foo]`). A receiver
+/// written as one of these is an instance of the target type.
+pub const CAST_INTRINSICS: &[(&str, &[&str])] = &[
+    (
+        "cpp",
+        &[
+            "static_cast",
+            "dynamic_cast",
+            "reinterpret_cast",
+            "const_cast",
+        ],
+    ),
+    ("scala", &["asInstanceOf"]),
+];
+
+/// Whether `name` is one of `lang`'s [`CAST_INTRINSICS`].
+pub fn is_cast_intrinsic(lang: &str, name: &str) -> bool {
+    CAST_INTRINSICS
+        .iter()
+        .any(|(l, names)| *l == lang && names.contains(&name))
+}
+
+/// Methods the language itself defines to construct an instance of the
+/// class they are called on: Ruby's `Foo.new(…)` builds a `Foo`. A
+/// receiver written as one is an instance of that class.
+pub const CONSTRUCTING_METHODS: &[(&str, &[&str])] = &[("ruby", &["new"])];
+
+/// Whether `name` is one of `lang`'s [`CONSTRUCTING_METHODS`].
+pub fn is_constructing_method(lang: &str, name: &str) -> bool {
+    CONSTRUCTING_METHODS
+        .iter()
+        .any(|(l, names)| *l == lang && names.contains(&name))
+}
+
+/// Scala: packages every file sees without an import, through the
+/// implicit `import scala._` / `import java.lang._` — `math.ceil(x)` is
+/// `scala.math.ceil`. A receiver headed by one of these that nothing in
+/// the file or the tree binds is a call into the standard library.
+pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
+    "scala",
+    "java",
+    "javax",
+    "math",
+    "collection",
+    "concurrent",
+    "util",
+    "io",
+    "sys",
+    "reflect",
+    "annotation",
+    "runtime",
+];
+
+/// The [`SCALA_IMPLICIT_PACKAGES`] that are roots in their own right;
+/// every other entry is a child of `scala` (`math` is `scala.math`).
+pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];
+
 static RUST: &str = include_str!("stdlib/rust.txt");
 static PYTHON: &str = include_str!("stdlib/python.txt");
 static GO: &str = include_str!("stdlib/go.txt");

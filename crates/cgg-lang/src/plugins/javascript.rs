@@ -1199,13 +1199,32 @@ impl<'a> JsWalker<'a> {
         else {
             return;
         };
+        let mut typed_receiver = false;
+        let mut shaped: Option<String> = None;
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "member_expression" => {
-                let obj = func
-                    .child_by_field_name("object")
+                let obj_node = func.child_by_field_name("object");
+                let obj = obj_node
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // `(f).m()`, `(o as Foo).m()`, `(<Foo>o).m()`, `new Foo().m()`,
+                // `(await p).m()`: the value or the type the receiver's
+                // shape stands for (`crate::receiver`).
+                if let Some(o) = obj_node {
+                    let lang = self.facts.language.clone();
+                    let p = crate::receiver::peel(&lang, o, self.source);
+                    match p.type_name() {
+                        Some(t) => {
+                            typed_receiver = true;
+                            shaped = Some(t);
+                        }
+                        None if p.node.id() != o.id() => {
+                            shaped = Some(self.text(p.node).to_string());
+                        }
+                        None => {}
+                    }
+                }
                 let prop = func
                     .child_by_field_name("property")
                     .map(|n| self.text(n).to_string())
@@ -1224,9 +1243,10 @@ impl<'a> JsWalker<'a> {
         };
         self.facts.references.push(RefRecord {
             name,
-            receiver_hint: recv,
+            receiver_hint: shaped.unwrap_or(recv),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         });
         // Shape B/E: `app.get('/x', listUsers)` and
@@ -1304,6 +1324,7 @@ impl<'a> JsWalker<'a> {
                 arity: None,
                 value_ref: false,
                 paren_less: false,
+                typed_receiver: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

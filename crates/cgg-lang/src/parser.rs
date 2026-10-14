@@ -49,11 +49,25 @@ impl<'r> ParserPool<'r> {
     /// rejects the language (should never happen for a compiled-in
     /// grammar).
     pub fn parse(&self, plugin_id: &'static str, source: &[u8]) -> Result<ParseOutcome> {
+        self.parse_file(plugin_id, None, source)
+    }
+
+    /// [`Self::parse`] with the grammar the plugin chooses for `path`
+    /// (`LanguagePlugin::ts_language_for`).
+    pub fn parse_file(
+        &self,
+        plugin_id: &'static str,
+        path: Option<&std::path::Path>,
+        source: &[u8],
+    ) -> Result<ParseOutcome> {
         let plugin = self
             .registry
             .by_id(plugin_id)
             .ok_or_else(|| anyhow!("unknown plugin id: {plugin_id}"))?;
-        let lang = plugin.ts_language();
+        let lang = match path {
+            Some(p) => plugin.ts_language_for(p),
+            None => plugin.ts_language(),
+        };
         let start = Instant::now();
         let tree = PARSERS.with(|cell| -> Result<Tree> {
             let mut map = cell.borrow_mut();

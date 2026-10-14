@@ -440,7 +440,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     };
                 }
             }
-            let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
+            // The grammar is chosen per file (TypeScript `.ts` vs `.tsx`).
+            let parsed = pool.parse_file(lang, Some(&cand.path), &bytes);
+            let (parse_status, parse_ms, facts) = match parsed {
                 Ok(out) => {
                     // The extractors recurse over the tree. A tree deeper
                     // than the stack can hold would abort the process, so

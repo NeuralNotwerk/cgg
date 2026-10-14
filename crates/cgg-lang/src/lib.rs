@@ -18,6 +18,7 @@ pub mod locals;
 pub mod notebook;
 pub mod parser;
 pub mod plugins;
+pub mod receiver;
 
 use std::fmt;
 use std::path::Path;
@@ -313,6 +314,13 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
     }
 
     fn ts_language(&self) -> tree_sitter::Language;
+
+    /// The grammar to parse one file with. Defaults to [`Self::ts_language`];
+    /// a plugin whose language has dialects told apart by file extension
+    /// (TypeScript's `.ts` and `.tsx`) chooses per file.
+    fn ts_language_for(&self, _path: &Path) -> tree_sitter::Language {
+        self.ts_language()
+    }
 
     /// Walk `tree` once and produce the definitions + references +
     /// imports for the file. The default returns an empty `FileFacts`,

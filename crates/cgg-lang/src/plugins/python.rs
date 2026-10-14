@@ -740,14 +740,26 @@ impl<'a> Walker<'a> {
 
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
+        let mut typed_receiver = false;
         let (name, receiver) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "attribute" => {
                 // a.b.c  -> name=c, receiver=a.b
                 let attr = func.child_by_field_name("attribute")?;
+                // `(f).m()`, `(await f).m()`, `Foo().m()`: the value or the
+                // class the receiver's shape stands for (`crate::receiver`).
                 let recv = func
                     .child_by_field_name("object")
-                    .map(|n| self.receiver_text(n))
+                    .map(|n| {
+                        let p = crate::receiver::peel("python", n, self.source);
+                        match p.type_name() {
+                            Some(t) => {
+                                typed_receiver = true;
+                                t
+                            }
+                            None => self.receiver_text(p.node),
+                        }
+                    })
                     .unwrap_or_default();
                 (self.text(attr).to_string(), recv)
             }
@@ -778,6 +790,7 @@ impl<'a> Walker<'a> {
             site_line,
             site_byte: node.start_byte() as u32,
             kwargs,
+            typed_receiver,
             ..Default::default()
         })
     }
@@ -1683,8 +1696,9 @@ class C:
 
     #[test]
     fn a_receiver_that_is_not_an_attribute_chain_keeps_its_text() {
-        // Near miss: calls, subscripts, literals and parenthesised
-        // receivers are recorded as written, as before.
+        // Near miss: calls, subscripts and literals are recorded as
+        // written, as before. A parenthesised receiver is the value
+        // inside it (FINDINGS C2), as in the one-line form.
         let f = extract(
             "def f(x):\n    x.a(1, 2).m()\n    x[0].m()\n    \"s\".m()\n    (x).m()\n    x.a().b.m()\n",
         );
@@ -1694,7 +1708,7 @@ class C:
             .filter(|r| r.name == "m")
             .map(|r| r.receiver_hint.as_str())
             .collect();
-        assert_eq!(recv, vec!["x.a(1, 2)", "x[0]", "\"s\"", "(x)", "x.a().b"]);
+        assert_eq!(recv, vec!["x.a(1, 2)", "x[0]", "\"s\"", "x", "x.a().b"]);
     }
 
     #[test]

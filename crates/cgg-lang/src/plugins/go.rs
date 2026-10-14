@@ -808,12 +808,24 @@ impl<'a> Walker<'a> {
 
     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
+        let mut typed_receiver = false;
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
             "selector_expression" => {
                 let operand = func.child_by_field_name("operand")?;
                 let field = func.child_by_field_name("field")?;
-                (self.text(field).to_string(), self.text(operand).to_string())
+                // `(f).M()`, `(*p).M()`, `(&T{}).M()`, `T{A: 1}.M()`,
+                // `v.(T).M()`: the value or the type the receiver's shape
+                // stands for (`crate::receiver`).
+                let p = crate::receiver::peel("go", operand, self.source);
+                let recv = match p.type_name() {
+                    Some(t) => {
+                        typed_receiver = true;
+                        t
+                    }
+                    None => self.text(p.node).to_string(),
+                };
+                (self.text(field).to_string(), recv)
             }
             // `F[int](a, b)`: an instantiation with more than one argument
             // parses as a call through an index expression.
@@ -829,6 +841,7 @@ impl<'a> Walker<'a> {
             receiver_hint: recv,
             site_line,
             site_byte: node.start_byte() as u32,
+            typed_receiver,
             ..Default::default()
         })
     }
