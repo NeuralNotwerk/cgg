@@ -1078,7 +1078,7 @@ index 0d53046..6151402 100644
          });
      }
 diff --git a/crates/cgg-lang/src/plugins/typescript.rs b/crates/cgg-lang/src/plugins/typescript.rs
-index 90f47a8..3795e56 100644
+index 90f47a8..4324e93 100644
 --- a/crates/cgg-lang/src/plugins/typescript.rs
 +++ b/crates/cgg-lang/src/plugins/typescript.rs
 @@ -45,6 +45,21 @@ impl LanguagePlugin for TypeScriptPlugin {
@@ -1103,7 +1103,7 @@ index 90f47a8..3795e56 100644
      fn extract(
          &self,
          ctx: &crate::ExtractCtx<'_>,
-@@ -95,6 +110,33 @@ mod tests {
+@@ -95,6 +110,40 @@ mod tests {
          )
      }
  
@@ -1115,7 +1115,8 @@ index 90f47a8..3795e56 100644
 +        let src = "function r(o: any) {\n  (<Foo>o).m();\n  later();\n}\n";
 +        let path = PathBuf::from("/tmp/__cgg_test__/x.ts");
 +        let mut p = Parser::new();
-+        p.set_language(&TypeScriptPlugin.ts_language_for(&path)).unwrap();
++        p.set_language(&TypeScriptPlugin.ts_language_for(&path))
++            .unwrap();
 +        let tree = p.parse(src, None).unwrap();
 +        assert!(!tree.root_node().has_error());
 +        let f = TypeScriptPlugin.extract(
@@ -1130,15 +1131,21 @@ index 90f47a8..3795e56 100644
 +        assert!(f.references.iter().any(|r| r.name == "later"));
 +        let tsx = PathBuf::from("/tmp/__cgg_test__/x.tsx");
 +        let mut p = Parser::new();
-+        p.set_language(&TypeScriptPlugin.ts_language_for(&tsx)).unwrap();
-+        assert!(!p.parse("const a = <div/>;\n", None).unwrap().root_node().has_error());
++        p.set_language(&TypeScriptPlugin.ts_language_for(&tsx))
++            .unwrap();
++        assert!(
++            !p.parse("const a = <div/>;\n", None)
++                .unwrap()
++                .root_node()
++                .has_error()
++        );
 +    }
 +
      /// `import x = require('./m')` binds `x` to the module, like a
      /// CommonJS `const x = require('./m')` (FINDINGS A4).
      #[test]
 diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
-index 4ccb464..9746eab 100644
+index 4ccb464..ca8693d 100644
 --- a/crates/cgg-resolve/src/cross_file.rs
 +++ b/crates/cgg-resolve/src/cross_file.rs
 @@ -2460,6 +2460,7 @@ pub fn resolve(
@@ -1177,7 +1184,69 @@ index 4ccb464..9746eab 100644
                  // A PEP 8 private class (`_CollectErrors`) is still a
                  // type: the plugin types `x = _CollectErrors()` as one,
                  // and rejecting it here left the call bound to nothing.
-@@ -5466,7 +5472,10 @@ fn try_resolve_ref(
+@@ -5314,6 +5320,17 @@ fn try_resolve_ref(
+                         );
+                     }
+                 }
++                // A class the calling file declares is the one a receiver
++                // of that name means there (a test's local `TestScript`),
++                // never a same-named class of another file. Python only:
++                // its classes are declared whole in one file (a C#
++                // `partial` class or a Rust type's `impl` blocks span
++                // files), and its receiver types keep the qualifier they
++                // were written with — a Java local `ObjectNode.Builder b`
++                // is recorded as a bare `Builder`, which a file's own
++                // nested `Builder` would wrongly claim.
++                let own_file_class = lang == "python";
++                let mut own_class_miss = false;
+                 for owner in &owners {
+                     if let Some(cids) = by_owner_method.get(&(
+                         lang.to_string(),
+@@ -5321,6 +5338,33 @@ fn try_resolve_ref(
+                         r.name.clone(),
+                     )) && !cids.is_empty()
+                     {
++                        // Only for a type written unqualified: `ObjectNode.Builder`
++                        // names another class's `Builder`, whatever the
++                        // calling file's own `Builder` is.
++                        if own_file_class
++                            && *owner == rh
++                            && heads.own_classes.contains(*owner)
++                            && !cids.iter().any(|c| {
++                                graph
++                                    .callables
++                                    .get(c)
++                                    .is_some_and(|n| n.file == caller_file)
++                            })
++                        {
++                            // The file's own class does not declare it: an
++                            // inherited member, or nothing the tree has.
++                            if let Some(inherited) = resolve_via_bases(
++                                lang,
++                                owner,
++                                &r.name,
++                                by_owner_method,
++                                bases_by_owner,
++                            ) {
++                                return Some(inherited);
++                            }
++                            own_class_miss = true;
++                            continue;
++                        }
+                         if cs_scoped {
+                             let seen: Vec<CallableId> = cids
+                                 .iter()
+@@ -5348,6 +5392,9 @@ fn try_resolve_ref(
+                     *external_out = Some(rh.to_string());
+                     return None;
+                 }
++                if own_class_miss {
++                    return None;
++                }
+                 if lang == "rust"
+                     && !r.path_receiver
+                     && !cgg_core::stdlib::stdlib_names(lang)
+@@ -5466,7 +5513,10 @@ fn try_resolve_ref(
          // `M(this U …)` whose extended type `U` is `T`, a base of `T`, or
          // a type parameter of `M`. Without this a typed receiver lost
          // every extension call it makes.
@@ -1189,7 +1258,7 @@ index 4ccb464..9746eab 100644
              let recv = rh.rsplit('.').next().unwrap_or(rh);
              let recv = recv.split('<').next().unwrap_or(recv).trim();
              let family = with_ancestors(lang, vec![recv.to_string()], bases_by_owner);
-@@ -5487,6 +5496,35 @@ fn try_resolve_ref(
+@@ -5487,6 +5537,35 @@ fn try_resolve_ref(
              }
          }
  
@@ -1225,7 +1294,7 @@ index 4ccb464..9746eab 100644
          // Step 5: Trait/interface method dispatch.
          // When receiver_hint is a variable name (lowercase) and the method
          // name exists on definitions in other files, find all callables
-@@ -5499,6 +5537,9 @@ fn try_resolve_ref(
+@@ -5499,6 +5578,9 @@ fn try_resolve_ref(
          // only where the receiver is typed, never by name fan-out.
          if !rh.is_empty()
              && !r.paren_less
@@ -1288,7 +1357,7 @@ index b64b5bb..b47ac29 100644
              receiver_hint: VALUE_REF_HINT.to_string(),
              site_line: 4,
 diff --git a/crates/cgg-resolve/src/heads.rs b/crates/cgg-resolve/src/heads.rs
-index 92db88c..6062b7e 100644
+index 92db88c..f01320d 100644
 --- a/crates/cgg-resolve/src/heads.rs
 +++ b/crates/cgg-resolve/src/heads.rs
 @@ -85,6 +85,14 @@ pub(crate) struct WorkspaceVocab {
@@ -1345,24 +1414,46 @@ index 92db88c..6062b7e 100644
                  "python" => {
                      if let Some(head) = c.qualified_name.split('.').next() {
                          v.py_names.insert(head.to_string());
-@@ -331,6 +362,9 @@ pub(crate) struct FileHeads {
+@@ -331,6 +362,12 @@ pub(crate) struct FileHeads {
      /// Parameters and locals: a receiver headed by one is that value,
      /// not an import of the same name.
      pub(crate) locals: crate::scope::FileLocals,
++    /// The simple names of the classes this file declares (from
++    /// `FileFacts::classes`).
++    pub(crate) own_classes: HashSet<String>,
 +    /// Solidity `using L for T;` directives as `(L, T)`, `T` being `*`
 +    /// for `using L for *;`. In declaration order.
 +    pub(crate) using_for: Vec<(String, String)>,
  }
  
  impl FileHeads {
-@@ -538,6 +572,41 @@ impl FileHeads {
+@@ -342,6 +379,13 @@ impl FileHeads {
+                 .map(|d| d.simple_name.clone())
+                 .collect(),
+             locals: crate::scope::FileLocals::build(facts),
++            own_classes: facts
++                .classes
++                .iter()
++                .filter_map(|c| c.class_qn.rsplit(['.', ':', '\\']).next())
++                .filter(|n| !n.is_empty())
++                .map(str::to_string)
++                .collect(),
+             ..FileHeads::default()
+         };
+         let lang = facts.language.as_str();
+@@ -538,6 +582,46 @@ impl FileHeads {
                      }
                  }
              }
 +            "scala" => {
 +                for imp in &facts.imports {
 +                    let path = imp.path.trim();
-+                    if let Some(root) = path.split('.').next() {
++                    // Only the file's own package names a package root: a
++                    // Scala import can start at a value (`import
++                    // spark.implicits._`), which is no package.
++                    if imp.kind == "scala-package"
++                        && let Some(root) = path.split('.').next()
++                    {
 +                        h.jvm_roots.insert(root.to_string());
 +                    }
 +                    if imp.kind != "import" {
@@ -1397,7 +1488,7 @@ index 92db88c..6062b7e 100644
              "cpp" => {
                  for imp in facts.imports.iter().filter(|i| i.kind == "namespace-alias") {
                      h.cpp_aliases.insert(
-@@ -551,6 +620,19 @@ impl FileHeads {
+@@ -551,6 +635,19 @@ impl FileHeads {
          h
      }
  
@@ -1417,7 +1508,7 @@ index 92db88c..6062b7e 100644
      /// The external module a call is written through, when it is one —
      /// `Some(module)` means the call must not be name-matched onto a
      /// workspace callable. `None` means "not provably external".
-@@ -568,6 +650,7 @@ impl FileHeads {
+@@ -568,6 +665,7 @@ impl FileHeads {
                  | "go"
                  | "java"
                  | "kotlin"
@@ -1425,7 +1516,7 @@ index 92db88c..6062b7e 100644
                  | "csharp"
                  | "cpp"
          ) {
-@@ -634,11 +717,39 @@ impl FileHeads {
+@@ -634,11 +732,39 @@ impl FileHeads {
          }
          match lang {
              "java" | "kotlin" => self.jvm_package_head(lang, rh, head, vocab),
@@ -1465,7 +1556,7 @@ index 92db88c..6062b7e 100644
      /// `java.lang.Integer.compare()`, `org.apache.x.Y.m()`,
      /// `kotlinx.coroutines.runBlocking {}`: a receiver written as a
      /// package path. Only a head that is some package root this file or
-@@ -822,6 +933,61 @@ fn jvm_package_of(path: &str) -> &str {
+@@ -822,6 +948,61 @@ fn jvm_package_of(path: &str) -> &str {
      }
  }
  
@@ -1527,7 +1618,7 @@ index 92db88c..6062b7e 100644
  /// The name a Go import binds when it has no alias: the package name,
  /// which by near-universal convention is the last path element without a
  /// major-version suffix (`…/v2`, `yaml.v3`) or a `go-` prefix.
-@@ -1045,6 +1211,27 @@ mod tests {
+@@ -1045,6 +1226,30 @@ mod tests {
          assert!(h.cs_candidate_visible(&vocab, FileId::new(1), "State.SetHandled"));
      }
  
@@ -1548,7 +1639,10 @@ index 92db88c..6062b7e 100644
 +        assert!(b("a.b._").is_empty());
 +        assert_eq!(
 +            b("scala.collection.mutable"),
-+            vec![("mutable".to_string(), "scala.collection.mutable".to_string())]
++            vec![(
++                "mutable".to_string(),
++                "scala.collection.mutable".to_string()
++            )]
 +        );
 +    }
 +
@@ -1703,10 +1797,10 @@ index f8cc04d..dd7d011 100644
              FileOutcome::Analyzed(FileResult {
                  path: cand.path.clone(),
 diff --git a/crates/cgg/tests/resolve.rs b/crates/cgg/tests/resolve.rs
-index 254141f..ed825d2 100644
+index 254141f..2c5cc0e 100644
 --- a/crates/cgg/tests/resolve.rs
 +++ b/crates/cgg/tests/resolve.rs
-@@ -3119,3 +3119,201 @@ fn a_companion_imported_kotlin_extension_resolves() {
+@@ -3119,3 +3119,264 @@ fn a_companion_imported_kotlin_extension_resolves() {
      let (dsts, _) = edges_and_external(tmp.path(), "app.go");
      assert_eq!(dsts, vec!["okhttp3.HttpUrl.toHttpUrl"]);
  }
@@ -1908,12 +2002,75 @@ index 254141f..ed825d2 100644
 +    let (cpp, _) = edges_and_external(tmp.path(), "go");
 +    assert_eq!(cpp, vec!["Qux::k"; 3]);
 +}
++
++/// A class the calling file declares is what a receiver of that name
++/// means there: `TestScript().as_form()` in a test that declares its own
++/// `TestScript(Script)` reaches the inherited `Script.as_form`, never the
++/// `as_form` of another test file's same-named class.
++#[test]
++fn a_receiver_type_the_file_declares_is_that_files_class() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "scripts.py",
++        b"class Script:\n    def as_form(self):\n        pass\n",
++    );
++    write(
++        tmp.path(),
++        "test_a.py",
++        concat!(
++            "from scripts import Script\n",
++            "def test_a():\n    class TestScript(Script):\n        def as_form(self):\n            pass\n",
++            "    TestScript().as_form()\n",
++        )
++        .as_bytes(),
++    );
++    write(
++        tmp.path(),
++        "test_b.py",
++        concat!(
++            "from scripts import Script\n",
++            "def test_b():\n    class TestScript(Script):\n        pass\n",
++            "    TestScript().as_form()\n",
++        )
++        .as_bytes(),
++    );
++    let (b, _) = edges_and_external(tmp.path(), "test_b.test_b");
++    assert_eq!(b, vec!["scripts.Script.as_form"]);
++    let (a, _) = edges_and_external(tmp.path(), "test_a.test_a");
++    assert_eq!(a, vec!["test_a.test_a.TestScript.as_form"]);
++}
++
++/// Scala: an import that starts at a value (`import spark.implicits._`)
++/// does not make `spark` a package root, so `spark.sparkContext.f()` is
++/// not refused as a call into a package `spark`.
++#[test]
++fn a_scala_import_from_a_value_is_not_a_package_root() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "A.scala",
++        concat!(
++            "package org.acme.bench\nobject Misc extends Base {\n  import spark.implicits._\n",
++            "  def f(): Unit = {\n    spark.sparkContext.parallelize(Seq(1))\n  }\n}\n",
++        )
++        .as_bytes(),
++    );
++    write(
++        tmp.path(),
++        "B.scala",
++        b"package org.acme.ctx\nclass Ctx { def parallelize(x: Int) = x }\n",
++    );
++    let (dsts, ext) = edges_and_external(tmp.path(), "Misc::f");
++    assert_eq!(dsts, vec!["Ctx::parallelize"]);
++    assert!(ext.is_empty(), "{ext:?}");
++}
 diff --git a/crates/cgg-lang/src/receiver.rs b/crates/cgg-lang/src/receiver.rs
 new file mode 100644
-index 0000000..c9ff93f
+index 0000000..4a7f3eb
 --- /dev/null
 +++ b/crates/cgg-lang/src/receiver.rs
-@@ -0,0 +1,530 @@
+@@ -0,0 +1,592 @@
 +//! Receiver shapes (FINDINGS C2).
 +//!
 +//! A call's receiver is often not written as the bare value it is: it can
@@ -2028,11 +2185,15 @@ index 0000000..c9ff93f
 +                }
 +            }
 +            _ => {
-+                return Peeled {
-+                    node: n,
-+                    ty: shape_type(lang, n, src),
-+                    deref,
-+                };
++                let ty = shape_type(lang, n, src);
++                if ty.is_none() && n.id() != node.id() && !is_value_like(n.kind()) {
++                    return Peeled {
++                        node,
++                        ty: None,
++                        deref: false,
++                    };
++                }
++                return Peeled { node: n, ty, deref };
 +            }
 +        };
 +        match next {
@@ -2045,6 +2206,34 @@ index 0000000..c9ff93f
 +        ty: shape_type(lang, n, src),
 +        deref,
 +    }
++}
++
++/// Whether a peeled receiver is a value a call can be typed or named
++/// through: a name, a member chain, `this`, a call. Anything else that
++/// sat in parentheses — `(a + b).m()`, `(x || y).m()`, `(c ? a : b).m()`
++/// — is an expression whose value has no name, and keeps the reading
++/// its written form always had rather than being matched by the text
++/// of one operand.
++fn is_value_like(kind: &str) -> bool {
++    kind.contains("identifier")
++        || kind.contains("member")
++        || kind.contains("field")
++        || kind.contains("attribute")
++        || kind.contains("navigation")
++        || kind.contains("selector")
++        || kind.contains("call")
++        || kind.contains("invocation")
++        || kind.contains("this")
++        || kind.contains("self")
++        || kind.contains("super")
++        || matches!(
++            kind,
++            "identifier"
++                | "variable_name"
++                | "constant"
++                | "scope_resolution"
++                | "simple_name"
++        )
 +}
 +
 +/// The type a cast or a construction names; `None` for any other node.
@@ -2192,7 +2381,10 @@ index 0000000..c9ff93f
 +                prev_ws = true;
 +                continue;
 +            }
-+            if prev_ws && (c.is_alphanumeric() || c == '_') && out.ends_with(|p: char| p.is_alphanumeric() || p == '_') {
++            if prev_ws
++                && (c.is_alphanumeric() || c == '_')
++                && out.ends_with(|p: char| p.is_alphanumeric() || p == '_')
++            {
 +                out.push(' ');
 +            }
 +            prev_ws = false;
@@ -2432,6 +2624,33 @@ index 0000000..c9ff93f
 +            }
 +        }
 +        assert_eq!(got, vec!["T:Foo", "T:A::Foo", "f", "make"]);
++    }
++
++    #[test]
++    fn kotlin_constructions_across_lines_and_casts() {
++        let src = "fun r(o: Any) {\n  val a = Headers\n    .Builder()\n    .add(1)\n  \
++                   val b = (o as? Foo)?.m()\n  val c = make().m()\n}\n";
++        let got = names(receivers(
++            "kotlin",
++            tree_sitter_kotlin_sg::LANGUAGE.into(),
++            src,
++        ));
++        assert!(got.contains(&"T:Headers.Builder".to_string()), "{got:?}");
++        assert!(got.contains(&"T:Foo".to_string()), "{got:?}");
++        assert!(got.contains(&"make()".to_string()), "{got:?}");
++    }
++
++    #[test]
++    fn a_parenthesized_expression_that_is_not_a_value_keeps_its_text() {
++        let src = "def r(a, b, c):\n    (a + b).m()\n    (a or b).m()\n    (a if c else b).m()\n    (a.b).m()\n";
++        assert_eq!(
++            names(receivers(
++                "python",
++                tree_sitter_python::LANGUAGE.into(),
++                src
++            )),
++            vec!["(a + b)", "(a or b)", "(a if c else b)", "a.b"]
++        );
 +    }
 +
 +    #[test]
