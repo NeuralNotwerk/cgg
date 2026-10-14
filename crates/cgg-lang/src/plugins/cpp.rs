@@ -725,36 +725,33 @@ impl<'a> CppWalker<'a> {
                 .is_some_and(|op| op.kind() == "->");
         let (name, recv) = match func.kind() {
             "identifier" => (self.text(func).to_string(), String::new()),
+            // `f<int>()`: a call of `f` with explicit template arguments.
+            "template_function" => (callee_name(func, self.source), String::new()),
             "field_expression" => {
                 let arg = func
                     .child_by_field_name("argument")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let field = func
-                    .child_by_field_name("field")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
+                let Some(field) = func.child_by_field_name("field") else {
+                    return;
+                };
                 // `this->Base::Close()` names the class explicitly: it is a
                 // direct, non-virtual call to `Base::Close`. Record the
                 // method as the name and the class as the receiver, the same
                 // split as `Base::Close()` below. Keeping the qualified text
                 // as the name only matched while out-of-line bodies carried
                 // `Base::Close` as their simple name, which PR 8 fixed.
-                match field.rfind("::") {
-                    Some(pos) => (field[pos + 2..].to_string(), field[..pos].to_string()),
-                    None => (field, arg),
+                match split_qualified(field, self.source) {
+                    Some((scope, name)) => (name, scope),
+                    // `b.m<int>()`, `b.template m<int>()`: the member's
+                    // name without its template arguments.
+                    None => (callee_name(field, self.source), arg),
                 }
             }
-            "qualified_identifier" => {
-                let full = self.text(func);
-                if let Some(pos) = full.rfind("::") {
-                    let recv = full[..pos].to_string();
-                    let name = full[pos + 2..].to_string();
-                    (name, recv)
-                } else {
-                    (full.to_string(), String::new())
-                }
-            }
+            "qualified_identifier" => match split_qualified(func, self.source) {
+                Some((scope, name)) => (name, scope),
+                None => (callee_name(func, self.source), String::new()),
+            },
             _ => return,
         };
         if name.is_empty() {
@@ -889,6 +886,55 @@ fn is_virtual_method(node: Node, source: &[u8]) -> bool {
             .utf8_text(source)
             .ok()
             .is_some_and(|t| t.trim_start().starts_with("virtual "))
+}
+
+/// The name a callee node calls, without explicit template arguments
+/// and without the `template` disambiguator: `f<int>` and
+/// `template m<int>` both call their bare name. Read from the tree, so
+/// a type argument containing `::` or `<` cannot cut the name.
+fn callee_name(n: Node, src: &[u8]) -> String {
+    let text = |n: Node| n.utf8_text(src).unwrap_or("").to_string();
+    match n.kind() {
+        "template_function" | "template_method" => {
+            n.child_by_field_name("name").map(text).unwrap_or_default()
+        }
+        "dependent_name" => n
+            .named_children(&mut n.walk())
+            .last()
+            .map(|c| callee_name(c, src))
+            .unwrap_or_default(),
+        _ => text(n),
+    }
+}
+
+/// `ns::A<int>::f<float>` → (`ns::A<int>`, `f`): the scope as written
+/// and the called name without its template arguments. The split follows
+/// the tree's nested `qualified_identifier`s, never the text, so `::`
+/// inside a template argument (`f<std::string>`) stays in place. `None`
+/// when `n` is not a qualified name.
+fn split_qualified(n: Node, src: &[u8]) -> Option<(String, String)> {
+    if n.kind() != "qualified_identifier" {
+        return None;
+    }
+    let mut last = n;
+    loop {
+        match last.child_by_field_name("name") {
+            Some(next) if next.kind() == "qualified_identifier" => last = next,
+            Some(name) => {
+                // Everything written before the final name, minus its
+                // `::` — which also keeps a scope the grammar could not
+                // parse whole (`typename BV::Iterator`) as written.
+                let scope = src
+                    .get(n.start_byte()..name.start_byte())
+                    .map(String::from_utf8_lossy)
+                    .unwrap_or_default();
+                let scope = scope.trim_end();
+                let scope = scope.strip_suffix("::").unwrap_or(scope).trim_end();
+                return Some((scope.to_string(), callee_name(name, src)));
+            }
+            None => return None,
+        }
+    }
 }
 
 fn unwrap_parens(mut n: Node) -> Node {
@@ -2525,6 +2571,63 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
         assert_eq!(
             (alias.alias.as_str(), alias.path.as_str()),
             ("fs", "std::filesystem")
+        );
+    }
+    fn calls_of(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .map(|r| (r.name.clone(), r.receiver_hint.clone()))
+            .collect()
+    }
+
+    /// C1: explicit template arguments are not part of the called name.
+    /// `f<int>()` was skipped outright; the member and scoped forms kept
+    /// `<int>` in the name and were screened as external.
+    #[test]
+    fn template_arguments_are_stripped_from_callee_names() {
+        let f = extract(
+            "void caller(B b) {\n  f<int>(1);\n  b.m<int>(2);\n  B::s<int>(3);\n  ns::nf<std::string>(4);\n  b.template m<int>(5);\n  ns::A<std::pair<int, int>>::t<float>(6);\n  x.Base::template g<int>();\n  ::h<int>();\n}\n",
+        );
+        let calls = calls_of(&f);
+        for want in [
+            ("f", ""),
+            ("m", "b"),
+            ("s", "B"),
+            ("nf", "ns"),
+            ("t", "ns::A<std::pair<int, int>>"),
+            ("g", "Base"),
+            ("h", ""),
+        ] {
+            assert!(
+                calls.contains(&(want.0.to_string(), want.1.to_string())),
+                "{want:?} missing from {calls:?}"
+            );
+        }
+        assert_eq!(
+            calls.iter().filter(|(n, r)| n == "m" && r == "b").count(),
+            2
+        );
+        assert!(
+            !calls
+                .iter()
+                .any(|(n, _)| n.contains('<') || n.contains("template")),
+            "{calls:?}"
+        );
+    }
+
+    /// Near-miss: a type template's scope keeps its arguments in the
+    /// receiver, and a non-template qualified call is split as before.
+    #[test]
+    fn qualified_calls_without_template_arguments_are_unchanged() {
+        let f = extract(
+            "void caller() {\n  Base<T>::f();\n  a::b::c();\n  this->Base::Close();\n}\n",
+        );
+        let calls = calls_of(&f);
+        assert!(calls.contains(&("f".into(), "Base<T>".into())), "{calls:?}");
+        assert!(calls.contains(&("c".into(), "a::b".into())), "{calls:?}");
+        assert!(
+            calls.contains(&("Close".into(), "Base".into())),
+            "{calls:?}"
         );
     }
 }

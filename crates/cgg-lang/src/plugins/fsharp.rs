@@ -230,10 +230,17 @@ impl<'a> FsharpWalker<'a> {
         // application_expression (curried application) — descend leftward.
         let mut cur = node;
         loop {
-            if let Some(first) = cur.child(0) {
+            if let Some(mut first) = cur.child(0) {
                 if first.kind() == "application_expression" {
                     cur = first;
                     continue;
+                }
+                // `f<int> x`: a type application (`typed_expression`)
+                // calls what it applies type arguments to.
+                if first.kind() == "typed_expression"
+                    && let Some(applied) = first.named_child(0)
+                {
+                    first = applied;
                 }
                 let inner = if first.kind() == "long_identifier_or_op" {
                     first.child(0).unwrap_or(first)
@@ -354,5 +361,24 @@ mod tests {
             "refs: {:?}",
             f.references
         );
+    }
+
+    /// C1: `f<int> 1` / `M.f<int> 1` are calls of `f`, never dropped.
+    #[test]
+    fn type_application_calls_are_recorded() {
+        let f = extract(
+            "module M\nlet g () =\n    f<int> 1\n    N.h<string> \"a\"\n    f 2\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(
+            calls.iter().filter(|c| **c == ("f", "")).count(),
+            2,
+            "{calls:?}"
+        );
+        assert!(calls.contains(&("h", "N")), "{calls:?}");
     }
 }

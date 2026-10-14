@@ -252,6 +252,12 @@ impl<'a> SwiftWalker<'a> {
                     .unwrap_or_default();
                 (suffix, target)
             }
+            // `Wrap<Int>.s()` where the grammar reads `Wrap < Int > .s()`.
+            "prefix_expression" => match misparsed_generic_member_call(node, self.source)
+            {
+                Some(parts) => parts,
+                None => return,
+            },
             _ => return,
         };
         if name.is_empty() {
@@ -265,6 +271,47 @@ impl<'a> SwiftWalker<'a> {
             ..Default::default()
         });
     }
+}
+
+/// `Wrap<Int>.s()` in expression position is parsed as two comparisons,
+/// `Wrap < (Int > (.s()))`, with `.s()` an implicit-member call. Swift's
+/// comparison operators do not associate, so `a < b > c` is never valid
+/// source: that nesting, written with no space before `<` or between `>`
+/// and `.`, is a generic type's static member call. Returns `(member,
+/// type)` with the type's arguments dropped (`("s", "Wrap")`), or `None`
+/// for anything else, including a real implicit-member call (`.make()`).
+fn misparsed_generic_member_call(call: Node, src: &[u8]) -> Option<(String, String)> {
+    let prefix = call.child(0)?;
+    if prefix.kind() != "prefix_expression"
+        || prefix.child_by_field_name("operation")?.kind() != "."
+    {
+        return None;
+    }
+    let member = prefix.child_by_field_name("target")?;
+    if member.kind() != "simple_identifier" {
+        return None;
+    }
+    let close = call.parent()?;
+    let open = close.parent()?;
+    let is_cmp = |n: Node, op: &str, rhs: Node| {
+        n.kind() == "comparison_expression"
+            && n.child_by_field_name("op").is_some_and(|o| o.kind() == op)
+            && n.child_by_field_name("rhs") == Some(rhs)
+    };
+    if !is_cmp(close, ">", call) || !is_cmp(open, "<", close) {
+        return None;
+    }
+    let ty = open.child_by_field_name("lhs")?;
+    let lt = open.child_by_field_name("op")?;
+    let gt = close.child_by_field_name("op")?;
+    if !matches!(ty.kind(), "simple_identifier" | "navigation_expression")
+        || ty.end_byte() != lt.start_byte()
+        || gt.end_byte() != prefix.start_byte()
+    {
+        return None;
+    }
+    let text = |n: Node| n.utf8_text(src).unwrap_or("").to_string();
+    Some((text(member), text(ty)))
 }
 
 /// The types a Swift type declaration inherits from or conforms to, as
@@ -369,5 +416,35 @@ mod tests {
             .find(|d| d.qualified_name == "Sq.area")
             .expect("conformer");
         assert_eq!(imp.base_types, vec!["Shape"]);
+    }
+
+    /// C1: `Wrap<Int>.s()` is parsed as `Wrap < Int > .s()`; it is a
+    /// call of `s` on `Wrap`.
+    #[test]
+    fn generic_type_static_call_misparsed_as_comparison() {
+        let f =
+            extract("func caller() {\n  Wrap<Int>.s()\n  foo(M.Wrap<String>.t(1))\n}\n");
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(calls.contains(&("s", "Wrap")), "{calls:?}");
+        assert!(calls.contains(&("t", "M.Wrap")), "{calls:?}");
+    }
+
+    /// Near-miss: real comparisons and a real implicit-member call are
+    /// not read as generic calls.
+    #[test]
+    fn comparisons_and_implicit_members_are_not_generic_calls() {
+        let f = extract(
+            "func caller(a: Int, b: Int, c: Int) {\n  if a < b && c > d.e() {}\n  let x: W = .make()\n}\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(calls, vec![("e", "d")]);
     }
 }

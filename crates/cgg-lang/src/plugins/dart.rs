@@ -434,7 +434,15 @@ impl<'a> DartWalker<'a> {
         //   call_expression -> [identifier | member_expression] arguments
         //   member_expression -> [identifier | super | call_expression] . identifier
         let callee = node.child(0);
-        let Some(callee) = callee else { return };
+        let Some(mut callee) = callee else { return };
+        // `f<int>()` / `b.m<T>()`: explicit type arguments wrap the callee
+        // in an `instantiation_expression`; the call is of what it wraps.
+        if callee.kind() == "instantiation_expression" {
+            let Some(inner) = callee.child_by_field_name("function") else {
+                return;
+            };
+            callee = inner;
+        }
         let (name, receiver) = match callee.kind() {
             "identifier" => (self.text(callee).to_string(), String::new()),
             "member_expression" => {
@@ -694,5 +702,23 @@ mod tests {
         assert_eq!(imp.base_types, vec!["Shape", "M", "I"]);
         assert!(f.definitions.iter().any(|d| d.qualified_name == "M::mm"));
         assert!(f.definitions.iter().all(|d| d.simple_name != "n"));
+    }
+
+    /// C1: `f<int>()` / `b.m<T>()` wrap the callee in an
+    /// `instantiation_expression`; they are calls of `f` and `b.m`.
+    #[test]
+    fn explicit_type_argument_calls_are_recorded() {
+        let f = extract(
+            "void caller(B b) {\n  f<int>(1);\n  b.m<String>('a');\n  g(2);\n}\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(calls.contains(&("f", "")), "{calls:?}");
+        assert!(calls.contains(&("m", "b")), "{calls:?}");
+        assert!(calls.contains(&("g", "")), "{calls:?}");
+        assert!(!calls.iter().any(|(n, _)| n.contains('<')), "{calls:?}");
     }
 }

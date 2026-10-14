@@ -134,7 +134,7 @@ impl<'a> JuliaWalker<'a> {
             // so every one-line method was invisible: absent as a
             // definition, and its head counted as a call to itself.
             "assignment" => {
-                if let Some(lhs) = node.named_child(0)
+                if let Some(lhs) = node.named_child(0).map(short_form_head)
                     && lhs.kind() == "call_expression"
                     && let Some(name_node) = lhs.named_child(0)
                     && name_node.kind() == "identifier"
@@ -253,7 +253,13 @@ impl<'a> JuliaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        if let Some(func_node) = node.child(0) {
+        if let Some(mut func_node) = node.child(0) {
+            // `Foo{Int}(x)`: the callee without its type parameters.
+            if func_node.kind() == "parametrized_type_expression"
+                && let Some(head) = func_node.named_child(0)
+            {
+                func_node = head;
+            }
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
                 self.facts.references.push(RefRecord {
@@ -266,6 +272,23 @@ impl<'a> JuliaWalker<'a> {
             }
         }
     }
+}
+
+/// The signature of a short-form method under its type parameters or
+/// return type: `f(x::T) where {T} = …` and `f(x)::Int = …` are the
+/// methods `f(x::T)` and `f(x)`. Anything else is returned unchanged.
+fn short_form_head(lhs: Node) -> Node {
+    let mut n = lhs;
+    for _ in 0..4 {
+        match n.kind() {
+            "where_expression" | "typed_expression" => match n.named_child(0) {
+                Some(inner) => n = inner,
+                None => break,
+            },
+            _ => break,
+        }
+    }
+    n
 }
 
 #[cfg(test)]
@@ -394,5 +417,26 @@ mod tests {
     fn malformed_source_does_not_panic() {
         let f = extract("function broken(\n");
         let _ = defs(&f);
+    }
+
+    /// C1: `Foo{Int}(x)` is a call of `Foo`; a short-form method with
+    /// type parameters or a return type is a definition, and its head is
+    /// not a call to itself.
+    #[test]
+    fn parametric_calls_and_short_form_methods() {
+        let f = extract(
+            "f(::Type{T}, x) where {T} = x\nh(x)::Int = x\nfunction g(x)\n    Foo{Int}(x)\n    Mod.Bar{T}(x)\n    f(Int, x)\nend\n",
+        );
+        let d = defs(&f);
+        assert!(d.iter().any(|q| q.ends_with('f')), "{d:?}");
+        assert!(d.iter().any(|q| q.ends_with('h')), "{d:?}");
+        let r = refs(&f);
+        assert!(r.contains(&"Foo".to_string()), "{r:?}");
+        assert!(r.contains(&"Mod.Bar".to_string()), "{r:?}");
+        assert_eq!(r.iter().filter(|n| *n == "f").count(), 1, "{r:?}");
+        assert!(!r.iter().any(|n| n == "h" || n.contains('{')), "{r:?}");
+        // Near-miss: a typed variable assignment is not a method.
+        let v = extract("x::Int = g(1)\n");
+        assert!(defs(&v).is_empty(), "{:?}", defs(&v));
     }
 }

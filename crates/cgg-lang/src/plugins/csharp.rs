@@ -555,18 +555,21 @@ impl<'a> Walker<'a> {
                     let t = self.text(ty);
                     t[..t.find('<').unwrap_or(t.len())].trim().to_string()
                 } else {
-                    self.text(expr).to_string()
+                    self.receiver_text(expr)
                 };
-                (self.text(name).to_string(), recv)
+                (self.callee_name(name), recv)
             }
-            "generic_name" => {
-                // Foo<T>() — take the base identifier.
-                let base = func
-                    .children(&mut func.walk())
-                    .find(|c| c.kind() == "identifier")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
-                (base, String::new())
+            // `Foo<T>()`: the name without its type arguments.
+            "generic_name" => (self.callee_name(func), String::new()),
+            // `x?.M()`: the null-conditional form of `x.M()`. The binding
+            // (`.M`) names the method; the condition is the receiver.
+            "conditional_access_expression" => {
+                let cond = func.child_by_field_name("condition")?;
+                let binding = func
+                    .named_children(&mut func.walk())
+                    .find(|c| c.kind() == "member_binding_expression")?;
+                let name = binding.child_by_field_name("name")?;
+                (self.callee_name(name), self.receiver_text(cond))
             }
             _ => return None,
         };
@@ -581,6 +584,40 @@ impl<'a> Walker<'a> {
             site_byte: node.start_byte() as u32,
             ..Default::default()
         })
+    }
+}
+
+impl Walker<'_> {
+    /// The written name of a callee, without explicit type arguments:
+    /// `M<string>` is a call of `M`. Read from the tree (`generic_name`'s
+    /// identifier), so a name that legitimately contains no type
+    /// arguments is returned as written.
+    fn callee_name(&self, n: Node) -> String {
+        match n.kind() {
+            "generic_name" => n
+                .children(&mut n.walk())
+                .find(|c| c.kind() == "identifier")
+                .map(|c| self.text(c).to_string())
+                .unwrap_or_default(),
+            _ => self.text(n).to_string(),
+        }
+    }
+
+    /// A receiver expression's text, with a null-conditional member read
+    /// (`x?.y`) spelled as the plain member read (`x.y`) it is when `x`
+    /// is not null. Rebuilt from the tree's condition and binding, so
+    /// no other text is rewritten.
+    fn receiver_text(&self, expr: Node) -> String {
+        if expr.kind() == "conditional_access_expression"
+            && let Some(cond) = expr.child_by_field_name("condition")
+            && let Some(binding) = expr
+                .named_children(&mut expr.walk())
+                .find(|c| c.kind() == "member_binding_expression")
+            && let Some(name) = binding.child_by_field_name("name")
+        {
+            return format!("{}.{}", self.receiver_text(cond), self.callee_name(name));
+        }
+        self.text(expr).to_string()
     }
 }
 
@@ -1159,5 +1196,32 @@ namespace A.B.C {
         assert_eq!(f.classes.len(), 1);
         assert_eq!(f.classes[0].class_qn, "N.W");
         assert_eq!(f.classes[0].base_types, vec!["Ext", "IThing"]);
+    }
+
+    /// B5/C1: `a.M<T>()` is a call of `M` (it kept the name `M<string>`
+    /// and was screened as external), and `x?.M()` is a call of `M`
+    /// through `x` (it was dropped).
+    #[test]
+    fn generic_member_and_null_conditional_calls() {
+        let f = extract(
+            "class C {\n  void Caller(B b) {\n    b.M<string>(\"a\");\n    B.S<int>(1);\n    G<int>(2);\n    b?.Plain();\n    b?.M<int>();\n    b?.Child.Run();\n    this.x?.Go();\n  }\n}\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        for want in [
+            ("M", "b"),
+            ("S", "B"),
+            ("G", ""),
+            ("Plain", "b"),
+            ("Run", "b.Child"),
+            ("Go", "this.x"),
+        ] {
+            assert!(calls.contains(&want), "{want:?} missing from {calls:?}");
+        }
+        assert_eq!(calls.iter().filter(|c| **c == ("M", "b")).count(), 2);
+        assert!(!calls.iter().any(|(n, _)| n.contains('<')), "{calls:?}");
     }
 }

@@ -625,6 +625,48 @@ otherwise change the default graph.
     annotation argument can contain.
 - Already fixed by earlier work: TypeScript `private`/`protected`
   visibility (WS2) and `abstract class` scope (WS5).
+- **Calls written with explicit type arguments are calls of the named
+  function** (WS9, FINDINGS C1, B5; C++, Go, Dart, C#, Scala, Swift, F#,
+  Julia). Each was either dropped silently or recorded under a name
+  that kept its type arguments, which no callable carries, so the site
+  was screened as external:
+  - **C++**: `f<int>()` (`template_function`) was skipped outright;
+    `b.m<int>()`, `B::s<int>()`, `ns::f<int>()`, `b.template m<int>()`
+    and `x.Base::template f<int>()` kept `<int>` in the name. The name
+    is now read from the tree without its template arguments or the
+    `template` disambiguator, and the scope is split on the tree's
+    nested qualified names, so `::` inside an argument (`f<std::string>`)
+    no longer cuts the name.
+  - **Go**: `F[int](x)` and `pkg.F[*T](err)` parse as a conversion to a
+    generic type, and `F[int](a, b)` as a call through an index
+    expression; both were dropped. They are recorded as calls when the
+    head is a bare name or a package the file imports (Go methods take
+    no type parameters, so `x.f[k](v)` on a value stays an element
+    read, as does any index that is a literal or an expression).
+  - **Dart** `f<int>()` / `b.m<T>()` (`instantiation_expression`) and
+    **Scala** `f[Int]()` / `b.m[Int]()` (`generic_function`, named
+    `f[Int]`) are calls of what they wrap.
+  - **C#**: `a.M<T>()` kept the name `M<string>`; `x?.M()` was dropped
+    (B5). Both are recorded as the plain member call, and a
+    null-conditional receiver (`x?.y.M()`) reads as `x.y`.
+  - **Swift**: `Wrap<Int>.s()` in expression position is parsed as two
+    comparisons around an implicit-member call. Comparison operators do
+    not associate in Swift, so that nesting (with no space before `<` or
+    between `>` and `.`) is read as the static call `Wrap.s()`.
+  - **F#** `f<int> x` (a type application) was dropped; **Julia**
+    `Foo{Int}(x)` kept `{Int}` in the name, and a short-form method with
+    type parameters or a return type (`f(x::T) where {T} = …`,
+    `h(x)::Int = …`) was not a definition, its head recorded as a call
+    to itself.
+  - Java, Kotlin, TypeScript, Rust (turbofish) and Groovy already
+    resolved these forms.
+- **The step-1c scoped lookup is evaluated per name** (cross-file
+  resolver). Building every file's map of same-named definitions in
+  files matching its import fragments read every file of the language
+  against every fragment, for every file: 20 s of CPU on
+  `hcl-terraform-aws`, which therefore timed out at
+  `CGG_REPO_TIMEOUT=60` under corpus load. The answer for each name is
+  unchanged (same candidates, same order, same cap of 8).
 
 ### Compatibility
 
@@ -870,6 +912,29 @@ otherwise change the default graph.
   repositories, median of 5): none slower by 1 s or more; largest
   `scala-spark` +0.79 s (+8.4%, 42% more edges), `lua-neovim` +0.12 s;
   total −0.9%.
+- **WS9 changes the default graph** (full corpus, 283 repositories;
+  `zig-zig`, which timed out under corpus load, diffed on its own: C++
+  high 21 / 653, medium 138 / 1,098, the removed all edges from
+  `std::forward<_Args>(…)` to a misparsed definition named
+  `std::forward<_Args>`; elsewhere, edges by confidence, removed /
+  added): Go high 0 / 5,555
+  (`hcl-terraform-aws` 5,427: `errs.IsA[*T](err)` and friends); C# high
+  0 / 22, medium 0 / 9,185 (Newtonsoft.Json 8,495:
+  `JsonConvert.DeserializeObject<T>`); C++ high 0 / 2,337, medium 9 /
+  5,903 (the 9 removed are `cmake` calls of an explicit specialization,
+  `New<AT>()`, now bound to the primary template `New`); Dart high
+  0 / 1,133, medium 0 / 2,433; Scala high 0 / 576, medium 0 / 1,625;
+  F# high 0 / 30, medium 0 / 12; Julia high 1 / 27, medium 0 / 71, 3
+  high → medium (37 new short-form methods; the removed edge now has
+  the nested method as its source). Newly recorded sites that bind
+  nothing are unresolved with their reason (Scala +11.6k, Dart +11.0k,
+  C++ +3.8k, C# +1.1k), not dropped. Dead code: 4 C# findings leave
+  `high` (members called only with type arguments or through `?.`),
+  none newly `high`. `hcl-terraform-aws` now finishes the dead-code run
+  under the 60 s cap (18.2 s → 13.1 s for the default graph at
+  `--jobs 4`). Latency (perf/WS9.md, 14 repositories, median of 5):
+  `hcl-terraform-aws` 17.6 s → 6.6 s (−62.7%); none slower by 1 s or
+  more, largest `zig-zig` +0.63 s (+1.8%); total −13.2%.
 
 ## [0.10.2] - 2026-10-11
 

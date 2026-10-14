@@ -175,6 +175,19 @@ impl<'a> Walker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `F[int](x)`, `pkg.F[*T](err)`: an explicitly instantiated
+            // generic function called with one argument parses exactly
+            // like a conversion to a generic type. It is recorded as the
+            // call it is when a function of that name exists; a real
+            // conversion (`List[int](x)`) names a type, which no callable
+            // carries, the same as the non-generic `MyInt(3)`.
+            "type_conversion_expression" => {
+                if let Some(r) = self.ref_from_generic_conversion(node) {
+                    self.facts.references.push(r);
+                }
+                self.walk_children(node);
+                return;
+            }
             "call_expression" => {
                 if let Some(r) = self.ref_from_call(node) {
                     // One `receiver.VERB(string, handler)` matcher covers
@@ -802,6 +815,9 @@ impl<'a> Walker<'a> {
                 let field = func.child_by_field_name("field")?;
                 (self.text(field).to_string(), self.text(operand).to_string())
             }
+            // `F[int](a, b)`: an instantiation with more than one argument
+            // parses as a call through an index expression.
+            "index_expression" => self.instantiated_function(func)?,
             _ => return None,
         };
         if name.is_empty() {
@@ -815,6 +831,83 @@ impl<'a> Walker<'a> {
             site_byte: node.start_byte() as u32,
             ..Default::default()
         })
+    }
+}
+
+impl Walker<'_> {
+    /// `F[int](x)` / `pkg.F[*T](err)` parsed as a conversion to the
+    /// generic type `F[int]`: the call of `F` it is when `F` is a
+    /// function. Only a generic head qualifies; `T(x)` is an ordinary
+    /// call expression already.
+    fn ref_from_generic_conversion(&self, node: Node) -> Option<RefRecord> {
+        let ty = node.child_by_field_name("type")?;
+        if ty.kind() != "generic_type" {
+            return None;
+        }
+        let head = ty.child_by_field_name("type")?;
+        let (name, recv) = match head.kind() {
+            "type_identifier" => (self.text(head).to_string(), String::new()),
+            // `x.f[k](v)` reads the same way when `x` is a value; Go
+            // methods take no type parameters, so only a package qualifies.
+            "qualified_type" => {
+                let pkg = self.text(head.child_by_field_name("package")?);
+                if !self.imports_bind(pkg) {
+                    return None;
+                }
+                (
+                    self.text(head.child_by_field_name("name")?).to_string(),
+                    pkg.to_string(),
+                )
+            }
+            _ => return None,
+        };
+        if name.is_empty() {
+            return None;
+        }
+        Some(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            ..Default::default()
+        })
+    }
+
+    /// The function an index-expression callee instantiates, as
+    /// `(name, receiver)`: `F[int]` → `F`, `pkg.F[int]` → `F` through
+    /// `pkg`. Go methods take no type parameters, so a selector head is
+    /// an instantiation only through an imported package; an index that
+    /// is a literal, call or operator expression is an element read
+    /// (`handlers[0](x)`), never type arguments.
+    fn instantiated_function(&self, func: Node) -> Option<(String, String)> {
+        let index = func.child_by_field_name("index")?;
+        let type_like = match index.kind() {
+            "identifier" | "type_identifier" | "generic_type" | "qualified_type" => true,
+            "selector_expression" => index
+                .child_by_field_name("operand")
+                .is_some_and(|o| o.kind() == "identifier"),
+            "unary_expression" => {
+                index.child(0).is_some_and(|op| op.kind() == "*")
+                    && index.child_by_field_name("operand").is_some_and(|o| {
+                        matches!(o.kind(), "identifier" | "selector_expression")
+                    })
+            }
+            _ => false,
+        };
+        if !type_like {
+            return None;
+        }
+        let operand = func.child_by_field_name("operand")?;
+        match operand.kind() {
+            "identifier" => Some((self.text(operand).to_string(), String::new())),
+            "selector_expression" => {
+                let pkg = operand.child_by_field_name("operand")?;
+                let field = operand.child_by_field_name("field")?;
+                (pkg.kind() == "identifier" && self.imports_bind(self.text(pkg)))
+                    .then(|| (self.text(field).to_string(), self.text(pkg).to_string()))
+            }
+            _ => None,
+        }
     }
 }
 
@@ -1082,5 +1175,47 @@ func Helper() {}
         let f = extract("package alpha\n\nfunc X() {}\n");
         let pkg = f.imports.iter().find(|i| i.kind == "package-root").unwrap();
         assert_eq!(pkg.path, "alpha");
+    }
+
+    fn calls_of(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .map(|r| (r.name.clone(), r.receiver_hint.clone()))
+            .collect()
+    }
+
+    /// C1: an explicitly instantiated generic call is a call, whichever
+    /// way the grammar reads it: one argument parses as a conversion to
+    /// a generic type, several as a call through an index expression.
+    #[test]
+    fn explicit_instantiation_calls_are_recorded() {
+        let f = extract(
+            "package p\n\nimport \"example.com/m/errs\"\n\nfunc caller(err error) {\n\tF[int](1)\n\terrs.IsA[*T](err)\n\tG[int](1, 2)\n\terrs.As[*T](err, 1)\n\tH[int, string]()\n}\n",
+        );
+        let calls = calls_of(&f);
+        for want in [
+            ("F", ""),
+            ("IsA", "errs"),
+            ("G", ""),
+            ("As", "errs"),
+            ("H", ""),
+        ] {
+            assert!(
+                calls.contains(&(want.0.to_string(), want.1.to_string())),
+                "{want:?} missing from {calls:?}"
+            );
+        }
+    }
+
+    /// Near-miss: element reads called as functions are not
+    /// instantiations — a literal index, a value receiver's field (Go
+    /// methods take no type parameters), a non-generic conversion.
+    #[test]
+    fn indexed_function_values_are_not_instantiations() {
+        let f = extract(
+            "package p\n\nfunc caller(t *T, k int) {\n\tfns[0]()\n\tt.fns[k](1)\n\tm[\"x\"](2)\n\t_ = []byte(\"s\")\n}\n",
+        );
+        let calls = calls_of(&f);
+        assert!(calls.is_empty(), "{calls:?}");
     }
 }

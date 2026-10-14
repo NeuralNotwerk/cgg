@@ -76,30 +76,89 @@ fn trait_of_impl_qn(qn: &str) -> Option<String> {
 /// its own type parameter. Mirrors `cgg-lang`'s `rust_type_links`.
 const DEREF_TO_ARG: &str = "#deref-arg";
 
-/// Callables defined in the `candidates` files whose path contains any of
-/// `fragments`, by simple name, in file order.
-///
-/// The hottest loop of a large single-language tree (files x files path
-/// scans — 70 s of a 90 s `--jobs 1` run on a 56k-callable PHP repo), kept
-/// out of line so its code generation does not depend on how large the
-/// enclosing resolver grows: inlined into `resolve`, the same unchanged
-/// scan measured 4–9% slower or faster from one build to the next.
-#[inline(never)]
-fn scoped_candidates(
-    fragments: &[String],
-    candidates: &[(FileId, String)],
-    def_cids: &HashMap<FileId, Vec<(&str, CallableId)>>,
-) -> HashMap<String, Vec<CallableId>> {
-    let mut out: HashMap<String, Vec<CallableId>> = HashMap::new();
-    for (fid, fpath) in candidates {
-        if !fragments.iter().any(|frag| fpath.contains(frag.as_str())) {
-            continue;
+/// Per-language index behind [`ScopedSimple`]: every definition by simple
+/// name, as `(position of its file in the language's file list, id)`, in
+/// file-list then declaration order.
+struct ScopedIndex<'a> {
+    files: &'a [(FileId, String)],
+    by_name: HashMap<&'a str, Vec<(u32, CallableId)>>,
+}
+
+impl<'a> ScopedIndex<'a> {
+    fn build(
+        files: &'a [(FileId, String)],
+        def_cids: &HashMap<FileId, Vec<(&'a str, CallableId)>>,
+    ) -> Self {
+        let mut by_name: HashMap<&'a str, Vec<(u32, CallableId)>> = HashMap::new();
+        for (i, (fid, _)) in files.iter().enumerate() {
+            for (simple, cid) in def_cids.get(fid).map(Vec::as_slice).unwrap_or(&[]) {
+                by_name.entry(simple).or_default().push((i as u32, *cid));
+            }
         }
-        for (simple, cid) in def_cids.get(fid).map(Vec::as_slice).unwrap_or(&[]) {
-            out.entry((*simple).to_string()).or_default().push(*cid);
+        Self { files, by_name }
+    }
+}
+
+/// The callables defined in files whose path contains one of a file's
+/// import path fragments (`Text.Pandoc` → `*/text/pandoc*`), looked up by
+/// simple name (step 1c).
+///
+/// Evaluated per name on demand. Building the whole map up front read
+/// every file of the language against every fragment, for every file —
+/// O(files² × fragments): 70 s of a 90 s `--jobs 1` run on a
+/// 56k-callable PHP repo, 20 s of CPU on a 9k-file Go tree — while a file
+/// queries only the names it calls. The answer for a name is the same
+/// list, in the same order, the eager map held.
+struct ScopedSimple<'a> {
+    index: Option<&'a ScopedIndex<'a>>,
+    fragments: Vec<String>,
+    /// Whether the file at a position in the language's file list
+    /// matches a fragment, memoized.
+    matched: std::cell::RefCell<HashMap<u32, bool>>,
+}
+
+impl<'a> ScopedSimple<'a> {
+    fn empty() -> Self {
+        Self {
+            index: None,
+            fragments: Vec::new(),
+            matched: Default::default(),
         }
     }
-    out
+
+    fn new(index: &'a ScopedIndex<'a>, fragments: Vec<String>) -> Self {
+        Self {
+            index: Some(index),
+            fragments,
+            matched: Default::default(),
+        }
+    }
+
+    /// The candidates named `name`, at most `cap` of them: `None` when
+    /// there are none or more than `cap` (the caller treats both as no
+    /// scoped answer, so counting stops at `cap + 1`).
+    fn get_capped(&self, name: &str, cap: usize) -> Option<Vec<CallableId>> {
+        let index = self.index?;
+        if self.fragments.is_empty() {
+            return None;
+        }
+        let defs = index.by_name.get(name)?;
+        let mut matched = self.matched.borrow_mut();
+        let mut out = Vec::new();
+        for (pos, cid) in defs {
+            let hit = *matched.entry(*pos).or_insert_with(|| {
+                let path = index.files[*pos as usize].1.as_str();
+                self.fragments.iter().any(|f| path.contains(f.as_str()))
+            });
+            if hit {
+                if out.len() == cap {
+                    return None;
+                }
+                out.push(*cid);
+            }
+        }
+        (!out.is_empty()).then_some(out)
+    }
 }
 
 /// The `T` of a wasm-bindgen extern method `fn m(this: &T, …)`.
@@ -1358,6 +1417,10 @@ pub fn resolve(
             .or_default()
             .push((f.file, f.path.to_string_lossy().to_ascii_lowercase()));
     }
+    let scoped_index: HashMap<&str, ScopedIndex> = files_by_lang
+        .iter()
+        .map(|(lang, files)| (*lang, ScopedIndex::build(files, &def_cids)))
+        .collect();
 
     // Include resolution used to scan every file in the tree for every
     // `#include`, of every file — O(files x includes x files). `HashMap`
@@ -2051,7 +2114,7 @@ pub fn resolve(
             // This is what lets Haskell / OCaml — whose plugins don't put
             // module prefixes on qualified_name — still get cross-file
             // resolution without resorting to global by-simple noise.
-            let mut scoped_simple: HashMap<String, Vec<CallableId>> = HashMap::new();
+            let mut scoped_simple = ScopedSimple::empty();
             // The modules this file imports, as lowercased path forms
             // (`data/map`, `lists`, `type.zig`): what tells a same-named
             // copy in the imported module from one elsewhere.
@@ -2081,11 +2144,9 @@ pub fn resolve(
                 path_fragments.retain(|f| !f.is_empty());
                 path_fragments.sort();
                 path_fragments.dedup();
-                let candidates = files_by_lang
-                    .get(lang.as_str())
-                    .map(Vec::as_slice)
-                    .unwrap_or(&[]);
-                scoped_simple = scoped_candidates(&path_fragments, candidates, &def_cids);
+                if let Some(index) = scoped_index.get(lang.as_str()) {
+                    scoped_simple = ScopedSimple::new(index, path_fragments);
+                }
             }
 
             let heads = crate::heads::FileHeads::build(facts, &vocab);
@@ -4128,7 +4189,7 @@ fn try_resolve_ref(
     direct_imports: &HashMap<String, Vec<String>>,
     module_aliases: &HashMap<String, String>,
     unqualified_prefixes: &[String],
-    scoped_simple: &HashMap<String, Vec<CallableId>>,
+    scoped_simple: &ScopedSimple<'_>,
     // The imported modules as path forms (see `narrow_copies`).
     module_files: &[String],
     by_qn: &HashMap<(String, String), CallableId>,
@@ -4827,10 +4888,7 @@ fn try_resolve_ref(
         // import prefixes. This carries Haskell/OCaml/Dart over the
         // gap where the plugin omits the module prefix from
         // qualified_name. Cap candidates at 8 to bound noise.
-        if let Some(cids) = scoped_simple.get(&r.name)
-            && !cids.is_empty()
-            && cids.len() <= 8
-        {
+        if let Some(cids) = scoped_simple.get_capped(&r.name, 8) {
             // FINDINGS A6: only what a bare name can reach from here.
             let reach: Vec<CallableId> = cids
                 .iter()
@@ -5882,6 +5940,33 @@ mod tests {
         graph::{CallableKind, CallableNode, FileRecord as GraphFileRecord},
     };
     use std::path::PathBuf;
+
+    /// The lazy step-1c lookup answers exactly what the eager map it
+    /// replaced held: every same-named definition in a file whose path
+    /// contains a fragment, in file then declaration order, and nothing
+    /// when there are none or more than the cap.
+    #[test]
+    fn scoped_lookup_matches_the_eager_scan() {
+        let files: Vec<(FileId, String)> = vec![
+            (FileId::new(0), "/r/text/pandoc.hs".into()),
+            (FileId::new(1), "/r/other/x.hs".into()),
+            (FileId::new(2), "/r/text/pandoc/shared.hs".into()),
+        ];
+        let c = |i: u32| CallableId::new(i);
+        let mut def_cids: HashMap<FileId, Vec<(&str, CallableId)>> = HashMap::new();
+        def_cids.insert(FileId::new(0), vec![("f", c(0)), ("g", c(1)), ("f", c(2))]);
+        def_cids.insert(FileId::new(1), vec![("f", c(3))]);
+        def_cids.insert(FileId::new(2), vec![("f", c(4)), ("h", c(5))]);
+        let index = ScopedIndex::build(&files, &def_cids);
+        let s = ScopedSimple::new(&index, vec!["text/pandoc".into()]);
+        assert_eq!(s.get_capped("f", 8), Some(vec![c(0), c(2), c(4)]));
+        assert_eq!(s.get_capped("h", 8), Some(vec![c(5)]));
+        assert_eq!(s.get_capped("f", 2), None, "over the cap");
+        assert_eq!(s.get_capped("missing", 8), None);
+        assert_eq!(ScopedSimple::empty().get_capped("f", 8), None);
+        let none = ScopedSimple::new(&index, Vec::new());
+        assert_eq!(none.get_capped("f", 8), None, "no fragments, no scope");
+    }
 
     fn mk_file(id: u32, path: &str, lang: &str) -> GraphFileRecord {
         GraphFileRecord {

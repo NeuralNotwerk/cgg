@@ -335,9 +335,17 @@ impl<'a> ScalaWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let Some(function) = node.child_by_field_name("function") else {
+        let Some(mut function) = node.child_by_field_name("function") else {
             return;
         };
+        // `f[Int]()`, `b.m[Int]()`: explicit type arguments wrap the
+        // callee in a `generic_function`; the call is of what it wraps.
+        if function.kind() == "generic_function" {
+            let Some(inner) = function.child_by_field_name("function") else {
+                return;
+            };
+            function = inner;
+        }
         // `b.m()`, `this.m()`, `a.b.m()`: the member is the field, the
         // receiver everything before it — never the whole dotted text as
         // one name.
@@ -559,5 +567,21 @@ mod tests {
         let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(names.contains(&"C"), "{names:?}");
         assert!(!names.contains(&"this"), "{names:?}");
+    }
+
+    /// C1: `f[Int]()` / `b.m[Int]()` are calls of `f` and of `m` through
+    /// `b`, never names carrying `[Int]`.
+    #[test]
+    fn explicit_type_argument_calls_strip_the_arguments() {
+        let f = extract(
+            "object O {\n  def caller(b: B): Unit = {\n    genF[Int](1)\n    b.m[String](2)\n    genF(3)\n  }\n}\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| !r.paren_less)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(calls, vec![("genF", ""), ("m", "b"), ("genF", "")]);
     }
 }
