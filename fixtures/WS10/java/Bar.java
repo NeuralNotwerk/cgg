@@ -1,0 +1,1 @@
+class Bar { void m() {} }

@@ -1,0 +1,2446 @@
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 347416e..5470522 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -440,6 +440,17 @@ pub struct RefRecord {
+     /// resolution.
+     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+     pub paren_less: bool,
++
++    /// Set when `receiver_hint` is a *type* rather than an expression:
++    /// the call's receiver was a cast (`((Foo) o).m()`, `(o as Foo).M()`,
++    /// `o.(Foo).M()`), a construction (`new Foo().m()`, `Foo().m()`,
++    /// `Foo{A: 1}.M()`), read from the tree by the plugin. The receiver
++    /// is then an instance of that type whatever its spelling: a
++    /// lowercase type name (`&server{}`) is still a type, never a
++    /// variable to fan out by name over. (Type propagation does not set
++    /// it: a value it types keeps the reading it always had.)
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub typed_receiver: bool,
+ }
+ 
+ /// The two-phase AST pass output for a single file.
+diff --git a/crates/cgg-core/src/stdlib.rs b/crates/cgg-core/src/stdlib.rs
+index 10c4ed4..6444f83 100644
+--- a/crates/cgg-core/src/stdlib.rs
++++ b/crates/cgg-core/src/stdlib.rs
+@@ -28,6 +28,61 @@ pub const KOTLIN_RECEIVER_SCOPE_EXTENSIONS: &[&str] = &["run", "apply"];
+ /// `with(x) { m() }`.
+ pub const KOTLIN_RECEIVER_SCOPE_FUNCTIONS: &[&str] = &["with"];
+ 
++/// Cast operators spelled as a call rather than as syntax: the target
++/// type is the call's type argument and the value is what is cast
++/// (`static_cast<Foo*>(o)`, Scala `o.asInstanceOf[Foo]`). A receiver
++/// written as one of these is an instance of the target type.
++pub const CAST_INTRINSICS: &[(&str, &[&str])] = &[
++    (
++        "cpp",
++        &[
++            "static_cast",
++            "dynamic_cast",
++            "reinterpret_cast",
++            "const_cast",
++        ],
++    ),
++    ("scala", &["asInstanceOf"]),
++];
++
++/// Whether `name` is one of `lang`'s [`CAST_INTRINSICS`].
++pub fn is_cast_intrinsic(lang: &str, name: &str) -> bool {
++    CAST_INTRINSICS
++        .iter()
++        .any(|(l, names)| *l == lang && names.contains(&name))
++}
++
++/// Methods the language itself defines to construct an instance of the
++/// class they are called on: Ruby's `Foo.new(…)` builds a `Foo`. A
++/// receiver written as one is an instance of that class.
++pub const CONSTRUCTING_METHODS: &[(&str, &[&str])] = &[("ruby", &["new"])];
++
++/// Whether `name` is one of `lang`'s [`CONSTRUCTING_METHODS`].
++pub fn is_constructing_method(lang: &str, name: &str) -> bool {
++    CONSTRUCTING_METHODS
++        .iter()
++        .any(|(l, names)| *l == lang && names.contains(&name))
++}
++
++/// Scala: packages every file sees without an import, through the
++/// implicit `import scala._` / `import java.lang._` — `math.ceil(x)` is
++/// `scala.math.ceil`. A receiver headed by one of these that nothing in
++/// the file or the tree binds is a call into the standard library.
++pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
++    "scala",
++    "java",
++    "javax",
++    "math",
++    "collection",
++    "concurrent",
++    "util",
++    "io",
++    "sys",
++    "reflect",
++    "annotation",
++    "runtime",
++];
++
+ static RUST: &str = include_str!("stdlib/rust.txt");
+ static PYTHON: &str = include_str!("stdlib/python.txt");
+ static GO: &str = include_str!("stdlib/go.txt");
+diff --git a/crates/cgg-lang/src/lib.rs b/crates/cgg-lang/src/lib.rs
+index 840b521..224f6e3 100644
+--- a/crates/cgg-lang/src/lib.rs
++++ b/crates/cgg-lang/src/lib.rs
+@@ -18,6 +18,7 @@ pub mod locals;
+ pub mod notebook;
+ pub mod parser;
+ pub mod plugins;
++pub mod receiver;
+ 
+ use std::fmt;
+ use std::path::Path;
+@@ -314,6 +315,13 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
+ 
+     fn ts_language(&self) -> tree_sitter::Language;
+ 
++    /// The grammar to parse one file with. Defaults to [`Self::ts_language`];
++    /// a plugin whose language has dialects told apart by file extension
++    /// (TypeScript's `.ts` and `.tsx`) chooses per file.
++    fn ts_language_for(&self, _path: &Path) -> tree_sitter::Language {
++        self.ts_language()
++    }
++
+     /// Walk `tree` once and produce the definitions + references +
+     /// imports for the file. The default returns an empty `FileFacts`,
+     /// which is appropriate for languages that don't have a plugin
+diff --git a/crates/cgg-lang/src/parser.rs b/crates/cgg-lang/src/parser.rs
+index 58c2710..5e421a1 100644
+--- a/crates/cgg-lang/src/parser.rs
++++ b/crates/cgg-lang/src/parser.rs
+@@ -49,11 +49,25 @@ impl<'r> ParserPool<'r> {
+     /// rejects the language (should never happen for a compiled-in
+     /// grammar).
+     pub fn parse(&self, plugin_id: &'static str, source: &[u8]) -> Result<ParseOutcome> {
++        self.parse_file(plugin_id, None, source)
++    }
++
++    /// [`Self::parse`] with the grammar the plugin chooses for `path`
++    /// (`LanguagePlugin::ts_language_for`).
++    pub fn parse_file(
++        &self,
++        plugin_id: &'static str,
++        path: Option<&std::path::Path>,
++        source: &[u8],
++    ) -> Result<ParseOutcome> {
+         let plugin = self
+             .registry
+             .by_id(plugin_id)
+             .ok_or_else(|| anyhow!("unknown plugin id: {plugin_id}"))?;
+-        let lang = plugin.ts_language();
++        let lang = match path {
++            Some(p) => plugin.ts_language_for(p),
++            None => plugin.ts_language(),
++        };
+         let start = Instant::now();
+         let tree = PARSERS.with(|cell| -> Result<Tree> {
+             let mut map = cell.borrow_mut();
+diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
+index 717ada0..a8a0603 100644
+--- a/crates/cgg-lang/src/plugins/clojure.rs
++++ b/crates/cgg-lang/src/plugins/clojure.rs
+@@ -342,6 +342,7 @@ impl<'a> ClojureWalker<'a> {
+                         arity: None,
+                         value_ref: false,
+                         paren_less: false,
++                        typed_receiver: false,
+                         name: s,
+                         receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                         site_line: line,
+@@ -375,6 +376,7 @@ impl<'a> ClojureWalker<'a> {
+                         arity: None,
+                         value_ref: false,
+                         paren_less: false,
++                        typed_receiver: false,
+                         name: t.to_string(),
+                         receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                         site_line: line,
+@@ -450,6 +452,7 @@ impl<'a> ClojureWalker<'a> {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: simple,
+             receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+             site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/cpp.rs b/crates/cgg-lang/src/plugins/cpp.rs
+index 5b45590..0ba46fd 100644
+--- a/crates/cgg-lang/src/plugins/cpp.rs
++++ b/crates/cgg-lang/src/plugins/cpp.rs
+@@ -719,18 +719,33 @@ impl<'a> CppWalker<'a> {
+             return;
+         };
+         let func = unwrap_parens(func);
+-        let arrow = func.kind() == "field_expression"
++        let mut arrow = func.kind() == "field_expression"
+             && func
+                 .child_by_field_name("operator")
+                 .is_some_and(|op| op.kind() == "->");
++        let mut typed_receiver = false;
+         let (name, recv) = match func.kind() {
+             "identifier" => (self.text(func).to_string(), String::new()),
+             // `f<int>()`: a call of `f` with explicit template arguments.
+             "template_function" => (callee_name(func, self.source), String::new()),
+             "field_expression" => {
++                // `(f).m()`, `(*p).m()` (which is `p->m()`), `Foo().m()`,
++                // `Foo{}.m()`, `((Foo*)o)->m()`, `static_cast<Foo*>(o)->m()`:
++                // the value or the type the receiver's shape stands for
++                // (`crate::receiver`).
+                 let arg = func
+                     .child_by_field_name("argument")
+-                    .map(|n| self.text(n).to_string())
++                    .map(|n| {
++                        let p = crate::receiver::peel("cpp", n, self.source);
++                        arrow |= p.deref;
++                        match p.type_name() {
++                            Some(t) => {
++                                typed_receiver = true;
++                                t
++                            }
++                            None => self.text(p.node).to_string(),
++                        }
++                    })
+                     .unwrap_or_default();
+                 let Some(field) = func.child_by_field_name("field") else {
+                     return;
+@@ -768,6 +783,7 @@ impl<'a> CppWalker<'a> {
+             site_byte: node.start_byte() as u32,
+             path_receiver,
+             arrow,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
+index ff9c617..58710a9 100644
+--- a/crates/cgg-lang/src/plugins/csharp.rs
++++ b/crates/cgg-lang/src/plugins/csharp.rs
+@@ -538,7 +538,7 @@ impl<'a> Walker<'a> {
+     fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
+         let func = node.child_by_field_name("function")?;
+         let (name, recv) = match func.kind() {
+-            "identifier" => (self.text(func).to_string(), String::new()),
++            "identifier" => (self.text(func).to_string(), (String::new(), false)),
+             "member_access_expression" => {
+                 let expr = func.child_by_field_name("expression")?;
+                 let name = func.child_by_field_name("name")?;
+@@ -547,20 +547,19 @@ impl<'a> Walker<'a> {
+                 // other language spells it so the resolver's base-chain
+                 // reading applies.
+                 let recv = if expr.kind() == "base" {
+-                    "super".to_string()
+-                } else if let Some(ty) = constructed_type(expr) {
+-                    // `new Alpha().Run()`: the receiver is an `Alpha`, so the
++                    ("super".to_string(), false)
++                } else {
++                    // `new Alpha().Run()`, `((Alpha)o).Run()`, `(o as
++                    // Alpha).Run()`: the receiver is an `Alpha`, so the
+                     // call is looked up on that type and up its bases, as
+                     // a call through a variable of that type would be.
+-                    let t = self.text(ty);
+-                    t[..t.find('<').unwrap_or(t.len())].trim().to_string()
+-                } else {
+-                    self.receiver_text(expr)
++                    // `(x).Run()` / `(await t).Run()` are `x` / `t`.
++                    self.shaped_receiver(expr)
+                 };
+                 (self.callee_name(name), recv)
+             }
+             // `Foo<T>()`: the name without its type arguments.
+-            "generic_name" => (self.callee_name(func), String::new()),
++            "generic_name" => (self.callee_name(func), (String::new(), false)),
+             // `x?.M()`: the null-conditional form of `x.M()`. The binding
+             // (`.M`) names the method; the condition is the receiver.
+             "conditional_access_expression" => {
+@@ -569,10 +568,11 @@ impl<'a> Walker<'a> {
+                     .named_children(&mut func.walk())
+                     .find(|c| c.kind() == "member_binding_expression")?;
+                 let name = binding.child_by_field_name("name")?;
+-                (self.callee_name(name), self.receiver_text(cond))
++                (self.callee_name(name), self.shaped_receiver(cond))
+             }
+             _ => return None,
+         };
++        let (recv, typed_receiver) = recv;
+         if name.is_empty() {
+             return None;
+         }
+@@ -582,12 +582,24 @@ impl<'a> Walker<'a> {
+             receiver_hint: recv,
+             site_line,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         })
+     }
+ }
+ 
+ impl Walker<'_> {
++    /// A receiver read through its shape (`crate::receiver`): the type a
++    /// cast or construction names, flagged as a type, or the text of the
++    /// value inside parentheses, `await` and `!`.
++    fn shaped_receiver(&self, expr: Node) -> (String, bool) {
++        let p = crate::receiver::peel("csharp", expr, self.source);
++        match p.type_name() {
++            Some(t) => (t, true),
++            None => (self.receiver_text(p.node), false),
++        }
++    }
++
+     /// The written name of a callee, without explicit type arguments:
+     /// `M<string>` is a call of `M`. Read from the tree (`generic_name`'s
+     /// identifier), so a name that legitimately contains no type
+@@ -777,28 +789,6 @@ fn csharp_vis(node: Node) -> cgg_core::Vis {
+     }
+ }
+ 
+-/// The type a construction receiver builds (`new Alpha()` / `new
+-/// N.Alpha(x)` / `new Box<int>()` → `Alpha` / `N.Alpha` / `Box`), looking
+-/// through parentheses. `None` for any other receiver, and for a
+-/// target-typed `new()` that names no type.
+-fn constructed_type(expr: Node) -> Option<Node> {
+-    let mut e = expr;
+-    while e.kind() == "parenthesized_expression" {
+-        e = e.named_child(0)?;
+-    }
+-    if e.kind() != "object_creation_expression" {
+-        return None;
+-    }
+-    let ty = e.child_by_field_name("type")?;
+-    match ty.kind() {
+-        "identifier" | "qualified_name" => Some(ty),
+-        "generic_name" => ty
+-            .children(&mut ty.walk())
+-            .find(|c| c.kind() == "identifier"),
+-        _ => None,
+-    }
+-}
+-
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
+index 8a01b4f..89ae485 100644
+--- a/crates/cgg-lang/src/plugins/dart.rs
++++ b/crates/cgg-lang/src/plugins/dart.rs
+@@ -443,9 +443,11 @@ impl<'a> DartWalker<'a> {
+             };
+             callee = inner;
+         }
++        let mut typed_receiver = false;
+         let (name, receiver) = match callee.kind() {
+             "identifier" => (self.text(callee).to_string(), String::new()),
+-            "member_expression" => {
++            // `x?.m()` is `x.m()` when `x` is not null.
++            "member_expression" | "null_aware_member_expression" => {
+                 // Last identifier child is the called name; preceding text is the receiver.
+                 let mut last_ident: Option<Node> = None;
+                 let mut first_recv: Option<Node> = None;
+@@ -473,8 +475,20 @@ impl<'a> DartWalker<'a> {
+                 let name = name_node
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
++                // `(f).m()`, `(o as Foo).m()`, `Foo().m()`, `(await f).m()`:
++                // the value or the type the receiver's shape stands for
++                // (`crate::receiver`).
+                 let mut receiver = recv_node
+-                    .map(|n| self.text(n).to_string())
++                    .map(|n| {
++                        let p = crate::receiver::peel("dart", n, self.source);
++                        match p.type_name() {
++                            Some(t) => {
++                                typed_receiver = true;
++                                t
++                            }
++                            None => self.text(p.node).to_string(),
++                        }
++                    })
+                     .unwrap_or_default();
+                 // If receiver == name (only one identifier was found), receiver is empty.
+                 if name == receiver {
+@@ -493,6 +507,7 @@ impl<'a> DartWalker<'a> {
+             receiver_hint: receiver,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
+index c65ff0d..b3af55d 100644
+--- a/crates/cgg-lang/src/plugins/elixir.rs
++++ b/crates/cgg-lang/src/plugins/elixir.rs
+@@ -487,6 +487,7 @@ impl<'a> ElixirWalker<'a> {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+         });
+     }
+ 
+diff --git a/crates/cgg-lang/src/plugins/go.rs b/crates/cgg-lang/src/plugins/go.rs
+index f15ed88..2676f21 100644
+--- a/crates/cgg-lang/src/plugins/go.rs
++++ b/crates/cgg-lang/src/plugins/go.rs
+@@ -808,12 +808,24 @@ impl<'a> Walker<'a> {
+ 
+     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
+         let func = node.child_by_field_name("function")?;
++        let mut typed_receiver = false;
+         let (name, recv) = match func.kind() {
+             "identifier" => (self.text(func).to_string(), String::new()),
+             "selector_expression" => {
+                 let operand = func.child_by_field_name("operand")?;
+                 let field = func.child_by_field_name("field")?;
+-                (self.text(field).to_string(), self.text(operand).to_string())
++                // `(f).M()`, `(*p).M()`, `(&T{}).M()`, `T{A: 1}.M()`,
++                // `v.(T).M()`: the value or the type the receiver's shape
++                // stands for (`crate::receiver`).
++                let p = crate::receiver::peel("go", operand, self.source);
++                let recv = match p.type_name() {
++                    Some(t) => {
++                        typed_receiver = true;
++                        t
++                    }
++                    None => self.text(p.node).to_string(),
++                };
++                (self.text(field).to_string(), recv)
+             }
+             // `F[int](a, b)`: an instantiation with more than one argument
+             // parses as a call through an index expression.
+@@ -829,6 +841,7 @@ impl<'a> Walker<'a> {
+             receiver_hint: recv,
+             site_line,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         })
+     }
+diff --git a/crates/cgg-lang/src/plugins/groovy.rs b/crates/cgg-lang/src/plugins/groovy.rs
+index 44b6069..63f7fbe 100644
+--- a/crates/cgg-lang/src/plugins/groovy.rs
++++ b/crates/cgg-lang/src/plugins/groovy.rs
+@@ -233,9 +233,21 @@ impl<'a> GroovyWalker<'a> {
+             .child_by_field_name("name")
+             .map(|n| self.text(n).to_string())
+             .unwrap_or_default();
++        // `(f).m()`, `((Foo) o).m()`, `new Foo().m()`: the value or the
++        // type the receiver's shape stands for (`crate::receiver`).
++        let mut typed_receiver = false;
+         let recv = node
+             .child_by_field_name("object")
+-            .map(|n| self.text(n).to_string())
++            .map(|n| {
++                let p = crate::receiver::peel("groovy", n, self.source);
++                match p.type_name() {
++                    Some(t) => {
++                        typed_receiver = true;
++                        t
++                    }
++                    None => self.text(p.node).to_string(),
++                }
++            })
+             .unwrap_or_default();
+         if name.is_empty() {
+             return;
+@@ -245,6 +257,7 @@ impl<'a> GroovyWalker<'a> {
+             receiver_hint: recv,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+diff --git a/crates/cgg-lang/src/plugins/java.rs b/crates/cgg-lang/src/plugins/java.rs
+index 5ed4397..6e72c90 100644
+--- a/crates/cgg-lang/src/plugins/java.rs
++++ b/crates/cgg-lang/src/plugins/java.rs
+@@ -333,10 +333,8 @@ impl<'a> JavaWalker<'a> {
+             .child_by_field_name("name")
+             .map(|n| self.text(n).to_string())
+             .unwrap_or_default();
+-        let recv = node
+-            .child_by_field_name("object")
+-            .map(|n| self.text(n).to_string())
+-            .unwrap_or_default();
++        let obj = node.child_by_field_name("object");
++        let recv = obj.map(|n| self.text(n).to_string()).unwrap_or_default();
+         if name.is_empty() {
+             return;
+         }
+@@ -345,11 +343,24 @@ impl<'a> JavaWalker<'a> {
+         } else {
+             format!("{recv}.{name}")
+         };
++        // `(f).m()`, `((Foo) o).m()`, `new Foo().m()`: the value or the
++        // type the receiver's shape stands for (`crate::receiver`).
++        let (recv, typed_receiver) = match obj {
++            Some(o) => {
++                let p = crate::receiver::peel("java", o, self.source);
++                match p.type_name() {
++                    Some(t) => (t, true),
++                    None => (self.text(p.node).to_string(), false),
++                }
++            }
++            None => (recv, false),
++        };
+         self.facts.references.push(RefRecord {
+             name,
+             receiver_hint: recv,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+         // Shape B/C: a handler passed in argument position. Inert unless
+diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
+index a674b42..89f13d5 100644
+--- a/crates/cgg-lang/src/plugins/javascript.rs
++++ b/crates/cgg-lang/src/plugins/javascript.rs
+@@ -1199,13 +1199,32 @@ impl<'a> JsWalker<'a> {
+         else {
+             return;
+         };
++        let mut typed_receiver = false;
++        let mut shaped: Option<String> = None;
+         let (name, recv) = match func.kind() {
+             "identifier" => (self.text(func).to_string(), String::new()),
+             "member_expression" => {
+-                let obj = func
+-                    .child_by_field_name("object")
++                let obj_node = func.child_by_field_name("object");
++                let obj = obj_node
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
++                // `(f).m()`, `(o as Foo).m()`, `(<Foo>o).m()`, `new Foo().m()`,
++                // `(await p).m()`: the value or the type the receiver's
++                // shape stands for (`crate::receiver`).
++                if let Some(o) = obj_node {
++                    let lang = self.facts.language.clone();
++                    let p = crate::receiver::peel(&lang, o, self.source);
++                    match p.type_name() {
++                        Some(t) => {
++                            typed_receiver = true;
++                            shaped = Some(t);
++                        }
++                        None if p.node.id() != o.id() => {
++                            shaped = Some(self.text(p.node).to_string());
++                        }
++                        None => {}
++                    }
++                }
+                 let prop = func
+                     .child_by_field_name("property")
+                     .map(|n| self.text(n).to_string())
+@@ -1224,9 +1243,10 @@ impl<'a> JsWalker<'a> {
+         };
+         self.facts.references.push(RefRecord {
+             name,
+-            receiver_hint: recv,
++            receiver_hint: shaped.unwrap_or(recv),
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+         // Shape B/E: `app.get('/x', listUsers)` and
+@@ -1304,6 +1324,7 @@ impl<'a> JsWalker<'a> {
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/kotlin.rs b/crates/cgg-lang/src/plugins/kotlin.rs
+index 52182ac..32c47a7 100644
+--- a/crates/cgg-lang/src/plugins/kotlin.rs
++++ b/crates/cgg-lang/src/plugins/kotlin.rs
+@@ -456,7 +456,9 @@ impl<'a> KtWalker<'a> {
+         let callee = node.child(0);
+         let Some(callee) = callee else { return };
+         let (name, recv) = match callee.kind() {
+-            "simple_identifier" => (self.text(callee).to_string(), String::new()),
++            "simple_identifier" => {
++                (self.text(callee).to_string(), (String::new(), false))
++            }
+             "navigation_expression" => {
+                 // `obj.method()`: the method is the last navigation
+                 // suffix, the receiver everything in front of it — a
+@@ -472,13 +474,19 @@ impl<'a> KtWalker<'a> {
+                 let Some(base) = callee.named_child(0) else {
+                     return;
+                 };
+-                let recv = self
+-                    .constructed_type(base)
+-                    .unwrap_or_else(|| self.receiver_text(base));
++                // `Foo(x).m()`, `(x as Foo).m()`, `(x).m()`: the type a
++                // construction or cast names, or the parenthesised value
++                // (`crate::receiver`).
++                let p = crate::receiver::peel("kotlin", base, self.source);
++                let recv = match p.type_name() {
++                    Some(t) => (t, true),
++                    None => (self.receiver_text(p.node), false),
++                };
+                 (name.to_string(), recv)
+             }
+             _ => return,
+         };
++        let (recv, typed_receiver) = recv;
+         if name.is_empty() {
+             return;
+         }
+@@ -497,35 +505,11 @@ impl<'a> KtWalker<'a> {
+             site_byte: node.start_byte() as u32,
+             dot_call,
+             implicit_receiver,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+ 
+-    /// `Foo(x)` / `pkg.Foo(x)` in receiver position → `Foo` / `pkg.Foo`.
+-    ///
+-    /// Kotlin constructs without `new`, so a call whose callee is a type
+-    /// name (capitalised last segment) builds a value of that type — the
+-    /// rule `record_local_type` already types `val x = Foo(…)` by. The
+-    /// receiver is recorded as the type, exactly what `val x = Foo(…);
+-    /// x.m()` resolves through after type propagation: an owner lookup on
+-    /// `Foo`, and, when `Foo` is imported from a dependency
+-    /// (`File(p).readText()`), the external-module refusal.
+-    fn constructed_type(&self, n: Node) -> Option<String> {
+-        if n.kind() != "call_expression" {
+-            return None;
+-        }
+-        let callee = n.child(0)?;
+-        if !matches!(callee.kind(), "simple_identifier" | "navigation_expression") {
+-            return None;
+-        }
+-        let path = self.receiver_text(callee);
+-        let plain = path
+-            .split('.')
+-            .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'));
+-        let last = path.rsplit('.').next()?;
+-        (plain && last.starts_with(char::is_uppercase)).then_some(path)
+-    }
+-
+     /// The receiver expression as source text, rebuilt from the tree the
+     /// way the other plugins record theirs (`a.b`, `this.x`, `x.a()`),
+     /// with whitespace, comments and line breaks inside a chain left out
+@@ -848,7 +832,7 @@ mod tests {
+                 "x.y",
+                 "list.map().filter()",
+                 "\"\"",
+-                "(y)",
++                "y",
+             ],
+             "refs: {:?}",
+             f.references
+diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
+index 3e67e44..cb38647 100644
+--- a/crates/cgg-lang/src/plugins/perl.rs
++++ b/crates/cgg-lang/src/plugins/perl.rs
+@@ -558,6 +558,7 @@ impl<'a> PerlWalker<'a> {
+                     arity: None,
+                     value_ref: false,
+                     paren_less: false,
++                    typed_receiver: false,
+                     name: s,
+                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -582,6 +583,7 @@ impl<'a> PerlWalker<'a> {
+                     arity: None,
+                     value_ref: false,
+                     paren_less: false,
++                    typed_receiver: false,
+                     name,
+                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -674,6 +676,7 @@ impl<'a> PerlWalker<'a> {
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
+index 4ba1354..d8040ab 100644
+--- a/crates/cgg-lang/src/plugins/php.rs
++++ b/crates/cgg-lang/src/plugins/php.rs
+@@ -197,6 +197,8 @@ impl<'a> PhpWalker<'a> {
+             }
+             "function_call_expression"
+             | "member_call_expression"
++            // `$x?->m()` is `$x->m()` when `$x` is not null.
++            | "nullsafe_member_call_expression"
+             | "scoped_call_expression" => {
+                 self.record_call(node);
+                 self.walk_children(node);
+@@ -341,10 +343,25 @@ impl<'a> PhpWalker<'a> {
+             }
+         }
+ 
++        // `($f)->m()`, `(new Foo())->m()`: the value or the class the
++        // receiver's shape stands for (`crate::receiver`).
++        let mut typed_receiver = false;
+         let recv = node
+             .child_by_field_name("object")
+-            .or_else(|| node.child_by_field_name("scope"))
+-            .map(|n| self.text(n).to_string())
++            .map(|n| {
++                let p = crate::receiver::peel("php", n, self.source);
++                match p.type_name() {
++                    Some(t) => {
++                        typed_receiver = true;
++                        t
++                    }
++                    None => self.text(p.node).to_string(),
++                }
++            })
++            .or_else(|| {
++                node.child_by_field_name("scope")
++                    .map(|n| self.text(n).to_string())
++            })
+             .unwrap_or_default();
+         // `$this->m()` is a call on the enclosing class's instance: spelled
+         // `this` the way every other language spells it, so the resolver's
+@@ -364,6 +381,7 @@ impl<'a> PhpWalker<'a> {
+             receiver_hint: recv,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+         // Laravel needs BOTH `'Controller@method'` strings (<= L7) and
+diff --git a/crates/cgg-lang/src/plugins/python.rs b/crates/cgg-lang/src/plugins/python.rs
+index 02b6bbe..130a970 100644
+--- a/crates/cgg-lang/src/plugins/python.rs
++++ b/crates/cgg-lang/src/plugins/python.rs
+@@ -740,14 +740,26 @@ impl<'a> Walker<'a> {
+ 
+     fn ref_from_call(&mut self, node: Node) -> Option<RefRecord> {
+         let func = node.child_by_field_name("function")?;
++        let mut typed_receiver = false;
+         let (name, receiver) = match func.kind() {
+             "identifier" => (self.text(func).to_string(), String::new()),
+             "attribute" => {
+                 // a.b.c  -> name=c, receiver=a.b
+                 let attr = func.child_by_field_name("attribute")?;
++                // `(f).m()`, `(await f).m()`, `Foo().m()`: the value or the
++                // class the receiver's shape stands for (`crate::receiver`).
+                 let recv = func
+                     .child_by_field_name("object")
+-                    .map(|n| self.receiver_text(n))
++                    .map(|n| {
++                        let p = crate::receiver::peel("python", n, self.source);
++                        match p.type_name() {
++                            Some(t) => {
++                                typed_receiver = true;
++                                t
++                            }
++                            None => self.receiver_text(p.node),
++                        }
++                    })
+                     .unwrap_or_default();
+                 (self.text(attr).to_string(), recv)
+             }
+@@ -778,6 +790,7 @@ impl<'a> Walker<'a> {
+             site_line,
+             site_byte: node.start_byte() as u32,
+             kwargs,
++            typed_receiver,
+             ..Default::default()
+         })
+     }
+@@ -1683,8 +1696,9 @@ class C:
+ 
+     #[test]
+     fn a_receiver_that_is_not_an_attribute_chain_keeps_its_text() {
+-        // Near miss: calls, subscripts, literals and parenthesised
+-        // receivers are recorded as written, as before.
++        // Near miss: calls, subscripts and literals are recorded as
++        // written, as before. A parenthesised receiver is the value
++        // inside it (FINDINGS C2), as in the one-line form.
+         let f = extract(
+             "def f(x):\n    x.a(1, 2).m()\n    x[0].m()\n    \"s\".m()\n    (x).m()\n    x.a().b.m()\n",
+         );
+@@ -1694,7 +1708,7 @@ class C:
+             .filter(|r| r.name == "m")
+             .map(|r| r.receiver_hint.as_str())
+             .collect();
+-        assert_eq!(recv, vec!["x.a(1, 2)", "x[0]", "\"s\"", "(x)", "x.a().b"]);
++        assert_eq!(recv, vec!["x.a(1, 2)", "x[0]", "\"s\"", "x", "x.a().b"]);
+     }
+ 
+     #[test]
+diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
+index fdf3b86..4d17274 100644
+--- a/crates/cgg-lang/src/plugins/registrar.rs
++++ b/crates/cgg-lang/src/plugins/registrar.rs
+@@ -476,6 +476,7 @@ pub(crate) fn capture(
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: s,
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -640,6 +641,7 @@ fn collect_value_refs(
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: format!("{owner}::{method}"),
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -665,6 +667,7 @@ fn collect_value_refs(
+                     arity: None,
+                     value_ref: false,
+                     paren_less: false,
++                    typed_receiver: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -712,6 +715,7 @@ fn collect_value_refs(
+                     arity: None,
+                     value_ref: false,
+                     paren_less: false,
++                    typed_receiver: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -785,6 +789,7 @@ fn collect_value_refs(
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: last_segment(&callee).to_string(),
+                 receiver_hint: VALUE_REF_HINT.to_string(),
+                 site_line: line,
+@@ -821,6 +826,7 @@ fn collect_value_refs(
+                     arity: None,
+                     value_ref: false,
+                     paren_less: false,
++                    typed_receiver: false,
+                     name: owner.to_string(),
+                     receiver_hint: VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -867,6 +873,7 @@ fn collect_value_refs(
+         arity: None,
+         value_ref: false,
+         paren_less: false,
++        typed_receiver: false,
+         name: simple.to_string(),
+         receiver_hint: VALUE_REF_HINT.to_string(),
+         site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
+index 01bfe44..b5cfef7 100644
+--- a/crates/cgg-lang/src/plugins/ruby.rs
++++ b/crates/cgg-lang/src/plugins/ruby.rs
+@@ -384,11 +384,24 @@ impl<'a> RubyWalker<'a> {
+         } else {
+             format!("{recv}.{method}")
+         };
++        // `(x).m`, `Foo.new.m`: the value or the class the receiver's
++        // shape stands for (`crate::receiver`).
++        let (recv, typed_receiver) = match node.child_by_field_name("receiver") {
++            Some(r) => {
++                let p = crate::receiver::peel("ruby", r, self.source);
++                match p.type_name() {
++                    Some(t) => (t, true),
++                    None => (self.text(p.node).to_string(), false),
++                }
++            }
++            None => (recv, false),
++        };
+         self.facts.references.push(RefRecord {
+             name: method,
+             receiver_hint: recv,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+         // `config/routes.rb` is ordinary Ruby: `get 'photos', to:
+@@ -449,6 +462,7 @@ impl<'a> RubyWalker<'a> {
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
+index 28a0918..c5eb807 100644
+--- a/crates/cgg-lang/src/plugins/rust.rs
++++ b/crates/cgg-lang/src/plugins/rust.rs
+@@ -1914,6 +1914,7 @@ impl<'a> Walker<'a> {
+                 arity: None,
+                 value_ref: false,
+                 paren_less: false,
++                typed_receiver: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: (arg.start_position().row as u32) + 1,
+diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
+index 65c21be..17b3135 100644
+--- a/crates/cgg-lang/src/plugins/scala.rs
++++ b/crates/cgg-lang/src/plugins/scala.rs
+@@ -201,6 +201,37 @@ impl<'a> ScalaWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // A member value of a class, trait or object (`val io = …` in
++            // its body, `class A(val io: B)`): in scope throughout the
++            // type, where it shadows a package of the same name. Recorded
++            // so a receiver headed by it is never read as that package.
++            "val_definition" | "var_definition" | "val_declaration"
++            | "var_declaration" | "class_parameter"
++                if !self.scope.is_empty()
++                    && node.parent().is_some_and(|p| {
++                        matches!(p.kind(), "template_body" | "class_parameters")
++                    }) =>
++            {
++                let name = node
++                    .child_by_field_name("pattern")
++                    .or_else(|| node.child_by_field_name("name"))
++                    .filter(|n| n.kind() == "identifier")
++                    .map(|n| self.text(n).to_string())
++                    .unwrap_or_default();
++                if !name.is_empty() {
++                    self.facts.class_fields.push(cgg_core::ClassFieldDecl {
++                        class_qn: self.scope.join("::"),
++                        field_name: name,
++                        type_name: node
++                            .child_by_field_name("type")
++                            .map(|t| self.text(t).to_string())
++                            .unwrap_or_default(),
++                        line: (node.start_position().row as u32) + 1,
++                    });
++                }
++                self.walk_children(node);
++                return;
++            }
+             "call_expression" => {
+                 self.record_call(node);
+                 self.walk_children(node);
+@@ -245,6 +276,22 @@ impl<'a> ScalaWalker<'a> {
+         self.text(v).split_whitespace().collect()
+     }
+ 
++    /// A receiver read through its shape (`crate::receiver`): `(f)` is
++    /// `f`, `new Foo(…)`, `Foo(…)` and `o.asInstanceOf[Foo]` are a `Foo`
++    /// (flagged as a type). An anonymous class (`new Foo { … }`) keeps
++    /// its text: its members are its own body's.
++    fn shaped_receiver(&self, v: Node) -> (String, bool) {
++        let p = crate::receiver::peel("scala", v, self.source);
++        let anonymous = p.node.kind() == "instance_expression"
++            && p.node
++                .named_children(&mut p.node.walk())
++                .any(|c| c.kind() == "template_body");
++        match p.ty {
++            Some(t) if !anonymous => (t.split_whitespace().collect(), true),
++            _ => (self.receiver_text(p.node), false),
++        }
++    }
++
+     fn record_paren_less(&mut self, node: Node) {
+         let (name, receiver) = match node.kind() {
+             "field_expression" => {
+@@ -253,12 +300,13 @@ impl<'a> ScalaWalker<'a> {
+                 };
+                 let recv = node
+                     .child_by_field_name("value")
+-                    .map(|v| self.receiver_text(v))
++                    .map(|v| self.shaped_receiver(v))
+                     .unwrap_or_default();
+                 (self.text(field).to_string(), recv)
+             }
+-            _ => (self.text(node).to_string(), String::new()),
++            _ => (self.text(node).to_string(), (String::new(), false)),
+         };
++        let (receiver, typed_receiver) = receiver;
+         if name.is_empty() || matches!(name.as_str(), "this" | "super" | "_") {
+             return;
+         }
+@@ -268,6 +316,7 @@ impl<'a> ScalaWalker<'a> {
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
+             paren_less: true,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+@@ -353,9 +402,9 @@ impl<'a> ScalaWalker<'a> {
+             && let Some(field) = function.child_by_field_name("field")
+         {
+             let name = self.text(field).to_string();
+-            let receiver = function
++            let (receiver, typed_receiver) = function
+                 .child_by_field_name("value")
+-                .map(|v| self.receiver_text(v))
++                .map(|v| self.shaped_receiver(v))
+                 .unwrap_or_default();
+             if !name.is_empty() {
+                 self.facts.references.push(RefRecord {
+@@ -363,6 +412,7 @@ impl<'a> ScalaWalker<'a> {
+                     receiver_hint: receiver,
+                     site_line: (node.start_position().row as u32) + 1,
+                     site_byte: node.start_byte() as u32,
++                    typed_receiver,
+                     ..Default::default()
+                 });
+             }
+diff --git a/crates/cgg-lang/src/plugins/solidity.rs b/crates/cgg-lang/src/plugins/solidity.rs
+index 75a6a84..e3715f7 100644
+--- a/crates/cgg-lang/src/plugins/solidity.rs
++++ b/crates/cgg-lang/src/plugins/solidity.rs
+@@ -126,6 +126,33 @@ impl<'a> SolidityWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // `using L for T;` / `using L for *;`: library `L`'s functions
++            // are callable as members of `T` (of every type for `*`),
++            // `x.f(a)` meaning `L.f(x, a)`. Recorded as an import of
++            // kind `using-for`: path `L`, alias `T` (or `*`).
++            "using_directive" => {
++                if let Some(lib) = self.child_kind(node, "type_alias") {
++                    let target = node
++                        .child_by_field_name("source")
++                        .map(|t| self.text(t).trim().to_string())
++                        .unwrap_or_else(|| {
++                            let mut c = node.walk();
++                            let any = node.children(&mut c).any(|ch| ch.kind() == "*");
++                            if any { "*".to_string() } else { String::new() }
++                        });
++                    let lib = self.text(lib).trim().to_string();
++                    if !lib.is_empty() && !target.is_empty() {
++                        self.facts.imports.push(ImportRecord {
++                            kind: "using-for".into(),
++                            path: lib,
++                            alias: target,
++                            site_line: (node.start_position().row as u32) + 1,
++                            site_byte: node.start_byte() as u32,
++                        });
++                    }
++                }
++                return;
++            }
+             _ => {}
+         }
+         self.walk_children(node);
+diff --git a/crates/cgg-lang/src/plugins/swift.rs b/crates/cgg-lang/src/plugins/swift.rs
+index 0d53046..6151402 100644
+--- a/crates/cgg-lang/src/plugins/swift.rs
++++ b/crates/cgg-lang/src/plugins/swift.rs
+@@ -234,12 +234,25 @@ impl<'a> SwiftWalker<'a> {
+         // call_expression -> first child is callee (simple_identifier or navigation_expression)
+         let callee = node.child(0);
+         let Some(callee) = callee else { return };
++        let mut typed_receiver = false;
+         let (name, recv) = match callee.kind() {
+             "simple_identifier" => (self.text(callee).to_string(), String::new()),
+             "navigation_expression" => {
++                // `(f).m()`, `(o as! Foo).m()`, `Foo().m()`, `f!.m()`,
++                // `(try await x).m()`: the value or the type the
++                // receiver's shape stands for (`crate::receiver`).
+                 let target = callee
+                     .child_by_field_name("target")
+-                    .map(|n| self.text(n).to_string())
++                    .map(|n| {
++                        let p = crate::receiver::peel("swift", n, self.source);
++                        match p.type_name() {
++                            Some(t) => {
++                                typed_receiver = true;
++                                t
++                            }
++                            None => self.text(p.node).to_string(),
++                        }
++                    })
+                     .unwrap_or_default();
+                 let suffix = callee
+                     .children(&mut callee.walk())
+@@ -268,6 +281,7 @@ impl<'a> SwiftWalker<'a> {
+             receiver_hint: recv,
+             site_line: (node.start_position().row as u32) + 1,
+             site_byte: node.start_byte() as u32,
++            typed_receiver,
+             ..Default::default()
+         });
+     }
+diff --git a/crates/cgg-lang/src/plugins/typescript.rs b/crates/cgg-lang/src/plugins/typescript.rs
+index 90f47a8..3795e56 100644
+--- a/crates/cgg-lang/src/plugins/typescript.rs
++++ b/crates/cgg-lang/src/plugins/typescript.rs
+@@ -45,6 +45,21 @@ impl LanguagePlugin for TypeScriptPlugin {
+         tree_sitter_typescript::LANGUAGE_TSX.into()
+     }
+ 
++    /// `.ts` / `.mts` / `.cts` files are parsed with the TypeScript
++    /// grammar, `.tsx` (and anything else) with the TSX one. The two
++    /// disagree on `<`: in a `.ts` file `<Foo>x` is a type assertion and
++    /// `<T>(x: T) => x` a generic arrow function, and the TSX grammar
++    /// reads both as an unclosed JSX element, turning the rest of the
++    /// file into one error node whose calls were never recorded.
++    fn ts_language_for(&self, path: &Path) -> tree_sitter::Language {
++        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
++        if matches!(ext, "ts" | "mts" | "cts") {
++            tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
++        } else {
++            self.ts_language()
++        }
++    }
++
+     fn extract(
+         &self,
+         ctx: &crate::ExtractCtx<'_>,
+@@ -95,6 +110,33 @@ mod tests {
+         )
+     }
+ 
++    /// A `.ts` file is parsed with the TypeScript grammar: `<Foo>o` is a
++    /// type assertion there, where the TSX grammar opened a JSX element
++    /// and lost every later call. A `.tsx` file keeps the TSX grammar.
++    #[test]
++    fn ts_files_use_the_typescript_grammar() {
++        let src = "function r(o: any) {\n  (<Foo>o).m();\n  later();\n}\n";
++        let path = PathBuf::from("/tmp/__cgg_test__/x.ts");
++        let mut p = Parser::new();
++        p.set_language(&TypeScriptPlugin.ts_language_for(&path)).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        assert!(!tree.root_node().has_error());
++        let f = TypeScriptPlugin.extract(
++            &crate::ExtractCtx::plain(),
++            FileId::new(0),
++            &path,
++            &tree,
++            src.as_bytes(),
++        );
++        let m = f.references.iter().find(|r| r.name == "m").unwrap();
++        assert_eq!((m.receiver_hint.as_str(), m.typed_receiver), ("Foo", true));
++        assert!(f.references.iter().any(|r| r.name == "later"));
++        let tsx = PathBuf::from("/tmp/__cgg_test__/x.tsx");
++        let mut p = Parser::new();
++        p.set_language(&TypeScriptPlugin.ts_language_for(&tsx)).unwrap();
++        assert!(!p.parse("const a = <div/>;\n", None).unwrap().root_node().has_error());
++    }
++
+     /// `import x = require('./m')` binds `x` to the module, like a
+     /// CommonJS `const x = require('./m')` (FINDINGS A4).
+     #[test]
+diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
+index 4ccb464..9746eab 100644
+--- a/crates/cgg-resolve/src/cross_file.rs
++++ b/crates/cgg-resolve/src/cross_file.rs
+@@ -2460,6 +2460,7 @@ pub fn resolve(
+                             .and_then(|(_, _, orig)| {
+                                 let mut r2 = r.clone();
+                                 r2.receiver_hint = orig.clone();
++                                r2.typed_receiver = false;
+                                 let (mut c2, mut n2) = (0u32, false);
+                                 let mut e2: Option<String> = None;
+                                 let (mut m2, mut mc2) = (None, false);
+@@ -4259,6 +4260,7 @@ fn try_resolve_ref(
+         if !rh.is_empty()
+             && !matches!(rh, "this" | "super" | "self")
+             && !rh.starts_with(char::is_uppercase)
++            && !r.typed_receiver
+         {
+             return None;
+         }
+@@ -4379,7 +4381,7 @@ fn try_resolve_ref(
+         // function import of the same name does not reach it there — and
+         // the call is that member, not whatever else carries the name.
+         let member_of_caller = if r.receiver_hint.is_empty()
+-            && matches!(lang, "java" | "kotlin" | "csharp")
++            && matches!(lang, "java" | "kotlin" | "scala" | "csharp")
+         {
+             caller_qn.and_then(owner_from_qn).and_then(|own| {
+                 by_owner_method
+@@ -5179,6 +5181,10 @@ fn try_resolve_ref(
+             && rh != "Self"
+             && rh != "cls"
+             && (relaxed_path_headed
++                // A receiver the plugin or type propagation read as a type
++                // (a cast, a construction, a typed value) is one whatever
++                // its case: Go's `&server{}`, a lowercase C struct.
++                || r.typed_receiver
+                 // A PEP 8 private class (`_CollectErrors`) is still a
+                 // type: the plugin types `x = _CollectErrors()` as one,
+                 // and rejecting it here left the call bound to nothing.
+@@ -5466,7 +5472,10 @@ fn try_resolve_ref(
+         // `M(this U …)` whose extended type `U` is `T`, a base of `T`, or
+         // a type parameter of `M`. Without this a typed receiver lost
+         // every extension call it makes.
+-        if lang == "csharp" && !r.paren_less && rh.starts_with(char::is_uppercase) {
++        if lang == "csharp"
++            && !r.paren_less
++            && (rh.starts_with(char::is_uppercase) || r.typed_receiver)
++        {
+             let recv = rh.rsplit('.').next().unwrap_or(rh);
+             let recv = recv.split('<').next().unwrap_or(recv).trim();
+             let family = with_ancestors(lang, vec![recv.to_string()], bases_by_owner);
+@@ -5487,6 +5496,35 @@ fn try_resolve_ref(
+             }
+         }
+ 
++        // Step 4e (Solidity): `x.f()` on a receiver typed `T` that `T`
++        // does not declare — a library function attached by `using L for
++        // T;` (or `using L for *;`) in the calling file: `L.f(x)`.
++        // Without this a typed receiver lost every library call it makes,
++        // which an untyped one only reached by name fan-out.
++        if lang == "solidity"
++            && !r.paren_less
++            && (rh.starts_with(char::is_uppercase) || r.typed_receiver)
++        {
++            let recv = rh.rsplit('.').next().unwrap_or(rh).trim();
++            let mut lib_fns: Vec<CallableId> = Vec::new();
++            for lib in heads.libraries_for(recv) {
++                if let Some(cids) = by_owner_method.get(&(
++                    lang.to_string(),
++                    lib.to_string(),
++                    r.name.clone(),
++                )) {
++                    for c in cids {
++                        if !lib_fns.contains(c) {
++                            lib_fns.push(*c);
++                        }
++                    }
++                }
++            }
++            if !lib_fns.is_empty() && lib_fns.len() <= fanout_cap {
++                return Some(lib_fns);
++            }
++        }
++
+         // Step 5: Trait/interface method dispatch.
+         // When receiver_hint is a variable name (lowercase) and the method
+         // name exists on definitions in other files, find all callables
+@@ -5499,6 +5537,9 @@ fn try_resolve_ref(
+         // only where the receiver is typed, never by name fan-out.
+         if !rh.is_empty()
+             && !r.paren_less
++            // A typed receiver is never fanned out by name: its type's
++            // own lookup (step 4) was the answer, hit or miss.
++            && !r.typed_receiver
+             && rh != "self"
+             && rh != "Self"
+             && rh != "cls"
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index b64b5bb..b47ac29 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -2214,6 +2214,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -2253,6 +2254,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2278,6 +2280,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2310,6 +2313,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "user_id".into(),
+             receiver_hint: STRING_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2367,6 +2371,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -2408,6 +2413,7 @@ mod tests {
+             arity: None,
+             value_ref: false,
+             paren_less: false,
++            typed_receiver: false,
+             name: "on_mouse_pos".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+diff --git a/crates/cgg-resolve/src/heads.rs b/crates/cgg-resolve/src/heads.rs
+index 92db88c..6062b7e 100644
+--- a/crates/cgg-resolve/src/heads.rs
++++ b/crates/cgg-resolve/src/heads.rs
+@@ -85,6 +85,14 @@ pub(crate) struct WorkspaceVocab {
+     /// qualified name, template arguments dropped, plus class names
+     /// known only from their fields.
+     cpp_scopes: HashSet<String>,
++    /// Java/Kotlin/Scala: every segment of every declared package — what
++    /// a Scala relative import (`import util.Helpers` inside `a.b`, for
++    /// `a.b.util`) can start with.
++    jvm_segments: HashSet<String>,
++    /// Scala: the name of every class, trait and object a Scala callable
++    /// is declared in, and every member value a Scala type declares
++    /// (`val io = …`): a name a receiver can be headed by in some class.
++    scala_owners: HashSet<String>,
+ }
+ 
+ impl WorkspaceVocab {
+@@ -115,8 +123,25 @@ impl WorkspaceVocab {
+                         }
+                     }
+                 }
++                "scala" => {
++                    v.scala_owners
++                        .extend(f.class_fields.iter().map(|cf| cf.field_name.clone()));
++                    for imp in f.imports.iter().filter(|i| i.kind == "scala-package") {
++                        let p = imp.path.trim();
++                        if p.is_empty() {
++                            continue;
++                        }
++                        v.jvm_packages.insert(p.to_string());
++                        insert_prefixes(p, &mut v.jvm_prefixes);
++                        if let Some(root) = p.split('.').next() {
++                            v.jvm_roots.insert(root.to_string());
++                        }
++                        v.jvm_segments.extend(p.split('.').map(str::to_string));
++                    }
++                }
+                 "java" | "kotlin" => {
+                     for p in &f.packages {
++                        v.jvm_segments.extend(p.split('.').map(str::to_string));
+                         v.jvm_packages.insert(p.clone());
+                         insert_prefixes(p, &mut v.jvm_prefixes);
+                         if let Some(root) = p.split('.').next() {
+@@ -155,6 +180,12 @@ impl WorkspaceVocab {
+         }
+         for c in graph.callables.values() {
+             match c.language.as_str() {
++                "scala" => {
++                    let segs: Vec<&str> = c.qualified_name.split("::").collect();
++                    for s in &segs[..segs.len().saturating_sub(1)] {
++                        v.scala_owners.insert((*s).to_string());
++                    }
++                }
+                 "python" => {
+                     if let Some(head) = c.qualified_name.split('.').next() {
+                         v.py_names.insert(head.to_string());
+@@ -331,6 +362,9 @@ pub(crate) struct FileHeads {
+     /// Parameters and locals: a receiver headed by one is that value,
+     /// not an import of the same name.
+     pub(crate) locals: crate::scope::FileLocals,
++    /// Solidity `using L for T;` directives as `(L, T)`, `T` being `*`
++    /// for `using L for *;`. In declaration order.
++    pub(crate) using_for: Vec<(String, String)>,
+ }
+ 
+ impl FileHeads {
+@@ -538,6 +572,41 @@ impl FileHeads {
+                     }
+                 }
+             }
++            "scala" => {
++                for imp in &facts.imports {
++                    let path = imp.path.trim();
++                    if let Some(root) = path.split('.').next() {
++                        h.jvm_roots.insert(root.to_string());
++                    }
++                    if imp.kind != "import" {
++                        continue;
++                    }
++                    for (local, full) in scala_import_bindings(path) {
++                        // A relative import (`import util.X` inside `a.b`)
++                        // whose head names some declared package segment
++                        // may be the tree's: kept.
++                        let head = full.split('.').next().unwrap_or("");
++                        let pkg = jvm_package_of(&full);
++                        let module_binding = !full
++                            .rsplit('.')
++                            .next()
++                            .is_some_and(|l| l.starts_with(char::is_uppercase));
++                        let external = !vocab.jvm_workspace(pkg)
++                            && !vocab.jvm_segments.contains(head)
++                            && !vocab.scala_owners.contains(head);
++                        let module = if module_binding { full.as_str() } else { pkg };
++                        bind(&local, module, external, module_binding);
++                    }
++                }
++            }
++            "solidity" => {
++                for imp in facts.imports.iter().filter(|i| i.kind == "using-for") {
++                    h.using_for.push((
++                        imp.path.trim().to_string(),
++                        imp.alias.trim().to_string(),
++                    ));
++                }
++            }
+             "cpp" => {
+                 for imp in facts.imports.iter().filter(|i| i.kind == "namespace-alias") {
+                     h.cpp_aliases.insert(
+@@ -551,6 +620,19 @@ impl FileHeads {
+         h
+     }
+ 
++    /// Solidity: the libraries whose functions a value of type `ty` can
++    /// call as members here — `using L for ty;` and `using L for *;`.
++    pub(crate) fn libraries_for(&self, ty: &str) -> Vec<&str> {
++        let mut out: Vec<&str> = Vec::new();
++        for (lib, target) in &self.using_for {
++            let target = target.split(['[', ' ']).next().unwrap_or(target);
++            if (target == "*" || target == ty) && !out.contains(&lib.as_str()) {
++                out.push(lib);
++            }
++        }
++        out
++    }
++
+     /// The external module a call is written through, when it is one —
+     /// `Some(module)` means the call must not be name-matched onto a
+     /// workspace callable. `None` means "not provably external".
+@@ -568,6 +650,7 @@ impl FileHeads {
+                 | "go"
+                 | "java"
+                 | "kotlin"
++                | "scala"
+                 | "csharp"
+                 | "cpp"
+         ) {
+@@ -634,11 +717,39 @@ impl FileHeads {
+         }
+         match lang {
+             "java" | "kotlin" => self.jvm_package_head(lang, rh, head, vocab),
++            "scala" => self.scala_package_head(rh, head, vocab),
+             "csharp" => self.cs_namespace_head(rh, head, vocab),
+             _ => None,
+         }
+     }
+ 
++    /// Scala: `math.ceil(x)`, `scala.util.Try(…)`, `java.util.UUID.
++    /// randomUUID()` — a receiver headed by a package every Scala file
++    /// sees without an import (`cgg_core::stdlib::SCALA_IMPLICIT_PACKAGES`),
++    /// when nothing binds that name — a parameter or local in scope (the
++    /// caller checked), a definition of the file, a member `val` of some
++    /// Scala type, a package segment, a class or object of the tree. Any other dotted receiver goes through the
++    /// Java/Kotlin package reading.
++    fn scala_package_head(
++        &self,
++        rh: &str,
++        head: &str,
++        vocab: &WorkspaceVocab,
++    ) -> Option<String> {
++        if cgg_core::stdlib::SCALA_IMPLICIT_PACKAGES.contains(&head)
++            && rh.split('.').all(is_ident)
++            && !self.own_defs.contains(head)
++            && !vocab.jvm_segments.contains(head)
++            && !vocab.scala_owners.contains(head)
++        {
++            return Some(match head {
++                "scala" | "java" | "javax" => head.to_string(),
++                _ => format!("scala.{head}"),
++            });
++        }
++        self.jvm_package_head("scala", rh, head, vocab)
++    }
++
+     /// `java.lang.Integer.compare()`, `org.apache.x.Y.m()`,
+     /// `kotlinx.coroutines.runBlocking {}`: a receiver written as a
+     /// package path. Only a head that is some package root this file or
+@@ -822,6 +933,61 @@ fn jvm_package_of(path: &str) -> &str {
+     }
+ }
+ 
++/// The names a Scala import binds, as `(local name, imported path)`:
++/// `a.b.C` binds `C`; `a.b.{C, D => E}` binds `C` and `E` (as `a.b.D`);
++/// a wildcard (`a.b._`, `a.b.*`, `{_}`) and a hiding selector (`D => _`)
++/// bind nothing by name. The plugin keeps the import's text with its
++/// whitespace removed.
++fn scala_import_bindings(path: &str) -> Vec<(String, String)> {
++    let mut out = Vec::new();
++    // `import a.b, c.d`: several imports in one clause.
++    for clause in split_top_commas(path) {
++        let clause = clause.trim();
++        if let Some((prefix, sel)) = clause.split_once(".{") {
++            for item in sel.trim_end_matches('}').split(',') {
++                let item = item.trim();
++                match item.split_once("=>") {
++                    Some((_, to)) if to.trim() == "_" => {}
++                    Some((from, to)) => out.push((
++                        to.trim().to_string(),
++                        format!("{prefix}.{}", from.trim()),
++                    )),
++                    None if item == "_" || item == "*" || item.is_empty() => {}
++                    None => out.push((item.to_string(), format!("{prefix}.{item}"))),
++                }
++            }
++            continue;
++        }
++        if clause.ends_with("._") || clause.ends_with(".*") {
++            continue;
++        }
++        if let Some((_, last)) = clause.rsplit_once('.') {
++            out.push((last.to_string(), clause.to_string()));
++        }
++    }
++    out.retain(|(l, p)| is_ident(l) && p.split('.').all(is_ident));
++    out
++}
++
++/// `s` split at the commas outside every `{…}`.
++fn split_top_commas(s: &str) -> Vec<&str> {
++    let mut out = Vec::new();
++    let (mut depth, mut start) = (0i32, 0usize);
++    for (i, c) in s.char_indices() {
++        match c {
++            '{' => depth += 1,
++            '}' => depth -= 1,
++            ',' if depth == 0 => {
++                out.push(&s[start..i]);
++                start = i + 1;
++            }
++            _ => {}
++        }
++    }
++    out.push(&s[start..]);
++    out
++}
++
+ /// The name a Go import binds when it has no alias: the package name,
+ /// which by near-universal convention is the last path element without a
+ /// major-version suffix (`…/v2`, `yaml.v3`) or a `go-` prefix.
+@@ -1045,6 +1211,27 @@ mod tests {
+         assert!(h.cs_candidate_visible(&vocab, FileId::new(1), "State.SetHandled"));
+     }
+ 
++    #[test]
++    fn scala_import_bindings_follow_selectors() {
++        let b = |p: &str| scala_import_bindings(p);
++        assert_eq!(
++            b("org.apache.X"),
++            vec![("X".to_string(), "org.apache.X".to_string())]
++        );
++        assert_eq!(
++            b("a.b.{C,D=>E,F=>_,_}"),
++            vec![
++                ("C".to_string(), "a.b.C".to_string()),
++                ("E".to_string(), "a.b.D".to_string()),
++            ]
++        );
++        assert!(b("a.b._").is_empty());
++        assert_eq!(
++            b("scala.collection.mutable"),
++            vec![("mutable".to_string(), "scala.collection.mutable".to_string())]
++        );
++    }
++
+     #[test]
+     fn leading_identifier_of_a_receiver() {
+         assert_eq!(leading_ident("axios"), "axios");
+diff --git a/crates/cgg-resolve/src/modules.rs b/crates/cgg-resolve/src/modules.rs
+index 04fdef6..4812124 100644
+--- a/crates/cgg-resolve/src/modules.rs
++++ b/crates/cgg-resolve/src/modules.rs
+@@ -1771,7 +1771,8 @@ impl FileModules {
+                 }
+             };
+         }
+-        let constructed = rh.starts_with("new ");
++        // `new Foo().m()` arrives as the type `Foo`, flagged as one.
++        let constructed = rh.starts_with("new ") || r.typed_receiver;
+         let expr = rh.strip_prefix("new ").unwrap_or(rh).trim();
+         let head = leading_ident(expr);
+         let b = self.js.get(head)?;
+diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
+index a529d75..e50d1eb 100644
+--- a/crates/cgg-resolve/src/type_hints.rs
++++ b/crates/cgg-resolve/src/type_hints.rs
+@@ -538,6 +538,10 @@ pub fn propagate_types_with_fields(
+     let mut rewrites: Vec<(usize, String)> = Vec::new();
+     for (i, rref) in facts.references.iter().enumerate() {
+         let rh = rref.receiver_hint.as_str();
++        // A cast or construction receiver is already its type.
++        if rref.typed_receiver {
++            continue;
++        }
+         if rh.is_empty()
+             || rh == "self"
+             || rh == "Self"
+@@ -829,6 +833,7 @@ pub fn settle_implicit_receivers(all_facts: &mut [FileFacts]) {
+             let ty = ty.split('<').next().unwrap_or(ty).trim_end_matches('?');
+             if !members.contains(&(ty.to_string(), r.name.clone())) {
+                 r.receiver_hint.clear();
++                r.typed_receiver = false;
+                 r.implicit_receiver = false;
+             }
+         }
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index f8cc04d..dd7d011 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -440,54 +440,59 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+                     };
+                 }
+             }
+-            let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
+-                Ok(out) => {
+-                    // The extractors recurse over the tree. A tree deeper
+-                    // than the stack can hold would abort the process, so
+-                    // a file that nests past the cap is skipped rather
+-                    // than walked — reported, never silently dropped.
+-                    if cgg_lang::exceeds_depth(&out.tree, MAX_TREE_DEPTH) {
+-                        return FileOutcome::Skipped {
+-                            path: cand.path.clone(),
+-                            reason: SkipReason::TooDeep(MAX_TREE_DEPTH),
++            let (parse_status, parse_ms, facts) =
++                match pool.parse_file(lang, Some(&cand.path), &bytes) {
++                    Ok(out) => {
++                        // The extractors recurse over the tree. A tree deeper
++                        // than the stack can hold would abort the process, so
++                        // a file that nests past the cap is skipped rather
++                        // than walked — reported, never silently dropped.
++                        if cgg_lang::exceeds_depth(&out.tree, MAX_TREE_DEPTH) {
++                            return FileOutcome::Skipped {
++                                path: cand.path.clone(),
++                                reason: SkipReason::TooDeep(MAX_TREE_DEPTH),
++                            };
++                        }
++                        let status = if out.tree.root_node().has_error() {
++                            "error"
++                        } else {
++                            "ok"
+                         };
++                        let plugin = pool.plugin(lang);
++                        let facts = plugin.map(|p| {
++                            let _s = cgg_core::profile::span("parse::extract");
++                            // Narrow the registrar-verb gate to this file's
++                            // language; the union of every rule in the table
++                            // makes each language pay for the others'.
++                            let mut f = p.extract(
++                                &extract_ctx.for_language(lang),
++                                FileId::new(0),
++                                &cand.path,
++                                &out.tree,
++                                &bytes,
++                            );
++                            // Parameters and locals, from the same tree: a
++                            // bare call through one is never another file's
++                            // function (see `cgg_lang::locals`).
++                            // Not in a minified bundle (one enormous line): its
++                            // reused short names make scope evidence noise, and
++                            // the file keeps the reading it always had.
++                            if f.locals.is_empty()
++                                && cgg_lang::longest_line_bytes(&bytes)
++                                    <= MINIFIED_LINE_BYTES
++                            {
++                                f.locals = cgg_lang::locals::collect(
++                                    &f.language,
++                                    &out.tree,
++                                    &bytes,
++                                );
++                            }
++                            f
++                        });
++                        (status.to_string(), out.parse_ms, facts)
+                     }
+-                    let status = if out.tree.root_node().has_error() {
+-                        "error"
+-                    } else {
+-                        "ok"
+-                    };
+-                    let plugin = pool.plugin(lang);
+-                    let facts = plugin.map(|p| {
+-                        let _s = cgg_core::profile::span("parse::extract");
+-                        // Narrow the registrar-verb gate to this file's
+-                        // language; the union of every rule in the table
+-                        // makes each language pay for the others'.
+-                        let mut f = p.extract(
+-                            &extract_ctx.for_language(lang),
+-                            FileId::new(0),
+-                            &cand.path,
+-                            &out.tree,
+-                            &bytes,
+-                        );
+-                        // Parameters and locals, from the same tree: a
+-                        // bare call through one is never another file's
+-                        // function (see `cgg_lang::locals`).
+-                        // Not in a minified bundle (one enormous line): its
+-                        // reused short names make scope evidence noise, and
+-                        // the file keeps the reading it always had.
+-                        if f.locals.is_empty()
+-                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
+-                        {
+-                            f.locals =
+-                                cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
+-                        }
+-                        f
+-                    });
+-                    (status.to_string(), out.parse_ms, facts)
+-                }
+-                Err(_) => ("error".to_string(), 0.0, None),
+-            };
++                    Err(_) => ("error".to_string(), 0.0, None),
++                };
+ 
+             FileOutcome::Analyzed(FileResult {
+                 path: cand.path.clone(),
+diff --git a/crates/cgg/tests/resolve.rs b/crates/cgg/tests/resolve.rs
+index 254141f..ed825d2 100644
+--- a/crates/cgg/tests/resolve.rs
++++ b/crates/cgg/tests/resolve.rs
+@@ -3119,3 +3119,201 @@ fn a_companion_imported_kotlin_extension_resolves() {
+     let (dsts, _) = edges_and_external(tmp.path(), "app.go");
+     assert_eq!(dsts, vec!["okhttp3.HttpUrl.toHttpUrl"]);
+ }
++
++/// FINDINGS C2: a receiver written as a parenthesised value, a cast or a
++/// construction resolves exactly as its bare, typed form does — to the
++/// type's own member, never by name to a same-named decoy. A call on what
++/// a call returned (`make().m()`) stays the unresolved call it was.
++#[test]
++fn shaped_java_receivers_resolve_as_their_typed_form() {
++    let tmp = TempDir::new().unwrap();
++    write(tmp.path(), "Foo.java", b"class Foo { void m() {} }\n");
++    write(tmp.path(), "Bar.java", b"class Bar { void m() {} }\n");
++    write(
++        tmp.path(),
++        "Main.java",
++        concat!(
++            "class Main {\n  Object make() { return null; }\n",
++            "  void run(Object o, Foo f) {\n",
++            "    (f).m();\n    ((Foo) o).m();\n    new Foo().m();\n    (new Foo()).m();\n",
++            "  }\n  void near() { make().m(); }\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (dsts, _) = edges_and_external(tmp.path(), "Main.run");
++    assert_eq!(dsts, vec!["Foo.m"; 4], "no edge to the Bar.m decoy");
++    // Near miss: a call's result has no known type, and keeps the
++    // by-name reading it always had.
++    let (near, _) = edges_and_external(tmp.path(), "Main.near");
++    assert_eq!(near, vec!["Bar.m", "Foo.m", "Main.make"]);
++}
++
++/// Go: a composite literal, its address and a type assertion are values
++/// of the type they name, lowercase or not; an unexported type is a type,
++/// never a variable to fan out over.
++#[test]
++fn shaped_go_receivers_name_their_type() {
++    let tmp = TempDir::new().unwrap();
++    write(tmp.path(), "go.mod", b"module ex\n\ngo 1.21\n");
++    write(
++        tmp.path(),
++        "a.go",
++        concat!(
++            "package main\ntype server struct{ A int }\nfunc (s server) M() {}\n",
++            "type other struct{}\nfunc (o other) M() {}\n",
++            "func run(v interface{}) {\n\tserver{A: 1}.M()\n\t(&server{}).M()\n\tv.(server).M()\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (dsts, _) = edges_and_external(tmp.path(), "main.run");
++    assert_eq!(dsts, vec!["main.server.M"; 3], "never other.M");
++}
++
++/// TypeScript: a `.ts` file is parsed with the TypeScript grammar, where
++/// `<Foo>o` is a type assertion — the TSX grammar read it as an unclosed
++/// JSX element and lost every call after it. Casts, `new` and parentheses
++/// all reach `Foo.m`.
++#[test]
++fn ts_type_assertions_parse_and_type_their_receiver() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "a.ts",
++        concat!(
++            "class Foo { m() {} }\nclass Bar { m() {} }\n",
++            "function run(o: any, f: Foo) {\n  (<Foo>o).m();\n  (o as Foo).m();\n",
++            "  new Foo().m();\n  (f).m();\n  f!.m();\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (dsts, _) = edges_and_external(tmp.path(), "run");
++    assert_eq!(dsts, vec!["Foo.m"; 5]);
++}
++
++/// Null-conditional calls are calls: Dart `x?.m()` and PHP `$x?->m()`
++/// were never recorded at all.
++#[test]
++fn null_conditional_calls_are_recorded_in_dart_and_php() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "a.dart",
++        b"class Foo { void m() {} }\nvoid run(Foo f) {\n  f?.m();\n}\n",
++    );
++    write(
++        tmp.path(),
++        "b.php",
++        b"<?php\nclass Baz { public function n() {} }\nfunction go(Baz $b) {\n    $b?->n();\n}\n",
++    );
++    let (dart, _) = edges_and_external(tmp.path(), "run");
++    assert_eq!(dart, vec!["Foo::m"]);
++    let (php, _) = edges_and_external(tmp.path(), "go");
++    assert_eq!(php, vec!["Baz::n"]);
++}
++
++/// Solidity `using L for T;`: a call on a value typed `T` that `T` does
++/// not declare is library `L`'s function — not a same-named function of
++/// another library, and not lost because the receiver is typed.
++#[test]
++fn solidity_using_for_reaches_the_library_on_a_typed_receiver() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "Lib.sol",
++        concat!(
++            "pragma solidity ^0.8.0;\nstruct Pos { uint x; }\n",
++            "library PosLib { function shift(Pos memory p, uint d) internal pure returns (uint) { return p.x + d; } }\n",
++            "library Other { function shift(uint a, uint d) internal pure returns (uint) { return a + d; } }\n",
++        )
++        .as_bytes(),
++    );
++    write(
++        tmp.path(),
++        "Main.sol",
++        concat!(
++            "pragma solidity ^0.8.0;\nimport \"./Lib.sol\";\n",
++            "contract Main {\n    using PosLib for Pos;\n",
++            "    function run(Pos memory p) public pure returns (uint) { return p.shift(1); }\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (dsts, _) = edges_and_external(tmp.path(), "Main.run");
++    assert_eq!(dsts, vec!["PosLib.shift"]);
++}
++
++/// Scala: `math.ceil(x)` is `scala.math.ceil` — every file sees the
++/// `scala` package's members without an import — and is never bound by
++/// name to a workspace `ceil`; an imported dependency's object is
++/// refused the same way. A member `val` of that name (`io`) or a
++/// parameter (`math`) is a value, and keeps its reading.
++#[test]
++fn scala_calls_through_standard_and_dependency_packages_are_external() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "B.scala",
++        b"package app.util\nclass Helper { def ceil(x: Double): Double = x; def escapeJava(s: String) = s }\n",
++    );
++    write(
++        tmp.path(),
++        "A.scala",
++        concat!(
++            "package app.core\nimport org.apache.commons.text.StringEscapeUtils\n",
++            "import app.util.Helper\n",
++            "class A {\n  val io = new Helper\n",
++            "  def run(h: Helper): Unit = {\n    math.ceil(1.0)\n    StringEscapeUtils.escapeJava(\"x\")\n",
++            "    io.ceil(2.0)\n  }\n",
++            "  def param(math: Helper): Unit = { math.ceil(3.0) }\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (dsts, ext) = edges_and_external(tmp.path(), "A::run");
++    assert_eq!(
++        dsts,
++        vec!["Helper::ceil"],
++        "only the member val's call binds"
++    );
++    let mut ext = ext;
++    ext.sort();
++    assert_eq!(
++        ext,
++        vec![
++            ("ceil".to_string(), "scala.math".to_string()),
++            (
++                "escapeJava".to_string(),
++                "org.apache.commons.text".to_string()
++            ),
++        ]
++    );
++    let (param, _) = edges_and_external(tmp.path(), "A::param");
++    assert_eq!(
++        param,
++        vec!["Helper::ceil"],
++        "a parameter named math is a value"
++    );
++}
++
++/// Ruby `Foo.new.m` and C++ `Foo{}.m()` / `(*p).m()`: constructions and
++/// dereferences are instances of their type.
++#[test]
++fn ruby_and_cpp_construction_receivers_name_their_type() {
++    let tmp = TempDir::new().unwrap();
++    write(
++        tmp.path(),
++        "a.rb",
++        b"class Foo\n  def m; end\nend\nclass Bar\n  def m; end\nend\nclass Main\n  def run\n    Foo.new.m\n  end\nend\n",
++    );
++    write(
++        tmp.path(),
++        "a.cpp",
++        concat!(
++            "struct Qux { void k() {} };\nstruct Quz { void k() {} };\n",
++            "void go(Qux* p, void* o) {\n  Qux{}.k();\n  (*p).k();\n  static_cast<Qux*>(o)->k();\n}\n",
++        )
++        .as_bytes(),
++    );
++    let (rb, _) = edges_and_external(tmp.path(), "Main::run");
++    assert_eq!(rb, vec!["Foo::m"]);
++    let (cpp, _) = edges_and_external(tmp.path(), "go");
++    assert_eq!(cpp, vec!["Qux::k"; 3]);
++}
+diff --git a/crates/cgg-lang/src/receiver.rs b/crates/cgg-lang/src/receiver.rs
+new file mode 100644
+index 0000000..c9ff93f
+--- /dev/null
++++ b/crates/cgg-lang/src/receiver.rs
+@@ -0,0 +1,530 @@
++//! Receiver shapes (FINDINGS C2).
++//!
++//! A call's receiver is often not written as the bare value it is: it can
++//! be parenthesized (`(f).m()`), awaited (`(await x).m()`), asserted
++//! non-null (`f!.m()`), dereferenced (`(*p).m()`), cast (`((Foo) o).m()`,
++//! `(o as Foo).M()`, `o.(Foo).M()`), or built in place (`new Foo().m()`,
++//! `Foo().m()`, `Foo{A: 1}.M()`). Each plugin used to record such a
++//! receiver as its raw text, which no later pass could read: the call was
++//! left unresolved, or fanned out by name over every same-named method
++//! (`new Foo()` starts lowercase, so it looked like a variable).
++//!
++//! [`peel`] reads the shape from the tree, by grammar node kind, for every
++//! language at once: wrappers that do not change the value are looked
++//! through, and a cast or a construction yields the type it names. A
++//! receiver written in any of these forms is then recorded exactly as its
++//! bare form would be — a variable for type propagation to type, or the
++//! type itself.
++
++use tree_sitter::Node;
++
++/// A receiver expression with its non-semantic wrapping peeled away.
++#[derive(Debug, Clone)]
++pub struct Peeled<'t> {
++    /// The value the call is made on, after looking through parentheses,
++    /// `await`, non-null assertions and dereferences.
++    pub node: Node<'t>,
++    /// Set when the receiver was a cast or a construction: the type it is
++    /// an instance of (`Foo`, `pkg.Foo`, `ns::Foo`), without type
++    /// arguments, nullability or pointer marks. `node` is then the cast or
++    /// construction itself.
++    pub ty: Option<String>,
++    /// Set when a dereference (`*p`) was looked through: `(*p).m()` is
++    /// `p->m()`.
++    pub deref: bool,
++}
++
++impl<'t> Peeled<'t> {
++    /// The type as an owned string, when there is one.
++    pub fn type_name(&self) -> Option<String> {
++        self.ty.clone()
++    }
++}
++
++/// Languages that construct without `new`: a call whose callee is a type
++/// name (`Foo(…)`, capitalised) builds a value of that type.
++fn constructs_by_call(lang: &str) -> bool {
++    matches!(
++        lang,
++        "python" | "kotlin" | "swift" | "dart" | "scala" | "cpp"
++    )
++}
++
++/// The receiver `node` is, read through its shape. See the module docs.
++pub fn peel<'t>(lang: &str, node: Node<'t>, src: &'t [u8]) -> Peeled<'t> {
++    let mut n = node;
++    let mut deref = false;
++    // Each step descends one level; real receivers nest a handful deep.
++    for _ in 0..32 {
++        let next = match n.kind() {
++            "parenthesized_expression" => only_named_child(n),
++            // Ruby `(x).m`.
++            "parenthesized_statements" if lang == "ruby" => only_named_child(n),
++            // Swift spells parentheses as a one-element tuple.
++            "tuple_expression" if lang == "swift" => only_named_child(n),
++            "await_expression" | "await" | "try_expression" => n
++                .child_by_field_name("expr")
++                .or_else(|| last_named_child(n)),
++            // TS `f!`, C# `f!`: nullability only.
++            "non_null_expression" => n.named_child(0),
++            "postfix_unary_expression" if last_token_is(n, "!") => n.named_child(0),
++            // Swift `f!`.
++            "postfix_expression" if lang == "swift" => {
++                let bang = n
++                    .child_by_field_name("operation")
++                    .is_some_and(|o| o.kind() == "bang");
++                if bang {
++                    n.child_by_field_name("target")
++                } else {
++                    None
++                }
++            }
++            // Dart wraps `await x` in a unary expression; Go spells
++            // address-of and dereference as unary operators.
++            "unary_expression" => {
++                let op = n
++                    .child_by_field_name("operator")
++                    .map(|o| o.utf8_text(src).unwrap_or(""));
++                match op {
++                    Some("&") => n.child_by_field_name("operand"),
++                    Some("*") => {
++                        deref = true;
++                        n.child_by_field_name("operand")
++                    }
++                    Some(_) => None,
++                    None => {
++                        only_named_child(n).filter(|c| c.kind() == "await_expression")
++                    }
++                }
++            }
++            // C/C++ `*p` / `&x`.
++            "pointer_expression" => {
++                let op = n
++                    .child_by_field_name("operator")
++                    .map(|o| o.utf8_text(src).unwrap_or(""));
++                match op {
++                    Some("*") => {
++                        deref = true;
++                        n.child_by_field_name("argument")
++                    }
++                    Some("&") => n.child_by_field_name("argument"),
++                    _ => None,
++                }
++            }
++            _ => {
++                return Peeled {
++                    node: n,
++                    ty: shape_type(lang, n, src),
++                    deref,
++                };
++            }
++        };
++        match next {
++            Some(c) => n = c,
++            None => break,
++        }
++    }
++    Peeled {
++        node: n,
++        ty: shape_type(lang, n, src),
++        deref,
++    }
++}
++
++/// The type a cast or a construction names; `None` for any other node.
++fn shape_type<'t>(lang: &str, n: Node<'t>, src: &'t [u8]) -> Option<String> {
++    let ty: Node<'t> = match n.kind() {
++        // Java / C# / C / C++ `(Foo) o`, Go `o.(Foo)`, C/C++ `Foo{…}`, Go
++        // `Foo{…}`.
++        "cast_expression"
++        | "type_assertion_expression"
++        | "compound_literal_expression"
++        | "composite_literal" => n.child_by_field_name("type")?,
++        // `o as Foo`: C# names the type `right`, Swift `name`; TypeScript
++        // and Kotlin write it last.
++        "as_expression" => n
++            .child_by_field_name("right")
++            .or_else(|| n.child_by_field_name("name"))
++            .or_else(|| last_named_child(n))?,
++        // Dart `o as Foo`: the type sits in a `type_cast` child.
++        "type_cast_expression" => {
++            let cast = named_children(n).find(|c| c.kind() == "type_cast")?;
++            named_children(cast).find(|c| c.kind() == "type")?
++        }
++        // TypeScript `<Foo>o`.
++        "type_assertion" => {
++            let args = named_children(n).find(|c| c.kind() == "type_arguments")?;
++            args.named_child(0)?
++        }
++        // Java / C# `new Foo(…)` (also with an initializer or an anonymous
++        // body); PHP `new Foo()`, whose class is an unnamed child.
++        "object_creation_expression" => n.child_by_field_name("type").or_else(|| {
++            named_children(n).find(|c| matches!(c.kind(), "name" | "qualified_name"))
++        })?,
++        // JS/TS `new Foo(…)`; C++ `new Foo(…)`.
++        "new_expression" => n
++            .child_by_field_name("constructor")
++            .or_else(|| n.child_by_field_name("type"))?,
++        // Scala `new Foo(…)`.
++        "instance_expression" => named_children(n).find(|c| {
++            matches!(
++                c.kind(),
++                "type_identifier" | "generic_type" | "stable_type_identifier"
++            )
++        })?,
++        // Scala `o.asInstanceOf[Foo]`.
++        "generic_function" => {
++            let f = n.child_by_field_name("function")?;
++            let field = f.child_by_field_name("field")?;
++            if !cgg_core::stdlib::is_cast_intrinsic(lang, field.utf8_text(src).ok()?) {
++                return None;
++            }
++            named_children(n)
++                .filter(|c| c.id() != f.id())
++                .find(|c| c.kind() != "type_arguments" || c.named_child_count() > 0)
++                .map(|c| {
++                    if c.kind() == "type_arguments" {
++                        c.named_child(0).unwrap_or(c)
++                    } else {
++                        c
++                    }
++                })?
++        }
++        // Ruby `Foo.new(…)`: a class's own constructing method.
++        "call" if lang == "ruby" => {
++            let method = n.child_by_field_name("method")?.utf8_text(src).ok()?;
++            let recv = n.child_by_field_name("receiver")?;
++            if !cgg_core::stdlib::is_constructing_method(lang, method)
++                || !matches!(recv.kind(), "constant" | "scope_resolution")
++            {
++                return None;
++            }
++            recv
++        }
++        "call" | "call_expression" => return call_type(lang, n, src),
++        _ => return None,
++    };
++    clean_type(lang, ty.utf8_text(src).ok()?)
++}
++
++/// A call that is a cast (`static_cast<Foo*>(o)`) or, in a language that
++/// constructs by calling the type, a construction (`Foo(…)`).
++fn call_type<'t>(lang: &str, n: Node<'t>, src: &'t [u8]) -> Option<String> {
++    let callee = n.child_by_field_name("function").or_else(|| n.child(0))?;
++    if callee.kind() == "template_function" {
++        let name = callee.child_by_field_name("name")?.utf8_text(src).ok()?;
++        if !cgg_core::stdlib::is_cast_intrinsic(lang, name) {
++            return None;
++        }
++        let args = callee.child_by_field_name("arguments")?;
++        return clean_type(lang, args.named_child(0)?.utf8_text(src).ok()?);
++    }
++    if !constructs_by_call(lang) {
++        return None;
++    }
++    // A path written across lines (`Headers\n  .Builder()`) is the same
++    // path.
++    let path: String = callee
++        .utf8_text(src)
++        .ok()?
++        .chars()
++        .filter(|c| !c.is_whitespace())
++        .collect();
++    let plain_ident = matches!(
++        callee.kind(),
++        "identifier" | "simple_identifier" | "type_identifier"
++    );
++    // A dotted type path (`pkg.Foo(…)`), but never a C++ scope path:
++    // `Foo::Create()` is a static factory far more often than a type.
++    let dotted = !plain_ident
++        && lang != "cpp"
++        && matches!(
++            callee.kind(),
++            "attribute"
++                | "navigation_expression"
++                | "field_expression"
++                | "member_expression"
++        );
++    if !(plain_ident || dotted) {
++        return None;
++    }
++    let segs_plain = path
++        .split('.')
++        .all(|s| !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_'));
++    let last = path.rsplit('.').next()?;
++    // A PEP 8 private class (`_Builder()`) is a class all the same.
++    let last = if lang == "python" {
++        last.trim_start_matches('_')
++    } else {
++        last
++    };
++    let typed = segs_plain && last.starts_with(char::is_uppercase);
++    typed.then_some(path)
++}
++
++/// `Foo<T>` / `Foo?` / `*pkg.Foo` / `const Foo*` / `\App\Foo` → the
++/// nominal type, or `None` when what is left is not a name path.
++fn clean_type(lang: &str, raw: &str) -> Option<String> {
++    // A type written across lines or with spaces inside a path
++    // (`a .b .Foo`) is the same type; a space after a keyword is kept
++    // until the keyword is dropped.
++    let joined: String = {
++        let mut out = String::with_capacity(raw.len());
++        let mut prev_ws = false;
++        for c in raw.trim().chars() {
++            if c.is_whitespace() {
++                prev_ws = true;
++                continue;
++            }
++            if prev_ws && (c.is_alphanumeric() || c == '_') && out.ends_with(|p: char| p.is_alphanumeric() || p == '_') {
++                out.push(' ');
++            }
++            prev_ws = false;
++            out.push(c);
++        }
++        out
++    };
++    let mut t = joined.as_str();
++    loop {
++        let before = t;
++        for kw in ["const ", "struct ", "class ", "volatile "] {
++            if let Some(rest) = t.strip_prefix(kw) {
++                t = rest.trim_start();
++            }
++        }
++        t = t.trim_start_matches(['&', '*', '\\', ' ']);
++        if t == before {
++            break;
++        }
++    }
++    // Type arguments: `Foo<T>`, Scala/Go `Foo[T]`.
++    if let Some(i) = t.find(['<', '[', '(', '{']) {
++        t = &t[..i];
++    }
++    t = t.trim_end_matches(['?', '!', '*', '&', ' ']);
++    if lang == "php" {
++        t = t.rsplit('\\').next().unwrap_or(t);
++    }
++    let ok = t
++        .chars()
++        .next()
++        .is_some_and(|c| c.is_alphabetic() || c == '_')
++        && t.chars()
++            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '$'));
++    ok.then(|| t.to_string())
++}
++
++fn named_children<'t>(n: Node<'t>) -> impl Iterator<Item = Node<'t>> {
++    (0..n.named_child_count() as u32).filter_map(move |i| n.named_child(i))
++}
++
++/// The one named child of `n` that is not a comment.
++fn only_named_child(n: Node<'_>) -> Option<Node<'_>> {
++    let mut it = named_children(n).filter(|c| !c.kind().contains("comment"));
++    let first = it.next()?;
++    it.next().is_none().then_some(first)
++}
++
++fn last_named_child(n: Node<'_>) -> Option<Node<'_>> {
++    named_children(n)
++        .filter(|c| !c.kind().contains("comment"))
++        .last()
++}
++
++fn last_token_is(n: Node<'_>, tok: &str) -> bool {
++    n.child((n.child_count() as u32).saturating_sub(1))
++        .is_some_and(|c| c.kind() == tok)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use tree_sitter::Parser;
++
++    /// The receiver of every member call in `src`, peeled, as
++    /// `(type or peeled text, deref)`, in source order.
++    fn receivers(
++        lang: &str,
++        ts: tree_sitter::Language,
++        src: &str,
++    ) -> Vec<(String, bool)> {
++        let mut p = Parser::new();
++        p.set_language(&ts).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        fn object(n: Node<'_>) -> Option<Node<'_>> {
++            [
++                "object",
++                "expression",
++                "operand",
++                "argument",
++                "value",
++                "target",
++            ]
++            .iter()
++            .find_map(|f| n.child_by_field_name(f))
++            .or_else(|| {
++                (n.kind() == "navigation_expression")
++                    .then(|| n.named_child(0))
++                    .flatten()
++            })
++        }
++        let mut out = Vec::new();
++        let mut stack = vec![tree.root_node()];
++        while let Some(n) = stack.pop() {
++            let recv = match n.kind() {
++                "method_invocation"
++                | "member_call_expression"
++                | "nullsafe_member_call_expression" => n.child_by_field_name("object"),
++                "call" | "call_expression" | "invocation_expression" => n
++                    .child_by_field_name("function")
++                    .or_else(|| n.child(0))
++                    .filter(|f| {
++                        f.kind() != "identifier" && f.kind() != "simple_identifier"
++                    })
++                    .and_then(object),
++                _ => None,
++            };
++            if let Some(r) = recv {
++                let pe = peel(lang, r, src.as_bytes());
++                let s = match pe.ty {
++                    Some(t) => format!("T:{t}"),
++                    None => pe.node.utf8_text(src.as_bytes()).unwrap().to_string(),
++                };
++                out.push((s, pe.deref));
++            }
++            for i in (0..n.child_count() as u32).rev() {
++                stack.push(n.child(i).unwrap());
++            }
++        }
++        out
++    }
++
++    fn names(v: Vec<(String, bool)>) -> Vec<String> {
++        v.into_iter().map(|(s, _)| s).collect()
++    }
++
++    #[test]
++    fn java_parens_casts_and_constructions() {
++        let src = "class M { void r(Object o, Foo f) { f.m(); (f).m(); ((Foo) o).m(); \
++                   new Foo().m(); (new a.b.Foo<X>()).m(); g().m(); } }";
++        assert_eq!(
++            names(receivers("java", tree_sitter_java::LANGUAGE.into(), src)),
++            vec!["f", "f", "T:Foo", "T:Foo", "T:a.b.Foo", "g()"]
++        );
++    }
++
++    #[test]
++    fn csharp_as_await_and_initializers() {
++        let src = "class M { async void R(object o, Task<Foo> t) { (o as Foo).M(); \
++                   ((Foo)o).M(); (await t).M(); new Foo { X = 1 }.M(); (f!).M(); } }";
++        assert_eq!(
++            names(receivers(
++                "csharp",
++                tree_sitter_c_sharp::LANGUAGE.into(),
++                src
++            )),
++            vec!["T:Foo", "T:Foo", "t", "T:Foo", "f"]
++        );
++    }
++
++    #[test]
++    fn typescript_as_assertion_and_new() {
++        let src = "async function r(o: any, p) { (o as Foo).m(); (<Foo>o).m(); \
++                   new Foo().m(); (await p).m(); f!.m(); }";
++        assert_eq!(
++            names(receivers(
++                "typescript",
++                tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
++                src
++            )),
++            vec!["T:Foo", "T:Foo", "T:Foo", "p", "f"]
++        );
++    }
++
++    #[test]
++    fn go_literals_assertions_and_derefs() {
++        let src = "package p\nfunc r(o any, p *Foo) {\n(f).M()\nFoo{A: 1}.M()\n(&Foo{}).M()\n\
++                   o.(*pkg.Foo).M()\n(*p).M()\n}\n";
++        let got = receivers("go", tree_sitter_go::LANGUAGE.into(), src);
++        assert_eq!(
++            got,
++            vec![
++                ("f".to_string(), false),
++                ("T:Foo".to_string(), false),
++                ("T:Foo".to_string(), false),
++                ("T:pkg.Foo".to_string(), false),
++                ("p".to_string(), true),
++            ]
++        );
++    }
++
++    #[test]
++    fn cpp_constructions_and_casts() {
++        let src = "void r(void* o, Foo* p) { (f).m(); Foo().m(); Foo{}.m(); ((Foo*)o)->m(); \
++                   static_cast<Foo*>(o)->m(); (*p).m(); Make().m(); Foo::Create().m(); }";
++        assert_eq!(
++            names(receivers("cpp", tree_sitter_cpp::LANGUAGE.into(), src)),
++            vec![
++                "f",
++                "T:Foo",
++                "T:Foo",
++                "T:Foo",
++                "T:Foo",
++                "p",
++                "T:Make",
++                "Foo::Create()"
++            ]
++        );
++    }
++
++    #[test]
++    fn python_constructions_need_a_capitalised_callee() {
++        let src = "async def r(p):\n    (f).m()\n    Foo().m()\n    pkg.Foo(1).m()\n    \
++                   make().m()\n    (await p).m()\n";
++        assert_eq!(
++            names(receivers(
++                "python",
++                tree_sitter_python::LANGUAGE.into(),
++                src
++            )),
++            vec!["f", "T:Foo", "T:pkg.Foo", "pkg", "make()", "p"]
++        );
++    }
++
++    #[test]
++    fn ruby_new_and_parentheses() {
++        let src = "def r(f)\n  Foo.new.m\n  (A::Foo.new(1)).m\n  (f).m\n  make.m\nend\n";
++        let mut p = Parser::new();
++        p.set_language(&tree_sitter_ruby::LANGUAGE.into()).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let mut got = Vec::new();
++        let mut stack = vec![tree.root_node()];
++        while let Some(n) = stack.pop() {
++            if n.kind() == "call"
++                && n.child_by_field_name("method")
++                    .is_some_and(|m| m.utf8_text(src.as_bytes()).unwrap() == "m")
++                && let Some(r) = n.child_by_field_name("receiver")
++            {
++                let pe = peel("ruby", r, src.as_bytes());
++                got.push(match pe.ty {
++                    Some(t) => format!("T:{t}"),
++                    None => pe.node.utf8_text(src.as_bytes()).unwrap().to_string(),
++                });
++            }
++            for i in (0..n.child_count() as u32).rev() {
++                stack.push(n.child(i).unwrap());
++            }
++        }
++        assert_eq!(got, vec!["T:Foo", "T:A::Foo", "f", "make"]);
++    }
++
++    #[test]
++    fn php_parenthesized_new() {
++        let src =
++            "<?php\nfunction r($f) { ($f)->m(); (new \\App\\Foo())->m(); $f?->m(); }\n";
++        assert_eq!(
++            names(receivers("php", tree_sitter_php::LANGUAGE_PHP.into(), src)),
++            vec!["$f", "T:Foo", "$f"]
++        );
++    }
++}
