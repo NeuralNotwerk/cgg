@@ -3,3 +3,4 @@
 - 2026-10-14T06:41:11Z WS8 agent launched (baseline bins/WS8-before = 0c95864)
 - 2026-10-14T08:25:31Z tick: WS8 agent running; WIP snapshotted
 - 2026-10-14T10:25:33Z tick: WS8 agent running; WIP snapshotted
+- 2026-10-14T11:49:13Z WS8 committed 9986fbc + docs 99c25f5, pushed; WS9 agent launched (baseline bins/WS9-before)
