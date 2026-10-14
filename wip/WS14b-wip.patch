@@ -1,5 +1,5 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index e3f0491..36a989b 100644
+index e3f0491..b7d87e1 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -404,6 +404,58 @@ otherwise change the default graph.
@@ -61,7 +61,7 @@ index e3f0491..36a989b 100644
  ### Compatibility
  
  - **The default graph changes.** Full corpus, 283 repositories:
-@@ -596,6 +648,27 @@ otherwise change the default graph.
+@@ -596,6 +648,29 @@ otherwise change the default graph.
    repositories, none slower by 1 s or more, total +0.7%; `--dead-code`,
    4 repositories, largest +0.5 s (`groovy-gradle`, +3.5%).
  
@@ -84,7 +84,9 @@ index e3f0491..36a989b 100644
 +  `candidates-in-other-files` and 86 of 266 `shadowed-by-local` (the
 +  rest: field-chain receivers, comptime function parameters), Perl 28 of
 +  291 (every invocant call with a sub; the rest are `key => $obj->m` on
-+  untyped objects, or Moose accessors), PHP 5 of 39. PERF_PLACEHOLDER
++  untyped objects, or Moose accessors), PHP 5 of 39. Latency (perf/WS14b.md, 9 repositories, median of 5):
++  none slower by 1 s or more; largest `scala-spark` +0.67 s (+7.4%),
++  `zig-zig` +0.48 s, `app-wordpress` +0.29 s; total +2.1%.
 +
  ## [0.10.2] - 2026-10-11
  
