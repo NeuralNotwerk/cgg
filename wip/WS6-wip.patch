@@ -155,7 +155,7 @@ index 1aa7f51..c566fb4 100644
              receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
              site_line: line,
 diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
-index 739e1fc..dc9957b 100644
+index 739e1fc..1567a6e 100644
 --- a/crates/cgg-lang/src/plugins/csharp.rs
 +++ b/crates/cgg-lang/src/plugins/csharp.rs
 @@ -41,6 +41,7 @@ impl LanguagePlugin for CSharpPlugin {
@@ -200,7 +200,7 @@ index 739e1fc..dc9957b 100644
              "invocation_expression" => {
                  if let Some(r) = self.ref_from_invoke(node) {
                      // Shape B: `app.MapGet("/x", Handler)` — the minimal
-@@ -386,6 +407,89 @@ impl<'a> Walker<'a> {
+@@ -386,6 +407,109 @@ impl<'a> Walker<'a> {
          });
      }
  
@@ -248,10 +248,30 @@ index 739e1fc..dc9957b 100644
 +                if name.kind() != "identifier" {
 +                    return;
 +                }
-+                let recv = if expr.kind() == "base" {
-+                    "super".to_string()
-+                } else {
-+                    self.text(expr).to_string()
++                // Through `this`, `base` or a type (`Program.Handler`,
++                // `Ns.Type.Handler`): a method group. Through a variable,
++                // field or call (`value.Value`, `x.Name`) it is a
++                // property read far more often than a method group, and
++                // the receiver's type is rarely known, so resolving it
++                // would bind an unrelated same-named method.
++                let recv = match expr.kind() {
++                    "base" => "super".to_string(),
++                    "this" => "this".to_string(),
++                    "identifier" | "qualified_name" | "generic_name"
++                        if self
++                            .text(expr)
++                            .starts_with(|c: char| c.is_ascii_uppercase()) =>
++                    {
++                        self.text(expr).to_string()
++                    }
++                    "member_access_expression"
++                        if self.text(expr).split('.').all(|seg| {
++                            seg.starts_with(|c: char| c.is_ascii_uppercase())
++                        }) =>
++                    {
++                        self.text(expr).to_string()
++                    }
++                    _ => return,
 +                };
 +                (name, recv)
 +            }
@@ -290,7 +310,7 @@ index 739e1fc..dc9957b 100644
      fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
          let func = node.child_by_field_name("function")?;
          let (name, recv) = match func.kind() {
-@@ -521,6 +625,64 @@ mod tests {
+@@ -521,6 +645,80 @@ mod tests {
          )
      }
  
@@ -344,6 +364,22 @@ index 739e1fc..dc9957b 100644
 +        assert_eq!(got_sorted, want_sorted, "got {got:?}");
 +        // The declared names `h`, `f`, `a` are not values.
 +        assert!(!got.iter().any(|(_, n)| n == "h" || n == "f" || n == "a"));
++    }
++
++    /// Near miss: a member read through a variable (`value.Value`) is a
++    /// property far more often than a method group, so it is not one.
++    #[test]
++    fn member_reads_through_a_variable_are_not_method_groups() {
++        let f = extract_refs(
++            "class P { void Run(J value, K x) { Use(value.Value); var n = x.Name; Use(this.H); } }",
++        );
++        let got: Vec<&str> = f
++            .references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| r.name.as_str())
++            .collect();
++        assert_eq!(got, vec!["H"]);
 +    }
 +
 +    #[test]
@@ -703,10 +739,18 @@ index f241248..8e3a3ec 100644
      }
  }
 diff --git a/crates/cgg-lang/src/plugins/python.rs b/crates/cgg-lang/src/plugins/python.rs
-index 19dd09a..a3c6855 100644
+index 19dd09a..02b6bbe 100644
 --- a/crates/cgg-lang/src/plugins/python.rs
 +++ b/crates/cgg-lang/src/plugins/python.rs
-@@ -190,6 +190,9 @@ impl<'a> Walker<'a> {
+@@ -125,6 +125,7 @@ impl LanguagePlugin for PythonPlugin {
+         // `__all__` is Python's explicit export list; a name in it is
+         // public API even when nothing in the package references it.
+         out.exports = py_dunder_all(tree, source);
++        retain_scoped_value_refs(&mut out);
+         out
+     }
+ }
+@@ -190,6 +191,9 @@ impl<'a> Walker<'a> {
      }
  
      fn walk(&mut self, node: Node) {
@@ -716,7 +760,7 @@ index 19dd09a..a3c6855 100644
          match node.kind() {
              "class_definition" => {
                  let name = node
-@@ -336,6 +339,107 @@ impl<'a> Walker<'a> {
+@@ -336,6 +340,107 @@ impl<'a> Walker<'a> {
          }
      }
  
@@ -824,7 +868,61 @@ index 19dd09a..a3c6855 100644
      /// Capture callables named on the right-hand side of an assignment.
      ///
      /// `DAEMONIZED_TASKS = {'check_status': _check_status}` and
-@@ -1082,6 +1186,68 @@ mod tests {
+@@ -678,6 +783,53 @@ impl<'a> Walker<'a> {
+     }
+ }
+ 
++/// Keep a value-position name only where Python's scoping says it can be
++/// a function: a bare name the file defines or imports, `self.x` /
++/// `cls.x`, or an attribute of an imported module (`views.handler`).
++///
++/// In a value position `return x`, `obj.attr` and `x is y` are data far
++/// more often than functions. A bare name the file neither defines nor
++/// imports is a global or builtin, and an attribute of a variable is a
++/// field read; resolving either as a call would bind an unrelated
++/// same-named function elsewhere, or record doubt against it.
++fn retain_scoped_value_refs(facts: &mut FileFacts) {
++    if !facts.references.iter().any(|r| r.value_ref) {
++        return;
++    }
++    let mut bound: BTreeSet<String> = facts
++        .definitions
++        .iter()
++        .map(|d| d.simple_name.clone())
++        .collect();
++    for imp in &facts.imports {
++        if imp.kind == "from-import" {
++            for item in imp.alias.split(',') {
++                let item = item.trim();
++                let name = item.rsplit_once(" as ").map_or(item, |(_, a)| a.trim());
++                bound.insert(name.to_string());
++            }
++        } else if !imp.alias.is_empty() {
++            bound.insert(imp.alias.clone());
++        } else {
++            for item in imp.path.split(',') {
++                let head = item.trim().split('.').next().unwrap_or("");
++                bound.insert(head.to_string());
++            }
++        }
++    }
++    facts.references.retain(|r| {
++        if !r.value_ref {
++            return true;
++        }
++        let rh = r.receiver_hint.as_str();
++        if rh.is_empty() {
++            return bound.contains(&r.name);
++        }
++        let head = rh.split('.').next().unwrap_or("");
++        matches!(rh, "self" | "cls") || bound.contains(head)
++    });
++}
++
+ fn parse_import(text: &str) -> (String, String, String) {
+     // `import a.b as c` | `import a, b` | `from x import y as z`
+     if let Some(rest) = text.strip_prefix("from ")
+@@ -1082,6 +1234,83 @@ mod tests {
          extract_with("m.py", src)
      }
  
@@ -846,7 +944,7 @@ index 19dd09a..a3c6855 100644
 +    /// B3: value positions no call encloses.
 +    #[test]
 +    fn value_positions_are_value_refs() {
-+        let src = "@_deco\ndef f(cb=_dflt):\n    x = {k: _comp for k in ks}\n    y = [_lc for _ in ks]\n    if x is _ident: pass\n    if x == _eq: pass\n    yield _y\n    return self._ret if c else _alt\n";
++        let src = "def _deco(f): pass\ndef _dflt(): pass\ndef _comp(): pass\ndef _lc(): pass\ndef _ident(): pass\ndef _eq(): pass\ndef _y(): pass\ndef _alt(): pass\nx = 1\n@_deco\ndef f(cb=_dflt):\n    x = {k: _comp for k in ks}\n    y = [_lc for _ in ks]\n    if x is _ident: pass\n    if x == _eq: pass\n    yield _y\n    return self._ret if c else _alt\n";
 +        let f = extract_refs(src);
 +        let mut got: Vec<(String, String)> = f
 +            .references
@@ -860,7 +958,6 @@ index 19dd09a..a3c6855 100644
 +            ("", "_dflt"),
 +            ("", "_comp"),
 +            ("", "_lc"),
-+            ("", "x"),
 +            ("", "_ident"),
 +            ("", "_y"),
 +            ("self", "_ret"),
@@ -871,10 +968,26 @@ index 19dd09a..a3c6855 100644
 +        .collect();
 +        want.sort();
 +        // `x == _eq` is a comparison, not an identity test; the
-+        // conditional's condition `c` is not a value.
++        // conditional's condition `c` is not a value; `x` in `x is _ident`
++        // is a variable the file does not define as a function.
 +        assert_eq!(got, want);
 +        let plain = extract(src);
 +        assert!(plain.references.iter().all(|r| !r.value_ref));
++    }
++
++    /// Near miss: a name the file neither defines nor imports, and an
++    /// attribute of a variable, are data in a value position.
++    #[test]
++    fn unscoped_value_positions_are_not_value_refs() {
++        let src = "import views\ndef f(obj):\n    if obj is undefined_global: pass\n    yield obj.attr\n    return views.handler\n";
++        let f = extract_refs(src);
++        let got: Vec<(String, String)> = f
++            .references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
++            .collect();
++        assert_eq!(got, vec![("views".to_string(), "handler".to_string())]);
 +    }
 +
 +    /// `a = b = _f` nests the second assignment on the right of the first.
@@ -1265,10 +1378,10 @@ index 5011f4f..b07f1a0 100644
      }
 diff --git a/crates/cgg-resolve/src/value_refs.rs b/crates/cgg-resolve/src/value_refs.rs
 new file mode 100644
-index 0000000..6630da6
+index 0000000..49708e8
 --- /dev/null
 +++ b/crates/cgg-resolve/src/value_refs.rs
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,202 @@
 +//! Receiver-carrying value references (WS6, FINDINGS B3).
 +//!
 +//! A Java method reference (`this::m`, `Type::new`) or a C# method group
@@ -1341,6 +1454,13 @@ index 0000000..6630da6
 +/// edge. Sites are keyed by (file, byte); the plugins place a value-ref
 +/// site on the referenced name's own token, where no call starts, so a
 +/// call in the same expression is never re-tagged.
++///
++/// The edges are whatever the call through that receiver would have
++/// drawn, at the same confidence: a `medium` edge here is the base-chain
++/// or calling-class binding a `medium` call would be. Which value
++/// positions are recorded at all is the plugins' decision — a C# member
++/// read through a variable, or a Python attribute of one, is not, being
++/// a property far more often than a method group.
 +pub fn tag_reference_edges(graph: &mut Graph, all_facts: &[FileFacts]) {
 +    let sites: HashSet<(FileId, u32)> = all_facts
 +        .iter()
