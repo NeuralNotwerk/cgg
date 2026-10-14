@@ -707,6 +707,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     let macro_types =
         cgg_resolve::type_hints::resolve_macro_types(&macro_replacements, &field_types);
     let type_aliases = cgg_resolve::type_hints::type_alias_index(&all_facts);
+    // Untyped closures passed to a workspace function take their
+    // parameter types from its declared callback type.
+    cgg_resolve::type_hints::settle_closure_args(&mut all_facts);
     {
         // Per-file and independent: each call only mutates its own facts.
         let _s = cgg_core::profile::span("resolve::type-propagate");

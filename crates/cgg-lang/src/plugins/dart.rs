@@ -76,6 +76,7 @@ impl<'a> DartWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        crate::closure_types::record("dart", node, self.source, self.facts);
         match node.kind() {
             // A mixin owns its members as a class does.
             "class_declaration" | "mixin_declaration" => {
@@ -471,7 +472,9 @@ impl<'a> DartWalker<'a> {
                     }
                 }
                 let name_node = last_ident;
-                let recv_node = first_recv.or_else(|| callee.child(0));
+                let recv_node = first_recv
+                    .or_else(|| callee.child(0))
+                    .map(closure_body_receiver);
                 let name = name_node
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
@@ -511,6 +514,22 @@ impl<'a> DartWalker<'a> {
             ..Default::default()
         });
     }
+}
+
+/// The grammar reads `(x) => x.run()` as `((x) => x).run()`: the member
+/// access binds to the closure, whose expression body is just `x`. The
+/// call is made on that body expression, inside the closure — where `x`
+/// is the closure's parameter. Any other receiver is itself.
+fn closure_body_receiver(recv: Node) -> Node {
+    if recv.kind() == "function_expression"
+        && let Some(body) = recv.child_by_field_name("body")
+        && body.kind() == "function_expression_body"
+        && let Some(expr) = body.named_child(0)
+        && expr.kind() != "block"
+    {
+        return expr;
+    }
+    recv
 }
 
 #[cfg(test)]
@@ -622,6 +641,28 @@ mod tests {
             refs(&f).iter().any(|r| r == "run" || r == "svc.run"),
             "refs: {:?}",
             refs(&f)
+        );
+    }
+
+    #[test]
+    fn a_call_in_an_expression_bodied_closure_is_on_the_body_value() {
+        let f = extract(
+            "void f(List<Foo> xs) {\n  xs.forEach((x) => x.run());\n  xs.forEach((Foo y) => y!.stop());\n  z!.go();\n  ((x) => x).call();\n}\n",
+        );
+        let pairs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(pairs.contains(&("run", "x")), "{pairs:?}");
+        assert!(pairs.contains(&("stop", "y")), "{pairs:?}");
+        assert!(pairs.contains(&("go", "z")), "{pairs:?}");
+        assert!(
+            f.scoped_types
+                .iter()
+                .any(|s| s.name == "y" && s.type_name == "Foo"),
+            "{:?}",
+            f.scoped_types
         );
     }
 

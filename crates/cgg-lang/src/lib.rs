@@ -13,6 +13,7 @@
 // *today* — the point is the day a field lands.
 #![allow(clippy::needless_update)]
 
+pub mod closure_types;
 pub mod detect;
 pub mod locals;
 pub mod notebook;

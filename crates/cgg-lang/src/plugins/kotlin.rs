@@ -409,13 +409,28 @@ impl<'a> KtWalker<'a> {
             return;
         }
 
-        // Try explicit type annotation first
+        // Try explicit type annotation first. A nullable `Foo?` is a `Foo`
+        // for every call made on it (`h?.run()`, `h!!.run()`).
         let type_name = var_decl
             .children(&mut var_decl.walk())
-            .find(|c| c.kind() == "user_type")
+            .find_map(|c| match c.kind() {
+                "user_type" => Some(c),
+                "nullable_type" => {
+                    c.children(&mut c.walk()).find(|n| n.kind() == "user_type")
+                }
+                _ => None,
+            })
             .and_then(|ut| {
-                ut.children(&mut ut.walk())
-                    .find(|c| c.kind() == "type_identifier")
+                // `Outer.Inner` (a nested type) is an `Inner`; a package
+                // path (`okio.Buffer`) keeps its old reading, the head.
+                let ids: Vec<Node> = ut
+                    .children(&mut ut.walk())
+                    .filter(|c| c.kind() == "type_identifier")
+                    .collect();
+                let nested = ids
+                    .iter()
+                    .all(|n| self.text(*n).starts_with(char::is_uppercase));
+                if nested { ids.last() } else { ids.first() }.copied()
             })
             .map(|n| self.text(n).to_string())
             .unwrap_or_default();
@@ -718,6 +733,36 @@ mod tests {
         assert!(qns.contains(&"a.X.f"), "{qns:?}");
         assert!(qns.contains(&"a.C.Inner.i"), "{qns:?}");
         assert!(f.classes.iter().any(|c| c.class_qn == "a.X"));
+    }
+
+    #[test]
+    fn a_nullable_property_is_typed_as_its_type() {
+        let f = extract(
+            "class K {\n  private var h: Foo? = null\n  private var g: Foo = Foo()\n  private var n: List<Foo>? = null\n  private var s: String? = null\n}\n",
+        );
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.clone())
+        };
+        assert_eq!(ty("h").as_deref(), Some("Foo"));
+        assert_eq!(ty("g").as_deref(), Some("Foo"));
+        // Near miss: a nullable container is the container, not `Foo`.
+        assert_eq!(ty("n").as_deref(), Some("List"));
+        assert_eq!(ty("s").as_deref(), Some("String"));
+        let f = extract(
+            "class K {\n  var r: Hpack.Reader? = null\n  var b: okio.Buffer? = null\n}\n",
+        );
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.clone())
+        };
+        // A nested type is the inner type, never its outer one.
+        assert_eq!(ty("r").as_deref(), Some("Reader"));
+        assert_eq!(ty("b"), None);
     }
 
     #[test]

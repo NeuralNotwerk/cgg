@@ -3849,7 +3849,19 @@ struct BareScope<'s> {
 /// parameters (`static T Or<T>(this T x, …)` extends every type).
 /// `None` for a method whose first parameter is not `this`.
 fn csharp_extension_target(sig: &str) -> Option<(String, bool)> {
-    let open = sig.find('(')?;
+    // The parameter list's `(`: not one inside the method's type
+    // parameter list, whose attributes take arguments
+    // (`M<T, [DynamicallyAccessedMembers(…)] U>(this X x)`).
+    let mut depth = 0i32;
+    let open = sig.char_indices().find_map(|(i, c)| {
+        match c {
+            '<' | '[' => depth += 1,
+            '>' | ']' => depth -= 1,
+            '(' if depth <= 0 => return Some(i),
+            _ => {}
+        }
+        None
+    })?;
     let rest = sig[open + 1..].trim_start().strip_prefix("this ")?;
     let ty = rest.trim_start();
     let end = ty
@@ -10121,6 +10133,12 @@ mod tests {
             Some(("IList".to_string(), false))
         );
         assert_eq!(csharp_extension_target("static int N(int x)"), None);
+        assert_eq!(
+            csharp_extension_target(
+                "public static IB Add<T, [Dyn(DynTypes.Ctors)] TH>(this IB b)"
+            ),
+            Some(("IB".to_string(), false))
+        );
     }
 
     fn refused(module: &str) -> UnresolvedReason {

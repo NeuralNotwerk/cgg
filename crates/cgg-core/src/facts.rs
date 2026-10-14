@@ -562,6 +562,46 @@ pub struct FileFacts {
     /// level).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub type_spans: Vec<TypeSpan>,
+    /// Names whose type is written and whose scope is narrower than any
+    /// callable: a closure's typed parameter (`(Foo x) => …`, `(x: Foo)
+    /// => …`) or a typed pattern (`case x: Foo => …`), each with the span
+    /// it is in scope over. A receiver inside that span named by one is an
+    /// instance of its type, whatever an outer binding of the same name is.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scoped_types: Vec<ScopedType>,
+    /// Closures with untyped parameters passed as a positional argument
+    /// of a bare call (`each((x) => x.run())`, `withTempDir { dir => … }`).
+    /// When every definition of the callee in the tree declares that
+    /// parameter as the same callback type, its parameter types become the
+    /// closure's [`FileFacts::scoped_types`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub closure_args: Vec<ClosureArg>,
+}
+
+/// An untyped closure passed to a bare call (see
+/// [`FileFacts::closure_args`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureArg {
+    /// The called name.
+    pub callee: String,
+    /// Position among the call's positional arguments.
+    pub arg_index: u32,
+    /// The closure's parameter names, in order.
+    pub params: Vec<String>,
+    pub start_byte: u32,
+    pub end_byte: u32,
+}
+
+/// A typed name and the byte span it is in scope over (see
+/// [`FileFacts::scoped_types`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScopedType {
+    pub name: String,
+    /// The declared type, read through [`crate::declared_type`] and
+    /// without type arguments.
+    pub type_name: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
 }
 
 /// A container type's name and body span (see [`FileFacts::type_spans`]).
@@ -716,6 +756,8 @@ impl FileFacts {
             packages: Vec::new(),
             locals: Vec::new(),
             type_spans: Vec::new(),
+            scoped_types: Vec::new(),
+            closure_args: Vec::new(),
         }
     }
 

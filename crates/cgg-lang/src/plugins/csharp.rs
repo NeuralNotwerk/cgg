@@ -117,6 +117,7 @@ impl<'a> Walker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        crate::closure_types::record("csharp", node, self.source, self.facts);
         match node.kind() {
             "namespace_declaration" | "file_scoped_namespace_declaration" => {
                 let name = node
@@ -349,8 +350,21 @@ impl<'a> Walker<'a> {
                 || c.kind() == "qualified_name"
                 || c.kind() == "generic_name"
                 || c.kind() == "implicit_type"
+                || c.kind() == "nullable_type"
         });
-        let Some(type_node) = type_node else { return };
+        let Some(mut type_node) = type_node else {
+            return;
+        };
+        // `Foo? x` is a `Foo` for every call made on it (`x?.M()`).
+        if type_node.kind() == "nullable_type" {
+            match type_node
+                .child_by_field_name("type")
+                .or_else(|| type_node.named_child(0))
+            {
+                Some(inner) => type_node = inner,
+                None => return,
+            }
+        }
 
         let declarator = var_decl
             .children(&mut var_decl.walk())
@@ -822,6 +836,24 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn a_nullable_local_is_typed_as_its_type() {
+        let f = extract(
+            "class M { void F() { Foo? a = null; Pt? b = null; int? n = null; Foo c = null; } }",
+        );
+        let ty = |v: &str| {
+            f.local_types
+                .iter()
+                .find(|l| l.var_name == v)
+                .map(|l| l.type_name.clone())
+        };
+        assert_eq!(ty("a").as_deref(), Some("Foo"));
+        assert_eq!(ty("b").as_deref(), Some("Pt"));
+        assert_eq!(ty("c").as_deref(), Some("Foo"));
+        // Near miss: a nullable primitive is no class.
+        assert_eq!(ty("n"), None);
     }
 
     /// B3: a method group in a value position is recorded through its

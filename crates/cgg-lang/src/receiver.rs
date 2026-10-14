@@ -67,6 +67,10 @@ pub fn peel<'t>(lang: &str, node: Node<'t>, src: &'t [u8]) -> Peeled<'t> {
                 .or_else(|| last_named_child(n)),
             // TS `f!`, C# `f!`: nullability only.
             "non_null_expression" => n.named_child(0),
+            // Dart `f!`.
+            "null_assertion_expression" => {
+                n.child_by_field_name("value").or_else(|| n.named_child(0))
+            }
             "postfix_unary_expression" if last_token_is(n, "!") => n.named_child(0),
             // Swift `f!`.
             "postfix_expression" if lang == "swift" => {

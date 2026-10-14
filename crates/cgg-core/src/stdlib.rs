@@ -87,6 +87,92 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// every other entry is a child of `scala` (`math` is `scala.math`).
 pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];
 
+/// Type constructors that mean "a `T`, or nothing" (or "a `T`, with a
+/// qualifier that changes nothing a method call sees"): an annotation
+/// written as one of these types its value as the first type argument.
+/// Containers (`list[T]`, `Option<T>` in Rust/Scala, Java's
+/// `Optional<T>`) are deliberately absent: a method called on one runs
+/// the container's own method, never `T`'s.
+pub const MAYBE_TYPE_WRAPPERS: &[(&str, &[&str])] = &[
+    (
+        "python",
+        &[
+            "Optional",
+            "ClassVar",
+            "Final",
+            "Annotated",
+            "InitVar",
+            "Required",
+            "NotRequired",
+            "ReadOnly",
+        ],
+    ),
+    ("csharp", &["Nullable"]),
+    ("swift", &["Optional", "ImplicitlyUnwrappedOptional"]),
+    ("typescript", &["NonNullable", "Readonly"]),
+];
+
+/// Union type constructors written as a subscripted name rather than as
+/// `A | B`: Python's `Union[A, B]`. Their arguments are union members.
+pub const UNION_TYPE_CONSTRUCTORS: &[(&str, &[&str])] = &[("python", &["Union"])];
+
+/// Union members that hold no object a method could be called on: `Foo |
+/// None` is a `Foo` wherever a method is called on it. A language absent
+/// here has no union types (or none written with `|`), and only a
+/// `?` marker can make one of its annotations nullable.
+pub const NULL_TYPE_MEMBERS: &[(&str, &[&str])] = &[
+    ("python", &["None", "NoneType"]),
+    ("typescript", &["null", "undefined", "void"]),
+    ("javascript", &["null", "undefined", "void"]),
+    ("php", &["null", "false", "void"]),
+    ("scala", &["Null", "Nothing"]),
+];
+
+/// Callback types written as a named type constructor: the callback's
+/// parameter types are its type arguments (`Action<Foo>`, C#; `void
+/// Function(Foo)`, Dart), minus the last one when that is the result
+/// (`Func<Foo, R>`). Scala's `Foo => R` is syntax and needs no entry.
+pub const CALLBACK_TYPE_CONSTRUCTORS: &[(&str, &str, bool)] = &[
+    ("csharp", "Action", false),
+    ("csharp", "Func", true),
+    ("dart", "Function", false),
+];
+
+/// Types every value has: a parameter declared as one says nothing about
+/// which class a method called on it belongs to.
+pub const TOP_TYPES: &[(&str, &[&str])] = &[
+    ("scala", &["Any", "AnyRef", "AnyVal"]),
+    ("csharp", &["Object", "Dynamic"]),
+    ("dart", &["Object", "Dynamic"]),
+];
+
+/// Whether `name` is one of `lang`'s [`TOP_TYPES`].
+pub fn is_top_type(lang: &str, name: &str) -> bool {
+    lang_table(TOP_TYPES, lang).contains(&name)
+}
+
+fn lang_table<'a>(table: &'a [(&str, &'a [&'a str])], lang: &str) -> &'a [&'a str] {
+    table
+        .iter()
+        .find(|(l, _)| *l == lang)
+        .map_or(&[], |(_, names)| names)
+}
+
+/// Whether `head` is one of `lang`'s [`MAYBE_TYPE_WRAPPERS`].
+pub fn is_maybe_type_wrapper(lang: &str, head: &str) -> bool {
+    lang_table(MAYBE_TYPE_WRAPPERS, lang).contains(&head)
+}
+
+/// Whether `head` is one of `lang`'s [`UNION_TYPE_CONSTRUCTORS`].
+pub fn is_union_type_constructor(lang: &str, head: &str) -> bool {
+    lang_table(UNION_TYPE_CONSTRUCTORS, lang).contains(&head)
+}
+
+/// Whether `member` is one of `lang`'s [`NULL_TYPE_MEMBERS`].
+pub fn is_null_type_member(lang: &str, member: &str) -> bool {
+    lang_table(NULL_TYPE_MEMBERS, lang).contains(&member)
+}
+
 static RUST: &str = include_str!("stdlib/rust.txt");
 static PYTHON: &str = include_str!("stdlib/python.txt");
 static GO: &str = include_str!("stdlib/go.txt");

@@ -16,6 +16,7 @@
 #![deny(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 
+pub mod annotation;
 pub mod audit;
 pub mod cpu;
 pub mod deadcode;
@@ -31,6 +32,7 @@ pub mod stdlib;
 pub mod testfile;
 pub mod version;
 
+pub use annotation::declared_type;
 pub use audit::{
     AuditEvent, AuditFfiRecord, AuditFileRecord, AuditUnresolvedCall, AuditWriter,
     CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter,
@@ -47,11 +49,11 @@ pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
-    ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant,
-    DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding, LocalType,
-    MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
-    STRING_REF_HINT, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis,
-    first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+    ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord,
+    DefVariant, DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding,
+    LocalType, MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
+    STRING_REF_HINT, ScopedType, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT,
+    Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

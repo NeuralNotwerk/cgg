@@ -70,6 +70,7 @@ impl<'a> ScalaWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        crate::closure_types::record("scala", node, self.source, self.facts);
         match node.kind() {
             "package_clause" => {
                 let name = node

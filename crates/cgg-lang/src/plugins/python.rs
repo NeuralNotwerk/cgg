@@ -556,6 +556,12 @@ impl<'a> Walker<'a> {
         if assign.kind() != "assignment" {
             return;
         }
+        // `self.x: Optional[Foo] = None` in a method declares the field's
+        // type as a class-level `x: Foo` does, and wins over assignments
+        // the same way.
+        if self.record_annotated_self_field(assign) {
+            return;
+        }
         let left = assign.child_by_field_name("left");
         let right = assign.child_by_field_name("right");
         let (Some(left), Some(right)) = (left, right) else {
@@ -624,6 +630,48 @@ impl<'a> Walker<'a> {
                 }
             }
         }
+    }
+
+    /// `self.<field>: <annotation> [= …]` inside a method: record the
+    /// annotated type as the field's declared type. `true` when the
+    /// statement was such an annotation (typed or not).
+    fn record_annotated_self_field(&mut self, assign: Node) -> bool {
+        let Some(ty) = assign.child_by_field_name("type") else {
+            return false;
+        };
+        let Some(left) = assign.child_by_field_name("left") else {
+            return false;
+        };
+        if left.kind() != "attribute" {
+            return false;
+        }
+        let (Some(obj), Some(attr)) = (
+            left.child_by_field_name("object"),
+            left.child_by_field_name("attribute"),
+        ) else {
+            return false;
+        };
+        if self.text(obj) != "self" {
+            return false;
+        }
+        let field = self.text(attr).to_string();
+        let Some(stem) = annotation_type_stem(self.text(ty)) else {
+            return true;
+        };
+        if field.is_empty() {
+            return true;
+        }
+        let class_level = self
+            .class_field_annotated
+            .last()
+            .is_some_and(|a| a.contains(&field));
+        if !class_level && let Some(fields) = self.class_field_types.last_mut() {
+            fields.insert(field.clone(), stem);
+            if let Some(a) = self.class_field_annotated.last_mut() {
+                a.insert(field);
+            }
+        }
+        true
     }
 
     /// Copy the enclosing class's instance-field types onto every method
@@ -944,48 +992,20 @@ fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
     }
 }
 
-/// Type-level wrappers whose first argument *is* the instance type.
-/// A container (`list[Foo]`, `dict[str, Foo]`, `Sequence[Foo]`) is not:
-/// `self.items.clear()` on a `list[Foo]` runs `list.clear`, and typing
-/// the field as `Foo` would bind it to `Foo.clear` if one exists.
-const TRANSPARENT_WRAPPERS: &[&str] = &[
-    "Optional",
-    "Union",
-    "ClassVar",
-    "Final",
-    "Annotated",
-    "InitVar",
-];
-
+/// The class an annotation types its value as: `Foo`, `mod.Foo`,
+/// `Optional[Foo]`, `Foo | None`, `"Foo"` are all `Foo`
+/// ([`cgg_core::declared_type`]; the transparent wrappers are the stdlib
+/// table's). A container (`list[Foo]`, `dict[str, Foo]`, `Sequence[Foo]`)
+/// is not: `self.items.clear()` on a `list[Foo]` runs `list.clear`, and
+/// typing the field as `Foo` would bind it to `Foo.clear` if one exists.
+/// A union of two real types (`Foo | Bar`) is neither, and is left
+/// untyped rather than guessed.
 fn annotation_type_stem(raw: &str) -> Option<String> {
-    let mut t = raw.trim().trim_matches(|c| c == '"' || c == '\'');
-    if t.is_empty() {
+    let t = cgg_core::declared_type("python", raw)?;
+    if t.contains('[') {
         return None;
     }
-    // `Optional[Foo]` — the argument is the instance type. `list[Foo]`
-    // is a list; a subscripted name that is not a transparent wrapper
-    // is a container, and the field's type is the container.
-    if let Some(open) = t.find('[')
-        && let Some(close) = t.rfind(']')
-        && close > open + 1
-    {
-        let head = t[..open].trim().rsplit('.').next().unwrap_or("");
-        if !TRANSPARENT_WRAPPERS.contains(&head) {
-            return None;
-        }
-        t = t[open + 1..close].trim();
-    }
-    // `Foo | None` is `Foo`; `Foo | Bar` names two types and is
-    // neither, so it is left untyped rather than guessed.
-    let mut members = t
-        .split(['|', ','])
-        .map(|m| m.trim().trim_matches(|c| c == '"' || c == '\''))
-        .filter(|m| !m.is_empty() && *m != "None");
-    let first = members.next()?;
-    if members.next().is_some() {
-        return None;
-    }
-    let stem = first.rsplit('.').next().unwrap_or(first).trim();
+    let stem = t.rsplit('.').next().unwrap_or(t).trim();
     if starts_uppercase(stem) {
         Some(stem.to_string())
     } else {

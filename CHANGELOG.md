@@ -707,6 +707,62 @@ otherwise change the default graph.
     is external unless a local, a member `val`, a package segment or a
     class of that name is in the tree. A bare call to a member of the
     caller's class beats an external import, as in Java/Kotlin/C#.
+- **Optional, nullable, union and wrapper annotations type a value as the
+  class they name** (WS11, FINDINGS C3). Such an annotation used to be
+  typed *worse* than no annotation: Python `x: Optional[Foo]` gave the
+  receiver `Optional`, which was booked as a stdlib call; `x: Foo | None`,
+  `x: "Foo"`, TS `x: Foo | undefined`, Swift `Foo?`/`Foo!`, Kotlin and
+  C# `Foo?`, PHP `?Foo $x` / `Foo|null $x`, Dart `Foo? x` and Scala
+  `Foo | Null` gave a receiver no type is named, so the call was left
+  unresolved. A shared reader (`cgg_core::declared_type`) now removes
+  nullability markers, null union members and "maybe" wrappers, and
+  unquotes Python forward references. The language-specific names live
+  in `cgg_core::stdlib` (`MAYBE_TYPE_WRAPPERS`, `UNION_TYPE_CONSTRUCTORS`,
+  `NULL_TYPE_MEMBERS`). Containers (`list[Foo]`, `Option<T>`, Java
+  `Optional<T>`) keep their own type. A union of several real types
+  (`Foo | Bar`) is left untyped and gets the reading an unannotated value
+  gets (medium, capped name fan-out). It is never bound to its first
+  member, and a TS return type `Foo | Bar` no longer returns `Foo`.
+  The reader applies to parameters, return types (`-> Optional[Foo]`,
+  `-> Foo?`, `): ?Foo`), Python class and `self.x: T` field annotations,
+  and Kotlin/C# nullable locals and properties. Related fixes:
+  - A default value is no longer part of a parameter's type: `x: Foo =
+    None` was typed `Foo = None`, and a C# `Foo x = null` was named
+    `null`.
+  - TS optional parameters (`x?: Foo`) are named `x`.
+  - Type-first parameters skip annotations and attributes (`@Nullable Foo
+    x`, `[FromBody] Foo x`) and the modifiers Dart `required`/`covariant`,
+    C# `ref`/`in`/`params`/`this`, and PHP promoted-property visibility.
+  - A Kotlin nested type (`Hpack.Reader?`) is its inner type.
+  - C# and Kotlin locals are looked up in the calling function first. A
+    file-wide last-write-wins map retyped `JArray a` as another method's
+    `IEnumerable? a`.
+  - C# extension methods whose type-parameter list carries an attribute
+    with arguments are recognised.
+- **Closure parameters are typed where the type is written or declared**
+  (WS11; Dart, Scala, C#). `(Foo x) => x.m()`, `(x: Foo) => x.m()` and
+  `case x: Foo => x.m()` type `x` within the closure's own span
+  (`FileFacts::scoped_types`). An untyped closure passed positionally to
+  a bare call takes its parameter types from the callee's declared
+  callback type (`void each(void Function(Foo) cb)`, `def withTempDir(f:
+  File => Unit)`, `Action<Foo>` / `Func<Foo, R>`;
+  `FileFacts::closure_args`, `type_hints::settle_closure_args`). This
+  happens only when every same-language definition of that name agrees,
+  the type is concrete (not a type parameter or `Any`/`Object`), and the
+  arity matches; otherwise the closure keeps its old fan-out. The Dart
+  grammar reads `(x) => x.m()` as `((x) => x).m()`, which made the
+  closure text the receiver; the call is now recorded on the body
+  expression. Dart `x!.m()` is read as `x.m()`.
+  - A/B (283 repos, none excluded), by confidence:
+    - **HIGH net:** Python +415 (+125 of them medium→high), PHP +247,
+      Dart +220, Scala +118, TS +68, Java +59, Kotlin +41, C# +24.
+    - **MEDIUM net:** Dart −68.6k (Flutter `testWidgets((WidgetTester
+      tester) …)` callbacks: each `tester.pump()` bound to 4–5 same-named
+      decoys, now to `WidgetTester.pump` only), Java −1.0k, Kotlin −0.9k,
+      Python −0.2k, Scala +1.3k, C# +0.6k (per-function locals rebind
+      2.7k newtonsoft edges to the declared writer/reader type).
+    - **Dead code:** 4 findings leave HIGH (2 C#, 2 Python), none
+      become HIGH.
 
 ### Compatibility
 
@@ -1004,6 +1060,26 @@ otherwise change the default graph.
   `Foo{}.M()` binds. Latency (perf/WS10.md, 17 repositories, median of
   5): none slower by 1 s or more, largest `groovy-gradle` +0.27 s
   (+3.4%); total +1.5%.
+- Optional / nullable / union annotation typing and typed closure
+  parameters (WS11): **the default graph changes**. Full corpus, 283
+  repositories, none excluded. Edges dropped by language: Dart 86.5k,
+  C# 2.8k, Java 2.0k, Kotlin 2.0k, Scala 1.1k, Python 0.5k, TypeScript
+  0.1k. Almost all are medium duck-typed decoys of a receiver that now
+  has its declared type: 85.6k kept their correct target, and 3.3k were
+  rebound to the declared type's member. Some sites are newly
+  unresolved (`candidates-in-other-files`): 741 Scala typed patterns
+  whose member is a Java interface method or an implicit-class
+  extension, which the Scala resolver does not reach; 527 Dart; 379
+  Java and 203 Kotlin receivers now typed as a type outside the tree;
+  55 C#; 34 TypeScript; 32 Python.
+  - HIGH drops (Java 28, Kotlin 29, C# 11, Scala 3) were checked
+    individually. Each was either a wrong old edge (self-binding of
+    `equals`/`grammar` through an untyped parameter, a static helper of
+    another class), now refused or rebound to the declared type, or a
+    receiver whose declared type is an interface outside the tree.
+  - A multi-type union stays duck-typed at medium. In a 10-edge sample
+    per language, Python and TypeScript union fan-outs were the
+    incorrect ones (Python 7/10, TypeScript 6/10; HIGH 5/5 each).
 
 ## [0.10.2] - 2026-10-11
 
