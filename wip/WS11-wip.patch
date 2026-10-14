@@ -1,0 +1,2163 @@
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 5470522..9cd7a0a 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -562,6 +562,46 @@ pub struct FileFacts {
+     /// level).
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     pub type_spans: Vec<TypeSpan>,
++    /// Names whose type is written and whose scope is narrower than any
++    /// callable: a closure's typed parameter (`(Foo x) => …`, `(x: Foo)
++    /// => …`) or a typed pattern (`case x: Foo => …`), each with the span
++    /// it is in scope over. A receiver inside that span named by one is an
++    /// instance of its type, whatever an outer binding of the same name is.
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub scoped_types: Vec<ScopedType>,
++    /// Closures with untyped parameters passed as a positional argument
++    /// of a bare call (`each((x) => x.run())`, `withTempDir { dir => … }`).
++    /// When every definition of the callee in the tree declares that
++    /// parameter as the same callback type, its parameter types become the
++    /// closure's [`FileFacts::scoped_types`].
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub closure_args: Vec<ClosureArg>,
++}
++
++/// An untyped closure passed to a bare call (see
++/// [`FileFacts::closure_args`]).
++#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
++pub struct ClosureArg {
++    /// The called name.
++    pub callee: String,
++    /// Position among the call's positional arguments.
++    pub arg_index: u32,
++    /// The closure's parameter names, in order.
++    pub params: Vec<String>,
++    pub start_byte: u32,
++    pub end_byte: u32,
++}
++
++/// A typed name and the byte span it is in scope over (see
++/// [`FileFacts::scoped_types`]).
++#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
++pub struct ScopedType {
++    pub name: String,
++    /// The declared type, read through [`crate::declared_type`] and
++    /// without type arguments.
++    pub type_name: String,
++    pub start_byte: u32,
++    pub end_byte: u32,
+ }
+ 
+ /// A container type's name and body span (see [`FileFacts::type_spans`]).
+@@ -716,6 +756,8 @@ impl FileFacts {
+             packages: Vec::new(),
+             locals: Vec::new(),
+             type_spans: Vec::new(),
++            scoped_types: Vec::new(),
++            closure_args: Vec::new(),
+         }
+     }
+ 
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index c89afc3..9ec9fd5 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -16,6 +16,7 @@
+ #![deny(missing_debug_implementations)]
+ #![warn(unreachable_pub)]
+ 
++pub mod annotation;
+ pub mod audit;
+ pub mod cpu;
+ pub mod deadcode;
+@@ -31,6 +32,7 @@ pub mod stdlib;
+ pub mod testfile;
+ pub mod version;
+ 
++pub use annotation::declared_type;
+ pub use audit::{
+     AuditEvent, AuditFfiRecord, AuditFileRecord, AuditUnresolvedCall, AuditWriter,
+     CandidateCounts, FileAuditBuilder, JsonAuditWriter, JsonlAuditWriter,
+@@ -47,11 +49,11 @@ pub use external::{
+     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
+ };
+ pub use facts::{
+-    ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant,
+-    DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding, LocalType,
+-    MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
+-    STRING_REF_HINT, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis,
+-    first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
++    ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord,
++    DefVariant, DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding,
++    LocalType, MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
++    STRING_REF_HINT, ScopedType, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT,
++    Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+ };
+ pub use frameworks::{
+     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+diff --git a/crates/cgg-core/src/stdlib.rs b/crates/cgg-core/src/stdlib.rs
+index ed611b8..f685c5f 100644
+--- a/crates/cgg-core/src/stdlib.rs
++++ b/crates/cgg-core/src/stdlib.rs
+@@ -87,6 +87,92 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
+ /// every other entry is a child of `scala` (`math` is `scala.math`).
+ pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];
+ 
++/// Type constructors that mean "a `T`, or nothing" (or "a `T`, with a
++/// qualifier that changes nothing a method call sees"): an annotation
++/// written as one of these types its value as the first type argument.
++/// Containers (`list[T]`, `Option<T>` in Rust/Scala, Java's
++/// `Optional<T>`) are deliberately absent: a method called on one runs
++/// the container's own method, never `T`'s.
++pub const MAYBE_TYPE_WRAPPERS: &[(&str, &[&str])] = &[
++    (
++        "python",
++        &[
++            "Optional",
++            "ClassVar",
++            "Final",
++            "Annotated",
++            "InitVar",
++            "Required",
++            "NotRequired",
++            "ReadOnly",
++        ],
++    ),
++    ("csharp", &["Nullable"]),
++    ("swift", &["Optional", "ImplicitlyUnwrappedOptional"]),
++    ("typescript", &["NonNullable", "Readonly"]),
++];
++
++/// Union type constructors written as a subscripted name rather than as
++/// `A | B`: Python's `Union[A, B]`. Their arguments are union members.
++pub const UNION_TYPE_CONSTRUCTORS: &[(&str, &[&str])] = &[("python", &["Union"])];
++
++/// Union members that hold no object a method could be called on: `Foo |
++/// None` is a `Foo` wherever a method is called on it. A language absent
++/// here has no union types (or none written with `|`), and only a
++/// `?` marker can make one of its annotations nullable.
++pub const NULL_TYPE_MEMBERS: &[(&str, &[&str])] = &[
++    ("python", &["None", "NoneType"]),
++    ("typescript", &["null", "undefined", "void"]),
++    ("javascript", &["null", "undefined", "void"]),
++    ("php", &["null", "false", "void"]),
++    ("scala", &["Null", "Nothing"]),
++];
++
++/// Callback types written as a named type constructor: the callback's
++/// parameter types are its type arguments (`Action<Foo>`, C#; `void
++/// Function(Foo)`, Dart), minus the last one when that is the result
++/// (`Func<Foo, R>`). Scala's `Foo => R` is syntax and needs no entry.
++pub const CALLBACK_TYPE_CONSTRUCTORS: &[(&str, &str, bool)] = &[
++    ("csharp", "Action", false),
++    ("csharp", "Func", true),
++    ("dart", "Function", false),
++];
++
++/// Types every value has: a parameter declared as one says nothing about
++/// which class a method called on it belongs to.
++pub const TOP_TYPES: &[(&str, &[&str])] = &[
++    ("scala", &["Any", "AnyRef", "AnyVal"]),
++    ("csharp", &["Object", "Dynamic"]),
++    ("dart", &["Object", "Dynamic"]),
++];
++
++/// Whether `name` is one of `lang`'s [`TOP_TYPES`].
++pub fn is_top_type(lang: &str, name: &str) -> bool {
++    lang_table(TOP_TYPES, lang).contains(&name)
++}
++
++fn lang_table<'a>(table: &'a [(&str, &'a [&'a str])], lang: &str) -> &'a [&'a str] {
++    table
++        .iter()
++        .find(|(l, _)| *l == lang)
++        .map_or(&[], |(_, names)| names)
++}
++
++/// Whether `head` is one of `lang`'s [`MAYBE_TYPE_WRAPPERS`].
++pub fn is_maybe_type_wrapper(lang: &str, head: &str) -> bool {
++    lang_table(MAYBE_TYPE_WRAPPERS, lang).contains(&head)
++}
++
++/// Whether `head` is one of `lang`'s [`UNION_TYPE_CONSTRUCTORS`].
++pub fn is_union_type_constructor(lang: &str, head: &str) -> bool {
++    lang_table(UNION_TYPE_CONSTRUCTORS, lang).contains(&head)
++}
++
++/// Whether `member` is one of `lang`'s [`NULL_TYPE_MEMBERS`].
++pub fn is_null_type_member(lang: &str, member: &str) -> bool {
++    lang_table(NULL_TYPE_MEMBERS, lang).contains(&member)
++}
++
+ static RUST: &str = include_str!("stdlib/rust.txt");
+ static PYTHON: &str = include_str!("stdlib/python.txt");
+ static GO: &str = include_str!("stdlib/go.txt");
+diff --git a/crates/cgg-lang/src/lib.rs b/crates/cgg-lang/src/lib.rs
+index 224f6e3..d525a0d 100644
+--- a/crates/cgg-lang/src/lib.rs
++++ b/crates/cgg-lang/src/lib.rs
+@@ -13,6 +13,7 @@
+ // *today* — the point is the day a field lands.
+ #![allow(clippy::needless_update)]
+ 
++pub mod closure_types;
+ pub mod detect;
+ pub mod locals;
+ pub mod notebook;
+diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
+index 58710a9..9e7bade 100644
+--- a/crates/cgg-lang/src/plugins/csharp.rs
++++ b/crates/cgg-lang/src/plugins/csharp.rs
+@@ -117,6 +117,7 @@ impl<'a> Walker<'a> {
+     }
+ 
+     fn walk(&mut self, node: Node) {
++        crate::closure_types::record("csharp", node, self.source, self.facts);
+         match node.kind() {
+             "namespace_declaration" | "file_scoped_namespace_declaration" => {
+                 let name = node
+@@ -349,8 +350,21 @@ impl<'a> Walker<'a> {
+                 || c.kind() == "qualified_name"
+                 || c.kind() == "generic_name"
+                 || c.kind() == "implicit_type"
++                || c.kind() == "nullable_type"
+         });
+-        let Some(type_node) = type_node else { return };
++        let Some(mut type_node) = type_node else {
++            return;
++        };
++        // `Foo? x` is a `Foo` for every call made on it (`x?.M()`).
++        if type_node.kind() == "nullable_type" {
++            match type_node
++                .child_by_field_name("type")
++                .or_else(|| type_node.named_child(0))
++            {
++                Some(inner) => type_node = inner,
++                None => return,
++            }
++        }
+ 
+         let declarator = var_decl
+             .children(&mut var_decl.walk())
+@@ -824,6 +838,24 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn a_nullable_local_is_typed_as_its_type() {
++        let f = extract(
++            "class M { void F() { Foo? a = null; Pt? b = null; int? n = null; Foo c = null; } }",
++        );
++        let ty = |v: &str| {
++            f.local_types
++                .iter()
++                .find(|l| l.var_name == v)
++                .map(|l| l.type_name.clone())
++        };
++        assert_eq!(ty("a").as_deref(), Some("Foo"));
++        assert_eq!(ty("b").as_deref(), Some("Pt"));
++        assert_eq!(ty("c").as_deref(), Some("Foo"));
++        // Near miss: a nullable primitive is no class.
++        assert_eq!(ty("n"), None);
++    }
++
+     /// B3: a method group in a value position is recorded through its
+     /// receiver; an invoked member and a declared variable's name are not.
+     #[test]
+diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
+index 89ae485..4b80fd6 100644
+--- a/crates/cgg-lang/src/plugins/dart.rs
++++ b/crates/cgg-lang/src/plugins/dart.rs
+@@ -76,6 +76,7 @@ impl<'a> DartWalker<'a> {
+     }
+ 
+     fn walk(&mut self, node: Node) {
++        crate::closure_types::record("dart", node, self.source, self.facts);
+         match node.kind() {
+             // A mixin owns its members as a class does.
+             "class_declaration" | "mixin_declaration" => {
+@@ -471,7 +472,9 @@ impl<'a> DartWalker<'a> {
+                     }
+                 }
+                 let name_node = last_ident;
+-                let recv_node = first_recv.or_else(|| callee.child(0));
++                let recv_node = first_recv
++                    .or_else(|| callee.child(0))
++                    .map(closure_body_receiver);
+                 let name = name_node
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
+@@ -513,6 +516,22 @@ impl<'a> DartWalker<'a> {
+     }
+ }
+ 
++/// The grammar reads `(x) => x.run()` as `((x) => x).run()`: the member
++/// access binds to the closure, whose expression body is just `x`. The
++/// call is made on that body expression, inside the closure — where `x`
++/// is the closure's parameter. Any other receiver is itself.
++fn closure_body_receiver(recv: Node) -> Node {
++    if recv.kind() == "function_expression"
++        && let Some(body) = recv.child_by_field_name("body")
++        && body.kind() == "function_expression_body"
++        && let Some(expr) = body.named_child(0)
++        && expr.kind() != "block"
++    {
++        return expr;
++    }
++    recv
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -625,6 +644,28 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn a_call_in_an_expression_bodied_closure_is_on_the_body_value() {
++        let f = extract(
++            "void f(List<Foo> xs) {\n  xs.forEach((x) => x.run());\n  xs.forEach((Foo y) => y!.stop());\n  z!.go();\n  ((x) => x).call();\n}\n",
++        );
++        let pairs: Vec<(&str, &str)> = f
++            .references
++            .iter()
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
++            .collect();
++        assert!(pairs.contains(&("run", "x")), "{pairs:?}");
++        assert!(pairs.contains(&("stop", "y")), "{pairs:?}");
++        assert!(pairs.contains(&("go", "z")), "{pairs:?}");
++        assert!(
++            f.scoped_types
++                .iter()
++                .any(|s| s.name == "y" && s.type_name == "Foo"),
++            "{:?}",
++            f.scoped_types
++        );
++    }
++
+     #[test]
+     fn an_import_records_its_uri() {
+         let f = extract("import 'package:foo/bar.dart';\nvoid main() {}\n");
+diff --git a/crates/cgg-lang/src/plugins/kotlin.rs b/crates/cgg-lang/src/plugins/kotlin.rs
+index 32c47a7..37c0032 100644
+--- a/crates/cgg-lang/src/plugins/kotlin.rs
++++ b/crates/cgg-lang/src/plugins/kotlin.rs
+@@ -409,10 +409,17 @@ impl<'a> KtWalker<'a> {
+             return;
+         }
+ 
+-        // Try explicit type annotation first
++        // Try explicit type annotation first. A nullable `Foo?` is a `Foo`
++        // for every call made on it (`h?.run()`, `h!!.run()`).
+         let type_name = var_decl
+             .children(&mut var_decl.walk())
+-            .find(|c| c.kind() == "user_type")
++            .find_map(|c| match c.kind() {
++                "user_type" => Some(c),
++                "nullable_type" => {
++                    c.children(&mut c.walk()).find(|n| n.kind() == "user_type")
++                }
++                _ => None,
++            })
+             .and_then(|ut| {
+                 ut.children(&mut ut.walk())
+                     .find(|c| c.kind() == "type_identifier")
+@@ -720,6 +727,24 @@ mod tests {
+         assert!(f.classes.iter().any(|c| c.class_qn == "a.X"));
+     }
+ 
++    #[test]
++    fn a_nullable_property_is_typed_as_its_type() {
++        let f = extract(
++            "class K {\n  private var h: Foo? = null\n  private var g: Foo = Foo()\n  private var n: List<Foo>? = null\n  private var s: String? = null\n}\n",
++        );
++        let ty = |v: &str| {
++            f.local_types
++                .iter()
++                .find(|l| l.var_name == v)
++                .map(|l| l.type_name.clone())
++        };
++        assert_eq!(ty("h").as_deref(), Some("Foo"));
++        assert_eq!(ty("g").as_deref(), Some("Foo"));
++        // Near miss: a nullable container is the container, not `Foo`.
++        assert_eq!(ty("n").as_deref(), Some("List"));
++        assert_eq!(ty("s").as_deref(), Some("String"));
++    }
++
+     #[test]
+     fn class_methods_with_package() {
+         let src = "package com.example\nclass Service {\n  fun run() {}\n  fun process(s: String): Int = s.length\n}\n";
+diff --git a/crates/cgg-lang/src/plugins/python.rs b/crates/cgg-lang/src/plugins/python.rs
+index 130a970..59e5960 100644
+--- a/crates/cgg-lang/src/plugins/python.rs
++++ b/crates/cgg-lang/src/plugins/python.rs
+@@ -556,6 +556,12 @@ impl<'a> Walker<'a> {
+         if assign.kind() != "assignment" {
+             return;
+         }
++        // `self.x: Optional[Foo] = None` in a method declares the field's
++        // type as a class-level `x: Foo` does, and wins over assignments
++        // the same way.
++        if self.record_annotated_self_field(assign) {
++            return;
++        }
+         let left = assign.child_by_field_name("left");
+         let right = assign.child_by_field_name("right");
+         let (Some(left), Some(right)) = (left, right) else {
+@@ -626,6 +632,48 @@ impl<'a> Walker<'a> {
+         }
+     }
+ 
++    /// `self.<field>: <annotation> [= …]` inside a method: record the
++    /// annotated type as the field's declared type. `true` when the
++    /// statement was such an annotation (typed or not).
++    fn record_annotated_self_field(&mut self, assign: Node) -> bool {
++        let Some(ty) = assign.child_by_field_name("type") else {
++            return false;
++        };
++        let Some(left) = assign.child_by_field_name("left") else {
++            return false;
++        };
++        if left.kind() != "attribute" {
++            return false;
++        }
++        let (Some(obj), Some(attr)) = (
++            left.child_by_field_name("object"),
++            left.child_by_field_name("attribute"),
++        ) else {
++            return false;
++        };
++        if self.text(obj) != "self" {
++            return false;
++        }
++        let field = self.text(attr).to_string();
++        let Some(stem) = annotation_type_stem(self.text(ty)) else {
++            return true;
++        };
++        if field.is_empty() {
++            return true;
++        }
++        let class_level = self
++            .class_field_annotated
++            .last()
++            .is_some_and(|a| a.contains(&field));
++        if !class_level && let Some(fields) = self.class_field_types.last_mut() {
++            fields.insert(field.clone(), stem);
++            if let Some(a) = self.class_field_annotated.last_mut() {
++                a.insert(field);
++            }
++        }
++        true
++    }
++
+     /// Copy the enclosing class's instance-field types onto every method
+     /// of that class, keyed by the method's start byte so `self.x.m()`
+     /// inside `connect` sees a type assigned in `__init__`.
+@@ -944,48 +992,20 @@ fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
+     }
+ }
+ 
+-/// Type-level wrappers whose first argument *is* the instance type.
+-/// A container (`list[Foo]`, `dict[str, Foo]`, `Sequence[Foo]`) is not:
+-/// `self.items.clear()` on a `list[Foo]` runs `list.clear`, and typing
+-/// the field as `Foo` would bind it to `Foo.clear` if one exists.
+-const TRANSPARENT_WRAPPERS: &[&str] = &[
+-    "Optional",
+-    "Union",
+-    "ClassVar",
+-    "Final",
+-    "Annotated",
+-    "InitVar",
+-];
+-
++/// The class an annotation types its value as: `Foo`, `mod.Foo`,
++/// `Optional[Foo]`, `Foo | None`, `"Foo"` are all `Foo`
++/// ([`cgg_core::declared_type`]; the transparent wrappers are the stdlib
++/// table's). A container (`list[Foo]`, `dict[str, Foo]`, `Sequence[Foo]`)
++/// is not: `self.items.clear()` on a `list[Foo]` runs `list.clear`, and
++/// typing the field as `Foo` would bind it to `Foo.clear` if one exists.
++/// A union of two real types (`Foo | Bar`) is neither, and is left
++/// untyped rather than guessed.
+ fn annotation_type_stem(raw: &str) -> Option<String> {
+-    let mut t = raw.trim().trim_matches(|c| c == '"' || c == '\'');
+-    if t.is_empty() {
+-        return None;
+-    }
+-    // `Optional[Foo]` — the argument is the instance type. `list[Foo]`
+-    // is a list; a subscripted name that is not a transparent wrapper
+-    // is a container, and the field's type is the container.
+-    if let Some(open) = t.find('[')
+-        && let Some(close) = t.rfind(']')
+-        && close > open + 1
+-    {
+-        let head = t[..open].trim().rsplit('.').next().unwrap_or("");
+-        if !TRANSPARENT_WRAPPERS.contains(&head) {
+-            return None;
+-        }
+-        t = t[open + 1..close].trim();
+-    }
+-    // `Foo | None` is `Foo`; `Foo | Bar` names two types and is
+-    // neither, so it is left untyped rather than guessed.
+-    let mut members = t
+-        .split(['|', ','])
+-        .map(|m| m.trim().trim_matches(|c| c == '"' || c == '\''))
+-        .filter(|m| !m.is_empty() && *m != "None");
+-    let first = members.next()?;
+-    if members.next().is_some() {
++    let t = cgg_core::declared_type("python", raw)?;
++    if t.contains('[') {
+         return None;
+     }
+-    let stem = first.rsplit('.').next().unwrap_or(first).trim();
++    let stem = t.rsplit('.').next().unwrap_or(t).trim();
+     if starts_uppercase(stem) {
+         Some(stem.to_string())
+     } else {
+diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
+index 17b3135..970eaaa 100644
+--- a/crates/cgg-lang/src/plugins/scala.rs
++++ b/crates/cgg-lang/src/plugins/scala.rs
+@@ -70,6 +70,7 @@ impl<'a> ScalaWalker<'a> {
+     }
+ 
+     fn walk(&mut self, node: Node) {
++        crate::closure_types::record("scala", node, self.source, self.facts);
+         match node.kind() {
+             "package_clause" => {
+                 let name = node
+diff --git a/crates/cgg-lang/src/receiver.rs b/crates/cgg-lang/src/receiver.rs
+index 4a7f3eb..53aebe2 100644
+--- a/crates/cgg-lang/src/receiver.rs
++++ b/crates/cgg-lang/src/receiver.rs
+@@ -67,6 +67,10 @@ pub fn peel<'t>(lang: &str, node: Node<'t>, src: &'t [u8]) -> Peeled<'t> {
+                 .or_else(|| last_named_child(n)),
+             // TS `f!`, C# `f!`: nullability only.
+             "non_null_expression" => n.named_child(0),
++            // Dart `f!`.
++            "null_assertion_expression" => {
++                n.child_by_field_name("value").or_else(|| n.named_child(0))
++            }
+             "postfix_unary_expression" if last_token_is(n, "!") => n.named_child(0),
+             // Swift `f!`.
+             "postfix_expression" if lang == "swift" => {
+diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
+index e50d1eb..aab723c 100644
+--- a/crates/cgg-resolve/src/type_hints.rs
++++ b/crates/cgg-resolve/src/type_hints.rs
+@@ -275,7 +275,7 @@ pub fn build_return_type_map<'a>(
+     let mut map: HashMap<&'a str, &'a str> = HashMap::new();
+     for facts in all_facts {
+         for def in &facts.definitions {
+-            if let Some(ret) = extract_return_type(&def.signature_hint)
++            if let Some(ret) = extract_return_type(&facts.language, &def.signature_hint)
+                 && ret.starts_with(char::is_uppercase)
+                 && !is_primitive(ret)
+             {
+@@ -419,7 +419,7 @@ pub fn propagate_types_with_fields(
+         .definitions
+         .iter()
+         .flat_map(|d| {
+-            let mut v = collect_param_types(d, cpp, rust);
++            let mut v = collect_param_types(d, &facts.language);
+             if go {
+                 v.extend(go_package_param_types(d));
+             }
+@@ -530,6 +530,17 @@ pub fn propagate_types_with_fields(
+             .is_some_and(|&b| b < before)
+     };
+ 
++    // Closure parameters and typed patterns, by name (see
++    // `FileFacts::scoped_types`).
++    let mut scoped: HashMap<&str, Vec<(u32, u32, &str)>> = HashMap::new();
++    for st in &facts.scoped_types {
++        scoped.entry(st.name.as_str()).or_default().push((
++            st.start_byte,
++            st.end_byte,
++            st.type_name.as_str(),
++        ));
++    }
++
+     // Pass 3: Rewrite receiver_hints.
+     let t = lang_tallies(&facts.language);
+     cgg_core::profile::count(t.refs, facts.references.len() as u64);
+@@ -639,6 +650,20 @@ pub fn propagate_types_with_fields(
+             continue;
+         }
+ 
++        // A closure's typed parameter (or a typed pattern) is in scope
++        // only over its own span, and shadows every outer binding of the
++        // name there.
++        if let Some(ty) = scoped.get(rh).and_then(|spans| {
++            spans
++                .iter()
++                .filter(|(s, e, _)| *s <= rref.site_byte && rref.site_byte < *e)
++                .min_by_key(|(s, e, _)| (e - s, std::cmp::Reverse(*s)))
++                .map(|(_, _, ty)| *ty)
++        }) {
++            rewrites.push((i, ty.to_string()));
++            continue;
++        }
++
+         cgg_core::profile::count(t.enclosing_scans, facts.definitions.len() as u64);
+         let enclosing = {
+             let _s = cgg_core::profile::span("types::enclosing-def");
+@@ -805,6 +830,275 @@ pub fn propagate_types_with_fields(
+     }
+ }
+ 
++/// Type the parameters of untyped closures passed to a bare call
++/// ([`FileFacts::closure_args`]) from the callee's declared callback type:
++/// `each((x) => x.run())` with `void each(void Function(Foo) cb)` types `x`
++/// as `Foo` inside the closure, as `(Foo x) => …` would have.
++///
++/// Conservative by construction: the callee is matched by name among the
++/// same language's definitions, and every definition of that name must
++/// declare the same concrete callback parameter types at that position
++/// (an overload that does not, a type parameter such as `T`, or an arity
++/// that does not match the closure leaves the closure untyped, with the
++/// reading it had).
++pub fn settle_closure_args(all_facts: &mut [FileFacts]) {
++    if !all_facts.iter().any(|f| !f.closure_args.is_empty()) {
++        return;
++    }
++    let wanted: std::collections::HashSet<(&str, &str)> = all_facts
++        .iter()
++        .flat_map(|f| {
++            f.closure_args
++                .iter()
++                .map(|c| (f.language.as_str(), c.callee.as_str()))
++        })
++        .collect();
++    // (language, name, index) -> the callback's parameter types, or `None`
++    // once two definitions disagree. `spoke` counts the definitions that
++    // have a parameter at that position; one that has none disagrees with
++    // one that does, so a key is used only when every definition of the
++    // name (`seen`) spoke for it.
++    type Key = (String, String, u32);
++    let mut index: HashMap<Key, Option<Vec<String>>> = HashMap::new();
++    let mut spoke: HashMap<Key, u32> = HashMap::new();
++    let mut seen: HashMap<(String, String), u32> = HashMap::new();
++    for f in all_facts.iter() {
++        for d in &f.definitions {
++            if !wanted.contains(&(f.language.as_str(), d.simple_name.as_str())) {
++                continue;
++            }
++            *seen
++                .entry((f.language.clone(), d.simple_name.clone()))
++                .or_default() += 1;
++            let types = callback_params_of(&f.language, &d.signature_hint);
++            for (i, t) in types.into_iter().enumerate() {
++                let key = (f.language.clone(), d.simple_name.clone(), i as u32);
++                *spoke.entry(key.clone()).or_default() += 1;
++                match index.get_mut(&key) {
++                    None => {
++                        index.insert(key, t);
++                    }
++                    Some(prev) if *prev != t => *prev = None,
++                    Some(_) => {}
++                }
++            }
++        }
++    }
++    for f in all_facts.iter_mut() {
++        if f.closure_args.is_empty() {
++            continue;
++        }
++        let lang = f.language.clone();
++        let mut add = Vec::new();
++        for c in &f.closure_args {
++            let key = (lang.clone(), c.callee.clone(), c.arg_index);
++            let all = seen
++                .get(&(lang.clone(), c.callee.clone()))
++                .copied()
++                .unwrap_or(0);
++            if all == 0 || spoke.get(&key).copied().unwrap_or(0) != all {
++                continue;
++            }
++            let Some(Some(types)) = index.get(&key) else {
++                continue;
++            };
++            if types.len() != c.params.len() {
++                continue;
++            }
++            for (name, ty) in c.params.iter().zip(types) {
++                if ty.is_empty() || name == "_" {
++                    continue;
++                }
++                add.push(cgg_core::ScopedType {
++                    name: name.clone(),
++                    type_name: ty.clone(),
++                    start_byte: c.start_byte,
++                    end_byte: c.end_byte,
++                });
++            }
++        }
++        f.scoped_types.extend(add);
++    }
++}
++
++/// Per positional parameter of `sig`: `Some(types)` when it is declared
++/// as a callback type, the nominal types of the callback's parameters
++/// (an empty string for one that is not a concrete class); `None` for a
++/// parameter of any other type.
++fn callback_params_of(lang: &str, sig: &str) -> Vec<Option<Vec<String>>> {
++    let Some(params) = param_list(sig) else {
++        return Vec::new();
++    };
++    let generics = def_type_params(sig);
++    let mut out = Vec::new();
++    for piece in split_top_level(params, |c| c == ',', false) {
++        let piece = piece.trim();
++        if piece.is_empty() {
++            continue;
++        }
++        // Dart named parameters are not positional.
++        if lang == "dart" && piece.starts_with('{') {
++            break;
++        }
++        let piece = piece.trim_start_matches('[').trim_end_matches(']');
++        let piece = strip_default_value(piece).trim();
++        let ty = if lang == "scala" {
++            match piece.split_once(':') {
++                Some((_, t)) => t.trim(),
++                None => {
++                    out.push(None);
++                    continue;
++                }
++            }
++        } else {
++            // Type-first: everything before the name.
++            match piece.rfind(|c: char| c.is_whitespace()) {
++                Some(at) => piece[..at].trim(),
++                None => {
++                    out.push(None);
++                    continue;
++                }
++            }
++        };
++        out.push(callback_param_types(lang, ty).map(|ts| {
++            ts.into_iter()
++                .map(|t| concrete_class(lang, t, &generics).unwrap_or_default())
++                .collect()
++        }));
++    }
++    out
++}
++
++/// The parameter types of the callback type `ty`, as written: Scala
++/// `Foo => R` / `(Foo, Bar) => R`, and the named constructors of
++/// [`cgg_core::stdlib::CALLBACK_TYPE_CONSTRUCTORS`].
++fn callback_param_types<'a>(lang: &str, ty: &'a str) -> Option<Vec<&'a str>> {
++    let ty = cgg_core::declared_type(lang, ty)?.trim();
++    if lang == "scala" {
++        let arrow = ty.find("=>")?;
++        let lhs = ty[..arrow].trim();
++        if lhs.is_empty() {
++            return None; // by-name `=> R`
++        }
++        let lhs = lhs
++            .strip_prefix('(')
++            .and_then(|l| l.strip_suffix(')'))
++            .unwrap_or(lhs);
++        return Some(
++            split_top_level(lhs, |c| c == ',', false)
++                .into_iter()
++                .map(str::trim)
++                .filter(|t| !t.is_empty())
++                .collect(),
++        );
++    }
++    for &(l, head, last_is_result) in cgg_core::stdlib::CALLBACK_TYPE_CONSTRUCTORS {
++        if l != lang {
++            continue;
++        }
++        let Some(at) = find_word(ty, head) else {
++            continue;
++        };
++        let open = at + head.len();
++        let bytes = ty.as_bytes();
++        let close = match bytes.get(open) {
++            Some(b'(') => matching_paren(bytes, open)?,
++            Some(b'<') => {
++                let mut depth = 0i32;
++                let mut end = None;
++                for (i, c) in ty[open..].char_indices() {
++                    match c {
++                        '<' => depth += 1,
++                        '>' => {
++                            depth -= 1;
++                            if depth == 0 {
++                                end = Some(open + i);
++                                break;
++                            }
++                        }
++                        _ => {}
++                    }
++                }
++                end?
++            }
++            _ => continue,
++        };
++        let mut args: Vec<&str> =
++            split_top_level(&ty[open + 1..close], |c| c == ',', false)
++                .into_iter()
++                .map(str::trim)
++                .filter(|t| !t.is_empty())
++                .collect();
++        if last_is_result {
++            args.pop();
++        }
++        // Dart names its callback parameters: `Function(Foo item)`.
++        if lang == "dart" {
++            for a in &mut args {
++                if let Some(w) = param_words(a).first() {
++                    *a = w;
++                }
++            }
++        }
++        return Some(args);
++    }
++    None
++}
++
++/// Index of `word` in `s` standing alone (not part of a longer name).
++fn find_word(s: &str, word: &str) -> Option<usize> {
++    let is_id = |c: char| c.is_alphanumeric() || c == '_';
++    s.match_indices(word).map(|(i, _)| i).find(|&i| {
++        !s[..i].chars().next_back().is_some_and(is_id)
++            && !s[i + word.len()..].chars().next().is_some_and(is_id)
++    })
++}
++
++/// The declared type parameters of a definition (`def f[T, U](…)`,
++/// `void F<T>(…)`, `R f<R>(…)`): names that are never a concrete class.
++fn def_type_params(sig: &str) -> Vec<&str> {
++    let Some(params) = param_list(sig) else {
++        return Vec::new();
++    };
++    let head = &sig[..params.as_ptr() as usize - sig.as_ptr() as usize];
++    let Some(open) = head.rfind(['[', '<']) else {
++        return Vec::new();
++    };
++    head[open + 1..]
++        .trim_end_matches(['(', ' '])
++        .trim_end_matches([']', '>'])
++        .split(',')
++        .filter_map(|t| {
++            t.trim()
++                .trim_start_matches(['+', '-'])
++                .split([' ', ':', '<'])
++                .next()
++                .map(str::trim)
++        })
++        .filter(|t| !t.is_empty())
++        .collect()
++}
++
++/// `ty` as a concrete class name: nullability peeled, type arguments cut,
++/// capitalised, not one of the definition's type parameters, not a
++/// one-letter name.
++fn concrete_class(lang: &str, ty: &str, generics: &[&str]) -> Option<String> {
++    let ty = cgg_core::declared_type(lang, ty)?;
++    let ty = ty.split(['<', '[', '(', ' ']).next()?.trim();
++    let last = ty.rsplit('.').next().unwrap_or(ty);
++    if last.chars().count() < 2
++        || !last.starts_with(char::is_uppercase)
++        || generics.contains(&ty)
++        || cgg_core::stdlib::is_top_type(lang, last)
++        || !ty
++            .chars()
++            .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
++    {
++        return None;
++    }
++    Some(ty.to_string())
++}
++
+ /// Settle each Kotlin bare call made inside a `x.run { … }` /
+ /// `x.apply { … }` / `with(x) { … }` lambda (`RefRecord::implicit_receiver`,
+ /// receiver already typed): when the type `x` was typed as declares a
+@@ -846,11 +1140,9 @@ pub fn settle_implicit_receivers(all_facts: &mut [FileFacts]) {
+ /// Returns owned strings rather than writing borrowed ones into a map: the
+ /// caller needs them to outlive its borrow of `facts`, and owning them
+ /// there is what lets the caller free them. See the call site.
+-fn collect_param_types(
+-    def: &DefRecord,
+-    cpp: bool,
+-    rust: bool,
+-) -> Vec<(u32, String, String)> {
++fn collect_param_types(def: &DefRecord, lang: &str) -> Vec<(u32, String, String)> {
++    let cpp = lang == "cpp";
++    let rust = lang == "rust";
+     let mut out = Vec::new();
+     // Parse parameter types from signature_hint.
+     // Patterns we recognize:
+@@ -884,7 +1176,7 @@ fn collect_param_types(
+         let colon = if rust {
+             parse_colon_param_rust(param)
+         } else {
+-            parse_colon_param(param).map(|(n, t)| (n, t, false))
++            parse_colon_param(lang, param).map(|(n, t)| (n, t, false))
+         };
+         if let Some((name, ty, locked)) = colon {
+             if locked {
+@@ -916,7 +1208,7 @@ fn collect_param_types(
+                     out.push((def.start_byte, name.to_string(), ty.to_string()));
+                 }
+             }
+-        } else if let Some((name, ty)) = parse_type_first_param(param) {
++        } else if let Some((name, ty)) = parse_type_first_param(lang, param) {
+             out.push((def.start_byte, name.to_string(), ty.to_string()));
+         }
+     }
+@@ -1171,7 +1463,7 @@ const RUST_WRAPPERS: &[&str] = &[
+ /// unresolvable. Paths are kept (`a::Store`): the resolver needs them to
+ /// tell a workspace type from an external one. Up to three wrappers deep.
+ fn parse_colon_param_rust(param: &str) -> Option<(&str, &str, bool)> {
+-    let (name, _) = parse_colon_param(param)?;
++    let (name, _) = parse_colon_param("rust", param)?;
+     let (_, rest) = param.split_once(':')?;
+     let mut ty = rest.trim();
+     let mut locked = false;
+@@ -1253,7 +1545,16 @@ fn rust_guard_base(rh: &str) -> Option<&str> {
+     (plain && !base.is_empty()).then_some(base)
+ }
+ 
+-fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
++/// `name: Type` (Python, TypeScript, Kotlin, Swift, Scala, Rust …) as
++/// `(name, type)`. The type is the one a method call on the parameter
++/// reaches ([`cgg_core::declared_type`]): `x: Optional[Foo]`, `x: Foo |
++/// None`, `x: "Foo"`, `x: Foo?` are all a `Foo`. A default value is not
++/// part of the type (`x: Foo = None` used to type `x` as `Foo = None`), and
++/// a TypeScript optional parameter's `?` is not part of its name. A union
++/// of several real types (`x: Foo | Bar`) leaves the parameter untyped:
++/// choosing one member would be a guess, and the reading it gets instead
++/// is the one an unannotated parameter gets.
++fn parse_colon_param<'a>(lang: &str, param: &'a str) -> Option<(&'a str, &'a str)> {
+     // "x: Service" or "x: &Service" or "x: *Service". The separator is a
+     // lone `:` — never half of a `::` path separator, which a C++ or C#
+     // type-first parameter (`ns::Foo x`, `global::A.B y`) contains and
+@@ -1275,8 +1576,10 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
+         .trim()
+         .rsplit(' ')
+         .next()
+-        .unwrap_or(name.trim());
+-    let ty = rest
++        .unwrap_or(name.trim())
++        .trim_end_matches('?');
++    let ty = cgg_core::declared_type(lang, strip_default_value(rest))?;
++    let ty = ty
+         .trim()
+         .trim_start_matches('&')
+         .trim_start_matches("mut ")
+@@ -1294,6 +1597,35 @@ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
+     Some((name, ty))
+ }
+ 
++/// `s` up to a top-level `=` that starts a default value — not one of
++/// `=>`, `==`, `<=`, `>=`, `!=`, and never one inside brackets or a
++/// string. Without a default, all of `s`.
++fn strip_default_value(s: &str) -> &str {
++    let bytes = s.as_bytes();
++    let mut depth = 0i32;
++    let mut i = 0usize;
++    while i < bytes.len() {
++        match bytes[i] {
++            b'"' | b'\'' => {
++                i = skip_quoted(bytes, i);
++                continue;
++            }
++            b'(' | b'[' | b'{' | b'<' => depth += 1,
++            b'>' if i > 0 && matches!(bytes[i - 1], b'-' | b'=') => {}
++            b')' | b']' | b'}' | b'>' => depth = (depth - 1).max(0),
++            b'=' if depth == 0
++                && bytes.get(i + 1).is_none_or(|&n| n != b'>' && n != b'=')
++                && (i == 0 || !matches!(bytes[i - 1], b'<' | b'>' | b'!' | b'=')) =>
++            {
++                return &s[..i];
++            }
++            _ => {}
++        }
++        i += 1;
++    }
++    s
++}
++
+ /// The parameters of a parameter list: its top-level comma-separated
+ /// pieces, with a piece that is wholly one `{…}` or `[…]` group — Dart's
+ /// named (`{Type a, Type b}`) and optional positional (`[Type a]`)
+@@ -1349,29 +1681,67 @@ fn param_words(param: &str) -> Vec<&str> {
+         .collect()
+ }
+ 
++/// Words in front of a type-first parameter's type that are not the
++/// type: modifiers (Java/Dart `final`, Dart `required`/`covariant`, C#
++/// `ref`/`in`/`params`/`this`, PHP promoted-property visibility).
++const TYPE_FIRST_MODIFIERS: &[&str] = &[
++    "final",
++    "const",
++    "var",
++    "val",
++    "required",
++    "covariant",
++    "late",
++    "readonly",
++    "public",
++    "private",
++    "protected",
++    "ref",
++    "in",
++    "params",
++    "this",
++    "scoped",
++];
++
+ /// The pre-0.9 parser for every language except C++, reading words
+-/// bracket-aware (see [`param_words`]).
+-fn parse_type_first_param(param: &str) -> Option<(&str, &str)> {
++/// bracket-aware (see [`param_words`]). The declared type is everything
++/// between the modifiers and the name, read through
++/// [`cgg_core::declared_type`]: `Foo? x`, `?Foo $x`, `Foo|null $x` and
++/// `Nullable<Foo> x` are all a `Foo`. Annotations and attributes in front
++/// of the type (`@Nullable Foo x`, `[FromBody] Foo x`) are skipped, and a
++/// default value is not part of the parameter (`Foo x = null` named the
++/// parameter `null`).
++fn parse_type_first_param<'a>(lang: &str, param: &'a str) -> Option<(&'a str, &'a str)> {
+     // "Service x" or "final Service x" or "Service<T> x"
++    let param = strip_default_value(param).trim();
+     let parts = param_words(param);
+-    if parts.len() < 2 {
++    let mut start = 0;
++    while start < parts.len()
++        && (TYPE_FIRST_MODIFIERS.contains(&parts[start])
++            || parts[start].starts_with('@')
++            || parts[start].starts_with('['))
++    {
++        start += 1;
++    }
++    if parts.len() < start + 2 {
+         return None;
+     }
+-    // Skip modifiers
+-    let (ty_idx, name_idx) = if matches!(parts[0], "final" | "const" | "var" | "val") {
+-        if parts.len() < 3 {
+-            return None;
+-        }
+-        (1, 2)
+-    } else {
+-        (0, parts.len() - 1)
+-    };
++    let name = parts[parts.len() - 1];
++    // The type's words, as one slice of `param`: `Foo | null $x` is one
++    // union, not a `Foo` followed by noise.
++    let first = parts[start];
++    let last = parts[parts.len() - 2];
++    let ty_start = first.as_ptr() as usize - param.as_ptr() as usize;
++    let ty_end = last.as_ptr() as usize - param.as_ptr() as usize + last.len();
++    let ty = cgg_core::declared_type(lang, &param[ty_start..ty_end])?;
++    // Words after the type that are not the name (Solidity `Foo memory
++    // x`) keep the reading they always had: the first word.
++    let ty = param_words(ty).first().copied().unwrap_or(ty);
+     // `Map<String, Handler>` is a `Map`: the declared type is the generic
+     // itself, never one of its arguments, and it is named without them —
+     // as `parse_colon_param` names `m: Map<K, V>`, and as the Java and
+     // Kotlin plugins name a generic local.
+-    let ty = parts[ty_idx].split('<').next().unwrap_or("").trim();
+-    let name = parts[name_idx];
++    let ty = ty.split('<').next().unwrap_or("").trim();
+     if ty.is_empty() || name.is_empty() {
+         return None;
+     }
+@@ -1744,15 +2114,25 @@ fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
+     best.map(|(d, _)| d)
+ }
+ 
+-fn extract_return_type(sig: &str) -> Option<&str> {
++/// The declared return type of `sig`, read as the type a method call on
++/// the returned value reaches ([`cgg_core::declared_type`]): `-> Optional[Foo]`,
++/// `-> Foo?`, `): Foo | undefined` and `-> "Foo"` all return a `Foo`. A
++/// union of several real types returns nothing typed (it used to return
++/// its first member).
++fn extract_return_type<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
+     // Rust: `fn foo() -> Config`
+     if let Some(pos) = sig.find("->") {
+-        let ret = sig[pos + 2..].trim();
++        let ret = return_type_text(&sig[pos + 2..]);
++        let ret = cgg_core::declared_type(lang, ret)?;
+         let ret = ret
+             .trim_start_matches('&')
+             .trim_start_matches("mut ")
+             .trim();
+-        let ret = ret.split(['<', '{', ',', ' ']).next().unwrap_or(ret).trim();
++        let ret = ret
++            .split(['<', '[', '{', ',', ' '])
++            .next()
++            .unwrap_or(ret)
++            .trim();
+         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
+             return Some(ret);
+         }
+@@ -1761,7 +2141,8 @@ fn extract_return_type(sig: &str) -> Option<&str> {
+     // `public Service getService()` or `func GetConfig() Config`
+     // TS/Kotlin: `fun foo(): Config` or `foo(): Config`
+     if let Some(pos) = sig.find("): ") {
+-        let ret = sig[pos + 3..].trim();
++        let ret = return_type_text(&sig[pos + 3..]);
++        let ret = cgg_core::declared_type(lang, ret)?;
+         let ret = ret.split(['<', '{', ' ', '?']).next().unwrap_or(ret).trim();
+         if !ret.is_empty() && ret.starts_with(char::is_uppercase) {
+             return Some(ret);
+@@ -1779,6 +2160,39 @@ fn extract_return_type(sig: &str) -> Option<&str> {
+     None
+ }
+ 
++/// The return-type text at the start of `s`: up to a top-level body
++/// (`{`), expression body (`=`, `=>`), Python body colon, or Rust `where`
++/// clause, trimmed.
++fn return_type_text(s: &str) -> &str {
++    let bytes = s.as_bytes();
++    let mut depth = 0i32;
++    let mut i = 0usize;
++    while i < bytes.len() {
++        match bytes[i] {
++            b'"' => {
++                i = skip_quoted(bytes, i);
++                continue;
++            }
++            b'(' | b'[' | b'<' => depth += 1,
++            b'>' if i > 0 && matches!(bytes[i - 1], b'-' | b'=') => {}
++            b')' | b']' | b'>' => depth = (depth - 1).max(0),
++            b'{' | b'=' if depth == 0 => return s[..i].trim(),
++            b':' if depth == 0
++                && bytes.get(i + 1) != Some(&b':')
++                && (i == 0 || bytes[i - 1] != b':') =>
++            {
++                return s[..i].trim();
++            }
++            _ => {}
++        }
++        i += 1;
++    }
++    if let Some(w) = s.find(" where ") {
++        return s[..w].trim();
++    }
++    s.trim()
++}
++
+ /// A Zig parameter type with its optional, pointer and `const` markers
+ /// removed (`?*const Surface` → `Surface`), so the receiver is the type
+ /// the resolver can follow through the file's imports.
+@@ -1877,11 +2291,17 @@ mod tests {
+     fn a_scope_separator_is_not_a_name_type_colon() {
+         // `ns::Foo x` (C++) / `global::A.B y` (C#) are type-first; only a
+         // lone `:` separates a name from its type.
+-        assert_eq!(parse_colon_param("ns::Foo x"), None);
+-        assert_eq!(parse_colon_param("const ns::Foo& y"), None);
+-        assert_eq!(parse_colon_param("x: a::Store"), Some(("x", "a::Store")));
+-        assert_eq!(parse_colon_param("svc: Service"), Some(("svc", "Service")));
+-        assert_eq!(parse_colon_param("x :: xs : List α"), None);
++        assert_eq!(parse_colon_param("cpp", "ns::Foo x"), None);
++        assert_eq!(parse_colon_param("cpp", "const ns::Foo& y"), None);
++        assert_eq!(
++            parse_colon_param("rust", "x: a::Store"),
++            Some(("x", "a::Store"))
++        );
++        assert_eq!(
++            parse_colon_param("kotlin", "svc: Service"),
++            Some(("svc", "Service"))
++        );
++        assert_eq!(parse_colon_param("lean", "x :: xs : List α"), None);
+     }
+ 
+     #[test]
+@@ -2274,10 +2694,283 @@ mod tests {
+         assert_eq!(facts.references[0].receiver_hint, "Helper");
+     }
+ 
++    /// `(name, type)` pairs `collect_param_types` reads off `sig` in `lang`.
++    fn lang_params(lang: &str, sig: &str) -> Vec<(String, String)> {
++        let d = mk_def("f", sig, 0, 10);
++        collect_param_types(&d, lang)
++            .into_iter()
++            .map(|(_, n, t)| (n, t))
++            .collect()
++    }
++
++    /// FINDINGS C3: an optional, nullable or forward-referenced annotation
++    /// types the parameter as the class it names; a union of two real
++    /// types leaves it untyped (never its first member).
++    #[test]
++    fn optional_and_nullable_parameters_are_their_type() {
++        assert_eq!(
++            lang_params(
++                "python",
++                "def f(a: Optional[Foo], b: Foo | None, c: \"Foo\", d: Union[Foo, None], \
++                 e: typing.Optional[Foo] = None, g: Foo = None, h: Foo | Bar, i: Union[Foo, Bar])"
++            ),
++            pairs(&[
++                ("a", "Foo"),
++                ("b", "Foo"),
++                ("c", "Foo"),
++                ("d", "Foo"),
++                ("e", "Foo"),
++                ("g", "Foo"),
++            ])
++        );
++        assert_eq!(
++            lang_params(
++                "typescript",
++                "function f(a: Foo | undefined, b?: Foo, c: null | Foo, d: Foo | Bar, e: Foo = new Foo())"
++            ),
++            pairs(&[("a", "Foo"), ("b", "Foo"), ("c", "Foo"), ("e", "Foo")])
++        );
++        assert_eq!(
++            lang_params("kotlin", "fun f(a: Foo?, b: List<Foo>?)"),
++            pairs(&[("a", "Foo"), ("b", "List")])
++        );
++        assert_eq!(
++            lang_params("swift", "func f(a: Foo?, b: Foo!, with c: Optional<Foo>)"),
++            pairs(&[("a", "Foo"), ("b", "Foo"), ("c", "Foo")])
++        );
++        assert_eq!(
++            lang_params("scala", "def f(a: Foo | Null, b: Foo | Bar)"),
++            pairs(&[("a", "Foo")])
++        );
++        // Near miss: a container is the container, not its element.
++        assert_eq!(
++            lang_params("python", "def f(a: list[Foo], b: Optional[list[Foo]])"),
++            pairs(&[("a", "list"), ("b", "list")])
++        );
++    }
++
++    #[test]
++    fn nullable_type_first_parameters_are_their_type() {
++        assert_eq!(
++            lang_params(
++                "csharp",
++                "void F(Foo? a, Nullable<Pt> b, ref Foo c, this Foo d, Foo e = null)"
++            ),
++            pairs(&[
++                ("a", "Foo"),
++                ("b", "Pt"),
++                ("c", "Foo"),
++                ("d", "Foo"),
++                ("e", "Foo")
++            ])
++        );
++        assert_eq!(
++            lang_params(
++                "php",
++                "function f(?Foo $a, Foo|null $b, null|Foo $c, Foo|Bar $d, private ?Foo $e)"
++            ),
++            pairs(&[("$a", "Foo"), ("$b", "Foo"), ("$c", "Foo"), ("$e", "Foo")])
++        );
++        assert_eq!(
++            lang_params("dart", "void f(Foo? a, {required Foo b, Foo? c})"),
++            pairs(&[("a", "Foo"), ("b", "Foo"), ("c", "Foo")])
++        );
++        assert_eq!(
++            lang_params(
++                "java",
++                "void f(@Nullable Foo a, final @NonNull Bar b, int c)"
++            ),
++            pairs(&[("a", "Foo"), ("b", "Bar")])
++        );
++    }
++
++    #[test]
++    fn optional_return_types_are_their_type() {
++        assert_eq!(
++            extract_return_type("python", "def f() -> Optional[Foo]"),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("python", "def f() -> \"Foo\""),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("python", "def f() -> Foo | None"),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("swift", "func f() -> Foo?"),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("kotlin", "fun f(): Foo? = null"),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("typescript", "function f(): Foo | undefined"),
++            Some("Foo")
++        );
++        assert_eq!(
++            extract_return_type("php", "function f(): ?Foo"),
++            Some("Foo")
++        );
++        // Near misses: a union of two real types is not its first member;
++        // a container is the container; Rust keeps its wrapper reading.
++        assert_eq!(
++            extract_return_type("typescript", "function f(): Foo | Bar"),
++            None
++        );
++        assert_eq!(
++            extract_return_type("python", "def f() -> List[Foo]"),
++            Some("List")
++        );
++        assert_eq!(extract_return_type("python", "def f() -> None"), None);
++        assert_eq!(
++            extract_return_type("rust", "fn f() -> Result<Config, Error>"),
++            Some("Result")
++        );
++    }
++
++    #[test]
++    fn a_typed_closure_parameter_types_its_receiver_only_in_the_closure() {
++        let defs = vec![mk_def("Main.run", "void run(Bar x)", 0, 200)];
++        let refs = vec![
++            RefRecord {
++                name: "go".into(),
++                receiver_hint: "x".into(),
++                site_byte: 50,
++                ..Default::default()
++            },
++            RefRecord {
++                name: "go".into(),
++                receiver_hint: "x".into(),
++                site_byte: 150,
++                ..Default::default()
++            },
++        ];
++        let mut facts = mk_facts(defs, refs);
++        facts.language = "dart".into();
++        facts.scoped_types.push(cgg_core::ScopedType {
++            name: "x".into(),
++            type_name: "Foo".into(),
++            start_byte: 40,
++            end_byte: 80,
++        });
++        propagate_types(&mut facts);
++        assert_eq!(facts.references[0].receiver_hint, "Foo");
++        // Outside the closure, the method's own parameter.
++        assert_eq!(facts.references[1].receiver_hint, "Bar");
++    }
++
++    fn closure_file(
++        lang: &str,
++        defs: Vec<DefRecord>,
++        callee: &str,
++        n: usize,
++    ) -> FileFacts {
++        let mut f = mk_facts(defs, Vec::new());
++        f.language = lang.into();
++        f.closure_args.push(cgg_core::ClosureArg {
++            callee: callee.into(),
++            arg_index: 0,
++            params: (0..n).map(|i| format!("p{i}")).collect(),
++            start_byte: 1000,
++            end_byte: 1100,
++        });
++        f
++    }
++
++    fn scoped_of(f: &FileFacts) -> Vec<(String, String)> {
++        f.scoped_types
++            .iter()
++            .map(|s| (s.name.clone(), s.type_name.clone()))
++            .collect()
++    }
++
++    #[test]
++    fn an_untyped_closure_takes_the_callees_declared_callback_types() {
++        let mut all = vec![
++            closure_file(
++                "scala",
++                vec![mk_def(
++                    "withTempDir",
++                    "def withTempDir(f: File => Unit): Unit",
++                    0,
++                    50,
++                )],
++                "withTempDir",
++                1,
++            ),
++            closure_file(
++                "dart",
++                vec![mk_def(
++                    "pair",
++                    "void pair(void Function(Foo a, Bar b) cb)",
++                    0,
++                    50,
++                )],
++                "pair",
++                2,
++            ),
++            closure_file(
++                "csharp",
++                vec![mk_def("Map", "R Map<R>(Func<Foo, R> f)", 0, 50)],
++                "Map",
++                1,
++            ),
++            // Near misses: a type parameter, a top type, an arity that does
++            // not match, and two overloads that disagree.
++            closure_file(
++                "scala",
++                vec![mk_def("each", "def each[T](f: T => Unit): Unit", 0, 50)],
++                "each",
++                1,
++            ),
++            closure_file(
++                "scala",
++                vec![mk_def("anyOf", "def anyOf(f: Any => Unit): Unit", 0, 50)],
++                "anyOf",
++                1,
++            ),
++            closure_file(
++                "dart",
++                vec![mk_def("one", "void one(void Function(Foo) cb)", 0, 50)],
++                "one",
++                2,
++            ),
++            closure_file(
++                "csharp",
++                vec![
++                    mk_def("Run", "void Run(Action<Foo> f)", 0, 50),
++                    mk_def("Run", "void Run(Action<Bar> f)", 60, 90),
++                ],
++                "Run",
++                1,
++            ),
++        ];
++        settle_closure_args(&mut all);
++        assert_eq!(scoped_of(&all[0]), pairs(&[("p0", "File")]));
++        assert_eq!(scoped_of(&all[1]), pairs(&[("p0", "Foo"), ("p1", "Bar")]));
++        assert_eq!(scoped_of(&all[2]), pairs(&[("p0", "Foo")]));
++        for f in &all[3..] {
++            assert_eq!(
++                scoped_of(f),
++                Vec::<(String, String)>::new(),
++                "{:?}",
++                f.closure_args
++            );
++        }
++    }
++
+     /// `(name, type)` pairs `collect_param_types` reads off `sig`.
+     fn params(sig: &str, cpp: bool, rust: bool) -> Vec<(String, String)> {
+         let d = mk_def("f", sig, 0, 10);
+-        collect_param_types(&d, cpp, rust)
++        let lang = match (cpp, rust) {
++            (true, _) => "cpp",
++            (_, true) => "rust",
++            _ => "java",
++        };
++        collect_param_types(&d, lang)
+             .into_iter()
+             .map(|(_, n, t)| (n, t))
+             .collect()
+@@ -2525,7 +3218,7 @@ mod tests {
+             pairs(&[
+                 ("b", "Bar"),
+                 ("fs", "FileSystem"),
+-                ("log", "Logger?"),
++                ("log", "Logger"),
+                 ("t", "Terminal")
+             ])
+         );
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index 3ab0311..0a712d9 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -707,6 +707,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     let macro_types =
+         cgg_resolve::type_hints::resolve_macro_types(&macro_replacements, &field_types);
+     let type_aliases = cgg_resolve::type_hints::type_alias_index(&all_facts);
++    // Untyped closures passed to a workspace function take their
++    // parameter types from its declared callback type.
++    cgg_resolve::type_hints::settle_closure_args(&mut all_facts);
+     {
+         // Per-file and independent: each call only mutates its own facts.
+         let _s = cgg_core::profile::span("resolve::type-propagate");
+diff --git a/crates/cgg-core/src/annotation.rs b/crates/cgg-core/src/annotation.rs
+new file mode 100644
+index 0000000..3688e66
+--- /dev/null
++++ b/crates/cgg-core/src/annotation.rs
+@@ -0,0 +1,263 @@
++//! Declared-type normalisation shared by the language plugins and the
++//! receiver-type propagator.
++//!
++//! An annotation that says "a `Foo`, or nothing" — `Optional[Foo]`,
++//! `Foo | None`, `Foo?`, `?Foo`, `Foo | undefined`, `Nullable<Foo>`, the
++//! string forward reference `"Foo"` — is, for every method called on the
++//! value, a `Foo`. Read literally it named the wrapper (`Optional`, booked
++//! as a standard-library call) or a string no type is called (`Foo | None`),
++//! which typed the receiver *worse* than writing no annotation at all.
++//!
++//! The language-specific names involved (which wrappers are transparent,
++//! which union members are null) live in the [`crate::stdlib`] tables;
++//! this module only knows the shapes.
++
++use crate::stdlib::{
++    is_maybe_type_wrapper, is_null_type_member, is_union_type_constructor,
++};
++
++/// The single type a method call on a value annotated `raw` reaches, in
++/// `lang`: nullability markers (`Foo?`, `Foo!`, `?Foo`), null union members
++/// (`Foo | None`, `Foo | undefined`, `Union[Foo, None]`), maybe-wrappers
++/// (`Optional[Foo]`, `Nullable<Foo>`) and Python's quoted forward
++/// references (`"Foo"`) removed. Generic arguments of the result are kept
++/// (`Foo<T>?` → `Foo<T>`); callers cut them exactly as they did before.
++///
++/// `None` when the annotation is empty, only null, or a union of several
++/// real types (`Foo | Bar`, `Union[Foo, Bar]`). Picking one member of a
++/// real union would be a guess, so such a value is left untyped and gets
++/// the reading an unannotated value gets.
++pub fn declared_type<'a>(lang: &str, raw: &'a str) -> Option<&'a str> {
++    let mut t = raw.trim();
++    // Each step removes at least one character, so this terminates; the
++    // bound only caps pathological nesting.
++    for _ in 0..16 {
++        if lang == "python"
++            && let Some(inner) = unquote(t)
++        {
++            t = inner.trim();
++            continue;
++        }
++        if let Some(rest) = t.strip_prefix('?') {
++            t = rest.trim_start();
++            continue;
++        }
++        if let Some(rest) = t.strip_suffix('?').or_else(|| t.strip_suffix('!')) {
++            t = rest.trim_end();
++            continue;
++        }
++        let members = split_top(t, '|');
++        if members.len() > 1 {
++            t = single_member(lang, &members)?;
++            continue;
++        }
++        if let Some((head, args)) = subscripted(t) {
++            let last = head.rsplit(['.', ':']).next().unwrap_or(head).trim();
++            if is_union_type_constructor(lang, last) {
++                t = single_member(lang, &split_top(args, ','))?;
++                continue;
++            }
++            if is_maybe_type_wrapper(lang, last) {
++                t = split_top(args, ',').first().copied().unwrap_or("").trim();
++                continue;
++            }
++        }
++        break;
++    }
++    (!t.is_empty() && !is_null_type_member(lang, t)).then_some(t)
++}
++
++/// The one member of a union that is not null, or `None` when there are
++/// none or several.
++fn single_member<'a>(lang: &str, members: &[&'a str]) -> Option<&'a str> {
++    let mut real = members.iter().map(|m| m.trim()).filter(|m| {
++        let bare = if lang == "python" {
++            unquote(m).unwrap_or(m).trim()
++        } else {
++            m
++        };
++        !bare.is_empty() && !is_null_type_member(lang, bare)
++    });
++    let one = real.next()?;
++    if real.next().is_some() {
++        return None;
++    }
++    Some(one)
++}
++
++/// `"Foo"` / `'Foo'` → `Foo`.
++fn unquote(t: &str) -> Option<&str> {
++    let first = t.chars().next()?;
++    if !matches!(first, '"' | '\'') || t.len() < 2 || !t.ends_with(first) {
++        return None;
++    }
++    Some(&t[1..t.len() - 1])
++}
++
++/// `Head[args]` / `Head<args>` when the bracket opened after the head
++/// closes at the very end.
++fn subscripted(t: &str) -> Option<(&str, &str)> {
++    let open = t.find(['[', '<'])?;
++    let close = matching_close(t, open)?;
++    if close + 1 != t.len() || open == 0 {
++        return None;
++    }
++    Some((&t[..open], &t[open + 1..close]))
++}
++
++fn matching_close(t: &str, open: usize) -> Option<usize> {
++    let mut depth = 0i32;
++    let mut prev = '\0';
++    for (i, c) in t[open..].char_indices() {
++        match c {
++            '[' | '<' | '(' | '{' => depth += 1,
++            '>' if matches!(prev, '-' | '=') => {}
++            ']' | '>' | ')' | '}' => {
++                depth -= 1;
++                if depth == 0 {
++                    return Some(open + i);
++                }
++            }
++            _ => {}
++        }
++        prev = c;
++    }
++    None
++}
++
++/// `t` cut at every `sep` outside brackets and quotes. An arrow's `>`
++/// (`=>`, `->`) closes nothing.
++fn split_top(t: &str, sep: char) -> Vec<&str> {
++    let mut out = Vec::new();
++    let mut depth = 0i32;
++    let mut start = 0;
++    let mut prev = '\0';
++    let mut quote: Option<char> = None;
++    for (i, c) in t.char_indices() {
++        if let Some(q) = quote {
++            if c == q && prev != '\\' {
++                quote = None;
++            }
++            prev = c;
++            continue;
++        }
++        match c {
++            '"' | '\'' | '`' => quote = Some(c),
++            '[' | '<' | '(' | '{' => depth += 1,
++            '>' if matches!(prev, '-' | '=') => {}
++            ']' | '>' | ')' | '}' => depth = (depth - 1).max(0),
++            c if c == sep && depth == 0 => {
++                out.push(&t[start..i]);
++                start = i + c.len_utf8();
++            }
++            _ => {}
++        }
++        prev = c;
++    }
++    out.push(&t[start..]);
++    out
++}
++
++#[cfg(test)]
++mod tests {
++    use super::declared_type;
++
++    #[test]
++    fn nullable_markers_are_removed() {
++        assert_eq!(declared_type("kotlin", "Foo?"), Some("Foo"));
++        assert_eq!(declared_type("swift", "Foo!"), Some("Foo"));
++        assert_eq!(declared_type("swift", "Foo?"), Some("Foo"));
++        assert_eq!(declared_type("csharp", "Foo?"), Some("Foo"));
++        assert_eq!(declared_type("dart", "Foo<T>?"), Some("Foo<T>"));
++        assert_eq!(declared_type("php", "?Foo"), Some("Foo"));
++        assert_eq!(declared_type("kotlin", "Foo"), Some("Foo"));
++    }
++
++    #[test]
++    fn a_union_with_one_real_member_is_that_member() {
++        assert_eq!(declared_type("python", "Foo | None"), Some("Foo"));
++        assert_eq!(declared_type("python", "None | Foo"), Some("Foo"));
++        assert_eq!(declared_type("typescript", "Foo | undefined"), Some("Foo"));
++        assert_eq!(
++            declared_type("typescript", "Foo | null | undefined"),
++            Some("Foo")
++        );
++        assert_eq!(declared_type("php", "Foo|null"), Some("Foo"));
++        assert_eq!(declared_type("php", "null|Foo"), Some("Foo"));
++        assert_eq!(declared_type("scala", "Foo | Null"), Some("Foo"));
++        assert_eq!(declared_type("python", "Union[Foo, None]"), Some("Foo"));
++        assert_eq!(
++            declared_type("python", "typing.Union[None, Foo]"),
++            Some("Foo")
++        );
++    }
++
++    #[test]
++    fn a_union_of_several_real_types_is_untyped() {
++        assert_eq!(declared_type("python", "Foo | Bar"), None);
++        assert_eq!(declared_type("python", "Union[Foo, Bar]"), None);
++        assert_eq!(declared_type("python", "Optional[Union[Foo, Bar]]"), None);
++        assert_eq!(declared_type("typescript", "Foo | Bar | null"), None);
++        assert_eq!(declared_type("php", "Foo|Bar"), None);
++        assert_eq!(declared_type("python", "None"), None);
++        // Null in a language with no null members is a real member.
++        assert_eq!(declared_type("kotlin", "Foo | None"), None);
++    }
++
++    #[test]
++    fn maybe_wrappers_are_their_argument_and_containers_are_not() {
++        assert_eq!(declared_type("python", "Optional[Foo]"), Some("Foo"));
++        assert_eq!(declared_type("python", "typing.Optional[Foo]"), Some("Foo"));
++        assert_eq!(
++            declared_type("python", "ClassVar[Optional[Foo]]"),
++            Some("Foo")
++        );
++        assert_eq!(
++            declared_type("python", "Annotated[Foo, Depends(x)]"),
++            Some("Foo")
++        );
++        assert_eq!(declared_type("csharp", "Nullable<Pt>"), Some("Pt"));
++        assert_eq!(declared_type("csharp", "System.Nullable<Pt>"), Some("Pt"));
++        assert_eq!(declared_type("swift", "Optional<Foo>"), Some("Foo"));
++        // Containers keep their own type.
++        assert_eq!(declared_type("python", "list[Foo]"), Some("list[Foo]"));
++        assert_eq!(
++            declared_type("python", "Optional[list[Foo]]"),
++            Some("list[Foo]")
++        );
++        assert_eq!(declared_type("rust", "Option<Foo>"), Some("Option<Foo>"));
++        assert_eq!(
++            declared_type("java", "Optional<Foo>"),
++            Some("Optional<Foo>")
++        );
++        assert_eq!(declared_type("scala", "Option[Foo]"), Some("Option[Foo]"));
++        // A wrapper of another language is not transparent here.
++        assert_eq!(
++            declared_type("kotlin", "Optional<Foo>"),
++            Some("Optional<Foo>")
++        );
++    }
++
++    #[test]
++    fn python_forward_references_name_the_class() {
++        assert_eq!(declared_type("python", "\"Foo\""), Some("Foo"));
++        assert_eq!(declared_type("python", "'Foo'"), Some("Foo"));
++        assert_eq!(declared_type("python", "\"Optional[Foo]\""), Some("Foo"));
++        assert_eq!(declared_type("python", "Optional['Foo']"), Some("Foo"));
++        assert_eq!(declared_type("python", "\"Foo\" | None"), Some("Foo"));
++        // Only Python writes a type as a string.
++        assert_eq!(declared_type("typescript", "\"a\""), Some("\"a\""));
++    }
++
++    #[test]
++    fn arrows_and_nested_brackets_do_not_split_a_member() {
++        assert_eq!(
++            declared_type("typescript", "((x: A) => B) | null"),
++            Some("((x: A) => B)")
++        );
++        assert_eq!(
++            declared_type("python", "Optional[Callable[[A], B]]"),
++            Some("Callable[[A], B]")
++        );
++    }
++}
+diff --git a/crates/cgg-lang/src/closure_types.rs b/crates/cgg-lang/src/closure_types.rs
+new file mode 100644
+index 0000000..6df5f0a
+--- /dev/null
++++ b/crates/cgg-lang/src/closure_types.rs
+@@ -0,0 +1,407 @@
++//! Written types of closure parameters and typed patterns.
++//!
++//! A closure is not a callable cgg records, so its parameters never
++//! reached the signature-driven parameter typing: `(Foo x) => x.run()`
++//! typed `x` no better than `(x) => x.run()`, and the call fanned out by
++//! name over every `run` in the tree. Where the type is written, it is
++//! recorded here with the span the name is in scope over
++//! ([`cgg_core::FileFacts::scoped_types`]); an untyped parameter records
++//! nothing and keeps the reading it had.
++//!
++//! Shapes are grammar node kinds, per language:
++//! * Dart `function_expression` — `(Foo x) => …`, `(Foo x) { … }`
++//! * C# `lambda_expression` — `(Foo x) => …`, `(Foo? x) => { … }`
++//! * Scala `lambda_expression` — `(x: Foo) => …`; `case_clause` —
++//!   `case x: Foo => …`
++
++use cgg_core::{FileFacts, ScopedType};
++use tree_sitter::Node;
++
++/// Record the typed parameters `node` introduces, if it is a closure or a
++/// typed pattern clause of `lang`. Cheap for every other node: one kind
++/// comparison.
++pub fn record(lang: &str, node: Node, src: &[u8], facts: &mut FileFacts) {
++    let params: Vec<(Node, Node)> = match (lang, node.kind()) {
++        ("dart", "function_expression") => node
++            .child_by_field_name("parameters")
++            .map(|list| {
++                formal_parameters(list)
++                    .into_iter()
++                    .filter_map(|p| {
++                        let ty =
++                            p.children(&mut p.walk()).find(|c| c.kind() == "type")?;
++                        Some((p.child_by_field_name("name")?, ty))
++                    })
++                    .collect()
++            })
++            .unwrap_or_default(),
++        ("csharp", "lambda_expression") => node
++            .child_by_field_name("parameters")
++            .filter(|l| l.kind() == "parameter_list")
++            .map(|list| {
++                list.named_children(&mut list.walk())
++                    .filter(|p| p.kind() == "parameter")
++                    .filter_map(|p| {
++                        Some((
++                            p.child_by_field_name("name")?,
++                            p.child_by_field_name("type")?,
++                        ))
++                    })
++                    .collect()
++            })
++            .unwrap_or_default(),
++        ("scala", "lambda_expression") => node
++            .child_by_field_name("parameters")
++            .filter(|l| l.kind() == "bindings")
++            .map(|list| {
++                list.named_children(&mut list.walk())
++                    .filter(|b| b.kind() == "binding")
++                    .filter_map(|b| {
++                        Some((
++                            b.child_by_field_name("name")?,
++                            b.child_by_field_name("type")?,
++                        ))
++                    })
++                    .collect()
++            })
++            .unwrap_or_default(),
++        ("scala", "case_clause") => node
++            .child_by_field_name("pattern")
++            .filter(|p| p.kind() == "typed_pattern")
++            .and_then(|p| {
++                let name = p.child_by_field_name("pattern")?;
++                (name.kind() == "identifier")
++                    .then_some((name, p.child_by_field_name("type")?))
++            })
++            .into_iter()
++            .collect(),
++        _ => return,
++    };
++    if params.is_empty() {
++        record_untyped_closure_arg(lang, node, src, facts);
++        return;
++    }
++    for (name, ty) in params {
++        let (Ok(name), Ok(ty)) = (name.utf8_text(src), ty.utf8_text(src)) else {
++            continue;
++        };
++        let Some(ty) = nominal(lang, ty) else {
++            continue;
++        };
++        if name.is_empty() {
++            continue;
++        }
++        facts.scoped_types.push(ScopedType {
++            name: name.to_string(),
++            type_name: ty.to_string(),
++            start_byte: node.start_byte() as u32,
++            end_byte: node.end_byte() as u32,
++        });
++    }
++}
++
++/// The parameter names of a closure none of whose parameters has a written
++/// type; `None` for any other node, or a closure with a typed parameter.
++fn untyped_params(lang: &str, node: Node, src: &[u8]) -> Option<Vec<String>> {
++    let text = |n: Node| n.utf8_text(src).ok().map(str::to_string);
++    let list = node.child_by_field_name("parameters")?;
++    let mut out = Vec::new();
++    match (lang, node.kind(), list.kind()) {
++        ("dart", "function_expression", _) => {
++            for p in formal_parameters(list) {
++                if p.children(&mut p.walk()).any(|c| c.kind() == "type") {
++                    return None;
++                }
++                let name = p.child_by_field_name("name").or_else(|| {
++                    p.named_children(&mut p.walk())
++                        .find(|c| c.kind() == "identifier")
++                })?;
++                out.push(text(name)?);
++            }
++        }
++        ("csharp", "lambda_expression", "implicit_parameter") => out.push(text(list)?),
++        ("csharp", "lambda_expression", "parameter_list") => {
++            for p in list.named_children(&mut list.walk()) {
++                if p.kind() != "parameter" || p.child_by_field_name("type").is_some() {
++                    return None;
++                }
++                out.push(text(p.child_by_field_name("name")?)?);
++            }
++        }
++        ("scala", "lambda_expression", "identifier") => out.push(text(list)?),
++        ("scala", "lambda_expression", "bindings") => {
++            for b in list.named_children(&mut list.walk()) {
++                if b.kind() != "binding" || b.child_by_field_name("type").is_some() {
++                    return None;
++                }
++                out.push(text(b.child_by_field_name("name")?)?);
++            }
++        }
++        _ => return None,
++    }
++    (!out.is_empty()).then_some(out)
++}
++
++/// An untyped closure that is a positional argument of a bare call
++/// (`each((x) => …)`, `Each(x => …)`, `withTempDir { dir => … }`) is
++/// recorded with the callee and its position, so the resolver can type
++/// its parameters from the callee's declared callback type
++/// ([`cgg_core::FileFacts::closure_args`]).
++fn record_untyped_closure_arg(lang: &str, node: Node, src: &[u8], facts: &mut FileFacts) {
++    let Some(params) = untyped_params(lang, node, src) else {
++        return;
++    };
++    let Some((callee, arg_index)) = positional_arg_of_bare_call(lang, node, src) else {
++        return;
++    };
++    facts.closure_args.push(cgg_core::ClosureArg {
++        callee,
++        arg_index,
++        params,
++        start_byte: node.start_byte() as u32,
++        end_byte: node.end_byte() as u32,
++    });
++}
++
++/// `(callee, positional index)` when `closure` is a positional argument
++/// of a call whose callee is a bare name.
++fn positional_arg_of_bare_call(
++    lang: &str,
++    closure: Node,
++    src: &[u8],
++) -> Option<(String, u32)> {
++    let mut n = closure;
++    let (call, index) = loop {
++        let p = n.parent()?;
++        match p.kind() {
++            "arguments" | "argument_list" => {
++                let mut index = 0u32;
++                for c in p.named_children(&mut p.walk()) {
++                    if c.id() == n.id() {
++                        break;
++                    }
++                    if c.kind() != "named_argument" {
++                        index += 1;
++                    }
++                }
++                break (p.parent()?, index);
++            }
++            // C# wraps each argument.
++            "argument" if lang == "csharp" => {
++                if p.child_by_field_name("name").is_some() || p.named_child_count() != 1 {
++                    return None;
++                }
++                n = p;
++            }
++            // Scala `f { x => … }`: the block is the argument list.
++            "block" if lang == "scala" => {
++                if p.named_child_count() != 1 {
++                    return None;
++                }
++                let call = p.parent()?;
++                if call.kind() != "call_expression"
++                    || call.child_by_field_name("arguments")?.id() != p.id()
++                {
++                    return None;
++                }
++                break (call, 0);
++            }
++            // Dart reads `(x) => x.m()` as `((x) => x).m()`: the argument
++            // is the expression the closure starts.
++            "member_expression" | "call_expression" | "selector"
++                if lang == "dart" && p.start_byte() == closure.start_byte() =>
++            {
++                n = p;
++            }
++            _ => return None,
++        }
++    };
++    if !matches!(call.kind(), "call_expression" | "invocation_expression") {
++        return None;
++    }
++    let callee = call.child_by_field_name("function")?;
++    if callee.kind() != "identifier" {
++        return None;
++    }
++    Some((callee.utf8_text(src).ok()?.to_string(), index))
++}
++
++/// Dart `formal_parameter_list` → its `formal_parameter`s, including
++/// those inside optional / named groups.
++fn formal_parameters(list: Node) -> Vec<Node> {
++    let mut out = Vec::new();
++    let mut stack = vec![list];
++    while let Some(n) = stack.pop() {
++        for c in n.named_children(&mut n.walk()) {
++            match c.kind() {
++                "formal_parameter" => out.push(c),
++                "optional_formal_parameters"
++                | "optional_positional_formal_parameters"
++                | "named_formal_parameters"
++                | "default_formal_parameter"
++                | "default_named_parameter" => stack.push(c),
++                _ => {}
++            }
++        }
++    }
++    out.sort_by_key(|n| n.start_byte());
++    out
++}
++
++/// The nominal class a written parameter type names: nullability and
++/// maybe-wrappers removed ([`cgg_core::declared_type`]), type arguments
++/// cut, and only a capitalised name (a type, not a primitive keyword).
++fn nominal<'a>(lang: &str, ty: &'a str) -> Option<&'a str> {
++    let ty = cgg_core::declared_type(lang, ty)?;
++    let ty = ty.split(['<', '[', '(', ' ']).next()?.trim();
++    let last = ty.rsplit('.').next().unwrap_or(ty);
++    (cgg_core::looks_like_type_name(last)
++        && ty
++            .chars()
++            .all(|c| c.is_alphanumeric() || c == '_' || c == '.'))
++    .then_some(ty)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use tree_sitter::Parser;
++
++    fn scoped(
++        lang: &str,
++        l: tree_sitter::Language,
++        src: &str,
++    ) -> Vec<(String, String, String)> {
++        let mut p = Parser::new();
++        p.set_language(&l).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let mut facts = FileFacts::new(
++            cgg_core::ids::FileId::new(0),
++            std::path::PathBuf::from("x"),
++            lang,
++        );
++        let mut stack = vec![tree.root_node()];
++        while let Some(n) = stack.pop() {
++            record(lang, n, src.as_bytes(), &mut facts);
++            stack.extend(n.children(&mut n.walk()));
++        }
++        let mut v: Vec<_> = facts
++            .scoped_types
++            .iter()
++            .map(|s| {
++                (
++                    s.name.clone(),
++                    s.type_name.clone(),
++                    src[s.start_byte as usize..s.end_byte as usize].to_string(),
++                )
++            })
++            .collect();
++        v.sort();
++        v
++    }
++
++    #[test]
++    fn dart_typed_closure_parameters_are_scoped_to_the_closure() {
++        let v = scoped(
++            "dart",
++            tree_sitter_dart::LANGUAGE.into(),
++            "void f(List<Foo> xs) {\n  xs.forEach((Foo x) { x.run(); });\n  xs.map((Bar? y) => y);\n  xs.forEach((z) => z.run());\n  xs.forEach((int i) {});\n}\n",
++        );
++        let names: Vec<(&str, &str)> =
++            v.iter().map(|(n, t, _)| (n.as_str(), t.as_str())).collect();
++        // Near misses: an untyped parameter and a primitive one.
++        assert_eq!(names, vec![("x", "Foo"), ("y", "Bar")]);
++        assert!(v[0].2.starts_with("(Foo x)") && v[0].2.ends_with('}'));
++    }
++
++    #[test]
++    fn csharp_typed_lambda_parameters_are_scoped_to_the_lambda() {
++        let v = scoped(
++            "csharp",
++            tree_sitter_c_sharp::LANGUAGE.into(),
++            "class M { void F(List<Foo> xs) { xs.ForEach((Foo x) => x.Run()); xs.ForEach((Foo? y) => { y.Run(); }); xs.ForEach(z => z.Run()); xs.ForEach((int i) => i); } }",
++        );
++        let names: Vec<(&str, &str)> =
++            v.iter().map(|(n, t, _)| (n.as_str(), t.as_str())).collect();
++        assert_eq!(names, vec![("x", "Foo"), ("y", "Foo")]);
++    }
++
++    fn closure_args(
++        lang: &str,
++        l: tree_sitter::Language,
++        src: &str,
++    ) -> Vec<(String, u32, Vec<String>)> {
++        let mut p = Parser::new();
++        p.set_language(&l).unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let mut facts = FileFacts::new(
++            cgg_core::ids::FileId::new(0),
++            std::path::PathBuf::from("x"),
++            lang,
++        );
++        let mut stack = vec![tree.root_node()];
++        while let Some(n) = stack.pop() {
++            record(lang, n, src.as_bytes(), &mut facts);
++            stack.extend(n.children(&mut n.walk()));
++        }
++        let mut v: Vec<_> = facts
++            .closure_args
++            .iter()
++            .map(|c| (c.callee.clone(), c.arg_index, c.params.clone()))
++            .collect();
++        v.sort();
++        v
++    }
++
++    #[test]
++    fn untyped_closures_passed_to_a_bare_call_are_recorded_with_their_position() {
++        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
++        assert_eq!(
++            closure_args(
++                "dart",
++                tree_sitter_dart::LANGUAGE.into(),
++                "void f() {\n  each((x) => x.run());\n  pair(1, (a, b) { a.go(); });\n  xs.forEach((y) => y.run());\n  named(cb: (z) => z.run());\n}\n",
++            ),
++            // Near misses: a receiver call (`xs.forEach`) and a named
++            // argument are not recorded.
++            vec![
++                ("each".into(), 0, s(&["x"])),
++                ("pair".into(), 1, s(&["a", "b"]))
++            ]
++        );
++        assert_eq!(
++            closure_args(
++                "csharp",
++                tree_sitter_c_sharp::LANGUAGE.into(),
++                "class M { void F() { Each(x => x.Run()); Two(1, (a, b) => a.Go()); xs.ForEach(y => y.Run()); } }",
++            ),
++            vec![
++                ("Each".into(), 0, s(&["x"])),
++                ("Two".into(), 1, s(&["a", "b"]))
++            ]
++        );
++        assert_eq!(
++            closure_args(
++                "scala",
++                tree_sitter_scala::LANGUAGE.into(),
++                "object M {\n  def f(): Unit = {\n    withTempDir { dir => dir.list() }\n    each(x => x.run())\n    xs.foreach(y => y.run())\n  }\n}\n",
++            ),
++            vec![
++                ("each".into(), 0, s(&["x"])),
++                ("withTempDir".into(), 0, s(&["dir"]))
++            ]
++        );
++    }
++
++    #[test]
++    fn scala_typed_lambdas_and_patterns_are_scoped() {
++        let v = scoped(
++            "scala",
++            tree_sitter_scala::LANGUAGE.into(),
++            "object M {\n  def f(xs: List[Foo]): Unit = {\n    xs.foreach((x: Foo) => x.run())\n    xs.foreach { case y: Bar => y.run() }\n    xs.foreach(z => z.run())\n    xs.foreach { case Some(w) => w }\n  }\n}\n",
++        );
++        let names: Vec<(&str, &str)> =
++            v.iter().map(|(n, t, _)| (n.as_str(), t.as_str())).collect();
++        assert_eq!(names, vec![("x", "Foo"), ("y", "Bar")]);
++    }
++}
