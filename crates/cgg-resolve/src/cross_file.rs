@@ -4262,6 +4262,137 @@ fn narrow_specializations(
     Some(cids.to_vec())
 }
 
+/// The `<Owner as Trait<Args>>` parts of a Rust trait-impl callable's
+/// qualified name: (owner, trait path without arguments, arguments as
+/// written). `None` for anything else.
+fn rust_impl_parts(qn: &str) -> Option<(String, String, String)> {
+    let (prefix, _) = crate::names::split_last_segment(qn)?;
+    let (_, wrapper) = crate::names::split_last_segment(prefix)?;
+    let inner = wrapper.trim().strip_prefix('<')?.strip_suffix('>')?;
+    let (owner, tr) = inner.split_once(" as ")?;
+    let (path, args) = match tr.find('<') {
+        Some(i) => (&tr[..i], tr[i..].trim()),
+        None => (tr, ""),
+    };
+    let compact = |t: &str| t.split_whitespace().collect::<String>();
+    Some((compact(owner), compact(path), args.to_string()))
+}
+
+/// A trait argument list as written (`<&'static str>`) compared with a
+/// call's [`cgg_core::RefRecord::arg_type`] (`&str`): lifetimes and
+/// whitespace ignored; a sized byte array matches a byte-slice literal.
+fn trait_arg_matches(args: &str, arg_type: &str) -> bool {
+    let Some(inner) = args.strip_prefix('<').and_then(|a| a.strip_suffix('>')) else {
+        return false;
+    };
+    let mut t = String::with_capacity(inner.len());
+    let mut chars = inner.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\'' {
+            // A lifetime: skip its name.
+            while chars
+                .peek()
+                .is_some_and(|n| n.is_alphanumeric() || *n == '_')
+            {
+                chars.next();
+            }
+            continue;
+        }
+        if !c.is_whitespace() {
+            t.push(c);
+        }
+    }
+    let t = t.replace("&mut", "&");
+    if t == arg_type {
+        return true;
+    }
+    arg_type == "&[u8]" && t.starts_with("&[u8;")
+}
+
+/// Narrow a Rust typed lookup that landed on several implementations of
+/// one generic trait for one type — `<Bytes as From<&str>>::from`,
+/// `<Bytes as From<u8>>::from`, … — which are not alternatives the
+/// receiver leaves open but overloads its argument selects.
+///
+/// * The call's argument type ([`cgg_core::RefRecord::arg_type`]) picks
+///   the one implementation it names, when exactly one does.
+/// * Otherwise more implementations than `--fanout-cap` are not drawn as
+///   edges to all of them (all but one are wrong): a workspace trait with
+///   exactly one declaration in the graph binds to that declaration —
+///   the dispatch surface, as `homogeneous_trait_declaration` does for a
+///   duck-typed receiver — and anything else (a std trait such as
+///   `From`, with no declaration node) is refused as
+///   `fanout-cap-exceeded`, the count recorded.
+/// * Within the cap, or for any other candidate set, nothing changes.
+fn narrow_trait_overloads(
+    graph: &Graph,
+    cids: &[CallableId],
+    r: &cgg_core::RefRecord,
+    fanout_cap: usize,
+    capped: &mut u32,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+) -> Option<Vec<CallableId>> {
+    if cids.len() < 2 {
+        return Some(cids.to_vec());
+    }
+    let mut parts: Vec<(CallableId, String)> = Vec::with_capacity(cids.len());
+    let mut group: Option<(String, String)> = None;
+    for c in cids {
+        let Some((owner, path, args)) = graph
+            .callables
+            .get(c)
+            .and_then(|n| rust_impl_parts(&n.qualified_name))
+        else {
+            return Some(cids.to_vec());
+        };
+        match &group {
+            None => group = Some((owner, path)),
+            Some(g) if g.0 == owner && g.1 == path => {}
+            Some(_) => return Some(cids.to_vec()),
+        }
+        parts.push((*c, args));
+    }
+    let distinct: std::collections::BTreeSet<&str> =
+        parts.iter().map(|(_, a)| a.as_str()).collect();
+    if distinct.len() < 2 {
+        return Some(cids.to_vec());
+    }
+    if let Some(at) = r.arg_type.as_deref() {
+        let picked: Vec<CallableId> = parts
+            .iter()
+            .filter(|(_, a)| trait_arg_matches(a, at))
+            .map(|(c, _)| *c)
+            .collect();
+        if !picked.is_empty() {
+            return Some(picked);
+        }
+    }
+    if cids.len() <= fanout_cap {
+        return Some(cids.to_vec());
+    }
+    let (_, path) = group?;
+    let trait_last = path.rsplit("::").next().unwrap_or(&path).to_string();
+    let decls: Vec<CallableId> = by_owner_method
+        .get(&("rust".to_string(), trait_last, r.name.clone()))
+        .map(|v| {
+            v.iter()
+                .copied()
+                .filter(|c| {
+                    graph.callables.get(c).is_some_and(|n| {
+                        !n.qualified_name.contains(" as ")
+                            && n.trait_impl_target.is_none()
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    if let [d] = decls.as_slice() {
+        return Some(vec![*d]);
+    }
+    *capped = cids.len() as u32;
+    None
+}
+
 /// The package a Perl sub belongs to: its qualified name minus the sub,
 /// with the implicit `main` spelled as the empty package.
 fn perl_package(qn: &str) -> &str {
@@ -5314,6 +5445,22 @@ fn try_resolve_ref(
                     .next()
                     .is_some_and(|c| c.is_uppercase()))
         {
+            // A bare type name the file `use`s from a crate outside the
+            // workspace (`use actix_web::web::Data;`), as the full path it
+            // was imported by.
+            let owner_rh = crate::names::normalize_owner(rh);
+            let imported_external_type = (lang == "rust" && !rh.contains("::"))
+                .then(|| {
+                    rust_external_import(
+                        owner_rh,
+                        rust_path_heads,
+                        workspace_owner_names,
+                        direct_imports,
+                        module_aliases,
+                        caller_qn,
+                    )
+                })
+                .flatten();
             let external = lang == "rust"
                 && rh.contains("::")
                 && is_external_rust_head(
@@ -5332,6 +5479,35 @@ fn try_resolve_ref(
                 )) && !cids.is_empty()
                 {
                     return Some(cids.clone());
+                }
+            } else if let Some(path) = imported_external_type {
+                // A type the file imports from another crate is not a
+                // same-named workspace type. No crate but the type's own
+                // can write an inherent `impl` for it, so only a trait
+                // implementation (`<T as Trait>::m`, which a workspace
+                // crate may write for a foreign type) can be the callee.
+                let impls: Vec<CallableId> = by_owner_method
+                    .get(&(lang.to_string(), owner_rh.to_string(), r.name.clone()))
+                    .map(|v| {
+                        v.iter()
+                            .copied()
+                            .filter(|c| {
+                                graph.callables.get(c).is_some_and(|n| {
+                                    n.trait_impl_target.is_some()
+                                        || n.qualified_name.contains(" as ")
+                                })
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if !impls.is_empty() {
+                    return Some(impls);
+                }
+                // A wrapper with a type argument still reaches it (step
+                // 4b); anything else is the foreign type's own method.
+                if deref_inner.is_none() {
+                    *external_out = Some(path);
+                    return None;
                 }
             } else {
                 // The owner key in the index is the *bare* type name. A
@@ -5508,6 +5684,16 @@ fn try_resolve_ref(
                                 graph, &seen, rh, fanout_cap, capped,
                             );
                         }
+                        if lang == "rust" {
+                            return narrow_trait_overloads(
+                                graph,
+                                cids,
+                                r,
+                                fanout_cap,
+                                capped,
+                                by_owner_method,
+                            );
+                        }
                         return narrow_specializations(
                             graph, cids, rh, fanout_cap, capped,
                         );
@@ -5582,7 +5768,20 @@ fn try_resolve_ref(
             let derefs_to_arg = bases_by_owner
                 .get(&(lang.to_string(), outer_last.to_string()))
                 .is_some_and(|b| b.iter().any(|x| x == DEREF_TO_ARG));
-            if (!workspace_owner_names.contains(outer_last) || derefs_to_arg)
+            let outer_foreign = lang == "rust"
+                && !outer.contains("::")
+                && rust_external_import(
+                    outer_last,
+                    rust_path_heads,
+                    workspace_owner_names,
+                    direct_imports,
+                    module_aliases,
+                    caller_qn,
+                )
+                .is_some();
+            if (!workspace_owner_names.contains(outer_last)
+                || derefs_to_arg
+                || outer_foreign)
                 && let Some(cids) = by_owner_method.get(&(
                     lang.to_string(),
                     inner_last.to_string(),
@@ -6012,6 +6211,42 @@ fn is_external_rust_head(
         && !workspace_owner_names.contains(effective)
         && rust_module_head_path(head, caller_qn, rust_path_heads).is_none()
         && !via_glob()
+}
+
+/// The path a bare Rust type name was imported by, when the file `use`s
+/// it from a crate outside the workspace (`use actix_web::web::Data;`
+/// makes `Data` `actix_web::web::Data`). `None` for a name the file does
+/// not import by `use`, or imports from the workspace.
+fn rust_external_import(
+    name: &str,
+    rust_path_heads: &RustPathVocab,
+    workspace_owner_names: &std::collections::HashSet<String>,
+    direct_imports: &HashMap<String, Vec<String>>,
+    module_aliases: &HashMap<String, String>,
+    caller_qn: Option<&str>,
+) -> Option<String> {
+    let paths = direct_imports.get(name)?;
+    let first = paths.first()?;
+    // Every import of the name must agree; a `use` that renames a
+    // workspace type into this name keeps the workspace reading.
+    if !first.contains("::")
+        || paths
+            .iter()
+            .any(|p| p.split("::").next() != first.split("::").next())
+    {
+        return None;
+    }
+    // Judged by the path's own head: `use reporter::Trait;` names a child
+    // module of the caller's crate, `use actix_web::web::Data;` a crate.
+    is_external_rust_head(
+        first.split("::").next().unwrap_or(first),
+        rust_path_heads,
+        workspace_owner_names,
+        direct_imports,
+        module_aliases,
+        caller_qn,
+    )
+    .then(|| first.clone())
 }
 
 /// What cgg knows about Rust path vocabulary in this workspace: the
@@ -7689,6 +7924,208 @@ mod tests {
         let mut hit: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
         hit.sort();
         assert_eq!(hit, [60, 80, 90], "{:?}", out.edges);
+    }
+
+    /// WS13: a type name the file `use`s from a crate outside the
+    /// workspace is not a same-named workspace type. Its wrapper form
+    /// still reaches the type argument; a file importing the workspace
+    /// type keeps binding to it.
+    #[test]
+    fn rust_externally_imported_type_is_not_a_workspace_type() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "lib.rs", "rust"));
+        g.add_file(mk_file(1, "ext_user.rs", "rust"));
+        g.add_file(mk_file(2, "ws_user.rs", "rust"));
+        let defs = [
+            (0, "pool", "other::Data::pool"),
+            (1, "pool", "app::Ctx::pool"),
+            (2, "size", "other::Data::size"),
+            (3, "emit", "app::reporter::Sink::emit"),
+        ];
+        let mut def_records = vec![];
+        for (id, name, qn) in defs {
+            g.add_callable(mk_callable(
+                id,
+                name,
+                qn,
+                0,
+                "rust",
+                (id * 50, id * 50 + 40),
+            ));
+            def_records.push(mk_def(
+                name,
+                qn,
+                DefVariant::InherentMethod,
+                (id * 50, id * 50 + 40),
+            ));
+        }
+        g.add_callable(mk_callable(8, "h", "app::h", 1, "rust", (0, 400)));
+        g.add_callable(mk_callable(9, "w", "app::w", 2, "rust", (0, 400)));
+        let r = |name: &str, hint: &str, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            site_line: 5,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let imp = |path: &str| ImportRecord {
+            kind: "use".into(),
+            path: path.into(),
+            alias: String::new(),
+            site_line: 1,
+            site_byte: 0,
+        };
+        let ext_user = facts_for(
+            1,
+            "ext_user.rs",
+            "rust",
+            vec![mk_def("h", "app::h", DefVariant::FreeFunction, (0, 400))],
+            vec![
+                r("pool", "Data<Ctx>", 60),
+                r("size", "Data", 70),
+                r("emit", "Sink", 90),
+            ],
+            // `reporter` is a child module of the caller's crate.
+            vec![imp("extweb::web::Data"), imp("reporter::Sink")],
+        );
+        let ws_user = facts_for(
+            2,
+            "ws_user.rs",
+            "rust",
+            vec![mk_def("w", "app::w", DefVariant::FreeFunction, (0, 400))],
+            vec![r("size", "Data", 80)],
+            vec![imp("other::Data")],
+        );
+        let facts = [
+            facts_for(0, "lib.rs", "rust", def_records, vec![], vec![]),
+            ext_user,
+            ws_user,
+        ];
+        let out = resolve_default(&g, &facts);
+        let mut hit: Vec<(u32, u32)> = out
+            .edges
+            .iter()
+            .map(|e| (e.site_byte, e.dst.as_u32()))
+            .collect();
+        hit.sort();
+        // `Data<Ctx>.pool()` reaches `Ctx::pool`; the foreign `Data`'s
+        // own `size` binds nothing; the workspace import still binds.
+        assert_eq!(hit, [(60, 1), (80, 2), (90, 3)], "{:?}", out.edges);
+    }
+
+    /// WS13: a type implementing one generic trait many times is called
+    /// through the impl its argument selects. A literal argument picks it;
+    /// otherwise more impls than the cap are refused (a std trait) or
+    /// bound to the declaration (a workspace trait); within the cap the
+    /// set stands.
+    #[test]
+    fn rust_trait_overloads_respect_the_cap_and_the_argument_type() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "lib.rs", "rust"));
+        g.add_file(mk_file(1, "user.rs", "rust"));
+        let mut def_records = vec![];
+        let mut id = 0u32;
+        let mut add = |g: &mut Graph, name: &str, qn: &str, v: DefVariant| {
+            g.add_callable(mk_callable(
+                id,
+                name,
+                qn,
+                0,
+                "rust",
+                (id * 50, id * 50 + 40),
+            ));
+            def_records.push(mk_def(name, qn, v, (id * 50, id * 50 + 40)));
+            id += 1;
+            id - 1
+        };
+        let mut from_ids = vec![];
+        for arg in [
+            "u8",
+            "u16",
+            "u32",
+            "u64",
+            "&'static str",
+            "String",
+            "Vec<u8>",
+        ] {
+            from_ids.push(add(
+                &mut g,
+                "from",
+                &format!("k::<Bytes as From<{arg}>>::from"),
+                DefVariant::TraitMethod,
+            ));
+        }
+        for arg in ["u8", "u16", "u32"] {
+            add(
+                &mut g,
+                "from",
+                &format!("k::<Small as From<{arg}>>::from"),
+                DefVariant::TraitMethod,
+            );
+        }
+        let decl = add(
+            &mut g,
+            "conv",
+            "k::Conv::conv",
+            DefVariant::TraitDefaultMethod,
+        );
+        for arg in ["A", "B", "C", "D", "E", "F"] {
+            add(
+                &mut g,
+                "conv",
+                &format!("k::<W as Conv<{arg}>>::conv"),
+                DefVariant::TraitMethod,
+            );
+        }
+        g.add_callable(mk_callable(99, "main", "app::main", 1, "rust", (0, 900)));
+        let r = |name: &str, hint: &str, arg: Option<&str>, byte| RefRecord {
+            name: name.into(),
+            receiver_hint: hint.into(),
+            path_receiver: true,
+            site_line: 5,
+            site_byte: byte,
+            arg_type: arg.map(str::to_string),
+            ..Default::default()
+        };
+        let user = facts_for(
+            1,
+            "user.rs",
+            "rust",
+            vec![mk_def(
+                "main",
+                "app::main",
+                DefVariant::FreeFunction,
+                (0, 900),
+            )],
+            vec![
+                r("from", "Bytes", Some("&str"), 100),
+                r("from", "Bytes", None, 200),
+                r("from", "Small", None, 300),
+                r("conv", "W", None, 400),
+                r("from", "Bytes", Some("bool"), 500),
+            ],
+            vec![],
+        );
+        let facts = [
+            facts_for(0, "lib.rs", "rust", def_records, vec![], vec![]),
+            user,
+        ];
+        let out = resolve_default(&g, &facts);
+        let at = |b: u32| -> Vec<u32> {
+            let mut v: Vec<u32> = out
+                .edges
+                .iter()
+                .filter(|e| e.site_byte == b)
+                .map(|e| e.dst.as_u32())
+                .collect();
+            v.sort();
+            v
+        };
+        assert_eq!(at(100), vec![from_ids[4]]);
+        assert!(at(200).is_empty());
+        assert_eq!(at(300).len(), 3);
+        assert_eq!(at(400), vec![decl]);
+        assert!(at(500).is_empty());
     }
 
     // A crate made only of re-exports contributes no qualified name, but

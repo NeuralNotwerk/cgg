@@ -470,6 +470,7 @@ pub fn propagate_types_with_fields(
         }
     }
 
+    let rust_bindings = rust.then(|| RustBindings::build(facts));
     let rust_lets = if rust || go || zig {
         RustLets::build(facts)
     } else {
@@ -675,12 +676,16 @@ pub fn propagate_types_with_fields(
         // and a raw pointer's `p->f()` reach the declared type itself.
         let deref_key = (cpp && rref.arrow).then(|| format!("{rh}{DEREF_SUFFIX}"));
 
-        // Strategy 1: parameter type annotations
+        // Strategy 1: parameter type annotations. A Rust parameter a
+        // later `let` re-binds no longer has its declared type there.
         if let Some(enc) = enclosing
             && let Some(&ty) = deref_key
                 .as_deref()
                 .and_then(|k| type_map.get(&(enc.start_byte, k)))
                 .or_else(|| type_map.get(&(enc.start_byte, rh)))
+            && !rust_bindings
+                .as_ref()
+                .is_some_and(|b| b.shadowed_since(rh, enc.start_byte, rref.site_byte))
         {
             rewrites.push((i, ty.to_string()));
             continue;
@@ -725,13 +730,22 @@ pub fn propagate_types_with_fields(
                 .and_then(|k| lookup_local_type(facts, rref.site_byte, k))
                 .or_else(|| lookup_local_type(facts, rref.site_byte, rh))
         } else if rust {
-            rust_lets
-                .visible(
-                    rh,
-                    rref.site_byte,
-                    enclosing.map(|d| (d.start_byte, d.end_byte)),
-                )
-                .or_else(|| local_type_map.get(rh).copied())
+            // The `let` in scope, unless a later untyped binding hides it.
+            // A site with no visible `let` keeps the file-wide answer it
+            // always had: refusing it whenever some untyped binding of the
+            // name is in scope was measured (WS13) to drop 161 high edges,
+            // about 70% of them right, to fix two dead-code findings.
+            let bindings = rust_bindings.as_ref();
+            match rust_lets.visible_at(
+                rh,
+                rref.site_byte,
+                enclosing.map(|d| (d.start_byte, d.end_byte)),
+            ) {
+                Some((at, ty)) => (!bindings
+                    .is_some_and(|b| b.shadowed_since(rh, at, rref.site_byte)))
+                .then_some(ty),
+                None => local_type_map.get(rh).copied(),
+            }
         } else if zig {
             rust_lets.visible(
                 rh,
@@ -844,6 +858,162 @@ pub fn propagate_types_with_fields(
             ));
         }
         facts.references[i].receiver_hint = ty;
+    }
+}
+
+/// What an associated function's declared return type says about the
+/// value a `Type::f(..)` call produces.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum AssocReturn {
+    /// `Self`, or the owner type itself, possibly behind `Result`,
+    /// `Option`, a reference or a smart pointer.
+    OwnType,
+    /// Another named type, from its last path segment on (`Data<Ctx>`).
+    Other(String),
+    /// Nothing nameable: `()`, a primitive, `impl Trait`, a tuple.
+    Unknown,
+}
+
+/// Reads a Rust signature's return type for [`AssocReturn`], with
+/// `owner` the bare name of the type the function is declared on.
+fn rust_assoc_return(sig: &str, owner: &str) -> AssocReturn {
+    let Some(params) = param_list(sig) else {
+        return AssocReturn::Unknown;
+    };
+    // The offset just past the parameter list's closing `)`.
+    let after = params.as_ptr() as usize - sig.as_ptr() as usize + params.len() + 1;
+    let Some(rest) = sig.get(after..) else {
+        return AssocReturn::Unknown;
+    };
+    let Some(arrow) = rest.find("->") else {
+        return AssocReturn::Unknown;
+    };
+    let mut t = return_type_text(&rest[arrow + 2..]);
+    for _ in 0..8 {
+        t = t.trim();
+        // `&'a mut T`, `&T`
+        if let Some(r) = t.strip_prefix('&') {
+            t = r.trim_start();
+            if t.starts_with('\'') {
+                t = t.split_once(' ').map_or("", |(_, r)| r);
+            }
+            t = t.trim_start().strip_prefix("mut ").unwrap_or(t);
+            continue;
+        }
+        let head = t.split('<').next().unwrap_or(t).trim();
+        let last = head.rsplit("::").next().unwrap_or(head);
+        if cgg_core::rust_types::is_return_wrapper(last)
+            && let Some(open) = t.find('<')
+            && let Some(close) = t.rfind('>')
+            && close > open
+        {
+            let args = &t[open + 1..close];
+            t = split_top_level(args, |c| c == ',', true)
+                .first()
+                .copied()
+                .unwrap_or("");
+            continue;
+        }
+        break;
+    }
+    let head = t.split(['<', ' ', '(', '[']).next().unwrap_or(t).trim();
+    let last = head.rsplit("::").next().unwrap_or(head);
+    if last == "Self" || last == owner {
+        AssocReturn::OwnType
+    } else if last.starts_with(char::is_uppercase) && !is_primitive(last) {
+        // The type from its last path segment on, type arguments kept:
+        // `-> web::Data<Ctx>` is `Data<Ctx>`, which still reaches `Ctx`.
+        let t = t.trim();
+        let from = head.len() - last.len();
+        AssocReturn::Other(t.get(from..).unwrap_or(last).trim().to_string())
+    } else {
+        AssocReturn::Unknown
+    }
+}
+
+/// Settle the Rust locals typed from a `Type::f(..)` path call
+/// ([`cgg_core::AssocCallLocal`]) against `f`'s declared return type.
+///
+/// The extractor types `let x = Type::f(..)` as `Type`, which is right
+/// for a constructor (`new`, `default`, `from`, `open`) and wrong for an
+/// associated function returning something else (`Type::load(..) ->
+/// Config`): every method call on `x` then looked for `Type`'s methods.
+/// Here, with every file's definitions known, the declarations of `f` on
+/// a type of that name decide:
+///
+/// * all return `Self` / the type (possibly as `Result`/`Option`/a
+///   pointer) — the reading stands;
+/// * all return one other named type — the local is retyped to it;
+/// * anything else (a primitive, `()`, `impl Trait`, declarations that
+///   disagree) — the local is left untyped, as any local cgg cannot type.
+///
+/// No declaration in the tree (an external type's `File::open`) leaves
+/// the constructor reading unchanged. Order-independent: the verdicts
+/// are compared as a set.
+pub fn settle_assoc_call_locals(all_facts: &mut [FileFacts]) {
+    if !all_facts.iter().any(|f| !f.assoc_call_locals.is_empty()) {
+        return;
+    }
+    let wanted: std::collections::HashSet<(String, String)> = all_facts
+        .iter()
+        .flat_map(|f| {
+            f.assoc_call_locals.iter().filter_map(move |a| {
+                let lt = f.local_types.iter().rev().find(|lt| {
+                    lt.var_name == a.var_name && lt.scope_byte == a.scope_byte
+                })?;
+                let ty = crate::names::normalize_owner(
+                    lt.type_name.rsplit("::").next().unwrap_or(&lt.type_name),
+                );
+                Some((ty.to_string(), a.assoc_fn.clone()))
+            })
+        })
+        .collect();
+    let mut verdicts: HashMap<(String, String), Vec<AssocReturn>> = HashMap::new();
+    for f in all_facts.iter().filter(|f| f.language == "rust") {
+        for d in &f.definitions {
+            let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) else {
+                continue;
+            };
+            let key = (owner.to_string(), d.simple_name.clone());
+            if !wanted.contains(&key) {
+                continue;
+            }
+            let v = rust_assoc_return(&d.signature_hint, owner);
+            let slot = verdicts.entry(key).or_default();
+            if !slot.contains(&v) {
+                slot.push(v);
+            }
+        }
+    }
+    for f in all_facts.iter_mut() {
+        if f.assoc_call_locals.is_empty() {
+            continue;
+        }
+        let pending = std::mem::take(&mut f.assoc_call_locals);
+        for a in pending {
+            let Some(idx) = f.local_types.iter().rposition(|lt| {
+                lt.var_name == a.var_name && lt.scope_byte == a.scope_byte
+            }) else {
+                continue;
+            };
+            let ty = {
+                let t = &f.local_types[idx].type_name;
+                crate::names::normalize_owner(t.rsplit("::").next().unwrap_or(t))
+                    .to_string()
+            };
+            let Some(vs) = verdicts.get(&(ty, a.assoc_fn.clone())) else {
+                continue;
+            };
+            match vs.as_slice() {
+                [AssocReturn::OwnType] => {}
+                [AssocReturn::Other(other)] => {
+                    f.local_types[idx].type_name = other.clone();
+                }
+                _ => {
+                    f.local_types.remove(idx);
+                }
+            }
+        }
     }
 }
 
@@ -1465,13 +1635,7 @@ fn skip_string(chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>, quote
 /// lock guard dereferences to.
 const GUARD_SUFFIX: &str = "#guard";
 
-/// Smart pointers and locks whose contents a method call reaches —
-/// through `Deref`, or through the guard `lock()`/`read()`/`borrow()`
-/// hands back. A parameter typed as one of these is, for resolving its
-/// methods, the type inside.
-const RUST_WRAPPERS: &[&str] = &[
-    "Arc", "Rc", "Box", "Pin", "Mutex", "RwLock", "RefCell", "Cell", "ArcSwap",
-];
+use cgg_core::rust_types::SMART_POINTERS_AND_LOCKS as RUST_WRAPPERS;
 
 /// Rust `name: Type`, seeing through wrapper chains: `x: Arc<Mutex<dyn
 /// Reporter>>` is a `Reporter`, not an `Arc`. The generic `parse_colon_param`
@@ -1501,10 +1665,8 @@ fn parse_colon_param_rust(param: &str) -> Option<(&str, &str, bool)> {
         if close <= open {
             break;
         }
-        locked |= matches!(
-            head.rsplit("::").next().unwrap_or(head),
-            "Mutex" | "RwLock" | "RefCell"
-        );
+        locked |= cgg_core::rust_types::LOCK_WRAPPERS
+            .contains(&head.rsplit("::").next().unwrap_or(head));
         ty = &ty[open + 1..close];
     }
     // `State<AppState>`: kept whole, see `deref_wrapper_split`.
@@ -2075,13 +2237,71 @@ impl<'a> RustLets<'a> {
         site: u32,
         site_fn: Option<(u32, u32)>,
     ) -> Option<&'a str> {
+        self.visible_at(name, site, site_fn).map(|(_, ty)| ty)
+    }
+
+    /// [`Self::visible`], with the position of the `let` it found.
+    fn visible_at(
+        &self,
+        name: &str,
+        site: u32,
+        site_fn: Option<(u32, u32)>,
+    ) -> Option<(u32, &'a str)> {
         let lets = self.by_name.get(name)?;
         site_fn?;
         lets.iter()
             .rev()
             .filter(|(b, _, _)| *b <= site)
             .find(|(_, span, _)| span.is_some_and(|(s, e)| s <= site && site < e))
-            .map(|(_, _, ty)| *ty)
+            .map(|(b, _, ty)| (*b, *ty))
+    }
+}
+
+/// Rust bindings by name, from the scope-spanned [`FileFacts::locals`]:
+/// `(declaration byte, scope start, scope end)`. What decides whether a
+/// type recorded for a name still applies at a site.
+struct RustBindings<'a> {
+    by_name: HashMap<&'a str, Vec<(u32, u32, u32)>>,
+}
+
+impl<'a> RustBindings<'a> {
+    fn build(facts: &'a FileFacts) -> Self {
+        let mut by_name: HashMap<&'a str, Vec<(u32, u32, u32)>> = HashMap::new();
+        for b in &facts.locals {
+            by_name.entry(b.name.as_str()).or_default().push((
+                b.decl_byte,
+                b.start_byte,
+                b.end_byte,
+            ));
+        }
+        Self { by_name }
+    }
+
+    fn of(&self, name: &str) -> &[(u32, u32, u32)] {
+        let base = name.strip_suffix(GUARD_SUFFIX).unwrap_or(name);
+        self.by_name.get(base).map_or(&[], |v| v.as_slice())
+    }
+
+    /// Whether the type recorded for `name` at `typed_at` (a `let`, or a
+    /// function's start for its parameters) is hidden at `site` by a
+    /// later binding: `let mut r = Router::build(); let mut r =
+    /// r.finish(); r.recognize()` — the second `r` has a type cgg did not
+    /// record, and the first one's no longer applies. The binding in
+    /// scope at the site that was declared last is the one the site
+    /// sees; the typed one is shadowed when another binding of `name`
+    /// was declared between `typed_at` and it. Nothing recorded for the
+    /// name (locals are skipped in minified files) shadows nothing.
+    fn shadowed_since(&self, name: &str, typed_at: u32, site: u32) -> bool {
+        let bs = self.of(name);
+        let Some(seen) = bs
+            .iter()
+            .filter(|(d, s, e)| *s <= site && site < *e && *d >= typed_at)
+            .map(|(d, _, _)| *d)
+            .max()
+        else {
+            return false;
+        };
+        bs.iter().any(|(d, _, _)| *d >= typed_at && *d < seen)
     }
 }
 
@@ -2298,6 +2518,188 @@ mod tests {
             attributes: Vec::new(),
             ..Default::default()
         }
+    }
+
+    /// WS13: `let x = Type::f(..)` is typed `Type` only when `f` returns
+    /// it. Another named return type retypes the local; a primitive
+    /// leaves it untyped; a type with no declaration of `f` in the tree
+    /// (an external constructor) keeps the reading.
+    #[test]
+    fn assoc_call_locals_follow_the_declared_return_type() {
+        let lib = mk_facts(
+            vec![
+                mk_def("app::Loader::new", "pub fn new(p: String) -> Self", 0, 10),
+                mk_def(
+                    "app::Loader::load",
+                    "pub fn load(p: &str) -> Config",
+                    10,
+                    20,
+                ),
+                mk_def(
+                    "app::Loader::open",
+                    "fn open(p: &str) -> io::Result<Loader>",
+                    20,
+                    30,
+                ),
+                mk_def("app::Loader::count", "fn count() -> usize", 30, 40),
+                mk_def("app::Loader::ctx", "fn ctx() -> web::Data<Ctx>", 50, 60),
+                mk_def(
+                    "app::Loader::wrap",
+                    "fn wrap(cb: impl Fn(u8) -> Config) -> Option<Arc<Self>>",
+                    40,
+                    50,
+                ),
+            ],
+            vec![],
+        );
+        let mut user = FileFacts::new(FileId::new(1), PathBuf::from("/tmp/u.rs"), "rust");
+        for (var, ty, f) in [
+            ("a", "Loader", "new"),
+            ("b", "Loader", "load"),
+            ("c", "app::Loader", "open"),
+            ("d", "Loader", "count"),
+            ("e", "Loader", "wrap"),
+            ("g", "File", "open"),
+            ("k", "Loader", "ctx"),
+        ] {
+            user.local_types.push(cgg_core::LocalType {
+                var_name: var.into(),
+                type_name: ty.into(),
+                scope_byte: 100,
+            });
+            user.assoc_call_locals.push(cgg_core::AssocCallLocal {
+                var_name: var.into(),
+                scope_byte: 100,
+                assoc_fn: f.into(),
+            });
+        }
+        // Typed some other way (a parameter): never revisited.
+        user.local_types.push(cgg_core::LocalType {
+            var_name: "h".into(),
+            type_name: "Loader".into(),
+            scope_byte: 100,
+        });
+        let mut all = vec![lib, user];
+        settle_assoc_call_locals(&mut all);
+        let ty = |v: &str| {
+            all[1]
+                .local_types
+                .iter()
+                .find(|lt| lt.var_name == v)
+                .map(|lt| lt.type_name.as_str())
+        };
+        assert_eq!(ty("a"), Some("Loader"));
+        assert_eq!(ty("b"), Some("Config"));
+        assert_eq!(ty("c"), Some("app::Loader"));
+        assert_eq!(ty("d"), None);
+        assert_eq!(ty("e"), Some("Loader"));
+        assert_eq!(ty("g"), Some("File"));
+        assert_eq!(ty("h"), Some("Loader"));
+        assert_eq!(ty("k"), Some("Data<Ctx>"));
+        assert!(all[1].assoc_call_locals.is_empty());
+    }
+
+    /// WS13: `let mut r = Builder::new(); let mut r = r.finish();` — the
+    /// second `r` has no recorded type, and the first one's no longer
+    /// applies after it. A same-named binding in a block the site is not
+    /// in leaves the typed one visible; inside that block it is hidden.
+    #[test]
+    fn an_untyped_rust_rebinding_ends_the_typed_one() {
+        let mut f = mk_facts(vec![mk_def("m::run", "fn run()", 0, 500)], vec![]);
+        let bind = |decl: u32, start: u32, end: u32| cgg_core::LocalBinding {
+            name: "r".into(),
+            start_byte: start,
+            end_byte: end,
+            decl_byte: decl,
+        };
+        // typed `let r` at 10 (decl 18, in scope 40..500), a block-local
+        // `r` (decl 60, in scope 70..90), the shadowing `let r` (decl
+        // 108, in scope 130..500).
+        f.locals = vec![bind(18, 40, 500), bind(60, 70, 90), bind(108, 130, 500)];
+        let b = RustBindings::build(&f);
+        assert!(!b.shadowed_since("r", 10, 50));
+        assert!(!b.shadowed_since("r", 10, 95));
+        assert!(b.shadowed_since("r", 10, 80));
+        assert!(b.shadowed_since("r", 10, 200));
+        assert!(b.shadowed_since("r#guard", 10, 200));
+        assert!(!b.shadowed_since("q", 10, 200));
+    }
+
+    /// WS13, end to end: a parameter re-bound by an untyped `let` loses
+    /// its declared type after the `let`; a name with no `let` visible
+    /// keeps the file-wide reading it always had.
+    #[test]
+    fn rust_receivers_follow_the_binding_in_scope() {
+        let call = |name: &str, recv: &str, byte: u32| RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut f = mk_facts(
+            vec![
+                mk_def("m::a", "fn a(args: Stream)", 0, 100),
+                mk_def("m::b", "fn b()", 100, 200),
+                mk_def("m::c", "fn c(specs: &[S])", 200, 300),
+            ],
+            vec![
+                call("run", "args", 40),
+                call("run", "args", 90),
+                call("go", "spec", 150),
+                call("go", "spec", 260),
+            ],
+        );
+        let bind = |name: &str, decl: u32, start: u32, end: u32| cgg_core::LocalBinding {
+            name: name.into(),
+            start_byte: start,
+            end_byte: end,
+            decl_byte: decl,
+        };
+        f.locals = vec![
+            bind("args", 5, 5, 100),
+            bind("args", 60, 70, 100),
+            bind("spec", 110, 130, 200),
+            bind("spec", 240, 250, 300),
+        ];
+        f.local_types.push(cgg_core::LocalType {
+            var_name: "spec".into(),
+            type_name: "ColorSpec".into(),
+            scope_byte: 105,
+        });
+        propagate_types(&mut f);
+        let hints: Vec<&str> = f
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(hints, vec!["Stream", "args", "ColorSpec", "ColorSpec"]);
+    }
+
+    /// Two declarations of `f` on same-named types that disagree leave
+    /// the local untyped rather than pick one.
+    #[test]
+    fn disagreeing_assoc_declarations_leave_the_local_untyped() {
+        let lib = mk_facts(
+            vec![
+                mk_def("a::Store::get", "fn get() -> Self", 0, 10),
+                mk_def("b::Store::get", "fn get() -> Entry", 10, 20),
+            ],
+            vec![],
+        );
+        let mut user = FileFacts::new(FileId::new(1), PathBuf::from("/tmp/u.rs"), "rust");
+        user.local_types.push(cgg_core::LocalType {
+            var_name: "s".into(),
+            type_name: "Store".into(),
+            scope_byte: 5,
+        });
+        user.assoc_call_locals.push(cgg_core::AssocCallLocal {
+            var_name: "s".into(),
+            scope_byte: 5,
+            assoc_fn: "get".into(),
+        });
+        let mut all = vec![lib, user];
+        settle_assoc_call_locals(&mut all);
+        assert!(all[1].local_types.is_empty());
     }
 
     /// FINDINGS A5, Go: a parameter of a package-qualified type keeps its

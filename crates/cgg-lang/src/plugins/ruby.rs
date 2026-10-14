@@ -451,6 +451,7 @@ impl<'a> RubyWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                arg_type: None,
                 from_macro_arg: false,
                 path_receiver: false,
                 dot_call: false,

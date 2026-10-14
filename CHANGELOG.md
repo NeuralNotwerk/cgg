@@ -831,6 +831,60 @@ otherwise change the default graph.
     - **Dead code:** no HIGH finding changes. Medium findings fall in
       the repositories that changed: Elixir −831, C −95, Clojure −22,
       C++ −16.
+- **Rust (WS13, FINDINGS C6): `let x = Type::f(..)` is typed by `f`'s
+  declared return type**, not read as constructing a `Type` (`AssocCallLocal`, settled by
+  `type_hints::settle_assoc_call_locals` once every file is parsed): a
+  return of `Self`/the type (also behind `Result`, `Option`, a pointer
+  or a lock) keeps the reading, another named type retypes the local
+  (type arguments kept: `-> web::Data<Ctx>` is `Data<Ctx>`), anything
+  else leaves it untyped; no declaration in the tree (an external
+  `File::open`) keeps the constructor reading. `let x: T = ..` and an
+  unqualified struct literal `let x = T { .. }` now type their local,
+  and an untyped re-binding (`let r = r.finish();`, `let (r, _) = ..`)
+  hides the earlier `let`'s type, as a later `let` hides a parameter's.
+- **A type a file `use`s from outside the workspace is not a same-named
+  workspace type** (`use actix_web::web::Data;` vs a test-module
+  `struct Data`). Only a trait impl a workspace crate wrote for it can
+  be the callee (no other crate can write an inherent impl), a wrapper
+  form (`Data<Ctx>`) still reaches its argument, and anything else is
+  `external-module`. 721 edges were rebound (`context.pool()` →
+  `LemmyContext::pool` instead of a test `Data::pool`), 305 refused as
+  external, ~560 `Rc::new`/`Cell::new`-style calls on imported std
+  types now screened as stdlib. `pub(crate) use a::B;` was recorded as
+  the path `(crate) use a::B`; the `use` clause is now read from the
+  grammar.
+- **Trait overloads respect `--fanout-cap`.** A typed lookup landing on
+  several impls of one generic trait for one type (`<Bytes as
+  From<u8>>::from`, `<Bytes as From<&str>>::from`, …) binds to the impl
+  the argument's literal type selects (`RefRecord::arg_type`: string,
+  byte string, char, bool, suffixed number, `format!`,
+  `.to_string()`), and otherwise, over the cap, to the trait's single
+  in-graph declaration or nothing: a std trait's set is refused
+  (`fanout-cap-exceeded`, or `ambiguous-in-file` where the impls share
+  the caller's file; ~1,100 medium edges, each set had at most one
+  right target). Within the cap nothing changes.
+- Dead code: a method declared in a `pub trait` carries `pub` (it was
+  `Unknown` and could reach `high`); names an unexpanded item-position
+  macro invocation passes (`make_error! { Io(E): has_source, … }`) are
+  `name_mentions`; a macro invoked by path outside any function
+  (`crate::for_each_tuple!(…)`) is a `toplevel:macro-invocation` root.
+  Bare-name item-position invocations (`new_id!(DocId, "doc")`) were
+  already credited through `toplevel:invocation`; impls of outside
+  traits (Rocket `Fairing::info`) already cap at medium.
+- Builtin type lists moved to `cgg_core::rust_types`
+  (`SMART_POINTERS_AND_LOCKS`, `DEREF_TRANSPARENT_WRAPPERS`,
+  `FIELD_WRAPPERS`, `LOCK_WRAPPERS`, `RETURN_WRAPPERS`) and the
+  web-framework response traits/wrappers to
+  `cgg_core::frameworks::rules` (`RESPONSE_TRAITS`,
+  `SELF_CONVERTING_WRAPPERS`); verified output-identical on 7 Rust
+  repositories.
+- Not covered: arguments typed only by inference (`Bytes::from(x)`)
+  stay refused over the cap; a derive's generated impls are not
+  modelled (a `pub trait` it implements is no longer `high`);
+  `#[cfg]` duplicates of one method bind one copy from a typed receiver
+  (the other can read `high`); the file-wide fallback for a Rust
+  receiver with no visible `let` is kept (refusing it was measured to
+  drop 161 high edges, ~70% of them right).
 
 ### Compatibility
 
@@ -1190,6 +1244,27 @@ otherwise change the default graph.
   - Latency (perf/WS12.md, 17 C, C++, Elixir, Clojure, Rust and Java
     repositories, median of 5): none slower by 1 s or more, largest
     `dart-flutter` +0.32 s (+3.5%); total +1.6%.
+- Rust leftovers (WS13): **the default graph changes, Rust only.** Full
+  corpus, 283 repositories, none excluded, 24 changed. HIGH edges
+  −29 / +249, 127 medium→high, 43 high→medium; medium edges −3,557 /
+  +1,285. Of the removed edges 721 were rebound to another target, ~1,085
+  are trait-overload sets now refused (`fanout-cap-exceeded` 548,
+  `ambiguous-in-file` 537 where the impls share the caller's file), 268
+  became `candidates-in-other-files`, and the rest are external or std
+  calls no longer bound by name, or sets narrowed to the target that
+  remains. High-confidence dead-code findings −50 (54 leave the top band,
+  4 enter it: two private methods nothing calls, one `#[cfg]` duplicate,
+  and one method whose loop-variable receiver borrows another function's
+  local type); on one 23-crate workspace 16 → 14.
+  - Precision (target/remediation/logs/WS13-precision.txt): foreign-type
+    rebinds 4/4 and refusals 5/5 correct, overload picks by literal 4/4,
+    std-type screens 3/3; added HIGH 7/8 verified. Of the 29 removed HIGH
+    edges about half had the right target, lost where an untyped
+    re-binding (`let (resp, _) = resp.into_parts();`) now hides the
+    earlier typed `let`.
+  - Latency (perf/WS13.md, 14 Rust, Dart, Erlang, Groovy and CMake
+    repositories, median of 5): none slower by 1 s or more, largest
+    `erlang-otp` +0.17 s (+2.2%); total +1.0%.
 
 ## [0.10.2] - 2026-10-11
 

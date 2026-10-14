@@ -528,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(3809 callables, 10514 edges, 2350 cross-file, 363ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(3850 callables, 10742 edges, 2379 cross-file, 395ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -614,12 +614,13 @@ flowchart LR
   N72["cgg_resolve::type_hints::resolve_macro_types"]
   N73["cgg_resolve::type_hints::build_return_type_map"]
   N74["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N75["cgg_resolve::type_hints::settle_closure_args"]
-  N76["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N77["cgg_resolve::value_refs::prune"]
-  N78["cgg_resolve::value_refs::prune_paren_less"]
-  N79["cgg_resolve::value_refs::tag_reference_edges"]
-  N80["cgg_walk::walk"]
+  N75["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N76["cgg_resolve::type_hints::settle_closure_args"]
+  N77["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N78["cgg_resolve::value_refs::prune"]
+  N79["cgg_resolve::value_refs::prune_paren_less"]
+  N80["cgg_resolve::value_refs::tag_reference_edges"]
+  N81["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -644,7 +645,7 @@ flowchart LR
   N3 --> N46
   N3 --> N45
   N3 --> N40
-  N3 --> N80
+  N3 --> N81
   N3 --> N50
   N3 --> N43
   N3 --> N53
@@ -673,17 +674,18 @@ flowchart LR
   N3 --> N67
   N3 --> N30
   N3 --> N35
-  N3 --> N77
   N3 --> N78
+  N3 --> N79
   N3 --> N73
   N3 --> N68
   N3 --> N69
   N3 --> N71
   N3 --> N72
   N3 --> N70
+  N3 --> N76
   N3 --> N75
   N3 --> N74
-  N3 --> N76
+  N3 --> N77
   N3 --> N33
   N3 --> N66
   N3 --> N31
@@ -691,7 +693,7 @@ flowchart LR
   N3 --> N60
   N3 --> N64
   N3 --> N61
-  N3 --> N79
+  N3 --> N80
   N3 --> N65
   N3 --> N62
   N3 -->|2x| N37
@@ -732,7 +734,8 @@ flowchart LR
   N65 -->|12x| N41
   N66 -->|5x| N67
   N74 -->|3x| N41
-  N76 --> N67
+  N75 --> N67
+  N77 --> N67
 ```
 <!-- cgg:end:self -->
 

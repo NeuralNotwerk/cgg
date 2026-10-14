@@ -333,6 +333,7 @@ impl<'a> ClojureWalker<'a> {
                         continue;
                     }
                     out.push(RefRecord {
+                        arg_type: None,
                         from_macro_arg: false,
                         path_receiver: false,
                         dot_call: false,
@@ -367,6 +368,7 @@ impl<'a> ClojureWalker<'a> {
                     }
                     named_target = true;
                     out.push(RefRecord {
+                        arg_type: None,
                         from_macro_arg: false,
                         path_receiver: false,
                         dot_call: false,
@@ -443,6 +445,7 @@ impl<'a> ClojureWalker<'a> {
             ..Default::default()
         });
         out.push(RefRecord {
+            arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
             dot_call: false,

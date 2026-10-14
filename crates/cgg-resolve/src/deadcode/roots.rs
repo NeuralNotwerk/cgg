@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 
 use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
 use cgg_core::deadcode::{RootKind, RootRecord};
+use cgg_core::frameworks::rules::{RESPONSE_TRAITS, SELF_CONVERTING_WRAPPERS};
 use cgg_core::graph::Graph;
 use cgg_core::ids::CallableId;
 use cgg_core::{FileFacts, ImportRecord};
@@ -347,23 +348,6 @@ fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
     None
 }
 
-/// Discover roots.
-///
-/// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
-/// caller; matching is left to the caller so this module stays free of
-/// regex/glob policy.
-/// Web-framework traits whose method the framework calls on a handler's
-/// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
-const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
-
-/// Generic wrappers that convert themselves (`Json<T>` serializes `T`; it
-/// never calls `T`'s own conversion) or that are not responses at all.
-/// A type named only inside one of these is not handed to the framework.
-const SELF_CONVERTING_WRAPPERS: &[&str] = &[
-    "Json", "Html", "Form", "Xml", "Sse", "Protobuf", "Msgpack", "Cbor", "Vec",
-    "HashMap", "BTreeMap", "HashSet", "Box", "Arc", "Rc", "Cow",
-];
-
 /// Every type name a Rust function's return type mentions outside a
 /// [`SELF_CONVERTING_WRAPPERS`] generic: `-> Result<Json<A>, AppError>`
 /// yields `Result`, `AppError` — never `A`.
@@ -417,6 +401,11 @@ fn rust_returned_types(graph: &Graph) -> HashSet<String> {
     out
 }
 
+/// Discover roots.
+///
+/// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
+/// caller; matching is left to the caller so this module stays free of
+/// regex/glob policy.
 pub(crate) fn discover(
     graph: &Graph,
     facts: &[FileFacts],
@@ -571,6 +560,55 @@ pub(crate) fn discover(
                     format!(
                         "macro invoked outside any function at {path}:{}",
                         u.site_line
+                    ),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    // --- Rule: Rust macro invoked by path outside any function ---------
+    //
+    // `crate::for_each_tuple!(impls);` at module level uses the macro, but
+    // a path-written macro name is screened before resolution and never
+    // reaches the unresolved list the top-level rule reads. The macro is
+    // credited by its last path segment, and only a callable that is
+    // itself a `macro_rules!` qualifies.
+    let mut rust_macro_sites: HashMap<&str, (&FileFacts, u32)> = HashMap::new();
+    for f in facts.iter().filter(|f| f.language == "rust") {
+        for r in f.references.iter().filter(|r| r.macro_call) {
+            let inside = f
+                .definitions
+                .iter()
+                .any(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte);
+            if inside {
+                continue;
+            }
+            let last = r.name.rsplit("::").next().unwrap_or(&r.name);
+            rust_macro_sites.entry(last).or_insert((f, r.site_line));
+        }
+    }
+    if !rust_macro_sites.is_empty() {
+        let mut ids: Vec<(&CallableId, &cgg_core::graph::CallableNode)> = graph
+            .callables
+            .iter()
+            .filter(|(_, n)| {
+                n.language == "rust"
+                    && !n.synthetic
+                    && n.attributes.iter().any(|a| a == "macro")
+            })
+            .collect();
+        ids.sort_by_key(|(id, _)| **id);
+        for (id, node) in ids {
+            if let Some((f, line)) = rust_macro_sites.get(node.simple_name.as_str()) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:macro-invocation",
+                    format!(
+                        "macro invoked outside any function at {}:{line}",
+                        f.path.display()
                     ),
                     &mut seen,
                 );
@@ -1053,6 +1091,41 @@ mod tests {
         ));
         let set = discover(&g, &[], &[], &[]);
         assert_eq!(set.production.len(), 1, "{:?}", set.records);
+        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
+    }
+
+    // WS13: `crate::m!(..)` outside any function credits the macro `m`;
+    // the same invocation inside a function does not (its call is an
+    // edge or an unresolved site of its own), and a non-macro callable
+    // of that name is never credited.
+    #[test]
+    fn a_rust_macro_invoked_by_path_at_module_level_is_a_root() {
+        let mut m = node(0, "k::each", "each", "rust");
+        m.attributes = vec!["macro".into()];
+        let f = node(1, "k::other::each", "each", "rust");
+        let mut inner = node(2, "k::inner", "inner", "rust");
+        inner.attributes = vec!["macro".into()];
+        let g = graph_with(vec![m, f, inner]);
+        let mut facts = FileFacts::new(cgg_core::FileId::new(0), "a.rs".into(), "rust");
+        facts.definitions.push(cgg_core::DefRecord {
+            simple_name: "body".into(),
+            qualified_name: "k::body".into(),
+            start_byte: 100,
+            end_byte: 200,
+            ..Default::default()
+        });
+        for (name, byte) in [("crate::each", 10), ("crate::inner", 150)] {
+            facts.references.push(cgg_core::RefRecord {
+                name: name.into(),
+                site_byte: byte,
+                site_line: 1,
+                macro_call: true,
+                ..Default::default()
+            });
+        }
+        let set = discover(&g, &[facts], &[], &[]);
+        let rooted: Vec<u32> = set.records.iter().map(|r| r.id.as_u32()).collect();
+        assert_eq!(rooted, vec![0], "{:?}", set.records);
         assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
     }
 }

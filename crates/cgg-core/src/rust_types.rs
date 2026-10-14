@@ -59,6 +59,54 @@ const NOT_DEREF_TO_ARG: &[&str] = &[
     "Duration",
 ];
 
+/// Smart pointers and locks whose contents a method call reaches —
+/// through `Deref`, or through the guard `lock()`/`read()`/`borrow()`
+/// hands back. A parameter typed as one of these is, for resolving its
+/// methods, the type inside. All std except `ArcSwap`, which is a library
+/// type (the `arc-swap` crate) listed for the same reason.
+pub const SMART_POINTERS_AND_LOCKS: &[&str] = &[
+    "Arc", "Rc", "Box", "Pin", "Mutex", "RwLock", "RefCell", "Cell", "ArcSwap",
+];
+
+/// Wrappers a value is constructed through (`Arc::new(Inner::new())`)
+/// that forward every method call to their contents via `Deref` or a
+/// guard, so a local built through one is typed as the contents.
+pub const DEREF_TRANSPARENT_WRAPPERS: &[&str] = &[
+    "Arc", "Rc", "Box", "RefCell", "Cell", "Mutex", "RwLock", "Pin", "Cow",
+];
+
+/// The wrappers a `self.<field>` type is seen through: those whose
+/// contents a direct method call reaches. `Option`/`Vec` are absent on
+/// purpose — `self.opt.m()` is the container's own method or an
+/// extension trait implemented for the container.
+pub const FIELD_WRAPPERS: &[&str] = &["Arc", "Rc", "Box", "RefCell", "Mutex", "RwLock"];
+
+/// Wrappers whose guard (`lock()`/`write()`/`borrow()`) dereferences to
+/// the contents.
+pub const LOCK_WRAPPERS: &[&str] = &["Mutex", "RwLock", "RefCell"];
+
+/// Single-argument wrappers a function's declared return type is seen
+/// through when asking which type the call produces: `Option<T>`,
+/// pointers and locks around `T`. Any type named `…Result` (`Result`,
+/// `io::Result`, `anyhow::Result`) is one too, see [`is_return_wrapper`].
+pub const RETURN_WRAPPERS: &[&str] = &[
+    "Option", "Box", "Arc", "Rc", "Pin", "Cow", "Mutex", "RwLock",
+];
+
+/// Std macros whose expansion is always a `String` (`format!(…)`), so a
+/// call argument written as one states its type.
+pub const STRING_PRODUCING_MACROS: &[&str] = &["format", "std::format", "alloc::format"];
+
+/// Std methods that always return a `String` whatever the receiver
+/// (`ToString::to_string`).
+pub const STRING_PRODUCING_METHODS: &[&str] = &["to_string"];
+
+/// Whether `name` (a bare type name) wraps the type a function returns:
+/// one of [`RETURN_WRAPPERS`] or a `Result` alias.
+pub fn is_return_wrapper(name: &str) -> bool {
+    name.ends_with("Result") || RETURN_WRAPPERS.contains(&name)
+}
+
 /// `Outer<Inner>` -> `(Outer, Inner)` when the hint has exactly one plain
 /// type argument (a path whose last segment is capitalised, no lifetimes,
 /// no nested generics) and `Outer` is not in [`NOT_DEREF_TO_ARG`]. `Outer`

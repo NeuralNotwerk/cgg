@@ -547,6 +547,7 @@ impl<'a> PerlWalker<'a> {
                     continue;
                 }
                 out.push(RefRecord {
+                    arg_type: None,
                     from_macro_arg: false,
                     path_receiver: false,
                     dot_call: false,
@@ -572,6 +573,7 @@ impl<'a> PerlWalker<'a> {
 
             if let Some(name) = self.value_ref_name(*arg, i, &items) {
                 out.push(RefRecord {
+                    arg_type: None,
                     from_macro_arg: false,
                     path_receiver: false,
                     dot_call: false,
@@ -665,6 +667,7 @@ impl<'a> PerlWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                arg_type: None,
                 from_macro_arg: false,
                 path_receiver: false,
                 dot_call: false,

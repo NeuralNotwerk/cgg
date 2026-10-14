@@ -720,6 +720,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // Untyped closures passed to a workspace function take their
     // parameter types from its declared callback type.
     cgg_resolve::type_hints::settle_closure_args(&mut all_facts);
+    // `let x = Type::f(..)` was typed `Type`; check that against `f`'s
+    // declared return type now that every file's definitions are known.
+    cgg_resolve::type_hints::settle_assoc_call_locals(&mut all_facts);
     {
         // Per-file and independent: each call only mutates its own facts.
         let _s = cgg_core::profile::span("resolve::type-propagate");

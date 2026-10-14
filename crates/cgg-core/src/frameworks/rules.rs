@@ -73,6 +73,20 @@ const HTTP_VERBS: &[&str] = &[
     "get", "post", "put", "delete", "patch", "head", "options", "trace", "connect",
 ];
 
+/// Web-framework traits whose method the framework calls on a handler's
+/// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
+pub const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
+
+/// Generic wrappers that convert themselves (`Json<T>` serializes `T`; it
+/// never calls `T`'s own conversion) or that are not responses at all.
+/// A type named only inside one of these is not handed to the framework.
+/// The web-framework response bodies are listed with the std containers
+/// that are never responses either.
+pub const SELF_CONVERTING_WRAPPERS: &[&str] = &[
+    "Json", "Html", "Form", "Xml", "Sse", "Protobuf", "Msgpack", "Cbor", "Vec",
+    "HashMap", "BTreeMap", "HashSet", "Box", "Arc", "Rc", "Cow",
+];
+
 pub const SPECS: &[RuleSpec] = &[
     // ---------------------------------------------------------------
     // Python

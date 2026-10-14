@@ -451,6 +451,15 @@ pub struct RefRecord {
     /// it: a value it types keeps the reading it always had.)
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub typed_receiver: bool,
+
+    /// The type of the call's single argument, where its syntax states it
+    /// (a literal, `format!`, a `.to_string()` call): `&str`, `String`,
+    /// `char`, `u8`. A Rust type implementing one generic trait several
+    /// times (`impl From<&str> for T`, `impl From<u8> for T`) is called
+    /// through whichever impl the argument's type selects; this picks it.
+    /// `None` when unknown. Only the Rust plugin sets it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arg_type: Option<String>,
 }
 
 /// The two-phase AST pass output for a single file.
@@ -469,6 +478,10 @@ pub struct FileFacts {
     /// Used by the type propagator to rewrite receiver_hints.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub local_types: Vec<LocalType>,
+    /// Which of [`Self::local_types`] were read off a `Type::f(…)` path
+    /// call and still need `f`'s return type checked.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub assoc_call_locals: Vec<AssocCallLocal>,
     /// Class fields (`StreamOutput* streams` on `Kernel`). The call is
     /// usually in another file from the declaration, so the propagator
     /// indexes these across the whole run and walks one `->` / `.` hop.
@@ -741,6 +754,22 @@ pub struct LocalType {
     pub scope_byte: u32,
 }
 
+/// A [`LocalType`] read off a path call (`let x = Type::f(…)`), typed as
+/// `Type` on the assumption that `f` constructs one. The resolver checks
+/// that assumption against `f`'s declared return type once every file's
+/// definitions are known (`type_hints::settle_assoc_call_locals`): an
+/// associated function that returns another type retypes the local, one
+/// that returns no nameable type leaves it untyped. Rust only.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AssocCallLocal {
+    /// The [`LocalType::var_name`] this record qualifies.
+    pub var_name: String,
+    /// The [`LocalType::scope_byte`] this record qualifies.
+    pub scope_byte: u32,
+    /// The associated function called (`f` in `Type::f(…)`).
+    pub assoc_fn: String,
+}
+
 /// A field of a class or struct, recorded so `obj->field->method()` can
 /// be typed from the field's declaration rather than from the call site.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -783,6 +812,7 @@ impl FileFacts {
             references: Vec::new(),
             imports: Vec::new(),
             local_types: Vec::new(),
+            assoc_call_locals: Vec::new(),
             field_types: Vec::new(),
             macro_aliases: Vec::new(),
             member_ptr_takes: Vec::new(),
