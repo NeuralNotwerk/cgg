@@ -341,7 +341,10 @@ impl Evidence {
             // callable from the file that would call it, so a "nothing
             // calls it" verdict must not sit in the top band.
             Evidence::NameCollidesWithScreenedSite { screen, .. }
-                if matches!(screen.as_str(), "value-position" | "attribute-string") =>
+                if matches!(
+                    screen.as_str(),
+                    "value-position" | "attribute-string" | "reflection"
+                ) =>
             {
                 Some(Confidence::Medium)
             }

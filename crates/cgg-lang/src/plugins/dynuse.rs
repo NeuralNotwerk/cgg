@@ -86,10 +86,20 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
         let mut c = n.walk();
         stack.extend(n.children(&mut c));
 
-        if !n.kind().contains("call") {
+        // Java's `method_invocation` and C#'s `invocation_expression`
+        // are calls too; neither has "call" in its kind.
+        if !(n.kind().contains("call")
+            || matches!(n.kind(), "method_invocation" | "invocation_expression"))
+        {
             continue;
         }
-        let Some(func) = n.child_by_field_name("function") else {
+        // The callee: `function` (Python, C#, PHP, JS), `name` (Java's
+        // `o.getMethod(…)` keeps the receiver in `object`), `method`
+        // (Ruby's `o.send(:m)`).
+        let Some(func) = ["function", "name", "method"]
+            .iter()
+            .find_map(|f| n.child_by_field_name(f))
+        else {
             continue;
         };
         let fname = text(func).rsplit(['.', ':']).next().unwrap_or("").trim();
@@ -101,6 +111,15 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
         };
         let mut ac = args.walk();
         for a in args.children(&mut ac) {
+            // C# and PHP wrap each argument in an `argument` node.
+            let a = if a.kind() == "argument" {
+                match a.named_child(0) {
+                    Some(inner) => inner,
+                    None => continue,
+                }
+            } else {
+                a
+            };
             let k = a.kind();
             if !(k.contains("string") || k == "symbol" || k == "simple_symbol") {
                 continue;
@@ -157,6 +176,52 @@ mod tests {
         let src = "def f(o):\n    return helper(o, \"handler\")\n";
         let t = parse("python", src);
         assert!(extract(&t, src.as_bytes(), "python").is_empty());
+    }
+
+    #[test]
+    fn java_get_declared_method_names_a_method() {
+        let src = "class A { void f() throws Exception { A.class.getDeclaredMethod(\"m\").invoke(this); helper(\"n\"); } }";
+        let t = parse("java", src);
+        let d = extract(&t, src.as_bytes(), "java");
+        assert_eq!(
+            d.iter()
+                .map(|x| (x.name.as_str(), x.via.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("m", "getDeclaredMethod")]
+        );
+    }
+
+    #[test]
+    fn csharp_get_method_names_a_method() {
+        let src = "class A { void F() { typeof(A).GetMethod(\"M\", 0); Log(\"N\"); } }";
+        let t = parse("csharp", src);
+        let d = extract(&t, src.as_bytes(), "csharp");
+        assert_eq!(
+            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
+            vec!["M"]
+        );
+    }
+
+    #[test]
+    fn ruby_send_names_a_method() {
+        let src = "class A\n  def f\n    send(:m)\n    puts(:n)\n  end\nend\n";
+        let t = parse("ruby", src);
+        let d = extract(&t, src.as_bytes(), "ruby");
+        assert_eq!(
+            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
+            vec!["m"]
+        );
+    }
+
+    #[test]
+    fn php_call_user_func_names_a_function() {
+        let src = "<?php\nfunction f() { call_user_func('m'); strlen('n'); }\n";
+        let t = parse("php", src);
+        let d = extract(&t, src.as_bytes(), "php");
+        assert_eq!(
+            d.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
+            vec!["m"]
+        );
     }
 
     #[test]

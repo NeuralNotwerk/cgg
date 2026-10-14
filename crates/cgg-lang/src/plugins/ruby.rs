@@ -20,6 +20,7 @@ impl LanguagePlugin for RubyPlugin {
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {
+            dyn_uses: true,
             impls: true,
             value_refs: true,
             ..Default::default()
@@ -47,6 +48,9 @@ impl LanguagePlugin for RubyPlugin {
             bases: Vec::new(),
         };
         w.walk(tree.root_node());
+        if ctx.deadcode_signals {
+            facts.dyn_uses = super::dynuse::extract(tree, source, "ruby");
+        }
         facts
     }
 }
@@ -319,6 +323,7 @@ impl<'a> RubyWalker<'a> {
                 implicit_receiver: false,
                 not_def: None,
                 arity: None,
+                value_ref: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

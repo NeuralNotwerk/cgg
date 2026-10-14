@@ -474,6 +474,7 @@ pub(crate) fn capture(
                 implicit_receiver: false,
                 not_def: None,
                 arity: None,
+                value_ref: false,
                 name: s,
                 receiver_hint: STRING_REF_HINT.to_string(),
                 site_line: line,
@@ -636,6 +637,7 @@ fn collect_value_refs(
                 implicit_receiver: false,
                 not_def: None,
                 arity: None,
+                value_ref: false,
                 name: format!("{owner}::{method}"),
                 receiver_hint: STRING_REF_HINT.to_string(),
                 site_line: line,
@@ -659,6 +661,7 @@ fn collect_value_refs(
                     implicit_receiver: false,
                     not_def: None,
                     arity: None,
+                    value_ref: false,
                     name: s,
                     receiver_hint: STRING_REF_HINT.to_string(),
                     site_line: line,
@@ -670,6 +673,15 @@ fn collect_value_refs(
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
             }
+        }
+        return;
+    }
+
+    // `a = b = _f`: tree-sitter nests the second assignment on the right
+    // of the first, and only its right-hand side is a value.
+    if kind == "assignment" {
+        if let Some(rhs) = arg.child_by_field_name("right") {
+            collect_value_refs(ctx, rhs, source, context, route, line, out, depth);
         }
         return;
     }
@@ -695,6 +707,7 @@ fn collect_value_refs(
                     implicit_receiver: false,
                     not_def: None,
                     arity: None,
+                    value_ref: false,
                     name: s,
                     receiver_hint: STRING_REF_HINT.to_string(),
                     site_line: line,
@@ -766,6 +779,7 @@ fn collect_value_refs(
                 implicit_receiver: false,
                 not_def: None,
                 arity: None,
+                value_ref: false,
                 name: last_segment(&callee).to_string(),
                 receiver_hint: VALUE_REF_HINT.to_string(),
                 site_line: line,
@@ -800,6 +814,7 @@ fn collect_value_refs(
                     implicit_receiver: false,
                     not_def: None,
                     arity: None,
+                    value_ref: false,
                     name: owner.to_string(),
                     receiver_hint: VALUE_REF_HINT.to_string(),
                     site_line: line,
@@ -844,6 +859,7 @@ fn collect_value_refs(
         implicit_receiver: false,
         not_def: None,
         arity: None,
+        value_ref: false,
         name: simple.to_string(),
         receiver_hint: VALUE_REF_HINT.to_string(),
         site_line: line,

@@ -226,14 +226,17 @@ impl<'a> Mentions<'a> {
     fn evidence_for(&self, nd: &CallableNode) -> Vec<Evidence> {
         let name = nd.simple_name.as_str();
         let mut hits: BTreeMap<&'static str, u32> = BTreeMap::new();
-        // A plain value reference the resolver left unbound names a
-        // callable it refuses to bind — a named closure (`x.map(to_ms)`).
-        // For anything else the likelier reading is a same-named
-        // variable, which must not cost a real finding its band.
-        let closure = nd.kind == CallableKind::Closure;
+        // A plain value reference names the callable as a value from this
+        // file (or one importing it). The resolver binds a unique target
+        // as a reference edge, so a finding that still reaches here was
+        // named where no edge could be drawn: a named closure it refuses
+        // to bind (`x.map(to_ms)`), or a function or method that names
+        // itself as a value (`signal.connect(handler)` inside `handler`),
+        // a self-edge that proves nothing. Either way the source passes
+        // it somewhere cgg cannot follow: doubt, for named functions and
+        // methods as well as closures (WS6).
         let hit = |screen: &'static str, hits: &mut BTreeMap<&'static str, u32>| {
             let screen = match screen {
-                "value-ref" if !closure => return,
                 "value-ref" => "value-position",
                 s => s,
             };
@@ -601,15 +604,27 @@ pub fn analyze(
     let root_set = roots::discover(graph, facts, &opts.user_roots, &opts.framework_roots);
 
     // Identifier-shaped literals in reflective positions. Never an edge
-    // — only a reason to doubt a finding.
-    let dyn_named: std::collections::HashSet<(&str, &str)> = facts
-        .iter()
-        .flat_map(|f| {
-            f.dyn_uses
-                .iter()
-                .map(move |d| (f.language.as_str(), d.name.as_str()))
-        })
-        .collect();
+    // — only a reason to doubt a finding. A member lookup by a literal
+    // name (`getattr(o, "m")`, `getDeclaredMethod("m")`, `send(:m)`)
+    // caps the finding at medium; a module load (`require("x")`) names a
+    // file, not a callable, and is reported without a cap.
+    let mut dyn_named: std::collections::HashMap<(&str, &str), &'static str> =
+        std::collections::HashMap::new();
+    for f in facts {
+        for d in &f.dyn_uses {
+            let screen = if cgg_core::DYN_MODULE_LOADERS.contains(&d.via.as_str()) {
+                "module-load"
+            } else {
+                "reflection"
+            };
+            let slot = dyn_named
+                .entry((f.language.as_str(), d.name.as_str()))
+                .or_insert(screen);
+            if screen == "reflection" {
+                *slot = screen;
+            }
+        }
+    }
 
     let variants = def_variants(facts);
 
@@ -859,9 +874,11 @@ pub fn analyze(
                 macro_name: m.to_string(),
             });
         }
-        if dyn_named.contains(&(nd.language.as_str(), nd.simple_name.as_str())) {
+        if let Some(screen) =
+            dyn_named.get(&(nd.language.as_str(), nd.simple_name.as_str()))
+        {
             ev.push(Evidence::NameCollidesWithScreenedSite {
-                screen: "reflection".into(),
+                screen: (*screen).into(),
                 sites: 1,
             });
         }
@@ -1701,6 +1718,69 @@ mod tests {
         assert_eq!(conf("crate::a::default_true"), Confidence::Medium);
         assert_eq!(conf("crate::b::default_true"), Confidence::High);
         assert_eq!(conf("crate::MultiIndex::is_empty"), Confidence::High);
+    }
+
+    // B3: a reflective lookup by a literal name (`getattr(o, "m")`,
+    // `getDeclaredMethod("m")`) caps a same-named finding at medium; a
+    // module load (`require("m")`) names a file and caps nothing; a
+    // callable nothing names stays high.
+    #[test]
+    fn reflective_lookups_cap_at_medium_module_loads_do_not() {
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::looked_up", "looked_up", "", Vis::Private),
+            vis_node(2, "crate::loaded", "loaded", "", Vis::Private),
+            vis_node(3, "crate::untouched", "untouched", "", Vis::Private),
+        ]);
+        let mut fa = FileFacts::new(cgg_core::ids::FileId::new(0), "a.rs".into(), "rust");
+        for (name, via) in [("looked_up", "getattr"), ("loaded", "require")] {
+            fa.dyn_uses.push(cgg_core::DynUse {
+                name: name.into(),
+                via: via.into(),
+                site_line: 1,
+                site_byte: 0,
+            });
+        }
+        let r = analyze(&g, &[], &[fa], &opts_rust_full());
+        let conf = |qn: &str| {
+            r.findings
+                .iter()
+                .find(|f| f.qualified_name == qn)
+                .map(|f| f.confidence)
+                .unwrap()
+        };
+        assert_eq!(conf("crate::looked_up"), Confidence::Medium);
+        assert_eq!(conf("crate::loaded"), Confidence::High);
+        assert_eq!(conf("crate::untouched"), Confidence::High);
+    }
+
+    // B3: a named function passing itself as a value (`connect(handler)`
+    // inside `handler`) is a self-reference, never an edge — but it is
+    // named as a value, so doubt, like a named closure. One named nowhere
+    // stays high.
+    #[test]
+    fn a_value_reference_to_a_named_function_is_doubt() {
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::handler", "handler", "", Vis::Private),
+            vis_node(2, "crate::other", "other", "", Vis::Private),
+        ]);
+        let mut fa = FileFacts::new(cgg_core::ids::FileId::new(0), "a.rs".into(), "rust");
+        fa.references.push(cgg_core::RefRecord {
+            name: "handler".into(),
+            receiver_hint: cgg_core::VALUE_REF_HINT.into(),
+            ..Default::default()
+        });
+        let r = analyze(&g, &[], &[fa], &opts_rust_full());
+        let conf = |qn: &str| {
+            r.findings
+                .iter()
+                .find(|f| f.qualified_name == qn)
+                .map(|f| f.confidence)
+                .unwrap()
+        };
+        assert_eq!(conf("crate::handler"), Confidence::Medium);
+        assert_eq!(conf("crate::other"), Confidence::High);
     }
 
     #[test]

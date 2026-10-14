@@ -460,6 +460,7 @@ impl<'a> ElixirWalker<'a> {
             route: route.to_string(),
             kwargs: Vec::new(),
             arity: None,
+            value_ref: false,
         });
     }
 

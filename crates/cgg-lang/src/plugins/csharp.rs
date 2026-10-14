@@ -41,6 +41,7 @@ impl LanguagePlugin for CSharpPlugin {
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {
+            dyn_uses: true,
             visibility: true,
             attributes: true,
             impls: true,
@@ -70,6 +71,9 @@ impl LanguagePlugin for CSharpPlugin {
             bases: Vec::new(),
         };
         w.walk(tree.root_node());
+        if ctx.deadcode_signals {
+            facts.dyn_uses = super::dynuse::extract(tree, source, "csharp");
+        }
         facts
     }
 }
@@ -209,6 +213,23 @@ impl<'a> Walker<'a> {
             }
             "local_declaration_statement" => {
                 self.record_local_type(node);
+                self.walk_children(node);
+                return;
+            }
+            // Value positions where a method group can stand: an argument
+            // (`Select(F)`, `new EventHandler(this.H)`, `nameof(F)`), the
+            // right of an assignment (`evt += H`, `f = F`), a variable
+            // initializer (`Func<int> f = F`), a `return`, an
+            // expression body, a collection initializer.
+            "argument"
+            | "assignment_expression"
+            | "variable_declarator"
+            | "return_statement"
+            | "arrow_expression_clause"
+            | "initializer_expression"
+                if self.ctx.reference_sites =>
+            {
+                self.record_method_groups(node);
                 self.walk_children(node);
                 return;
             }
@@ -386,6 +407,116 @@ impl<'a> Walker<'a> {
         });
     }
 
+    /// The value expressions of a value-position node, as listed on the
+    /// match arm in `walk`.
+    fn record_method_groups(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "assignment_expression" => {
+                node.child_by_field_name("right").into_iter().collect()
+            }
+            "argument" | "variable_declarator" => {
+                // The `name` field (`name: value`, the declared variable)
+                // is a label, not a value.
+                let label = node.child_by_field_name("name").map(|n| n.id());
+                let mut c = node.walk();
+                node.named_children(&mut c)
+                    .filter(|n| Some(n.id()) != label)
+                    .collect()
+            }
+            _ => {
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+        };
+        for v in values {
+            self.record_method_group(v, 0);
+        }
+    }
+
+    /// A method group: a name or member access in a value position,
+    /// recorded as the call through that receiver it would be if invoked
+    /// and marked [`RefRecord::value_ref`]. The resolver binds it only
+    /// where a callable of that name exists, so a variable, field or
+    /// property in the same position costs nothing.
+    fn record_method_group(&mut self, v: Node, depth: u8) {
+        let (name_node, recv) = match v.kind() {
+            "identifier" => (v, String::new()),
+            "member_access_expression" => {
+                let (Some(expr), Some(name)) = (
+                    v.child_by_field_name("expression"),
+                    v.child_by_field_name("name"),
+                ) else {
+                    return;
+                };
+                if name.kind() != "identifier" {
+                    return;
+                }
+                // Through `this`, `base` or a type (`Program.Handler`,
+                // `Ns.Type.Handler`): a method group. Through a variable,
+                // field or call (`value.Value`, `x.Name`) it is a
+                // property read far more often than a method group, and
+                // the receiver's type is rarely known, so resolving it
+                // would bind an unrelated same-named method.
+                let recv = match expr.kind() {
+                    "base" => "super".to_string(),
+                    "this" => "this".to_string(),
+                    "identifier" | "qualified_name" | "generic_name"
+                        if self
+                            .text(expr)
+                            .starts_with(|c: char| c.is_ascii_uppercase()) =>
+                    {
+                        self.text(expr).to_string()
+                    }
+                    "member_access_expression"
+                        if self.text(expr).split('.').all(|seg| {
+                            seg.starts_with(|c: char| c.is_ascii_uppercase())
+                        }) =>
+                    {
+                        self.text(expr).to_string()
+                    }
+                    _ => return,
+                };
+                (name, recv)
+            }
+            // `(Del) F`: a cast of a method group to a delegate type.
+            "cast_expression" if depth < 4 => {
+                if let Some(val) = v.child_by_field_name("value") {
+                    self.record_method_group(val, depth + 1);
+                }
+                return;
+            }
+            // `c ? F : G`, `(F)`: the branches are the values.
+            "conditional_expression" | "parenthesized_expression" if depth < 4 => {
+                let parts: Vec<Node> = if v.kind() == "conditional_expression" {
+                    ["consequence", "alternative"]
+                        .iter()
+                        .filter_map(|f| v.child_by_field_name(f))
+                        .collect()
+                } else {
+                    let mut c = v.walk();
+                    v.named_children(&mut c).collect()
+                };
+                for p in parts {
+                    self.record_method_group(p, depth + 1);
+                }
+                return;
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
     fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
         let (name, recv) = match func.kind() {
@@ -519,6 +650,81 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        CSharpPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.cs"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// B3: a method group in a value position is recorded through its
+    /// receiver; an invoked member and a declared variable's name are not.
+    #[test]
+    fn method_groups_are_value_refs() {
+        let src = "class P { event System.EventHandler E; void Run(int[] xs) {\n\
+            xs.Select(Double); E += OnE; var h = new System.EventHandler(this.OnO);\n\
+            System.Func<int,int> f = Triple; Log(nameof(Named)); System.Action a = P.S;\n\
+            E -= c ? OnA : OnB; Go(base.Up); Call(); Agg((Del) Local); } }";
+        let f = extract_refs(src);
+        let got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        let want: Vec<(String, String)> = [
+            ("", "Double"),
+            ("", "OnE"),
+            ("", "Named"),
+            ("this", "OnO"),
+            ("", "Triple"),
+            ("P", "S"),
+            ("", "OnA"),
+            ("", "OnB"),
+            ("super", "Up"),
+            ("", "Local"),
+        ]
+        .iter()
+        .map(|(a, b)| (a.to_string(), b.to_string()))
+        .collect();
+        let mut got_sorted = got.clone();
+        got_sorted.sort();
+        let mut want_sorted = want;
+        want_sorted.sort();
+        assert_eq!(got_sorted, want_sorted, "got {got:?}");
+        // The declared names `h`, `f`, `a` are not values.
+        assert!(!got.iter().any(|(_, n)| n == "h" || n == "f" || n == "a"));
+    }
+
+    /// Near miss: a member read through a variable (`value.Value`) is a
+    /// property far more often than a method group, so it is not one.
+    #[test]
+    fn member_reads_through_a_variable_are_not_method_groups() {
+        let f = extract_refs(
+            "class P { void Run(J value, K x) { Use(value.Value); var n = x.Name; Use(this.H); } }",
+        );
+        let got: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| r.name.as_str())
+            .collect();
+        assert_eq!(got, vec!["H"]);
+    }
+
+    #[test]
+    fn method_groups_need_reference_sites() {
+        let f = extract("class P { void Run(int[] xs) { xs.Select(Double); } }");
+        assert!(f.references.iter().all(|r| !r.value_ref));
     }
 
     #[test]

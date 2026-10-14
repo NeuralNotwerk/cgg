@@ -22,6 +22,7 @@ impl LanguagePlugin for JavaPlugin {
             attributes: true,
             impls: true,
             value_refs: true,
+            dyn_uses: true,
             ..Default::default()
         }
     }
@@ -153,6 +154,13 @@ impl<'a> JavaWalker<'a> {
             }
             "method_invocation" => {
                 self.record_call(node);
+                self.walk_children(node);
+                return;
+            }
+            // `this::m`, `Type::m`, `Type::new`, `super::m`: a method
+            // named as a value. Only when the run keeps reference sites.
+            "method_reference" if self.ctx.reference_sites => {
+                self.record_method_reference(node);
                 self.walk_children(node);
                 return;
             }
@@ -345,6 +353,73 @@ impl<'a> JavaWalker<'a> {
         self.facts.references.extend(extra);
     }
 
+    /// A method reference names a method without calling it. It is
+    /// recorded the way the call it stands for is — `this::m` as `m`
+    /// through `this`, `h::consume` through the variable `h`, `Type::new`
+    /// as `new Type()` — and marked [`RefRecord::value_ref`] so whatever
+    /// it resolves to is a reference edge, not a call.
+    ///
+    /// The site is the method name's own byte (the `new` token for a
+    /// constructor reference), which no call expression starts at, so the
+    /// reference never shares a site with a call in the same expression.
+    fn record_method_reference(&mut self, node: Node) {
+        let mut c = node.walk();
+        let children: Vec<Node> = node.children(&mut c).collect();
+        let Some(recv_node) = children
+            .iter()
+            .copied()
+            .find(|n| n.is_named() && n.kind() != "type_arguments")
+        else {
+            return;
+        };
+        let site_line = (node.start_position().row as u32) + 1;
+        if let Some(new_tok) =
+            children.iter().find(|n| !n.is_named() && n.kind() == "new")
+        {
+            // `int[]::new` constructs an array: no callable.
+            if recv_node.kind() == "array_type" {
+                return;
+            }
+            let ty = self.text(recv_node);
+            let ty = ty.split('<').next().unwrap_or("").trim().to_string();
+            if ty.is_empty() {
+                return;
+            }
+            self.facts.references.push(RefRecord {
+                name: ty,
+                site_line,
+                site_byte: new_tok.start_byte() as u32,
+                value_ref: true,
+                ..Default::default()
+            });
+            return;
+        }
+        let Some(name_node) = children
+            .iter()
+            .rev()
+            .copied()
+            .find(|n| n.is_named() && n.kind() == "identifier")
+        else {
+            return;
+        };
+        if name_node.id() == recv_node.id() {
+            return;
+        }
+        let recv = if recv_node.kind() == "super" {
+            "super".to_string()
+        } else {
+            self.text(recv_node).to_string()
+        };
+        self.facts.references.push(RefRecord {
+            name: self.text(name_node).to_string(),
+            receiver_hint: recv,
+            site_line,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
     fn record_local_type(&mut self, node: Node) {
         // local_variable_declaration -> type_identifier + variable_declarator
         let type_node = node
@@ -475,6 +550,76 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        JavaPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/X.java"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// B3: a method reference names its method through its receiver, the
+    /// way the call it stands for would; `Type::new` is `new Type()`.
+    #[test]
+    fn method_references_are_value_refs_through_their_receiver() {
+        let src = "class A extends B { void f(java.util.List<String> xs, H h) {\n\
+            xs.forEach(this::g); xs.map(A::s); new Thread(this::w);\n\
+            java.util.function.Supplier<H> n = H::new; xs.forEach(h::c);\n\
+            Runnable r = super::hook; java.util.function.IntFunction<int[]> a = int[]::new;\n\
+            java.util.function.Supplier<java.util.List<String>> l = java.util.ArrayList<String>::new; } }";
+        let f = extract_refs(src);
+        let got = value_refs(&f);
+        let want: Vec<(String, String)> = [
+            ("this", "g"),
+            ("A", "s"),
+            ("this", "w"),
+            ("", "H"),
+            ("h", "c"),
+            ("super", "hook"),
+            ("", "java.util.ArrayList"),
+        ]
+        .iter()
+        .map(|(a, b)| (a.to_string(), b.to_string()))
+        .collect();
+        assert_eq!(got, want);
+        // The site is the name's own token, never a call's start byte.
+        let call_sites: Vec<u32> = f
+            .references
+            .iter()
+            .filter(|r| !r.value_ref)
+            .map(|r| r.site_byte)
+            .collect();
+        assert!(
+            f.references
+                .iter()
+                .filter(|r| r.value_ref)
+                .all(|r| !call_sites.contains(&r.site_byte))
+        );
+    }
+
+    /// An ordinary run records no reference sites: its graph drops every
+    /// reference edge anyway.
+    #[test]
+    fn method_references_need_reference_sites() {
+        let f = extract(
+            "class A { void f(java.util.List<String> xs) { xs.forEach(this::g); } }",
+        );
+        assert!(f.references.iter().all(|r| !r.value_ref));
     }
 
     #[test]

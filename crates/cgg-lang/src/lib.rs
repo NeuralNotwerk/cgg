@@ -45,6 +45,16 @@ pub struct ExtractCtx<'a> {
     /// benchmark corpus, so an ordinary run must not pay for them.
     pub deadcode_signals: bool,
 
+    /// Record value references that carry a receiver (Java method
+    /// references, C# method groups) and the value positions added with
+    /// them (Python `return f`, `yield f`, `@deco`, defaults, …).
+    ///
+    /// Their only consumers are `--reference-edges` and `--dead-code`
+    /// (which turns reference edges on): an ordinary run drops every
+    /// reference edge, so recording these there would only add audit
+    /// noise and extraction time.
+    pub reference_sites: bool,
+
     /// Registrar verbs contributed by user-authored framework rules,
     /// pre-lowercased.
     ///
@@ -136,8 +146,19 @@ impl<'a> ExtractCtx<'a> {
     ) -> Self {
         Self {
             deadcode_signals,
+            reference_sites: false,
             extra_verbs,
             language: "",
+        }
+    }
+
+    /// The same context, recording receiver-carrying value references
+    /// (see [`ExtractCtx::reference_sites`]).
+    #[must_use]
+    pub fn with_reference_sites(self, on: bool) -> Self {
+        Self {
+            reference_sites: on,
+            ..self
         }
     }
 
@@ -157,6 +178,7 @@ impl<'a> ExtractCtx<'a> {
     pub fn plain() -> ExtractCtx<'static> {
         ExtractCtx {
             deadcode_signals: false,
+            reference_sites: false,
             extra_verbs: no_extra_verbs(),
             language: "",
         }

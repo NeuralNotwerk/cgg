@@ -281,7 +281,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .map(|v| v.to_ascii_lowercase())
         .collect();
     // Every worker shares this by reference; extraction pays a pointer.
-    let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs);
+    // Receiver-carrying value references only ever become reference
+    // edges, which an ordinary run drops — so only a run that keeps them
+    // (`--reference-edges`, or `--dead-code`, which forces it) records them.
+    let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs)
+        .with_reference_sites(opts.reference_edges);
 
     if opts.profile {
         cgg_core::profile::enable();
@@ -666,6 +670,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
 
     // --- Phase 3: type propagation + intra-file link -----------------------
     let _phase_resolve_intra_file = cgg_core::profile::span("resolve::intra-file");
+    // Receiver-carrying value references (Java `this::m`, C# method
+    // groups) that cannot name any callable are variables, not
+    // references: drop them before they read as calls. A no-op unless
+    // the run records reference sites.
+    cgg_resolve::value_refs::prune(&mut all_facts);
     let link_started = Instant::now();
     let return_types_owned: HashMap<String, String> = {
         let _s = cgg_core::profile::span("resolve::type-hints");
@@ -947,6 +956,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // see them — `cross_file` also emits them now (it is what binds
     // `app.get('/x', handler)` to a handler in another module), so
     // filtering earlier let those escape the flag that gates them.
+    // A method reference or method group resolved like a call is still
+    // only a reference: its edges are tagged so the gate below applies.
+    cgg_resolve::value_refs::tag_reference_edges(&mut graph, &all_facts);
     if !opts.reference_edges {
         graph.edges.retain(|e| !matches!(e.via, Via::Reference));
     }

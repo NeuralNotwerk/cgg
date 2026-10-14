@@ -1912,6 +1912,7 @@ impl<'a> Walker<'a> {
                 implicit_receiver: false,
                 not_def: None,
                 arity: None,
+                value_ref: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: (arg.start_position().row as u32) + 1,

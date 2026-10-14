@@ -125,6 +125,7 @@ impl LanguagePlugin for PythonPlugin {
         // `__all__` is Python's explicit export list; a name in it is
         // public API even when nothing in the package references it.
         out.exports = py_dunder_all(tree, source);
+        retain_scoped_value_refs(&mut out);
         out
     }
 }
@@ -190,6 +191,9 @@ impl<'a> Walker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.ctx.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "class_definition" => {
                 let name = node
@@ -334,6 +338,107 @@ impl<'a> Walker<'a> {
                 }
             }
         }
+    }
+
+    /// Value positions no call encloses, when the run records reference
+    /// sites: `return _f`, `yield _f`, a bare decorator `@_deco`, a
+    /// default `cb=_f`, a comprehension's value `{k: _f for k in …}`, an
+    /// identity test `x is _f`. Each name is recorded the way the call it
+    /// would be if invoked is (`_f` bare, `self._m` through `self`),
+    /// marked `value_ref` so what it resolves to is a reference edge.
+    fn capture_value_positions(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "return_statement" | "yield" | "decorator" => {
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            "default_parameter" | "typed_default_parameter" => {
+                node.child_by_field_name("value").into_iter().collect()
+            }
+            "dictionary_comprehension"
+            | "list_comprehension"
+            | "set_comprehension"
+            | "generator_expression" => {
+                node.child_by_field_name("body").into_iter().collect()
+            }
+            "comparison_operator" => {
+                let mut c = node.walk();
+                let identity = node
+                    .children(&mut c)
+                    .any(|t| !t.is_named() && matches!(t.kind(), "is" | "is not"));
+                if !identity {
+                    return;
+                }
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            _ => return,
+        };
+        for v in values {
+            self.value_position_ref(v, 0);
+        }
+    }
+
+    fn value_position_ref(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        let (name_node, recv) = match v.kind() {
+            "identifier" => (v, String::new()),
+            "attribute" => {
+                let (Some(obj), Some(attr)) = (
+                    v.child_by_field_name("object"),
+                    v.child_by_field_name("attribute"),
+                ) else {
+                    return;
+                };
+                (attr, self.text(obj).to_string())
+            }
+            "pair" => {
+                if let Some(val) = v.child_by_field_name("value") {
+                    self.value_position_ref(val, depth + 1);
+                }
+                return;
+            }
+            "conditional_expression" => {
+                // `a if cond else b`: the condition is not a value.
+                let mut c = v.walk();
+                let parts: Vec<Node> = v.named_children(&mut c).collect();
+                for (i, p) in parts.into_iter().enumerate() {
+                    if i != 1 {
+                        self.value_position_ref(p, depth + 1);
+                    }
+                }
+                return;
+            }
+            "tuple"
+            | "list"
+            | "set"
+            | "expression_list"
+            | "dictionary"
+            | "parenthesized_expression"
+            | "boolean_operator" => {
+                let mut c = v.walk();
+                let parts: Vec<Node> = v.named_children(&mut c).collect();
+                for p in parts {
+                    self.value_position_ref(p, depth + 1);
+                }
+                return;
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     /// Capture callables named on the right-hand side of an assignment.
@@ -676,6 +781,53 @@ impl<'a> Walker<'a> {
             ..Default::default()
         })
     }
+}
+
+/// Keep a value-position name only where Python's scoping says it can be
+/// a function: a bare name the file defines or imports, `self.x` /
+/// `cls.x`, or an attribute of an imported module (`views.handler`).
+///
+/// In a value position `return x`, `obj.attr` and `x is y` are data far
+/// more often than functions. A bare name the file neither defines nor
+/// imports is a global or builtin, and an attribute of a variable is a
+/// field read; resolving either as a call would bind an unrelated
+/// same-named function elsewhere, or record doubt against it.
+fn retain_scoped_value_refs(facts: &mut FileFacts) {
+    if !facts.references.iter().any(|r| r.value_ref) {
+        return;
+    }
+    let mut bound: BTreeSet<String> = facts
+        .definitions
+        .iter()
+        .map(|d| d.simple_name.clone())
+        .collect();
+    for imp in &facts.imports {
+        if imp.kind == "from-import" {
+            for item in imp.alias.split(',') {
+                let item = item.trim();
+                let name = item.rsplit_once(" as ").map_or(item, |(_, a)| a.trim());
+                bound.insert(name.to_string());
+            }
+        } else if !imp.alias.is_empty() {
+            bound.insert(imp.alias.clone());
+        } else {
+            for item in imp.path.split(',') {
+                let head = item.trim().split('.').next().unwrap_or("");
+                bound.insert(head.to_string());
+            }
+        }
+    }
+    facts.references.retain(|r| {
+        if !r.value_ref {
+            return true;
+        }
+        let rh = r.receiver_hint.as_str();
+        if rh.is_empty() {
+            return bound.contains(&r.name);
+        }
+        let head = rh.split('.').next().unwrap_or("");
+        matches!(rh, "self" | "cls") || bound.contains(head)
+    });
 }
 
 fn parse_import(text: &str) -> (String, String, String) {
@@ -1080,6 +1232,83 @@ mod tests {
 
     fn extract(src: &str) -> FileFacts {
         extract_with("m.py", src)
+    }
+
+    fn extract_refs(src: &str) -> FileFacts {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_python::LANGUAGE.into())
+            .unwrap();
+        let tree = parser.parse(src, None).unwrap();
+        PythonPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("m.py"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// B3: value positions no call encloses.
+    #[test]
+    fn value_positions_are_value_refs() {
+        let src = "def _deco(f): pass\ndef _dflt(): pass\ndef _comp(): pass\ndef _lc(): pass\ndef _ident(): pass\ndef _eq(): pass\ndef _y(): pass\ndef _alt(): pass\nx = 1\n@_deco\ndef f(cb=_dflt):\n    x = {k: _comp for k in ks}\n    y = [_lc for _ in ks]\n    if x is _ident: pass\n    if x == _eq: pass\n    yield _y\n    return self._ret if c else _alt\n";
+        let f = extract_refs(src);
+        let mut got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        got.sort();
+        let mut want: Vec<(String, String)> = [
+            ("", "_deco"),
+            ("", "_dflt"),
+            ("", "_comp"),
+            ("", "_lc"),
+            ("", "_ident"),
+            ("", "_y"),
+            ("self", "_ret"),
+            ("", "_alt"),
+        ]
+        .iter()
+        .map(|(a, b)| (a.to_string(), b.to_string()))
+        .collect();
+        want.sort();
+        // `x == _eq` is a comparison, not an identity test; the
+        // conditional's condition `c` is not a value; `x` in `x is _ident`
+        // is a variable the file does not define as a function.
+        assert_eq!(got, want);
+        let plain = extract(src);
+        assert!(plain.references.iter().all(|r| !r.value_ref));
+    }
+
+    /// Near miss: a name the file neither defines nor imports, and an
+    /// attribute of a variable, are data in a value position.
+    #[test]
+    fn unscoped_value_positions_are_not_value_refs() {
+        let src = "import views\ndef f(obj):\n    if obj is undefined_global: pass\n    yield obj.attr\n    return views.handler\n";
+        let f = extract_refs(src);
+        let got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        assert_eq!(got, vec![("views".to_string(), "handler".to_string())]);
+    }
+
+    /// `a = b = _f` nests the second assignment on the right of the first.
+    #[test]
+    fn chained_assignment_names_its_value() {
+        let f = extract("a = b = _chain\n");
+        assert!(
+            f.references.iter().any(
+                |r| r.name == "_chain" && r.receiver_hint == cgg_core::VALUE_REF_HINT
+            ),
+            "{:?}",
+            f.references
+        );
     }
 
     /// The name other modules import the file by, for the resolver to map

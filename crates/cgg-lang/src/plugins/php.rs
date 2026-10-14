@@ -20,6 +20,7 @@ impl LanguagePlugin for PhpPlugin {
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {
+            dyn_uses: true,
             attributes: true,
             impls: true,
             value_refs: true,
@@ -49,6 +50,9 @@ impl LanguagePlugin for PhpPlugin {
             namespace: String::new(),
         };
         w.walk(tree.root_node());
+        if ctx.deadcode_signals {
+            facts.dyn_uses = super::dynuse::extract(tree, source, "php");
+        }
         facts
     }
 }

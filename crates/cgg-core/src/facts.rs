@@ -158,6 +158,12 @@ pub enum TestRole {
 /// thing cgg refuses to do. It exists so the dead-code report can say
 /// "something names this string, so cgg may simply be unable to see the
 /// call".
+/// [`DynUse::via`] values that load a *module* by name (`require("x")`,
+/// `importlib.import_module("x")`) rather than look a member up. The
+/// literal names a file or package, not a callable, so it is reported but
+/// does not cap a same-named callable's dead-code finding.
+pub const DYN_MODULE_LOADERS: &[&str] = &["require", "importScripts", "import_module"];
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DynUse {
     /// The identifier-shaped literal.
@@ -408,6 +414,21 @@ pub struct RefRecord {
     /// irrelevant. Only the Erlang and Elixir plugins set it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arity: Option<u32>,
+
+    /// Set when the site *names* a callable as a value without calling
+    /// it, written in a shape that carries its receiver: a Java method
+    /// reference (`this::m`, `Type::m`, `Type::new`), a C# method group
+    /// (`Select(F)`, `evt += this.H`, `Func<int> f = F`). The record is
+    /// resolved exactly as a call through that receiver would be, and
+    /// every edge it produces is a [`crate::graph::Via::Reference`] edge —
+    /// gated behind `--reference-edges` like every other reference.
+    ///
+    /// Unlike a [`VALUE_REF_HINT`] record, whose receiver is plumbing,
+    /// `receiver_hint` here is a real receiver. Plugins emit these only
+    /// when the run asked for reference sites (`ExtractCtx`), so an
+    /// ordinary run's graph and audit are untouched.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub value_ref: bool,
 }
 
 /// The two-phase AST pass output for a single file.
