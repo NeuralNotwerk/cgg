@@ -1,3 +1,90 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2de6a0d..735579e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -667,6 +667,46 @@ otherwise change the default graph.
+   `hcl-terraform-aws`, which therefore timed out at
+   `CGG_REPO_TIMEOUT=60` under corpus load. The answer for each name is
+   unchanged (same candidates, same order, same cap of 8).
++- **A receiver written in a non-bare shape resolves as its bare, typed
++  form** (WS10, FINDINGS C2). Every plugin recorded a receiver as its
++  raw text, so `(f).m()`, `((Foo) o).m()`, `(o as Foo).M()`,
++  `(await x).m()`, `f!.m()` and `(*p).m()` bound nothing, and a
++  construction (`new Foo().m()`, whose text starts with a lowercase
++  `new`) was fanned out by name to every same-named method, decoys
++  included. A shared reader (`cgg_lang::receiver`) now looks through
++  parentheses, `await`/`try`, non-null assertions and dereferences, and
++  reads casts and constructions as the type they name, by grammar node
++  kind: Java/C#/C/C++ casts, `as` (C#, TypeScript, Kotlin `as`/`as?`,
++  Swift `as!`/`as?`, Dart), TypeScript `<Foo>x`, Go `x.(T)`, C++
++  `static_cast<T*>(x)` and Scala `x.asInstanceOf[T]` (cast operators
++  spelled as calls are listed in `cgg_core::stdlib::CAST_INTRINSICS`);
++  `new Foo(…)` (Java, C# with or without an initializer, JS/TS, PHP,
++  Scala, Groovy), `Foo(…)` where the language constructs by calling the
++  type (Python, Kotlin, Swift, Dart, Scala, C++), `Foo{…}` / `&Foo{…}`
++  (Go, C++) and Ruby `Foo.new`. Such a receiver is flagged
++  (`RefRecord::typed_receiver`): it is looked up on its type and up its
++  bases whatever its case (Go's `&server{}`), is never fanned out by
++  name, and keeps C# extension-method and Solidity `using` lookups. A
++  parenthesised expression with no name (`(a + b).m()`) and a call's
++  result (`make().m()`) keep their old reading. Python: a receiver type
++  the calling file declares is that file's class, never a same-named
++  class of another file.
++  - **TypeScript**: `.ts`/`.mts`/`.cts` files are parsed with the
++    TypeScript grammar instead of TSX (`LanguagePlugin::ts_language_for`).
++    TSX reads `<Foo>x` and `<T>(x) => …` as an unclosed JSX element and
++    lost every call after it in the file.
++  - **Null-conditional calls**: Dart `x?.m()` and PHP `$x?->m()` were
++    never recorded; they are now the member call they are (C# `x?.M()`
++    was already fixed by WS9).
++  - **Solidity `using L for T;`** (and `for *`): a call on a value typed
++    `T` that `T` does not declare reaches library `L`'s function.
++  - **Scala**: calls through a dependency are refused like Java's —
++    imports are judged against the tree's packages, and a receiver
++    headed by a package every file sees without an import (`math.ceil`,
++    `sys.error`, `java.util.UUID`; `cgg_core::stdlib::SCALA_IMPLICIT_PACKAGES`)
++    is external unless a local, a member `val`, a package segment or a
++    class of that name is in the tree. A bare call to a member of the
++    caller's class beats an external import, as in Java/Kotlin/C#.
+ 
+ ### Compatibility
+ 
+@@ -935,6 +975,35 @@ otherwise change the default graph.
+   `--jobs 4`). Latency (perf/WS9.md, 14 repositories, median of 5):
+   `hcl-terraform-aws` 17.6 s → 6.6 s (−62.7%); none slower by 1 s or
+   more, largest `zig-zig` +0.63 s (+1.8%); total −13.2%.
++- **WS10 changes the default graph** (full corpus, 283 repositories,
++  none excluded; edges by confidence, removed / added, and medium → high
++  rescores): Java high 0 / 433 (+196 rescored), medium 4,516 / 10,015;
++  PHP high 0 / 5,004 (+213), medium 172 / 849; Go high 0 / 1,345
++  (+5,447: `meta.(*conns.AWSClient).X()` in `hcl-terraform-aws`),
++  medium 201 / 390; C++ high 0 / 150 (+118), medium 185 / 1,937;
++  TypeScript high 88 / 513 (+19), medium 723 / 791; Dart medium 0 /
++  1,865, high 0 / 60; Scala medium 1,483 / 700, high 0 / 35; Ruby medium
++  0 / 564; Python medium 69 / 378, high 0 / 55; JavaScript medium 298 /
++  164, high 0 / 51 (+35); Solidity medium 0 / 163; Kotlin medium 1 /
++  124, high 0 / 8; C# medium 0 / 60, high 0 / 13; Groovy medium 109 /
++  10, high 0 / 10; Swift medium 11 / 25, high 0 / 6. Removed edges are
++  name-matched fan-out from construction and cast receivers onto
++  same-named decoys and onto workspace methods of external types (`new
++  TextEncoder().encode`, `new Date().getTime`, `pd.Series(…)`,
++  `JWTKeyCollection().add`), and Scala `math.*`/`sys.*`/`java.*` calls
++  bound to workspace functions (1,423 now external); the 88 TypeScript
++  `high` removals are the same calls re-attributed to the method that
++  encloses them once the file parses. Dead code: no high-confidence
++  finding changes. Not covered: an awaited receiver is typed as the
++  value awaited (`(await t).M()` with `t: Task<Foo>` reads `Task`); a
++  cast to a C++ template parameter (`static_cast<This*>(this)`) is a
++  typed miss; Groovy classes the grammar loses the scope of keep losing
++  calls through a constructed receiver; a nullable parameter
++  (`Foo? n`, `?Foo $n`) is still untyped (WS11); Go same-package
++  parameters are not typed, so `f.M()` stays duck-typed while
++  `Foo{}.M()` binds. Latency (perf/WS10.md, 17 repositories, median of
++  5): none slower by 1 s or more, largest `groovy-gradle` +0.27 s
++  (+3.4%); total +1.5%.
+ 
+ ## [0.10.2] - 2026-10-11
+ 
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
 index 347416e..5470522 100644
 --- a/crates/cgg-core/src/facts.rs
@@ -1687,115 +1774,20 @@ index a529d75..e50d1eb 100644
              }
          }
 diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
-index f8cc04d..dd7d011 100644
+index f8cc04d..3ab0311 100644
 --- a/crates/cgg/src/lib.rs
 +++ b/crates/cgg/src/lib.rs
-@@ -440,54 +440,59 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+@@ -440,7 +440,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                      };
                  }
              }
 -            let (parse_status, parse_ms, facts) = match pool.parse(lang, &bytes) {
--                Ok(out) => {
--                    // The extractors recurse over the tree. A tree deeper
--                    // than the stack can hold would abort the process, so
--                    // a file that nests past the cap is skipped rather
--                    // than walked — reported, never silently dropped.
--                    if cgg_lang::exceeds_depth(&out.tree, MAX_TREE_DEPTH) {
--                        return FileOutcome::Skipped {
--                            path: cand.path.clone(),
--                            reason: SkipReason::TooDeep(MAX_TREE_DEPTH),
-+            let (parse_status, parse_ms, facts) =
-+                match pool.parse_file(lang, Some(&cand.path), &bytes) {
-+                    Ok(out) => {
-+                        // The extractors recurse over the tree. A tree deeper
-+                        // than the stack can hold would abort the process, so
-+                        // a file that nests past the cap is skipped rather
-+                        // than walked — reported, never silently dropped.
-+                        if cgg_lang::exceeds_depth(&out.tree, MAX_TREE_DEPTH) {
-+                            return FileOutcome::Skipped {
-+                                path: cand.path.clone(),
-+                                reason: SkipReason::TooDeep(MAX_TREE_DEPTH),
-+                            };
-+                        }
-+                        let status = if out.tree.root_node().has_error() {
-+                            "error"
-+                        } else {
-+                            "ok"
-                         };
-+                        let plugin = pool.plugin(lang);
-+                        let facts = plugin.map(|p| {
-+                            let _s = cgg_core::profile::span("parse::extract");
-+                            // Narrow the registrar-verb gate to this file's
-+                            // language; the union of every rule in the table
-+                            // makes each language pay for the others'.
-+                            let mut f = p.extract(
-+                                &extract_ctx.for_language(lang),
-+                                FileId::new(0),
-+                                &cand.path,
-+                                &out.tree,
-+                                &bytes,
-+                            );
-+                            // Parameters and locals, from the same tree: a
-+                            // bare call through one is never another file's
-+                            // function (see `cgg_lang::locals`).
-+                            // Not in a minified bundle (one enormous line): its
-+                            // reused short names make scope evidence noise, and
-+                            // the file keeps the reading it always had.
-+                            if f.locals.is_empty()
-+                                && cgg_lang::longest_line_bytes(&bytes)
-+                                    <= MINIFIED_LINE_BYTES
-+                            {
-+                                f.locals = cgg_lang::locals::collect(
-+                                    &f.language,
-+                                    &out.tree,
-+                                    &bytes,
-+                                );
-+                            }
-+                            f
-+                        });
-+                        (status.to_string(), out.parse_ms, facts)
-                     }
--                    let status = if out.tree.root_node().has_error() {
--                        "error"
--                    } else {
--                        "ok"
--                    };
--                    let plugin = pool.plugin(lang);
--                    let facts = plugin.map(|p| {
--                        let _s = cgg_core::profile::span("parse::extract");
--                        // Narrow the registrar-verb gate to this file's
--                        // language; the union of every rule in the table
--                        // makes each language pay for the others'.
--                        let mut f = p.extract(
--                            &extract_ctx.for_language(lang),
--                            FileId::new(0),
--                            &cand.path,
--                            &out.tree,
--                            &bytes,
--                        );
--                        // Parameters and locals, from the same tree: a
--                        // bare call through one is never another file's
--                        // function (see `cgg_lang::locals`).
--                        // Not in a minified bundle (one enormous line): its
--                        // reused short names make scope evidence noise, and
--                        // the file keeps the reading it always had.
--                        if f.locals.is_empty()
--                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
--                        {
--                            f.locals =
--                                cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
--                        }
--                        f
--                    });
--                    (status.to_string(), out.parse_ms, facts)
--                }
--                Err(_) => ("error".to_string(), 0.0, None),
--            };
-+                    Err(_) => ("error".to_string(), 0.0, None),
-+                };
- 
-             FileOutcome::Analyzed(FileResult {
-                 path: cand.path.clone(),
++            // The grammar is chosen per file (TypeScript `.ts` vs `.tsx`).
++            let parsed = pool.parse_file(lang, Some(&cand.path), &bytes);
++            let (parse_status, parse_ms, facts) = match parsed {
+                 Ok(out) => {
+                     // The extractors recurse over the tree. A tree deeper
+                     // than the stack can hold would abort the process, so
 diff --git a/crates/cgg/tests/resolve.rs b/crates/cgg/tests/resolve.rs
 index 254141f..2c5cc0e 100644
 --- a/crates/cgg/tests/resolve.rs

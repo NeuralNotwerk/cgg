@@ -1,0 +1,45 @@
+cpp | removed {'medium': 185} | added {'medium': 1937, 'high': 150} | rescored {'medium->high': 118}
+       139 external/stdlib or still bound (same name, kept target)
+       46 now unresolved: candidates-in-other-files
+csharp | removed {} | added {'high': 13, 'medium': 60} | rescored {}
+dart | removed {} | added {'high': 60, 'medium': 1865} | rescored {}
+go | removed {'medium': 201} | added {'high': 1345, 'medium': 390} | rescored {'medium->high': 5447}
+       199 external/stdlib or still bound (same name, kept target)
+       2 now unresolved: candidates-in-other-files
+groovy | removed {'medium': 109} | added {'high': 10, 'medium': 10} | rescored {'medium->high': 3}
+       91 now unresolved: candidates-in-other-files
+       18 external/stdlib or still bound (same name, kept target)
+java | removed {'medium': 4516} | added {'high': 433, 'medium': 10015} | rescored {'medium->high': 196}
+       3890 external/stdlib or still bound (same name, kept target)
+       621 now unresolved: candidates-in-other-files
+       5 rebound to another target
+javascript | removed {'medium': 298} | added {'high': 51, 'medium': 164} | rescored {'medium->high': 35}
+       238 now unresolved: candidates-in-other-files
+       35 external/stdlib or still bound (same name, kept target)
+       14 now unresolved: not-in-imported-module
+       7 rebound to another target
+       4 now unresolved: ambiguous-in-file
+kotlin | removed {'medium': 1} | added {'medium': 124, 'high': 8} | rescored {}
+       1 rebound to another target
+php | removed {'medium': 172} | added {'high': 5004, 'medium': 849} | rescored {'medium->high': 213}
+       161 external/stdlib or still bound (same name, kept target)
+       11 now unresolved: candidates-in-other-files
+python | removed {'medium': 69} | added {'high': 55, 'medium': 378} | rescored {}
+       40 external/stdlib or still bound (same name, kept target)
+       20 now unresolved: candidates-in-other-files
+       7 rebound to another target
+       2 now unresolved: value-ref-ambiguous
+ruby | removed {} | added {'medium': 564, 'high': 10} | rescored {}
+scala | removed {'medium': 1483} | added {'high': 35, 'medium': 700} | rescored {'medium->high': 2}
+       1423 external/stdlib or still bound (same name, kept target)
+       42 now unresolved: candidates-in-other-files
+       18 rebound to another target
+solidity | removed {} | added {'medium': 163} | rescored {}
+swift | removed {'medium': 11} | added {'medium': 25, 'high': 6} | rescored {}
+       8 now unresolved: candidates-in-other-files
+       3 external/stdlib or still bound (same name, kept target)
+typescript | removed {'medium': 723, 'high': 88} | added {'medium': 791, 'high': 513, 'low': 4} | rescored {'medium->high': 19}
+       456 rebound to another target
+       309 now unresolved: candidates-in-other-files
+       25 external/stdlib or still bound (same name, kept target)
+       21 now unresolved: fanout-cap-exceeded
