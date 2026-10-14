@@ -1,3 +1,94 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e3f0491..36a989b 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -404,6 +404,58 @@ otherwise change the default graph.
+   records both bases, Swift and Dart record supertypes, and Dart mixins own
+   their members.
+ 
++- **Scope and type follow-ups to WS14** (WS14b; Rust, Zig, Perl, PHP,
++  Scala, Kotlin, OCaml).
++  - Rust: a pattern binding is in scope after its value, not in it —
++    `if let Some(parts) = parts(..)` / `while let` / `for x in x()` call
++    the outer function again, and the binding now covers the `if`/`while`
++    body (not its `else`). A macro invocation (`err!(…)`) is never
++    shadowed by a value of the same name (`RefRecord::macro_call`).
++  - Zig: locals are typed from what is written (`const x: ?*T`, `T{…}`)
++    or from what the called function is declared to return (`self.m()
++    orelse return`, `try IO.init(…)`, another file's function followed
++    through its return type), parameters with optional/pointer/`const`
++    markers peeled. A receiver typed as a container reaches that
++    container's member — containers are recorded with their spans
++    (`FileFacts::type_spans`), including `@This()` aliases and
++    container-level aliases such as `pub const frame =
++    Functions(@This()).frame;` / `const C = Common(Self)` — and a name the
++    container does not declare is refused. A call on a type function's
++    result (`list.Managed(T).init()`) reaches the struct it returns, or is
++    external / refused, never a same-named `init` of the caller's file.
++    A function-local `const X = @import("x.zig").X` is followed; `const
++    fatal = std.process.fatal;` in a function no longer shadows. A typed
++    receiver the lookup cannot follow is read as written (as C++).
++  - Perl: `$self->m()` on the sub's invocant (`my $self = shift;`, `my
++    ($c, …) = @_;`, a signature's first parameter, `shift->m`) binds the
++    caller package's `m`, else the first up its bases (`use parent`/`use
++    base`, `@ISA`, and — from a small stdlib table — `use Mojo::Base
++    'X'`, Moose/Moo `extends`/`with`); inherited from a base outside the
++    tree it is external. `$self->SUPER::m()` starts at the bases.
++  - PHP: of several global definitions none of which the caller's include
++    chain reaches, one declared inside a conditional (`if
++    (!function_exists('f'))`) yields to the one unconditional definition
++    (medium); two unconditional copies stay refused.
++  - Scala: a bare call reaches the member of the type around it, else its
++    bases, each base resolved through the declaring file's imports
++    (exact, relative, wildcard) and package — not by simple name — and a
++    companion object's members are not the class's. `this(…)` in an
++    auxiliary constructor is a construction of the class, not a call to
++    its `def this` members. A bare name an explicit import brings in from
++    a package the tree does not declare is `external-module`.
++  - Kotlin: inside `x.run { … }`, `x.apply { … }`, `with(x) { … }` a bare
++    call is `x`'s member when `x`'s type declares one, else the enclosing
++    scope's call it was before (`RefRecord::implicit_receiver`); a
++    lambda or object expression sees the parameter types of the function
++    around it.
++  - OCaml: a call inside a non-`rec` `let f … = …` to `f` is never that
++    binding itself (`RefRecord::not_def`); under `let rec` it is.
++- Not covered (WS14b): Zig receivers that are field chains
++  (`page.rows.ptr()`, `priv.config orelse …`); Perl Moose/Moo `has`
++  accessors; PHP functions with two unconditional copies (WordPress
++  `__`); Scala bare calls bound in-file to another class's same-named
++  member; Kotlin primary-constructor properties as receiver types.
++
+ ### Compatibility
+ 
+ - **The default graph changes.** Full corpus, 283 repositories:
+@@ -596,6 +648,27 @@ otherwise change the default graph.
+   repositories, none slower by 1 s or more, total +0.7%; `--dead-code`,
+   4 repositories, largest +0.5 s (`groovy-gradle`, +3.5%).
+ 
++- WS14b. Full corpus, 283 repositories, `hcl-terraform-aws` excluded
++  (timeout on both sides; ab/WS14b-v9). Dead-code findings unchanged.
++  Edges (`high` net / `medium` net): Zig +42.7k / −10.8k (typed receivers
++  bind their container's member: 34.5k added at `high`, 8.3k re-scored
++  medium → high; 5.9k `medium` name-matched edges removed — rebound to
++  the typed container's member, calls on std types now external, type
++  function results), Scala +8.6k / −10.4k (bases through imports: 3.9k
++  rebound from same-named classes of other packages, e.g. spark's
++  `connect.test.QueryTest`; `this(…)` delegation no longer bound to
++  `def this`), Perl +3.3k / −0.2k (invocant calls), OCaml −385 / +83
++  (self-edges of non-recursive `let`s), PHP 0 / +88 (unconditional
++  definition over fallbacks), Rust +21 / +15, Kotlin −12 / −48 (scope
++  lambdas: wrong self-class bindings dropped, captured parameters typed).
++  WS14 regressions recovered (same target as before WS14): Rust 37 of 49
++  `shadowed-by-local` sites (all 22 `if let` ones; the rest are values
++  passed as parameters or `quote!` interpolations), Zig 105 of 437
++  `candidates-in-other-files` and 86 of 266 `shadowed-by-local` (the
++  rest: field-chain receivers, comptime function parameters), Perl 28 of
++  291 (every invocant call with a sub; the rest are `key => $obj->m` on
++  untyped objects, or Moose accessors), PHP 5 of 39. PERF_PLACEHOLDER
++
+ ## [0.10.2] - 2026-10-11
+ 
+ Rust resolution and dead-code accuracy, from FIX_PLAN.md v2. A bugfix
 diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
 index c538c98..2df1b83 100644
 --- a/crates/cgg-core/src/facts.rs
