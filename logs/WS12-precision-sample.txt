@@ -1,0 +1,88 @@
+=== c high (n=1259)
+ erlang-otp /erts/lib_src/yielding_c_fun/ycf_main.c:198  ycf_main -> ycf_string_item_list_concat @ /erts/lib_src/yielding_c_fun/ycf_string.c
+     | ycf_string_item_list_concat(&all_yield_funs, &funs_to_yield_frec_copy);
+ c-redis /deps/jemalloc/test/unit/ph.c:217  test_ph_random -> heap_new @ /deps/jemalloc/test/unit/ph.c
+     | heap_new(&heap);
+ zig-zig /lib/libc/musl/include/math.h:111  __islessequalf -> isunordered @ /lib/libc/musl/include/math.h
+     | __ISREL_DEF(lessequalf, <=, float_t)
+ cmake-kitware /Utilities/cmlibuv/src/unix/loop-watcher.c:68  uv_idle_start -> uv__handle_start @ /Utilities/cmlibuv/src/uv-common.h
+     | UV_LOOP_WATCHER_DEFINE(idle, IDLE)
+ c-redis /deps/jemalloc/src/ctl.c:3731  stats_arenas_i_extents_j_dirty_bytes_ctl -> arenas_i @ /deps/jemalloc/src/ctl.c
+     | CTL_RO_CGEN(config_stats, stats_arenas_i_extents_j_dirty_bytes,
+ erlang-otp /erts/emulator/zstd/compress/zstd_fast.c:977  ZSTD_compressBlock_fast_extDict -> ZSTD_compressBlock_fast_extDict_4_0 @ /erts/emulator/zstd/compress/zstd_fast.c
+     | return ZSTD_compressBlock_fast_extDict_4_0(ms, seqStore, rep, src, srcSize);
+=== c medium (n=168)
+ cmake-kitware /Source/kwsys/testString.c:48  testString_isascii -> kwsysString_isascii @ /Source/kwsys/String.c
+     | MAKE_testString_(isascii);
+ zig-zig /lib/libc/include/generic-netbsd/ufs/lfs/lfs_accessors.h:506  lfs_dino_setrdev -> LFS_SWAP_int32_t @ /lib/libc/include/generic-netbsd/ufs/lfs/lfs_accessors.h
+     | LFS_DEF_DINO_ACCESSOR(int64_t, int32_t, rdev)
+ zig-zig /lib/libc/include/generic-freebsd/dev/mfi/mfivar.h:536  mfi_enqueue_free -> TAILQ_INSERT_TAIL @ /lib/libc/include/generic-freebsd/sys/queue.h
+     | MFIQ_COMMAND_QUEUE(free, MFIQ_FREE);
+ zig-zig /lib/libc/include/generic-netbsd/ufs/lfs/lfs_accessors.h:497  lfs_dino_setctime -> LFS_SWAP_int64_t @ /lib/libc/include/generic-netbsd/ufs/lfs/lfs_accessors.h
+     | LFS_DEF_DINO_ACCESSOR(int64_t, int32_t, ctime)
+ zig-zig /lib/libc/include/generic-freebsd/dev/mfi/mfivar.h:537  mfi_requeue_ready -> TAILQ_INSERT_HEAD @ /lib/libc/include/generic-freebsd/sys/queue.h
+     | MFIQ_COMMAND_QUEUE(ready, MFIQ_READY);
+=== clojure high (n=6)
+ app-metabase-compojure /src/metabase/premium_features/defenterprise.clj:107  metabase.premium-features.defenterprise/defenterprise-impl -> metabase.premium-features.defenterprise/dynamic-ee-oss-fn @ /src/metabase/premium_features/defenterprise.clj
+     | (dynamic-ee-oss-fn ee-ns# ee-fn-name#)))))
+ app-metabase-compojure /src/metabase/settings/models/setting.clj:1456  metabase.settings.models.setting/defsetting -> metabase.settings.models.setting/setting-fn @ /src/metabase/settings/models/setting.clj
+     | (-> (def ~setting-getter-fn-symbol (setting-fn :getter ~setting-definition-symbol))
+ app-metabase-compojure /src/metabase/app_db/custom_migrations.clj:89  metabase.app-db.custom-migrations/define-reversible-migration -> metabase.app-db.custom-migrations/should-execute-change? @ /src/metabase/app_db/custom_migrations.clj
+     | (when (should-execute-change?)
+ app-metabase-compojure /src/metabase/models/util/spec_update.clj:74  metabase.models.util.spec-update/define-spec -> metabase.models.util.spec-update/decode-spec @ /src/metabase/models/util/spec_update.clj
+     | (def ~spec-name ~docstring (decode-spec spec#))))
+ app-metabase-compojure /.clj-kondo/src/hooks/common.clj:114  hooks.common/defn-traced -> hooks.common/trace* @ /.clj-kondo/src/hooks/common.clj
+     | (def ~fn-name (trace* fn#))))
+ clojure-compojure /src/compojure/core.clj:207  compojure.core/defroutes -> compojure.core/routes @ /src/compojure/core.clj
+     | `(def ~name (routes ~@routes))))
+=== clojure medium (n=1)
+ app-metabase-compojure /src/metabase/channel/template/handlebars_helper.clj:54  metabase.channel.template.handlebars-helper/defhelper -> metabase.util.performance/update-keys @ /src/metabase/util/performance.cljc
+     | (~helper-fn-name context# (.params option#) (update-keys (.hash option#) keyword) option#)))))))
+=== cpp high (n=322)
+ dart-flutter /engine/src/flutter/lib/ui/text/paragraph_builder.h:21  flutter::ParagraphBuilder::GetDartType -> tonic::DartWrappable::GetTypeForWrapper @ /engine/src/flutter/third_party/tonic/dart_wrappable.cc
+     | DEFINE_WRAPPERTYPEINFO();
+ cmake-kitware /Utilities/cmcppdap/src/protocol_response.cpp:56  dap::TypeOf<ErrorResponse>::type -> TypeOf<STRUCT>::serializeFields @ /Utilities/cmcppdap/include/dap/typeof.h
+     | DAP_IMPLEMENT_STRUCT_TYPEINFO(ErrorResponse, "", DAP_FIELD(error, "error"));
+ dart-flutter /engine/src/flutter/lib/ui/painting/gradient.h:16  flutter::CanvasGradient::GetDartType -> tonic::DartWrappable::GetTypeForWrapper @ /engine/src/flutter/third_party/tonic/dart_wrappable.cc
+     | DEFINE_WRAPPERTYPEINFO();
+ cmake-kitware /Utilities/cmcppdap/src/protocol_types.cpp:163  dap::TypeOf<Message>::type -> TypeOf<STRUCT>::serializeFields @ /Utilities/cmcppdap/include/dap/typeof.h
+     | DAP_IMPLEMENT_STRUCT_TYPEINFO(Message,
+ app-kythe-bazel /kythe/cxx/indexer/cxx/recursive_type_visitor.h:193  kythe::RecursiveTypeVisitor<Derived>::TraverseIncompleteArrayTypePair -> kythe::RecursiveTypeVisitor::getDerived @ /kythe/cxx/indexer/cxx/recursive_type_visitor.h
+     | DEF_TRAVERSE_TYPEPAIR(IncompleteArrayType, {
+ zig-zig /lib/libtsan/tsan_interceptors_mac.cpp:132  __tsan::TSAN_INTERCEPTOR -> __tsan::__tsan_atomic32_compare_exchange_strong @ /lib/libtsan/tsan_interface.h
+     | OSATOMIC_INTERCEPTORS_CAS(OSAtomicCompareAndSwapInt, __tsan_atomic32, a32, int)
+=== cpp medium (n=3232)
+ cmake-kitware /Utilities/cmcppdap/include/dap/session.h:353  dap::Session::registerHandler -> dap::TypeOf<FunctionBreakpoint>::type @ /Utilities/cmcppdap/src/protocol_types.cpp
+     | onSuccess(TypeOf<ResponseType>::type(), &res.response);
+ cmake-kitware /Utilities/cmcppdap/include/dap/serialization.h:90  dap::Deserializer::deserialize -> dap::TypeOf<InitializeResponse>::type @ /Utilities/cmcppdap/src/protocol_response.cpp
+     | return TypeOf<T>::type()->deserialize(this, ptr);
+ cmake-kitware /Utilities/cmcppdap/include/dap/typeof.h:115  dap::TypeOf<optional<T>>::type -> dap::TypeOf<ContinueResponse>::type @ /Utilities/cmcppdap/src/protocol_response.cpp
+     | "optional<" + TypeOf<T>::type()->name() + ">");
+ dart-flutter /engine/src/flutter/impeller/entity/entity_unittests.cc:2835  impeller::testing::TEST_P -> impeller::ConicalGradientContents::GetColors @ /engine/src/flutter/impeller/entity/contents/conical_gradient_contents.cc
+     | APPLY_COLOR_FILTER_GRADIENT_TEST(Sweep);
+ cmake-kitware /Utilities/cmcppdap/include/dap/session.h:388  dap::Session::registerHandler -> dap::TypeOf<StepInTargetsResponse>::type @ /Utilities/cmcppdap/src/protocol_response.cpp
+     | onSuccess(TypeOf<ResponseType>::type(), &res.response);
+=== elixir high (n=4060)
+ app-plausible-phoenix /lib/plausible_web/controllers/api/stats_controller.ex:123  PlausibleWeb.Api.StatsController::exploration_funnel -> PlausibleWeb.Api.Helpers::bad_request @ /lib/plausible_web/controllers/api/helpers.ex
+     | H.bad_request(conn, "The journey is too long")
+ app-plausible-phoenix /lib/plausible/ingestion/source.ex:146  Plausible.Ingestion.Source::has_valid_referral? -> Plausible.Ingestion.Request::sanitize_hostname @ /lib/plausible/ingestion/request.ex
+     | Request.sanitize_hostname(referrer_uri.host) == Request.sanitize_hostname(uri.host)
+ app-plausible-phoenix /test/plausible_web/live/sso_management_test.exs:300  PlausibleWeb.Live.SSOMangementTest::setup_integration -> Plausible.Auth.SSO.Domains::add @ /extra/lib/plausible/auth/sso/domains.ex
+     | {:ok, sso_domain} = SSO.Domains.add(integration, domain, skip_checks?: true)
+ app-plausible-phoenix /lib/plausible_web/plugs/authorize_site_access.ex:233  PlausibleWeb.Plugs.AuthorizeSiteAccess::error_not_found -> PlausibleWeb.ControllerHelpers::render_error @ /lib/plausible_web/controllers/helpers.ex
+     | |> PlausibleWeb.ControllerHelpers.render_error(404)
+ app-papercups-phoenix /lib/chat_api/slack/helpers.ex:35  ChatApi.Slack.Helpers::get_user_email -> ChatApi.Slack.Extractor::extract_slack_user_email! @ /lib/chat_api/slack/extractor.ex
+     | Slack.Extractor.extract_slack_user_email!(response)
+ app-papercups-phoenix /lib/chat_api/event_subscriptions.ex:86  ChatApi.EventSubscriptions::update_event_subscription -> ChatApi.EventSubscriptions.EventSubscription::changeset @ /lib/chat_api/event_subscriptions/event_subscription.ex
+     | |> EventSubscription.changeset(attrs)
+=== elixir medium (n=8)
+ app-plausible-phoenix /lib/plausible/exports.ex:312  Plausible.Exports::bounces -> Plausible.Stats.SQL.Fragments::scale_sample @ /lib/plausible/stats/sql/fragments.ex
+     | scale_sample(
+ app-plausible-phoenix /extra/lib/plausible/stats/funnel.ex:87  Plausible.Stats.Funnel::select_funnel -> Plausible.Stats.Goals::goal_condition @ /lib/plausible/stats/goals.ex
+     | goal_condition = Plausible.Stats.Goals.goal_condition(step.goal)
+ app-plausible-phoenix /extra/lib/plausible/stats/funnel.ex:87  Plausible.Stats.Funnel::select_funnel -> Plausible.Stats.Goals::goal_condition @ /lib/plausible/stats/goals.ex
+     | goal_condition = Plausible.Stats.Goals.goal_condition(step.goal)
+ app-plausible-phoenix /lib/plausible/exports.ex:303  Plausible.Exports::visits -> Plausible.Stats.SQL.Fragments::scale_sample @ /lib/plausible/stats/sql/fragments.ex
+     | scale_sample(fragment("greatest(sum(?),0)", unquote(t).sign)),
+ app-plausible-phoenix /lib/plausible/exports.ex:327  Plausible.Exports::pageviews -> Plausible.Stats.SQL.Fragments::scale_sample @ /lib/plausible/stats/sql/fragments.ex
+     | scale_sample(

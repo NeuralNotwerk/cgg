@@ -1,0 +1,18 @@
+c | removed {'high': 632, 'medium': 38} | added {'high': 1560, 'medium': 168} | rescored {}
+       567 now unresolved: no-enclosing-callable
+       65 rebound to another target
+       24 now unresolved: no-candidate-in-file
+       12 now unresolved: candidates-in-other-files
+       2 external/stdlib or still bound (same name, kept target)
+clojure | removed {'high': 6, 'medium': 1} | added {'high': 6, 'medium': 1} | rescored {}
+       7 rebound to another target
+cpp | removed {'high': 210, 'medium': 212} | added {'medium': 12342, 'high': 342} | rescored {'high->medium': 96}
+       241 now unresolved: no-candidate-in-file
+       139 external/stdlib or still bound (same name, kept target)
+       22 now unresolved: no-enclosing-callable
+       20 rebound to another target
+elixir | removed {'high': 141, 'medium': 12} | added {'high': 4060, 'medium': 8} | rescored {}
+       131 external/stdlib or still bound (same name, kept target)
+       20 rebound to another target
+       1 now unresolved: no-enclosing-callable
+       1 now unresolved: ambiguous-in-file

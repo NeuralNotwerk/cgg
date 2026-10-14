@@ -1,0 +1,31 @@
+old=bins/WS12-before
+new=bins/WS12-after-v1
+repos=283 elapsed=358s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 25
+  app-carvera-firmware-cpp: edges 21144->21001 (-143 +0 ~0) callables 5737->5739 unresolved 2126->2262 files 588->588 deadhigh 0->0 
+  app-cuda-samples: edges 12725->12911 (-0 +186 ~0) callables 6706->6813 unresolved 4604->4855 files 575->575 deadhigh 0->0 
+  app-ghostty-zig: edges 21534->21534 (-0 +0 ~0) callables 9952->9952 unresolved 39804->39807 files 1114->1114 deadhigh 0->0 
+  app-kythe-bazel: edges 22298->22403 (-0 +105 ~0) callables 13481->13539 unresolved 7916->7853 files 1715->1715 deadhigh 4->4 
+  app-lipas-reitit: edges 3273->3273 (-0 +0 ~0) callables 4328->4322 unresolved 4085->4085 files 724->724 deadhigh 0->0 
+  app-metabase-compojure: edges 84197->84197 (-6 +6 ~0) callables 58843->58823 unresolved 391163->391163 files 15860->15860 deadhigh 0->0 
+  app-orleans-samples: edges 13688->13688 (-0 +0 ~0) callables 20747->20747 unresolved 18961->18965 files 3171->3171 deadhigh 100->100 
+  app-papercups-phoenix: edges 5412->6572 (-0 +1160 ~0) callables 5799->5799 unresolved 7925->8554 files 627->627 deadhigh 0->0 
+  app-plausible-phoenix: edges 5279->7748 (-18 +2487 ~0) callables 7630->7644 unresolved 31771->31646 files 1518->1518 deadhigh 0->0 
+  app-rn-expensify: edges 96694->96694 (-0 +0 ~0) callables 41923->41923 unresolved 199491->199500 files 8706->8706 deadhigh 0->0 
+  app-smoothieware-cpp: edges 11387->11241 (-146 +0 ~0) callables 3953->3955 unresolved 1953->2102 files 552->552 deadhigh 0->0 
+  c-redis: edges 61372->61918 (-14 +560 ~0) callables 13761->13920 unresolved 9882->9951 files 950->950 deadhigh 0->0 
+  clojure-compojure: edges 118->118 (-1 +1 ~0) callables 125->124 unresolved 135->135 files 12->12 deadhigh 0->0 
+  clojure-ring: edges 427->427 (-0 +0 ~0) callables 404->402 unresolved 739->739 files 82->82 deadhigh 0->0 
+  cmake-kitware: edges 133083->135722 (-6 +2645 ~13) callables 36957->37242 unresolved 115739->115891 files 16047->16047 deadhigh 0->0 
+  cpp-nlohmann-json: edges 12165->12165 (-0 +0 ~0) callables 5313->5313 unresolved 28237->28255 files 509->509 deadhigh 0->0 
+  cpp-spdlog: edges 4352->4372 (-0 +20 ~0) callables 2320->2330 unresolved 2992->3027 files 157->157 deadhigh 0->0 
+  dart-flutter: edges 565556->566034 (-0 +478 ~0) callables 119905->120121 unresolved 325159->325467 files 10771->10771 deadhigh 18->18 
+  elixir-phoenix: edges 3628->3906 (-135 +413 ~0) callables 3187->3185 unresolved 7272->6946 files 207->207 deadhigh 0->0 
+  erlang-otp: edges 704360->713499 (-184 +9323 ~96) callables 271131->271490 unresolved 220474->231254 files 5652->5652 deadhigh 2->2 
+  fortran-stdlib: edges 1118->1118 (-0 +0 ~0) callables 1471->1471 unresolved 96->100 files 430->430 deadhigh 0->0 
+  groovy-gradle: edges 168996->169128 (-0 +132 ~0) callables 106780->106822 unresolved 253585->253636 files 24272->24272 deadhigh 44->44 
+  lua-neovim: edges 77597->77597 (-0 +0 ~0) callables 14788->14818 unresolved 82911->83039 files 1399->1399 deadhigh 0->0 
+  ocaml-dune: edges 14539->14516 (-23 +0 ~0) callables 29797->29797 unresolved 78637->78666 files 4759->4759 deadhigh 0->0 
+  zig-zig: edges 272724->273119 (-576 +971 ~0) callables 362453->363196 unresolved 199482->202212 files 17350->17350 deadhigh -> dead rc old=124 new=124
+by language: see by_language.tsv
