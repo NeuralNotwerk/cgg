@@ -1,0 +1,2998 @@
+diff --git a/crates/cgg-core/src/facts.rs b/crates/cgg-core/src/facts.rs
+index 6d322b4..347416e 100644
+--- a/crates/cgg-core/src/facts.rs
++++ b/crates/cgg-core/src/facts.rs
+@@ -429,6 +429,17 @@ pub struct RefRecord {
+     /// ordinary run's graph and audit are untouched.
+     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+     pub value_ref: bool,
++
++    /// Set when the site names a member with no argument list, in a
++    /// language where that is either a value read or a call to a method
++    /// declared without parameters (Scala `b.size`, a bare `helper`).
++    /// Such a record is kept only when some callable of its language is
++    /// declared without a parameter list under that name and no local
++    /// binding shadows it (`cgg_resolve::value_refs::prune_paren_less`);
++    /// otherwise it is a value read, not a call, and is dropped before
++    /// resolution.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    pub paren_less: bool,
+ }
+ 
+ /// The two-phase AST pass output for a single file.
+@@ -741,6 +752,15 @@ pub fn last_scope_segment(s: &str) -> &str {
+     s[start..].trim()
+ }
+ 
++/// Attribute a plugin puts on one part of a method split across the
++/// parts of a type: a C# `partial` method, declared (bodiless) in one part
++/// and implemented in another. One half is routinely generated (designer
++/// files, source generators) or outside the tree, and calls to an
++/// unimplemented one are compiled away, so the dead-code report treats
++/// it as a contract member (capped at medium), never as corroborated
++/// dead code.
++pub const PARTIAL_DECLARATION: &str = "partial-declaration";
++
+ /// Key suffix under which a C/C++ variable or field declared as a class
+ /// template records the type its `operator->` reaches: `p#deref` is the
+ /// `Kernel` of `std::unique_ptr<Kernel> p`, used only for `p->m()`. The
+diff --git a/crates/cgg-core/src/lib.rs b/crates/cgg-core/src/lib.rs
+index 99cfd85..c89afc3 100644
+--- a/crates/cgg-core/src/lib.rs
++++ b/crates/cgg-core/src/lib.rs
+@@ -49,9 +49,9 @@ pub use external::{
+ pub use facts::{
+     ClassDecl, ClassFieldDecl, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant,
+     DynUse, ExportRecord, FieldType, FileFacts, ImportRecord, LocalBinding, LocalType,
+-    MacroAlias, MemberPtrTake, NameMention, RefRecord, STRING_REF_HINT, TestRole,
+-    TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
+-    last_scope_segment, looks_like_type_name, template_pointee,
++    MacroAlias, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,
++    STRING_REF_HINT, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis,
++    first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+ };
+ pub use frameworks::{
+     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,
+diff --git a/crates/cgg-lang/src/detect.rs b/crates/cgg-lang/src/detect.rs
+index 66f9f19..990daef 100644
+--- a/crates/cgg-lang/src/detect.rs
++++ b/crates/cgg-lang/src/detect.rs
+@@ -318,6 +318,7 @@ fn has_cpp_content(path: &Path) -> bool {
+         if contains_word(t, "constexpr")
+             || contains_word(t, "noexcept")
+             || t.contains("::")
++            || has_virtual_member(t)
+         {
+             return true;
+         }
+@@ -552,6 +553,19 @@ fn has_access_specifier(line: &str) -> bool {
+     false
+ }
+ 
++/// `virtual` introducing a member declaration (`virtual void f() = 0;`,
++/// `virtual ~Shape()`): the keyword at the start of the line, followed by
++/// a name or a destructor's `~`. C has no `virtual`; a C identifier of
++/// that name is never followed by another name.
++fn has_virtual_member(line: &str) -> bool {
++    line.strip_prefix("virtual").is_some_and(|rest| {
++        rest.starts_with(char::is_whitespace)
++            && rest
++                .trim_start()
++                .starts_with(|c: char| c.is_ascii_alphabetic() || c == '_' || c == '~')
++    })
++}
++
+ fn contains_word(line: &str, word: &str) -> bool {
+     let b = line.as_bytes();
+     let w = word.as_bytes();
+@@ -729,6 +743,29 @@ mod tests {
+         assert_eq!(r.detected_via, "header-heuristic:cpp");
+     }
+ 
++    #[test]
++    fn header_with_virtual_members_is_cpp() {
++        // A struct of pure virtuals uses no other C++-only construct.
++        let reg = reg();
++        let det = LanguageDetector::new(&reg);
++        let tmp = TempDir::new().unwrap();
++        write(
++            tmp.path(),
++            "shape.h",
++            b"struct Shape {\n  virtual ~Shape() {}\n  virtual double area() const = 0;\n};\n",
++        );
++        write(
++            tmp.path(),
++            "plain.h",
++            b"struct S { int virtual; };\nint virtual_count(void);\n",
++        );
++        let r = det.detect(&tmp.path().join("shape.h"));
++        assert_eq!(r.verdict, DetectVerdict::Language("cpp"));
++        assert_eq!(r.detected_via, "header-content:cpp");
++        let r = det.detect(&tmp.path().join("plain.h"));
++        assert_eq!(r.verdict, DetectVerdict::Language("c"));
++    }
++
+     #[test]
+     fn header_without_cpp_sibling_is_c() {
+         let reg = reg();
+diff --git a/crates/cgg-lang/src/plugins/c.rs b/crates/cgg-lang/src/plugins/c.rs
+index 32f7a46..ef32154 100644
+--- a/crates/cgg-lang/src/plugins/c.rs
++++ b/crates/cgg-lang/src/plugins/c.rs
+@@ -78,7 +78,16 @@ impl<'a> CWalker<'a> {
+         match node.kind() {
+             "function_definition" => {
+                 self.record_function_def(node);
+-                self.walk_children(node);
++                // The declarator holds no calls; when a macro invocation
++                // with no `;` precedes a function, it holds the swallowed
++                // header (`helper(void)`), which is not a call either.
++                let decl = node.child_by_field_name("declarator");
++                let mut c = node.walk();
++                for child in node.children(&mut c) {
++                    if Some(child) != decl {
++                        self.walk(child);
++                    }
++                }
+                 return;
+             }
+             "declaration" => {
+@@ -130,7 +139,16 @@ impl<'a> CWalker<'a> {
+         let Some(decl) = node.child_by_field_name("declarator") else {
+             return;
+         };
+-        let name = self.fn_name_from_declarator(decl);
++        // `FIELDS(DECL)\nint helper(void) { … }`: a macro invocation with
++        // no trailing `;` makes the grammar read the invocation as the
++        // declarator (`FIELDS(DECL)`) and the real header as stray
++        // children of it — a `call_expression` `helper(void)`. That
++        // header names the function.
++        let name = swallowed_header(decl)
++            .and_then(|call| call.child_by_field_name("function"))
++            .filter(|f| f.kind() == "identifier")
++            .map(|f| self.text(f).to_string())
++            .unwrap_or_else(|| self.fn_name_from_declarator(decl));
+         if name.is_empty() {
+             return;
+         }
+@@ -158,7 +176,11 @@ impl<'a> CWalker<'a> {
+         // A declaration that contains a function_declarator is a prototype.
+         let mut c = node.walk();
+         for child in node.children(&mut c) {
+-            if child.kind() == "function_declarator" {
++            // `char *f(void);` wraps the function declarator in a pointer
++            // declarator for its return type.
++            if matches!(child.kind(), "function_declarator" | "pointer_declarator")
++                && !self.fn_name_from_declarator(child).is_empty()
++            {
+                 let name = self.fn_name_from_declarator(child);
+                 if !name.is_empty() {
+                     let (sl, el) = line_range(node);
+@@ -181,40 +203,35 @@ impl<'a> CWalker<'a> {
+         }
+     }
+ 
++    /// The function a declarator declares, looking through the pointer,
++    /// parenthesis and attribute layers a return type wraps around its
++    /// `function_declarator` (`char *f(void)`, `int (*f(void))(int)`).
++    /// Empty when the identifier is not the direct declarator of a
++    /// function declarator: `int (*fp)(int);` declares a pointer variable,
++    /// not a function.
+     fn fn_name_from_declarator(&self, decl: Node) -> String {
+-        // function_declarator -> declarator: identifier | pointer_declarator -> ...
+-        if let Some(d) = decl.child_by_field_name("declarator") {
+-            match d.kind() {
+-                "identifier" => return self.text(d).to_string(),
+-                "pointer_declarator" => {
+-                    // *fn_ptr — dig for identifier
+-                    let mut cc = d.walk();
+-                    for c in d.children(&mut cc) {
+-                        if c.kind() == "identifier" {
+-                            return self.text(c).to_string();
+-                        }
+-                    }
+-                }
+-                "parenthesized_declarator" => {
+-                    let mut cc = d.walk();
+-                    for c in d.children(&mut cc) {
+-                        if c.kind() == "pointer_declarator" || c.kind() == "identifier" {
+-                            let mut inner = c.walk();
+-                            for ic in c.children(&mut inner) {
+-                                if ic.kind() == "identifier" {
+-                                    return self.text(ic).to_string();
+-                                }
+-                            }
+-                            if c.kind() == "identifier" {
+-                                return self.text(c).to_string();
+-                            }
+-                        }
+-                    }
+-                }
+-                _ => {}
++        fn inner(n: Node) -> Option<Node> {
++            n.child_by_field_name("declarator")
++                .or_else(|| n.named_children(&mut n.walk()).last())
++        }
++        match decl.kind() {
++            "function_declarator" => match decl.child_by_field_name("declarator") {
++                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
++                Some(d) => self.fn_name_from_declarator(d),
++                None => String::new(),
++            },
++            // `int (f)(int)` declares the function `f` (a macro-built name
++            // `RET NAME_MACRO(f)(…)` parses so); `int (*fp)(int)` does not.
++            "parenthesized_declarator" => match inner(decl) {
++                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
++                Some(d) => self.fn_name_from_declarator(d),
++                None => String::new(),
++            },
++            "pointer_declarator" | "attributed_declarator" => {
++                inner(decl).map_or_else(String::new, |d| self.fn_name_from_declarator(d))
+             }
++            _ => String::new(),
+         }
+-        String::new()
+     }
+ 
+     fn record_macro_def(&mut self, node: Node) {
+@@ -320,6 +337,34 @@ fn line_range(n: Node) -> (u32, u32) {
+     )
+ }
+ 
++/// The function header a macro invocation without `;` pushed inside a
++/// function declarator: a `call_expression` among the declarator's own
++/// children that follows a return-type token (`int helper(void)` is
++/// `identifier` `int`, then the call). A call right after the parameter
++/// list is an attribute macro (`f(int a) ATTR_NONNULL(1)`), not a header.
++fn swallowed_header(decl: Node) -> Option<Node> {
++    if decl.kind() != "function_declarator" {
++        return None;
++    }
++    let mut c = decl.walk();
++    let kids: Vec<Node> = decl.named_children(&mut c).collect();
++    kids.windows(2)
++        .rev()
++        .find(|w| {
++            w[1].kind() == "call_expression"
++                && matches!(
++                    w[0].kind(),
++                    "identifier"
++                        | "primitive_type"
++                        | "type_identifier"
++                        | "sized_type_specifier"
++                        | "storage_class_specifier"
++                        | "type_qualifier"
++                )
++        })
++        .map(|w| w[1])
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -340,6 +385,53 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn pointer_returning_functions_are_named_and_pointer_variables_are_not() {
++        let f = extract(
++            "char *make(void) { return 0; }\nstatic const char **two(int n) { return 0; }\nint (*get(void))(int) { return 0; }\nchar *proto(void);\nint (*fp)(int);\n",
++        );
++        let names: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.simple_name.as_str())
++            .collect();
++        let g = extract(
++            "static ETHR_INLINE ethr_sint_t ETHR_ATMC_FUNC__(xchg)(ethr_atomic_t *var, ethr_sint_t val)\n{\n  return 0;\n}\n",
++        );
++        assert!(g.definitions.iter().any(|d| d.simple_name == "xchg"));
++        for n in ["make", "two", "get", "proto"] {
++            assert!(names.contains(&n), "{n} missing: {names:?}");
++        }
++        // A pointer-to-function variable declares no function.
++        assert!(!names.contains(&"fp"), "{names:?}");
++    }
++
++    #[test]
++    fn a_macro_invocation_without_semicolon_does_not_swallow_the_next_function() {
++        // `LIST(X)` with no `;` makes the grammar read it as the
++        // declarator and the real header as stray children of it.
++        let f = extract("LIST(DECL)\nint helper(void) { return other(); }\n");
++        let names: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.simple_name.as_str())
++            .collect();
++        assert_eq!(names, vec!["helper"], "{names:?}");
++        let refs: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
++        // The swallowed header is not a call; the body's call is.
++        assert!(!refs.contains(&"helper"), "{refs:?}");
++        assert!(refs.contains(&"other"), "{refs:?}");
++        // Near-miss: an attribute macro after the parameter list names
++        // nothing; the function keeps its own name.
++        let f = extract("bool f(int *p)\n  ATTR_NONNULL(1)\n{\n  return g(p);\n}\n");
++        let names: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.simple_name.as_str())
++            .collect();
++        assert_eq!(names, vec!["f"], "{names:?}");
++    }
++
+     #[test]
+     fn function_definitions_extracted() {
+         let src = "int add(int a, int b) { return a+b; }\nvoid greet() {}\n";
+diff --git a/crates/cgg-lang/src/plugins/clojure.rs b/crates/cgg-lang/src/plugins/clojure.rs
+index c566fb4..717ada0 100644
+--- a/crates/cgg-lang/src/plugins/clojure.rs
++++ b/crates/cgg-lang/src/plugins/clojure.rs
+@@ -341,6 +341,7 @@ impl<'a> ClojureWalker<'a> {
+                         not_def: None,
+                         arity: None,
+                         value_ref: false,
++                        paren_less: false,
+                         name: s,
+                         receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                         site_line: line,
+@@ -373,6 +374,7 @@ impl<'a> ClojureWalker<'a> {
+                         not_def: None,
+                         arity: None,
+                         value_ref: false,
++                        paren_less: false,
+                         name: t.to_string(),
+                         receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                         site_line: line,
+@@ -447,6 +449,7 @@ impl<'a> ClojureWalker<'a> {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: simple,
+             receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+             site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/cpp.rs b/crates/cgg-lang/src/plugins/cpp.rs
+index d59a7b7..f2de2be 100644
+--- a/crates/cgg-lang/src/plugins/cpp.rs
++++ b/crates/cgg-lang/src/plugins/cpp.rs
+@@ -421,11 +421,60 @@ impl<'a> CppWalker<'a> {
+         };
+         FnInfo {
+             simple,
+-            qual_tail: self.text(qual).to_string(),
++            qual_tail: self.clean_qualified(qual),
+             variant,
+         }
+     }
+ 
++    /// The text of a qualified declarator name, minus any scope the
++    /// grammar invented while recovering from an error: a macro in front
++    /// of a definition (`TPL_DECL std::string to_string(…)`) makes it read
++    /// the return type as a scope joined to the name by a missing `::`
++    /// (`std::string to_string`). Everything before a level with an error
++    /// child or a missing / absent `::` is dropped.
++    fn clean_qualified(&self, qual: Node) -> String {
++        self.clean_qualified_inner(qual).0
++    }
++
++    /// [`Self::clean_qualified`], and whether a broken level was cut.
++    fn clean_qualified_inner(&self, qual: Node) -> (String, bool) {
++        let whole = || self.text(qual).to_string();
++        if qual.kind() != "qualified_identifier" {
++            return (whole(), false);
++        }
++        let Some(name) = last_name_field(qual) else {
++            return (whole(), false);
++        };
++        let mut c = qual.walk();
++        let kids: Vec<Node> = qual.children(&mut c).collect();
++        let has_scope = qual.child_by_field_name("scope").is_some();
++        let sep = kids
++            .iter()
++            .position(|k| k.kind() == "::" && !k.is_missing());
++        let broken = kids.iter().any(|k| k.is_error() || k.is_missing())
++            || (has_scope && sep.is_none());
++        let (inner, cut) = self.clean_qualified_inner(name);
++        if cut {
++            return (inner, true);
++        }
++        if broken {
++            // `RET Klass::m` under a macro: the grammar takes `RET` as the
++            // scope and leaves `Klass` in an error node right before the
++            // real `::`. That last word is the scope.
++            let scope = sep
++                .and_then(|i| i.checked_sub(1))
++                .map(|i| kids[i])
++                .filter(|k| k.is_error())
++                .and_then(|k| self.text(k).split_whitespace().last())
++                .filter(|w| w.chars().all(|c| c.is_alphanumeric() || c == '_'));
++            return match scope {
++                Some(s) => (format!("{s}::{inner}"), true),
++                None => (inner, true),
++            };
++        }
++        (whole(), false)
++    }
++
+     /// `StreamOutput* streams` inside `class Kernel`. The call
+     /// `kernel->streams->printf()` is in another file; only the type
+     /// travels, via [`FileFacts::field_types`].
+@@ -520,6 +569,14 @@ impl<'a> CppWalker<'a> {
+         // below catches it. Rejecting every error-recovered declaration
+         // instead is too broad: `void Printf(const char *f, ...)
+         // FORMAT(1, 2);` recovers the same way and is a real prototype.
++        // Inside a function body, `std::ifstream info(path);` is a local
++        // constructed with arguments that the grammar reads as a function
++        // declarator (the most vexing parse); a block-scope function
++        // prototype is too rare to be worth the phantom callable every
++        // such local would otherwise become.
++        if node.kind() == "declaration" && in_function_body(node) {
++            return;
++        }
+         let mut c = node.walk();
+         for child in node.children(&mut c) {
+             if let Some(fn_decl) = unwrap_function_declarator(child) {
+@@ -770,6 +827,22 @@ impl FnInfo {
+ 
+ /// `int *Robot::foo()` nests the function declarator inside a pointer
+ /// (or reference) declarator. Walk those wrappers down to it.
++/// Whether `node` sits inside a function or lambda body (a
++/// `compound_statement`), as opposed to namespace or class scope.
++fn in_function_body(node: Node) -> bool {
++    let mut cur = node.parent();
++    while let Some(p) = cur {
++        match p.kind() {
++            "compound_statement" => return true,
++            "translation_unit" | "declaration_list" | "field_declaration_list" => {
++                return false;
++            }
++            _ => cur = p.parent(),
++        }
++    }
++    false
++}
++
+ fn unwrap_function_declarator(node: Node) -> Option<Node> {
+     let mut n = node;
+     loop {
+@@ -1626,6 +1699,44 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn a_local_constructed_with_arguments_is_not_a_prototype() {
++        // `std::ifstream info(path);` in a body is a local (most vexing
++        // parse); a namespace-scope prototype still records.
++        let f = extract(
++            "#include <fstream>\nint read(const char* path) {\n  std::ifstream info(path);\n  return 0;\n}\nint proto(int x);\n",
++        );
++        let names: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.simple_name.as_str())
++            .collect();
++        assert!(!names.contains(&"info"), "{names:?}");
++        assert!(names.contains(&"proto"), "{names:?}");
++    }
++
++    #[test]
++    fn a_recovered_return_type_is_not_a_scope_of_the_name() {
++        // A macro before the definition makes the grammar read the return
++        // type `std::string` as a scope joined to the name by a missing
++        // `::`. A genuine qualified definition keeps its scope.
++        let f = extract(
++            "TPL_DECL\nstd::string to_string(const TPL& j)\n{\n    return j.dump();\n}\nvoid ns::K::run() {}\n",
++        );
++        let qns: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.qualified_name.as_str())
++            .collect();
++        assert!(qns.contains(&"to_string"), "{qns:?}");
++        assert!(!qns.iter().any(|q| q.contains(' ')), "{qns:?}");
++        assert!(qns.contains(&"ns::K::run"), "{qns:?}");
++        // The return type read as a scope, the class left in an error node
++        // before the real `::`: the class is the scope.
++        let f = extract("INLINE\nERL_TERM Ret::make(int v) {\n  return 1;\n}\n");
++        assert_eq!(f.definitions[0].qualified_name, "Ret::make");
++    }
++
+     #[test]
+     fn namespace_qualified_names() {
+         let src = "namespace math { namespace detail { void compute() {} } }\n";
+diff --git a/crates/cgg-lang/src/plugins/csharp.rs b/crates/cgg-lang/src/plugins/csharp.rs
+index a01fbed..385724e 100644
+--- a/crates/cgg-lang/src/plugins/csharp.rs
++++ b/crates/cgg-lang/src/plugins/csharp.rs
+@@ -63,6 +63,14 @@ impl LanguagePlugin for CSharpPlugin {
+         source: &[u8],
+     ) -> FileFacts {
+         let mut facts = FileFacts::new(file, path.to_path_buf(), "csharp");
++        // A tree the grammar could not parse because `#if`/`#else` split a
++        // statement or a declaration is re-read from a copy with the
++        // directives blanked out (byte offsets and lines unchanged).
++        let reparsed = reparse_without_conditionals(tree, source);
++        let (tree, source) = match &reparsed {
++            Some((t, s)) => (t, s.as_slice()),
++            None => (tree, source),
++        };
+         let mut w = Walker {
+             ctx: *ctx,
+             source,
+@@ -177,6 +185,16 @@ impl<'a> Walker<'a> {
+             }
+             "method_declaration" | "local_function_statement" => {
+                 self.record_method(node, DefVariant::InherentMethod);
++                // `partial void OnLoaded();` and its implementing part: a
++                // hook whose other half is often generated (designer
++                // files, source generators) or outside the tree; calls to
++                // an unimplemented one are compiled away.
++                if node.kind() == "method_declaration"
++                    && has_modifier(node, "partial")
++                    && let Some(d) = self.facts.definitions.last_mut()
++                {
++                    d.attributes.push(PARTIAL_DECLARATION.to_string());
++                }
+                 self.walk_children(node);
+                 return;
+             }
+@@ -530,6 +548,12 @@ impl<'a> Walker<'a> {
+                 // reading applies.
+                 let recv = if expr.kind() == "base" {
+                     "super".to_string()
++                } else if let Some(ty) = constructed_type(expr) {
++                    // `new Alpha().Run()`: the receiver is an `Alpha`, so the
++                    // call is looked up on that type and up its bases, as
++                    // a call through a variable of that type would be.
++                    let t = self.text(ty);
++                    t[..t.find('<').unwrap_or(t.len())].trim().to_string()
+                 } else {
+                     self.text(expr).to_string()
+                 };
+@@ -572,6 +596,91 @@ fn line_range(n: Node) -> (u32, u32) {
+ /// rather than the text means an attribute argument
+ /// (`[Obsolete("x")] public void F()`) can neither fake a modifier nor
+ /// hide one.
++/// Attribute on a `partial` method part; see
++/// `cgg_core::PARTIAL_DECLARATION`.
++use cgg_core::PARTIAL_DECLARATION;
++
++/// Re-parse a C# file whose tree has errors after blanking its
++/// conditional-compilation directives — first keeping every branch, then,
++/// if that still does not parse, keeping only the first branch of each
++/// `#if` group. Returns `None` when the original tree is error-free, has
++/// no `#if`, or neither copy parses cleanly (the original stands).
++fn reparse_without_conditionals(tree: &Tree, source: &[u8]) -> Option<(Tree, Vec<u8>)> {
++    if !tree.root_node().has_error() {
++        return None;
++    }
++    let parse = |src: &[u8]| {
++        let mut p = tree_sitter::Parser::new();
++        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into()).ok()?;
++        p.parse(src, None).filter(|t| !t.root_node().has_error())
++    };
++    for first_branch_only in [false, true] {
++        let masked = mask_conditionals(source, first_branch_only)?;
++        if let Some(t) = parse(&masked) {
++            return Some((t, masked));
++        }
++    }
++    None
++}
++
++/// The directive word of a preprocessor line (`#if`, `# endif`), if any.
++fn directive(line: &[u8]) -> Option<&[u8]> {
++    let t = line.trim_ascii_start();
++    let rest = t.strip_prefix(b"#")?.trim_ascii_start();
++    let end = rest
++        .iter()
++        .position(|b| !b.is_ascii_alphabetic())
++        .unwrap_or(rest.len());
++    Some(&rest[..end])
++}
++
++/// A copy of `source` with every `#if`/`#elif`/`#else`/`#endif` line
++/// replaced by spaces; with `first_branch_only`, the lines of every
++/// `#elif`/`#else` branch too. Newlines are kept, so every byte offset
++/// and line number is the original's. `None` when there is no `#if`.
++fn mask_conditionals(source: &[u8], first_branch_only: bool) -> Option<Vec<u8>> {
++    let mut out = source.to_vec();
++    // Per open `#if` group: whether it has reached an `#elif`/`#else`.
++    let mut groups: Vec<bool> = Vec::new();
++    let mut saw_if = false;
++    let mut start = 0usize;
++    while start < source.len() {
++        let end = source[start..]
++            .iter()
++            .position(|&b| b == b'\n')
++            .map_or(source.len(), |i| start + i);
++        let line = &source[start..end];
++        let skipping = first_branch_only && groups.iter().any(|&in_else| in_else);
++        let blank = match directive(line) {
++            Some(b"if") => {
++                saw_if = true;
++                groups.push(false);
++                true
++            }
++            Some(b"elif") | Some(b"else") => {
++                if let Some(g) = groups.last_mut() {
++                    *g = true;
++                }
++                true
++            }
++            Some(b"endif") => {
++                groups.pop();
++                true
++            }
++            _ => skipping,
++        };
++        if blank {
++            for b in &mut out[start..end] {
++                if *b != b'\r' {
++                    *b = b' ';
++                }
++            }
++        }
++        start = end + 1;
++    }
++    saw_if.then_some(out)
++}
++
+ fn has_modifier(node: Node, kw: &str) -> bool {
+     node.children(&mut node.walk())
+         .filter(|c| c.kind() == "modifier")
+@@ -631,6 +740,28 @@ fn csharp_vis(node: Node) -> cgg_core::Vis {
+     }
+ }
+ 
++/// The type a construction receiver builds (`new Alpha()` / `new
++/// N.Alpha(x)` / `new Box<int>()` → `Alpha` / `N.Alpha` / `Box`), looking
++/// through parentheses. `None` for any other receiver, and for a
++/// target-typed `new()` that names no type.
++fn constructed_type(expr: Node) -> Option<Node> {
++    let mut e = expr;
++    while e.kind() == "parenthesized_expression" {
++        e = e.named_child(0)?;
++    }
++    if e.kind() != "object_creation_expression" {
++        return None;
++    }
++    let ty = e.child_by_field_name("type")?;
++    match ty.kind() {
++        "identifier" | "qualified_name" => Some(ty),
++        "generic_name" => ty
++            .children(&mut ty.walk())
++            .find(|c| c.kind() == "identifier"),
++        _ => None,
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -668,6 +799,56 @@ mod tests {
+ 
+     /// B3: a method group in a value position is recorded through its
+     /// receiver; an invoked member and a declared variable's name are not.
++    #[test]
++    fn conditional_compilation_split_code_is_reparsed() {
++        // `#if` in an else-if chain and `#if`/`#else` method headers: the
++        // grammar reads a callable named `if`, or two headers; blanking
++        // the directives (and, if needed, all but the first branch) gives
++        // the code one configuration compiles.
++        let src = "namespace N {\n  public class D {\n    public bool Has(int k)\n    {\n        if (a) { return Foo(k); }\n#if X\n        else if (b) { return Bar(k); }\n#endif\n        else { return Baz(k); }\n    }\n#if ASYNC\n    public async Task<int> Load()\n#else\n    public int Load()\n#endif\n    {\n      return Foo(1);\n    }\n  }\n}\n";
++        let f = extract(src);
++        let qns: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.qualified_name.as_str())
++            .collect();
++        assert_eq!(qns, vec!["N.D.Has", "N.D.Load"], "{qns:?}");
++        let has = &f.definitions[0];
++        let bar = f.references.iter().find(|r| r.name == "Bar").unwrap();
++        assert!(has.start_byte <= bar.site_byte && bar.site_byte < has.end_byte);
++        // Byte offsets are the original file's.
++        let load = &f.definitions[1];
++        assert_eq!(load.start_line, 12);
++    }
++
++    #[test]
++    fn construction_receivers_name_their_type_and_partial_methods_are_marked() {
++        let f = extract(
++            "class U { void G() { new Alpha().Run(); new N.Box<int>(1).Get(); (new Beta()).Go(); x.Run(); } }\npartial class P { partial void OnLoaded(); void M() {} }\n",
++        );
++        let recv = |n: &str| {
++            f.references
++                .iter()
++                .find(|r| r.name == n)
++                .map(|r| r.receiver_hint.clone())
++                .unwrap()
++        };
++        assert_eq!(recv("Run"), "Alpha");
++        assert_eq!(recv("Get"), "N.Box");
++        assert_eq!(recv("Go"), "Beta");
++        let partial = |n: &str| {
++            f.definitions
++                .iter()
++                .find(|d| d.simple_name == n)
++                .unwrap()
++                .attributes
++                .iter()
++                .any(|a| a == cgg_core::PARTIAL_DECLARATION)
++        };
++        assert!(partial("OnLoaded"));
++        assert!(!partial("M"));
++    }
++
+     #[test]
+     fn method_groups_are_value_refs() {
+         let src = "class P { event System.EventHandler E; void Run(int[] xs) {\n\
+diff --git a/crates/cgg-lang/src/plugins/dart.rs b/crates/cgg-lang/src/plugins/dart.rs
+index 6b3b06c..e5d6860 100644
+--- a/crates/cgg-lang/src/plugins/dart.rs
++++ b/crates/cgg-lang/src/plugins/dart.rs
+@@ -138,15 +138,13 @@ impl<'a> DartWalker<'a> {
+                 return;
+             }
+             "method_declaration" => {
+-                // method_declaration -> signature -> first identifier is the name
++                // method_declaration -> signature: method_signature ->
++                // function/getter/setter/operator/constructor signature,
++                // then `body`. The callable spans the whole declaration,
++                // so the calls in its body have it as their source.
+                 let name = node
+                     .child_by_field_name("signature")
+-                    .and_then(|sig| {
+-                        (0..sig.child_count())
+-                            .filter_map(|i| sig.child(i as u32))
+-                            .find(|ch| ch.kind() == "identifier")
+-                    })
+-                    .map(|n| self.text(n).to_string())
++                    .and_then(|sig| self.member_signature_name(sig))
+                     .unwrap_or_default();
+                 if !name.is_empty() {
+                     self.record_def(&name, node, DefVariant::InherentMethod);
+@@ -155,11 +153,16 @@ impl<'a> DartWalker<'a> {
+                 return;
+             }
+             "function_signature" | "method_signature" => {
+-                // Only record if not inside a declaration (avoid double-counting)
+-                if node
+-                    .parent()
+-                    .is_none_or(|p| !p.kind().ends_with("declaration"))
+-                {
++                // Only record if not inside a declaration (avoid
++                // double-counting): neither directly, nor as the inner
++                // signature of a `method_declaration`'s `method_signature`.
++                let in_declaration = |p: Node| p.kind().ends_with("declaration");
++                let inside = |p: Node| {
++                    in_declaration(p)
++                        || (p.kind() == "method_signature"
++                            && p.parent().is_some_and(in_declaration))
++                };
++                if !node.parent().is_some_and(inside) {
+                     let name = node
+                         .child_by_field_name("name")
+                         .or_else(|| {
+@@ -212,6 +215,38 @@ impl<'a> DartWalker<'a> {
+         }
+     }
+ 
++    /// The member name a `method_signature` declares: the `name` of its
++    /// function, getter or setter signature; the class name for an
++    /// unnamed constructor and the suffix for a named one (`K.named`);
++    /// `operator+` for an operator.
++    fn member_signature_name(&self, sig: Node) -> Option<String> {
++        let mut c = sig.walk();
++        let inner: Vec<Node> = sig.named_children(&mut c).collect();
++        for n in inner {
++            match n.kind() {
++                "function_signature" | "getter_signature" | "setter_signature" => {
++                    return n
++                        .child_by_field_name("name")
++                        .map(|x| self.text(x).to_string());
++                }
++                "constructor_signature" | "factory_constructor_signature" => {
++                    let mut c = n.walk();
++                    return n
++                        .children_by_field_name("name", &mut c)
++                        .last()
++                        .map(|x| self.text(x).to_string());
++                }
++                "operator_signature" => {
++                    return n
++                        .child_by_field_name("operator")
++                        .map(|x| format!("operator{}", self.text(x)));
++                }
++                _ => {}
++            }
++        }
++        None
++    }
++
+     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
+         let qn = self.qn(name);
+         let (sl, el) = (
+@@ -513,6 +548,28 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn a_method_spans_its_body_and_is_recorded_once() {
++        // The method's name sits one level down (method_signature ->
++        // function_signature); recording only the inner signature left
++        // every call in the body without a source.
++        let src = "class K {\n  K(this.x) {\n    a();\n  }\n  int get v => b();\n  void run() {\n    c();\n  }\n  int x;\n}\n";
++        let f = extract(src);
++        let run: Vec<_> = f
++            .definitions
++            .iter()
++            .filter(|d| d.qualified_name == "K::run")
++            .collect();
++        assert_eq!(run.len(), 1, "{:?}", defs(&f));
++        assert_eq!((run[0].start_line, run[0].end_line), (6, 8));
++        // Constructor and getter bodies are callables too.
++        assert!(defs(&f).contains(&"K::K".to_string()), "{:?}", defs(&f));
++        assert!(defs(&f).contains(&"K::v".to_string()), "{:?}", defs(&f));
++        // A bodiless abstract member still records once, as before.
++        let f = extract("abstract class A {\n  void m();\n}\n");
++        assert_eq!(defs(&f), vec!["A::m".to_string()]);
++    }
++
+     #[test]
+     fn a_top_level_function_is_captured() {
+         let f = extract("void main() {}\n");
+diff --git a/crates/cgg-lang/src/plugins/elixir.rs b/crates/cgg-lang/src/plugins/elixir.rs
+index 3c79cab..c65ff0d 100644
+--- a/crates/cgg-lang/src/plugins/elixir.rs
++++ b/crates/cgg-lang/src/plugins/elixir.rs
+@@ -74,6 +74,31 @@ impl<'a> ElixirWalker<'a> {
+     }
+ 
+     fn walk(&mut self, node: Node) {
++        // `&f/1`, `&Mod.f/2`: a function capture names `f` of that arity
++        // without calling it — a value reference, resolved as the call it
++        // stands for. Its operand `Mod.f` parses as a call with no
++        // arguments, which is not a call to `f/0`, so it is never walked.
++        if node.kind() == "unary_operator"
++            && let Some((target, arity)) = capture_target(node, self.source)
++        {
++            if self.ctx.reference_sites {
++                let name = self.text(target).to_string();
++                let receiver_hint = match name.split_once('.') {
++                    Some((m, f)) if !f.contains('.') => m.to_string(),
++                    _ => String::new(),
++                };
++                self.facts.references.push(RefRecord {
++                    name,
++                    receiver_hint,
++                    site_line: (target.start_position().row as u32) + 1,
++                    site_byte: target.start_byte() as u32,
++                    arity: Some(arity),
++                    value_ref: true,
++                    ..Default::default()
++                });
++            }
++            return;
++        }
+         if node.kind() == "call" {
+             // Get the first child which should be the function name
+             let func_name = node
+@@ -461,6 +486,7 @@ impl<'a> ElixirWalker<'a> {
+             kwargs: Vec::new(),
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+         });
+     }
+ 
+@@ -524,6 +550,41 @@ impl<'a> ElixirWalker<'a> {
+ ///
+ /// `?` and `!` are kept: `:valid?` is the real name of the definition a
+ /// rule would have to bind to, and trimming them would make it miss.
++/// The function a capture `&name/arity` names — the bare identifier or the
++/// argument-less `Mod.fun` call node — and its arity. `None` for any
++/// other `&` (`&(&1 + 1)`, `&Mod.fun(&1)`).
++fn capture_target<'t>(node: Node<'t>, source: &[u8]) -> Option<(Node<'t>, u32)> {
++    if node.child_by_field_name("operator").map(|o| o.kind()) != Some("&")
++        && node.child(0).map(|o| o.kind()) != Some("&")
++    {
++        return None;
++    }
++    let op = node.child_by_field_name("operand")?;
++    if op.kind() != "binary_operator"
++        || op.child_by_field_name("operator").map(|o| o.kind()) != Some("/")
++    {
++        return None;
++    }
++    let left = op.child_by_field_name("left")?;
++    let right = op.child_by_field_name("right")?;
++    if right.kind() != "integer" {
++        return None;
++    }
++    let arity: u32 = right.utf8_text(source).ok()?.trim().parse().ok()?;
++    match left.kind() {
++        "identifier" => Some((left, arity)),
++        "call"
++            if left.child_by_field_name("target").map(|t| t.kind()) == Some("dot")
++                && !left
++                    .named_children(&mut left.walk())
++                    .any(|c| c.kind() == "arguments") =>
++        {
++            Some((left, arity))
++        }
++        _ => None,
++    }
++}
++
+ fn is_function_name(s: &str) -> bool {
+     !s.is_empty()
+         && s.len() <= 100
+@@ -573,6 +634,42 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn function_captures_are_value_refs_with_their_arity() {
++        let src = "defmodule A do\n  def run(xs) do\n    Enum.map(xs, &f/1)\n    Enum.map(xs, &B.g/2)\n    Enum.map(xs, &(&1 + 1))\n  end\nend\n";
++        let mut p = Parser::new();
++        p.set_language(&tree_sitter_elixir::LANGUAGE.into())
++            .unwrap();
++        let tree = p.parse(src, None).unwrap();
++        let f = ElixirPlugin.extract(
++            &crate::ExtractCtx::plain().with_reference_sites(true),
++            FileId::new(0),
++            &PathBuf::from("/tmp/__cgg_test__/x.ex"),
++            &tree,
++            src.as_bytes(),
++        );
++        let caps: Vec<(&str, &str, Option<u32>)> = f
++            .references
++            .iter()
++            .filter(|r| r.value_ref)
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.arity))
++            .collect();
++        assert_eq!(caps, vec![("f", "", Some(1)), ("B.g", "B", Some(2))]);
++        // The capture's operand `B.g` is not a call of `g/0`.
++        assert!(
++            !f.references
++                .iter()
++                .any(|r| r.name == "B.g" && r.arity == Some(0))
++        );
++        // Without reference sites nothing is recorded for a capture.
++        assert!(
++            !extract(src)
++                .references
++                .iter()
++                .any(|r| r.value_ref || r.name == "f")
++        );
++    }
++
+     #[test]
+     fn one_line_and_guarded_defs_are_named_and_calls_carry_arity() {
+         let f = extract(
+diff --git a/crates/cgg-lang/src/plugins/java.rs b/crates/cgg-lang/src/plugins/java.rs
+index d982c8b..5ed4397 100644
+--- a/crates/cgg-lang/src/plugins/java.rs
++++ b/crates/cgg-lang/src/plugins/java.rs
+@@ -230,9 +230,13 @@ impl<'a> JavaWalker<'a> {
+         if simple.is_empty() {
+             return;
+         }
++        // The `static` keyword token among the modifiers — not the text,
++        // which an annotation argument (`@SuppressWarnings("static-access")`)
++        // or name (`@StaticResource`) also contains.
+         let is_static = node
+             .children(&mut node.walk())
+-            .any(|c| c.kind() == "modifiers" && self.text(c).contains("static"));
++            .filter(|c| c.kind() == "modifiers")
++            .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == "static"));
+         let variant = if is_static {
+             DefVariant::StaticMethod
+         } else {
+@@ -288,9 +292,10 @@ impl<'a> JavaWalker<'a> {
+             return;
+         }
+ 
+-        // Check for `static` modifier
+-        let text = self.text(node);
+-        let is_static = text.contains("static ");
++        // `import static …`: the keyword token, not a substring of the path.
++        let is_static = node
++            .children(&mut node.walk())
++            .any(|c| c.kind() == "static");
+ 
+         if is_static {
+             // `import static a.b.C.*;` imports every static member of `C`:
+@@ -575,6 +580,24 @@ mod tests {
+ 
+     /// B3: a method reference names its method through its receiver, the
+     /// way the call it stands for would; `Type::new` is `new Type()`.
++    #[test]
++    fn static_is_the_keyword_not_a_substring() {
++        let f = extract(
++            "import static a.b.C.m;\nimport a.staticx.D;\nclass K {\n  @SuppressWarnings(\"static-access\") void inst() {}\n  static void stat() {}\n}\n",
++        );
++        let variant = |n: &str| {
++            f.definitions
++                .iter()
++                .find(|d| d.simple_name == n)
++                .unwrap()
++                .variant
++        };
++        assert_eq!(variant("inst"), DefVariant::InherentMethod);
++        assert_eq!(variant("stat"), DefVariant::StaticMethod);
++        let kinds: Vec<&str> = f.imports.iter().map(|i| i.kind.as_str()).collect();
++        assert_eq!(kinds, vec!["from-import", "import"], "{kinds:?}");
++    }
++
+     #[test]
+     fn method_references_are_value_refs_through_their_receiver() {
+         let src = "class A extends B { void f(java.util.List<String> xs, H h) {\n\
+diff --git a/crates/cgg-lang/src/plugins/javascript.rs b/crates/cgg-lang/src/plugins/javascript.rs
+index ed93446..a674b42 100644
+--- a/crates/cgg-lang/src/plugins/javascript.rs
++++ b/crates/cgg-lang/src/plugins/javascript.rs
+@@ -1303,6 +1303,7 @@ impl<'a> JsWalker<'a> {
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/julia.rs b/crates/cgg-lang/src/plugins/julia.rs
+index 9f7174a..cb24b16 100644
+--- a/crates/cgg-lang/src/plugins/julia.rs
++++ b/crates/cgg-lang/src/plugins/julia.rs
+@@ -90,7 +90,17 @@ impl<'a> JuliaWalker<'a> {
+                         }
+                     }
+                 }
+-                self.walk_children(node);
++                // The signature `foo(x)` parses as a call to `foo`: walking
++                // it as one recorded every function as calling itself.
++                // Only its arguments (default values) are walked.
++                let mut c = node.walk();
++                for child in node.children(&mut c) {
++                    if child.kind() == "signature" {
++                        self.walk_signature(child);
++                    } else {
++                        self.walk(child);
++                    }
++                }
+                 return;
+             }
+             "short_function_definition" => {
+@@ -157,6 +167,23 @@ impl<'a> JuliaWalker<'a> {
+         self.walk_children(node);
+     }
+ 
++    /// Walk a function signature without its head: the outermost call
++    /// (`foo(x = g())`) contributes its arguments, never itself.
++    fn walk_signature(&mut self, node: Node) {
++        if node.kind() == "call_expression" {
++            for i in 1..node.child_count() {
++                if let Some(ch) = node.child(i as u32) {
++                    self.walk(ch);
++                }
++            }
++            return;
++        }
++        let mut c = node.walk();
++        for child in node.children(&mut c) {
++            self.walk_signature(child);
++        }
++    }
++
+     fn walk_children(&mut self, node: Node) {
+         let mut c = node.walk();
+         if c.goto_first_child() {
+@@ -271,6 +298,16 @@ mod tests {
+         f.references.iter().map(|r| r.name.clone()).collect()
+     }
+ 
++    #[test]
++    fn a_function_signature_is_not_a_call_to_itself() {
++        let f = extract("function foo(x = bar())\n    baz()\nend\n");
++        let r = refs(&f);
++        assert!(!r.contains(&"foo".to_string()), "{r:?}");
++        // Default values and the body are still walked.
++        assert!(r.contains(&"bar".to_string()), "{r:?}");
++        assert!(r.contains(&"baz".to_string()), "{r:?}");
++    }
++
+     #[test]
+     fn function_definition_captured() {
+         let src = "function greet(name)\n  println(\"Hello, $name\")\nend\n";
+diff --git a/crates/cgg-lang/src/plugins/kotlin.rs b/crates/cgg-lang/src/plugins/kotlin.rs
+index 7e195d5..52182ac 100644
+--- a/crates/cgg-lang/src/plugins/kotlin.rs
++++ b/crates/cgg-lang/src/plugins/kotlin.rs
+@@ -86,6 +86,21 @@ impl<'a> KtWalker<'a> {
+             self.implicit.pop();
+             return;
+         }
++        // A top-level `object X { … }` whose body closes on a line of
++        // its members is misparsed as `object` `X` `{ … }` — an infix
++        // expression of an empty object literal, a name and a lambda.
++        // Its members are still the object's.
++        if let Some((name, body)) = misparsed_object(node, self.source) {
++            self.record_class(node, &name, &[]);
++            self.implicit.push(String::new());
++            self.bases.push(Vec::new());
++            self.scope.push(name);
++            self.walk_children(body);
++            self.scope.pop();
++            self.bases.pop();
++            self.implicit.pop();
++            return;
++        }
+         self.walk_decl(node);
+     }
+ 
+@@ -662,6 +677,27 @@ fn kotlin_vis(node: Node) -> cgg_core::Vis {
+     cgg_core::Vis::Public
+ }
+ 
++/// The name and body of a top-level `object X { … }` the grammar read as
++/// an infix expression: an `object_literal` that is the bare keyword, a
++/// `simple_identifier`, and a `lambda_literal` holding the members.
++fn misparsed_object<'t>(node: Node<'t>, source: &[u8]) -> Option<(String, Node<'t>)> {
++    if node.kind() != "infix_expression" || node.parent()?.kind() != "source_file" {
++        return None;
++    }
++    let mut c = node.walk();
++    let kids: Vec<Node> = node.named_children(&mut c).collect();
++    let [kw, name, body] = kids.as_slice() else {
++        return None;
++    };
++    (kw.kind() == "object_literal"
++        && kw.named_child_count() == 0
++        && kw.utf8_text(source).ok()?.trim() == "object"
++        && name.kind() == "simple_identifier"
++        && body.kind() == "lambda_literal")
++        .then(|| (name.utf8_text(source).unwrap_or("").to_string(), *body))
++        .filter(|(n, _)| !n.is_empty())
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -683,6 +719,23 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn a_one_line_top_level_object_keeps_its_scope() {
++        // The grammar reads `object X { fun f() = 1 }` at top level as an
++        // infix expression; its members are still `X`'s.
++        let f = extract(
++            "package a\nobject X { fun f() = 1 }\nclass C {\n  object Inner { fun i() = 1 }\n}\n",
++        );
++        let qns: Vec<&str> = f
++            .definitions
++            .iter()
++            .map(|d| d.qualified_name.as_str())
++            .collect();
++        assert!(qns.contains(&"a.X.f"), "{qns:?}");
++        assert!(qns.contains(&"a.C.Inner.i"), "{qns:?}");
++        assert!(f.classes.iter().any(|c| c.class_qn == "a.X"));
++    }
++
+     #[test]
+     fn class_methods_with_package() {
+         let src = "package com.example\nclass Service {\n  fun run() {}\n  fun process(s: String): Int = s.length\n}\n";
+diff --git a/crates/cgg-lang/src/plugins/lua.rs b/crates/cgg-lang/src/plugins/lua.rs
+index 79eaa44..ab85426 100644
+--- a/crates/cgg-lang/src/plugins/lua.rs
++++ b/crates/cgg-lang/src/plugins/lua.rs
+@@ -62,12 +62,48 @@ impl<'a> LuaWalker<'a> {
+     fn walk(&mut self, node: Node) {
+         match node.kind() {
+             "function_declaration" => {
+-                let name = node
+-                    .child_by_field_name("name")
+-                    .map(|n| self.text(n).to_string())
+-                    .unwrap_or_default();
+-                if !name.is_empty() {
+-                    self.record_def(&name, node, DefVariant::FreeFunction);
++                if let Some(name) = node.child_by_field_name("name") {
++                    self.record_named_def(name, node);
++                }
++                self.walk_children(node);
++                return;
++            }
++            // `M.f = function(…) … end`, `local f = function(…) … end`: a
++            // function bound by assignment, named by its target.
++            "assignment_statement" => {
++                let targets = node
++                    .children(&mut node.walk())
++                    .find(|c| c.kind() == "variable_list");
++                let values = node
++                    .children(&mut node.walk())
++                    .find(|c| c.kind() == "expression_list");
++                if let (Some(targets), Some(values)) = (targets, values) {
++                    let names: Vec<Node> =
++                        targets.named_children(&mut targets.walk()).collect();
++                    let vals: Vec<Node> =
++                        values.named_children(&mut values.walk()).collect();
++                    for (name, val) in names.iter().zip(vals.iter()) {
++                        if val.kind() == "function_definition" {
++                            self.record_named_def(*name, *val);
++                        }
++                    }
++                }
++                self.walk_children(node);
++                return;
++            }
++            // `local t = { f = function(…) … end }`: a function stored in a
++            // field of a named table is `t.f`.
++            "field" => {
++                if let (Some(name), Some(val)) = (
++                    node.child_by_field_name("name"),
++                    node.child_by_field_name("value"),
++                ) && name.kind() == "identifier"
++                    && val.kind() == "function_definition"
++                    && let Some(table) = self.table_binding(node)
++                {
++                    let simple = self.text(name).to_string();
++                    let qn = format!("{table}.{simple}");
++                    self.push_def(simple, qn, val);
+                 }
+                 self.walk_children(node);
+                 return;
+@@ -105,6 +141,94 @@ impl<'a> LuaWalker<'a> {
+         }
+     }
+ 
++    /// Record the function `node` under the name `name` gives it: a bare
++    /// identifier (`f`), a table field (`M.f`, `M.sub.f`) or a method
++    /// (`M:m`). The simple name is the last segment — the name a call
++    /// writes — and the qualified name the path as written.
++    fn record_named_def(&mut self, name: Node, node: Node) {
++        match name.kind() {
++            "identifier" => {
++                let n = self.text(name).to_string();
++                if !n.is_empty() {
++                    self.record_def(&n, node, DefVariant::FreeFunction);
++                }
++            }
++            "dot_index_expression" | "method_index_expression" => {
++                let leaf = name
++                    .child_by_field_name("field")
++                    .or_else(|| name.child_by_field_name("method"));
++                if let Some(leaf) = leaf {
++                    let simple = self.text(leaf).to_string();
++                    let qn: String = self.text(name).split_whitespace().collect();
++                    self.push_def(simple, qn, node);
++                }
++            }
++            _ => {}
++        }
++    }
++
++    /// The name a table constructor holding `field` is bound to (`t` in
++    /// `local t = { … }`, `M.cfg` in `M.cfg = { … }`), if any.
++    fn table_binding(&self, field: Node) -> Option<String> {
++        let table = field.parent().filter(|p| p.kind() == "table_constructor")?;
++        let values = table.parent().filter(|p| p.kind() == "expression_list")?;
++        let assign = values
++            .parent()
++            .filter(|p| p.kind() == "assignment_statement")?;
++        let idx = values
++            .named_children(&mut values.walk())
++            .position(|v| v == table)?;
++        let targets = assign
++            .children(&mut assign.walk())
++            .find(|c| c.kind() == "variable_list")?;
++        let target = targets.named_children(&mut targets.walk()).nth(idx)?;
++        matches!(target.kind(), "identifier" | "dot_index_expression")
++            .then(|| self.text(target).split_whitespace().collect())
++    }
++
++    /// The plain name a `require(…)` call's result is assigned to, when
++    /// the call is the whole value of the assignment (`local m =
++    /// require("m")`, `m = require "m"`).
++    fn require_binding(&self, call: Node) -> Option<String> {
++        let values = call.parent().filter(|p| p.kind() == "expression_list")?;
++        let assign = values
++            .parent()
++            .filter(|p| p.kind() == "assignment_statement")?;
++        let idx = values
++            .named_children(&mut values.walk())
++            .position(|v| v == call)?;
++        let targets = assign
++            .children(&mut assign.walk())
++            .find(|c| c.kind() == "variable_list")?;
++        let target = targets.named_children(&mut targets.walk()).nth(idx)?;
++        (target.kind() == "identifier").then(|| self.text(target).to_string())
++    }
++
++    fn push_def(&mut self, simple: String, qn: String, node: Node) {
++        if simple.is_empty() {
++            return;
++        }
++        let (sl, el) = (
++            (node.start_position().row as u32) + 1,
++            (node.end_position().row as u32) + 1,
++        );
++        // A function stored in a table field is reached through the table
++        // (`M.f()`, `obj:m()`), never by a bare `f()`.
++        self.facts.definitions.push(DefRecord {
++            simple_name: simple,
++            qualified_name: qn,
++            variant: DefVariant::InherentMethod,
++            start_line: sl,
++            end_line: el,
++            start_byte: node.start_byte() as u32,
++            end_byte: node.end_byte() as u32,
++            signature_hint: super::extract_signature(self.text(node)),
++            visibility: String::new(),
++            attributes: Vec::new(),
++            ..Default::default()
++        });
++    }
++
+     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
+         let qn = self.qn(name);
+         let (sl, el) = (
+@@ -127,10 +251,34 @@ impl<'a> LuaWalker<'a> {
+     }
+ 
+     fn record_call(&mut self, node: Node) {
+-        let func = node
+-            .child_by_field_name("name")
+-            .map(|n| self.text(n).to_string())
+-            .unwrap_or_default();
++        let Some(callee) = node.child_by_field_name("name") else {
++            return;
++        };
++        // `M.f()`, `a.b.f()`, `obj:m()`: the called name is the field or
++        // method; the table expression before it is the receiver.
++        if matches!(
++            callee.kind(),
++            "dot_index_expression" | "method_index_expression"
++        ) {
++            let leaf = callee
++                .child_by_field_name("field")
++                .or_else(|| callee.child_by_field_name("method"));
++            let table = callee.child_by_field_name("table");
++            if let (Some(leaf), Some(table)) = (leaf, table) {
++                let name = self.text(leaf).to_string();
++                if !name.is_empty() {
++                    self.facts.references.push(RefRecord {
++                        name,
++                        receiver_hint: self.text(table).split_whitespace().collect(),
++                        site_line: (node.start_position().row as u32) + 1,
++                        site_byte: node.start_byte() as u32,
++                        ..Default::default()
++                    });
++                }
++                return;
++            }
++        }
++        let func = self.text(callee).to_string();
+         if func.is_empty() {
+             return;
+         }
+@@ -149,10 +297,13 @@ impl<'a> LuaWalker<'a> {
+                     .trim_matches('"')
+                     .to_string();
+                 if !path.is_empty() {
++                    // `local util = require("util")`: the name the module
++                    // is bound to, which calls through it are written with.
++                    let alias = self.require_binding(node).unwrap_or_default();
+                     self.facts.imports.push(ImportRecord {
+                         kind: "require".into(),
+                         path,
+-                        alias: String::new(),
++                        alias,
+                         site_line: (node.start_position().row as u32) + 1,
+                         site_byte: node.start_byte() as u32,
+                     });
+@@ -191,6 +342,40 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn table_functions_are_named_by_their_field_and_calls_split_their_receiver() {
++        let f = extract(
++            "local util = require(\"util\")\nlocal M = {}\nfunction M.f() return M.g() end\nfunction M:h() return self:f() end\nM.a = function() return util.x() end\nlocal t = { k = function() return helper() end }\nlocal function loc() end\nreturn M\n",
++        );
++        let defs: Vec<(&str, &str)> = f
++            .definitions
++            .iter()
++            .map(|d| (d.simple_name.as_str(), d.qualified_name.as_str()))
++            .collect();
++        assert_eq!(
++            defs,
++            vec![
++                ("f", "M.f"),
++                ("h", "M:h"),
++                ("a", "M.a"),
++                ("k", "t.k"),
++                ("loc", "loc")
++            ],
++            "{defs:?}"
++        );
++        let calls: Vec<(&str, &str)> = f
++            .references
++            .iter()
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
++            .collect();
++        assert!(calls.contains(&("g", "M")), "{calls:?}");
++        assert!(calls.contains(&("f", "self")), "{calls:?}");
++        assert!(calls.contains(&("x", "util")), "{calls:?}");
++        assert!(calls.contains(&("helper", "")), "{calls:?}");
++        let req = f.imports.iter().find(|i| i.kind == "require").unwrap();
++        assert_eq!((req.path.as_str(), req.alias.as_str()), ("util", "util"));
++    }
++
+     #[test]
+     fn plugin_loads() {
+         let plugin = LuaPlugin;
+diff --git a/crates/cgg-lang/src/plugins/perl.rs b/crates/cgg-lang/src/plugins/perl.rs
+index 37860c8..3e67e44 100644
+--- a/crates/cgg-lang/src/plugins/perl.rs
++++ b/crates/cgg-lang/src/plugins/perl.rs
+@@ -557,6 +557,7 @@ impl<'a> PerlWalker<'a> {
+                     not_def: None,
+                     arity: None,
+                     value_ref: false,
++                    paren_less: false,
+                     name: s,
+                     receiver_hint: cgg_core::STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -580,6 +581,7 @@ impl<'a> PerlWalker<'a> {
+                     not_def: None,
+                     arity: None,
+                     value_ref: false,
++                    paren_less: false,
+                     name,
+                     receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -671,6 +673,7 @@ impl<'a> PerlWalker<'a> {
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/php.rs b/crates/cgg-lang/src/plugins/php.rs
+index 8e3a3ec..4ba1354 100644
+--- a/crates/cgg-lang/src/plugins/php.rs
++++ b/crates/cgg-lang/src/plugins/php.rs
+@@ -114,7 +114,28 @@ impl<'a> PhpWalker<'a> {
+                         line: (node.start_position().row as u32) + 1,
+                     });
+                 }
+-                self.bases.push(super::attrs::base_types(node, self.source));
++                // `use T1, T2;` in the body mixes the traits' methods in:
++                // `$this->m()` reaches them as it reaches a base's.
++                let mut bases = super::attrs::base_types(node, self.source);
++                if let Some(body) = node.child_by_field_name("body") {
++                    let mut c = body.walk();
++                    for u in body
++                        .named_children(&mut c)
++                        .filter(|n| n.kind() == "use_declaration")
++                    {
++                        let mut uc = u.walk();
++                        for n in u
++                            .named_children(&mut uc)
++                            .filter(|n| matches!(n.kind(), "name" | "qualified_name"))
++                        {
++                            let t = self.text(n).to_string();
++                            if !bases.contains(&t) {
++                                bases.push(t);
++                            }
++                        }
++                    }
++                }
++                self.bases.push(bases);
+                 if !name.is_empty() {
+                     self.scope.push(name);
+                     self.walk_children(node);
+@@ -325,6 +346,14 @@ impl<'a> PhpWalker<'a> {
+             .or_else(|| node.child_by_field_name("scope"))
+             .map(|n| self.text(n).to_string())
+             .unwrap_or_default();
++        // `$this->m()` is a call on the enclosing class's instance: spelled
++        // `this` the way every other language spells it, so the resolver's
++        // own-class reading applies (the written `$this` matched nothing).
++        let recv = if recv == "$this" {
++            "this".to_string()
++        } else {
++            recv
++        };
+         let context = if recv.is_empty() {
+             func.clone()
+         } else {
+@@ -384,6 +413,27 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn used_traits_are_bases() {
++        let f =
++            extract("<?php\nclass A extends B { use T1, \\N\\T2; function m() {} }\n");
++        assert_eq!(f.definitions[0].base_types, vec!["B", "T1", "\\N\\T2"]);
++    }
++
++    #[test]
++    fn this_receiver_is_spelled_this() {
++        let f = extract(
++            "<?php\nclass A { function r() { $this->h(); $o->h(); } function h() {} }\n",
++        );
++        let recv: Vec<&str> = f
++            .references
++            .iter()
++            .filter(|r| r.name == "h")
++            .map(|r| r.receiver_hint.as_str())
++            .collect();
++        assert_eq!(recv, vec!["this", "$o"]);
++    }
++
+     #[test]
+     fn plugin_loads() {
+         let plugin = PhpPlugin;
+diff --git a/crates/cgg-lang/src/plugins/registrar.rs b/crates/cgg-lang/src/plugins/registrar.rs
+index 0aed7dd..fdf3b86 100644
+--- a/crates/cgg-lang/src/plugins/registrar.rs
++++ b/crates/cgg-lang/src/plugins/registrar.rs
+@@ -475,6 +475,7 @@ pub(crate) fn capture(
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: s,
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -638,6 +639,7 @@ fn collect_value_refs(
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: format!("{owner}::{method}"),
+                 receiver_hint: STRING_REF_HINT.to_string(),
+                 site_line: line,
+@@ -662,6 +664,7 @@ fn collect_value_refs(
+                     not_def: None,
+                     arity: None,
+                     value_ref: false,
++                    paren_less: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -708,6 +711,7 @@ fn collect_value_refs(
+                     not_def: None,
+                     arity: None,
+                     value_ref: false,
++                    paren_less: false,
+                     name: s,
+                     receiver_hint: STRING_REF_HINT.to_string(),
+                     site_line: line,
+@@ -780,6 +784,7 @@ fn collect_value_refs(
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: last_segment(&callee).to_string(),
+                 receiver_hint: VALUE_REF_HINT.to_string(),
+                 site_line: line,
+@@ -815,6 +820,7 @@ fn collect_value_refs(
+                     not_def: None,
+                     arity: None,
+                     value_ref: false,
++                    paren_less: false,
+                     name: owner.to_string(),
+                     receiver_hint: VALUE_REF_HINT.to_string(),
+                     site_line: line,
+@@ -860,6 +866,7 @@ fn collect_value_refs(
+         not_def: None,
+         arity: None,
+         value_ref: false,
++        paren_less: false,
+         name: simple.to_string(),
+         receiver_hint: VALUE_REF_HINT.to_string(),
+         site_line: line,
+diff --git a/crates/cgg-lang/src/plugins/ruby.rs b/crates/cgg-lang/src/plugins/ruby.rs
+index 29a23c0..01bfe44 100644
+--- a/crates/cgg-lang/src/plugins/ruby.rs
++++ b/crates/cgg-lang/src/plugins/ruby.rs
+@@ -2,6 +2,7 @@
+ 
+ use crate::LanguagePlugin;
+ use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
++use std::collections::HashSet;
+ use std::path::Path;
+ use tree_sitter::{Node, Tree};
+ 
+@@ -46,6 +47,7 @@ impl LanguagePlugin for RubyPlugin {
+             facts: &mut facts,
+             scope: Vec::new(),
+             bases: Vec::new(),
++            locals: vec![HashSet::new()],
+         };
+         w.walk(tree.root_node());
+         if ctx.deadcode_signals {
+@@ -66,9 +68,95 @@ struct RubyWalker<'a> {
+     /// Sidekiq::Job`, which is a call rather than a superclass, so both
+     /// forms have to land in the same slot.
+     bases: Vec<Vec<String>>,
++    /// Local variables in scope, innermost last. Ruby's own parser decides
++    /// that a bare `x` is a variable when an assignment to `x` (or a
++    /// parameter `x`) precedes it in the scope, and a method call
++    /// otherwise; the grammar does not, so the walker does. `def`, `class`
++    /// and `module` open a fresh scope; a block sees its enclosing one.
++    locals: Vec<HashSet<String>>,
+ }
+ 
+ impl<'a> RubyWalker<'a> {
++    /// Run `f` in a new local scope: fresh, or (`inherit`) a copy of the
++    /// enclosing one, with the names `params` binds already in it.
++    fn in_scope(
++        &mut self,
++        inherit: bool,
++        params: Option<Node>,
++        f: impl FnOnce(&mut Self),
++    ) {
++        let mut set = if inherit {
++            self.locals.last().cloned().unwrap_or_default()
++        } else {
++            HashSet::new()
++        };
++        if let Some(p) = params {
++            self.collect_param_names(p, &mut set);
++        }
++        self.locals.push(set);
++        f(self);
++        self.locals.pop();
++    }
++
++    /// The names a parameter list binds: its identifiers and the `name`
++    /// of each optional/keyword/splat/block parameter, through
++    /// destructuring — never a default value's expression.
++    fn collect_param_names(&self, n: Node, out: &mut HashSet<String>) {
++        let mut c = n.walk();
++        for ch in n.named_children(&mut c) {
++            match ch.kind() {
++                "identifier" => {
++                    out.insert(self.text(ch).to_string());
++                }
++                "destructured_parameter" => self.collect_param_names(ch, out),
++                _ => {
++                    if let Some(name) = ch.child_by_field_name("name") {
++                        out.insert(self.text(name).to_string());
++                    }
++                }
++            }
++        }
++    }
++
++    /// Bind the variables an assignment target names (`x = …`,
++    /// `a, (b, *c) = …`).
++    fn bind_target(&mut self, n: Node) {
++        match n.kind() {
++            "identifier" => {
++                let name = self.text(n).to_string();
++                if let Some(top) = self.locals.last_mut() {
++                    top.insert(name);
++                }
++            }
++            "left_assignment_list"
++            | "destructured_left_assignment"
++            | "rest_assignment" => {
++                let mut c = n.walk();
++                let kids: Vec<Node> = n.named_children(&mut c).collect();
++                for k in kids {
++                    self.bind_target(k);
++                }
++            }
++            _ => {}
++        }
++    }
++
++    /// A bare identifier that is not a variable in scope: Ruby calls the
++    /// method of that name with no arguments.
++    fn record_bare_identifier(&mut self, node: Node) {
++        let name = self.text(node);
++        if name.is_empty() || self.locals.last().is_some_and(|l| l.contains(name)) {
++            return;
++        }
++        self.facts.references.push(RefRecord {
++            name: name.to_string(),
++            site_line: (node.start_position().row as u32) + 1,
++            site_byte: node.start_byte() as u32,
++            paren_less: true,
++            ..Default::default()
++        });
++    }
++
+     fn text(&self, n: Node) -> &str {
+         n.utf8_text(self.source).unwrap_or("")
+     }
+@@ -95,13 +183,15 @@ impl<'a> RubyWalker<'a> {
+                     .collect::<Vec<_>>();
+                 bases.extend(self.included_modules(node));
+                 self.bases.push(bases);
+-                if !name.is_empty() {
+-                    self.scope.push(name);
+-                    self.walk_children(node);
+-                    self.scope.pop();
+-                } else {
+-                    self.walk_children(node);
+-                }
++                self.in_scope(false, None, |w| {
++                    if !name.is_empty() {
++                        w.scope.push(name);
++                        w.walk_children(node);
++                        w.scope.pop();
++                    } else {
++                        w.walk_children(node);
++                    }
++                });
+                 self.bases.pop();
+                 return;
+             }
+@@ -110,25 +200,59 @@ impl<'a> RubyWalker<'a> {
+                     .child_by_field_name("name")
+                     .map(|n| self.text(n).to_string())
+                     .unwrap_or_default();
+-                if !name.is_empty() {
+-                    self.scope.push(name);
+-                    self.walk_children(node);
+-                    self.scope.pop();
++                self.in_scope(false, None, |w| {
++                    if !name.is_empty() {
++                        w.scope.push(name);
++                        w.walk_children(node);
++                        w.scope.pop();
++                    } else {
++                        w.walk_children(node);
++                    }
++                });
++                return;
++            }
++            "method" | "singleton_method" => {
++                let variant = if node.kind() == "method" {
++                    DefVariant::InherentMethod
+                 } else {
+-                    self.walk_children(node);
+-                }
++                    DefVariant::StaticMethod
++                };
++                self.record_method(node, variant);
++                let params = node.child_by_field_name("parameters");
++                self.in_scope(false, params, |w| w.walk_children(node));
++                return;
++            }
++            "block" | "do_block" | "lambda" => {
++                let params = node.child_by_field_name("parameters");
++                self.in_scope(true, params, |w| w.walk_children(node));
+                 return;
+             }
+-            "method" => {
+-                self.record_method(node, DefVariant::InherentMethod);
++            "assignment" | "operator_assignment" => {
++                if let Some(left) = node.child_by_field_name("left") {
++                    self.bind_target(left);
++                }
+                 self.walk_children(node);
+                 return;
+             }
+-            "singleton_method" => {
+-                self.record_method(node, DefVariant::StaticMethod);
++            "exception_variable" => {
++                let mut c = node.walk();
++                let kids: Vec<Node> = node.named_children(&mut c).collect();
++                for k in kids {
++                    self.bind_target(k);
++                }
++                return;
++            }
++            "for" => {
++                if let Some(pattern) = node.child_by_field_name("pattern") {
++                    self.bind_target(pattern);
++                }
+                 self.walk_children(node);
+                 return;
+             }
++            "identifier" if bare_call_position(node) => {
++                self.record_bare_identifier(node);
++                return;
++            }
+             "call" => {
+                 self.record_call(node);
+                 self.walk_children(node);
+@@ -324,6 +448,7 @@ impl<'a> RubyWalker<'a> {
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: line,
+@@ -336,6 +461,45 @@ impl<'a> RubyWalker<'a> {
+     }
+ }
+ 
++/// Whether an identifier stands where Ruby evaluates it: a statement, an
++/// operand, an argument, an assigned value, a condition or branch, the
++/// receiver of a call. Names, parameters and assignment targets are not.
++fn bare_call_position(node: Node) -> bool {
++    let Some(p) = node.parent() else {
++        return false;
++    };
++    let is = |field: &str| p.child_by_field_name(field) == Some(node);
++    match p.kind() {
++        "body_statement"
++        | "then"
++        | "else"
++        | "begin"
++        | "ensure"
++        | "parenthesized_statements"
++        | "argument_list"
++        | "interpolation"
++        | "array"
++        | "if_modifier"
++        | "unless_modifier"
++        | "while_modifier"
++        | "until_modifier"
++        | "splat_argument"
++        | "hash_splat_argument"
++        | "block_argument"
++        | "block_body" => true,
++        "binary" => is("left") || is("right"),
++        "unary" => is("operand"),
++        "assignment" | "operator_assignment" => is("right"),
++        "if" | "unless" | "while" | "until" | "elsif" => is("condition"),
++        "conditional" => is("condition") || is("consequence") || is("alternative"),
++        "call" => is("receiver"),
++        "element_reference" => is("object"),
++        "pair" => is("value"),
++        "range" => is("begin") || is("end"),
++        _ => false,
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -356,6 +520,26 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn a_bare_identifier_that_is_no_local_is_a_paren_less_call() {
++        // Ruby's parser rule: an identifier assigned (or a parameter)
++        // earlier in the scope is a variable; otherwise a method call.
++        let f = extract(
++            "class Foo\n  def run(a)\n    x = 1\n    helper\n    x\n    a\n    y = helper + x\n    [1].each { |e| e; helper }\n  end\n  def other\n    x\n  end\nend\n",
++        );
++        let bare: Vec<(&str, u32)> = f
++            .references
++            .iter()
++            .filter(|r| r.paren_less)
++            .map(|r| (r.name.as_str(), r.site_line))
++            .collect();
++        assert_eq!(
++            bare,
++            vec![("helper", 4), ("helper", 7), ("helper", 8), ("x", 11)],
++            "{bare:?}"
++        );
++    }
++
+     #[test]
+     fn class_methods() {
+         let src = "class Service\n  def initialize(name)\n    @name = name\n  end\n  def run\n    greet\n  end\n  def self.create\n    Service.new\n  end\nend\n";
+diff --git a/crates/cgg-lang/src/plugins/rust.rs b/crates/cgg-lang/src/plugins/rust.rs
+index 9bbcd04..28a0918 100644
+--- a/crates/cgg-lang/src/plugins/rust.rs
++++ b/crates/cgg-lang/src/plugins/rust.rs
+@@ -1913,6 +1913,7 @@ impl<'a> Walker<'a> {
+                 not_def: None,
+                 arity: None,
+                 value_ref: false,
++                paren_less: false,
+                 name: simple,
+                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                 site_line: (arg.start_position().row as u32) + 1,
+diff --git a/crates/cgg-lang/src/plugins/scala.rs b/crates/cgg-lang/src/plugins/scala.rs
+index e12b82e..c4c42c7 100644
+--- a/crates/cgg-lang/src/plugins/scala.rs
++++ b/crates/cgg-lang/src/plugins/scala.rs
+@@ -206,11 +206,72 @@ impl<'a> ScalaWalker<'a> {
+                 self.walk_children(node);
+                 return;
+             }
++            // `b.size`, a bare `helper`: a member named with no argument
++            // list is a value read or a call to a parameterless `def`.
++            // Recorded as a paren-less site; the resolver keeps it only
++            // when such a `def` exists by that name.
++            "identifier" | "field_expression" if paren_less_position(node) => {
++                self.record_paren_less(node);
++                self.walk_children(node);
++                return;
++            }
+             _ => {}
+         }
+         self.walk_children(node);
+     }
+ 
++    /// A receiver as the resolver reads it: its text with whitespace
++    /// removed, except that a construction without a body (`new
++    /// Auction(…)`, `new Box[Int]()`) is the type it constructs.
++    fn receiver_text(&self, v: Node) -> String {
++        if v.kind() == "instance_expression"
++            && !v
++                .named_children(&mut v.walk())
++                .any(|c| c.kind() == "template_body")
++            && let Some(ty) = v.named_children(&mut v.walk()).find(|c| {
++                matches!(
++                    c.kind(),
++                    "type_identifier" | "generic_type" | "stable_type_identifier"
++                )
++            })
++        {
++            let ty = if ty.kind() == "generic_type" {
++                ty.child_by_field_name("type").unwrap_or(ty)
++            } else {
++                ty
++            };
++            return self.text(ty).split_whitespace().collect();
++        }
++        self.text(v).split_whitespace().collect()
++    }
++
++    fn record_paren_less(&mut self, node: Node) {
++        let (name, receiver) = match node.kind() {
++            "field_expression" => {
++                let Some(field) = node.child_by_field_name("field") else {
++                    return;
++                };
++                let recv = node
++                    .child_by_field_name("value")
++                    .map(|v| self.receiver_text(v))
++                    .unwrap_or_default();
++                (self.text(field).to_string(), recv)
++            }
++            _ => (self.text(node).to_string(), String::new()),
++        };
++        if name.is_empty() || matches!(name.as_str(), "this" | "super" | "_") {
++            return;
++        }
++        self.facts.references.push(RefRecord {
++            name,
++            receiver_hint: receiver,
++            site_line: (node.start_position().row as u32) + 1,
++            site_byte: node.start_byte() as u32,
++            paren_less: true,
++            ..Default::default()
++        });
++    }
++
+     fn walk_children(&mut self, node: Node) {
+         let mut c = node.walk();
+         if c.goto_first_child() {
+@@ -274,10 +335,32 @@ impl<'a> ScalaWalker<'a> {
+     }
+ 
+     fn record_call(&mut self, node: Node) {
+-        let func = node
+-            .child_by_field_name("function")
+-            .map(|n| self.text(n).to_string())
+-            .unwrap_or_default();
++        let Some(function) = node.child_by_field_name("function") else {
++            return;
++        };
++        // `b.m()`, `this.m()`, `a.b.m()`: the member is the field, the
++        // receiver everything before it — never the whole dotted text as
++        // one name.
++        if function.kind() == "field_expression"
++            && let Some(field) = function.child_by_field_name("field")
++        {
++            let name = self.text(field).to_string();
++            let receiver = function
++                .child_by_field_name("value")
++                .map(|v| self.receiver_text(v))
++                .unwrap_or_default();
++            if !name.is_empty() {
++                self.facts.references.push(RefRecord {
++                    name,
++                    receiver_hint: receiver,
++                    site_line: (node.start_position().row as u32) + 1,
++                    site_byte: node.start_byte() as u32,
++                    ..Default::default()
++                });
++            }
++            return;
++        }
++        let func = self.text(function).to_string();
+         if func.is_empty() {
+             return;
+         }
+@@ -304,6 +387,34 @@ impl<'a> ScalaWalker<'a> {
+     }
+ }
+ 
++/// Whether `node` (an identifier or a field access) stands where an
++/// expression is evaluated: a block statement, an argument, an operand, a
++/// definition's value or body, a branch, the receiver of a further access.
++/// Names, patterns, parameters, types and the callee of a call with an
++/// argument list are not.
++fn paren_less_position(node: Node) -> bool {
++    let Some(p) = node.parent() else {
++        return false;
++    };
++    let is = |field: &str| p.child_by_field_name(field) == Some(node);
++    match p.kind() {
++        "block"
++        | "arguments"
++        | "parenthesized_expression"
++        | "tuple_expression"
++        | "return_expression"
++        | "interpolation"
++        | "prefix_expression" => true,
++        "infix_expression" => is("left") || is("right"),
++        "field_expression" => is("value"),
++        "val_definition" | "var_definition" | "match_expression" => is("value"),
++        "function_definition" | "lambda_expression" | "case_clause" => is("body"),
++        "if_expression" => is("consequence") || is("alternative"),
++        "assignment_expression" => is("right"),
++        _ => false,
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -324,6 +435,40 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn member_calls_split_receiver_and_paren_less_sites_are_marked() {
++        // `b.m()` is `m` through `b`, never a name "b.m"; `b.size` and a
++        // bare `helper` are paren-less sites; names, params and the
++        // callee of a call with arguments are not.
++        let f = extract(
++            "object Main {\n  def go(b: B): Int = {\n    b.m()\n    b.size\n    helper\n    helper2()\n  }\n}\n",
++        );
++        let calls: Vec<(&str, &str, bool)> = f
++            .references
++            .iter()
++            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.paren_less))
++            .collect();
++        assert!(calls.contains(&("m", "b", false)), "{calls:?}");
++        let g = extract("object O { def f() = new Auction(1).behavior(2) }\n");
++        assert!(
++            g.references
++                .iter()
++                .any(|r| r.name == "behavior" && r.receiver_hint == "Auction")
++        );
++        assert!(calls.contains(&("size", "b", true)), "{calls:?}");
++        assert!(calls.contains(&("helper", "", true)), "{calls:?}");
++        assert!(calls.contains(&("helper2", "", false)), "{calls:?}");
++        assert!(!calls.iter().any(|(n, _, _)| n.contains('.')), "{calls:?}");
++        // Near-miss: the definition name, the parameter and the callee
++        // `helper2` are never paren-less sites.
++        assert!(
++            !calls
++                .iter()
++                .any(|(n, _, p)| *p && matches!(*n, "go" | "helper2" | "Main")),
++            "{calls:?}"
++        );
++    }
++
+     #[test]
+     fn plugin_loads() {
+         let plugin = ScalaPlugin;
+diff --git a/crates/cgg-resolve/src/cross_file.rs b/crates/cgg-resolve/src/cross_file.rs
+index af675dd..868101c 100644
+--- a/crates/cgg-resolve/src/cross_file.rs
++++ b/crates/cgg-resolve/src/cross_file.rs
+@@ -3781,7 +3781,36 @@ struct BareScope<'s> {
+     scala_wild: &'s std::collections::BTreeSet<String>,
+ }
+ 
+-/// `start` and every type it inherits from through recorded bases (bare
++/// The type a C# extension method extends, from its signature
++/// (`static Faker<P> GetFaker(this P _)` → `P`), bare of namespace and
++/// type arguments, and whether that type is one of the method's own type
++/// parameters (`static T Or<T>(this T x, …)` extends every type).
++/// `None` for a method whose first parameter is not `this`.
++fn csharp_extension_target(sig: &str) -> Option<(String, bool)> {
++    let open = sig.find('(')?;
++    let rest = sig[open + 1..].trim_start().strip_prefix("this ")?;
++    let ty = rest.trim_start();
++    let end = ty
++        .char_indices()
++        .find(|(_, c)| c.is_whitespace() || matches!(c, '<' | '[' | '?' | ',' | ')'))
++        .map_or(ty.len(), |(i, _)| i);
++    let ty = &ty[..end];
++    let bare = ty.rsplit('.').next().unwrap_or(ty).to_string();
++    if bare.is_empty() {
++        return None;
++    }
++    // The method's own type parameters: `Name<T, U>(` just before `(`.
++    let head = &sig[..open];
++    let generic = head.ends_with('>')
++        && head.rfind('<').is_some_and(|lt| {
++            head[lt + 1..head.len() - 1]
++                .split(',')
++                .any(|p| p.trim() == bare)
++        });
++    Some((bare, generic))
++}
++
++/// `start` and every type it inherits from through recorded bases (bare/// `start` and every type it inherits from through recorded bases (bare
+ /// names, depth 8).
+ fn with_ancestors(
+     lang: &str,
+@@ -3830,9 +3859,12 @@ fn with_ancestors(
+ ///   have: Kotlin (a lambda with receiver, `apply {}`/`with(x) {}`),
+ ///   Groovy (closure delegates — the Gradle DSL, Spock), C++
+ ///   (argument-dependent lookup; namespace
+-///   functions are recorded like members); and Swift, Dart, Objective-C,
++///   functions are recorded like members); and Swift, Objective-C,
+ ///   whose plugins record no base types, so an inherited member cannot be
+ ///   told from an unrelated one.
++/// * Dart (WS8): a bare name reaches library-level functions and the
++///   members of the calling class and the types it inherits (the bases
++///   its methods record); never a method of an unrelated class.
+ ///
+ /// A call written with a dot whose receiver the plugin could not capture
+ /// (`dot_call`) is not a bare call. Every other language is unchanged.
+@@ -3877,7 +3909,23 @@ fn bare_call_reaches(
+         CallableKind::Method | CallableKind::Destructor | CallableKind::Property
+     ) || (lang == "rust" && rust_type_owned(&c.qualified_name));
+     match lang {
+-        "python" | "rust" | "javascript" | "typescript" | "php" | "fsharp" => !member,
++        "python" | "rust" | "javascript" | "typescript" | "php" | "fsharp" | "lua" => {
++            !member
++        }
++        // Dart: a bare call is a library-level function, or (implicit
++        // `this`) a member of the calling class or a type it inherits —
++        // never a method of an unrelated class.
++        "dart" => {
++            !member || {
++                let cand_owner = owner_from_qn(&c.qualified_name);
++                caller_qn.and_then(owner_from_qn).is_some_and(|own| {
++                    cand_owner.is_some_and(|co| {
++                        with_ancestors(lang, vec![own.to_string()], bases_by_owner)
++                            .contains(co)
++                    })
++                })
++            }
++        }
+         "go" => {
+             let dir = |f: &FileId| graph.files.get(f).and_then(|r| r.path.parent());
+             !member
+@@ -4291,7 +4339,7 @@ fn try_resolve_ref(
+     // through its re-exports — never by name across the tree. A module
+     // that provides nothing the call can name is a refusal, recorded by
+     // the caller; it does not fall through to the name matching below.
+-    if matches!(lang, "javascript" | "typescript" | "python" | "go")
++    if matches!(lang, "javascript" | "typescript" | "python" | "go" | "lua")
+         && !heads.locals.shadows_receiver_head(r)
+         && let Some(scoped) = file_mods.resolve(
+             modix,
+@@ -4794,7 +4842,7 @@ fn try_resolve_ref(
+         let has_imports = !direct_imports.is_empty()
+             || !module_aliases.is_empty()
+             || !unqualified_prefixes.is_empty();
+-        if has_imports {
++        if has_imports && !r.paren_less {
+             let is_stdlib = cgg_core::stdlib::stdlib_names(lang)
+                 .is_some_and(|s| s.contains(r.name.as_str()));
+             if !is_stdlib
+@@ -5338,6 +5386,33 @@ fn try_resolve_ref(
+             return None;
+         }
+ 
++        // Step 4d (C#, WS8): `x.M()` on a receiver typed `T` — a variable
++        // of that type, or a construction `new T()` — that neither `T`
++        // nor its bases declare is an extension method: a static
++        // `M(this U …)` whose extended type `U` is `T`, a base of `T`, or
++        // a type parameter of `M`. Without this a typed receiver lost
++        // every extension call it makes.
++        if lang == "csharp" && !r.paren_less && rh.starts_with(char::is_uppercase) {
++            let recv = rh.rsplit('.').next().unwrap_or(rh);
++            let recv = recv.split('<').next().unwrap_or(recv).trim();
++            let family = with_ancestors(lang, vec![recv.to_string()], bases_by_owner);
++            if let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone())) {
++                let ext: Vec<CallableId> = cids
++                    .iter()
++                    .copied()
++                    .filter(|c| {
++                        signatures
++                            .get(c)
++                            .and_then(|sig| csharp_extension_target(sig))
++                            .is_some_and(|(t, generic)| generic || family.contains(&t))
++                    })
++                    .collect();
++                if !ext.is_empty() && ext.len() <= fanout_cap {
++                    return Some(ext);
++                }
++            }
++        }
++
+         // Step 5: Trait/interface method dispatch.
+         // When receiver_hint is a variable name (lowercase) and the method
+         // name exists on definitions in other files, find all callables
+@@ -5345,7 +5420,11 @@ fn try_resolve_ref(
+         // formatter is a trait object — we emit edges to all implementors.
+         // Only applies when the method name is NOT a common stdlib method
+         // (to avoid matching `vec.is_empty()` to `WalkOutcome::is_empty`).
++        // A paren-less site (`b.size`) through an untyped receiver is a
++        // field read far more often than a parameterless method: it binds
++        // only where the receiver is typed, never by name fan-out.
+         if !rh.is_empty()
++            && !r.paren_less
+             && rh != "self"
+             && rh != "Self"
+             && rh != "cls"
+@@ -9789,6 +9868,78 @@ mod tests {
+         (dsts, out.unresolved.into_iter().map(|u| u.reason).collect())
+     }
+ 
++    #[test]
++    fn lua_calls_through_a_require_bind_in_the_required_file_only() {
++        // `util.decode()` is the member of the table util.lua defines;
++        // `cjson.decode()` is a dependency's (no file of the tree is
++        // `cjson`), never the workspace `decode`; a name util.lua does not
++        // provide is refused, not matched elsewhere.
++        let files = vec![
++            mfile(
++                "lib/util.lua",
++                &["M.decode", "M:encode", "M.sub.deep"],
++                vec![],
++            ),
++            mfile("other.lua", &["N.decode", "N.missing"], vec![]),
++        ];
++        let caller = mfile(
++            "app.lua",
++            &["run"],
++            vec![
++                import("require", "util", "util"),
++                import("require", "cjson", "cjson"),
++            ],
++        );
++        let refs = vec![
++            call("decode", "util"),
++            RefRecord {
++                site_byte: 61,
++                ..call("encode", "util")
++            },
++            RefRecord {
++                site_byte: 62,
++                ..call("decode", "cjson")
++            },
++            RefRecord {
++                site_byte: 63,
++                ..call("missing", "util")
++            },
++            RefRecord {
++                site_byte: 64,
++                ..call("deep", "util")
++            },
++        ];
++        let (dsts, why) = module_case("lua", files, caller, refs);
++        assert_eq!(
++            dsts,
++            vec![
++                at("M.decode", "lib/util.lua"),
++                at("M:encode", "lib/util.lua")
++            ]
++        );
++        assert!(why.contains(&external("cjson")), "{why:?}");
++        assert!(why.contains(&refused("util")), "{why:?}");
++    }
++
++    #[test]
++    fn csharp_extension_targets_are_read_from_the_signature() {
++        assert_eq!(
++            csharp_extension_target("internal static Faker<P> GetFaker(this P _) =>"),
++            Some(("P".to_string(), false))
++        );
++        assert_eq!(
++            csharp_extension_target("public static T Or<T>(this T x, T y)"),
++            Some(("T".to_string(), true))
++        );
++        assert_eq!(
++            csharp_extension_target(
++                "static int N(this System.Collections.IList<int> xs)"
++            ),
++            Some(("IList".to_string(), false))
++        );
++        assert_eq!(csharp_extension_target("static int N(int x)"), None);
++    }
++
+     fn refused(module: &str) -> UnresolvedReason {
+         UnresolvedReason::NotInImportedModule {
+             module: module.into(),
+diff --git a/crates/cgg-resolve/src/deadcode/mod.rs b/crates/cgg-resolve/src/deadcode/mod.rs
+index 562dede..eb3a464 100644
+--- a/crates/cgg-resolve/src/deadcode/mod.rs
++++ b/crates/cgg-resolve/src/deadcode/mod.rs
+@@ -482,6 +482,17 @@ impl<'a> Contracts<'a> {
+                 contract: t.to_string(),
+             });
+         }
++        // A partial method part: its other half and the callers it
++        // stands for are routinely generated code or outside the tree.
++        if nd
++            .attributes
++            .iter()
++            .any(|a| a == cgg_core::PARTIAL_DECLARATION)
++        {
++            return Some(Evidence::ImplementsExternalContract {
++                contract: "partial".to_string(),
++            });
++        }
+         let owner = owner_stem(&nd.qualified_name)?;
+         let marked = nd
+             .attributes
+@@ -2191,6 +2202,31 @@ mod tests {
+         assert_eq!(finding(&r, "p.Ext.unused").confidence, Confidence::High);
+     }
+ 
++    #[test]
++    fn a_partial_method_part_is_a_contract_member_not_high() {
++        // C# `partial void OnLoaded();`: its other half and its callers
++        // are routinely generated or outside the tree.
++        let part = member(
++            1,
++            "csharp",
++            "Data",
++            "OnLoaded",
++            &[cgg_core::PARTIAL_DECLARATION],
++        );
++        let plain = member(2, "csharp", "Data", "Helper", &[]);
++        let facts = facts_for("csharp", vec![def_of(&part, &[]), def_of(&plain, &[])]);
++        let g = graph_with(vec![node(0, "p.Main.main", "main", "csharp"), part, plain]);
++        let r = analyze(&g, &[], &facts, &opts_full("csharp"));
++        let has = |qn: &str| {
++            finding(&r, qn)
++                .evidence
++                .iter()
++                .any(|e| e.slug() == "implements-external-contract")
++        };
++        assert!(has("p.Data.OnLoaded"));
++        assert!(!has("p.Data.Helper"));
++    }
++
+     #[test]
+     fn an_override_of_an_in_tree_base_member_carries_no_external_contract() {
+         // The base declares it: the dispatch fan-out from the declaration
+diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
+index f31999e..b64b5bb 100644
+--- a/crates/cgg-resolve/src/frameworks/mod.rs
++++ b/crates/cgg-resolve/src/frameworks/mod.rs
+@@ -2213,6 +2213,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -2251,6 +2252,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2275,6 +2277,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "name".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2306,6 +2309,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "user_id".into(),
+             receiver_hint: STRING_REF_HINT.to_string(),
+             site_line: 3,
+@@ -2362,6 +2366,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "listUsers".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+@@ -2402,6 +2407,7 @@ mod tests {
+             not_def: None,
+             arity: None,
+             value_ref: false,
++            paren_less: false,
+             name: "on_mouse_pos".into(),
+             receiver_hint: VALUE_REF_HINT.to_string(),
+             site_line: 4,
+diff --git a/crates/cgg-resolve/src/intra_file.rs b/crates/cgg-resolve/src/intra_file.rs
+index 513450d..7054a39 100644
+--- a/crates/cgg-resolve/src/intra_file.rs
++++ b/crates/cgg-resolve/src/intra_file.rs
+@@ -49,7 +49,7 @@ pub struct LinkOutcome {
+ fn bare_call_is_never_a_method(language: &str) -> bool {
+     matches!(
+         language,
+-        "python" | "rust" | "go" | "javascript" | "typescript" | "php"
++        "python" | "rust" | "go" | "javascript" | "typescript" | "php" | "lua"
+     )
+ }
+ 
+@@ -443,7 +443,12 @@ pub fn link_file_with_cap(
+         // even when a same-named function exists elsewhere in the file.
+         // Narrow only when some candidate is such a member; otherwise the
+         // set stands.
+-        if rh.is_empty() && facts.language == "cpp" && candidates.len() > 1 {
++        // Dart the same: a bare call in a method is first the enclosing
++        // class's member (implicit `this`).
++        if rh.is_empty()
++            && matches!(facts.language.as_str(), "cpp" | "dart")
++            && candidates.len() > 1
++        {
+             if let Some(owner) = enclosing
+                 .and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name))
+             {
+@@ -559,9 +564,10 @@ pub fn link_file_with_cap(
+                     })
+                 });
+             } else {
++                // Segments split at `::`, `.` and a lone `:` (Lua's
++                // `Repo:zlist` method is the `zlist` field of `Repo`).
+                 candidates.retain(|(_, d)| {
+-                    d.qualified_name.split("::").any(|seg| seg == rh)
+-                        || d.qualified_name.split('.').any(|seg| seg == rh)
++                    d.qualified_name.split([':', '.']).any(|seg| seg == rh)
+                 });
+             }
+         }
+@@ -1495,6 +1501,30 @@ mod tests {
+         );
+     }
+ 
++    /// Lua: a bare `zlist()` reaches a function bound to a plain name,
++    /// never one stored in a table field (`Repo:zlist`), which is only
++    /// reached through the table.
++    #[test]
++    fn a_lua_bare_call_never_reaches_a_table_member() {
++        let defs = vec![
++            mk_def("zlist", "Repo:zlist", DefVariant::InherentMethod, (0, 40)),
++            mk_def("top", "top", DefVariant::FreeFunction, (40, 100)),
++            mk_def("helper", "helper", DefVariant::FreeFunction, (100, 120)),
++        ];
++        let mut through = mk_ref("zlist", 70);
++        through.receiver_hint = "Repo".into();
++        let refs = vec![mk_ref("zlist", 50), mk_ref("helper", 60), through];
++        let facts = facts_with_lang("lua", defs, refs);
++        let map = mk_map(&facts);
++        let out = link_file(&facts, &map);
++        let bound: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
++        assert_eq!(bound, vec![60, 70]);
++        assert_eq!(
++            out.unresolved[0].reason,
++            UnresolvedReason::NotInScopeForBareCall { methods: 1 }
++        );
++    }
++
+     /// A bare identifier does not reach a method, and says so.
+     ///
+     /// `helper(2)` inside a file that also defines `Holder.helper` was
+diff --git a/crates/cgg-resolve/src/libscope.rs b/crates/cgg-resolve/src/libscope.rs
+index f3aa039..5c06fa4 100644
+--- a/crates/cgg-resolve/src/libscope.rs
++++ b/crates/cgg-resolve/src/libscope.rs
+@@ -2094,7 +2094,30 @@ impl PhpIndex {
+                     .first()?;
+                 self.class_fqn(file, r.site_byte, base)
+             }
+-            "self" | "static" => return None,
++            // `$this->m()`, `self::m()`, `static::m()`: the calling class's
++            // method, or one it inherits or a trait mixes in; through a
++            // dependency's base, external (WS8).
++            "this" | "self" | "static" => {
++                let (owner, _) = caller_qn?.split_once("::")?;
++                let fqn = self.class_fqn(file, r.site_byte, owner);
++                return match self.class_method(&fqn, &r.name, 0) {
++                    ClassLookup::Found(cids, certain) => {
++                        Some(match self.one_copy(file, cids) {
++                            Scoped::Bound { cids, certain: c } => Scoped::Bound {
++                                cids,
++                                certain: c && certain,
++                            },
++                            other => other,
++                        })
++                    }
++                    ClassLookup::External => Some(Scoped::External(fqn)),
++                    // Undecided: `static::m()` binds late, to a subclass's
++                    // `m`, and keeps the readings it had; `$this->m()` is
++                    // left unbound rather than matched by name.
++                    ClassLookup::Unknown if lower == "this" => Some(Scoped::Ambiguous),
++                    ClassLookup::Unknown => None,
++                };
++            }
+             _ if rh.starts_with('$')
+                 || !rh
+                     .chars()
+diff --git a/crates/cgg-resolve/src/modules.rs b/crates/cgg-resolve/src/modules.rs
+index 3b85fc1..04fdef6 100644
+--- a/crates/cgg-resolve/src/modules.rs
++++ b/crates/cgg-resolve/src/modules.rs
+@@ -180,10 +180,14 @@ pub(crate) struct ModuleIndex<'a> {
+     go_imports: HashMap<FileId, Vec<(String, String, bool)>>,
+     /// The file each indexed callable is declared in.
+     file_of: HashMap<CallableId, FileId>,
++    /// Lua: module name's last segment (a file stem, or the directory of
++    /// an `init.lua`) → each file's path segments as a module path
++    /// (`a/b.lua` and `a/b/init.lua` are both `a.b`).
++    lua_by_last: HashMap<String, Vec<(Vec<String>, FileId)>>,
+ }
+ 
+ fn indexed(lang: &str) -> bool {
+-    matches!(lang, "javascript" | "typescript" | "python" | "go")
++    matches!(lang, "javascript" | "typescript" | "python" | "go" | "lua")
+ }
+ 
+ impl<'a> ModuleIndex<'a> {
+@@ -246,6 +250,19 @@ impl<'a> ModuleIndex<'a> {
+             ix.paths.insert(f.file, f.path.as_path());
+             ix.facts.insert(f.file, f);
+             match f.language.as_str() {
++                "lua" => {
++                    let mut segs =
++                        normal_components(&normalize(&f.path.with_extension("")));
++                    if segs.last().is_some_and(|l| l == "init") {
++                        segs.pop();
++                    }
++                    if let Some(last) = segs.last() {
++                        ix.lua_by_last
++                            .entry(last.clone())
++                            .or_default()
++                            .push((segs.clone(), f.file));
++                    }
++                }
+                 "javascript" | "typescript" => ix.add_js_file(f),
+                 "python" => {
+                     if let Some(m) = f.packages.first() {
+@@ -1262,6 +1279,56 @@ impl<'a> ModuleIndex<'a> {
+         Vec::new()
+     }
+ 
++    /// The files a Lua `require` names: those whose module path (path
++    /// segments, `init.lua` standing for its directory) ends with the
++    /// module's dotted segments. Several copies (vendored, per-platform)
++    /// are all returned; the caller narrows them.
++    fn lua_files(&self, module: &str) -> Vec<FileId> {
++        let segs: Vec<&str> =
++            module.split(['.', '/']).filter(|s| !s.is_empty()).collect();
++        let Some(cands) = segs.last().and_then(|l| self.lua_by_last.get(*l)) else {
++            return Vec::new();
++        };
++        let mut out: Vec<FileId> = cands
++            .iter()
++            .filter(|(path, _)| {
++                path.len() >= segs.len()
++                    && path[path.len() - segs.len()..]
++                        .iter()
++                        .zip(&segs)
++                        .all(|(a, b)| a == b)
++            })
++            .map(|(_, f)| *f)
++            .collect();
++        out.sort();
++        out.dedup();
++        out
++    }
++
++    /// The functions a Lua module file provides under `name`: members of
++    /// one table (`M.name`, `M:name`) — the table the module returns —
++    /// never a function nested deeper (`M.sub.name`) or a local one.
++    fn lua_members(&self, file: FileId, name: &str) -> Vec<CallableId> {
++        let mut out: Vec<CallableId> = self
++            .by_file_simple
++            .get(&(file, name))
++            .into_iter()
++            .flatten()
++            .copied()
++            .filter(|id| {
++                self.qn_of.get(id).is_some_and(|qn| {
++                    qn.strip_suffix(name)
++                        .and_then(|p| p.strip_suffix(['.', ':']))
++                        .is_some_and(|owner| {
++                            !owner.is_empty() && !owner.contains(['.', ':'])
++                        })
++                })
++            })
++            .collect();
++        out.sort();
++        out
++    }
++
+     /// The calling Go file's own package: callables named `name` at
+     /// package level in the files of its directory that share its package
+     /// clause.
+@@ -1322,6 +1389,8 @@ pub(crate) struct FileModules {
+     /// Simple names the file defines: a bare call to one may be the
+     /// local definition shadowing an import.
+     own_defs: HashSet<String>,
++    /// Lua: local name → the module a `require` bound to it.
++    lua: HashMap<String, String>,
+ }
+ 
+ #[derive(Debug, Clone, PartialEq)]
+@@ -1357,6 +1426,25 @@ impl FileModules {
+             ..FileModules::default()
+         };
+         match facts.language.as_str() {
++            "lua" => {
++                // A name bound by two different requires is left alone.
++                let mut conflicted: HashSet<&str> = HashSet::new();
++                for imp in facts.imports.iter().filter(|i| i.kind == "require") {
++                    let (name, path) = (imp.alias.trim(), imp.path.trim());
++                    if name.is_empty() || path.is_empty() || conflicted.contains(name) {
++                        continue;
++                    }
++                    match fm.lua.get(name) {
++                        Some(p) if p != path => {
++                            fm.lua.remove(name);
++                            conflicted.insert(name);
++                        }
++                        _ => {
++                            fm.lua.insert(name.to_string(), path.to_string());
++                        }
++                    }
++                }
++            }
+             "javascript" | "typescript" => {
+                 // A name two imports bind is left to the old reading.
+                 let mut conflicted: HashSet<String> = HashSet::new();
+@@ -1549,10 +1637,73 @@ impl FileModules {
+             }
+             "python" => self.resolve_py(ix, file, r, rh, bases),
+             "go" => self.resolve_go(ix, file, r, rh, bases),
++            "lua" => self.resolve_lua(ix, file, r, rh),
+             _ => None,
+         }
+     }
+ 
++    /// A Lua call through a name a `require` bound (`util.f()`,
++    /// `util:f()`): the member of the table the required module file
++    /// defines; a module no file of the tree is, a dependency. A deeper
++    /// path (`util.sub.f()`) is a dependency's when the module is, and
++    /// otherwise left to the other readings.
++    fn resolve_lua(
++        &self,
++        ix: &ModuleIndex<'_>,
++        file: FileId,
++        r: &RefRecord,
++        rh: &str,
++    ) -> Option<Scoped> {
++        if rh.is_empty() {
++            return None;
++        }
++        let head = leading_ident(rh);
++        let module = self.lua.get(head)?;
++        let files = ix.lua_files(module);
++        if files.is_empty() {
++            return Some(Scoped::External(module.clone()));
++        }
++        if rh != head {
++            return None;
++        }
++        // Copies of one module: those nearest the caller (longest shared
++        // directory prefix) provide the call.
++        let caller_dir = ix
++            .paths
++            .get(&file)
++            .and_then(|p| p.parent())
++            .map(|p| normal_components(&normalize(p)))
++            .unwrap_or_default();
++        let shared = |f: &FileId| {
++            let dir = ix
++                .paths
++                .get(f)
++                .and_then(|p| p.parent())
++                .map(|p| normal_components(&normalize(p)))
++                .unwrap_or_default();
++            dir.iter()
++                .zip(&caller_dir)
++                .take_while(|(a, b)| a == b)
++                .count()
++        };
++        let mut provs: Vec<(usize, Vec<CallableId>)> = files
++            .iter()
++            .map(|f| (shared(f), ix.lua_members(*f, &r.name)))
++            .filter(|(_, ids)| !ids.is_empty())
++            .collect();
++        let Some(best) = provs.iter().map(|(n, _)| *n).max() else {
++            return Some(Scoped::Refused(module.clone()));
++        };
++        provs.retain(|(n, _)| *n == best);
++        match provs.as_slice() {
++            [(_, ids)] => Some(Scoped::Bound {
++                cids: ids.clone(),
++                certain: true,
++            }),
++            _ => Some(Scoped::Ambiguous),
++        }
++    }
++
+     fn resolve_js(
+         &self,
+         ix: &ModuleIndex<'_>,
+diff --git a/crates/cgg-resolve/src/type_hints.rs b/crates/cgg-resolve/src/type_hints.rs
+index 37d8fe6..e011104 100644
+--- a/crates/cgg-resolve/src/type_hints.rs
++++ b/crates/cgg-resolve/src/type_hints.rs
+@@ -1249,8 +1249,17 @@ fn rust_guard_base(rh: &str) -> Option<&str> {
+ }
+ 
+ fn parse_colon_param(param: &str) -> Option<(&str, &str)> {
+-    // "x: Service" or "x: &Service" or "x: *Service"
+-    let (name, rest) = param.split_once(':')?;
++    // "x: Service" or "x: &Service" or "x: *Service". The separator is a
++    // lone `:` — never half of a `::` path separator, which a C++ or C#
++    // type-first parameter (`ns::Foo x`, `global::A.B y`) contains and
++    // which made `ns` the parameter's name.
++    let bytes = param.as_bytes();
++    let at = (0..bytes.len()).find(|&i| {
++        bytes[i] == b':'
++            && (i == 0 || bytes[i - 1] != b':')
++            && bytes.get(i + 1) != Some(&b':')
++    })?;
++    let (name, rest) = (&param[..at], &param[at + 1..]);
+     let name = name
+         .trim()
+         .trim_start_matches("mut ")
+@@ -1855,6 +1864,16 @@ mod tests {
+     /// qualifier (`t *util.T` → `util.T`), names declared together share
+     /// the type, unqualified and composite types stay untyped, and a
+     /// method's receiver list is not its parameters.
++    #[test]
++    fn a_scope_separator_is_not_a_name_type_colon() {
++        // `ns::Foo x` (C++) / `global::A.B y` (C#) are type-first; only a
++        // lone `:` separates a name from its type.
++        assert_eq!(parse_colon_param("ns::Foo x"), None);
++        assert_eq!(parse_colon_param("const ns::Foo& y"), None);
++        assert_eq!(parse_colon_param("x: a::Store"), Some(("x", "a::Store")));
++        assert_eq!(parse_colon_param("svc: Service"), Some(("svc", "Service")));
++    }
++
+     #[test]
+     fn go_parameters_of_a_package_type_keep_the_package() {
+         let d = mk_def(
+diff --git a/crates/cgg-resolve/src/value_refs.rs b/crates/cgg-resolve/src/value_refs.rs
+index 49708e8..eb2d74a 100644
+--- a/crates/cgg-resolve/src/value_refs.rs
++++ b/crates/cgg-resolve/src/value_refs.rs
+@@ -60,9 +60,96 @@ pub fn prune(all_facts: &mut [FileFacts]) {
+         }
+         let known = names.get(&f.language).unwrap_or(&empty);
+         let locals = crate::scope::FileLocals::build(f);
++        let defs = std::mem::take(&mut f.definitions);
+         f.references.retain(|r| {
+-            !r.value_ref || (known.contains(leaf(r)) && !locals.shadows_bare_call(r))
++            !r.value_ref || (known.contains(leaf(r)) && !shadowed(&locals, &defs, r))
+         });
++        f.definitions = defs;
++    }
++}
++
++/// A local binding shadows the site's bare name — unless the binding's own
++/// declaration defines a function of that name (`f = lambda: …`, `const
++/// f = () => …`): then the local *is* that function, and naming it names
++/// the function.
++fn shadowed(
++    locals: &crate::scope::FileLocals,
++    defs: &[cgg_core::DefRecord],
++    r: &RefRecord,
++) -> bool {
++    if !locals.shadows_bare_call(r) {
++        return false;
++    }
++    let Some((start, _, decl)) = locals.binding_decl_at(&r.name, r.site_byte) else {
++        return true;
++    };
++    !defs
++        .iter()
++        .any(|d| d.simple_name == r.name && decl <= d.start_byte && d.start_byte < start)
++}
++
++/// Whether a definition is declared without a parameter list: the text
++/// after its name in the signature (past a `[…]` type-parameter group)
++/// does not open one. Scala's `def size: Int` is; `def size(): Int` is not.
++fn declares_no_parameters(sig: &str, name: &str) -> bool {
++    let Some(at) = sig.find(name) else {
++        return false;
++    };
++    let mut rest = sig[at + name.len()..].trim_start();
++    if rest.starts_with('[') {
++        let mut depth = 0usize;
++        let mut end = rest.len();
++        for (i, ch) in rest.char_indices() {
++            match ch {
++                '[' => depth += 1,
++                ']' => {
++                    depth -= 1;
++                    if depth == 0 {
++                        end = i + 1;
++                        break;
++                    }
++                }
++                _ => {}
++            }
++        }
++        rest = rest[end..].trim_start();
++    }
++    !rest.starts_with('(')
++}
++
++/// Drop paren-less records ([`RefRecord::paren_less`]) that cannot be a
++/// call: no callable of the file's language is declared without a
++/// parameter list under that name, or the bare name is a local binding at
++/// the site. What remains is resolved as the call it is. Free on a run
++/// whose plugins record none.
++pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
++    if !all_facts
++        .iter()
++        .any(|f| f.references.iter().any(|r| r.paren_less))
++    {
++        return;
++    }
++    let mut names: HashMap<String, HashSet<String>> = HashMap::new();
++    for f in all_facts.iter() {
++        let set = names.entry(f.language.clone()).or_default();
++        for d in &f.definitions {
++            if declares_no_parameters(&d.signature_hint, &d.simple_name) {
++                set.insert(d.simple_name.clone());
++            }
++        }
++    }
++    let empty = HashSet::new();
++    for f in all_facts.iter_mut() {
++        if !f.references.iter().any(|r| r.paren_less) {
++            continue;
++        }
++        let known = names.get(&f.language).unwrap_or(&empty);
++        let locals = crate::scope::FileLocals::build(f);
++        let defs = std::mem::take(&mut f.definitions);
++        f.references.retain(|r| {
++            !r.paren_less || (known.contains(&r.name) && !shadowed(&locals, &defs, r))
++        });
++        f.definitions = defs;
+     }
+ }
+ 
+@@ -133,6 +220,79 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn paren_less_sites_survive_only_for_parameterless_callables() {
++        let pl = |name: &str, recv: &str, byte: u32| RefRecord {
++            name: name.into(),
++            receiver_hint: recv.into(),
++            site_byte: byte,
++            paren_less: true,
++            ..Default::default()
++        };
++        let mut a = facts(
++            "scala",
++            1,
++            &["go"],
++            vec![
++                pl("size", "b", 10),
++                pl("m", "b", 20),
++                pl("x", "", 30),
++                pl("size", "", 40),
++            ],
++        );
++        // `size` is the name of a local in scope at byte 40.
++        a.locals = vec![cgg_core::LocalBinding {
++            name: "size".into(),
++            start_byte: 35,
++            end_byte: 50,
++            decl_byte: 32,
++        }];
++        let mut b = facts("scala", 2, &["size", "m"], vec![]);
++        b.definitions[0].signature_hint = "def size: Int".into();
++        b.definitions[1].signature_hint = "def m(): Int".into();
++        let mut all = vec![a, b];
++        prune_paren_less(&mut all);
++        let kept: Vec<(&str, u32)> = all[0]
++            .references
++            .iter()
++            .map(|r| (r.name.as_str(), r.site_byte))
++            .collect();
++        // `m` takes a parameter list, `x` names nothing, the bare `size`
++        // at 40 is the local.
++        assert_eq!(kept, vec![("size", 10)]);
++        assert!(declares_no_parameters("def get[T]: T", "get"));
++        assert!(!declares_no_parameters("def get[T](k: K): T", "get"));
++    }
++
++    #[test]
++    fn a_local_bound_to_its_own_function_does_not_shadow_it() {
++        // `f = lambda: …` then `return f`: the local is the closure the
++        // declaration defines, so naming it names the function.
++        let mut a = facts(
++            "python",
++            1,
++            &["main", "f"],
++            vec![RefRecord {
++                site_byte: 80,
++                ..vref("f", "")
++            }],
++        );
++        a.definitions[1].start_byte = 25;
++        a.locals = vec![cgg_core::LocalBinding {
++            name: "f".into(),
++            start_byte: 40,
++            end_byte: 100,
++            decl_byte: 20,
++        }];
++        let mut all = vec![a];
++        prune(&mut all);
++        assert_eq!(all[0].references.len(), 1);
++        // Near-miss: a local bound to something else still shadows.
++        all[0].definitions[1].start_byte = 5;
++        prune(&mut all);
++        assert!(all[0].references.is_empty());
++    }
++
+     #[test]
+     fn a_value_ref_naming_no_callable_is_dropped() {
+         let mut all = vec![
+diff --git a/crates/cgg/src/lib.rs b/crates/cgg/src/lib.rs
+index b07f1a0..3732b5e 100644
+--- a/crates/cgg/src/lib.rs
++++ b/crates/cgg/src/lib.rs
+@@ -675,6 +675,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     // references: drop them before they read as calls. A no-op unless
+     // the run records reference sites.
+     cgg_resolve::value_refs::prune(&mut all_facts);
++    // Paren-less member sites (Scala `b.size`) that no parameterless
++    // callable is named by are value reads, not calls.
++    cgg_resolve::value_refs::prune_paren_less(&mut all_facts);
+     let link_started = Instant::now();
+     let return_types_owned: HashMap<String, String> = {
+         let _s = cgg_core::profile::span("resolve::type-hints");
+@@ -1008,10 +1011,22 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
+     let call_leaf = |name: &str| -> String {
+         name.rsplit(['.', ':']).next().unwrap_or(name).to_string()
+     };
++    // A paren-less site (Scala `b.size`, a Ruby bare `helper`) that bound
++    // nothing is a value read, not a call: it leaves no audit record.
++    let paren_less_sites: HashSet<(FileId, u32, &str)> = all_facts
++        .iter()
++        .flat_map(|f| {
++            f.references
++                .iter()
++                .filter(|r| r.paren_less)
++                .map(move |r| (f.file, r.site_byte, r.name.as_str()))
++        })
++        .collect();
+     let resolved_at = |file: FileId, byte: u32, name: &str| -> bool {
+-        resolved_names
+-            .get(&(file, byte))
+-            .is_some_and(|names| names.contains(&call_leaf(name)) || names.contains(name))
++        paren_less_sites.contains(&(file, byte, name))
++            || resolved_names.get(&(file, byte)).is_some_and(|names| {
++                names.contains(&call_leaf(name)) || names.contains(name)
++            })
+     };
+ 
+     let mut removed_per_lang_unresolved: HashMap<String, u64> = HashMap::new();

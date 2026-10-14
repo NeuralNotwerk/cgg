@@ -1,0 +1,8 @@
+[package]
+name = "tsdump"
+version = "0.0.0"
+edition = "2024"
+[workspace]
+[dependencies]
+cgg-lang = { path = "/storage/cgg/crates/cgg-lang" }
+tree-sitter             = "0.26"
