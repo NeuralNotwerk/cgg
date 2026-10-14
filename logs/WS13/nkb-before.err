@@ -1,0 +1,16 @@
+cgg: 64305 unresolved call(s) across 212 module(s) — largest: (unattributed) (59075) tempfile::TempDir (630) std::collections::HashMap (424) … [full list in the audit log]
+cgg: 1906 files, 274 analyzed, 1632 skipped (1363 builtin, 269 unknown-extension); 6302 callables, 15232 edges (6318 cross-file), 31879 unresolved, 9915 stdlib, 32426 external (1193.3 ms)
+
+framework coverage
+  recognised     axum (network, 199 entries)
+                 rust-std-traits (lifecycle, 145 entries)
+                 cuda (lifecycle, 3 entries)
+  seen, no rules 11 framework(s) detected, entries NOT enumerated:
+                 aiohttp, c-runtime, clap, cpp-runtime, py-argparse, py-threading, …
+                 (pass --framework-coverage for the full list and the reason for each)
+
+  Entry-node coverage is PARTIAL. Handlers of the frameworks listed under
+  "seen, no rules" are not represented and will still appear unreferenced.
+  Reachability from a `network` entry is not proof of attacker-controlled
+  data flow — cgg does no taint tracking.
+cgg: framework entries: 202 node(s) minted, 145 root-marked only — INFERRED, not observed
