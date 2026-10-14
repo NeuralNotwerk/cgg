@@ -1,0 +1,12 @@
+{
+ "cpp": {
+  "drop": {
+   "medium": 1
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: value-ref-ambiguous": 1
+  }
+ }
+}

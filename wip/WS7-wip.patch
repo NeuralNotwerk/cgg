@@ -12,7 +12,7 @@ index fcea017..25486db 100644
      }
  }
 diff --git a/crates/cgg-core/src/frameworks/rules.rs b/crates/cgg-core/src/frameworks/rules.rs
-index 2252f73..0fa2b21 100644
+index 2252f73..30f913b 100644
 --- a/crates/cgg-core/src/frameworks/rules.rs
 +++ b/crates/cgg-core/src/frameworks/rules.rs
 @@ -2573,7 +2573,7 @@ pub const SPECS: &[RuleSpec] = &[
@@ -113,7 +113,7 @@ index 2252f73..0fa2b21 100644
          observer_types: NONE,
          handler_on_enclosing_owner: false,
      },
-@@ -7024,6 +7095,339 @@ pub const SPECS: &[RuleSpec] = &[
+@@ -7024,6 +7095,340 @@ pub const SPECS: &[RuleSpec] = &[
          observer_types: NONE,
          handler_on_enclosing_owner: false,
      },
@@ -260,9 +260,10 @@ index 2252f73..0fa2b21 100644
 +        observer_types: NONE,
 +        handler_on_enclosing_owner: false,
 +    },
-+    // Gradle's service registry calls `@Provides` factory, decorator and
-+    // `configure(ServiceRegistration)` methods of a registered service
-+    // provider reflectively.
++    // Gradle's service registry calls the `@Provides` factory and decorator
++    // methods of a registered service provider reflectively, and the
++    // `configure(ServiceRegistration)` method of every
++    // `ServiceRegistrationProvider`, which carries no annotation.
 +    RuleSpec {
 +        id: "gradle-services",
 +        language: "java",
@@ -272,8 +273,8 @@ index 2252f73..0fa2b21 100644
 +        detect_calls: NONE,
 +        attributes: &["Provides"],
 +        registrars: NONE,
-+        base_types: NONE,
-+        methods: NONE,
++        base_types: &["ServiceRegistrationProvider"],
++        methods: &["configure"],
 +        string_targets: false,
 +        node: false,
 +        gap: "",
@@ -453,7 +454,7 @@ index 2252f73..0fa2b21 100644
      RuleSpec {
          id: "junit",
          language: "kotlin",
-@@ -7469,7 +7873,7 @@ pub const SPECS: &[RuleSpec] = &[
+@@ -7469,7 +7874,7 @@ pub const SPECS: &[RuleSpec] = &[
          methods: NONE,
          string_targets: false,
          node: false,
@@ -462,7 +463,7 @@ index 2252f73..0fa2b21 100644
          observer_types: NONE,
          handler_on_enclosing_owner: false,
      },
-@@ -7494,7 +7898,90 @@ pub const SPECS: &[RuleSpec] = &[
+@@ -7494,7 +7899,90 @@ pub const SPECS: &[RuleSpec] = &[
          methods: NONE,
          string_targets: false,
          node: false,
@@ -554,7 +555,7 @@ index 2252f73..0fa2b21 100644
          observer_types: NONE,
          handler_on_enclosing_owner: false,
      },
-@@ -10535,6 +11022,116 @@ pub fn visibility_entries_for(id: &str, language: &str) -> &'static [&'static st
+@@ -10535,6 +11023,116 @@ pub fn visibility_entries_for(id: &str, language: &str) -> &'static [&'static st
      }
  }
  
@@ -671,7 +672,7 @@ index 2252f73..0fa2b21 100644
  /// Call names that alone prove a framework is present, for ecosystems
  /// with no import records. Returned separately from [`FrameworkRule`]
  /// because it is a detection input, not a matcher, and a user-authored
-@@ -10668,7 +11265,9 @@ mod tests {
+@@ -10668,7 +11266,9 @@ mod tests {
                  || !s.base_types.is_empty()
                  || !s.methods.is_empty()
                  || !visibility_entries_for(s.id, s.language).is_empty()
@@ -744,8 +745,69 @@ index abd32a1..32f7a46 100644
      #[test]
      fn macro_call_looks_like_call() {
          let src = "#define SQUARE(x) ((x)*(x))\nint f() { return SQUARE(3); }\n";
+diff --git a/crates/cgg-resolve/src/ffi.rs b/crates/cgg-resolve/src/ffi.rs
+index 5e1e7cf..59ab376 100644
+--- a/crates/cgg-resolve/src/ffi.rs
++++ b/crates/cgg-resolve/src/ffi.rs
+@@ -121,6 +121,13 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
+             // For each ref in a C-family file whose target name (or its
+             // `_name` variant) matches an asm label, link C → asm.
+             for r in &f.references {
++                // A function handed to `atexit(_fini)` is a value, not a
++                // call made here; an FFI *call* edge would claim one.
++                if r.receiver_hint == cgg_core::VALUE_REF_HINT
++                    || r.receiver_hint == cgg_core::STRING_REF_HINT
++                {
++                    continue;
++                }
+                 let stripped = r.name.trim_start_matches('_');
+                 let names = [r.name.as_str(), stripped];
+                 let asm_targets: Vec<CallableId> = names
+@@ -909,6 +916,42 @@ mod tests {
+         assert!(matches!(out.edges[0].via, Via::Ffi(ref fam) if fam == "wasm-bindgen"));
+     }
+ 
++    // B4: `atexit(_fini)` hands an asm label over as a value. The call
++    // `_fini()` is an FFI call; the value is not, and must not become one.
++    #[test]
++    fn a_value_reference_to_an_asm_label_is_not_an_ffi_call() {
++        let mut g = mk_graph();
++        for (id, lang) in [(0u32, "c"), (1, "asm")] {
++            let f = g.files.get_mut(&FileId::new(id)).unwrap();
++            f.language = lang.into();
++        }
++        for (id, qn, lang) in [(0u32, "start", "c"), (1, "_fini", "asm")] {
++            let c = g.callables.get_mut(&CallableId::new(id)).unwrap();
++            c.qualified_name = qn.into();
++            c.simple_name = qn.into();
++            c.language = lang.into();
++            c.attributes.clear();
++        }
++        let mut facts = FileFacts::new(FileId::new(0), PathBuf::from("crt.c"), "c");
++        facts.references.push(cgg_core::RefRecord {
++            name: "_fini".into(),
++            site_line: 1,
++            site_byte: 10,
++            ..Default::default()
++        });
++        facts.references.push(cgg_core::RefRecord {
++            name: "_fini".into(),
++            receiver_hint: cgg_core::VALUE_REF_HINT.into(),
++            context: "atexit".into(),
++            site_line: 2,
++            site_byte: 20,
++            ..Default::default()
++        });
++        let out = link_ffi(&g, &[facts], 5);
++        let sites: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
++        assert_eq!(sites, vec![10], "{:?}", out.edges);
++    }
++
+     #[test]
+     fn pyo3_cross_language_edge() {
+         let g = mk_graph();
 diff --git a/crates/cgg-resolve/src/frameworks/mod.rs b/crates/cgg-resolve/src/frameworks/mod.rs
-index cd4dac5..a4f3e8b 100644
+index cd4dac5..f31999e 100644
 --- a/crates/cgg-resolve/src/frameworks/mod.rs
 +++ b/crates/cgg-resolve/src/frameworks/mod.rs
 @@ -147,6 +147,14 @@ pub fn detect(
@@ -1116,7 +1178,37 @@ index cd4dac5..a4f3e8b 100644
      fn by_owner_method(
          &self,
          owner: Option<&str>,
-@@ -2354,4 +2701,169 @@ mod tests {
+@@ -2225,6 +2572,29 @@ mod tests {
+         assert_eq!(out.entries[0].shape, EntryShape::BaseType);
+     }
+ 
++    // A service provider's `configure(ServiceRegistration)` carries no
++    // annotation; the contract it implements is the evidence. The same
++    // name on a class outside the contract stays reportable.
++    #[test]
++    fn a_service_provider_contract_roots_configure_only() {
++        let mut hook = node(0, "g.ScopeServices.configure", "configure", "java");
++        hook.start_byte = 100;
++        let mut other = node(1, "g.Plain.configure", "configure", "java");
++        other.start_byte = 300;
++        let g = graph_with(vec![hook, other]);
++        let mut f =
++            facts_with_import("java", "S.java", "org.gradle.internal.service.Provides");
++        f.definitions.push(DefRecord {
++            simple_name: "configure".into(),
++            qualified_name: "g.ScopeServices.configure".into(),
++            start_byte: 100,
++            base_types: vec!["ServiceRegistrationProvider".into()],
++            ..Default::default()
++        });
++        let out = detect(&g, &[f], &[]);
++        assert_eq!(rooted(&out), vec!["g.ScopeServices.configure".to_string()]);
++    }
++
+     #[test]
+     fn a_cyclic_base_chain_terminates() {
+         let mut map: HashMap<String, Vec<String>> = HashMap::new();
+@@ -2354,4 +2724,169 @@ mod tests {
              out.entries
          );
      }
@@ -1286,3 +1378,93 @@ index cd4dac5..a4f3e8b 100644
 +        );
 +    }
  }
+diff --git a/scripts/benchmark.sh b/scripts/benchmark.sh
+index 6a66368..61dfac8 100755
+--- a/scripts/benchmark.sh
++++ b/scripts/benchmark.sh
+@@ -144,9 +144,9 @@ APPS=(
+     "app-immich-nestjs|https://github.com/immich-app/immich.git|android-broadcastreceiver,android-worker,bullmq,cocoa-delegate,compose,express,fastapi,nestjs,node-event-emitter,py-context-manager,torch,uikit-appdelegate,worker-threads,~android-activity,~android-application,~java-closeable,~nestjs-schedule,~py-argparse,~py-signal,~py-threading,~py-unittest,~pydantic,~react,~uikit-lifecycle"
+     "app-calcom-nextjs|https://github.com/calcom/cal.com.git|bullmq,express,nestjs,node-event-emitter,react,wordpress,worker-threads"
+     "app-spring-mall|https://github.com/macrozheng/mall.git|junit,servlet,spring,spring-jobs,spring-messaging,~java-closeable,~java-concurrent"
+-    "app-thingsboard-concurrent|https://github.com/thingsboard/thingsboard.git|angular,angular-host,angular-router,express,hibernate-listeners,java-closeable,java-concurrent,junit,servlet,spring,spring-jobs,~aws-lambda,~jpa-lifecycle"
++    "app-thingsboard-concurrent|https://github.com/thingsboard/thingsboard.git|angular,angular-host,angular-router,express,hibernate-listeners,java-closeable,java-concurrent,junit,servlet,spring,spring-jobs,~aws-lambda,~jpa-lifecycle,jsr250-lifecycle,spring-context,testng,jackson"
+     "app-akka-samples|https://github.com/akka/akka-samples.git|akka,junit,~java-closeable,~java-concurrent"
+-    "app-druid-jaxrs|https://github.com/apache/druid.git|jakarta-rs,java-closeable,java-concurrent,junit,react,servlet,~py-argparse"
++    "app-druid-jaxrs|https://github.com/apache/druid.git|jakarta-rs,java-closeable,java-concurrent,junit,react,servlet,~py-argparse,guice,jackson,junit-sources"
+     "app-micronaut-graalapp|https://github.com/micronaut-guides/micronaut-creating-first-graal-app.git|junit,micronaut,~java-closeable"
+     "app-gin-photoprism|https://github.com/photoprism/photoprism.git|chi,gin,go-encoding,gorilla-mux,net-http,robfig-cron"
+     "app-memos-echo|https://github.com/usememos/memos.git|echo,net-http,react,~go-encoding"
+@@ -155,7 +155,7 @@ APPS=(
+     "app-temporal-samples|https://github.com/temporalio/samples-go.git|net-http,temporal,~go-encoding"
+     "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,csharp-disposable,dotnet-hosting,ef-core,mstest,mvvm-toolkit,~blazor-lifecycle"
+     "app-masstransit-sample|https://github.com/MassTransit/Sample-Twitch.git|aspnet-mvc,dotnet-hosting,masstransit,~aspnet-minimal,~csharp-disposable"
+-    "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|angular,angular-router,aspnet-mvc,csharp-disposable,ef-core,quartz,signalr,~angular-host,~aspnet-minimal,~dotnet-hosting"
++    "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|angular,angular-router,aspnet-mvc,csharp-disposable,ef-core,quartz,signalr,~angular-host,~aspnet-minimal,~dotnet-hosting,nunit-runner"
+     "app-axum-cratesio|https://github.com/rust-lang/crates.io.git|axum,rust-std-traits,~py-argparse"
+     "app-lemmy-actix|https://github.com/LemmyNet/lemmy.git|actix-web,rust-std-traits"
+     "app-actix-examples|https://github.com/actix/examples.git|actix-actor,actix-web,rust-std-traits,~py-argparse,~py-context-manager,~py-signal"
+@@ -167,10 +167,10 @@ APPS=(
+     "app-symfony-demo|https://github.com/symfony/demo.git|phpunit,symfony"
+     "app-wordpress|https://github.com/WordPress/WordPress.git|wordpress"
+     "app-codeigniter-starter|https://github.com/codeigniter4/appstarter.git|codeigniter"
+-    "app-cuda-samples|https://github.com/NVIDIA/cuda-samples.git|cuda,~py-argparse,~py-context-manager,~py-threading,~torch"
++    "app-cuda-samples|https://github.com/NVIDIA/cuda-samples.git|cuda,~py-argparse,~py-context-manager,~py-threading,~torch,cpp-callbacks"
+     "solidity-openzeppelin|https://github.com/OpenZeppelin/openzeppelin-contracts.git|solidity-public"
+     "app-pydantic-core|https://github.com/pydantic/pydantic-core.git|ffi-export,py-unittest,pydantic,rust-std-traits"
+-    "app-nextcloud-android|https://github.com/nextcloud/android.git|android-activity,android-application,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,android-service-bind,android-service-start,android-worker,compose,java-concurrent,junit,~java-closeable,~py-argparse"
++    "app-nextcloud-android|https://github.com/nextcloud/android.git|android-activity,android-application,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,android-service-bind,android-service-start,android-worker,compose,java-concurrent,junit,~java-closeable,~py-argparse,dagger,eventbus,jsr330-inject"
+     "app-plausible-phoenix|https://github.com/plausible/analytics.git|express,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug,react,~phoenix-channel"
+     "app-hono-examples|https://github.com/honojs/examples.git|hono,~cloudflare-workers,~react"
+     "app-unity-gamekit|https://github.com/Unity-Technologies/EndlessRunnerSampleGame.git|csharp-disposable,unity"
+@@ -203,19 +203,19 @@ APPS=(
+     "app-avalonia-samples|https://github.com/AvaloniaUI/Avalonia.Samples.git|avalonia,csharp-disposable,mvvm-toolkit,~avalonia-xaml,~csharp-runtime,~fsharp-entrypoint,~nunit,~xunit"
+     "app-monogame-samples|https://github.com/MonoGame/MonoGame.Samples.git|csharp-disposable,monogame,~csharp-runtime"
+     "app-godot-demos|https://github.com/godotengine/godot-demo-projects.git|godot,~csharp-disposable,~csharp-runtime,~godot-signal"
+-    "app-jabref-javafx|https://github.com/JabRef/jabref.git|jakarta-rs,java-closeable,java-concurrent,javafx,junit,swing,~py-argparse,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~nix"
++    "app-jabref-javafx|https://github.com/JabRef/jabref.git|jakarta-rs,java-closeable,java-concurrent,javafx,junit,swing,~py-argparse,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~nix,junit-sources,eventbus"
+     "app-shuttle-examples|https://github.com/shuttle-hq/shuttle-examples.git|actix-web,axum,rocket,rust-std-traits,salvo,shuttle,~react,~nextjs,~poem,~react-hooks,~rust-runtime,~serde,~warp"
+     "app-blazor-samples|https://github.com/dotnet/blazor-samples.git|aspnet-minimal,aspnet-mvc,blazor-jsinterop,blazor-lifecycle,csharp-disposable,ef-core,signalr,~dotnet-hosting,~react,~blazor,~csharp-runtime,~maui,~react-hooks"
+     "app-orleans-samples|https://github.com/dotnet/samples.git|android-activity,aspnet-mvc,csharp-disposable,dotnet-hosting,mstest,orleans,uikit-appdelegate,uikit-lifecycle,~aspnet-minimal,~azure-functions,~blazor-lifecycle,~cocoa-delegate,~signalr,~blazor,~c-runtime,~cpp-runtime,~csharp-runtime,~fsharp-entrypoint,~fsharp-nunit,~nunit,~objc-main,~objc-selector,~wcf,~wpf-winforms,~xunit"
+     "app-rn-expensify|https://github.com/Expensify/App.git|android-broadcastreceiver,android-jobservice,android-service-bind,android-service-start,react-native,uikit-appdelegate,uikit-lifecycle,~android-activity,~android-application,~android-service,~cocoa-delegate,~java-closeable,~java-concurrent,~react,~bun-serve,~java-runtime,~jest,~kotlin-runtime,~objc-main,~objc-selector,~react-hooks,~swiftui"
+     "app-serverless-examples|https://github.com/serverless/examples.git|aws-lambda,aws-lambda-go,express,flask,lambda-runtime,mediatr,nestjs,node-event-emitter,sinatra,~csharp-disposable,~go-encoding,~java-closeable,~net-http,~apollo-server,~csharp-runtime,~go-runtime,~go-testing,~java-runtime,~playwright,~serde,~xunit"
+-    "app-storm-starter|https://github.com/apache/storm.git|express,jakarta-rs,java-closeable,java-concurrent,junit,py-unittest,servlet,storm,~py-argparse,~py-context-manager,~c-runtime,~clojure-test,~java-runtime,~java-serviceloader,~junit-params"
++    "app-storm-starter|https://github.com/apache/storm.git|express,jakarta-rs,java-closeable,java-concurrent,junit,py-unittest,servlet,storm,~py-argparse,~py-context-manager,~c-runtime,~clojure-test,~java-runtime,~java-serviceloader,~junit-params,java-serialization"
+     "app-symfony-messenger|https://github.com/symfony/symfony.git|phpunit,symfony,symfony-messenger,~wordpress"
+-    "app-wordpress-android|https://github.com/wordpress-mobile/WordPress-Android.git|android-broadcastreceiver,android-fragment,android-jobservice,android-service,android-service-bind,android-service-start,android-worker,compose,junit,~android-activity,~android-application,~android-contentprovider,~java-closeable,~java-concurrent,~android-compose,~java-runtime,~junit-params,~kotlin-runtime,~kotlinx-coroutines"
++    "app-wordpress-android|https://github.com/wordpress-mobile/WordPress-Android.git|android-broadcastreceiver,android-fragment,android-jobservice,android-service,android-service-bind,android-service-start,android-worker,compose,junit,~android-activity,~android-application,~android-contentprovider,~java-closeable,~java-concurrent,~android-compose,~java-runtime,~junit-params,~kotlin-runtime,~kotlinx-coroutines,dagger,eventbus,jsr330-inject"
+     "csharp-mediatr|https://github.com/jbogard/MediatR.git|mediatr,~csharp-disposable,~csharp-runtime,~xunit"
+     "elixir-phoenix|https://github.com/phoenixframework/phoenix.git|mix-task,otp,otp-application,phoenix,phoenix-channel,phoenix-socket,plug,plug-router,~jest"
+     "erlang-otp|https://github.com/erlang/otp.git|erlang-gen-server,~java-closeable,~c-runtime,~common-test,~cpp-runtime,~erlang-application,~erlang-otp-lifecycle,~java-runtime"
+-    "groovy-gradle|https://github.com/gradle/gradle.git|android-activity,compose,gradle-plugin,java-closeable,java-concurrent,junit,servlet,~android-fragment,~spring,~android-compose,~c-runtime,~cpp-runtime,~gradle-task,~gtest,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~kotlinx-coroutines,~play-mvc,~scalatest,~spock,~xctest"
++    "groovy-gradle|https://github.com/gradle/gradle.git|android-activity,compose,gradle-plugin,java-closeable,java-concurrent,junit,servlet,~android-fragment,~spring,~android-compose,~c-runtime,~cpp-runtime,~gradle-task,~gtest,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~kotlinx-coroutines,~play-mvc,~scalatest,~spock,~xctest,gradle-model-rules,java-serialization,testng,gradle-services"
+     "haskell-hspec|https://github.com/hspec/hspec.git|hspec,~haskell-main"
+     "haskell-pandoc|https://github.com/jgm/pandoc.git|tasty,~haskell-main,~nix,~servant,~wai"
+     "js-polka|https://github.com/lukeed/polka.git|express,polka,react,~apollo-server,~fastify,~nextjs,~nuxt,~react-hooks,~socket-io"
+@@ -348,15 +348,15 @@ APPS=(
+     "asyncapi-spec|https://github.com/asyncapi/spec.git|"
+     "bash-acme|https://github.com/acmesh-official/acme.sh.git|"
+     "c-jq|https://github.com/jqlang/jq.git|"
+-    "c-redis|https://github.com/redis/redis.git|py-threading,~py-argparse,~py-signal"
++    "c-redis|https://github.com/redis/redis.git|py-threading,~py-argparse,~py-signal,c-callbacks"
+     "clojure-compojure|https://github.com/weavejester/compojure.git|compojure"
+     "clojure-ring|https://github.com/ring-clojure/ring.git|"
+     "cloudflare-worker-examples|https://github.com/cloudflare/worker-template.git|"
+     "cmake-kitware|https://github.com/Kitware/CMake.git|android-activity,cocoa-delegate,cuda,ffi-export,py-threading,py-unittest,uikit-appdelegate,uikit-lifecycle,~csharp-disposable,~java-closeable,~py-argparse,~rust-std-traits"
+     "cpp-nlohmann-json|https://github.com/nlohmann/json.git|py-threading,~py-argparse,~py-context-manager"
+     "cpp-spdlog|https://github.com/gabime/spdlog.git|"
+-    "csharp-newtonsoft|https://github.com/JamesNK/Newtonsoft.Json.git|csharp-disposable"
+-    "csharp-serilog|https://github.com/serilog/serilog.git|csharp-disposable"
++    "csharp-newtonsoft|https://github.com/JamesNK/Newtonsoft.Json.git|csharp-disposable,dotnet-serialization,nunit-runner"
++    "csharp-serilog|https://github.com/serilog/serilog.git|csharp-disposable,xunit-data"
+     "dart-flame|https://github.com/flame-engine/flame.git|~py-signal"
+     "dart-flutter|https://github.com/flutter/flutter.git|android-activity,android-fragment,cocoa-delegate,compose,java-closeable,java-concurrent,junit,py-unittest,uikit-appdelegate,uikit-lifecycle,~android-application,~android-broadcastreceiver,~android-contentprovider,~android-service,~android-service-bind,~android-service-start,~py-argparse,~py-signal,~py-threading"
+     "fortran-stdlib|https://github.com/fortran-lang/stdlib.git|~py-argparse"
+@@ -369,7 +369,7 @@ APPS=(
+     "hcl-terraform-aws|https://github.com/hashicorp/terraform-provider-aws.git|go-encoding,~net-http,~py-argparse"
+     "hcl-vpc|https://github.com/terraform-aws-modules/terraform-aws-vpc.git|"
+     "java-gson|https://github.com/google/gson.git|java-closeable,junit,~java-concurrent"
+-    "java-okhttp|https://github.com/square/okhttp.git|java-closeable,junit,~android-activity,~android-application,~java-concurrent"
++    "java-okhttp|https://github.com/square/okhttp.git|java-closeable,junit,~android-activity,~android-application,~java-concurrent,moshi"
+     "java-spring-batch|https://github.com/spring-projects/spring-batch.git|java-concurrent,junit,spring-batch,spring-jobs,~java-closeable,~jpa-lifecycle,~spring-messaging"
+     "js-express|https://github.com/expressjs/express.git|"
+     "js-lodash|https://github.com/lodash/lodash.git|"

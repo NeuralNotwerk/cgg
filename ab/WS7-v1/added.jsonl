@@ -1,0 +1,1 @@
+{"repo": "zig-zig", "lang": "c", "src": "___start", "dst": "_fini", "dst_path": "/storage/cgg-test_repos/zig-zig/lib/libc/musl/libc.S", "site_path": "/storage/cgg-test_repos/zig-zig/lib/libc/netbsd/lib/csu/common/crt0-common.c", "site_line": 346, "via": "ffi", "confidence": "medium", "resolver": "ffi-linker", "line": "atexit(_fini);"}
