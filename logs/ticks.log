@@ -27,3 +27,4 @@
 2026-10-14T20:25:28Z tick: WS13 perf phase
 2026-10-14T20:26:05Z killed 7 stale self-matching waiter loops (WS7/8/11/12)
 2026-10-15T00:08:48Z WS13 committed c67aed5+6b9a7ab pushed; all findings covered; WS15 zig dead-code timeout opened
+2026-10-15T00:09:34Z tick: WS15 running
