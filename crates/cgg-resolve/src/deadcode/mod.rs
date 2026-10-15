@@ -687,6 +687,16 @@ pub fn analyze(
     all_roots.extend_from_slice(&root_set.test);
     all_roots.sort_unstable();
     let live_any = adjacency.reachable_from(&all_roots);
+    // Root coverage is measured from production roots and the tests the
+    // built-in rules recognise — not from every test a framework harness
+    // enters (see `RootSet::coverage_test`).
+    let live_cov = {
+        let mut seeds = root_set.production.clone();
+        seeds.extend(&root_set.coverage_test);
+        seeds.sort_unstable();
+        seeds.dedup();
+        adjacency.reachable_from(&seeds)
+    };
 
     // --- Per-language root coverage ---------------------------------------
     // Whole-program categories are only meaningful when a decent share
@@ -702,7 +712,7 @@ pub fn analyze(
             continue;
         }
         *lang_callables.entry(nd.language.clone()).or_insert(0) += 1;
-        if live_any[i as usize] {
+        if live_cov[i as usize] {
             *lang_reached.entry(nd.language.clone()).or_insert(0) += 1;
         }
     }

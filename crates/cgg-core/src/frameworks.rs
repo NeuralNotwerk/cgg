@@ -44,6 +44,11 @@ const SEEN_DETAIL_LIMIT: usize = 6;
 /// `<external>` and `<stdlib>`.
 pub const FRAMEWORK_ENTRY_SENTINEL: &str = "<framework-entry>";
 
+/// Prefix of a root-mark label (`{framework}:{shape}`) whose rule is a
+/// test harness: the dead-code pass treats it as a test root, so what
+/// only it reaches is "only used by tests", never production-live.
+pub const TEST_ROOT_LABEL_PREFIX: &str = "test:";
+
 /// The mandatory preamble wherever entry nodes are reported.
 ///
 /// Held as a constant in `cgg-core` — rather than composed by whichever
@@ -110,7 +115,7 @@ pub enum TrustKind {
     /// The conservative default: no trust boundary is asserted.
     #[default]
     Lifecycle,
-    /// Test harness entry.
+    /// Test, benchmark or fuzz harness entry. One node per harness.
     Test,
     /// A callable the *language* exposes to anyone, with no framework
     /// involved: a Solidity `public`/`external` contract function.
@@ -122,6 +127,9 @@ pub enum TrustKind {
     /// it `Lifecycle` would assert no boundary at all. Both are wrong in
     /// a way that matters to the person doing the filtering.
     Public,
+    /// A user-interface event wired in markup or an editor menu
+    /// (`Click="OnSave"` in XAML, Unity `[MenuItem]`).
+    Ui,
 }
 
 impl TrustKind {
@@ -137,6 +145,7 @@ impl TrustKind {
             TrustKind::Lifecycle => "lifecycle",
             TrustKind::Test => "test",
             TrustKind::Public => "public",
+            TrustKind::Ui => "ui",
         }
     }
 
@@ -150,6 +159,7 @@ impl TrustKind {
             "lifecycle" => TrustKind::Lifecycle,
             "test" => TrustKind::Test,
             "public" => TrustKind::Public,
+            "ui" => TrustKind::Ui,
             _ => return None,
         })
     }
@@ -306,6 +316,8 @@ impl FrameworkRule {
             || !rules::self_module_markers_for(&self.id, &self.language).is_empty()
             || !rules::member_sources_for(&self.id, &self.language).is_empty()
             || !rules::signature_methods_for(&self.id, &self.language).is_empty()
+            || !rules::container_attributes_for(&self.id, &self.language).is_empty()
+            || !rules::markup_kinds_for(&self.id, &self.language).is_empty()
             || !self.observer_types.is_empty()
     }
 }
@@ -340,6 +352,17 @@ impl FrameworkEntry {
     /// '<framework-entry>::network::'` selects the whole attack surface
     /// across every framework at once.
     pub fn node_name(&self) -> String {
+        // A test, benchmark or fuzz harness is ONE origin: the runner.
+        // A node per test case would put thousands of single-edge nodes
+        // into a graph whose reader wants to know "the harness calls
+        // these", so every case of one harness hangs off one node.
+        if self.kind == TrustKind::Test {
+            return format!(
+                "{FRAMEWORK_ENTRY_SENTINEL}::{}::{}",
+                self.kind.slug(),
+                self.framework
+            );
+        }
         // With a route, the route *is* the identity and is already
         // unique. Without one, the handler's qualified name is the only
         // identity available — and it has to be the *whole* name.
@@ -669,6 +692,21 @@ mod tests {
             site_line: 3,
             node: true,
         }
+    }
+
+    // WS18: a harness is one origin. Two test cases of one harness share
+    // a node whatever their route; a non-test entry keeps its own.
+    #[test]
+    fn test_harness_entries_share_one_node_per_harness() {
+        let mut a = entry("", TrustKind::Test);
+        a.framework = "cargo-test".into();
+        let mut b = entry("it(\"works\")", TrustKind::Test);
+        b.framework = "cargo-test".into();
+        b.target_name = "other::case".into();
+        assert_eq!(a.node_name(), "<framework-entry>::test::cargo-test");
+        assert_eq!(a.node_name(), b.node_name());
+        let c = entry("", TrustKind::Queue);
+        assert_ne!(c.node_name(), "<framework-entry>::queue::flask");
     }
 
     #[test]

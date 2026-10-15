@@ -82,6 +82,18 @@ impl LanguagePlugin for CSharpPlugin {
         if ctx.deadcode_signals {
             facts.dyn_uses = super::dynuse::extract(tree, source, "csharp");
         }
+        // Handlers this file's sibling markup (`X.xaml`, `X.razor`,
+        // `X.tscn`) binds to an event: entries, never edges.
+        let handlers: Vec<super::markup::Handler<'_>> = facts
+            .definitions
+            .iter()
+            .map(|d| super::markup::Handler {
+                name: &d.simple_name,
+                signature: &d.signature_hint,
+            })
+            .collect();
+        let bindings = super::markup::bindings(path, &handlers);
+        facts.markup_bindings = bindings;
         facts
     }
 }

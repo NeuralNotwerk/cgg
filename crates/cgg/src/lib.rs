@@ -1237,7 +1237,17 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .entries
         .iter()
         .filter(|e| !e.node)
-        .map(|e| (format!("{}:{}", e.framework, e.shape.slug()), e.target))
+        .map(|e| {
+            let test = if e.kind == cgg_core::frameworks::TrustKind::Test {
+                cgg_core::frameworks::TEST_ROOT_LABEL_PREFIX
+            } else {
+                ""
+            };
+            (
+                format!("{test}{}:{}", e.framework, e.shape.slug()),
+                e.target,
+            )
+        })
         .collect();
     if !framework_out.entries.is_empty() {
         let _s = cgg_core::profile::span("post::entry-nodes");

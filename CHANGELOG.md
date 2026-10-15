@@ -93,6 +93,70 @@ otherwise change the default graph.
 - *Performance (WS17):* paired runs on 11 repositories (median of 5),
   none ≥1 s; total 36.9 s → 37.4 s (+1.4%, load-noisy).
 
+### Added
+
+- **Test, benchmark and fuzz harnesses, and framework-invoked functions
+  without a web route, are entries (WS18).** What a harness or framework
+  calls now hangs off a `<framework-entry>` origin node with an `entry`
+  edge, like a web route, instead of reading as dead code:
+  - **One node per harness**, not per test: `<framework-entry>::test::cargo-test`,
+    `…::test::pytest`, `…::test::junit`, `…::test::go-testing`, `xunit`,
+    `nunit-runner`, `mstest`, `testng`, `py-unittest`, `phpunit`,
+    `minitest`, `xctest`, `eunit`, `common-test`, `hspec`, `tasty`,
+    `fsharp-nunit`, and the new `cargo-bench`, `jmh`, `caliper`,
+    `benchmarkdotnet`, `cucumber`. Every rule of kind `test` now mints its
+    node (they only marked roots before) and the dead-code pass treats the
+    node as a *test* root, so code only tests reach stays in the
+    `only-used-by-tests` bucket.
+  - **Rust test attributes are read by their last path segment** and the
+    `*_test` macro convention: `#[ntex::test]`, `#[actix_web::test]`,
+    `#[googletest::test]`, `#[crate::rt_test]`, `#[wasm_bindgen_test]` were
+    matched only as whole paths (315 of the corpus's 1,292 high dead
+    findings). A `::`-qualified attribute in the built-in root tables is
+    likewise read by its last segment (`#[tauri::command]`); a
+    `.`-qualified decorator (`@cache.get`) is not.
+  - **Naming conventions with a harness gate**: `Test*`/`Benchmark*`/
+    `Fuzz*`/`Example*` (Go), `test*` + `setUp` family (unittest, PHPUnit,
+    XCTest, JUnit 3), `test_*` (Minitest), `*_test`/`*_test_` (EUnit),
+    Common Test callbacks. Without a base class the name applies only in
+    a test file or a file that imports the harness.
+  - **Container attributes**: every method of a `#[pymethods]` /
+    `#[uniffi::export]` impl (FFI node), of an async-graphql `#[Object]`
+    or juniper `#[graphql_object]` impl (one per field), and an rmcp
+    `#[tool_handler]` impl.
+  - **New framework rules**: Tauri `#[tauri::command]`, RTIC
+    `#[init]`/`#[idle]`/`#[task]`, rmcp `#[tool]`, marimo `@app.cell`,
+    SQLAlchemy `@event.listens_for` (keyed by event), Unity editor
+    attributes (`[MenuItem]` keyed by menu path, `[ContextMenu]`,
+    `[DrawGizmo]`, …), Godot `[Rpc]`, .NET exports (`[JSExport]`,
+    `[UnmanagedCallersOnly]`, `[DllExport]`, COM register functions);
+    registrars for ntex (`.to(h)`, `.service(h)`), salvo (`.get(h)`, …)
+    and `atexit.register`. Root-only (no node, in-process wiring): Kotlin
+    Dagger/Guice/EventBus, Kotlin and Groovy Gradle task annotations, JPA
+    mapping annotations on getters.
+  - **Markup bindings** (new `ui` entry kind): a handler named in a C#
+    code-behind's sibling markup — `Click="OnSave"` in `X.xaml`/`X.axaml`
+    (handler must have the `(sender, …Args)` shape), `@onclick="Save"` in
+    `X.razor`, a Godot scene's `[connection signal=… method=…]` in the
+    same-stem `.tscn` — enters through one node per event
+    (`<framework-entry>::ui::xaml::Click`).
+  - PHP stacked attributes (`#[Group('x')] #[Test]`) are recorded one per
+    group; they were read as one attribute keyed by the first.
+  - Members of a Python/PHP/Ruby test class other than its cases are test
+    roots (they were production roots); root coverage counts only the
+    tests the built-in conventions recognise, so harness reach does not
+    lift a language past the coverage gate on its own.
+
+  *Compatibility:* call edges between real callables are identical across
+  the corpus (283 repositories). Entry edges grow 30,857 → 272,162 and
+  entry nodes 21,401 → 22,367; mermaid output grows up to ~9% on
+  test-heavy trees (neurosymbolic_kb +5.6%, 571 KB → 603 KB). Dead code:
+  7,603 findings leave the report (616 high: Rust 468, C# 84, Python 60,
+  Java 4); 2,378 appear, 2,365 of them C# in one repository whose
+  production root coverage rose from 24% to 25% through the new XAML/Razor
+  entries, so its previously withheld findings are reported; none moves up
+  in confidence.
+
 ### Fixed
 
 - **Pre-0.11.0 audit fixes (WS16).** Each was found by auditing the

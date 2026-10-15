@@ -602,6 +602,18 @@ pub struct FileFacts {
     /// level).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub type_spans: Vec<TypeSpan>,
+    /// Containers whose own attribute exposes their members to a
+    /// framework (`#[pymethods] impl`, `#[Object] impl`): the span of the
+    /// container and its attributes as written. Read only by framework
+    /// detection; never a source of call edges.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attributed_containers: Vec<AttributedContainer>,
+    /// Handlers this file's markup wires to an event: `Click="OnSave"` in
+    /// the sibling `X.xaml` of `X.xaml.cs`, `@onclick="Save"` in `X.razor`,
+    /// a Godot scene's `[connection … method="OnTimeout"]`. Each names a
+    /// method this file defines. Read only by framework detection.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub markup_bindings: Vec<MarkupBinding>,
     /// Names whose type is written and whose scope is narrower than any
     /// callable: a closure's typed parameter (`(Foo x) => …`, `(x: Foo)
     /// => …`) or a typed pattern (`case x: Foo => …`), each with the span
@@ -684,6 +696,27 @@ pub struct ScopedType {
     pub type_name: String,
     pub start_byte: u32,
     pub end_byte: u32,
+}
+
+/// One markup event binding (see [`FileFacts::markup_bindings`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MarkupBinding {
+    /// `xaml`, `razor` or `tscn`.
+    pub kind: String,
+    /// The event or signal as written (`Click`, `@onclick`, `timeout`).
+    pub event: String,
+    /// The handler method's simple name.
+    pub handler: String,
+    /// 1-based line in the markup file.
+    pub line: u32,
+}
+
+/// A container carrying attributes (see [`FileFacts::attributed_containers`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AttributedContainer {
+    pub start_byte: u32,
+    pub end_byte: u32,
+    pub attributes: Vec<String>,
 }
 
 /// A container type's name and body span (see [`FileFacts::type_spans`]).
@@ -856,6 +889,8 @@ impl FileFacts {
             packages: Vec::new(),
             locals: Vec::new(),
             type_spans: Vec::new(),
+            attributed_containers: Vec::new(),
+            markup_bindings: Vec::new(),
             scoped_types: Vec::new(),
             closure_args: Vec::new(),
             fn_macros: Vec::new(),

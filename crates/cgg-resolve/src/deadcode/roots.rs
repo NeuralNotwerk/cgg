@@ -201,6 +201,10 @@ const FRAMEWORK_ATTRS: &[&str] = &[
     "actix_web::main",
     "command",
     "event_handler",
+    // Rust runtime hooks the compiler wires in (`#[panic_handler]`, also
+    // re-exported as `#[defmt::panic_handler]`).
+    "panic_handler",
+    "alloc_error_handler",
 ];
 
 /// Attribute markers for test cases and harness hooks.
@@ -229,6 +233,13 @@ pub(crate) struct RootSet {
     pub(crate) production: Vec<u32>,
     /// Node indices of test roots.
     pub(crate) test: Vec<u32>,
+    /// Node indices of the tests the built-in name/attribute rules
+    /// recognise, whichever rule rooted them. Root coverage is measured
+    /// from production roots plus these: a framework harness (WS18) roots
+    /// far more test code, and letting that reach lift a language over the
+    /// coverage threshold reported findings from languages whose
+    /// production entry points cgg cannot see.
+    pub(crate) coverage_test: Vec<u32>,
     /// Which rules fired, per language, for the capability table.
     pub(crate) rules_by_language: HashMap<String, Vec<String>>,
 }
@@ -348,6 +359,34 @@ fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
     None
 }
 
+/// [`has_attr`], also reading a `::`-qualified attribute by its last
+/// segment. In Rust the path names the proc-macro itself:
+/// `#[ntex::test]` IS a test attribute and `#[tauri::command]` a command,
+/// exactly as `#[tokio::test]` is. A `.`-qualified key is a method on
+/// some object (`@cache.get`) and keeps the exact comparison. With
+/// `suffix`, a last segment ending in it also matches — Rust's `*_test`
+/// attribute macros (`#[wasm_bindgen_test]`, `#[crate::rt_test]`).
+fn has_path_attr(
+    attrs: &[String],
+    wanted: &[&str],
+    suffix: Option<&str>,
+) -> Option<String> {
+    if let Some(a) = has_attr(attrs, wanted) {
+        return Some(a);
+    }
+    for a in attrs {
+        let key = attribute_key(a);
+        let last = key.rsplit("::").next().unwrap_or(key);
+        let qualified = last.len() < key.len();
+        if (qualified && wanted.contains(&last))
+            || suffix.is_some_and(|s| last.len() > s.len() && last.ends_with(s))
+        {
+            return Some(a.trim().to_string());
+        }
+    }
+    None
+}
+
 /// Every type name a Rust function's return type mentions outside a
 /// [`SELF_CONVERTING_WRAPPERS`] generic: `-> Result<Json<A>, AppError>`
 /// yields `Result`, `AppError` — never `A`.
@@ -427,13 +466,55 @@ pub(crate) fn discover(
     // synthetic node is a *sink* (`<external>`, `<stdlib>`); marking one
     // of those live would say nothing.
     for (id, node) in &graph.callables {
-        if node.framework_entry.is_some() {
+        if let Some(kind) = node.framework_entry {
+            // A test harness's node proves test liveness only: code the
+            // tests alone reach is "only used by tests", not production.
+            let root_kind = if kind == cgg_core::frameworks::TrustKind::Test {
+                RootKind::TestEntry
+            } else {
+                RootKind::FrameworkCallback
+            };
             set.push(
                 graph,
                 *id,
-                RootKind::FrameworkCallback,
+                root_kind,
                 "framework:entry-node",
                 format!("synthesized entry node `{}`", node.qualified_name),
+                &mut seen,
+            );
+        }
+    }
+    // A test case is the harness's entry, not code "only used by tests":
+    // its own finding would say the test is unused except by tests. So
+    // what a test-harness node points at is a test root itself, which
+    // keeps the helpers only those cases reach in the test-only bucket.
+    let harness: HashSet<CallableId> = graph
+        .callables
+        .iter()
+        .filter(|(_, n)| n.framework_entry == Some(cgg_core::frameworks::TrustKind::Test))
+        .map(|(id, _)| *id)
+        .collect();
+    if !harness.is_empty() {
+        for e in graph.edges.iter().filter(|e| harness.contains(&e.src)) {
+            let Some(src) = graph.callables.get(&e.src) else {
+                continue;
+            };
+            // Test classes in these languages were production roots
+            // before WS18 (every member), so their cases keep counting
+            // toward root coverage exactly as before.
+            if graph.callables.get(&e.dst).is_some_and(|d| {
+                cgg_core::frameworks::rules::TEST_CLASS_MEMBERS_ARE_ROOTS
+                    .contains(&d.language.as_str())
+            }) && let Some(pos) = graph.callables.get_index_of(&e.dst)
+            {
+                set.coverage_test.push(pos as u32);
+            }
+            set.push(
+                graph,
+                e.dst,
+                RootKind::TestEntry,
+                "framework:test-harness",
+                format!("run by `{}`", src.qualified_name),
                 &mut seen,
             );
         }
@@ -447,10 +528,21 @@ pub(crate) fn discover(
     // every private helper it calls are reported — the cascade that
     // doubles the cost of each missed entry point.
     for (label, id) in framework_matches {
+        let kind = if label.starts_with(cgg_core::frameworks::TEST_ROOT_LABEL_PREFIX) {
+            // A test-class member mark (see `TEST_CLASS_MEMBERS_ARE_ROOTS`):
+            // these were production roots before WS18 and still count
+            // toward root coverage.
+            if let Some(pos) = graph.callables.get_index_of(id) {
+                set.coverage_test.push(pos as u32);
+            }
+            RootKind::TestEntry
+        } else {
+            RootKind::FrameworkCallback
+        };
         set.push(
             graph,
             *id,
-            RootKind::FrameworkCallback,
+            kind,
             "framework:rule",
             format!("invoked by framework rule `{label}`"),
             &mut seen,
@@ -622,6 +714,13 @@ pub(crate) fn discover(
             continue;
         }
         let lang = node.language.as_str();
+        let test_suffix = (lang == "rust").then_some("_test");
+        if (has_path_attr(&node.attributes, TEST_ATTRS, test_suffix).is_some()
+            || is_test_name(lang, &node.simple_name))
+            && let Some(pos) = graph.callables.get_index_of(id)
+        {
+            set.coverage_test.push(pos as u32);
+        }
 
         // KV event bindings are invoked by the Kivy runtime, not by
         // anything in the analyzed Python. Treat every kivy callable as
@@ -680,7 +779,7 @@ pub(crate) fn discover(
         }
 
         // Test cases and harness hooks.
-        if let Some(a) = has_attr(&node.attributes, TEST_ATTRS) {
+        if let Some(a) = has_path_attr(&node.attributes, TEST_ATTRS, test_suffix) {
             set.push(
                 graph,
                 *id,
@@ -704,7 +803,7 @@ pub(crate) fn discover(
         }
 
         // Framework callbacks.
-        if let Some(a) = has_attr(&node.attributes, FRAMEWORK_ATTRS) {
+        if let Some(a) = has_path_attr(&node.attributes, FRAMEWORK_ATTRS, None) {
             set.push(
                 graph,
                 *id,
@@ -858,6 +957,7 @@ pub(crate) fn discover(
         .sort_by_cached_key(|a| graph.callables.get_index_of(&a.id));
     set.production.sort_unstable();
     set.test.sort_unstable();
+    set.coverage_test.sort_unstable();
     for v in set.rules_by_language.values_mut() {
         v.sort();
     }
@@ -930,6 +1030,80 @@ mod tests {
         assert_eq!(attribute_key("@app.route('/x')"), "app.route");
         assert_eq!(attribute_key("[Fact]"), "Fact");
         assert_eq!(attribute_key("#[export_name = \"x\"]"), "export_name");
+    }
+
+    // WS18: a `::`-qualified attribute is read by its last segment, and
+    // Rust's `*_test` macros are tests; a `.`-qualified decorator keeps
+    // the exact comparison, so `@cache.get` is not a route.
+    #[test]
+    fn path_qualified_attributes_match_by_last_segment_only_for_paths() {
+        let mut t = node(0, "c::t::a", "a", "rust");
+        t.attributes = vec!["#[ntex::test]".into()];
+        let mut r = node(1, "c::t::b", "b", "rust");
+        r.attributes = vec!["#[crate::rt_test]".into()];
+        let mut cmd = node(2, "c::cmd", "cmd", "rust");
+        cmd.attributes = vec!["#[tauri::command]".into()];
+        let mut cached = node(3, "m.lookup", "lookup", "python");
+        cached.attributes = vec!["@cache.get".into()];
+        let helper = node(4, "c::t::helper_test_data", "helper_test_data", "rust");
+        let set = discover(&graph_with(vec![t, r, cmd, cached, helper]), &[], &[], &[]);
+        let by_id = |i: u32| set.records.iter().find(|x| x.id.as_u32() == i);
+        assert_eq!(by_id(0).map(|x| x.kind), Some(RootKind::TestEntry));
+        assert_eq!(by_id(1).map(|x| x.kind), Some(RootKind::TestEntry));
+        assert_eq!(by_id(2).map(|x| x.kind), Some(RootKind::FrameworkCallback));
+        assert!(by_id(3).is_none(), "{:?}", set.records);
+        assert!(by_id(4).is_none(), "{:?}", set.records);
+    }
+
+    // WS18: what a test-harness entry node points at is a test root, so
+    // a test is never "only used by tests"; a non-test entry's target is
+    // reached through the node and is not a root of its own.
+    #[test]
+    fn a_test_harness_node_roots_its_targets_as_tests() {
+        let mut h = node(
+            0,
+            "<framework-entry>::test::cargo-test",
+            "cargo-test",
+            "rust",
+        );
+        h.synthetic = true;
+        h.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let case = node(1, "c::t::a", "a", "rust");
+        let mut g = graph_with(vec![h, case]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert!(set.production.is_empty(), "{:?}", set.records);
+        let case_root = set.records.iter().find(|r| r.id.as_u32() == 1);
+        assert_eq!(case_root.map(|r| r.kind), Some(RootKind::TestEntry));
+    }
+
+    // Root coverage counts the tests the built-in rules recognise and the
+    // test-class members that were production roots before WS18 — not
+    // every case a framework harness enters.
+    #[test]
+    fn harness_reach_does_not_lift_root_coverage() {
+        let mut h = node(0, "<framework-entry>::test::eunit", "eunit", "erlang");
+        h.synthetic = true;
+        h.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let case = node(1, "m:add_test", "add_test", "erlang");
+        let mut g = graph_with(vec![h, case]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert!(set.coverage_test.is_empty(), "{:?}", set.coverage_test);
+
+        let mut p = node(
+            0,
+            "<framework-entry>::test::py-unittest",
+            "py-unittest",
+            "python",
+        );
+        p.synthetic = true;
+        p.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let m = node(1, "m.T.check_a", "check_a", "python");
+        let mut g = graph_with(vec![p, m]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert_eq!(set.coverage_test, vec![1]);
     }
 
     #[test]

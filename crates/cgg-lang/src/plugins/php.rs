@@ -431,6 +431,20 @@ mod tests {
         )
     }
 
+    // WS18: stacked attribute groups are separate attributes, so
+    // `#[Test]` under `#[Group('x')]` is still seen.
+    #[test]
+    fn stacked_attribute_groups_are_separate_attributes() {
+        let f = extract(
+            "<?php\nclass T { #[Group('dav')]\n #[Test]\n public function it_adds() {} #[Test] public function b() {} }\n",
+        );
+        assert_eq!(
+            f.definitions[0].attributes,
+            vec!["#[Group('dav')]", "#[Test]"]
+        );
+        assert_eq!(f.definitions[1].attributes, vec!["#[Test]"]);
+    }
+
     #[test]
     fn used_traits_are_bases() {
         let f =

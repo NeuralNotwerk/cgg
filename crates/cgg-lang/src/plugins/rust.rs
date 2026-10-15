@@ -550,6 +550,18 @@ impl<'a> Walker<'a> {
                     None => ScopeSegment::InherentImpl(type_name.clone()),
                 };
                 self.scope.push(segment);
+                // `#[pymethods] impl`, `#[Object] impl`: the attribute on
+                // the block is what exposes its members to a framework.
+                let attrs = collect_attributes(node, self.source);
+                if !attrs.is_empty() && !self.expanding {
+                    self.facts.attributed_containers.push(
+                        cgg_core::AttributedContainer {
+                            start_byte: node.start_byte() as u32,
+                            end_byte: node.end_byte() as u32,
+                            attributes: attrs,
+                        },
+                    );
+                }
                 // Stored as written, generics included — the matcher
                 // strips `<…>` itself, and the full form is what a
                 // reader of the audit log needs to see.
@@ -3058,6 +3070,14 @@ fn rust_test_role(attrs: &[String]) -> Option<cgg_core::TestRole> {
     for a in attrs {
         let k = a.trim().trim_start_matches("#[").trim_end_matches(']');
         let k = k.split('(').next().unwrap_or(k).trim();
+        // A test attribute macro is named `test` in its own crate
+        // (`#[tokio::test]`, `#[ntex::test]`, `#[sqlx::test]`) or `*_test`
+        // (`#[wasm_bindgen_test]`, `#[crate::rt_test]`): read the last
+        // path segment, as the `cargo-test` framework rule does.
+        let last = k.rsplit("::").next().unwrap_or(k);
+        if last == "test" || (last.len() > "_test".len() && last.ends_with("_test")) {
+            return Some(cgg_core::TestRole::Case);
+        }
         if matches!(
             k,
             "test"
@@ -3082,6 +3102,37 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS18: path-qualified and `*_test` test attributes are tests; a
+    // `test`-named helper and `#[cfg(test)]` are not.
+    #[test]
+    fn test_attributes_are_read_by_their_last_segment() {
+        let role = |a: &str| rust_test_role(&[a.to_string()]);
+        assert_eq!(role("#[ntex::test]"), Some(cgg_core::TestRole::Case));
+        assert_eq!(role("#[crate::rt_test]"), Some(cgg_core::TestRole::Case));
+        assert_eq!(role("#[wasm_bindgen_test]"), Some(cgg_core::TestRole::Case));
+        assert_eq!(role("#[googletest::test]"), Some(cgg_core::TestRole::Case));
+        assert_eq!(role("#[cfg(test)]"), None);
+        assert_eq!(role("#[_test]"), None);
+        assert_eq!(rust_test_role(&[]), None);
+    }
+
+    #[test]
+    fn an_attributed_impl_block_is_recorded_as_a_container() {
+        let f = extract(
+            "#[pymethods]\nimpl It { fn __next__(&mut self) {} }\nimpl Plain { fn f(&self) {} }",
+        );
+        assert_eq!(
+            f.attributed_containers.len(),
+            1,
+            "{:?}",
+            f.attributed_containers
+        );
+        assert_eq!(
+            f.attributed_containers[0].attributes,
+            vec!["#[pymethods]".to_string()]
+        );
+    }
 
     fn extract(src: &str) -> FileFacts {
         let mut parser = Parser::new();

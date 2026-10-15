@@ -32,7 +32,7 @@ use rayon::prelude::*;
 
 use cgg_core::frameworks::{
     EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
-    SeenFramework, UncoveredLanguage,
+    SeenFramework, TrustKind, UncoveredLanguage,
 };
 use cgg_core::graph::Graph;
 use cgg_core::ids::{CallableId, FileId};
@@ -121,7 +121,7 @@ pub fn detect(
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-methods");
-                match_methods(graph, rule, &mut entries);
+                match_methods(graph, rule, &evidence, &mut entries);
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-registrars");
@@ -155,6 +155,14 @@ pub fn detect(
                 let _s = cgg_core::profile::span("frameworks::match-signatures");
                 match_signature_methods(graph, rule, &mut entries);
             }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-containers");
+                match_container_attributes(graph, facts, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-markup");
+                match_markup_bindings(graph, facts, rule, &mut entries);
+            }
             entries.into_iter()
         })
         .collect();
@@ -174,12 +182,15 @@ struct Detection {
     hits: BTreeMap<(String, String), u32>,
     /// Files per language that cgg analyzed, for the "no rules" line.
     files_by_language: BTreeMap<String, u32>,
+    /// (id, language, file) for every file that itself carries a marker.
+    file_hits: HashSet<(String, String, FileId)>,
 }
 
 impl Detection {
     fn scan(graph: &Graph, facts: &[FileFacts], all: &[FrameworkRule]) -> Self {
         let mut hits: BTreeMap<(String, String), u32> = BTreeMap::new();
         let mut files_by_language: BTreeMap<String, u32> = BTreeMap::new();
+        let mut file_hits: HashSet<(String, String, FileId)> = HashSet::new();
 
         // Index rules by language so each file is compared only against
         // the rules that could possibly apply to it.
@@ -212,6 +223,17 @@ impl Detection {
                 .entry(c.file)
                 .or_default()
                 .extend(c.attributes.iter().map(|a| a.as_str()));
+        }
+
+        // A container's own attribute (`#[pymethods] impl`) is a marker
+        // on the file just as one on a callable is.
+        for f in facts {
+            for c in &f.attributed_containers {
+                attrs_by_file
+                    .entry(f.file)
+                    .or_default()
+                    .extend(c.attributes.iter().map(|a| a.as_str()));
+            }
         }
 
         for f in facts {
@@ -268,12 +290,34 @@ impl Detection {
                     && rule.detect_paths.is_empty()
                     && rules::detect_calls_for(&rule.id, &rule.language).is_empty()
                 {
+                    let containers: Vec<String> =
+                        rules::container_attributes_for(&rule.id, &rule.language)
+                            .iter()
+                            .map(|a| a.to_string())
+                            .collect();
                     hit = attrs_by_file.get(&f.file).is_some_and(|attrs| {
                         attrs.iter().any(|a| {
-                            contains_ci(&rule.attributes, attribute_key(a))
-                                || contains_ci(&rule.attributes, attribute_verb(a))
+                            matches_ci_or_pattern(&containers, attribute_key(a))
+                                || matches_ci_or_pattern(&containers, attribute_verb(a))
+                                || matches_ci_or_pattern(
+                                    &rule.attributes,
+                                    attribute_key(a),
+                                )
+                                || matches_ci_or_pattern(
+                                    &rule.attributes,
+                                    attribute_verb(a),
+                                )
                         })
                     });
+                    // Nor does a markup rule: a binding in the file's
+                    // sibling markup is the evidence.
+                    if !hit {
+                        let kinds = rules::markup_kinds_for(&rule.id, &rule.language);
+                        hit = f
+                            .markup_bindings
+                            .iter()
+                            .any(|b| kinds.contains(&b.kind.as_str()));
+                    }
                     // A visibility rule has nothing to import either: the
                     // keyword on the definition is the evidence.
                     if !hit {
@@ -289,6 +333,7 @@ impl Detection {
                     *hits
                         .entry((rule.id.clone(), rule.language.clone()))
                         .or_default() += 1;
+                    file_hits.insert((rule.id.clone(), rule.language.clone(), f.file));
                 }
             }
         }
@@ -304,7 +349,14 @@ impl Detection {
         Self {
             hits,
             files_by_language,
+            file_hits,
         }
+    }
+
+    /// Whether `file` itself carries one of the rule's markers.
+    fn file_carries(&self, id: &str, language: &str, file: FileId) -> bool {
+        self.file_hits
+            .contains(&(id.to_string(), language.to_string(), file))
     }
 
     fn is_active(&self, id: &str, language: &str) -> bool {
@@ -504,6 +556,33 @@ fn contains_ci(list: &[String], needle: &str) -> bool {
     list.iter().any(|m| m.eq_ignore_ascii_case(needle))
 }
 
+/// [`contains_ci`], plus naming-convention patterns: `test*` matches a
+/// name that starts with `test` and continues (`test_x`, `testFoo`,
+/// `test1`), and `*_test` one that ends with `_test` after a non-empty
+/// stem. Patterns compare case-sensitively — the case IS the convention
+/// (`go test` runs `TestFoo`, never `testFoo`) — and a prefix pattern
+/// refuses a continuation that starts with a lowercase letter, so `Test*`
+/// does not take `Testing` and `test*` does not take `tests`.
+fn matches_ci_or_pattern(list: &[String], needle: &str) -> bool {
+    list.iter().any(|m| name_pattern_matches(m, needle))
+}
+
+pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
+    if let Some(prefix) = pattern.strip_suffix('*') {
+        // `test_*` already ends at a word boundary; `test*` must not run
+        // on into a longer lowercase word.
+        let bounded = !prefix.ends_with(|c: char| c.is_ascii_alphanumeric());
+        return name
+            .strip_prefix(prefix)
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(|c| bounded || !c.is_ascii_lowercase());
+    }
+    if let Some(suffix) = pattern.strip_prefix('*') {
+        return name.len() > suffix.len() && name.ends_with(suffix);
+    }
+    pattern.eq_ignore_ascii_case(name)
+}
+
 /// **Shape A** — a marker on the definition.
 ///
 /// The highest-evidence shape in the set: the framework's own
@@ -520,7 +599,8 @@ fn match_attributes(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<Framework
         for attr in &node.attributes {
             let key = attribute_key(attr);
             let verb = attribute_verb(attr);
-            if !contains_ci(&rule.attributes, key) && !contains_ci(&rule.attributes, verb)
+            if !matches_ci_or_pattern(&rule.attributes, key)
+                && !matches_ci_or_pattern(&rule.attributes, verb)
             {
                 continue;
             }
@@ -544,6 +624,124 @@ fn match_attributes(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<Framework
             // several routes, and `@app.get("/a")` + `@app.post("/a")`
             // are two entry points. `dedup` keys on the route, so
             // identical markers still collapse.
+        }
+    }
+}
+
+/// **Shape A, on the container** — `#[pymethods] impl Foo { … }` exposes
+/// every member of the block although no member carries a marker.
+fn match_container_attributes(
+    graph: &Graph,
+    facts: &[FileFacts],
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let wanted: Vec<String> = rules::container_attributes_for(&rule.id, &rule.language)
+        .iter()
+        .map(|a| a.to_string())
+        .collect();
+    if wanted.is_empty() {
+        return;
+    }
+    // (file, container span, the attribute that matched), in input order.
+    let mut spans: HashMap<FileId, Vec<(u32, u32, String)>> = HashMap::new();
+    for f in facts.iter().filter(|f| f.language == rule.language) {
+        for c in &f.attributed_containers {
+            let hit = c.attributes.iter().find(|a| {
+                matches_ci_or_pattern(&wanted, attribute_key(a))
+                    || matches_ci_or_pattern(&wanted, attribute_verb(a))
+            });
+            if let Some(a) = hit {
+                spans.entry(f.file).or_default().push((
+                    c.start_byte,
+                    c.end_byte,
+                    a.trim().to_string(),
+                ));
+            }
+        }
+    }
+    if spans.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        let Some(list) = spans.get(&node.file) else {
+            continue;
+        };
+        let Some((_, _, attr)) = list
+            .iter()
+            .find(|(s, e, _)| *s <= node.start_byte && node.end_byte <= *e)
+        else {
+            continue;
+        };
+        out.push(FrameworkEntry {
+            framework: rule.id.clone(),
+            kind: rule.kind,
+            shape: EntryShape::Attribute,
+            route: String::new(),
+            target: *id,
+            target_name: node.qualified_name.clone(),
+            evidence: format!("member of {attr} block"),
+            file: node.file,
+            site_line: node.start_line,
+            node: rule.node,
+        });
+    }
+}
+
+/// **Shape B, written in markup** — `Click="OnSave"` in the sibling
+/// `.xaml` of a code-behind. The handler is the code-behind's own method;
+/// the event is the entry's key.
+fn match_markup_bindings(
+    graph: &Graph,
+    facts: &[FileFacts],
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let kinds = rules::markup_kinds_for(&rule.id, &rule.language);
+    if kinds.is_empty() {
+        return;
+    }
+    let mut wanted: HashMap<(FileId, &str), Vec<&cgg_core::MarkupBinding>> =
+        HashMap::new();
+    for f in facts.iter().filter(|f| f.language == rule.language) {
+        for b in &f.markup_bindings {
+            if kinds.contains(&b.kind.as_str()) {
+                wanted
+                    .entry((f.file, b.handler.as_str()))
+                    .or_default()
+                    .push(b);
+            }
+        }
+    }
+    if wanted.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        let Some(list) = wanted.get(&(node.file, node.simple_name.as_str())) else {
+            continue;
+        };
+        for b in list {
+            out.push(FrameworkEntry {
+                framework: rule.id.clone(),
+                kind: rule.kind,
+                shape: EntryShape::Registrar,
+                route: b.event.clone(),
+                target: *id,
+                target_name: node.qualified_name.clone(),
+                evidence: format!(
+                    "{}=\"{}\" in {} markup line {}",
+                    b.event, b.handler, b.kind, b.line
+                ),
+                file: node.file,
+                site_line: node.start_line,
+                node: rule.node,
+            });
         }
     }
 }
@@ -695,7 +893,17 @@ fn match_base_types(
         let Some(hit) = find_in_base_chain(types, by_owner, &rule.base_types) else {
             continue;
         };
-        if !rule.methods.is_empty() && !contains_ci(&rule.methods, &node.simple_name) {
+        let named = rule.methods.is_empty()
+            || matches_ci_or_pattern(&rule.methods, &node.simple_name);
+        // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
+        // class's other members (helpers, fixtures by another name) are
+        // test code its cases reach through `self`/`$this` across the
+        // class hierarchy, which those resolvers bind weakly: a test root
+        // mark, not an entry of the harness node.
+        if !named
+            && (rule.kind != TrustKind::Test
+                || !rules::TEST_CLASS_MEMBERS_ARE_ROOTS.contains(&rule.language.as_str()))
+        {
             continue;
         }
         out.push(FrameworkEntry {
@@ -705,10 +913,14 @@ fn match_base_types(
             route: String::new(),
             target: *id,
             target_name: node.qualified_name.clone(),
-            evidence: format!("declares `{hit}`"),
+            evidence: if named {
+                format!("declares `{hit}`")
+            } else {
+                format!("member of a `{hit}` test class")
+            },
             file: node.file,
             site_line: node.start_line,
-            node: rule.node,
+            node: rule.node && named,
         });
     }
 }
@@ -781,7 +993,12 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
 /// weaker evidence than every other shape, which is why it fires only
 /// when the framework's import is present *and* the rule declares no
 /// base types at all.
-fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEntry>) {
+fn match_methods(
+    graph: &Graph,
+    rule: &FrameworkRule,
+    evidence: &Detection,
+    out: &mut Vec<FrameworkEntry>,
+) {
     if rule.methods.is_empty() || !rule.base_types.is_empty() {
         return;
     }
@@ -789,7 +1006,21 @@ fn match_methods(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEnt
         if node.language != rule.language || node.synthetic {
             continue;
         }
-        if !contains_ci(&rule.methods, &node.simple_name) {
+        // A test harness collects by name only where it looks: `go test`
+        // reads `_test.go` files, EUnit the modules that include it. A
+        // name alone, in a file that neither is a test file nor imports
+        // the harness, is a coincidence (`TestServer` in a helper
+        // package), so the name pattern applies only in those files.
+        let in_test_file = graph
+            .files
+            .get(&node.file)
+            .is_some_and(|f| f.test_role.is_some());
+        let harness_file =
+            in_test_file || evidence.file_carries(&rule.id, &rule.language, node.file);
+        if rule.kind == TrustKind::Test && !harness_file {
+            continue;
+        }
+        if !matches_ci_or_pattern(&rule.methods, &node.simple_name) {
             continue;
         }
         out.push(FrameworkEntry {
@@ -1924,10 +2155,13 @@ fn dedup(entries: &mut Vec<FrameworkEntry>, graph: &Graph) {
     // (target, framework, route) slot and evict the precise one — a
     // Rails `root to: 'photos#index'` losing to "declares
     // ApplicationController", which is the same entry described worse.
-    let mut best: HashMap<CallableId, EntryShape> = HashMap::new();
+    // A harness entry never competes with a framework one: a route
+    // registered on a test fixture is still how a request reaches it,
+    // and "the test runner calls it" must not evict that.
+    let mut best: HashMap<(CallableId, bool), EntryShape> = HashMap::new();
     for e in entries.iter() {
         let rank = shape_rank(e.shape);
-        best.entry(e.target)
+        best.entry((e.target, e.kind == TrustKind::Test))
             .and_modify(|s| {
                 if rank < shape_rank(*s) {
                     *s = e.shape;
@@ -1935,7 +2169,8 @@ fn dedup(entries: &mut Vec<FrameworkEntry>, graph: &Graph) {
             })
             .or_insert(e.shape);
     }
-    entries.retain(|e| best.get(&e.target) == Some(&e.shape));
+    entries
+        .retain(|e| best.get(&(e.target, e.kind == TrustKind::Test)) == Some(&e.shape));
 
     // Then one entry per (target, framework, route). Two rules can
     // legitimately match the same handler — a project using both FastAPI
@@ -2076,6 +2311,160 @@ mod tests {
         assert!(path_matches("config/routes.rb", "config/routes.rb"));
         assert!(path_matches("src/app/controllers/x.rb", "app/controllers/"));
         assert!(!path_matches("app/myurls.py", "urls.py"));
+    }
+
+    // --- WS18: harness and framework entries ------------------------------
+
+    #[test]
+    fn naming_convention_patterns_respect_word_boundaries() {
+        assert!(name_pattern_matches("Test*", "TestFoo"));
+        assert!(name_pattern_matches("Test*", "Test_x"));
+        assert!(!name_pattern_matches("Test*", "Testing"));
+        assert!(!name_pattern_matches("Test*", "Test"));
+        assert!(
+            !name_pattern_matches("Test*", "testFoo"),
+            "case is the convention"
+        );
+        assert!(name_pattern_matches("test*", "testThing"));
+        assert!(!name_pattern_matches("test*", "tests"));
+        assert!(name_pattern_matches("test_*", "test_a"));
+        assert!(name_pattern_matches("*_test", "add_test"));
+        assert!(!name_pattern_matches("*_test", "_test"));
+        assert!(!name_pattern_matches("*_test", "latest"));
+        assert!(
+            name_pattern_matches("Fact", "fact"),
+            "plain names stay case-insensitive"
+        );
+    }
+
+    fn rust_facts() -> FileFacts {
+        FileFacts::new(FileId::new(0), PathBuf::from("src/lib.rs"), "rust")
+    }
+
+    #[test]
+    fn path_qualified_rust_test_attributes_enter_through_one_harness_node() {
+        let mut a = node(0, "c::t::a", "a", "rust");
+        a.attributes = vec!["#[ntex::test]".into()];
+        let mut b = node(1, "c::t::b", "b", "rust");
+        b.attributes = vec!["#[crate::rt_test]".into()];
+        let mut w = node(2, "c::t::w", "w", "rust");
+        w.attributes = vec!["#[wasm_bindgen_test]".into()];
+        // Near misses: a `test`-named helper with no attribute, and
+        // `#[cfg(test)]`, which gates compilation and runs nothing.
+        let helper = node(3, "c::t::helper_test_data", "helper_test_data", "rust");
+        let mut gated = node(4, "c::t::gated", "gated", "rust");
+        gated.attributes = vec!["#[cfg(test)]".into()];
+        let g = graph_with(vec![a, b, w, helper, gated]);
+        let out = detect(&g, &[rust_facts()], &[]);
+        let ids: Vec<u32> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework == "cargo-test")
+            .map(|e| e.target.as_u32())
+            .collect();
+        assert_eq!(ids, vec![0, 1, 2], "{:?}", out.entries);
+        let names: BTreeSet<String> = out.entries.iter().map(|e| e.node_name()).collect();
+        assert_eq!(
+            names.into_iter().collect::<Vec<_>>(),
+            vec!["<framework-entry>::test::cargo-test".to_string()]
+        );
+    }
+
+    #[test]
+    fn a_pymethods_block_exposes_its_members_and_a_plain_impl_does_not() {
+        let mut f = rust_facts();
+        f.attributed_containers.push(cgg_core::AttributedContainer {
+            start_byte: 100,
+            end_byte: 200,
+            attributes: vec!["#[pymethods]".into()],
+        });
+        let mut inside = node(0, "c::It::__next__", "__next__", "rust");
+        (inside.start_byte, inside.end_byte) = (120, 150);
+        let mut outside = node(1, "c::It::helper", "helper", "rust");
+        (outside.start_byte, outside.end_byte) = (300, 350);
+        let out = detect(&graph_with(vec![inside, outside]), &[f], &[]);
+        let ids: Vec<u32> = out.entries.iter().map(|e| e.target.as_u32()).collect();
+        assert_eq!(ids, vec![0], "{:?}", out.entries);
+        assert_eq!(out.entries[0].framework, "ffi-export");
+    }
+
+    #[test]
+    fn a_harness_name_counts_only_in_a_test_file_or_one_importing_the_harness() {
+        let t = node(0, "x.TestFoo", "TestFoo", "go");
+        let mut other = node(1, "y.TestServer", "TestServer", "go");
+        other.file = FileId::new(1);
+        let mut g = graph_with(vec![t, other]);
+        g.add_file(cgg_core::graph::FileRecord {
+            id: FileId::new(1),
+            path: PathBuf::from("y.go"),
+            language: "go".into(),
+            ..Default::default()
+        });
+        // File 0 imports `testing`; file 1 imports nothing, so a
+        // `TestServer` there is a coincidence of naming.
+        let f0 = facts_with_import("go", "x.go", "testing");
+        let f1 = FileFacts::new(FileId::new(1), PathBuf::from("y.go"), "go");
+        let out = detect(&g, &[f0, f1], &[]);
+        let ids: Vec<u32> = out.entries.iter().map(|e| e.target.as_u32()).collect();
+        assert_eq!(ids, vec![0], "{:?}", out.entries);
+    }
+
+    fn test_class(lang: &str, path: &str, import: &str) -> (Graph, Vec<FileFacts>) {
+        let mut f = facts_with_import(lang, path, import);
+        let mut nodes = Vec::new();
+        for (i, name) in ["test_a", "helper"].iter().enumerate() {
+            let mut n = node(i as u32, &format!("m.T.{name}"), name, lang);
+            n.start_byte = i as u32 * 10;
+            f.definitions.push(DefRecord {
+                simple_name: name.to_string(),
+                qualified_name: format!("m.T.{name}"),
+                start_byte: n.start_byte,
+                base_types: vec!["TestCase".into()],
+                ..Default::default()
+            });
+            nodes.push(n);
+        }
+        (graph_with(nodes), vec![f])
+    }
+
+    // A test class's case enters through the harness node; its helper is
+    // a test root mark in Python (resolved weakly through `self`), and
+    // nothing at all in Java, where an unused helper stays reportable.
+    #[test]
+    fn test_class_helpers_are_test_roots_only_in_dynamic_languages() {
+        let (g, f) = test_class("python", "m.py", "unittest");
+        let out = detect(&g, &f, &[]);
+        let got: Vec<(u32, bool)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.node))
+            .collect();
+        assert_eq!(got, vec![(0, true), (1, false)], "{:?}", out.entries);
+
+        let (g, f) = test_class("java", "T.java", "junit.framework.TestCase");
+        let out = detect(&g, &f, &[]);
+        let got: Vec<u32> = out.entries.iter().map(|e| e.target.as_u32()).collect();
+        assert_eq!(got, vec![0], "{:?}", out.entries);
+    }
+
+    #[test]
+    fn a_xaml_binding_enters_its_handler_keyed_by_the_event() {
+        let mut f =
+            FileFacts::new(FileId::new(0), PathBuf::from("Main.xaml.cs"), "csharp");
+        f.markup_bindings.push(cgg_core::MarkupBinding {
+            kind: "xaml".into(),
+            event: "Click".into(),
+            handler: "OnSave".into(),
+            line: 3,
+        });
+        let h = node(0, "App.Main.OnSave", "OnSave", "csharp");
+        let other = node(1, "App.Main.OnLoad", "OnLoad", "csharp");
+        let out = detect(&graph_with(vec![h, other]), &[f], &[]);
+        assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
+        assert_eq!(
+            out.entries[0].node_name(),
+            "<framework-entry>::ui::xaml::Click"
+        );
     }
 
     #[test]
@@ -2541,6 +2930,33 @@ mod tests {
         assert_eq!(v2.len(), 2);
     }
 
+    // A route registered on a test fixture keeps its route entry: the
+    // harness entry describes a different origin and must not evict it.
+    #[test]
+    fn a_harness_entry_does_not_evict_a_route_on_the_same_target() {
+        let route = FrameworkEntry {
+            framework: "falcon".into(),
+            kind: TrustKind::Network,
+            shape: EntryShape::Registrar,
+            route: "add_route(\"/x\")".into(),
+            target: CallableId::new(7),
+            target_name: "t.resource".into(),
+            evidence: "registrar".into(),
+            file: FileId::new(0),
+            site_line: 1,
+            node: true,
+        };
+        let mut harness = route.clone();
+        harness.framework = "pytest".into();
+        harness.kind = TrustKind::Test;
+        harness.shape = EntryShape::Attribute;
+        harness.route = String::new();
+        let mut v = vec![route, harness];
+        dedup(&mut v, &Graph::new());
+        let got: Vec<&str> = v.iter().map(|e| e.framework.as_str()).collect();
+        assert_eq!(got.len(), 2, "{got:?}");
+    }
+
     #[test]
     fn user_rules_cover_a_framework_cgg_does_not_know() {
         let mut n = node(0, "svc.handle", "handle", "python");
@@ -2828,7 +3244,17 @@ mod tests {
             "the annotated test is not its own source"
         );
         assert!(!ids.contains(&4) && !ids.contains(&5), "{:?}", out.entries);
-        assert!(out.entries.iter().all(|e| !e.node), "roots only, no nodes");
+        // WS18: a test data source is entered by the harness, so it hangs
+        // off the harness's one node like the tests themselves.
+        assert!(
+            out.entries
+                .iter()
+                .filter(|e| e.framework == "junit-sources")
+                .all(|e| e.node
+                    && e.node_name() == "<framework-entry>::test::junit-sources"),
+            "{:?}",
+            out.entries
+        );
     }
 
     #[test]

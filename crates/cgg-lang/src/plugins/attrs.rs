@@ -94,6 +94,22 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
                     found = true;
                 }
             }
+            // PHP's `attribute_list` holds one `attribute_group` per
+            // `#[…]`; each group is a unit. Read as one text, stacked
+            // `#[Group('x')] #[Test]` keyed as `Group` alone.
+            if !found && child.kind() == "attribute_list" {
+                let mut inner = child.walk();
+                let groups: Vec<Node> = child
+                    .named_children(&mut inner)
+                    .filter(|g| g.kind() == "attribute_group")
+                    .collect();
+                if groups.len() > 1 {
+                    for g in groups {
+                        push(g);
+                    }
+                    continue;
+                }
+            }
             // C# `attribute_list` is itself the unit when its children
             // are unnamed; keep the whole `[Attr]` text in that case.
             if !found && child.kind() == "attribute_list" {
