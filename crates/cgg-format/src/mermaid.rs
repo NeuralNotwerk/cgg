@@ -8,12 +8,17 @@
 use std::io;
 
 use cgg_core::Graph;
-use cgg_core::graph::Via;
+use cgg_core::graph::{Confidence, Via};
 use cgg_core::ids::CallableId;
 
 use crate::locations::SiteList;
 use crate::node_ids::{NodeIds, NodeNamer};
 use crate::{GraphFormatter, OutputFormat};
+
+/// Leads the label of an arrow none of whose call sites resolved at
+/// `high` confidence (see `render`). One character, one token, and it
+/// never appears in a `high` arrow, so `|?` is a reliable test for it.
+pub const CONFIDENCE_MARK: &str = "?";
 
 /// Short label prefix distinguishing an edge's `via` kind in the
 /// mermaid label slot (mermaid has no native per-edge styling). Direct
@@ -237,6 +242,13 @@ impl GraphFormatter for MermaidFormatter {
             (CallableId, CallableId, &str),
             SiteList,
         > = std::collections::HashMap::new();
+        // An arrow stands for every call site it collapsed, so it is as
+        // certain as its best site: one `high` site settles that the call
+        // happens. Holds the arrows with no `high` site. A framework entry
+        // is exempt: the pipeline mints every one at `low` as a fixed
+        // placeholder, and its `entry` tag already says it is inferred.
+        let mut unsure: std::collections::HashSet<(CallableId, CallableId, &str)> =
+            std::collections::HashSet::new();
         for edge in &graph.edges {
             let key = (edge.src, edge.dst, via_tag(&edge.via));
             // `weight`, not `1`: an ordinary edge stands for one call
@@ -249,6 +261,13 @@ impl GraphFormatter for MermaidFormatter {
             *entry += edge.weight;
             if first {
                 order.push(key);
+                if edge.confidence != Confidence::High
+                    && !matches!(edge.via, Via::FrameworkEntry(_))
+                {
+                    unsure.insert(key);
+                }
+            } else if edge.confidence == Confidence::High {
+                unsure.remove(&key);
             }
             if self.locations {
                 sites.entry(key).or_default().observe(graph, edge);
@@ -256,6 +275,15 @@ impl GraphFormatter for MermaidFormatter {
         }
         for (src, dst, tag) in order {
             let n = counts[&(src, dst, tag)];
+            // `?` leads the label of an arrow with no `high` call site.
+            // High is the unmarked default, so a trusted edge costs no
+            // tokens; the marker sits inside `|…|` so `-->` stays the one
+            // arrow token every consumer matches on.
+            let mark = if unsure.contains(&(src, dst, tag)) {
+                CONFIDENCE_MARK
+            } else {
+                ""
+            };
             // A complete site list replaces the count: the lines are the
             // detail `Nx` was standing in for. An incomplete list (a
             // rolled-up edge, a synthetic caller) keeps `Nx`.
@@ -265,17 +293,18 @@ impl GraphFormatter for MermaidFormatter {
                 .flatten();
             let label = if let Some(loc) = located {
                 let body = if tag.is_empty() {
-                    loc
+                    format!("{mark}{loc}")
                 } else {
-                    format!("{tag} {loc}")
+                    format!("{mark}{tag} {loc}")
                 };
                 mermaid_edge_label(&body)
             } else {
                 match (tag.is_empty(), n > 1) {
-                    (true, false) => String::new(),
-                    (true, true) => format!("|{n}x|"),
-                    (false, false) => format!("|{tag}|"),
-                    (false, true) => format!("|{tag} {n}x|"),
+                    (true, false) if mark.is_empty() => String::new(),
+                    (true, false) => format!("|{mark}|"),
+                    (true, true) => format!("|{mark}{n}x|"),
+                    (false, false) => format!("|{mark}{tag}|"),
+                    (false, true) => format!("|{mark}{tag} {n}x|"),
                 }
             };
             let (src, dst) = (namer.name(src), namer.name(dst));
@@ -536,6 +565,69 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("&lt;A as B&gt;"));
         assert!(!s.contains("<A"));
+    }
+
+    fn edge_with(confidence: Confidence, via: Via, byte: u32) -> CallEdge {
+        CallEdge {
+            src: CallableId::new(0),
+            dst: CallableId::new(1),
+            site_line: 1,
+            site_byte: byte,
+            confidence,
+            via,
+            resolver: ResolverId::new("cross-file"),
+            weight: 1,
+        }
+    }
+
+    fn render_edges(edges: Vec<CallEdge>) -> String {
+        let mut g = mk_graph();
+        g.edges.clear();
+        for e in edges {
+            g.add_edge(e);
+        }
+        let mut buf = Vec::new();
+        MermaidFormatter::new().render(&g, &mut buf).unwrap();
+        String::from_utf8(buf).unwrap()
+    }
+
+    #[test]
+    fn a_high_edge_carries_no_confidence_mark() {
+        let s = render_edges(vec![edge_with(Confidence::High, Via::Direct, 1)]);
+        assert!(s.contains("N0 --> N1"), "got:\n{s}");
+        assert!(!s.contains('?'), "got:\n{s}");
+    }
+
+    #[test]
+    fn medium_and_low_edges_lead_their_label_with_the_mark() {
+        let s = render_edges(vec![edge_with(Confidence::Medium, Via::Direct, 1)]);
+        assert!(s.contains("N0 -->|?| N1"), "got:\n{s}");
+        let s = render_edges(vec![
+            edge_with(Confidence::Low, Via::Direct, 1),
+            edge_with(Confidence::Medium, Via::Direct, 2),
+        ]);
+        assert!(s.contains("N0 -->|?2x| N1"), "got:\n{s}");
+        let s = render_edges(vec![edge_with(Confidence::Medium, Via::Dynamic, 1)]);
+        assert!(s.contains("N0 -->|?dyn| N1"), "got:\n{s}");
+    }
+
+    #[test]
+    fn one_high_site_makes_the_collapsed_arrow_unmarked() {
+        // Order must not matter: the high site may come first or last.
+        for edges in [
+            vec![
+                edge_with(Confidence::Medium, Via::Direct, 1),
+                edge_with(Confidence::High, Via::Direct, 2),
+            ],
+            vec![
+                edge_with(Confidence::High, Via::Direct, 1),
+                edge_with(Confidence::Medium, Via::Direct, 2),
+            ],
+        ] {
+            let s = render_edges(edges);
+            assert!(s.contains("N0 -->|2x| N1"), "got:\n{s}");
+            assert!(!s.contains('?'), "got:\n{s}");
+        }
     }
 
     #[test]
