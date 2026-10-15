@@ -1025,6 +1025,18 @@ pub fn analyze(
     }
 
     // --- Regions -----------------------------------------------------------
+    // A region's confidence is the weakest of its members' findings. Look
+    // findings up by id once rather than scanning the list per member:
+    // the scan was O(dead members × findings), which on a tree with
+    // ~300k dead callables (one big region) ran for minutes. The first
+    // finding for an id wins, exactly as the linear `find` did.
+    let finding_confidence: std::collections::HashMap<CallableId, Confidence> = {
+        let mut m = std::collections::HashMap::with_capacity(findings.len());
+        for f in &findings {
+            m.entry(f.id).or_insert(f.confidence);
+        }
+        m
+    };
     let mut regions_map: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
     for i in 0..n as u32 {
         if in_dead[i as usize] {
@@ -1074,12 +1086,7 @@ pub fn analyze(
             let confidence = members
                 .iter()
                 .filter_map(|&i| node_at(i))
-                .filter_map(|nd| {
-                    findings
-                        .iter()
-                        .find(|f| f.id == nd.id)
-                        .map(|f| f.confidence)
-                })
+                .filter_map(|nd| finding_confidence.get(&nd.id).copied())
                 .min_by_key(|c| match c {
                     Confidence::Low => 0,
                     Confidence::Medium => 1,
@@ -1453,6 +1460,30 @@ mod tests {
         assert_eq!(r.regions.len(), 1);
         assert!(r.regions[0].anchors.is_empty());
         assert_eq!(r.regions[0].cycles.len(), 1);
+    }
+
+    #[test]
+    fn a_region_takes_the_weakest_confidence_of_its_members() {
+        // `a` (private) -> `b` (public): one region, two findings whose
+        // confidences differ. The region reports the weaker of the two.
+        let mut g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            vis_node(1, "crate::a", "a", "", Vis::Private),
+            vis_node(2, "crate::b", "b", "pub", Vis::Public),
+        ]);
+        link(&mut g, 1, 2);
+        let r = analyze(&g, &[], &[], &opts_rust_full());
+        assert_eq!(r.regions.len(), 1);
+        let band = |c: Confidence| match c {
+            Confidence::Low => 0,
+            Confidence::Medium => 1,
+            Confidence::High => 2,
+        };
+        let confs: Vec<Confidence> = r.findings.iter().map(|f| f.confidence).collect();
+        assert_eq!(confs.len(), 2);
+        assert_ne!(confs[0], confs[1], "the test needs differing confidences");
+        let weakest = confs.iter().copied().min_by_key(|c| band(*c)).unwrap();
+        assert_eq!(r.regions[0].confidence, weakest);
     }
 
     #[test]

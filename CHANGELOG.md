@@ -886,6 +886,23 @@ otherwise change the default graph.
   receiver with no visible `let` is kept (refusing it was measured to
   drop 161 high edges, ~70% of them right).
 
+### Performance
+
+- **`--dead-code` no longer takes minutes on a tree with a large dead
+  region.** Each dead region's confidence was the weakest of its
+  members' findings, found by scanning the whole findings list once per
+  member — O(dead members × findings). On `zig-zig` (~328k candidate
+  callables, one region holding most of them) that scan alone ran for
+  ~170 s, so `--dead-code` took 3 min 33 s against a 36 s graph and
+  tripped the corpus per-repo cap. Findings are now looked up by id
+  from a map built once; the dead-code phase on `zig-zig` drops to
+  ~2.7 s. Paired `--no-graph --dead-code` runs (median of 3, `zig-zig`
+  1): `zig-zig` 198.0 s → 39.1 s, `erlang-otp` 23.4 s → 8.6 s,
+  `dart-flutter` 12.9 s → 10.2 s, `groovy-gradle` 9.2 s → 8.0 s; eight
+  other repositories within ±0.2 s. The default graph is untouched
+  (7-repo paired subset −0.9%, none ≥1 s). Output is byte-identical
+  (graph, audit and dead-code report).
+
 ### Compatibility
 
 - **The default graph changes.** Full corpus, 283 repositories:
