@@ -1,0 +1,198 @@
+{
+ "asm": {
+  "drop": {
+   "medium": 76
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 76
+  }
+ },
+ "c": {
+  "drop": {
+   "high": 14682
+  },
+  "add": {
+   "medium": 111780,
+   "high": 7336
+  },
+  "chg": {
+   "high->medium": 19826
+  },
+  "fate": {
+   "rebound to another target": 14599,
+   "now unresolved: no-candidate-in-file": 1,
+   "now unresolved: candidates-in-other-files": 74,
+   "external/stdlib or still bound (same name, kept target)": 8
+  }
+ },
+ "clojure": {
+  "drop": {
+   "high": 890,
+   "medium": 3035,
+   "low": 7
+  },
+  "add": {
+   "high": 13436,
+   "medium": 2000,
+   "low": 7
+  },
+  "chg": {
+   "medium->high": 1922
+  },
+  "fate": {
+   "rebound to another target": 3843,
+   "external/stdlib or still bound (same name, kept target)": 89
+  }
+ },
+ "cpp": {
+  "drop": {
+   "medium": 32722,
+   "high": 18688
+  },
+  "add": {
+   "medium": 34542,
+   "high": 16420
+  },
+  "chg": {
+   "high->medium": 12866,
+   "medium->high": 1738
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 30489,
+   "rebound to another target": 20404,
+   "now unresolved: candidates-in-other-files": 500,
+   "now unresolved: no-candidate-in-file": 17
+  }
+ },
+ "groovy": {
+  "drop": {
+   "medium": 48
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 48
+  }
+ },
+ "java": {
+  "drop": {
+   "medium": 183761,
+   "high": 1
+  },
+  "add": {
+   "medium": 53352,
+   "high": 2
+  },
+  "chg": {
+   "medium->high": 2750,
+   "high->medium": 8933
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 183606,
+   "now unresolved: fanout-cap-exceeded": 61,
+   "now unresolved: no-candidate-in-file": 34,
+   "rebound to another target": 20,
+   "now unresolved: candidates-in-other-files": 35,
+   "now unresolved: ambiguous-in-file": 6
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "medium": 1481
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1481
+  }
+ },
+ "ocaml": {
+  "drop": {
+   "medium": 306
+  },
+  "add": {
+   "medium": 448
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 187,
+   "rebound to another target": 7,
+   "external/stdlib or still bound (same name, kept target)": 108,
+   "now unresolved: ambiguous-in-file": 4
+  }
+ },
+ "perl": {
+  "drop": {
+   "high": 2
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 2
+  }
+ },
+ "proto": {
+  "drop": {
+   "low": 288
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 288
+  }
+ },
+ "rust": {
+  "drop": {
+   "medium": 1102
+  },
+  "add": {
+   "medium": 47,
+   "high": 24
+  },
+  "chg": {
+   "medium->high": 3
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 74,
+   "now unresolved: candidates-in-other-files": 1027,
+   "rebound to another target": 1
+  }
+ },
+ "scala": {
+  "drop": {
+   "medium": 21455,
+   "high": 6
+  },
+  "add": {
+   "medium": 6489,
+   "high": 899
+  },
+  "chg": {
+   "high->medium": 29,
+   "medium->high": 222
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 21369,
+   "rebound to another target": 26,
+   "now unresolved: ambiguous-in-file": 5,
+   "now unresolved: no-candidate-in-file": 57,
+   "now unresolved: candidates-in-other-files": 4
+  }
+ },
+ "solidity": {
+  "drop": {
+   "medium": 2,
+   "high": 50
+  },
+  "add": {
+   "medium": 18
+  },
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 2,
+   "now unresolved: fanout-cap-exceeded": 50
+  }
+ }
+}
