@@ -1,0 +1,17 @@
+{
+ "rust": {
+  "drop": {
+   "medium": 34
+  },
+  "add": {
+   "medium": 13,
+   "high": 99
+  },
+  "chg": {
+   "medium->high": 20242
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 34
+  }
+ }
+}
