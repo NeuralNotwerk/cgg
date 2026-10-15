@@ -551,6 +551,10 @@ pub fn propagate_types_with_fields(
     cgg_core::profile::count(t.defs, facts.definitions.len() as u64);
     let _s3 = cgg_core::profile::span("types::pass3");
     let mut rewrites: Vec<(usize, String)> = Vec::new();
+    // The rewrites above that are guesses rather than a declaration in
+    // scope (see `RefRecord::weak_receiver_type`): indices into `rewrites`'
+    // reference positions.
+    let mut weak: std::collections::HashSet<usize> = std::collections::HashSet::new();
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
         // A cast or construction receiver is already its type.
@@ -727,6 +731,14 @@ pub fn propagate_types_with_fields(
         // once one test wrote `let map = http::HeaderMap::new()`, and the
         // local `HeaderMap`'s own calls stopped resolving. A site with no
         // visible `let` keeps the file-wide answer it always had.
+        // Whether the reading below is a declaration in scope at the site:
+        // C++, Zig and a Go package-made value are looked up where they
+        // are; a Rust `let` visible at the site, or a C#/Kotlin one in the
+        // calling function, likewise. The file-wide map is a declaration
+        // somewhere in the file — scoped only when the calling function
+        // (or the file's own top level: a field) declares the name with
+        // that type too.
+        let mut scoped_reading = cpp || zig;
         let local_ty = if cpp {
             deref_key
                 .as_deref()
@@ -744,9 +756,11 @@ pub fn propagate_types_with_fields(
                 rref.site_byte,
                 enclosing.map(|d| (d.start_byte, d.end_byte)),
             ) {
-                Some((at, ty)) => (!bindings
-                    .is_some_and(|b| b.shadowed_since(rh, at, rref.site_byte)))
-                .then_some(ty),
+                Some((at, ty)) => {
+                    scoped_reading = true;
+                    (!bindings.is_some_and(|b| b.shadowed_since(rh, at, rref.site_byte)))
+                        .then_some(ty)
+                }
                 None => local_type_map.get(rh).copied(),
             }
         } else if zig {
@@ -766,6 +780,7 @@ pub fn propagate_types_with_fields(
                         enclosing.map(|d| (d.start_byte, d.end_byte)),
                     )
                     .filter(|ty| go_package_made(ty))
+                    .inspect(|_| scoped_reading = true)
             })
         } else if matches!(facts.language.as_str(), "csharp" | "kotlin") {
             // A declaration in the calling function, before the site, is
@@ -788,6 +803,12 @@ pub fn propagate_types_with_fields(
             local_type_map.get(rh).copied()
         };
         if let Some(ty) = local_ty {
+            if !scoped_reading
+                && (rust || lookup_local_type(facts, rref.site_byte, rh) != Some(ty))
+                || facts.module_typed_locals.iter().any(|v| v == rh)
+            {
+                weak.insert(i);
+            }
             rewrites.push((i, ty.to_string()));
             continue;
         }
@@ -829,6 +850,7 @@ pub fn propagate_types_with_fields(
                 // Verify this function is actually called in this scope.
                 let called = called_before(fn_name, rref.site_byte);
                 if called {
+                    weak.insert(i);
                     rewrites.push((i, ret_type.to_string()));
                     break;
                 }
@@ -840,6 +862,7 @@ pub fn propagate_types_with_fields(
 
         // Strategy 2: constructor/lowercase heuristic
         if let Some(ty) = constructor_types.get(rh) {
+            weak.insert(i);
             rewrites.push((i, ty.clone()));
         }
     }
@@ -917,6 +940,7 @@ pub fn propagate_types_with_fields(
                 r.receiver_hint.clone(),
             ));
         }
+        facts.references[i].weak_receiver_type = weak.contains(&i);
         facts.references[i].receiver_hint = ty;
     }
 }

@@ -3380,3 +3380,281 @@ fn a_scala_import_from_a_value_is_not_a_package_root() {
     assert_eq!(dsts, vec!["Ctx::parallelize"]);
     assert!(ext.is_empty(), "{ext:?}");
 }
+
+/// Every edge of `dir`'s default graph as `(caller, callee, confidence)`,
+/// by qualified name, read from the JSON output.
+fn edge_confidences(dir: &Path) -> Vec<(String, String, String)> {
+    let out = dir.join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(dir)
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| -> String {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect()
+}
+
+fn confidence_of(edges: &[(String, String, String)], src: &str, dst: &str) -> String {
+    edges
+        .iter()
+        .find(|(s, d, _)| s == src && d == dst)
+        .map(|(_, _, c)| c.clone())
+        .unwrap_or_else(|| panic!("no edge {src} -> {dst} in {edges:?}"))
+}
+
+/// WS17: a Rust call through a path a `use` anchors (`use crate::util;
+/// util::helper()`), or written relative to the crate (`crate::x::f`,
+/// `super::x::f`), binds to the one callable carrying that qualified name:
+/// structurally certain, so `high`. A method found only by name through an
+/// untyped receiver stays `medium` even with a single candidate.
+#[test]
+fn rust_paths_anchored_by_use_or_crate_are_high_duck_stays_medium() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Cargo.toml",
+        b"[package]\nname = \"app\"\nversion = \"0.1.0\"\n",
+    );
+    write(
+        tmp.path(),
+        "src/lib.rs",
+        b"pub mod util;\npub mod run;\npub mod thing;\n",
+    );
+    write(
+        tmp.path(),
+        "src/util.rs",
+        b"pub fn helper() -> u32 { 1 }\npub fn other() -> u32 { 2 }\n",
+    );
+    write(
+        tmp.path(),
+        "src/thing.rs",
+        b"pub struct Thing;\nimpl Thing {\n    pub fn only_here(&self) -> u32 { 3 }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "src/run.rs",
+        b"use crate::util;\n\
+          pub fn go() -> u32 { util::helper() }\n\
+          pub fn abs() -> u32 { crate::util::other() }\n\
+          pub fn duck(xs: &[u8]) {\n    for x in xs {\n        x.only_here();\n    }\n}\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    assert_eq!(
+        confidence_of(&edges, "app::run::go", "app::util::helper"),
+        "high"
+    );
+    assert_eq!(
+        confidence_of(&edges, "app::run::abs", "app::util::other"),
+        "high"
+    );
+    assert_eq!(
+        confidence_of(&edges, "app::run::duck", "app::thing::Thing::only_here"),
+        "medium",
+        "a by-name match through an untyped receiver is a guess"
+    );
+}
+
+/// WS17: a Java receiver typed by a declared parameter, its type imported
+/// by name, binds to that class's method at `high`. The same call through
+/// a variable the calling method never declares — typed only because
+/// another method of the file declares a local of that name — stays
+/// `medium`: the type is a file-wide guess, not a declaration in scope.
+#[test]
+fn java_declared_receiver_through_import_is_high_file_wide_guess_is_medium() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/com/a/Store.java",
+        b"package com.a;\npublic class Store {\n    public void save() {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "src/com/b/User.java",
+        b"package com.b;\nimport com.a.Store;\npublic class User {\n\
+          void put(Store s) {\n        s.save();\n    }\n\
+          void make() {\n        Store cache = new Store();\n    }\n\
+          void later() {\n        cache.save();\n    }\n}\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    assert_eq!(
+        confidence_of(&edges, "com.b.User.put", "com.a.Store.save"),
+        "high"
+    );
+    assert_eq!(
+        confidence_of(&edges, "com.b.User.later", "com.a.Store.save"),
+        "medium",
+        "a receiver typed only by another method's local is a guess"
+    );
+}
+
+/// WS17: an overload set the argument count cuts to one member is a known
+/// callee (`high`); one it leaves two members of stays `medium`.
+#[test]
+fn java_overload_cut_to_one_by_arity_is_high() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/O.java",
+        b"public class O {\n\
+          void f(int a) {}\n    void f(int a, int b) {}\n\
+          void k(int a) {}\n    void k(String s) {}\n\
+          void g() {\n        f(1, 2);\n        k(1);\n    }\n}\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    let fs: Vec<&String> = edges
+        .iter()
+        .filter(|(s, d, _)| s == "O.g" && d == "O.f")
+        .map(|(_, _, c)| c)
+        .collect();
+    assert_eq!(fs, vec!["high"], "{edges:?}");
+    let ks: Vec<&String> = edges
+        .iter()
+        .filter(|(s, d, _)| s == "O.g" && d == "O.k")
+        .map(|(_, _, c)| c)
+        .collect();
+    assert_eq!(ks, vec!["medium", "medium"], "{edges:?}");
+}
+
+/// WS17: a Python receiver whose type is imported by name from the
+/// workspace binds `high`; one whose type was read off a call through an
+/// outside module (`pd.Series(...)`, recorded as the bare `Series`) stays
+/// `medium` even though the workspace declares a `Series` with that
+/// method — the type's module is not known. An inherited method two bases
+/// declare stays `medium`: the first one found is a guess at the method
+/// resolution order.
+#[test]
+fn python_typed_receivers_are_high_only_when_the_type_is_anchored() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "shop/__init__.py", b"");
+    write(
+        tmp.path(),
+        "shop/store.py",
+        b"class Store:\n    def save(self):\n        return 1\n\n\
+          class Series:\n    def rename_axis(self):\n        return 2\n\n\
+          class A:\n    def ping(self):\n        return 3\n\n\
+          class B:\n    def ping(self):\n        return 5\n\n\
+          class C(A, B):\n    pass\n",
+    );
+    write(
+        tmp.path(),
+        "shop/use.py",
+        b"import pandas as pd\nfrom shop.store import Store, C, Series\n\n\
+          def keep(s: Store):\n    return s.save()\n\n\
+          def frame():\n    x = pd.Series([1])\n    return x.rename_axis()\n\n\
+          def built():\n    return pd.Series([1]).rename_axis()\n\n\
+          def both(c: C):\n    return c.ping()\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    assert_eq!(
+        confidence_of(&edges, "shop.use.keep", "shop.store.Store.save"),
+        "high"
+    );
+    for (s, d, c) in &edges {
+        if s == "shop.use.frame" || s == "shop.use.built" || s == "shop.use.both" {
+            assert_eq!(c, "medium", "{s} -> {d} must not be high: {edges:?}");
+        }
+    }
+}
+
+/// WS17: `pub use expand::{run as go_run};` in a crate root names the
+/// child module `expand` (Rust 2018 uniform paths). A call through the
+/// re-export (`app::go_run()`, `app::run_direct()`) reaches the function
+/// it names, at `high`, instead of falling through to a by-name fan-out
+/// over every same-named method in the workspace.
+#[test]
+fn rust_reexport_of_a_child_module_item_is_followed() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app/Cargo.toml",
+        b"[package]\nname = \"app\"\nversion = \"0.1.0\"\n",
+    );
+    write(
+        tmp.path(),
+        "app/src/lib.rs",
+        b"pub mod expand;\npub use expand::{run as go_run, run_direct};\n",
+    );
+    write(
+        tmp.path(),
+        "app/src/expand.rs",
+        b"pub fn run() -> u32 { 1 }\npub fn run_direct() -> u32 { 2 }\n",
+    );
+    write(
+        tmp.path(),
+        "other/Cargo.toml",
+        b"[package]\nname = \"other\"\nversion = \"0.1.0\"\n",
+    );
+    write(
+        tmp.path(),
+        "other/src/lib.rs",
+        b"pub struct Decoy;\nimpl Decoy {\n    pub fn run_direct(&self) -> u32 { 3 }\n}\n\
+          pub fn call() -> u32 {\n    app::go_run() + app::run_direct()\n}\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    assert_eq!(
+        confidence_of(&edges, "other::call", "app::expand::run"),
+        "high"
+    );
+    assert_eq!(
+        confidence_of(&edges, "other::call", "app::expand::run_direct"),
+        "high"
+    );
+    assert!(
+        !edges
+            .iter()
+            .any(|(_, d, _)| d == "other::Decoy::run_direct"),
+        "the re-export, not a same-named method, is the callee: {edges:?}"
+    );
+}
+
+/// WS17: `super().m()` binds `high` only through bases the calling file
+/// anchors. A base imported from a dependency (`from django.test import
+/// TestCase`) is not the workspace's own `TestCase`, though bases are
+/// recorded by bare name and the walk finds the workspace one.
+#[test]
+fn python_super_through_a_dependency_base_is_not_high() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "app/__init__.py", b"");
+    write(
+        tmp.path(),
+        "app/base.py",
+        b"class TestCase:\n    def setUp(self):\n        return 1\n\n\
+          class Base:\n    def ready(self):\n        return 2\n",
+    );
+    write(
+        tmp.path(),
+        "app/tests.py",
+        b"from django.test import TestCase\nfrom app.base import Base\n\n\
+          class Outside(TestCase):\n    def setUp(self):\n        super().setUp()\n\n\
+          class Inside(Base):\n    def ready(self):\n        return super().ready()\n",
+    );
+    let edges = edge_confidences(tmp.path());
+    assert_eq!(
+        confidence_of(&edges, "app.tests.Inside.ready", "app.base.Base.ready"),
+        "high"
+    );
+    for (s, d, c) in &edges {
+        if s == "app.tests.Outside.setUp" {
+            assert_eq!(c, "medium", "{s} -> {d}: {edges:?}");
+        }
+    }
+}

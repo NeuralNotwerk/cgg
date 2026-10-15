@@ -622,6 +622,7 @@ impl<'a> ElixirWalker<'a> {
             value_ref: false,
             paren_less: false,
             typed_receiver: false,
+            weak_receiver_type: false,
         });
     }
 

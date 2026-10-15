@@ -464,6 +464,7 @@ impl<'a> RubyWalker<'a> {
                 value_ref: false,
                 paren_less: false,
                 typed_receiver: false,
+                weak_receiver_type: false,
                 name: simple,
                 receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
                 site_line: line,

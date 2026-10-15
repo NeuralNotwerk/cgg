@@ -657,10 +657,17 @@ pub fn link_file_with_cap(
                 let (targets, confidence) = if is_clause_language(&facts.language) {
                     clause_targets(&facts.language, &candidates, rref.arity)
                 } else {
-                    (
-                        overloads_for_arity(&facts.language, &candidates, rref.arity),
-                        Confidence::Medium,
-                    )
+                    // The argument count leaves one overload: the others
+                    // provably cannot take the call, so the callee is
+                    // known, not guessed.
+                    let targets =
+                        overloads_for_arity(&facts.language, &candidates, rref.arity);
+                    let confidence = if targets.len() == 1 {
+                        Confidence::High
+                    } else {
+                        Confidence::Medium
+                    };
+                    (targets, confidence)
                 };
                 // One certain callee is not a guess; the cap bounds guesses
                 // among distinct targets, and in an overloading language

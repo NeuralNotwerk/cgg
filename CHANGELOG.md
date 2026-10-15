@@ -9,6 +9,79 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Changed
+
+- **Edge confidence is calibrated: `high` now means the binding is
+  structurally certain (WS17).** A call bound to exactly one definition
+  through structure was reported `medium` whenever the step that found it
+  was not one of the few that granted `high` — 6,346 of 6,638 cross-file
+  bindings in one Rust workspace, including `use crate_x::m; m::f()` and
+  `crate_x::f()` through a crate-root `pub use`. A single binding is now
+  `high` when the step that made it is structural and nothing about it was
+  chosen:
+  - an exact qualified path the call writes (`a::b::f()`, `pkg.Cls.m()`)
+    or an import, `use`, module alias, `crate::`/`self::`/`super::` or
+    opened namespace anchors (one opened module only), with one callable
+    carrying that name (no vendored copies, `#[cfg]` twins or stubs);
+  - Rust: a relative path resolved from inside the caller's crate, when no
+    other enclosing module holds the same path; `self.m()` found in
+    another `impl` block of the caller's own type;
+  - a typed receiver whose type is known — a declared parameter, field or
+    local in scope, a cast or construction — looked up on a type that one
+    declaration site owns in the tree (one owner path where qualified
+    names carry the module; one crate for Rust; one directory for Go/C#;
+    one file elsewhere), and, where the calling file imports that type by
+    name, imported from that very path. Python and JS/TS record types
+    without the module they came through, so there the type must be
+    declared in the calling file or imported by name from the candidate's
+    own package (Python); a dotted Python type (`pd.Series(...)`) must
+    match the candidate's path;
+  - a member of the calling class (Java/C#/Ruby bare calls) declared on
+    the class itself with nothing below it overriding it;
+  - an inherited member or `super.m()`, when the classes involved are each
+    the only type of their name, the calling file anchors the class's
+    bases (a dependency's `TestCase` is not the workspace's), and exactly
+    one ancestor declares the member (Dart mixins, Scala traits and Python
+    multiple bases otherwise leave the linearization to guess). Scala,
+    Kotlin and Groovy `super` is never certain (anonymous class bodies are
+    recorded on the enclosing class);
+  - an overload set the argument count cuts to one member (intra-file and
+    cross-file).
+
+  It stays `medium` for name matches without an import link, duck/by-name
+  fan-out, several candidates, anything over or near the fan-out cap, a
+  typed lookup whose type name several declarations share, calls inside
+  minified files, and receivers typed by a guess: type propagation now
+  marks a rewrite it inferred (`RefRecord::weak_receiver_type`) — a
+  variable typed from the file-wide map with no declaration of that type in
+  the calling function or at file level, a return-type name match, the
+  constructor heuristic, or (Python) a local built through a module
+  (`x = mod.Cls()`, `FileFacts::module_typed_locals`). Such a receiver is
+  never `high`, through any step. Low stays low.
+
+  Full corpus (283 repositories): 574,663 edges `medium` → `high`, 1,836
+  `high` → `medium` (Python, all receivers typed by a guess — pytest
+  fixture parameters typed from another function's local, mostly).
+  Medium share of all edges 48.2% → 38.6%; share of collapsed mermaid
+  arrows with no `high` site 48.1% → 38.7% (Java 78.8% → 50.2%, Rust
+  64.7% → 41.0%, Dart 62.8% → 42.2%, C++ 71.6% → 60.4%, Haskell 50.9% →
+  28.4%). On `neurosymbolic_kb` 44.6% → 20.2%. Precision of the
+  promotions, judged by reading source at site and target: Java 35/35,
+  C++ 30/30, Rust 30/30, Kotlin 30/30, C# 30/30, Ruby 30/30, Scala 30/30,
+  Python 30/30, Go 30/30, Dart 30/30, after reverting the classes the
+  first samples caught (Dart mixin `super`, Python types read through
+  `pd.`/dependency bases, Scala imported `Configurable`, Scala anonymous
+  `super`, Go `form.F()` through a local named like the package, TS `Log`
+  matched by name). What stays `medium` was judged right about half the
+  time (40-edge sample across 12 languages).
+- **Rust: `use child::x;` and `pub use child::{x, y as z};` in a module
+  that declares `mod child` name the child module** (2018 uniform paths),
+  so calls through a crate-root re-export (`nkb_community::run_expansion`,
+  `nkb_dream::backpressure_snapshot`) bind exactly instead of falling
+  through to a by-name fan-out.
+- *Performance (WS17):* paired runs on 11 repositories (median of 5),
+  none ≥1 s; total 36.9 s → 37.4 s (+1.4%, load-noisy).
+
 ### Fixed
 
 - **Pre-0.11.0 audit fixes (WS16).** Each was found by auditing the
@@ -1002,6 +1075,20 @@ otherwise change the default graph.
 
 ### Compatibility
 
+- **WS17 changes confidences, not edges, except in Rust.** 574,663 edges
+  rise to `high` and 1,836 Python edges fall to `medium` (see *Changed*);
+  a consumer filtering on `high` now keeps far more of the graph, and a
+  rendering that marks non-`high` arrows marks far fewer. The Rust
+  child-module `use` fix removes 34 edges and adds 112 (5 repositories):
+  removed are wrong bindings to another crate's same-named type
+  (`salvo_csrf::finder::HeaderFinder::new` from `salvo_jwt_auth`'s tests,
+  the `openssl` `Keycert::new` from the `rustls` module, `AppState::new`
+  of another example crate) and a by-name fan-out of
+  `nkb_community::rebuild` onto two unrelated trait methods; added are the
+  calls those paths actually name (87 `salvo` chained builder calls, 11
+  aliased re-exports such as `backpressure_snapshot`, 13 `FakeEnv`
+  builder calls through `pub use fake::FakeEnv`). Dead-code findings are
+  unchanged.
 - **The default graph changes.** Full corpus, 283 repositories:
   146,535 edges removed, 208 added. Removed by language: Go 64,584
   (58,597 in `hcl-terraform-aws`, mostly `knownvalue.StringExact` from

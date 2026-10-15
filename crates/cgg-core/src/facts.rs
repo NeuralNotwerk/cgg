@@ -453,6 +453,17 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub typed_receiver: bool,
 
+    /// Set by type propagation when it rewrote `receiver_hint` to a type
+    /// it only guessed at: a variable's type read from the file-wide
+    /// last-write-wins map where no declaration in the calling function
+    /// (or a field / top-level one) confirms it, a return-type name match,
+    /// or a constructor heuristic. The rewrite still drives resolution
+    /// exactly as before; the flag only keeps a binding through that
+    /// receiver from being reported at `high` confidence, which means the
+    /// receiver's type is known, not inferred.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub weak_receiver_type: bool,
+
     /// The type of the call's single argument, where its syntax states it
     /// (a literal, `format!`, a `.to_string()` call): `&str`, `String`,
     /// `char`, `u8`. A Rust type implementing one generic trait several
@@ -549,6 +560,12 @@ pub struct FileFacts {
     /// only add precision, never drop a call 0.8.5 resolved.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub untyped_receivers: Vec<(u32, String, String)>,
+    /// Locals whose recorded type (`LocalType`) was read off a call
+    /// through a module (`x = mod.Cls(…)`, recorded as the bare `Cls`): the
+    /// module the type came from is lost, so a receiver typed through one
+    /// of these names is a guess (`RefRecord::weak_receiver_type`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub module_typed_locals: Vec<String>,
     /// Package / namespace / module names under which this file's code
     /// is importable by the rest of the tree, as the language's own
     /// declarations or manifests state them: the Java or Kotlin
@@ -835,6 +852,7 @@ impl FileFacts {
             unified_decls: Vec::new(),
             type_aliases: Vec::new(),
             untyped_receivers: Vec::new(),
+            module_typed_locals: Vec::new(),
             packages: Vec::new(),
             locals: Vec::new(),
             type_spans: Vec::new(),

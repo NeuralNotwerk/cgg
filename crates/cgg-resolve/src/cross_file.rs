@@ -574,6 +574,12 @@ fn member_of_calling_class(
     derived_by_base: &HashMap<(String, String), Vec<String>>,
     fanout_cap: usize,
     capped: &mut u32,
+    // Set when the member is structurally certain: declared by the
+    // calling class itself (its exact owner path) with nothing below it
+    // overriding it, or inherited from a base that, like the calling
+    // class, is the only type of its name (`CertainCtx`).
+    cert: &CertainCtx<'_>,
+    certain: &mut bool,
 ) -> Option<Option<Vec<CallableId>>> {
     let (own_path, _) = crate::names::split_last_segment(caller_qn)?;
     let own = owner_from_qn(caller_qn)?;
@@ -593,6 +599,7 @@ fn member_of_calling_class(
                 .collect()
         })
         .unwrap_or_default();
+    let own_class = !direct.is_empty();
     let found = if direct.is_empty() {
         resolve_via_bases(lang, own, name, by_owner_method, bases_by_owner)?
     } else {
@@ -608,6 +615,20 @@ fn member_of_calling_class(
     // refused and recorded.
     let overrides = overrides_below(lang, &[own], name, by_owner_method, derived_by_base);
     if overrides.is_empty() {
+        *certain = if own_class {
+            cert.path(&set)
+        } else {
+            cert.owner_name(lang, own)
+                && cert.owner(&set)
+                && cert.bases_anchored(own, bases_by_owner)
+                && one_declaring_ancestor(
+                    lang,
+                    own,
+                    name,
+                    by_owner_method,
+                    bases_by_owner,
+                )
+        };
         return Some(Some(set));
     }
     let mut set = set;
@@ -852,6 +873,30 @@ fn rewrite_rust_use_path(path: &str, crate_root: &str, own_module: &str) -> Stri
     path.to_string()
 }
 
+/// Rust 2018 uniform paths: in a module that declares `mod expand;`,
+/// `use expand::run;` and `pub use expand::run;` name the child module,
+/// `<own module>::expand::run` — the qualified name the definition
+/// carries. `None` when the path's head is a crate root (an external or
+/// workspace crate, which wins) or names no child module of `own_module`.
+fn rust_child_module_path(
+    path: &str,
+    own_module: &str,
+    vocab: &RustPathVocab,
+) -> Option<String> {
+    let head = path.split("::").next()?;
+    if own_module.is_empty()
+        || head.is_empty()
+        || !path.contains("::")
+        || vocab.crate_roots.contains(head)
+    {
+        return None;
+    }
+    vocab
+        .module_paths
+        .contains(&format!("{own_module}::{head}"))
+        .then(|| format!("{own_module}::{path}"))
+}
+
 /// Resolve call-site references across files using import tables.
 pub fn resolve(
     graph: &Graph,
@@ -1030,6 +1075,8 @@ pub fn resolve(
                 .push(c.id);
         }
     }
+
+    let unique_owners = OwnerFacts::build(graph);
 
     // Crate-root first segments seen in Rust qualified names — the set
     // of crates cgg actually indexed for this workspace. A path-headed
@@ -1339,6 +1386,8 @@ pub fn resolve(
                 continue;
             }
             let target = rewrite_rust_use_path(imp.path.trim(), &crate_root, &own_module);
+            let target = rust_child_module_path(&target, &own_module, &rust_path_heads)
+                .unwrap_or(target);
             let exported_name = if imp.alias.is_empty() {
                 target.rsplit("::").next().unwrap_or(&target).to_string()
             } else {
@@ -1697,7 +1746,11 @@ pub fn resolve(
                         // to interpret it.
                         let raw = imp.path.trim();
                         let full = match (&rust_crate_root, &rust_module_for_use) {
-                            (Some(cr), Some(om)) => rewrite_rust_use_path(raw, cr, om),
+                            (Some(cr), Some(om)) => {
+                                let full = rewrite_rust_use_path(raw, cr, om);
+                                rust_child_module_path(&full, om, &rust_path_heads)
+                                    .unwrap_or(full)
+                            }
                             _ => raw.to_string(),
                         };
                         let full = full.as_str();
@@ -2439,6 +2492,7 @@ pub fn resolve(
                     &scala_wild,
                     &qn_collisions,
                     &overloads,
+                    &unique_owners,
                     &mut refused_module,
                     &mut module_certain,
                     &mut capped,
@@ -2524,6 +2578,7 @@ pub fn resolve(
                                     &scala_wild,
                                     &qn_collisions,
                                     &overloads,
+                                    &unique_owners,
                                     &mut m2,
                                     &mut mc2,
                                     &mut c2,
@@ -2662,8 +2717,14 @@ pub fn resolve(
                     _ if guessed => Confidence::Low,
                     _ if untyped_fallback => Confidence::Medium,
                     // Looked up by its exact name in the one module the
-                    // call is written through.
-                    Some(cids) if cids.len() == 1 && module_certain => Confidence::High,
+                    // call is written through, or bound by structure alone
+                    // (`CertainCtx`) — through a receiver whose type is
+                    // known, not guessed (`RefRecord::weak_receiver_type`).
+                    Some(cids)
+                        if cids.len() == 1 && module_certain && !r.weak_receiver_type =>
+                    {
+                        Confidence::High
+                    }
                     Some(cids)
                         if cids.len() == 1
                             && (r.receiver_hint.is_empty()
@@ -4313,6 +4374,408 @@ fn narrow_rust_crate_head(
     if same.is_empty() { cids.to_vec() } else { same }
 }
 
+/// Owner names (by language, as [`owner_from_qn`] reduces them) that one
+/// declaration site owns in the whole tree, so a lookup by that bare name
+/// cannot have meant another type. What counts as one site depends on
+/// what the language's qualified names carry:
+///
+/// * the full owner path where it includes the module or package —
+///   JVM languages, Python, C++, Ruby, Objective-C (a C++ class defined
+///   across a header and its `.cpp`, or a Ruby class reopened in several
+///   files, is still one path);
+/// * Rust: the crate (inherent and trait impls of one type live in
+///   several modules of its crate, each with its own path);
+/// * Go and C#: the owner path in one directory (a package's files, a
+///   `partial` class beside its other parts) — their qualified names
+///   carry the package name or no namespace at all;
+/// * everywhere else (Dart, Scala, Swift, PHP, JS/TS, Lua, …), whose
+///   qualified names carry no module: the owner path in one file.
+///
+/// Two types sharing a bare name anywhere in the tree make it ambiguous:
+/// a lookup by it could have reached the wrong one, so a binding through
+/// it is never `high` (`binding_certain`).
+fn unique_owner_names(graph: &Graph) -> std::collections::HashSet<(String, String)> {
+    // One declaration site: an owner path, and the file or directory
+    // where the language needs one (see above).
+    type Site<'g> = (&'g str, Option<&'g std::path::Path>);
+    let mut seen: HashMap<(&str, &str), Option<Site<'_>>> = HashMap::new();
+    for c in graph.callables.values() {
+        let Some(owner) = owner_from_qn(&c.qualified_name) else {
+            continue;
+        };
+        let lang = c.language.as_str();
+        let path =
+            crate::names::split_last_segment(&c.qualified_name).map_or("", |(p, _)| p);
+        let file_path = || graph.files.get(&c.file).map(|f| f.path.as_path());
+        let site: Site<'_> = match lang {
+            "java" | "kotlin" | "groovy" | "python" | "cpp" | "ruby" | "objc" => {
+                (path, None)
+            }
+            "rust" => (c.qualified_name.split("::").next().unwrap_or(""), None),
+            "go" | "csharp" => (path, file_path().and_then(|p| p.parent())),
+            _ => (path, file_path()),
+        };
+        match seen.entry((lang, owner)) {
+            std::collections::hash_map::Entry::Vacant(v) => {
+                v.insert(Some(site));
+            }
+            std::collections::hash_map::Entry::Occupied(mut o) => {
+                if o.get().is_some_and(|s| s != site) {
+                    o.insert(None);
+                }
+            }
+        }
+    }
+    seen.into_iter()
+        .filter(|(_, v)| v.is_some())
+        .map(|((l, o), _)| (l.to_string(), o.to_string()))
+        .collect()
+}
+
+/// What the tree says about owners (types, classes, modules), for judging
+/// whether a binding through one is certain (`CertainCtx`).
+struct OwnerFacts {
+    /// See [`unique_owner_names`].
+    unique: std::collections::HashSet<(String, String)>,
+    /// Every owner path some callable is declared under, by language
+    /// (`com.a.Store`, `shop.store.Store`): whether an imported class is
+    /// one the tree declares.
+    paths: std::collections::HashSet<(String, String)>,
+    /// `(file, bare owner)` for every owner a file declares a callable of.
+    in_file: std::collections::HashSet<(FileId, String)>,
+}
+
+impl OwnerFacts {
+    fn build(graph: &Graph) -> Self {
+        let mut paths = std::collections::HashSet::new();
+        let mut in_file = std::collections::HashSet::new();
+        for c in graph.callables.values() {
+            if let Some((p, _)) = crate::names::split_last_segment(&c.qualified_name) {
+                paths.insert((c.language.clone(), p.to_string()));
+            }
+            if let Some(o) = owner_from_qn(&c.qualified_name) {
+                in_file.insert((c.file, o.to_string()));
+            }
+        }
+        Self {
+            unique: unique_owner_names(graph),
+            paths,
+            in_file,
+        }
+    }
+}
+
+/// What makes a single-candidate binding structurally certain (`high`).
+/// See [`CertainCtx::path`] and [`CertainCtx::owner`].
+struct CertainCtx<'a> {
+    graph: &'a Graph,
+    unique_owners: &'a OwnerFacts,
+    qn_collisions: &'a std::collections::HashSet<(String, String)>,
+    /// The receiver's type was a guess (`RefRecord::weak_receiver_type`),
+    /// or the receiver was recovered from a macro's token tree.
+    weak_receiver: bool,
+    /// The calling file and its by-name imports, for [`Self::anchored`].
+    lang: &'a str,
+    caller_file: FileId,
+    direct_imports: &'a HashMap<String, Vec<String>>,
+}
+
+impl CertainCtx<'_> {
+    /// A lookup by a full path the call wrote or an import anchored (an
+    /// exact qualified name, after re-exports) is certain when exactly
+    /// one callable carries that name — copies of it (a vendored module,
+    /// `#[cfg]` twins, a test stub) leave the choice open.
+    fn path(&self, cids: &[CallableId]) -> bool {
+        !self.weak_receiver
+            && !self.minified_caller()
+            && cids.iter().all(|c| {
+                self.graph.callables.get(c).is_some_and(|n| {
+                    !self
+                        .qn_collisions
+                        .contains(&(n.language.clone(), n.qualified_name.clone()))
+                })
+            })
+    }
+
+    /// A lookup by a bare type name (a receiver's type, a written `Type.m`,
+    /// a base found by name) is certain when, besides [`Self::path`], only
+    /// one declaration site in the tree owns that name
+    /// ([`unique_owner_names`]).
+    fn owner(&self, cids: &[CallableId]) -> bool {
+        self.path(cids)
+            && cids.iter().all(|c| {
+                self.graph.callables.get(c).is_some_and(|n| {
+                    owner_from_qn(&n.qualified_name).is_some_and(|o| {
+                        self.unique_owners
+                            .unique
+                            .contains(&(n.language.clone(), o.to_string()))
+                    })
+                })
+            })
+    }
+
+    /// Whether a base a class names by its bare name (`TestCase`,
+    /// `Column`) is a type of the tree rather than a dependency's type of
+    /// the same name. Bases are recorded bare (`tables.Column` is
+    /// `Column`), so the calling file's imports decide: imported by name,
+    /// the import must name a class the tree declares; otherwise, in
+    /// Python, the file must declare it itself (anything else came in
+    /// through a module), and elsewhere it is the caller's package's or a
+    /// wildcard import's.
+    fn base_anchored(&self, base: &str) -> bool {
+        let base = crate::names::normalize_owner(base);
+        match self.direct_imports.get(base) {
+            Some(ps) if !ps.is_empty() => ps.iter().any(|p| {
+                self.unique_owners
+                    .paths
+                    .contains(&(self.lang.to_string(), p.clone()))
+            }),
+            _ if self.lang == "python" => self
+                .unique_owners
+                .in_file
+                .contains(&(self.caller_file, base.to_string())),
+            _ => true,
+        }
+    }
+
+    /// A calling file that is minified (average line over 1,000 bytes, as
+    /// a bundle's is): its one-letter class and variable names are the
+    /// bundler's, recorded and matched like any other, and a binding
+    /// among them is never reported as certain.
+    fn minified_caller(&self) -> bool {
+        self.graph
+            .files
+            .get(&self.caller_file)
+            .is_some_and(|f| f.size_bytes > 1_000 * u64::from(f.lines.max(1)))
+    }
+
+    /// [`Self::base_anchored`] for every base `owner` declares, read
+    /// against the calling file's imports — so only for a class the
+    /// calling file declares (its own class, for `super` and bare calls).
+    fn bases_anchored(
+        &self,
+        owner: &str,
+        bases_by_owner: &HashMap<(String, String), Vec<String>>,
+    ) -> bool {
+        bases_by_owner
+            .get(&(self.lang.to_string(), owner.to_string()))
+            .is_none_or(|bs| bs.iter().all(|b| self.base_anchored(b)))
+    }
+
+    /// Whether the bare owner name `owner` belongs to one declaration site.
+    fn owner_name(&self, lang: &str, owner: &str) -> bool {
+        self.unique_owners
+            .unique
+            .contains(&(lang.to_string(), owner.to_string()))
+    }
+
+    /// Whether a type the call names by its bare name `ty` (a receiver's
+    /// type, a written `Type.m`) is the one the candidates are declared on
+    /// as far as the calling file's imports can tell. Some plugins record
+    /// a type without the module it was reached through (Python's
+    /// `pd.Series(…)` and `x: mod.Foo` are both `Series`/`Foo`; a JS/TS
+    /// type is matched by name, not through the module its import names),
+    /// so there the type must be declared in the calling file or imported
+    /// by name from the candidates' own package. Elsewhere a by-name
+    /// import of the type that names another path is a different type
+    /// (Java/Kotlin `import x.y.T`, Scala `import pkg.T`).
+    fn anchored(&self, written: &str, cids: &[CallableId]) -> bool {
+        let written = written.trim();
+        let ty = crate::names::normalize_owner(
+            written.rsplit([':', '.']).next().unwrap_or(written),
+        );
+        let nodes: Vec<&cgg_core::graph::CallableNode> = cids
+            .iter()
+            .filter_map(|c| self.graph.callables.get(c))
+            .collect();
+        if nodes.len() != cids.len() {
+            return false;
+        }
+        let in_caller_file = nodes.iter().all(|n| n.file == self.caller_file);
+        let imports = self
+            .direct_imports
+            .get(ty)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let owner_path = |n: &cgg_core::graph::CallableNode| {
+            crate::names::split_last_segment(&n.qualified_name)
+                .map_or(String::new(), |(p, _)| p.to_string())
+        };
+        match self.lang {
+            "javascript" | "typescript" => in_caller_file,
+            // A dotted type (`pd.Series(…)`, `models.Foo`) names its module
+            // by the alias written: anchored only when the candidates'
+            // owner path ends with it.
+            "python" if written.contains('.') => nodes.iter().all(|n| {
+                let path = owner_path(n);
+                path == written || path.ends_with(&format!(".{written}"))
+            }),
+            "python" => {
+                in_caller_file
+                    || imports.iter().any(|p| {
+                        p.contains('.')
+                            && p.rsplit('.').next() == Some(ty)
+                            && nodes.iter().all(|n| {
+                                n.qualified_name.split('.').next() == p.split('.').next()
+                            })
+                    })
+            }
+            "java" | "kotlin" | "groovy" => {
+                imports.is_empty()
+                    || nodes.iter().all(|n| imports.contains(&owner_path(n)))
+            }
+            "scala" => {
+                imports.is_empty()
+                    || nodes.iter().all(|n| {
+                        let file = self
+                            .graph
+                            .files
+                            .get(&n.file)
+                            .map(|f| f.path.to_string_lossy().to_ascii_lowercase())
+                            .unwrap_or_default();
+                        imports.iter().any(|p| {
+                            p.rsplit_once('.').is_some_and(|(pkg, _)| {
+                                file.contains(&pkg.replace('.', "/").to_ascii_lowercase())
+                            })
+                        })
+                    })
+            }
+            _ => true,
+        }
+    }
+}
+
+/// Whether exactly one type among `owner`'s ancestors (its recorded
+/// bases, transitively, depth 8) declares `method`. Only then is the
+/// inherited member the call reaches certain whatever order the language
+/// searches its bases in (Dart mixins and Scala traits last-first, Python
+/// left to right): with two declaring ancestors the first one the walk
+/// meets is a guess at the linearization.
+fn one_declaring_ancestor(
+    lang: &str,
+    owner: &str,
+    method: &str,
+    by_owner_method: &HashMap<(String, String, String), Vec<CallableId>>,
+    bases_by_owner: &HashMap<(String, String), Vec<String>>,
+) -> bool {
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut frontier: Vec<String> = vec![owner.to_string()];
+    let mut declaring = 0usize;
+    for _ in 0..8 {
+        let mut next: Vec<String> = Vec::new();
+        for t in std::mem::take(&mut frontier) {
+            if !seen.insert(t.clone()) {
+                continue;
+            }
+            if t != owner
+                && by_owner_method
+                    .get(&(lang.to_string(), t.clone(), method.to_string()))
+                    .is_some_and(|v| !v.is_empty())
+            {
+                declaring += 1;
+                if declaring > 1 {
+                    return false;
+                }
+            }
+            if let Some(bases) = bases_by_owner.get(&(lang.to_string(), t)) {
+                next.extend(bases.iter().cloned());
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        frontier = next;
+    }
+    declaring == 1
+}
+
+/// Languages where `super` inside an anonymous class or object expression
+/// is recorded against the enclosing named class (Scala `new T { … }`,
+/// Kotlin `object : T()`, Groovy anonymous classes): the class whose bases
+/// the walk starts from may not be the one `super` names, so a binding
+/// through it is never certain.
+fn super_owner_may_be_anonymous(lang: &str) -> bool {
+    matches!(lang, "scala" | "kotlin" | "groovy")
+}
+
+/// Rust: whether a typed owner lookup's result is the type the receiver
+/// names. The lookup is by the type's bare name, which several crates may
+/// share, so the candidates must sit in the crate the receiver anchors:
+///
+/// * a path receiver (`nkb_dream::Registry::with_store`, `crate::x::T` as
+///   rewritten) whose head is that crate, or a module or type the file
+///   `use`s from it;
+/// * a bare type name the file `use`s from that crate;
+/// * otherwise a type of the caller's own crate, when no other crate
+///   declares a type of that name.
+///
+/// A receiver typed by a guess (`CertainCtx::weak_receiver`) never is.
+fn rust_owner_certain(
+    graph: &Graph,
+    cids: &[CallableId],
+    rh: &str,
+    caller_qn: Option<&str>,
+    direct_imports: &HashMap<String, Vec<String>>,
+    cert: &CertainCtx<'_>,
+) -> bool {
+    if !cert.path(cids) {
+        return false;
+    }
+    let crate_of = |qn: &str| {
+        qn.split("::")
+            .next()
+            .unwrap_or("")
+            .trim_start_matches('<')
+            .to_string()
+    };
+    let Some(krate) = cids
+        .iter()
+        .filter_map(|c| graph.callables.get(c))
+        .map(|n| crate_of(&n.qualified_name))
+        .reduce(|a, b| if a == b { a } else { String::new() })
+        .filter(|k| !k.is_empty())
+    else {
+        return false;
+    };
+    let imported_from_crate = |name: &str| {
+        direct_imports
+            .get(name)
+            .is_some_and(|ps| ps.len() == 1 && crate_of(&ps[0]) == krate)
+    };
+    let rh = rh.trim();
+    if let Some((head, _)) = rh.split_once("::") {
+        let head = head.trim();
+        return head == krate || imported_from_crate(head);
+    }
+    let bare = crate::names::normalize_owner(rh);
+    if direct_imports.contains_key(bare) {
+        return imported_from_crate(bare);
+    }
+    caller_qn.is_some_and(|q| crate_of(q) == krate)
+        && cids.iter().all(|c| {
+            graph.callables.get(c).is_some_and(|n| {
+                owner_from_qn(&n.qualified_name)
+                    .is_some_and(|o| cert.owner_name("rust", o))
+            })
+        })
+}
+
+/// Whether a receiver is written as a path (`a::b`, `a.b`) rather than a
+/// single name.
+fn rh_is_path(rh: &str) -> bool {
+    rh.contains("::") || rh.contains('.')
+}
+
+/// Languages whose qualified names carry the module or package, so an
+/// exact lookup of a multi-segment path is anchored by it (see
+/// [`unique_owner_names`]).
+fn qn_carries_module(lang: &str) -> bool {
+    matches!(
+        lang,
+        "java" | "kotlin" | "groovy" | "python" | "cpp" | "ruby" | "objc" | "rust"
+    )
+}
+
 /// Whether every candidate is one method's overloads: an overloading
 /// language, one file, one qualified name. The callee is then certain and
 /// only the overload is open, so the fan-out cap — which bounds guesses
@@ -4715,10 +5178,15 @@ fn try_resolve_ref(
     qn_collisions: &std::collections::HashSet<(String, String)>,
     // `(file, qualified name)` → the overload set it declares.
     overloads: &HashMap<(FileId, &str), Vec<CallableId>>,
+    // Owner names one declaration site owns (see `unique_owner_names`).
+    unique_owners: &OwnerFacts,
     // Set when the call goes through a workspace module that provides
     // nothing it can name: the import as written.
     refused_module: &mut Option<String>,
-    // Set when the binding came from an exact lookup inside the module.
+    // Set when the binding is structurally certain: an exact lookup inside
+    // the module the call is written through, an exact path the call or
+    // an import anchors, or a known type that one declaration site owns
+    // (see `CertainCtx`). The caller reports a single such binding `high`.
     module_certain: &mut bool,
     // Set to the candidate count when the fan-out cap rejected a
     // non-empty set, so the caller can record the drop instead of
@@ -4728,6 +5196,15 @@ fn try_resolve_ref(
     // initializer, so the caller can say that rather than "no candidate".
     no_ctor: &mut bool,
 ) -> Option<Vec<CallableId>> {
+    let cert = CertainCtx {
+        graph,
+        unique_owners,
+        qn_collisions,
+        weak_receiver: r.weak_receiver_type || r.from_macro_arg,
+        lang,
+        caller_file,
+        direct_imports,
+    };
     // A paren-less member site (`b.size`) binds only through a receiver
     // typed by `type_hints` (rewritten to a type name), `this`/`super`, or
     // as a bare name; through an untyped value nothing can bind it (it is
@@ -4805,6 +5282,21 @@ fn try_resolve_ref(
                     bases_by_owner,
                 );
                 if found.is_some() || class_record_langs.contains(lang) {
+                    // The caller's class and the base the chain found are
+                    // each the only type of their name.
+                    *module_certain = !super_owner_may_be_anonymous(lang)
+                        && found.as_deref().is_some_and(|f| {
+                            cert.owner_name(lang, own)
+                                && cert.owner(f)
+                                && cert.bases_anchored(own, bases_by_owner)
+                                && one_declaring_ancestor(
+                                    lang,
+                                    own,
+                                    &r.name,
+                                    by_owner_method,
+                                    bases_by_owner,
+                                )
+                        });
                     return found;
                 }
             }
@@ -5168,6 +5660,8 @@ fn try_resolve_ref(
                 derived_by_base,
                 fanout_cap,
                 capped,
+                &cert,
+                module_certain,
             )
         {
             return member;
@@ -5268,6 +5762,9 @@ fn try_resolve_ref(
         if let Some(target) = module_aliases.get(&r.name) {
             // Try target.name (the full path IS the callable)
             if let Some(cid) = lookup_with_reexports(lang, target, by_qn, reexports) {
+                // The import names the callable's full path.
+                *module_certain =
+                    !bare_qns && qn_carries_module(lang) && cert.path(&[cid]);
                 return Some(vec![cid]);
             }
             // Zig `const assert = std.debug.assert;` (FINDINGS R19): the
@@ -5450,6 +5947,24 @@ fn try_resolve_ref(
             for joiner in [".", "::"] {
                 let qn = format!("{prefix}{joiner}{}", r.name);
                 if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
+                    // Certain when no other opened module or namespace
+                    // declares the name too: the first one listed is not
+                    // a reason to prefer it.
+                    let mut hits: Vec<CallableId> = Vec::new();
+                    for p in unqualified_prefixes {
+                        for j in [".", "::"] {
+                            if let Some(c) = lookup_with_reexports(
+                                lang,
+                                &format!("{p}{j}{}", r.name),
+                                by_qn,
+                                reexports,
+                            ) && !hits.contains(&c)
+                            {
+                                hits.push(c);
+                            }
+                        }
+                    }
+                    *module_certain = hits.len() == 1 && cert.path(&hits);
                     return Some(with_overloads(cid));
                 }
             }
@@ -5554,11 +6069,14 @@ fn try_resolve_ref(
             let rest = r.receiver_hint.strip_prefix(first).unwrap_or("");
             let qn = format!("{module}{rest}.{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
+                // The exact path the module alias anchors.
+                *module_certain = cert.path(&[cid]);
                 return Some(vec![cid]);
             }
             // Rust path joiner.
             let qn2 = format!("{module}{}::{}", rest.replace('.', "::"), r.name);
             if let Some(cid) = lookup_with_reexports(lang, &qn2, by_qn, reexports) {
+                *module_certain = cert.path(&[cid]);
                 return Some(vec![cid]);
             }
             // Definitions in some languages don't carry a module prefix,
@@ -5592,11 +6110,34 @@ fn try_resolve_ref(
         // form.
         let mut rh_buf = r.receiver_hint.trim().to_string();
         let rh = rh_buf.as_str();
+        // An exact lookup of the receiver as written (or as typed): a path
+        // that carries its module is anchored by it; a bare type name is
+        // certain only when one declaration site owns it.
+        let written_path = |cid: CallableId| {
+            let rh = r.receiver_hint.trim();
+            if qn_carries_module(lang) && rh_is_path(rh) {
+                cert.path(&[cid])
+            } else {
+                // A bare owner: a type, never a Go package (a Go free
+                // function's qualified name is `package.F`, and `form.F()`
+                // through a local named like the caller's own package is
+                // not `package form`'s `F` — Go never qualifies its own
+                // package, and an imported one was settled by step 0c).
+                !(lang == "go"
+                    && graph
+                        .callables
+                        .get(&cid)
+                        .is_some_and(|n| n.kind == CallableKind::Function))
+                    && cert.owner(&[cid])
+                    && cert.anchored(rh, &[cid])
+            }
+        };
         if !rh.is_empty() && !bare_qns {
             // Direct paths in both joiners.
             let direct_dot = format!("{rh}.{}", r.name);
             if let Some(cid) = lookup_with_reexports(lang, &direct_dot, by_qn, reexports)
             {
+                *module_certain = written_path(cid);
                 return Some(vec![cid]);
             }
             let direct = format!("{rh}::{}", r.name);
@@ -5614,6 +6155,7 @@ fn try_resolve_ref(
                         .get(&(lang.to_string(), rh.to_string(), r.name.clone()))
                         .is_some_and(|v| v.len() > 1);
                 if !several {
+                    *module_certain = written_path(cid);
                     return Some(vec![cid]);
                 }
             }
@@ -5631,12 +6173,20 @@ fn try_resolve_ref(
                 // Try crate-only first, then progressively longer
                 // prefixes. Stop before the last segment (that's
                 // the callable's own name).
-                for i in 1..segs.len() {
+                let found_at = |i: usize| {
                     let prefix = segs[..i].join("::");
                     let candidate = format!("{prefix}::{rh}::{}", r.name);
-                    if let Some(cid) =
-                        lookup_with_reexports(lang, &candidate, by_qn, reexports)
-                    {
+                    lookup_with_reexports(lang, &candidate, by_qn, reexports)
+                };
+                for i in 1..segs.len() {
+                    if let Some(cid) = found_at(i) {
+                        // Certain when no other enclosing module of the
+                        // caller holds the same relative path: the
+                        // shortest prefix is tried first, not because it
+                        // is the one `rustc` would pick.
+                        *module_certain = cert.path(&[cid])
+                            && (i + 1..segs.len())
+                                .all(|j| found_at(j).is_none_or(|c| c == cid));
                         return Some(vec![cid]);
                     }
                 }
@@ -5646,6 +6196,9 @@ fn try_resolve_ref(
             if let Some(first) = rh.split(['.', ':']).next()
                 && let Some(qns) = direct_imports.get(first)
             {
+                // The one path the file imports the head by, looked up
+                // exactly: what the import names, not a match by name.
+                let one_import = qns.len() == 1;
                 for base in qns {
                     let rest = rh.strip_prefix(first).unwrap_or("");
                     let rewritten_colon =
@@ -5653,12 +6206,14 @@ fn try_resolve_ref(
                     if let Some(cid) =
                         lookup_with_reexports(lang, &rewritten_colon, by_qn, reexports)
                     {
+                        *module_certain = one_import && cert.path(&[cid]);
                         return Some(vec![cid]);
                     }
                     let rewritten_dot = format!("{base}{rest}.{}", r.name);
                     if let Some(cid) =
                         lookup_with_reexports(lang, &rewritten_dot, by_qn, reexports)
                     {
+                        *module_certain = one_import && cert.path(&[cid]);
                         return Some(vec![cid]);
                     }
                 }
@@ -5713,6 +6268,8 @@ fn try_resolve_ref(
                 if let Some(cid) =
                     lookup_with_reexports(lang, &candidate, by_qn, reexports)
                 {
+                    // `crate::`/`self::`/`super::` anchor the path.
+                    *module_certain = cert.path(&[cid]);
                     return Some(vec![cid]);
                 }
                 rh_buf = rewritten;
@@ -5906,6 +6463,11 @@ fn try_resolve_ref(
                 // under `using System.IO` is `System.IO.Path`'s.
                 let cs_scoped = lang == "csharp" && !rh.contains('.');
                 let mut cs_hidden = false;
+                // The type a lookup starts from is one declaration site's.
+                let owner_known = |o: &str| {
+                    let last = o.rsplit([':', '.']).next().unwrap_or(o);
+                    cert.owner_name(lang, crate::names::normalize_owner(last))
+                };
                 // An inherited method is declared on a base, not on the
                 // class the receiver names. Tried after every direct owner
                 // match below, so a subclass override always wins.
@@ -5944,10 +6506,28 @@ fn try_resolve_ref(
                         } else {
                             cids
                         };
-                        return Some(
-                            nearest_class_copies(graph, &cids, caller_file)
-                                .unwrap_or(cids),
-                        );
+                        let cids = nearest_class_copies(graph, &cids, caller_file)
+                            .unwrap_or(cids);
+                        // The receiver's type and the base the chain found
+                        // are each the only type of their name, and no
+                        // other ancestor declares the member.
+                        // Python records bases bare, so the chain can only
+                        // be read against the imports of the file that
+                        // declares the receiver's class: the caller's own.
+                        *module_certain = owner_known(owner)
+                            && cert.owner(&cids)
+                            && cert.anchored(rh, &cids)
+                            && (lang != "python"
+                                || heads.own_classes.contains(*owner)
+                                    && cert.bases_anchored(owner, bases_by_owner))
+                            && one_declaring_ancestor(
+                                lang,
+                                owner,
+                                &r.name,
+                                by_owner_method,
+                                bases_by_owner,
+                            );
+                        return Some(cids);
                     }
                 }
                 // A class the calling file declares is the one a receiver
@@ -5990,6 +6570,16 @@ fn try_resolve_ref(
                                 by_owner_method,
                                 bases_by_owner,
                             ) {
+                                *module_certain = owner_known(owner)
+                                    && cert.owner(&inherited)
+                                    && cert.bases_anchored(owner, bases_by_owner)
+                                    && one_declaring_ancestor(
+                                        lang,
+                                        owner,
+                                        &r.name,
+                                        by_owner_method,
+                                        bases_by_owner,
+                                    );
                                 return Some(inherited);
                             }
                             own_class_miss = true;
@@ -6013,13 +6603,17 @@ fn try_resolve_ref(
                                 cs_hidden = true;
                                 continue;
                             }
-                            return narrow_specializations(
+                            let found = narrow_specializations(
                                 graph, &seen, rh, fanout_cap, capped,
                             );
+                            *module_certain = found
+                                .as_deref()
+                                .is_some_and(|f| cert.owner(f) && cert.anchored(rh, f));
+                            return found;
                         }
                         if lang == "rust" {
                             let cids = narrow_rust_crate_head(graph, cids, rh);
-                            return narrow_trait_overloads(
+                            let found = narrow_trait_overloads(
                                 graph,
                                 &cids,
                                 r,
@@ -6027,11 +6621,25 @@ fn try_resolve_ref(
                                 capped,
                                 by_owner_method,
                             );
+                            *module_certain = found.as_deref().is_some_and(|f| {
+                                rust_owner_certain(
+                                    graph,
+                                    f,
+                                    rh,
+                                    caller_qn,
+                                    direct_imports,
+                                    &cert,
+                                )
+                            });
+                            return found;
                         }
                         let cids = narrow_owner_paths(graph, lang, cids, rh, caller_qn);
-                        return narrow_specializations(
-                            graph, &cids, rh, fanout_cap, capped,
-                        );
+                        let found =
+                            narrow_specializations(graph, &cids, rh, fanout_cap, capped);
+                        *module_certain = found
+                            .as_deref()
+                            .is_some_and(|f| cert.owner(f) && cert.anchored(rh, f));
+                        return found;
                     }
                 }
                 if cs_hidden {
@@ -6080,6 +6688,8 @@ fn try_resolve_ref(
                 .map(|v| v.iter().copied().filter(same_crate).collect())
                 .unwrap_or_default();
             if !own.is_empty() {
+                // The caller's own type, in its own crate.
+                *module_certain = cert.path(&own);
                 return Some(own);
             }
             if let Some(cids) =
@@ -7777,6 +8387,78 @@ mod tests {
         assert!(!is_kotlin_extension("", "x"));
     }
 
+    /// WS17: an inherited member is certain only when exactly one
+    /// ancestor declares it; two declaring ancestors (Dart mixins, Python
+    /// multiple bases) leave the linearization to guess.
+    #[test]
+    fn one_declaring_ancestor_counts_every_base() {
+        let mut by_owner_method: HashMap<(String, String, String), Vec<CallableId>> =
+            HashMap::new();
+        let mut bases_by_owner: HashMap<(String, String), Vec<String>> = HashMap::new();
+        let k = |o: &str| ("dart".to_string(), o.to_string(), "init".to_string());
+        by_owner_method.insert(k("Base"), vec![CallableId::new(1)]);
+        by_owner_method.insert(k("MixinA"), vec![CallableId::new(2)]);
+        bases_by_owner.insert(("dart".into(), "One".into()), vec!["Base".into()]);
+        bases_by_owner.insert(
+            ("dart".into(), "Two".into()),
+            vec!["Base".into(), "MixinA".into()],
+        );
+        bases_by_owner.insert(("dart".into(), "Deep".into()), vec!["One".into()]);
+        assert!(one_declaring_ancestor(
+            "dart",
+            "One",
+            "init",
+            &by_owner_method,
+            &bases_by_owner
+        ));
+        assert!(one_declaring_ancestor(
+            "dart",
+            "Deep",
+            "init",
+            &by_owner_method,
+            &bases_by_owner
+        ));
+        assert!(!one_declaring_ancestor(
+            "dart",
+            "Two",
+            "init",
+            &by_owner_method,
+            &bases_by_owner
+        ));
+        assert!(!one_declaring_ancestor(
+            "dart",
+            "One",
+            "other",
+            &by_owner_method,
+            &bases_by_owner
+        ));
+    }
+
+    /// WS17: a bare owner name is certain only when one declaration site
+    /// owns it — one owner path for languages whose qualified names carry
+    /// the module, one file for those whose names do not.
+    #[test]
+    fn unique_owner_names_by_language_site() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "a/x.dart", "dart"));
+        g.add_file(mk_file(1, "b/y.dart", "dart"));
+        g.add_file(mk_file(2, "a/X.java", "java"));
+        g.add_file(mk_file(3, "b/X.java", "java"));
+        g.add_callable(mk_callable(0, "m", "Foo::m", 0, "dart", (0, 10)));
+        g.add_callable(mk_callable(1, "n", "Foo::n", 1, "dart", (0, 10)));
+        g.add_callable(mk_callable(2, "m", "Bar::m", 0, "dart", (20, 30)));
+        g.add_callable(mk_callable(3, "m", "a.Svc.m", 2, "java", (0, 10)));
+        g.add_callable(mk_callable(4, "n", "a.Svc.n", 2, "java", (20, 30)));
+        g.add_callable(mk_callable(5, "m", "a.Dup.m", 2, "java", (40, 50)));
+        g.add_callable(mk_callable(6, "m", "b.Dup.m", 3, "java", (0, 10)));
+        let u = unique_owner_names(&g);
+        let has = |l: &str, o: &str| u.contains(&(l.to_string(), o.to_string()));
+        assert!(!has("dart", "Foo"), "declared in two files");
+        assert!(has("dart", "Bar"));
+        assert!(has("java", "Svc"));
+        assert!(!has("java", "Dup"), "two packages declare a Dup");
+    }
+
     #[test]
     fn rust_super_receiver_rewritten_via_caller_module() {
         let mut g = Graph::new();
@@ -7864,14 +8546,10 @@ mod tests {
             out.edges
         );
         assert_eq!(out.edges[0].dst, CallableId::new(0));
-        // The exact-match confidence upgrade (`resolve`'s `confidence`
-        // match arm, ~1169-1181) only grants `High` via
-        // `direct_imports`/`module_aliases`, which this path does not
-        // go through — it stays `Medium` here even though the match is
-        // exact. Promoting it is the separate "+115 sites ... to
-        // exact-High" improvement VERIFIED §3.1 describes; out of scope
-        // for this fix, which only changes `try_resolve_ref`.
-        assert_eq!(out.edges[0].confidence, Confidence::Medium);
+        // `super::` anchors the path and exactly one callable carries the
+        // qualified name it rewrites to: a structurally certain binding,
+        // `high` (WS17).
+        assert_eq!(out.edges[0].confidence, Confidence::High);
     }
 
     // c1 (c): an unresolved path-headed receiver whose head names no

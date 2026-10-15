@@ -581,6 +581,11 @@ impl<'a> Walker<'a> {
             if var_name.is_empty() {
                 return;
             }
+            if func.kind() == "attribute"
+                && !self.facts.module_typed_locals.contains(&var_name)
+            {
+                self.facts.module_typed_locals.push(var_name.clone());
+            }
             self.facts.local_types.push(LocalType {
                 var_name,
                 type_name,
