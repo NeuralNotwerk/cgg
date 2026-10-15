@@ -1,0 +1,37 @@
+diff --git a/crates/cgg-resolve/src/deadcode/mod.rs b/crates/cgg-resolve/src/deadcode/mod.rs
+index eb3a464..4cc0bed 100644
+--- a/crates/cgg-resolve/src/deadcode/mod.rs
++++ b/crates/cgg-resolve/src/deadcode/mod.rs
+@@ -1025,6 +1025,18 @@ pub fn analyze(
+     }
+ 
+     // --- Regions -----------------------------------------------------------
++    // A region's confidence is the weakest of its members' findings. Look
++    // findings up by id once rather than scanning the list per member:
++    // the scan was O(dead members × findings), which on a tree with
++    // ~300k dead callables (one big region) ran for minutes. The first
++    // finding for an id wins, exactly as the linear `find` did.
++    let finding_confidence: std::collections::HashMap<CallableId, Confidence> = {
++        let mut m = std::collections::HashMap::with_capacity(findings.len());
++        for f in &findings {
++            m.entry(f.id).or_insert(f.confidence);
++        }
++        m
++    };
+     let mut regions_map: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
+     for i in 0..n as u32 {
+         if in_dead[i as usize] {
+@@ -1074,12 +1086,7 @@ pub fn analyze(
+             let confidence = members
+                 .iter()
+                 .filter_map(|&i| node_at(i))
+-                .filter_map(|nd| {
+-                    findings
+-                        .iter()
+-                        .find(|f| f.id == nd.id)
+-                        .map(|f| f.confidence)
+-                })
++                .filter_map(|nd| finding_confidence.get(&nd.id).copied())
+                 .min_by_key(|c| match c {
+                     Confidence::Low => 0,
+                     Confidence::Medium => 1,
