@@ -57,17 +57,24 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
         .collect();
 
     // Helper: candidates with this simple name from C-family languages.
+    // The name as written first; only when nothing in C carries it, the
+    // name with ONE leading `_` off (the Mach-O / 32-bit Windows symbol
+    // prefix: asm `_foo` is C `foo`). `__dlsym` is never `dlsym`: the
+    // prefix is a single underscore, and a C symbol spelled with two is
+    // a different function.
     let c_family_lookup = |name: &str| -> Vec<CallableId> {
-        let stripped = name.trim_start_matches('_');
         let c_family = cgg_core::language_family("c");
         let mut out: Vec<CallableId> = Vec::new();
-        for candidate_name in [name, stripped] {
+        for candidate_name in [Some(name), name.strip_prefix('_')].into_iter().flatten() {
             if let Some(rows) = by_name.get(candidate_name) {
                 for &(cid, lang) in rows {
                     if c_family.contains(&lang) {
                         out.push(cid);
                     }
                 }
+            }
+            if !out.is_empty() {
+                break;
             }
         }
         out
@@ -950,6 +957,46 @@ mod tests {
         let out = link_ffi(&g, &[facts], 5);
         let sites: Vec<u32> = out.edges.iter().map(|e| e.site_byte).collect();
         assert_eq!(sites, vec![10], "{:?}", out.edges);
+    }
+
+    /// WS16: an asm `jg __dlsym` is a call to `__dlsym`, never to the C
+    /// `dlsym` (a different symbol: the Mach-O prefix is ONE underscore),
+    /// and a name with no C carrier still loses its single `_`.
+    #[test]
+    fn an_asm_call_strips_at_most_one_underscore_and_only_when_needed() {
+        let mut g = mk_graph();
+        let f = g.files.get_mut(&FileId::new(0)).unwrap();
+        f.language = "asm".into();
+        let f = g.files.get_mut(&FileId::new(1)).unwrap();
+        f.language = "c".into();
+        g.callables.clear();
+        let node = |id: u32, name: &str, lang: &str, file: u32, b: u32| CallableNode {
+            id: CallableId::new(id),
+            qualified_name: name.into(),
+            simple_name: name.into(),
+            kind: CallableKind::Function,
+            language: lang.into(),
+            file: FileId::new(file),
+            start_byte: b,
+            end_byte: b + 100,
+            ..Default::default()
+        };
+        g.add_callable(node(0, "dlsym", "asm", 0, 0));
+        g.add_callable(node(1, "__dlsym", "c", 1, 0));
+        g.add_callable(node(2, "dlsym", "c", 1, 200));
+        g.add_callable(node(3, "init", "c", 1, 400));
+        let mut facts = FileFacts::new(FileId::new(0), PathBuf::from("dlsym.s"), "asm");
+        for (name, b) in [("__dlsym", 10u32), ("_init", 20)] {
+            facts.references.push(cgg_core::RefRecord {
+                name: name.into(),
+                site_line: 1,
+                site_byte: b,
+                ..Default::default()
+            });
+        }
+        let out = link_ffi(&g, &[facts], 5);
+        let dsts: Vec<u64> = out.edges.iter().map(|e| e.dst.as_u64()).collect();
+        assert_eq!(dsts, vec![1, 3], "{:?}", out.edges);
     }
 
     #[test]

@@ -83,6 +83,14 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
     "runtime",
 ];
 
+/// Rust `Result` / `Option` adapter methods whose names a workspace type
+/// may also declare (a `Stats::ok`). A call of one through a receiver
+/// the resolver could not type — overwhelmingly a chain, `s.parse().ok()`
+/// — is the standard adapter, never fanned out by name. Kept out of the
+/// general name list (`stdlib/rust.txt`) because that list also screens
+/// bare calls, and a crate's own `err!` macro is a bare call.
+pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
+
 /// The [`SCALA_IMPLICIT_PACKAGES`] that are roots in their own right;
 /// every other entry is a child of `scala` (`math` is `scala.math`).
 pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];

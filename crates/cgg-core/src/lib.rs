@@ -49,7 +49,7 @@ pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
-    AssocCallLocal, ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX,
+    ARG_VAR_PREFIX, AssocCallLocal, ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX,
     DYN_MODULE_LOADERS, DefRecord, DefVariant, DynUse, ExportRecord, FieldType,
     FileFacts, FnMacro, ImportRecord, LocalBinding, LocalType, MacroAlias,
     MacroInvocation, MemberPtrTake, NameMention, PARTIAL_DECLARATION, RefRecord,

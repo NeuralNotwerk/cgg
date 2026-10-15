@@ -179,6 +179,9 @@ impl<'a> JavaWalker<'a> {
                             receiver_hint: String::new(),
                             site_line: (node.start_position().row as u32) + 1,
                             site_byte: node.start_byte() as u32,
+                            arity: node
+                                .child_by_field_name("arguments")
+                                .map(super::arg_count),
                             ..Default::default()
                         });
                     }
@@ -361,6 +364,7 @@ impl<'a> JavaWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             typed_receiver,
+            arity: node.child_by_field_name("arguments").map(super::arg_count),
             ..Default::default()
         });
         // Shape B/C: a handler passed in argument position. Inert unless
@@ -922,5 +926,22 @@ mod tests {
         };
         assert_eq!(bases("run"), vec!["Task"]);
         assert_eq!(bases("after"), vec!["Top"]);
+    }
+
+    /// WS16 (e): calls and constructions carry their argument count.
+    #[test]
+    fn calls_record_their_argument_count() {
+        let f = extract_refs(
+            "class A { void m() { f(); g(1, \"x\" /* c */); new B(a, b, c); o.h(x); } }",
+        );
+        let got: Vec<(&str, Option<u32>)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.arity))
+            .collect();
+        assert!(got.contains(&("f", Some(0))), "{got:?}");
+        assert!(got.contains(&("g", Some(2))), "{got:?}");
+        assert!(got.contains(&("B", Some(3))), "{got:?}");
+        assert!(got.contains(&("h", Some(1))), "{got:?}");
     }
 }

@@ -729,6 +729,10 @@ impl<'a> CppWalker<'a> {
             receiver_hint: String::new(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            arity: node
+                .child_by_field_name("arguments")
+                .filter(|a| a.kind() == "argument_list")
+                .map(super::arg_count),
             ..Default::default()
         });
     }
@@ -815,6 +819,10 @@ impl<'a> CppWalker<'a> {
             path_receiver,
             arrow,
             typed_receiver,
+            arity: node
+                .child_by_field_name("arguments")
+                .filter(|a| a.kind() == "argument_list")
+                .map(super::arg_count),
             ..Default::default()
         });
     }
@@ -2676,6 +2684,20 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
             calls.contains(&("Close".into(), "Base".into())),
             "{calls:?}"
         );
+    }
+
+    /// WS16 (e): calls and `new` carry their argument count.
+    #[test]
+    fn calls_record_their_argument_count() {
+        let f = extract("void g() { f(1, 2, 3); o.m(); auto* p = new K(1); }\n");
+        let got: Vec<(&str, Option<u32>)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.arity))
+            .collect();
+        assert!(got.contains(&("f", Some(3))), "{got:?}");
+        assert!(got.contains(&("m", Some(0))), "{got:?}");
+        assert!(got.contains(&("K", Some(1))), "{got:?}");
     }
 }
 

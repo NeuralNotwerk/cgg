@@ -60,6 +60,16 @@ use crate::PluginRegistry;
 /// Takes everything up to (but not including) the opening body delimiter
 /// (`{`, or `:` followed by newline for Python), collapses internal
 /// whitespace, and trims trailing artifacts.
+/// How many arguments an argument-list node passes: its named children,
+/// comments aside. For [`cgg_core::RefRecord::arity`], in languages that
+/// overload by parameter count.
+pub(crate) fn arg_count(args: tree_sitter::Node) -> u32 {
+    let mut c = args.walk();
+    args.named_children(&mut c)
+        .filter(|n| !n.kind().contains("comment"))
+        .count() as u32
+}
+
 pub fn extract_signature(full_text: &str) -> String {
     // Find the body start: first `{` at depth 0, or `:` at depth 0
     // that is followed by a newline (Python/Ruby body delimiter).

@@ -11,6 +11,103 @@ otherwise change the default graph.
 
 ### Fixed
 
+- **Pre-0.11.0 audit fixes (WS16).** Each was found by auditing the
+  0.10.2→0.11.0 corpus diff and a consumer review of one Rust workspace:
+  - **C/C++: a name the `#include` closure declares is read from the
+    closure.** `ASSERT(…)` in `erl_trace.c` bound at `high` to the
+    `#define ASSERT` of an unrelated test program, and `cmStrCat(…)` to a
+    clang-tidy test stub, because the lookup kept one arbitrary callable
+    per qualified name. When several definitions share the name, only
+    those in the calling file or a file its include closure reaches
+    count; a closure that holds only a prototype (`int f(int);`) reaches
+    the one body elsewhere, if there is exactly one. Conditional
+    alternatives in one header (`#ifdef DEBUG #define ASSERT … #else …`)
+    now bind both at `medium` instead of one at `high`.
+  - **Solidity: importing a file does not bring a library's functions
+    into bare-name scope.** `contains(map, key)` inside `EnumerableMap`
+    bound at `high` to `EnumerableSet.contains`. A bare call inside a
+    contract or library that declares the name binds to its own functions
+    (all overloads of that one function, never handed to an import), and a library function (`library-member` attribute) is
+    reachable by bare name only from inside its library.
+  - **Java/Kotlin/Scala/Groovy: a typed receiver's owner is narrowed by
+    the path written.** `Response.Builder().build()` reached every
+    `*.Builder.build` (16 in OkHttp); the owners whose path ends with the
+    written qualifier are kept, and a type written bare prefers the one
+    nested in the caller's own scopes (`MyActor.props` inside
+    `Controller4` is `Controller4.MyActor`).
+  - **Java/Scala/C++: the argument count picks among overloads.** The
+    Java, Scala and C++ plugins record a call's argument count
+    (`RefRecord::arity`); an overload set (intra-file, or every overload
+    one file declares under the name a cross-file lookup landed on) keeps
+    only the overloads whose parameter list can take it — defaults,
+    varargs (`T...`, `T*`, packs) and implicit lists read. One-sided: an
+    unreadable list stays, and a filter that would empty the set does
+    nothing. `new CalculatedField()` no longer also reaches the copy
+    constructor, `to_buffer(a, b, c, d, e)` only the five-parameter
+    overload. A cross-file lookup that used to return one arbitrary
+    member of an overload set now returns the members the count allows.
+  - **Rust: `T::from(x)` across several `From<A>` impls** reads the
+    argument's type from a variable (`x`, `x.clone()`, `self.f`) — its
+    parameter declaration, visible `let` or closure parameter — and binds
+    the impl it selects. A field chain or destructured binding is still
+    unknown and keeps every impl at `medium`.
+  - **Rust: a receiver typed by a crate path** (`kb_common::ConfigSource`)
+    binds in that crate, not in every crate that declares a same-named
+    type.
+  - **Rust: `if let Some(m) = meter` / `Ok(m)`** (also through a tuple
+    pattern and `as_ref()`) types `m` as what `meter`'s declared
+    `Option`/`Result` holds; before, another function's `let m: Row`
+    typed it file-wide and the call was lost.
+  - **Rust: `ok`, `err`, `as_deref` are standard-library names**, so an
+    untyped `x.parse().ok()` no longer fans out to workspace `ok`
+    methods (314 such edges in one workspace).
+  - **Protobuf: a `message` is not an RPC.** A package-level message was
+    linked to every host method whose owner contained the package's last
+    segment (`message Iterator` → 30 `iterator` methods).
+  - **asm → C: `jg __dlsym` is `__dlsym`.** The Mach-O symbol prefix is
+    one underscore, tried only when the name as written has no C carrier;
+    every leading underscore used to be stripped.
+  - **Perl: a bareword before `=>` is never a call**, also when the
+    grammar parses it as the last argument of a preceding list operator
+    (`scalar @{ $x }, releases => …`).
+  - **Scala: a base written with constructor arguments**
+    (`extends Log[T](a, b)`) is recorded; the class lost its base and
+    every inherited bare call (`getLatest()`).
+  - **OCaml: `open A.B` opens a submodule of `a.ml`**, so a bare call
+    narrows to that file's definition.
+  - **Clojure: `alias/f` binds to `f` in the namespace the alias
+    requires** (exact qualified name, `high`); namespace metadata
+    (`(ns ^{:added …} a.b)`) is no longer part of the namespace name.
+
+  - **The fan-out cap counts distinct callees, not overloads.** A
+    candidate set that is one method's overloads (an overloading
+    language, one file, one qualified name — after arity narrowing) is
+    one certain callee with an open overload: it binds to every surviving
+    overload at `medium` whatever `--fanout-cap` is (except `0`, never
+    guess), intra-file and cross-file alike. A set spanning owners,
+    names, files, a clause language's arities, or same-named functions
+    in a language without overloading is still capped.
+  - **C: a declaration merged into one file's alternative bodies**
+    (`void f(void);` in a header, three `#if` bodies of `f` in one `.c`)
+    is reached through the include closure, bound once.
+
+  *Compatibility* (full corpus, 283 repos, against the 0.11.0 candidate):
+  Java −183,677 / +56,461 edges (overloads the argument count rules out;
+  a lookup that returned one arbitrary overload now returns those the
+  count allows: `high` → `medium` on 8,933 such sites); C++ −52,526 /
+  +66,877 (include-closure rebinding, arity, uncapped overload sets);
+  C −14,668 `high` rebound into the include closure (+14,359 `high`,
+  +4,264 `medium`, 1,764 `high` → `medium` where the closure holds
+  alternatives in several headers); Scala −21,466 / +9,572 (arity;
+  inherited members via recorded bases add 899 `high`); Clojure −3,932 /
+  +15,443 (13,436 `high` alias calls); Kotlin −1,503 / +1,525; Rust −401
+  / +71; Solidity −52 / +1,726 (own overloads instead of an imported
+  library's function); proto −288 (`low`); asm −76; OCaml −306 / +448.
+  Overload sets past the cap now bind in C# (+2,722), TypeScript (+2,891),
+  Julia (+308), F# (+242), Swift and Groovy (+132 each). Ten Java
+  dead-code findings move into the `high` band: overloads whose only
+  same-arity callers are in Kotlin (not linked) or nowhere.
+
 - **A call written through a dependency is no longer name-matched onto a
   workspace callable** (Python, JavaScript, TypeScript, Go, Java, Kotlin,
   C#, C++). 0.10.2 taught the Rust resolver that `serde_json::from_str`

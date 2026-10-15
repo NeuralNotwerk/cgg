@@ -169,10 +169,27 @@ const BASE_CONTAINER_KINDS: &[&str] = &[
 /// matcher strips them, because a rule should be able to name either
 /// form and the raw text is what a reader would recognise.
 pub(crate) fn base_types(node: Node, source: &[u8]) -> Vec<String> {
+    base_types_impl(node, source, false)
+}
+
+/// [`base_types`] for a language whose supertype clause calls the base
+/// class's constructor (Scala `extends Base[T](a, b)`): the argument list
+/// is not part of the type. Read as written, `Base[T](a, b)` was no type
+/// name at all, and the class lost its base.
+pub(crate) fn base_types_with_ctor_args(node: Node, source: &[u8]) -> Vec<String> {
+    base_types_impl(node, source, true)
+}
+
+fn base_types_impl(node: Node, source: &[u8], ctor_args: bool) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let consider = |n: Node, out: &mut Vec<String>| {
         let Ok(t) = n.utf8_text(source) else { return };
         for part in split_type_list(t) {
+            let part = if ctor_args {
+                strip_ctor_args(&part).to_string()
+            } else {
+                part
+            };
             if is_type_name(&part) && !out.contains(&part) {
                 out.push(part);
             }
@@ -207,6 +224,35 @@ pub(crate) fn base_types(node: Node, source: &[u8]) -> Vec<String> {
         }
     }
     out
+}
+
+/// `Base[T](a, b)` -> `Base[T]`: the trailing argument lists (one per
+/// parameter list) at bracket depth 0, when what precedes them is
+/// non-empty.
+fn strip_ctor_args(part: &str) -> &str {
+    let mut t = part.trim_end();
+    while t.ends_with(')') {
+        let mut depth = 0i32;
+        let mut open = None;
+        for (i, c) in t.char_indices().rev() {
+            match c {
+                ')' | ']' | '>' => depth += 1,
+                '(' | '[' | '<' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        open = Some((i, c));
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        match open {
+            Some((i, '(')) if i > 0 => t = t[..i].trim_end(),
+            _ => break,
+        }
+    }
+    t
 }
 
 /// Split a supertype clause into individual type names.
@@ -340,6 +386,14 @@ fn is_type_name(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn constructor_arguments_after_a_base_are_not_part_of_it() {
+        assert_eq!(strip_ctor_args("Log[Entry](v, spark, path)"), "Log[Entry]");
+        assert_eq!(strip_ctor_args("Base(a)(b)"), "Base");
+        assert_eq!(strip_ctor_args("Base[Array[T]]"), "Base[Array[T]]");
+        assert_eq!(strip_ctor_args("(x)"), "(x)");
+    }
 
     #[test]
     fn type_lists_split_on_top_level_commas_only() {

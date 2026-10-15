@@ -98,6 +98,12 @@ pub fn link_descriptors(graph: &Graph) -> Vec<CallEdge> {
         // Only operations, not the service/message declarations that
         // contain them. `Greeter.SayHello` has an owner; `Greeter` does
         // not.
+        // A protobuf `message`/`enum` is a data shape: its qualified name's
+        // prefix is the package, not a service. Only an `rpc` (a method of
+        // its `service`) is implemented by host-language code.
+        if op.language == "proto" && op.kind != cgg_core::graph::CallableKind::Method {
+            continue;
+        }
         let Some(service) = crate::names::owner_from_qn(&op.qualified_name) else {
             continue;
         };
@@ -157,11 +163,18 @@ mod tests {
     use cgg_core::ids::FileId;
 
     fn node(id: u32, qn: &str, lang: &str) -> CallableNode {
+        // A proto `Service.Rpc` is a method; a bare or package-prefixed
+        // proto name in these tests is a message.
+        let kind = if lang == "proto" && qn.split('.').count() == 2 {
+            CallableKind::Method
+        } else {
+            CallableKind::Function
+        };
         CallableNode {
             id: CallableId::new(id),
             qualified_name: qn.into(),
             simple_name: qn.rsplit(['.', ':']).next().unwrap_or(qn).into(),
-            kind: CallableKind::Function,
+            kind,
             language: lang.into(),
             file: FileId::new(0),
             ..Default::default()
@@ -195,6 +208,17 @@ mod tests {
             (1, "com.x.GreeterImpl.sayHello", "java"),
         ]);
         assert_eq!(link_descriptors(&g).len(), 1);
+    }
+
+    #[test]
+    fn a_proto_message_in_a_package_links_to_nothing() {
+        // `package a.state; message Iterator {}` — the prefix is the
+        // package, and a message is no operation.
+        let g = graph_with(&[
+            (0, "a.state.Iterator", "proto"),
+            (1, "StateStore::iterator", "scala"),
+        ]);
+        assert!(link_descriptors(&g).is_empty());
     }
 
     #[test]

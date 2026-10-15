@@ -410,8 +410,9 @@ pub struct RefRecord {
 
     /// How many arguments the call passes, where the language makes a
     /// function's arity part of its identity — Erlang's `f/1` and `f/2`
-    /// are different functions that share a name. `None` when unknown or
-    /// irrelevant. Only the Erlang and Elixir plugins set it.
+    /// are different functions that share a name — or selects among
+    /// overloads (Java, Scala, C++: `type_hints::accepts_arity`). `None`
+    /// when unknown or irrelevant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arity: Option<u32>,
 
@@ -458,9 +459,18 @@ pub struct RefRecord {
     /// times (`impl From<&str> for T`, `impl From<u8> for T`) is called
     /// through whichever impl the argument's type selects; this picks it.
     /// `None` when unknown. Only the Rust plugin sets it.
+    ///
+    /// Before type propagation it may instead hold
+    /// [`ARG_VAR_PREFIX`]`<name>`: the argument is the variable (or
+    /// `self.field`) `<name>`, possibly `.clone()`d, whose type propagation
+    /// reads where the call is and writes here — or clears.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arg_type: Option<String>,
 }
+
+/// Marks a [`RefRecord::arg_type`] that names a variable to be typed,
+/// not a type.
+pub const ARG_VAR_PREFIX: &str = "=";
 
 /// The two-phase AST pass output for a single file.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

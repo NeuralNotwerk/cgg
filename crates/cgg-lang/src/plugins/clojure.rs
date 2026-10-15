@@ -125,6 +125,9 @@ impl<'a> ClojureWalker<'a> {
     fn extract_namespace(&mut self, node: Node) {
         // (ns name (:require [foo.bar :as fb] [baz]) (:use [qux]) ...)
         if let Some(name_node) = node.named_child(1) {
+            // `(ns ^{:added "1.0"} a.b …)`: the metadata is not part of
+            // the namespace's name.
+            let name_node = name_node.child_by_field_name("name").unwrap_or(name_node);
             self.namespace = self.text(name_node).to_string();
             // Each top-level form after the namespace name is its own
             // `list_lit` like `(:require ...)`. Walk siblings, look for
@@ -778,5 +781,17 @@ mod tests {
             "refs: {:?}",
             hinted(&f, cgg_core::VALUE_REF_HINT)
         );
+    }
+
+    /// WS16: namespace metadata is not part of the namespace's name.
+    #[test]
+    fn namespace_metadata_is_not_part_of_the_name() {
+        let f = extract("(ns ^{:added \"0.46.0\"} a.util.sql-2)\n(defn format [x] x)\n");
+        let qns: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert_eq!(qns, vec!["a.util.sql-2/format"]);
     }
 }

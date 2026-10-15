@@ -645,6 +645,24 @@ impl<'a> Walker<'a> {
                     self.facts.definitions.push(rec);
                 }
                 self.infer_let_type(node);
+                if let (Some(p), Some(v)) = (
+                    node.child_by_field_name("pattern"),
+                    node.child_by_field_name("value"),
+                ) {
+                    self.bind_unwrapped(p, v);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `if let Some(m) = meter`, `while let Ok(x) = r`,
+            // `if let (Some(m), false) = (meter, done)`.
+            "let_condition" => {
+                if let (Some(p), Some(v)) = (
+                    node.child_by_field_name("pattern"),
+                    node.child_by_field_name("value"),
+                ) {
+                    self.bind_unwrapped(p, v);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -1165,6 +1183,94 @@ impl<'a> Walker<'a> {
     /// function/closure enclosing `site` — a plain backward scan of
     /// `self.facts.local_types` without that bound would happily match a
     /// same-named local in an unrelated function elsewhere in the file.
+    /// `Some(m)` / `Ok(m)` matched against a variable (`meter`,
+    /// `meter.as_ref()`, `&meter`, `self.meter`), positionally through a
+    /// tuple pattern over a tuple: `m` is what that variable's `Option` /
+    /// `Result` holds. Recorded as a [`cgg_core::LocalType`] whose type is
+    /// [`cgg_core::ARG_VAR_PREFIX`]`Some:meter`, which type propagation
+    /// replaces by the variable's declared type unwrapped (or drops).
+    fn bind_unwrapped(&mut self, pattern: Node, value: Node) {
+        if pattern.kind() == "tuple_pattern" && value.kind() == "tuple_expression" {
+            let mut pc = pattern.walk();
+            let ps: Vec<Node> = pattern.named_children(&mut pc).collect();
+            let mut vc = value.walk();
+            let vs: Vec<Node> = value
+                .named_children(&mut vc)
+                .filter(|n| !n.kind().contains("comment"))
+                .collect();
+            if ps.len() == vs.len() {
+                for (p, v) in ps.into_iter().zip(vs) {
+                    self.bind_unwrapped(p, v);
+                }
+            }
+            return;
+        }
+        if pattern.kind() != "tuple_struct_pattern" {
+            return;
+        }
+        let Some(ctor) = pattern.child_by_field_name("type") else {
+            return;
+        };
+        let wrapper = self.text(ctor).to_string();
+        if !matches!(wrapper.as_str(), "Some" | "Ok") {
+            return;
+        }
+        let mut c = pattern.walk();
+        let inner: Vec<Node> = pattern
+            .named_children(&mut c)
+            .filter(|n| n.id() != ctor.id())
+            .collect();
+        let [bound] = inner.as_slice() else { return };
+        let bound = if bound.kind() == "mut_pattern" || bound.kind() == "ref_pattern" {
+            match bound.named_child(0) {
+                Some(n) => n,
+                None => return,
+            }
+        } else {
+            *bound
+        };
+        if bound.kind() != "identifier" {
+            return;
+        }
+        // The variable the value is: `x`, `&x`, `x.as_ref()`, `self.x`.
+        let mut v = value;
+        if v.kind() == "reference_expression"
+            && let Some(inner) = v.child_by_field_name("value")
+        {
+            v = inner;
+        }
+        if v.kind() == "call_expression"
+            && v.child_by_field_name("arguments")
+                .is_some_and(|a| a.named_child_count() == 0)
+            && let Some(f) = v.child_by_field_name("function")
+            && f.kind() == "field_expression"
+            && f.child_by_field_name("field").is_some_and(|m| {
+                matches!(
+                    self.text(m),
+                    "as_ref" | "as_mut" | "as_deref" | "as_deref_mut" | "clone"
+                )
+            })
+            && let Some(recv) = f.child_by_field_name("value")
+        {
+            v = recv;
+        }
+        let src = match v.kind() {
+            "identifier" => self.text(v).to_string(),
+            "field_expression"
+                if v.child_by_field_name("value")
+                    .is_some_and(|b| b.kind() == "self") =>
+            {
+                self.text(v).split_whitespace().collect()
+            }
+            _ => return,
+        };
+        self.facts.local_types.push(cgg_core::LocalType {
+            var_name: self.text(bound).to_string(),
+            type_name: format!("{}{wrapper}:{src}", cgg_core::ARG_VAR_PREFIX),
+            scope_byte: bound.start_byte() as u32,
+        });
+    }
+
     fn known_local_type(&self, name: &str, site: Node) -> Option<String> {
         let bounds = enclosing_fn_range(site);
         self.facts
@@ -1173,6 +1279,7 @@ impl<'a> Walker<'a> {
             .rev()
             .find(|lt| {
                 lt.var_name == name
+                    && !lt.type_name.starts_with(cgg_core::ARG_VAR_PREFIX)
                     && (lt.scope_byte as usize) < site.start_byte()
                     && bounds.is_none_or(|(s, e)| {
                         (lt.scope_byte as usize) >= s && (lt.scope_byte as usize) < e
@@ -1957,7 +2064,10 @@ impl<'a> Walker<'a> {
                 let only = it.next()?;
                 it.next().is_none().then_some(only)
             })
-            .and_then(|arg| self.literal_arg_type(arg));
+            .and_then(|arg| {
+                self.literal_arg_type(arg)
+                    .or_else(|| self.variable_arg(arg))
+            });
         Some(RefRecord {
             name,
             path_receiver: path_receiver && !receiver_hint.is_empty(),
@@ -2030,6 +2140,40 @@ impl<'a> Walker<'a> {
             _ => return None,
         };
         Some(ty.to_string())
+    }
+
+    /// An argument that is a variable or `self.field`, as is or
+    /// `.clone()`d — the same value's type — recorded for type propagation
+    /// to read as [`cgg_core::ARG_VAR_PREFIX`]`name`.
+    fn variable_arg(&self, arg: Node) -> Option<String> {
+        let mut arg = arg;
+        if arg.kind() == "call_expression"
+            && arg
+                .child_by_field_name("arguments")
+                .is_some_and(|a| a.named_child_count() == 0)
+            && let Some(f) = arg.child_by_field_name("function")
+            && f.kind() == "field_expression"
+            && f.child_by_field_name("field")
+                .is_some_and(|m| self.text(m) == "clone")
+            && let Some(v) = f.child_by_field_name("value")
+        {
+            arg = v;
+        }
+        let name = match arg.kind() {
+            "identifier" => self.text(arg).to_string(),
+            "field_expression"
+                if arg
+                    .child_by_field_name("value")
+                    .is_some_and(|v| v.kind() == "self")
+                    && arg
+                        .child_by_field_name("field")
+                        .is_some_and(|f| f.kind() == "field_identifier") =>
+            {
+                self.text(arg).split_whitespace().collect()
+            }
+            _ => return None,
+        };
+        Some(format!("{}{name}", cgg_core::ARG_VAR_PREFIX))
     }
 
     /// Serde attribute keys whose string value is a path to a function
@@ -3541,7 +3685,8 @@ fn run() {
     }
 
     /// WS13: a single argument whose syntax states its type is recorded;
-    /// anything needing inference is not.
+    /// anything needing inference is not — except a variable, which is
+    /// recorded by name (WS16) for type propagation to type.
     #[test]
     fn literal_argument_types_are_recorded() {
         let src = r#"
@@ -3574,7 +3719,7 @@ fn run(s: String) {
                 None,
                 Some("String"),
                 Some("String"),
-                None,
+                Some("=s"),
                 None
             ]
         );
@@ -4030,5 +4175,32 @@ fn worker() {}
         assert!(got.contains(&("call_llm_typed", "")), "got {got:?}");
         assert!(got.contains(&("parse_it", "m")), "got {got:?}");
         assert!(got.contains(&("collect", "x")), "got {got:?}");
+    }
+
+    /// WS16 (j): `Some(m)` / `Ok(m)` over a variable, directly or through a
+    /// tuple, binds `m` for propagation to type; other patterns do not.
+    #[test]
+    fn unwrapped_pattern_bindings_are_recorded() {
+        let f = extract(
+            "fn f(meter: Option<&M>, done: bool) {\n\
+             if let Some(m) = meter { m.go(); }\n\
+             if let (Some(n), false) = (meter.as_ref(), done) { n.go(); }\n\
+             if let Some(k) = make() { k.go(); }\n\
+             let Ok(v) = self.res else { return };\n}\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .local_types
+            .iter()
+            .filter(|lt| lt.type_name.starts_with(cgg_core::ARG_VAR_PREFIX))
+            .map(|lt| (lt.var_name.as_str(), lt.type_name.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("m", "=Some:meter"),
+                ("n", "=Some:meter"),
+                ("v", "=Ok:self.res")
+            ]
+        );
     }
 }

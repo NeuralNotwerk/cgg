@@ -5,6 +5,9 @@ use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::F
 use std::path::Path;
 use tree_sitter::{Node, Tree};
 
+/// Attribute on a function declared inside a `library`.
+pub const LIBRARY_MEMBER: &str = "library-member";
+
 #[derive(Debug)]
 pub struct SolidityPlugin;
 
@@ -39,6 +42,7 @@ impl LanguagePlugin for SolidityPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            in_library: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -49,6 +53,10 @@ struct SolidityWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Per entry of `scope`: whether it is a `library`. A library's
+    /// functions are called through the library (`L.f(x)`) or attached
+    /// to a type (`using L for T`), never by bare name from outside it.
+    in_library: Vec<bool>,
 }
 
 impl<'a> SolidityWalker<'a> {
@@ -86,8 +94,10 @@ impl<'a> SolidityWalker<'a> {
                     .unwrap_or_default();
                 if !name.is_empty() {
                     self.scope.push(name);
+                    self.in_library.push(node.kind() == "library_declaration");
                     self.walk_children(node);
                     self.scope.pop();
+                    self.in_library.pop();
                 } else {
                     self.walk_children(node);
                 }
@@ -219,7 +229,11 @@ impl<'a> SolidityWalker<'a> {
             signature_hint: super::extract_signature(self.text(node)),
             visibility,
             vis,
-            attributes: Vec::new(),
+            attributes: if self.in_library.last() == Some(&true) {
+                vec![LIBRARY_MEMBER.to_string()]
+            } else {
+                Vec::new()
+            },
             ..Default::default()
         });
     }
@@ -362,5 +376,24 @@ mod tests {
             "refs: {:?}",
             f.references
         );
+    }
+
+    /// WS16 (b): a library's functions are marked; a contract's are not.
+    #[test]
+    fn library_functions_are_marked() {
+        let f = extract(
+            "library L { function a() internal {} }\ncontract C { function b() public {} }\n",
+        );
+        let marked: Vec<(&str, bool)> = f
+            .definitions
+            .iter()
+            .map(|d| {
+                (
+                    d.qualified_name.as_str(),
+                    d.attributes.iter().any(|a| a == LIBRARY_MEMBER),
+                )
+            })
+            .collect();
+        assert_eq!(marked, vec![("L.a", true), ("C.b", false)]);
     }
 }

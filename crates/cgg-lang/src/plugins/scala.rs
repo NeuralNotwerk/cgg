@@ -135,7 +135,8 @@ impl<'a> ScalaWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let class_bases = super::attrs::base_types(node, self.source);
+                let class_bases =
+                    super::attrs::base_types_with_ctor_args(node, self.source);
                 if !name.is_empty() {
                     // The type by its path in the package (`Outer.Inner`),
                     // with its kind and bases, so a member lookup can walk
@@ -414,6 +415,7 @@ impl<'a> ScalaWalker<'a> {
                     site_line: (node.start_position().row as u32) + 1,
                     site_byte: node.start_byte() as u32,
                     typed_receiver,
+                    arity: self.call_arity(node),
                     ..Default::default()
                 });
             }
@@ -441,8 +443,17 @@ impl<'a> ScalaWalker<'a> {
             receiver_hint: String::new(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
+            arity: self.call_arity(node),
             ..Default::default()
         });
+    }
+
+    /// The argument count of a call written with a parenthesised list
+    /// (`f(a, b)`); a block argument (`f { … }`) is left unknown.
+    fn call_arity(&self, node: Node) -> Option<u32> {
+        node.child_by_field_name("arguments")
+            .filter(|a| a.kind() == "arguments")
+            .map(super::arg_count)
     }
 }
 
@@ -634,5 +645,18 @@ mod tests {
             .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
             .collect();
         assert_eq!(calls, vec![("genF", ""), ("m", "b"), ("genF", "")]);
+    }
+
+    /// WS16 (f): a supertype written with constructor arguments is still
+    /// the class's base; calls carry their argument count (e).
+    #[test]
+    fn a_base_with_constructor_arguments_is_recorded() {
+        let f = extract(
+            "class Log(v: Int, p: String)\n  extends Compactible[Entry](v, spark, p) with Mixin {\n  def g = h(1, 2)\n}\n",
+        );
+        let t = f.type_spans.iter().find(|t| t.name == "Log").unwrap();
+        assert_eq!(t.bases, vec!["Compactible[Entry]", "Mixin"]);
+        let h = f.references.iter().find(|r| r.name == "h").unwrap();
+        assert_eq!(h.arity, Some(2));
     }
 }

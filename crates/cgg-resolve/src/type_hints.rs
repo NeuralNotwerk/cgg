@@ -389,6 +389,9 @@ pub fn propagate_types_with_fields(
     if facts.language == "erlang" {
         return;
     }
+    if facts.language == "rust" {
+        settle_unwrapped_bindings(facts);
+    }
     // Pass 1: Extract type hints from definition signatures.
     //
     // The names and types are slices of `def.signature_hint`, and `facts`
@@ -839,6 +842,63 @@ pub fn propagate_types_with_fields(
         if let Some(ty) = constructor_types.get(rh) {
             rewrites.push((i, ty.clone()));
         }
+    }
+    // Rust: a call's argument that is a variable (`From::from(id)`,
+    // `T::from(x.clone())`) has the type that variable has where the call
+    // is: a parameter's declared type, the visible `let`, a closure's
+    // typed parameter, a `self` field. Read with the same tables the
+    // receivers above are; a variable none of them types leaves the
+    // argument's type unknown.
+    let mut arg_rewrites: Vec<(usize, Option<String>)> = Vec::new();
+    if rust {
+        for (i, rref) in facts.references.iter().enumerate() {
+            let Some(var) = rref
+                .arg_type
+                .as_deref()
+                .and_then(|a| a.strip_prefix(cgg_core::ARG_VAR_PREFIX))
+            else {
+                continue;
+            };
+            let enclosing = enclosing_def(facts, rref.site_byte);
+            let ty: Option<&str> = if var.starts_with("self.") {
+                enclosing.and_then(|e| self_field_map.get(&(e.start_byte, var)).copied())
+            } else if let Some(ty) = scoped.get(var).and_then(|spans| {
+                spans
+                    .iter()
+                    .filter(|(s, e, _)| *s <= rref.site_byte && rref.site_byte < *e)
+                    .min_by_key(|(s, e, _)| (e - s, std::cmp::Reverse(*s)))
+                    .map(|(_, _, ty)| *ty)
+            }) {
+                Some(ty)
+            } else {
+                let bindings = rust_bindings.as_ref();
+                let param = enclosing.and_then(|enc| {
+                    rust_param_decl_type(&enc.signature_hint, var).filter(|_| {
+                        !bindings.is_some_and(|b| {
+                            b.shadowed_since(var, enc.start_byte, rref.site_byte)
+                        })
+                    })
+                });
+                param.or_else(|| {
+                    rust_lets
+                        .visible_at(
+                            var,
+                            rref.site_byte,
+                            enclosing.map(|d| (d.start_byte, d.end_byte)),
+                        )
+                        .and_then(|(at, ty)| {
+                            (!bindings.is_some_and(|b| {
+                                b.shadowed_since(var, at, rref.site_byte)
+                            }))
+                            .then_some(ty)
+                        })
+                })
+            };
+            arg_rewrites.push((i, ty.map(compact_rust_type)));
+        }
+    }
+    for (i, ty) in arg_rewrites {
+        facts.references[i].arg_type = ty;
     }
     for (i, ty) in rewrites {
         // A local typed `Rect` is a `TRect` when `Rect` is an alias.
@@ -1494,6 +1554,69 @@ fn param_list(sig: &str) -> Option<&str> {
     None
 }
 
+/// Languages that overload by parameter count and whose plugins record a
+/// call's argument count ([`cgg_core::RefRecord::arity`]).
+pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] = &["java", "scala", "cpp"];
+
+/// Whether a callable declared with signature `sig` can take `arity`
+/// positional arguments: `Some(false)` only when its parameter list is
+/// read whole and provably cannot (too few or too many, after defaults,
+/// varargs — `T...`, Scala `T*`, a C++ pack — and implicit lists).
+/// `None` when the list cannot be read.
+pub(crate) fn accepts_arity(sig: &str, arity: u32) -> Option<bool> {
+    let list = param_list(sig)?;
+    let trimmed = list.trim();
+    // An implicit / `using` list is supplied by the compiler.
+    if trimmed.starts_with("implicit ") || trimmed.starts_with("using ") {
+        return Some(arity == 0);
+    }
+    let params: Vec<&str> = split_top_level(list, |c| c == ',', false)
+        .into_iter()
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .collect();
+    if params.len() == 1 && params[0] == "void" {
+        return Some(arity == 0);
+    }
+    let mut required = 0u32;
+    let mut variadic = false;
+    for p in &params {
+        if p.contains("...") || (p.contains(':') && p.trim_end().ends_with('*')) {
+            variadic = true;
+            continue;
+        }
+        if !has_top_level_eq(p) {
+            required += 1;
+        }
+    }
+    let max = params.len() as u32;
+    Some(arity >= required && (variadic || arity <= max))
+}
+
+/// A `=` at bracket depth 0 that is not part of `==`, `<=`, `>=`, `!=`,
+/// `=>`: a parameter's default value.
+fn has_top_level_eq(p: &str) -> bool {
+    let b = p.as_bytes();
+    let mut depth = 0i32;
+    for i in 0..b.len() {
+        match b[i] {
+            b'(' | b'[' | b'{' | b'<' => depth += 1,
+            b')' | b']' | b'}' | b'>' => depth -= 1,
+            b'=' if depth <= 0 => {
+                let prev = if i > 0 { b[i - 1] } else { b' ' };
+                let next = b.get(i + 1).copied().unwrap_or(b' ');
+                if !matches!(prev, b'=' | b'<' | b'>' | b'!')
+                    && !matches!(next, b'=' | b'>')
+                {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 /// Keywords whose parenthesised argument can stand in front of a
 /// parameter list: Rust's visibility restriction, C/C++ attributes and
 /// type operators.
@@ -1689,6 +1812,132 @@ fn parse_colon_param_rust(param: &str) -> Option<(&str, &str, bool)> {
         return None;
     }
     Some((name, ty, locked))
+}
+
+/// Rust: settle the pattern bindings the plugin recorded as
+/// [`cgg_core::ARG_VAR_PREFIX`]`Some:x` / `Ok:x` (`if let Some(m) = x`):
+/// `m` has the type `x`'s declared `Option<T>` / `Result<T, _>` holds —
+/// `x` a parameter of the enclosing function, or a `let` before the
+/// pattern in it. A binding whose source is not typed that way is dropped,
+/// leaving `m` as untyped as it was.
+fn settle_unwrapped_bindings(facts: &mut FileFacts) {
+    if !facts
+        .local_types
+        .iter()
+        .any(|lt| lt.type_name.starts_with(cgg_core::ARG_VAR_PREFIX))
+    {
+        return;
+    }
+    let mut settled: Vec<Option<String>> = Vec::with_capacity(facts.local_types.len());
+    for (i, lt) in facts.local_types.iter().enumerate() {
+        let Some((wrapper, src)) = lt
+            .type_name
+            .strip_prefix(cgg_core::ARG_VAR_PREFIX)
+            .and_then(|r| r.split_once(':'))
+        else {
+            settled.push(None);
+            continue;
+        };
+        let enclosing = enclosing_def(facts, lt.scope_byte);
+        // The declared type of the source: a parameter, else the latest
+        // plain `let` of it before the pattern in the same function.
+        let declared: Option<String> = enclosing
+            .and_then(|d| rust_param_decl_type(&d.signature_hint, src))
+            .map(str::to_string)
+            .or_else(|| {
+                facts.local_types[..i]
+                    .iter()
+                    .rev()
+                    .find(|o| {
+                        o.var_name == src
+                            && o.scope_byte < lt.scope_byte
+                            && !o.type_name.starts_with(cgg_core::ARG_VAR_PREFIX)
+                            && enclosing.is_some_and(|d| {
+                                d.start_byte <= o.scope_byte && o.scope_byte < d.end_byte
+                            })
+                    })
+                    .map(|o| format!("{wrapper}<{}>", o.type_name))
+            });
+        let inner = declared.and_then(|t| unwrap_option_like(&t, wrapper));
+        let ty = inner.and_then(|t| {
+            let param = format!("x: {t}");
+            parse_colon_param_rust(&param).map(|(_, ty, _)| ty.to_string())
+        });
+        settled.push(Some(ty.unwrap_or_default()));
+    }
+    let mut keep = Vec::with_capacity(facts.local_types.len());
+    for (mut lt, s) in std::mem::take(&mut facts.local_types)
+        .into_iter()
+        .zip(settled)
+    {
+        match s {
+            None => keep.push(lt),
+            Some(ty) if !ty.is_empty() => {
+                lt.type_name = ty;
+                keep.push(lt);
+            }
+            Some(_) => {}
+        }
+    }
+    facts.local_types = keep;
+}
+
+/// `Option<&T>` (for `Some`) / `Result<T, E>` (for `Ok`), references
+/// first stripped: the `T`. `None` for any other shape.
+fn unwrap_option_like(ty: &str, wrapper: &str) -> Option<String> {
+    let ty = ty.trim().trim_start_matches('&').trim_start();
+    let ty = ty.strip_prefix("mut ").unwrap_or(ty).trim_start();
+    let want = match wrapper {
+        "Some" => "Option",
+        "Ok" => "Result",
+        _ => return None,
+    };
+    let open = ty.find('<')?;
+    let head = ty[..open].trim();
+    if head.rsplit("::").next() != Some(want) || !ty.ends_with('>') {
+        return None;
+    }
+    let args = &ty[open + 1..ty.len() - 1];
+    let first = split_top_level(args, |c| c == ',', true)
+        .into_iter()
+        .next()?
+        .trim()
+        .to_string();
+    (!first.is_empty()).then_some(first)
+}
+
+/// A Rust parameter's type exactly as declared (`String`, `&str`,
+/// `&'a [u8]`), unlike [`parse_colon_param_rust`], which keeps only types
+/// worth a method lookup.
+fn rust_param_decl_type<'a>(sig: &'a str, name: &str) -> Option<&'a str> {
+    let list = param_list(sig)?;
+    param_pieces(list, true).into_iter().find_map(|p| {
+        let (n, ty) = p.split_once(':')?;
+        let n = n.trim().trim_start_matches("mut ").trim();
+        (n == name).then(|| ty.trim()).filter(|t| !t.is_empty())
+    })
+}
+
+/// A Rust type compared as [`cgg_core::RefRecord::arg_type`]: no
+/// whitespace, no lifetimes, `&mut` read as `&`.
+fn compact_rust_type(ty: &str) -> String {
+    let mut out = String::with_capacity(ty.len());
+    let mut chars = ty.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\'' {
+            while chars
+                .peek()
+                .is_some_and(|n| n.is_alphanumeric() || *n == '_')
+            {
+                chars.next();
+            }
+            continue;
+        }
+        if !c.is_whitespace() {
+            out.push(c);
+        }
+    }
+    out.replace("&mut", "&")
 }
 
 /// `x.lock()`, `self.inner.write().unwrap()`, `cell.borrow_mut()` -> the
@@ -3653,6 +3902,60 @@ mod tests {
     }
 
     #[test]
+    fn accepts_arity_reads_defaults_varargs_and_packs() {
+        let f = |s: &str, n| accepts_arity(s, n);
+        assert_eq!(
+            f("public ISE(String formatText, Object... arguments)", 1),
+            Some(true)
+        );
+        assert_eq!(
+            f(
+                "public ISE(Throwable t, String formatText, Object... arguments)",
+                1
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            f("public CalculatedField(CalculatedField other)", 0),
+            Some(false)
+        );
+        assert_eq!(f("public CalculatedField()", 0), Some(true));
+        assert_eq!(
+            f(
+                "Result status(int status, File content, boolean inline, FileMimeTypes m)",
+                2
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            f("def toSQLValue(v: Int, radix: Int = 10): String", 1),
+            Some(true)
+        );
+        assert_eq!(f("def apply(xs: Int*): Seq[Int]", 4), Some(true));
+        assert_eq!(f("def run(implicit ec: Ctx): Unit", 0), Some(true));
+        assert_eq!(
+            f(
+                "int to_buffer(char* first, char* last, T v, fmt f, int p)",
+                3
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            f(
+                "template <typename... AV> std::string cat(AV const&... args)",
+                7
+            ),
+            Some(true)
+        );
+        assert_eq!(f("int f(void)", 0), Some(true));
+        assert_eq!(
+            f("void g(Map<String, Integer> m, @Ann(x = 1) int y)", 2),
+            Some(true)
+        );
+        assert_eq!(f("def size: Int", 0), None);
+    }
+
+    #[test]
     fn split_top_level_respects_brackets_strings_and_arrows() {
         let s = |x: &str, rust: bool| -> Vec<String> {
             split_top_level(x, |c| c == ',', rust)
@@ -3876,6 +4179,112 @@ mod tests {
             got,
             vec![("open", "Box", true), ("member", "", false)],
             "{got:?}"
+        );
+    }
+
+    /// WS16 (j): `if let Some(m) = meter` with `meter: Option<&ChangeMeter>`
+    /// types `m` as `ChangeMeter` — and so hides another function's `let m:
+    /// Row` that the file-wide fallback would otherwise apply. A source with
+    /// no `Option` type leaves the binding untyped (dropped).
+    #[test]
+    fn unwrapped_pattern_bindings_take_the_options_inner_type() {
+        let defs = vec![
+            mk_def(
+                "k::upsert",
+                "fn upsert(meter: Option<&ChangeMeter>, n: u32)",
+                0,
+                100,
+            ),
+            mk_def("k::rows", "fn rows()", 100, 200),
+            mk_def("k::plain", "fn plain(meter: u32)", 200, 300),
+        ];
+        let call = |byte: u32| RefRecord {
+            name: "record_only".into(),
+            receiver_hint: "m".into(),
+            site_line: 1,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![call(50), call(250)]);
+        facts.language = "rust".into();
+        let marker = format!("{}Some:meter", cgg_core::ARG_VAR_PREFIX);
+        facts.local_types = vec![
+            LocalType {
+                var_name: "m".into(),
+                type_name: marker.clone(),
+                scope_byte: 20,
+            },
+            LocalType {
+                var_name: "m".into(),
+                type_name: "Row".into(),
+                scope_byte: 120,
+            },
+            LocalType {
+                var_name: "m".into(),
+                type_name: marker,
+                scope_byte: 220,
+            },
+        ];
+        propagate_types(&mut facts);
+        let got: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(got[0], "ChangeMeter");
+        assert!(
+            facts
+                .local_types
+                .iter()
+                .all(|lt| !lt.type_name.starts_with(cgg_core::ARG_VAR_PREFIX))
+        );
+        assert_eq!(facts.local_types.len(), 2, "{:?}", facts.local_types);
+    }
+
+    /// WS16 (h): a call's variable argument is typed where the call is,
+    /// from the declared parameter or the visible `let`; an untyped one
+    /// leaves the argument's type unknown.
+    #[test]
+    fn variable_arguments_are_typed_at_the_call() {
+        let defs = vec![mk_def(
+            "k::f",
+            "fn f(id: String, name: &'a str, d: Doc)",
+            0,
+            100,
+        )];
+        let arg = |v: &str, byte: u32| RefRecord {
+            name: "from".into(),
+            receiver_hint: "DocId".into(),
+            path_receiver: true,
+            site_line: 1,
+            site_byte: byte,
+            arg_type: Some(format!("{}{v}", cgg_core::ARG_VAR_PREFIX)),
+            ..Default::default()
+        };
+        let mut facts = mk_facts(
+            defs,
+            vec![
+                arg("id", 10),
+                arg("name", 20),
+                arg("owned", 40),
+                arg("other", 50),
+            ],
+        );
+        facts.language = "rust".into();
+        facts.local_types = vec![LocalType {
+            var_name: "owned".into(),
+            type_name: "String".into(),
+            scope_byte: 30,
+        }];
+        propagate_types(&mut facts);
+        let got: Vec<Option<&str>> = facts
+            .references
+            .iter()
+            .map(|r| r.arg_type.as_deref())
+            .collect();
+        assert_eq!(
+            got,
+            vec![Some("String"), Some("&str"), Some("String"), None]
         );
     }
 }

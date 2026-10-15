@@ -364,8 +364,16 @@ impl<'a> PerlWalker<'a> {
     fn record_call(&mut self, node: Node) {
         // `name => $v`: a bareword before a fat comma is an autoquoted
         // string (a hash key, a named argument), not a call (WS14).
+        // The rule is lexical — the identifier right before `=>` — and the
+        // grammar does not always make the `=>` the bareword's sibling:
+        // after a list operator (`scalar @{ $x }, name => $v`) the bareword
+        // ends the operator's argument list and the `=>` follows that.
         if node.kind() == "call_expression_with_bareword"
-            && node.next_sibling().is_some_and(|n| n.kind() == "fat_comma")
+            && (node.next_sibling().is_some_and(|n| n.kind() == "fat_comma")
+                || self
+                    .source
+                    .get(node.end_byte()..)
+                    .is_some_and(|rest| rest.trim_ascii_start().starts_with(b"=>")))
         {
             return;
         }
@@ -953,6 +961,19 @@ mod tests {
         let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(!names.contains(&"name"), "{names:?}");
         assert!(names.contains(&"helper"), "{names:?}");
+    }
+
+    /// WS16: the `=>` after a list operator's last argument is not that
+    /// bareword's sibling in the tree; it still quotes it.
+    #[test]
+    fn a_bareword_ending_a_list_operator_before_a_fat_comma_is_not_a_call() {
+        let f = extract(
+            "sub run { $c->stash({ t => $r->{t} // scalar @{ $r->{k} },\n k => $r->{k}, }); go(1); }\n",
+        );
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(!names.contains(&"k"), "{names:?}");
+        assert!(names.contains(&"go"), "{names:?}");
+        assert!(names.contains(&"scalar"), "{names:?}");
     }
 
     /// WS14b: a method call on the sub's invocant is marked (`my $self =

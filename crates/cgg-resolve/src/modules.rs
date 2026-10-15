@@ -1391,6 +1391,11 @@ pub(crate) struct FileModules {
     own_defs: HashSet<String>,
     /// Lua: local name → the module a `require` bound to it.
     lua: HashMap<String, String>,
+    /// C family: the files the calling file's `#include` closure reaches.
+    /// A name the closure declares is read from these files, never from a
+    /// same-named definition elsewhere in the tree.
+    /// Keyed as the closure walk left it (file → remaining depth).
+    pub(crate) c_includes: HashMap<cgg_core::FileId, u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -2122,6 +2122,14 @@ pub fn resolve(
             for m in unqualified_prefixes.iter().chain(module_aliases.values()) {
                 let m = m.trim().to_ascii_lowercase();
                 if !m.is_empty() {
+                    // OCaml: a file is a compilation unit, so `open A.B`
+                    // opens a submodule of the file `a.ml` — the module
+                    // path's head names the file.
+                    if lang == "ocaml"
+                        && let Some((head, _)) = m.split_once('.')
+                    {
+                        module_files.push(head.to_string());
+                    }
                     module_files.push(m.replace('.', "/"));
                     module_files.push(m);
                 }
@@ -2136,6 +2144,14 @@ pub fn resolve(
                     .iter()
                     .map(|p| p.replace('.', "/").to_ascii_lowercase())
                     .collect();
+                // OCaml: `open A.B` is a submodule of the file `a.ml`.
+                if lang == "ocaml" {
+                    for p in &unqualified_prefixes {
+                        if let Some((head, _)) = p.split_once('.') {
+                            path_fragments.push(head.to_ascii_lowercase());
+                        }
+                    }
+                }
                 // Also include single-segment module aliases (Lua `require('foo')`,
                 // Scala `import play.Foo` last segment, etc.)
                 for target in module_aliases.values().chain(scala_import_dirs.iter()) {
@@ -2164,7 +2180,10 @@ pub fn resolve(
             } else {
                 std::collections::BTreeSet::new()
             };
-            let file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
+            let mut file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
+            if cgg_core::same_family(&lang, "c") {
+                file_mods.c_includes = std::mem::take(&mut include_visited);
+            }
 
             drop(_sp_imports);
             let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
@@ -2533,6 +2552,76 @@ pub fn resolve(
                         (!kept.is_empty()).then_some(kept)
                     }
                     (other, _) => other,
+                };
+                // An overload set (or any several candidates) the call's
+                // argument count can tell apart.
+                // Several lookups keep one callable per qualified name
+                // (`by_qn`, the scoped index), which in an overloading
+                // language is an arbitrary member of an overload set. With
+                // the argument count known, the whole set is read and the
+                // count picks among it.
+                let lookup_len = resolved.as_ref().map_or(0, Vec::len);
+                let resolved = resolved.map(|cids| {
+                    let cids = if r.arity.is_some()
+                        && crate::type_hints::OVERLOAD_ARITY_LANGS
+                            .contains(&lang.as_str())
+                    {
+                        let mut all: Vec<CallableId> = Vec::new();
+                        for c in &cids {
+                            let set = graph.callables.get(c).and_then(|n| {
+                                overloads.get(&(n.file, n.qualified_name.as_str()))
+                            });
+                            for x in set
+                                .map(|v| v.as_slice())
+                                .unwrap_or(std::slice::from_ref(c))
+                            {
+                                if !all.contains(x) {
+                                    all.push(*x);
+                                }
+                            }
+                        }
+                        all
+                    } else {
+                        cids
+                    };
+                    narrow_by_arity(graph, &lang, r.arity, cids)
+                });
+                // Reading the whole overload set is a guess among its
+                // members, bounded by the cap like any other: a set the
+                // count cannot cut below it is refused, recorded with its
+                // size (intra-file binds an overload set the same way).
+                let resolved = match resolved {
+                    Some(cids)
+                        if cids.len() > fanout_cap
+                            && cids.len() > lookup_len
+                            && !one_method(graph, &cids, fanout_cap) =>
+                    {
+                        capped = cids.len() as u32;
+                        None
+                    }
+                    other => other,
+                };
+                // Solidity: importing a file brings its contracts, libraries
+                // and free functions into scope, not a library's functions —
+                // those are called as `L.f(x)` or through `using L for T`.
+                // A bare call reaches one only from inside that library.
+                let resolved = if lang == "solidity" && r.receiver_hint.is_empty() {
+                    let own = caller_qn.and_then(owner_from_qn);
+                    resolved
+                        .map(|cids| {
+                            cids.into_iter()
+                                .filter(|c| {
+                                    graph.callables.get(c).is_none_or(|n| {
+                                        !n.attributes.iter().any(|a| {
+                                            a == cgg_lang::plugins::solidity::LIBRARY_MEMBER
+                                        }) || owner_from_qn(&n.qualified_name) == own
+                                    })
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .filter(|v| !v.is_empty())
+                } else {
+                    resolved
                 };
                 // `--guess-unique-names`: a Rust site nothing placed, whose
                 // name exactly one callable in the tree carries. Opt-in and
@@ -4189,6 +4278,168 @@ fn rust_type_owned(qn: &str) -> bool {
 /// owner without specializations — overloads of one class, copies of it
 /// in several files, a Rust type's trait impls (`<T as From<U>>`) — is
 /// returned unchanged.
+/// Rust: a receiver typed by a path (`kb_common::ConfigSource`, a
+/// parameter or a `let` that wrote the crate) is looked up by the type's
+/// bare name, which every crate's same-named type shares. The candidates
+/// declared in the crate the path starts with are the ones it names;
+/// when none is, the set stands (an alias or re-export the path cannot
+/// show).
+fn narrow_rust_crate_head(
+    graph: &Graph,
+    cids: &[CallableId],
+    rh: &str,
+) -> Vec<CallableId> {
+    let Some((head, _)) = rh.split_once("::") else {
+        return cids.to_vec();
+    };
+    let head = head.trim();
+    if cids.len() < 2
+        || head.is_empty()
+        || matches!(head, "crate" | "self" | "super" | "Self")
+        || head.starts_with('<')
+    {
+        return cids.to_vec();
+    }
+    let same: Vec<CallableId> = cids
+        .iter()
+        .copied()
+        .filter(|c| {
+            graph
+                .callables
+                .get(c)
+                .is_some_and(|n| n.qualified_name.split("::").next() == Some(head))
+        })
+        .collect();
+    if same.is_empty() { cids.to_vec() } else { same }
+}
+
+/// Whether every candidate is one method's overloads: an overloading
+/// language, one file, one qualified name. The callee is then certain and
+/// only the overload is open, so the fan-out cap — which bounds guesses
+/// among distinct targets — does not apply, except under `--fanout-cap 0`
+/// (never guess). Same-named definitions in a language without
+/// overloading (JS/Zig functions sharing a name), in several files
+/// (copies of a class), or a clause language's arities are distinct
+/// callees and stay capped.
+pub(crate) fn one_method(graph: &Graph, cids: &[CallableId], fanout_cap: usize) -> bool {
+    if fanout_cap == 0 || cids.len() < 2 {
+        return false;
+    }
+    let mut it = cids.iter().map(|c| graph.callables.get(c));
+    let Some(Some(first)) = it.next() else {
+        return false;
+    };
+    crate::intra_file::binds_same_name_set(&first.language)
+        && !crate::intra_file::is_clause_language(&first.language)
+        && it.all(|n| {
+            n.is_some_and(|n| {
+                n.language == first.language
+                    && n.file == first.file
+                    && n.qualified_name == first.qualified_name
+            })
+        })
+}
+
+/// Overloading languages: the candidates whose declared parameter list can
+/// take the call's argument count. One-sided — a candidate whose list is
+/// unreadable stays, and a filter that would empty the set leaves it as it
+/// was — so it only ever removes an overload the call cannot be to.
+pub(crate) fn narrow_by_arity(
+    graph: &Graph,
+    lang: &str,
+    arity: Option<u32>,
+    cids: Vec<CallableId>,
+) -> Vec<CallableId> {
+    let Some(n) = arity else { return cids };
+    if cids.len() < 2 || !crate::type_hints::OVERLOAD_ARITY_LANGS.contains(&lang) {
+        return cids;
+    }
+    let fits: Vec<CallableId> = cids
+        .iter()
+        .copied()
+        .filter(|c| {
+            graph.callables.get(c).is_none_or(|node| {
+                crate::type_hints::accepts_arity(&node.signature_hint, n) != Some(false)
+            })
+        })
+        .collect();
+    if fits.is_empty() { cids } else { fits }
+}
+
+/// JVM languages: a typed receiver's owner is looked up by its bare name,
+/// so `Response.Builder` reaches every class named `Builder`. Several
+/// distinct owners narrow, one-sidedly, to the one the receiver names: the
+/// owners whose path ends with the qualifier as written (`Response.Builder`
+/// is `okhttp3.Response.Builder`, not `OkHttpClient.Builder`), else — for a
+/// name written bare — the owner nested in the caller's own enclosing
+/// scopes, innermost first (a member type shadows a same-named type
+/// declared elsewhere). Neither applies: the set stands.
+fn narrow_owner_paths(
+    graph: &Graph,
+    lang: &str,
+    cids: &[CallableId],
+    rh: &str,
+    caller_qn: Option<&str>,
+) -> Vec<CallableId> {
+    if cids.len() < 2 || !matches!(lang, "java" | "kotlin" | "scala" | "groovy") {
+        return cids.to_vec();
+    }
+    let segs = |p: &str| -> Vec<String> {
+        p.split("::")
+            .flat_map(|x| x.split('.'))
+            .filter(|x| !x.is_empty())
+            .map(|x| x.split('<').next().unwrap_or(x).trim().to_string())
+            .collect()
+    };
+    let owner_of = |c: &CallableId| -> Option<Vec<String>> {
+        let n = graph.callables.get(c)?;
+        let (owner, _) = crate::names::split_last_segment(&n.qualified_name)?;
+        Some(segs(owner))
+    };
+    let owners: Vec<Option<Vec<String>>> = cids.iter().map(owner_of).collect();
+    let distinct: std::collections::BTreeSet<&Vec<String>> =
+        owners.iter().flatten().collect();
+    if distinct.len() < 2 {
+        return cids.to_vec();
+    }
+    let written = segs(rh);
+    if written.len() > 1 {
+        let hit: Vec<CallableId> = cids
+            .iter()
+            .zip(&owners)
+            .filter(|(_, o)| o.as_ref().is_some_and(|o| o.ends_with(&written)))
+            .map(|(c, _)| *c)
+            .collect();
+        if !hit.is_empty() {
+            return hit;
+        }
+        return cids.to_vec();
+    }
+    // Written bare: the owner declared inside the caller's enclosing
+    // scopes, by the longest enclosing prefix.
+    let Some(caller) = caller_qn.map(segs) else {
+        return cids.to_vec();
+    };
+    let score = |o: &Vec<String>| -> usize {
+        let parent = &o[..o.len().saturating_sub(1)];
+        if !parent.is_empty() && caller.len() > parent.len() && caller.starts_with(parent)
+        {
+            parent.len()
+        } else {
+            0
+        }
+    };
+    let best = owners.iter().flatten().map(score).max().unwrap_or(0);
+    if best == 0 {
+        return cids.to_vec();
+    }
+    cids.iter()
+        .zip(&owners)
+        .filter(|(_, o)| o.as_ref().is_some_and(|o| score(o) == best))
+        .map(|(c, _)| *c)
+        .collect()
+}
+
 fn narrow_specializations(
     graph: &Graph,
     cids: &[CallableId],
@@ -4778,6 +5029,22 @@ fn try_resolve_ref(
             crate::modules::Scoped::NoCtor => return None,
         }
     }
+    // Clojure `alias/f` / `a.b.ns/f`: the function `f` of the namespace
+    // the file's `(:require [a.b.ns :as alias])` names — its exact
+    // qualified name, `a.b.ns/f` — never a same-named function of another
+    // namespace. A namespace the tree does not define is left as it was.
+    if lang == "clojure"
+        && let Some((ns, f)) = r.name.split_once('/')
+        && !ns.is_empty()
+        && !f.is_empty()
+    {
+        let ns = module_aliases.get(ns).map_or(ns, String::as_str);
+        if let Some(cid) = by_qn.get(&(lang.to_string(), format!("{ns}/{f}"))) {
+            *module_certain = true;
+            return Some(vec![*cid]);
+        }
+        return None;
+    }
     // WS12b: Elixir `Mod.f()` / `&Mod.f/1` / `__MODULE__.f()` / `:m.f()`
     // name module `Mod` through the file's aliases: its `f` of the call's
     // arity, never another module's `f`.
@@ -4917,9 +5184,72 @@ fn try_resolve_ref(
                 .cloned()
                 .unwrap_or_else(|| vec![cid])
         };
+        // Solidity: a bare call inside a contract or library that declares
+        // the name is one of its own functions (overloads resolve among
+        // the scope's declarations); an imported file's same-named function
+        // is not visible past them. Intra-file refused the own set only
+        // when it is over the cap, so it is refused here too.
+        if lang == "solidity"
+            && r.receiver_hint.is_empty()
+            && let Some(own) = caller_qn.and_then(owner_from_qn)
+            && let Some(mine) = by_owner_method
+                .get(&(lang.to_string(), own.to_string(), r.name.clone()))
+                .map(|v| {
+                    v.iter()
+                        .copied()
+                        .filter(|c| {
+                            graph
+                                .callables
+                                .get(c)
+                                .is_some_and(|n| n.file == caller_file)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .filter(|v| !v.is_empty())
+        {
+            if mine.len() > fanout_cap && !one_method(graph, &mine, fanout_cap) {
+                *capped = mine.len() as u32;
+                return None;
+            }
+            return Some(mine);
+        }
         if let Some(qns) = direct_imports.get(&r.name) {
             let mut cids: Vec<CallableId> = Vec::new();
+            let c_family = cgg_core::same_family(lang, "c");
+            // The include closure pushes a name once per header declaring
+            // it; each distinct qualified name is looked up once.
+            let mut seen_qns: Vec<&str> = Vec::new();
             for qn in qns {
+                if c_family {
+                    if seen_qns.contains(&qn.as_str()) {
+                        continue;
+                    }
+                    seen_qns.push(qn.as_str());
+                }
+                // C family: several definitions carry the name the include
+                // closure declares (a `#define ASSERT` per test program, a
+                // stub beside the real function). The one the call reaches
+                // is in the calling file or a file its closure includes;
+                // `by_qn` keeps an arbitrary one of them.
+                if c_family
+                    && let Some(scoped) = c_include_copies(
+                        graph,
+                        lang,
+                        &r.name,
+                        qn,
+                        caller_file,
+                        by_simple,
+                        qn_collisions,
+                        file_mods,
+                    )
+                {
+                    for c in scoped {
+                        if !cids.contains(&c) {
+                            cids.push(c);
+                        }
+                    }
+                    continue;
+                }
                 if let Some(cid) = lookup_with_reexports(lang, qn, by_qn, reexports) {
                     for c in with_overloads(cid) {
                         if !cids.contains(&c) {
@@ -5106,7 +5436,10 @@ fn try_resolve_ref(
                     }
                 }
             }
-            if !found.is_empty() && found.len() <= fanout_cap.max(1) {
+            if !found.is_empty()
+                && (found.len() <= fanout_cap.max(1)
+                    || one_method(graph, &found, fanout_cap))
+            {
                 return Some(found);
             }
         }
@@ -5685,17 +6018,19 @@ fn try_resolve_ref(
                             );
                         }
                         if lang == "rust" {
+                            let cids = narrow_rust_crate_head(graph, cids, rh);
                             return narrow_trait_overloads(
                                 graph,
-                                cids,
+                                &cids,
                                 r,
                                 fanout_cap,
                                 capped,
                                 by_owner_method,
                             );
                         }
+                        let cids = narrow_owner_paths(graph, lang, cids, rh, caller_qn);
                         return narrow_specializations(
-                            graph, cids, rh, fanout_cap, capped,
+                            graph, &cids, rh, fanout_cap, capped,
                         );
                     }
                 }
@@ -5855,7 +6190,9 @@ fn try_resolve_ref(
                             .is_some_and(|(t, generic)| generic || family.contains(&t))
                     })
                     .collect();
-                if !ext.is_empty() && ext.len() <= fanout_cap {
+                if !ext.is_empty()
+                    && (ext.len() <= fanout_cap || one_method(graph, &ext, fanout_cap))
+                {
                     return Some(ext);
                 }
             }
@@ -5885,7 +6222,10 @@ fn try_resolve_ref(
                     }
                 }
             }
-            if !lib_fns.is_empty() && lib_fns.len() <= fanout_cap {
+            if !lib_fns.is_empty()
+                && (lib_fns.len() <= fanout_cap
+                    || one_method(graph, &lib_fns, fanout_cap))
+            {
                 return Some(lib_fns);
             }
         }
@@ -5913,7 +6253,10 @@ fn try_resolve_ref(
             // Skip if the method name is in the stdlib manifest for this language
             let _sp_fan = cgg_core::profile::span("xfile::fanout");
             let is_stdlib_method = cgg_core::stdlib::stdlib_names(lang)
-                .is_some_and(|std| std.contains(r.name.as_str()));
+                .is_some_and(|std| std.contains(r.name.as_str()))
+                || lang == "rust"
+                    && cgg_core::stdlib::RUST_UNTYPED_ADAPTER_METHODS
+                        .contains(&r.name.as_str());
             if !is_stdlib_method
                 && let Some(cids) = by_simple.get(&(lang.to_string(), r.name.clone()))
                 && !cids.is_empty()
@@ -6017,7 +6360,7 @@ fn try_resolve_ref(
                 // to survivors, which are wrong for the same reason the
                 // ones filtered away are. The filter is only ever allowed
                 // to narrow a set base was already going to emit.
-                if cids.len() > fanout_cap {
+                if cids.len() > fanout_cap && !one_method(graph, &cids, fanout_cap) {
                     *capped = cids.len() as u32;
                     return None;
                 }
@@ -6298,6 +6641,106 @@ fn rust_module_head_path(
 /// same one a same-language lookup would return. Simple-name fan-out
 /// is not consulted here; widening that index mixes every C function
 /// into every C++ duck-typed call.
+/// C family: when more than one callable of the family carries `qn`, the
+/// copies a call through the `#include` closure can reach — those in the
+/// calling file or a file the closure includes (empty when none is). `None`
+/// when the name is unique, so the exact lookup stands.
+#[allow(clippy::too_many_arguments)]
+fn c_include_copies(
+    graph: &Graph,
+    lang: &str,
+    name: &str,
+    qn: &str,
+    caller_file: FileId,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    qn_collisions: &std::collections::HashSet<(String, String)>,
+    file_mods: &crate::modules::FileModules,
+) -> Option<Vec<CallableId>> {
+    let family = cgg_core::language_family(lang);
+    let langs: Vec<&str> = if family.is_empty() {
+        vec![lang]
+    } else {
+        family.to_vec()
+    };
+    let copies: Vec<CallableId> = langs
+        .iter()
+        .filter_map(|l| by_simple.get(&((*l).to_string(), name.to_string())))
+        .flatten()
+        .copied()
+        .filter(|c| {
+            graph
+                .callables
+                .get(c)
+                .is_some_and(|n| n.qualified_name == qn)
+        })
+        .collect();
+    let collides = copies.len() > 1
+        || langs
+            .iter()
+            .any(|l| qn_collisions.contains(&((*l).to_string(), qn.to_string())));
+    if !collides {
+        return None;
+    }
+    let (inside, outside): (Vec<CallableId>, Vec<CallableId>) =
+        copies.into_iter().partition(|c| {
+            graph.callables.get(c).is_some_and(|n| {
+                n.file == caller_file || file_mods.c_includes.contains_key(&n.file)
+            })
+        });
+    // A prototype the closure declares (`int f(int);`, its text ending at
+    // the `;`) is defined in some translation unit of its own: the one
+    // body elsewhere that carries the name, when there is exactly one.
+    let prototype = |c: &CallableId| {
+        graph
+            .callables
+            .get(c)
+            .is_some_and(|n| n.signature_hint.trim_end().ends_with(';'))
+    };
+    if !inside.is_empty() && inside.iter().all(prototype) {
+        let bodies: Vec<CallableId> =
+            outside.iter().copied().filter(|c| !prototype(c)).collect();
+        if let [one] = bodies.as_slice() {
+            return Some(vec![*one]);
+        }
+    }
+    // Nothing in the closure defines it: the closure only declared it, and
+    // that declaration was merged into its bodies elsewhere
+    // (`FileFacts::unified_decls`). Bodies all in ONE file are that file's
+    // preprocessor alternatives (`#ifdef _WIN32 … #elif …`), one callee;
+    // bodies in several files are separate programs, and stay refused.
+    if inside.is_empty() {
+        let mut files = outside
+            .iter()
+            .filter_map(|c| graph.callables.get(c))
+            .map(|n| n.file);
+        if let Some(f) = files.next()
+            && files.all(|g| g == f)
+            && let Some(last) = outside
+                .iter()
+                .copied()
+                .max_by_key(|c| graph.callables.get(c).map_or(0, |n| n.start_byte))
+        {
+            return Some(vec![last]);
+        }
+    }
+    // Several definitions in ONE file are its preprocessor alternatives
+    // (`#ifdef DEBUG #define ASSERT … #else #define ASSERT …`): one
+    // callee whichever is configured, bound once — the last, which is
+    // the one a by-name lookup always kept.
+    let mut per_file: Vec<(FileId, CallableId, u32)> = Vec::new();
+    for c in inside {
+        let Some(n) = graph.callables.get(&c) else {
+            continue;
+        };
+        match per_file.iter_mut().find(|(f, _, _)| *f == n.file) {
+            Some(slot) if n.start_byte >= slot.2 => *slot = (n.file, c, n.start_byte),
+            Some(_) => {}
+            None => per_file.push((n.file, c, n.start_byte)),
+        }
+    }
+    Some(per_file.into_iter().map(|(_, c, _)| c).collect())
+}
+
 fn lookup_with_reexports(
     lang: &str,
     qn: &str,
@@ -9772,14 +10215,12 @@ mod tests {
 
         // Header prototype first, body second. A sibling index that
         // keeps the first id would bind the call to the prototype.
-        g.add_callable(mk_callable(
-            0,
-            "qlz_decompress",
-            "qlz_decompress",
-            0,
-            "c",
-            (0, 60),
-        ));
+        let mut proto =
+            mk_callable(0, "qlz_decompress", "qlz_decompress", 0, "c", (0, 60));
+        // WS16: its text ends at the `;` — a prototype.
+        proto.signature_hint =
+            "size_t qlz_decompress(const char *src, void *dst);".into();
+        g.add_callable(proto);
         g.add_callable(mk_callable(
             1,
             "qlz_decompress",
@@ -13207,5 +13648,426 @@ mod tests {
             dsts,
             vec![at("cerl:fold_literal", "lib/compiler/src/cerl.erl")]
         );
+    }
+
+    // ----------------------------------------------------------------
+    // WS16: pre-0.11.0 fixes.
+    // ----------------------------------------------------------------
+
+    /// (a) A C macro or function the `#include` closure declares is read
+    /// from the closure, never from a same-named definition in a file the
+    /// caller does not include (a test program's own `#define ASSERT`).
+    #[test]
+    fn a_c_name_from_the_include_closure_binds_inside_it() {
+        let files = vec![
+            mfile("beam/sys.h", &["ASSERT"], vec![]),
+            mfile("zz_test/suite.c", &["ASSERT"], vec![]),
+        ];
+        let caller = mfile(
+            "beam/trace.c",
+            &["trace_it"],
+            vec![import("include", "sys.h", "")],
+        );
+        let (dsts, _) = module_case("c", files.clone(), caller, vec![call("ASSERT", "")]);
+        assert_eq!(dsts, vec![at("ASSERT", "beam/sys.h")]);
+        // Near miss: a unique name is unaffected.
+        let caller = mfile(
+            "beam/trace.c",
+            &["trace_it"],
+            vec![import("include", "sys.h", "")],
+        );
+        let files = vec![mfile("beam/sys.h", &["ASSERT"], vec![])];
+        let (dsts, _) = module_case("c", files, caller, vec![call("ASSERT", "")]);
+        assert_eq!(dsts, vec![at("ASSERT", "beam/sys.h")]);
+    }
+
+    fn typed(name: &str, recv: &str) -> RefRecord {
+        RefRecord {
+            typed_receiver: true,
+            ..call(name, recv)
+        }
+    }
+
+    /// (c) A JVM receiver typed `Response.Builder` reaches that nested
+    /// class's method, not every class named `Builder`; written bare, the
+    /// type nested in the caller's own scope wins.
+    #[test]
+    fn a_qualified_jvm_receiver_type_narrows_same_named_owners() {
+        let files = vec![
+            mfile("k/Response.kt", &["web.Response.Builder.build"], vec![]),
+            mfile("k/Client.kt", &["web.Client.Builder.build"], vec![]),
+        ];
+        let caller = mfile("k/Use.kt", &["web.make"], vec![]);
+        let (dsts, _) = module_case(
+            "kotlin",
+            files.clone(),
+            caller,
+            vec![typed("build", "Response.Builder")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at("web.Response.Builder.build", "k/Response.kt")]
+        );
+        // Bare `Builder` from inside `Client`: Client's own nested type.
+        let caller = mfile("k/Client2.kt", &["web.Client.make"], vec![]);
+        let (dsts, _) =
+            module_case("kotlin", files, caller, vec![typed("build", "Builder")]);
+        assert_eq!(dsts, vec![at("web.Client.Builder.build", "k/Client.kt")]);
+    }
+
+    /// (i) A Rust receiver typed by a crate path binds in that crate.
+    #[test]
+    fn a_rust_receiver_typed_by_crate_path_binds_in_that_crate() {
+        let files = vec![
+            mfile(
+                "common/src/config.rs",
+                &["kb_common::config::ConfigSource::get"],
+                vec![],
+            ),
+            mfile(
+                "dream/src/config.rs",
+                &["kb_dream::config::ConfigSource::get"],
+                vec![],
+            ),
+        ];
+        let caller = mfile("server/src/main.rs", &["kb_server::main"], vec![]);
+        let (dsts, _) = module_case(
+            "rust",
+            files,
+            caller,
+            vec![typed("get", "kb_common::ConfigSource")],
+        );
+        assert_eq!(
+            dsts,
+            vec![at(
+                "kb_common::config::ConfigSource::get",
+                "common/src/config.rs"
+            )]
+        );
+    }
+
+    /// (f) Clojure `alias/f` is `f` of the namespace the alias requires.
+    #[test]
+    fn a_clojure_alias_call_binds_in_the_required_namespace() {
+        let files = vec![
+            mfile("src/util/date_2.clj", &["app.util.date-2/format"], vec![]),
+            mfile("src/lib/util.clj", &["app.lib.util/format"], vec![]),
+        ];
+        let caller = mfile(
+            "src/qp.clj",
+            &["app.qp/inline"],
+            vec![import("require", "app.util.date-2", "u.date")],
+        );
+        let (dsts, _) =
+            module_case("clojure", files, caller, vec![call("u.date/format", "")]);
+        assert_eq!(
+            dsts,
+            vec![at("app.util.date-2/format", "src/util/date_2.clj")]
+        );
+    }
+
+    /// (e) The argument count picks among overloads; a candidate whose
+    /// parameter list cannot be read, or a set nothing fits, stands.
+    #[test]
+    fn arity_narrows_an_overload_set_one_sidedly() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "util/ISE.java", "java"));
+        let sigs = [
+            "public ISE(String formatText, Object... arguments)",
+            "public ISE(Throwable t, String formatText, Object... arguments)",
+            "",
+        ];
+        for (i, sig) in sigs.iter().enumerate() {
+            let mut c = mk_callable(
+                i as u32,
+                "ISE",
+                "util.ISE.ISE",
+                0,
+                "java",
+                (i as u32 * 10, i as u32 * 10 + 5),
+            );
+            c.signature_hint = (*sig).into();
+            g.add_callable(c);
+        }
+        let all: Vec<CallableId> = (0..3).map(CallableId::new).collect();
+        let pick = |a| narrow_by_arity(&g, "java", Some(a), all.clone());
+        assert_eq!(pick(1), vec![CallableId::new(0), CallableId::new(2)]);
+        assert_eq!(pick(3), all);
+        // Not an overloading language that records counts: unchanged.
+        assert_eq!(narrow_by_arity(&g, "python", Some(1), all.clone()), all);
+        assert_eq!(narrow_by_arity(&g, "java", None, all.clone()), all);
+    }
+
+    /// (b) Solidity: a bare call reaches the calling contract's own
+    /// functions (all of one method's overloads) before anything imported,
+    /// never handing the call to an import, and an imported library's function is
+    /// never reachable by bare name (only `L.f(x)` / `using L for T`).
+    #[test]
+    fn solidity_bare_calls_never_reach_an_imported_library_member() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "Set.sol", "solidity"));
+        g.add_file(mk_file(1, "Map.sol", "solidity"));
+        g.add_file(mk_file(2, "Free.sol", "solidity"));
+        let mut lib = mk_callable(0, "contains", "Set.contains", 0, "solidity", (0, 50));
+        lib.attributes = vec![cgg_lang::plugins::solidity::LIBRARY_MEMBER.into()];
+        g.add_callable(lib);
+        let mut lib2 = mk_callable(1, "add", "Set.add", 0, "solidity", (60, 90));
+        lib2.attributes = vec![cgg_lang::plugins::solidity::LIBRARY_MEMBER.into()];
+        g.add_callable(lib2);
+        g.add_callable(mk_callable(2, "helper", "helper", 2, "solidity", (0, 40)));
+        // Map: 6 own `contains` overloads plus the caller.
+        let mut map_defs = Vec::new();
+        for i in 0..6u32 {
+            let r = (100 + i * 10, 105 + i * 10);
+            g.add_callable(mk_callable(
+                10 + i,
+                "contains",
+                "Map.contains",
+                1,
+                "solidity",
+                r,
+            ));
+            map_defs.push(mk_def(
+                "contains",
+                "Map.contains",
+                DefVariant::InherentMethod,
+                r,
+            ));
+        }
+        g.add_callable(mk_callable(
+            20,
+            "tryGet",
+            "Map.tryGet",
+            1,
+            "solidity",
+            (0, 99),
+        ));
+        map_defs.push(mk_def(
+            "tryGet",
+            "Map.tryGet",
+            DefVariant::InherentMethod,
+            (0, 99),
+        ));
+        let set_facts = facts_for(
+            0,
+            "Set.sol",
+            "solidity",
+            vec![
+                mk_def(
+                    "contains",
+                    "Set.contains",
+                    DefVariant::InherentMethod,
+                    (0, 50),
+                ),
+                mk_def("add", "Set.add", DefVariant::InherentMethod, (60, 90)),
+            ],
+            vec![],
+            vec![],
+        );
+        let free_facts = facts_for(
+            2,
+            "Free.sol",
+            "solidity",
+            vec![mk_def(
+                "helper",
+                "helper",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let at_site = |name: &str, b: u32| RefRecord {
+            site_byte: b,
+            ..call(name, "")
+        };
+        let map_facts = facts_for(
+            1,
+            "Map.sol",
+            "solidity",
+            map_defs,
+            vec![
+                at_site("contains", 10),
+                at_site("add", 20),
+                at_site("helper", 30),
+            ],
+            vec![
+                import("import", "./Set.sol", ""),
+                import("import", "./Free.sol", ""),
+            ],
+        );
+        let out = resolve_default(&g, &[set_facts, map_facts, free_facts]);
+        let dsts: Vec<u64> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(20))
+            .map(|e| e.dst.as_u64())
+            .collect();
+        // The contract's own `contains` overloads — one method, so the cap
+        // does not apply — and the free function an import brings in;
+        // never the library's `contains` / `add`.
+        assert_eq!(dsts, vec![10, 11, 12, 13, 14, 15, 2], "{:?}", out.edges);
+    }
+
+    /// (f) OCaml `open A.B` opens a submodule of the file `a.ml`: a
+    /// same-named function there is the one the bare call reaches.
+    #[test]
+    fn an_ocaml_open_of_a_submodule_reaches_its_file() {
+        let files = vec![
+            mfile("src/format/opamFile.ml", &["has_flag"], vec![]),
+            mfile("src/client/opamArg.ml", &["has_flag"], vec![]),
+        ];
+        let caller = mfile(
+            "src/state/opamFileTools.ml",
+            &["warnings"],
+            vec![
+                import("open", "OpamFile.OPAM", ""),
+                import("open", "OpamArg.Sub", ""),
+            ],
+        );
+        // Both files opened: a copy in each, refused rather than guessed.
+        let (dsts, _) =
+            module_case("ocaml", files.clone(), caller, vec![call("has_flag", "")]);
+        assert!(dsts.is_empty(), "{dsts:?}");
+        let caller = mfile(
+            "src/state/opamFileTools.ml",
+            &["warnings"],
+            vec![import("open", "OpamFile.OPAM", "")],
+        );
+        let (dsts, _) = module_case("ocaml", files, caller, vec![call("has_flag", "")]);
+        assert_eq!(dsts, vec![at("has_flag", "src/format/opamFile.ml")]);
+    }
+
+    /// (k) Rust: `x.parse().ok()` through an untyped receiver is the
+    /// `Result` adapter, never a workspace `ok` by name; a typed receiver
+    /// still reaches its own `ok`.
+    #[test]
+    fn rust_result_adapters_are_not_fanned_out_by_name() {
+        let files = vec![
+            mfile("a/src/stats.rs", &["a::Stats::ok"], vec![]),
+            mfile("b/src/report.rs", &["b::Report::ok"], vec![]),
+        ];
+        let caller = mfile("c/src/lib.rs", &["c::run"], vec![]);
+        let (dsts, _) = module_case(
+            "rust",
+            files.clone(),
+            caller.clone(),
+            vec![call("ok", "s.parse()")],
+        );
+        assert!(dsts.is_empty(), "{dsts:?}");
+        let (dsts, _) = module_case("rust", files, caller, vec![typed("ok", "Stats")]);
+        assert_eq!(dsts, vec![at("a::Stats::ok", "a/src/stats.rs")]);
+    }
+
+    /// Overloads of one method are one callee: past `--fanout-cap` they
+    /// still bind (at `medium`). Same-named methods of different owners
+    /// past the cap are distinct guesses and are refused.
+    #[test]
+    fn overloads_of_one_method_never_trip_the_fanout_cap() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "gson/Gson.java", "java"));
+        let mut all = Vec::new();
+        for i in 0..7u32 {
+            g.add_callable(mk_callable(
+                i,
+                "fromJson",
+                "g.Gson.fromJson",
+                0,
+                "java",
+                (i * 10, i * 10 + 5),
+            ));
+            all.push(CallableId::new(i));
+        }
+        assert!(one_method(&g, &all, 5));
+        assert!(!one_method(&g, &all, 0), "--fanout-cap 0 never guesses");
+        g.add_file(mk_file(1, "other/Other.java", "java"));
+        g.add_callable(mk_callable(
+            9,
+            "fromJson",
+            "o.Other.fromJson",
+            1,
+            "java",
+            (0, 5),
+        ));
+        let mut mixed = all.clone();
+        mixed.push(CallableId::new(9));
+        assert!(!one_method(&g, &mixed, 5));
+        // A copy of the class in another file is not an overload.
+        g.add_callable(mk_callable(
+            10,
+            "fromJson",
+            "g.Gson.fromJson",
+            1,
+            "java",
+            (10, 15),
+        ));
+        let mut copies = all.clone();
+        copies.push(CallableId::new(10));
+        assert!(!one_method(&g, &copies, 5));
+        // Same-named JavaScript functions are not overloads.
+        g.add_file(mk_file(2, "bundle.min.js", "javascript"));
+        let mut js = Vec::new();
+        for i in 20..27u32 {
+            g.add_callable(mk_callable(
+                i,
+                "n",
+                "n",
+                2,
+                "javascript",
+                (i * 10, i * 10 + 5),
+            ));
+            js.push(CallableId::new(i));
+        }
+        assert!(!one_method(&g, &js, 5));
+    }
+
+    /// A name the include closure only declared — its prototype merged
+    /// into bodies elsewhere — reaches those bodies when they are one
+    /// file's preprocessor alternatives (bound once); bodies spread over
+    /// several files are not one callee: the closure picks none of them
+    /// (only the by-name fallback's `medium` guess remains).
+    #[test]
+    fn a_merged_declaration_reaches_one_files_alternative_bodies() {
+        let caller = || {
+            mfile(
+                "lib/progress.c",
+                &["now"],
+                vec![import("include", "timeval.h", "")],
+            )
+        };
+        let header = || mfile("lib/timeval.h", &[], vec![]);
+        let files = vec![
+            header(),
+            mfile("lib/timeval.c", &["pnow", "pnow", "pnow"], vec![]),
+        ];
+        let (dsts, _) = module_case_each(
+            "c",
+            files,
+            caller(),
+            vec![call("pnow", "")],
+            |is_caller, i, f| {
+                if !is_caller && i == 0 {
+                    f.unified_decls.push(("pnow".into(), "pnow".into()));
+                }
+            },
+        );
+        assert_eq!(dsts, vec![at("pnow", "lib/timeval.c")]);
+        let files = vec![
+            header(),
+            mfile("lib/timeval.c", &["pnow"], vec![]),
+            mfile("test/stub.c", &["pnow"], vec![]),
+        ];
+        let (dsts, _) = module_case_each(
+            "c",
+            files,
+            caller(),
+            vec![call("pnow", "")],
+            |is_caller, i, f| {
+                if !is_caller && i == 0 {
+                    f.unified_decls.push(("pnow".into(), "pnow".into()));
+                }
+            },
+        );
+        assert_eq!(dsts.len(), 2, "{dsts:?}");
     }
 }

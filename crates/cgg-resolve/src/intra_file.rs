@@ -658,12 +658,19 @@ pub fn link_file_with_cap(
                     clause_targets(&facts.language, &candidates, rref.arity)
                 } else {
                     (
-                        candidates.iter().map(|(i, _)| *i).collect::<Vec<u32>>(),
+                        overloads_for_arity(&facts.language, &candidates, rref.arity),
                         Confidence::Medium,
                     )
                 };
-                // One certain callee is not a guess; the cap bounds guesses.
-                if confidence != Confidence::High && targets.len() > fanout_cap {
+                // One certain callee is not a guess; the cap bounds guesses
+                // among distinct targets, and in an overloading language
+                // these are one method's overloads: only `--fanout-cap 0`
+                // (never guess) refuses them. A clause language's set is
+                // several arities — distinct functions — and stays capped.
+                if confidence != Confidence::High
+                    && targets.len() > fanout_cap
+                    && (fanout_cap == 0 || is_clause_language(&facts.language))
+                {
                     out.unresolved.push(AuditUnresolvedCall::new(
                         src,
                         facts.file,
@@ -818,7 +825,7 @@ fn enclosing_def_index(facts: &FileFacts, rref: &RefRecord) -> Option<usize> {
 /// redefinition — `lookahead1W` twice in one minified bundle, a Python
 /// `def` in both arms of an `if` — and binding all of them would be a
 /// guess dressed as a fact, so those stay `ambiguous-in-file`.
-fn binds_same_name_set(language: &str) -> bool {
+pub(crate) fn binds_same_name_set(language: &str) -> bool {
     is_clause_language(language)
         || matches!(
             language,
@@ -841,7 +848,7 @@ fn binds_same_name_set(language: &str) -> bool {
 /// there are not overloads to guess between: they are one function
 /// (Haskell equations), or one function per arity (Erlang/Elixir `f/1`
 /// and `f/2`, which the call's argument count tells apart).
-fn is_clause_language(language: &str) -> bool {
+pub(crate) fn is_clause_language(language: &str) -> bool {
     matches!(language, "erlang" | "elixir" | "haskell")
 }
 
@@ -850,6 +857,30 @@ fn is_clause_language(language: &str) -> bool {
 /// the call's arity when both are known; if that leaves nothing, the
 /// arities are unknowable here and every function stays. One function
 /// left is a certain callee — `High`; several arities left is a guess.
+/// The overloads of one name whose parameter list can take the call's
+/// argument count, in an overloading language that records it; every
+/// candidate when none (or no count) can say. See
+/// [`crate::cross_file::narrow_by_arity`].
+fn overloads_for_arity(
+    language: &str,
+    candidates: &[(u32, &DefRecord)],
+    arity: Option<u32>,
+) -> Vec<u32> {
+    let all: Vec<u32> = candidates.iter().map(|(i, _)| *i).collect();
+    let Some(n) = arity else { return all };
+    if !crate::type_hints::OVERLOAD_ARITY_LANGS.contains(&language) {
+        return all;
+    }
+    let fits: Vec<u32> = candidates
+        .iter()
+        .filter(|(_, d)| {
+            crate::type_hints::accepts_arity(&d.signature_hint, n) != Some(false)
+        })
+        .map(|(i, _)| *i)
+        .collect();
+    if fits.is_empty() { all } else { fits }
+}
+
 fn clause_targets(
     language: &str,
     candidates: &[(u32, &DefRecord)],
