@@ -528,7 +528,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(3942 callables, 11156 edges, 2454 cross-file, 412ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(3949 callables, 11182 edges, 2458 cross-file, 409ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -656,8 +656,8 @@ flowchart LR
   N3 --> N52
   N3 -->|19x| N41
   N3 -->|2x| N55
-  N3 --> N49
-  N3 --> N59
+  N3 -->|?| N49
+  N3 -->|?| N59
   N3 -->|2x| N48
   N3 --> N54
   N3 --> N56
@@ -766,6 +766,25 @@ flowchart LR
 | **json** | Programmatic consumption, custom tooling, CI checks |
 | **dot** | Graphviz rendering for large graphs |
 | **graphml** | Import into yEd, Gephi, or other graph analysis tools |
+
+### Edge labels
+
+A mermaid arrow's label carries, in order and only when present: `?`
+(confidence), a `via` tag (`dyn`/`ref`/`ext`/`std`/`desc`/`entry`), and
+a call count (`18x`) — `N0 --> N1`, `N0 -->|3x| N1`, `N0 -->|?| N1`,
+`N0 -->|?ref 2x| N1`.
+
+**An unmarked arrow is `high` confidence**: at least one of its call
+sites was bound through structure — an exact or imported path, a
+receiver whose declared type one class owns, the caller's own class, or
+an overload set the argument count narrows to one. **A leading `?`**
+means no site on that arrow was: it was matched by name, chosen among
+candidates, or reached through an inferred type, so check the call site
+(or `-t json`'s `resolver` field) before relying on it. Arrows whose tag
+already says they are not a resolved call — dispatch fan-out (`dyn`),
+framework entries (`entry`) and exit nodes (`ext`/`std`) — are never
+marked. The arrow itself is always `-->`, so a parser that keys on
+it is unaffected.
 
 ### Node ids
 
@@ -988,7 +1007,9 @@ function each call site actually targets:
    default; see [Framework entry points](#framework-entry-points)
 
 Edges carry confidence levels and resolver provenance so downstream
-tools can filter by quality.
+tools can filter by quality. `high` = structurally certain; `medium` = plausible
+but chosen (by name, among candidates, or through an inferred type);
+`low` = opt-in guesses and synthesized framework entries.
 
 ### Optional edge kinds (opt-in)
 

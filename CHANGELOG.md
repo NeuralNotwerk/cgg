@@ -11,6 +11,17 @@ otherwise change the default graph.
 
 ### Changed
 
+- **Mermaid marks uncertain arrows with `?`.** An arrow with no
+  `high`-confidence call site leads its label with `?` (`-->|?|`,
+  `-->|?3x|`, `-->|?ref 2x|`, and in front of `--locations` site lists);
+  unmarked means `high`. One token, only on non-high arrows; the arrow
+  stays `-->`, so parsers keyed on it are unaffected. A collapsed arrow
+  takes its best site's confidence. Arrows whose tag already says
+  they are not a resolved call are never marked: `dyn` dispatch fan-out
+  and framework entries (both always minted `low`) and
+  `--include-external`/`--include-stdlib` exit nodes. On neurosymbolic_kb,
+  20% of arrows carry the mark after the calibration below (45% before).
+
 - **Edge confidence is calibrated: `high` now means the binding is
   structurally certain (WS17).** A call bound to exactly one definition
   through structure was reported `medium` whenever the step that found it

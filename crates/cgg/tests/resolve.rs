@@ -1019,15 +1019,17 @@ fn cpp_typed_call_reaches_every_definition_not_only_the_last() {
     let helpers = ids("helper");
     assert_eq!(init.len(), 1, "init:\n{g}");
     assert_eq!(adds.len(), 2, "both definitions:\n{g}");
+    // Either confidence: `-->` (high) or `-->|?|` (not high).
+    let arrow = |a: &str, b: &str| {
+        g.contains(&format!("{a} --> {b}")) || g.contains(&format!("{a} -->|?| {b}"))
+    };
     assert!(
-        adds.iter()
-            .all(|a| g.contains(&format!("{} --> {a}", init[0]))),
+        adds.iter().all(|a| arrow(&init[0], a)),
         "typed call should reach both definitions:\n{g}"
     );
     assert_eq!(helpers.len(), 1, "helper:\n{g}");
     assert!(
-        g.contains(&format!("{} --> {}", adds[0], helpers[0]))
-            || g.contains(&format!("{} --> {}", adds[1], helpers[0])),
+        arrow(&adds[0], &helpers[0]) || arrow(&adds[1], &helpers[0]),
         "the real body calls helper:\n{g}"
     );
 }
@@ -2188,10 +2190,7 @@ fn rust_reference_edges_are_opt_in() {
         .assert()
         .success();
     assert_eq!(
-        fs::read_to_string(&plain)
-            .unwrap()
-            .matches("-->|ref|")
-            .count(),
+        fs::read_to_string(&plain).unwrap().matches("ref| ").count(),
         0
     );
 
@@ -2205,7 +2204,7 @@ fn rust_reference_edges_are_opt_in() {
         .success();
     let g = fs::read_to_string(&refs).unwrap();
     assert_eq!(
-        g.matches("-->|ref|").count(),
+        g.matches("ref| ").count(),
         1,
         "expected one reference edge:\n{g}"
     );
@@ -2405,7 +2404,8 @@ fn fanout_is_narrowed_by_keyword_compatibility() {
         .lines()
         .filter_map(|l| l.split("-->").nth(1))
         .map(|t| {
-            let id = t.trim();
+            // Past any `|label|` (the `?` confidence mark, a count).
+            let id = t.trim().rsplit(' ').next().unwrap_or("");
             g.lines()
                 .find(|n| n.trim().starts_with(&format!("{id}[")))
                 .unwrap_or("")

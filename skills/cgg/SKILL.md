@@ -250,6 +250,13 @@ cgg . --filter 'Service::handle' -n 1 --include-external -o /tmp/cgg.mmd
 
 Leave them off when you want the clean, high-confidence call graph.
 
+**Confidence marker.** An arrow whose label starts with `?` (`-->|?|`,
+`-->|?3x|`, `-->|?ref|`) has no call site cgg resolved with certainty —
+it matched by name, among candidates, or through a guessed type. Check
+it (open the call site, or rerun with `-t json` and read `resolver` /
+`confidence`) before relying on it for impact analysis. Unmarked arrows
+were bound through structure and can be trusted.
+
 ## Framework entry points (on by default)
 
 Frameworks invoke user code by means that are not calls, so a route

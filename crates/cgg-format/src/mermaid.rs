@@ -244,9 +244,11 @@ impl GraphFormatter for MermaidFormatter {
         > = std::collections::HashMap::new();
         // An arrow stands for every call site it collapsed, so it is as
         // certain as its best site: one `high` site settles that the call
-        // happens. Holds the arrows with no `high` site. A framework entry
-        // is exempt: the pipeline mints every one at `low` as a fixed
-        // placeholder, and its `entry` tag already says it is inferred.
+        // happens. Holds the arrows with no `high` site. Arrows whose tag
+        // already says they are not a resolved call are exempt, so the
+        // mark is never a constant: a framework entry and a dispatch
+        // fan-out edge are minted at `low` every time, and an exit node
+        // (`ext`/`std`) is a leaf standing for code outside the tree.
         let mut unsure: std::collections::HashSet<(CallableId, CallableId, &str)> =
             std::collections::HashSet::new();
         for edge in &graph.edges {
@@ -262,7 +264,13 @@ impl GraphFormatter for MermaidFormatter {
             if first {
                 order.push(key);
                 if edge.confidence != Confidence::High
-                    && !matches!(edge.via, Via::FrameworkEntry(_))
+                    && !matches!(
+                        edge.via,
+                        Via::FrameworkEntry(_)
+                            | Via::Dynamic
+                            | Via::External
+                            | Via::Stdlib
+                    )
                 {
                     unsure.insert(key);
                 }
@@ -607,8 +615,25 @@ mod tests {
             edge_with(Confidence::Medium, Via::Direct, 2),
         ]);
         assert!(s.contains("N0 -->|?2x| N1"), "got:\n{s}");
-        let s = render_edges(vec![edge_with(Confidence::Medium, Via::Dynamic, 1)]);
-        assert!(s.contains("N0 -->|?dyn| N1"), "got:\n{s}");
+        let s = render_edges(vec![edge_with(Confidence::Medium, Via::Reference, 1)]);
+        assert!(s.contains("N0 -->|?ref| N1"), "got:\n{s}");
+    }
+
+    #[test]
+    fn arrows_whose_tag_already_says_unresolved_are_never_marked() {
+        // Dispatch fan-out and framework entries are minted at `low`
+        // every time, and exit nodes stand for code outside the tree: a
+        // mark on them would be constant, so it would carry nothing.
+        for (via, tag) in [
+            (Via::Dynamic, "dyn"),
+            (Via::External, "ext"),
+            (Via::Stdlib, "std"),
+            (Via::FrameworkEntry("flask".into()), "entry"),
+        ] {
+            let s = render_edges(vec![edge_with(Confidence::Low, via, 1)]);
+            assert!(s.contains(&format!("N0 -->|{tag}| N1")), "got:\n{s}");
+            assert!(!s.contains('?'), "got:\n{s}");
+        }
     }
 
     #[test]
