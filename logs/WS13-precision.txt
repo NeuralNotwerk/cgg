@@ -1,0 +1,22 @@
+WS13 precision samples (ab/WS13-v8 unless noted), judged against source.
+
+Foreign-type rebinds (use'd external `Data<Ctx>` -> Ctx method): 4/4 correct
+  lemmy community.rs:99, delete.rs:62, update.rs:82, purge/person.rs:41 context.pool() -> LemmyContext::pool (was test-module Data::pool)
+Foreign-type refusals (external-module): 5/5 correct
+  salvo quota.rs:214 Duration::seconds (time::Duration; was MaxAge::seconds)
+  clashverge service.rs:545 status.code() (std ExitStatus; was SysproxyFailure::code)
+  nkb TempDir/Sha256/Instant/Regex sites (tempfile/sha2/std/regex imports)
+  salvo service.rs:432 req.uri() (hyper Request; was salvo Request::uri)
+  ripgrep literal.rs:517 self.seq.is_exact() (regex_syntax Seq)
+Std-type screens (stdlib): 3/3 correct
+  ntex config.rs:351 Cell::new (use std::cell::Cell; was ntex_util Cell<T>::new)
+  ntex message.rs:477 Rc::new (use std::rc::Rc; was Decoder::new)
+  salvo rustls.rs:63 TlsConnector::from(Arc::new(..)) (was ToSchema::new)
+Overload picks by literal argument: 4/4 correct
+  ntex message.rs:287 ErrorMessage::from("test"); time/types.rs:300 Seconds::from(10i32)
+  ntex pages.rs:849 BytePage::from(b"123"); nkb person_identity.rs:404 DocId::from(x.to_string())
+Overload refusals over cap: by construction each set kept <=1 right target of N (sampled 4: BytePage, HeaderValue, Body, ReqBody)
+Item 2 retype: ntex router.rs:280 router.case_insensitive() -> RouterBuilder (Router::build() -> RouterBuilder): correct
+Added HIGH (8 sampled): 7 verified correct (annotated let ipv6: SocketAddr, inner: Self, router builder, conn.rustls, body poll_next_chunk, buf.get_f64, hay.is_dir), 1 unverified
+Removed HIGH (29, all listed): ~14 lost a right target (untyped tuple/let re-binding now hides the typed let: ntex response.rs x5, server_variables, Millis x2; cfg.rs x6 unclear), ~8 were wrong or rebound (salvo schema_type x2 rebound to the method, ntex-error lib.rs x5 rebound to Error<T>, robyn match-arm binding)
+Isolated A/B (ab/WS13-v7-vs-fallback): refusing the file-wide fallback dropped 161 HIGH; 20 sampled: 14 right / 5 wrong / 1 unclear -> rule reverted.
