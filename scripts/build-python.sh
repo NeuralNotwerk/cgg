@@ -86,4 +86,8 @@ fi
 echo "[build-python] pytest"
 CGG_BIN="$PWD/target/release/cgg" "$VENV/bin/python" -m pytest crates/cgg-py/tests -q
 
+# The same check the release workflow runs against every wheel it builds.
+echo "[build-python] smoke test"
+"$VENV/bin/python" scripts/smoke/python_smoke.py crates/cgg-walk
+
 echo "[build-python] ok"

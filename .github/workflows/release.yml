@@ -65,14 +65,8 @@ jobs:
         shell: bash
         run: |
           python -m pip install --find-links dist --no-index cgg-callgraphgenerator
-          python -c "
-          import cgg
-          g = cgg.analyze('crates/cgg-walk')
-          assert len(g.callables) > 0, 'no callables'
-          # Entry nodes put a `%%` banner above the flowchart line.
-          assert any(l.startswith('flowchart') for l in g.to_mermaid().splitlines()), 'bad mermaid'
-          print('ok', cgg.__version__, len(g.callables), 'callables')
-          "
+          # Shared with scripts/build-python.sh, so a local build runs the same check.
+          python scripts/smoke/python_smoke.py crates/cgg-walk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -203,28 +197,8 @@ jobs:
         shell: bash
         working-directory: crates/cgg-node
         run: |
-          node -e "
-          const cgg = require('./index.js');
-          const pkg = require('./package.json');
-
-          // The version is ASSERTED, not printed. It used to be logged only,
-          // so a loader/native/package disagreement scrolled past in green.
-          // This reads the version out of the compiled .node — the one thing
-          // here that cannot be satisfied by a stale or hand-edited file.
-          const v = cgg.version();
-          if (v !== pkg.version) {
-            throw new Error(
-              'version mismatch: native binding reports ' + v +
-              ' but package.json ships ' + pkg.version +
-              ' — the .node was built from a different tree than the manifest');
-          }
-
-          const g = cgg.analyzeSync('../cgg-walk');
-          if (g.callableCount < 1) { throw new Error('no callables'); }
-          // Entry nodes put a `%%` banner above the flowchart line.
-          if (!/^flowchart/m.test(g.toMermaid())) { throw new Error('bad mermaid'); }
-          console.log('ok', v, g.callableCount, 'callables');
-          "
+          # Shared with scripts/release.sh, so a local build runs the same check.
+          node ../../scripts/smoke/node_smoke.js . ../cgg-walk
 
       - uses: actions/upload-artifact@v4
         with:

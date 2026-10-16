@@ -9,7 +9,8 @@
 #   4. Regenerates README mermaid graphs       (fails -> abort commit)
 #   5. Patches self-analysis stats             (fails -> abort commit)
 #   6. Runs scripts/docs-check.py              (fails -> abort commit)
-#   7. Stages README.md iff it changed
+#   7. markdownlint on every tracked doc       (fails -> abort commit)
+#   8. Stages README.md iff it changed
 #
 # Bypass with `git commit --no-verify` when you need to (e.g., pure
 # docs commits that can't wait for a cold build).
@@ -101,6 +102,17 @@ python3 scripts/update-readme-stats.py < "$MERMAID_DIR/self.stderr"
 
 echo "[cgg pre-commit] checking docs consistency"
 python3 scripts/docs-check.py
+
+# The same file set and linter as scripts/release.sh's markdownlint gate
+# (~2 s). Without it, long lines surfaced only at release time (0.11.0).
+# Runs after the README patches so the generated blocks are linted too.
+if command -v npx >/dev/null 2>&1; then
+    echo "[cgg pre-commit] markdownlint"
+    # shellcheck disable=SC2046
+    npx --yes markdownlint-cli2 $(git ls-files '*.md' | grep -v 'crates/cgg-node/npm')
+else
+    echo "[cgg pre-commit] warning: npx not found; markdownlint skipped" >&2
+fi
 
 # Stage README if it was modified (either from this hook or a manual
 # edit the user already had pending).

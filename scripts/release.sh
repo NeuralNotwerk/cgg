@@ -185,6 +185,25 @@ else
     warn "node not available — JS syntax check skipped"
 fi
 
+# The Python and Node modules, built and tested here, then put through the
+# exact smoke test the release workflow runs on every wheel and .node
+# (scripts/smoke/). 0.11.0's first tag run failed on a smoke assertion that
+# no local gate had ever executed; nothing here ran either module's suite.
+if have uv; then
+    gate "python module (build, pytest, smoke)" scripts/build-python.sh
+else
+    warn "uv not available — python module build, tests and smoke skipped"
+fi
+if have node && have npx; then
+    gate "node module (build, tests, smoke)" sh -c '
+        cd crates/cgg-node &&
+        npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release &&
+        node --test tests/*.test.js &&
+        node ../../scripts/smoke/node_smoke.js . ../cgg-walk'
+else
+    warn "node/npx not available — node module build, tests and smoke skipped"
+fi
+
 # TOML is the release surface most likely to be edited by hand under time
 # pressure, and a malformed manifest fails late and confusingly.
 gate "toml parses" python3 -c '
@@ -209,6 +228,10 @@ if bad:
 #
 # Crates: package every publishable crate together and VERIFY — each is
 # rebuilt in isolation against crates.io, the way `cargo install` builds it.
+# Clear the packaging scratch first. A re-run at the same version reuses the
+# tmp-registry under target/package and fails with "no hash listed for
+# <crate>" (0.11.0, 2026-10-16) — a stale-state error, not a packaging one.
+rm -rf target/package
 gate "package crates (verified)" cargo package --workspace --allow-dirty \
     --exclude cgg-py --exclude cgg-ffi --exclude cgg-node
 # npm: the root package and every platform package pack with their files.
