@@ -69,7 +69,8 @@ jobs:
           import cgg
           g = cgg.analyze('crates/cgg-walk')
           assert len(g.callables) > 0, 'no callables'
-          assert g.to_mermaid().startswith('flowchart'), 'bad mermaid'
+          # Entry nodes put a `%%` banner above the flowchart line.
+          assert any(l.startswith('flowchart') for l in g.to_mermaid().splitlines()), 'bad mermaid'
           print('ok', cgg.__version__, len(g.callables), 'callables')
           "
 
@@ -220,7 +221,8 @@ jobs:
 
           const g = cgg.analyzeSync('../cgg-walk');
           if (g.callableCount < 1) { throw new Error('no callables'); }
-          if (!g.toMermaid().startsWith('flowchart')) { throw new Error('bad mermaid'); }
+          // Entry nodes put a `%%` banner above the flowchart line.
+          if (!/^flowchart/m.test(g.toMermaid())) { throw new Error('bad mermaid'); }
           console.log('ok', v, g.callableCount, 'callables');
           "
 
