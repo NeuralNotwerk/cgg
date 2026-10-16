@@ -77,6 +77,7 @@ const char *cgg_version(void);
  *     "include_external":  false, "include_stdlib":  false,
  *     "dynamic_dispatch":  false, "reference_edges": false,
  *     "no_entry_nodes":    false, "include_tests":   false,
+ *     "no_test_entries":   false,
  *     "dead_code":         false, "dead_code_confidence": "high",
  *     "since":             "main..HEAD",
  *     "ignore_file": null, "roots": null,

@@ -804,8 +804,9 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
 
 /// Analyze one or more source trees and return the call graph.
 ///
-/// Mirrors the CLI flag-for-flag, with one rename: `entry_nodes=True`
-/// rather than `--no-entry-nodes`. Same default, no double negative.
+/// Mirrors the CLI flag-for-flag, with two renames: `entry_nodes=True`
+/// rather than `--no-entry-nodes` and `test_entries=True` rather than
+/// `--no-test-entries`. Same defaults, no double negatives.
 ///
 /// `rollup` and `rollup_by` take the same strings the CLI does
 /// (`rollup="100k"`, `rollup_by="file"`), and `rollup_format` names the
@@ -837,6 +838,7 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     reference_edges = false,
     guess_unique_names = false,
     entry_nodes = true,
+    test_entries = true,
     include_tests = false,
     dead_code = false,
     dead_code_confidence = "high",
@@ -873,6 +875,7 @@ fn analyze(
     reference_edges: bool,
     guess_unique_names: bool,
     entry_nodes: bool,
+    test_entries: bool,
     include_tests: bool,
     dead_code: bool,
     dead_code_confidence: &str,
@@ -909,6 +912,7 @@ fn analyze(
         guess_unique_names,
         // The one inversion, done here so it is done exactly once.
         no_entry_nodes: !entry_nodes,
+        no_test_entries: !test_entries,
         // The detail flag only widens a notice the CLI prints; the data
         // itself is on the outcome regardless.
         framework_coverage: false,

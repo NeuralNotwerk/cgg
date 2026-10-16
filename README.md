@@ -112,7 +112,8 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--why-live PATTERN]... [--fail-on-dead]
               [--include-external] [--include-stdlib]
               [--dynamic-dispatch] [--reference-edges] [--guess-unique-names]
-              [--no-entry-nodes] [--framework-coverage] [--profile]
+              [--no-entry-nodes] [--no-test-entries]
+              [--framework-coverage] [--profile]
               [--no-graph] [--report-unreferenced]
               [--jobs N] [--lang rust,python,...]
               [--audit-format json|jsonl] [--metrics FILE]
@@ -158,6 +159,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--guess-unique-names` | off | Rust: bind a call nothing else placed when exactly one callable carries its name — `low` confidence, resolver `cross-file:name-unique`. Never for std names, typed or `self` receivers, external paths, or test helpers from production code |
 | `--no-entry-nodes` | off | Suppress synthesized `<framework-entry>` nodes. **Entry nodes are ON by default** |
+| `--no-test-entries` | off | Mint no `<framework-entry>::test::<harness>` nodes — one `entry` arrow per test, benchmark or fuzz case, a few percent of a whole-tree graph. Cases stay test roots for `--dead-code`; framework entries are kept |
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
 | `--no-graph` | off | Suppress the graph output, leaving only the report. With `--dead-code-format json` the report takes stdout |
 | `--report-unreferenced` | off | List callables nothing points at, in place of the graph. A reference check, not reachability — no cascade, and framework roots are bucketed separately |
@@ -236,8 +238,9 @@ len(g), g.callables, g.edges, g.files, g.metrics, g.notices
 g.callable("pkg.mod.fn"), g.callers_of(...), g.callees_of(...)
 ```
 
-Every CLI flag that changes the graph is a keyword argument, with one
-rename: `entry_nodes=True` rather than `--no-entry-nodes`. Same default; a
+Every CLI flag that changes the graph is a keyword argument, with two
+renames: `entry_nodes=True` rather than `--no-entry-nodes`, and
+`test_entries=True` rather than `--no-test-entries`. Same defaults; a
 Python keyword has no reason to be a double negative.
 
 The GIL is released for the analysis and there is no internal lock, so a
@@ -528,7 +531,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4009 callables, 12841 edges, 4031 cross-file, 469ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4011 callables, 12850 edges, 4032 cross-file, 414ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 

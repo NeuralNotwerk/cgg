@@ -508,6 +508,42 @@ fn no_entry_nodes_restores_the_previous_default_graph() {
     assert!(!err.contains("framework coverage"), "{err}");
 }
 
+// `--no-test-entries` drops the harness node and its one-arrow-per-case
+// fan, and nothing else: a framework entry in the same tree stays, and the
+// dead-code report is unchanged.
+#[test]
+fn no_test_entries_drops_only_the_harness_nodes() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "svc.py",
+        "from flask import Flask\napp = Flask(__name__)\n\
+         @app.route(\"/users\")\ndef list_users():\n    return 1\n",
+    );
+    write(
+        tmp.path(),
+        "lib.rs",
+        "pub fn add(a: u32) -> u32 { a + 1 }\n\n\
+         #[tokio::test]\nasync fn adds() { assert_eq!(add(1), 2); }\n",
+    );
+    let (with, _) = run(tmp.path(), &[]);
+    assert!(with.contains("::test::cargo-test"), "{with}");
+    let (without, _) = run(tmp.path(), &["--no-test-entries"]);
+    assert!(!without.contains("::test::"), "{without}");
+    assert!(without.contains("/users"), "{without}");
+    // The case is not orphaned in the dead-code sense: same report
+    // with the harness node and without it.
+    let (_, dead_with) = run(tmp.path(), &["--dead-code"]);
+    let (_, dead_without) = run(tmp.path(), &["--dead-code", "--no-test-entries"]);
+    let findings = |e: &str| -> Vec<String> {
+        e.lines()
+            .filter(|l| l.contains("adds"))
+            .map(str::to_string)
+            .collect()
+    };
+    assert_eq!(findings(&dead_with), findings(&dead_without));
+}
+
 #[test]
 fn entry_nodes_remove_the_bucket_d_dead_code_cascade() {
     // The design's §5 measurement: a framework-invoked method and its

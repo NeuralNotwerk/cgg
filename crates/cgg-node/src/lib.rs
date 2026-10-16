@@ -31,9 +31,10 @@ static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 /// so `analyze(path)` is the whole API for the common case. Named as
 /// JavaScript would name them; `napi` maps camelCase to these.
 ///
-/// One rename from the CLI, matching the Python module: `entryNodes: true`
-/// rather than `--no-entry-nodes`. Same default; a keyword has no reason
-/// to be a double negative.
+/// Two renames from the CLI, matching the Python module: `entryNodes: true`
+/// rather than `--no-entry-nodes`, `testEntries: true` rather than
+/// `--no-test-entries`. Same defaults; a keyword has no reason to be a
+/// double negative.
 #[napi(object)]
 #[derive(Default)]
 pub struct AnalyzeOptions {
@@ -58,6 +59,9 @@ pub struct AnalyzeOptions {
     pub guess_unique_names: Option<bool>,
     /// `true` (the default) mints `<framework-entry>` nodes.
     pub entry_nodes: Option<bool>,
+    /// `true` (the default) mints one `<framework-entry>::test::<harness>`
+    /// node per test, benchmark or fuzz harness.
+    pub test_entries: Option<bool>,
     pub include_tests: Option<bool>,
     pub dead_code: Option<bool>,
     /// `"high"` (default), `"medium"` or `"low"`.
@@ -280,6 +284,7 @@ fn build_options(
         guess_unique_names: o.guess_unique_names.unwrap_or(false),
         // Inverted on purpose; see `AnalyzeOptions::entry_nodes`.
         no_entry_nodes: !o.entry_nodes.unwrap_or(true),
+        no_test_entries: !o.test_entries.unwrap_or(true),
         include_tests: o.include_tests.unwrap_or(false),
         dead_code: o.dead_code.unwrap_or(false),
         dead_code_confidence: confidence,

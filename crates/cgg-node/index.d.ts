@@ -91,9 +91,10 @@ export declare function analyze(paths: string | Array<string>, options?: Analyze
  * so `analyze(path)` is the whole API for the common case. Named as
  * JavaScript would name them; `napi` maps camelCase to these.
  *
- * One rename from the CLI, matching the Python module: `entryNodes: true`
- * rather than `--no-entry-nodes`. Same default; a keyword has no reason
- * to be a double negative.
+ * Two renames from the CLI, matching the Python module: `entryNodes: true`
+ * rather than `--no-entry-nodes`, `testEntries: true` rather than
+ * `--no-test-entries`. Same defaults; a keyword has no reason to be a
+ * double negative.
  */
 export interface AnalyzeOptions {
   filter?: Array<string>
@@ -121,6 +122,11 @@ export interface AnalyzeOptions {
   guessUniqueNames?: boolean
   /** `true` (the default) mints `<framework-entry>` nodes. */
   entryNodes?: boolean
+  /**
+   * `true` (the default) mints one `<framework-entry>::test::<harness>`
+   * node per test, benchmark or fuzz harness.
+   */
+  testEntries?: boolean
   includeTests?: boolean
   deadCode?: boolean
   /** `"high"` (default), `"medium"` or `"low"`. */

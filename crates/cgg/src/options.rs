@@ -143,6 +143,9 @@ pub struct RunOptions {
     /// Suppress synthesized `<framework-entry>` nodes. Negative sense
     /// to match the flag; entry nodes are ON by default.
     pub no_entry_nodes: bool,
+    /// Mint no test/bench/fuzz harness nodes (`--no-test-entries`); the
+    /// cases stay test roots for the dead-code pass.
+    pub no_test_entries: bool,
     /// Include the full coverage table in the notices even when nothing
     /// was recognised. Affects only the notice text, never the graph or
     /// [`crate::outcome::RunOutcome::framework_coverage`].
@@ -204,6 +207,7 @@ impl Default for RunOptions {
             reference_edges: false,
             guess_unique_names: false,
             no_entry_nodes: false,
+            no_test_entries: false,
             framework_coverage: false,
             dead_code: false,
             dead_code_confidence: Confidence::High,
@@ -277,6 +281,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             include_stdlib,
             dynamic_dispatch,
             no_entry_nodes,
+            no_test_entries,
             framework_coverage,
             reference_edges,
             guess_unique_names,
@@ -339,6 +344,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             reference_edges: *reference_edges,
             guess_unique_names: *guess_unique_names,
             no_entry_nodes: *no_entry_nodes,
+            no_test_entries: *no_test_entries,
             framework_coverage: *framework_coverage,
             dead_code: *dead_code,
             dead_code_confidence: (*dead_code_confidence).into(),

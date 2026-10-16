@@ -698,6 +698,9 @@ def check_python_option_parity() -> None:
     # `--no-entry-nodes` is deliberately un-negated as `entry_nodes`.
     if "entry_nodes" in kwargs:
         kwargs.add("no_entry_nodes")
+    # Likewise `--no-test-entries` as `test_entries`.
+    if "test_entries" in kwargs:
+        kwargs.add("no_test_entries")
 
     missing = sorted(fields - kwargs - set(PY_DEFERRED_OPTIONS))
     if missing:

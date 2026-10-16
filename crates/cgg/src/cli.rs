@@ -306,6 +306,14 @@ pub struct Cli {
     #[arg(long = "no-entry-nodes", action = ArgAction::SetTrue)]
     pub no_entry_nodes: bool,
 
+    /// Mint no `<framework-entry>::test::<harness>` nodes: test,
+    /// benchmark and fuzz cases lose their `entry` arrow from the
+    /// harness (one per case, the bulk of entry edges in a large tree).
+    /// They stay test roots for `--dead-code`; framework entries are
+    /// unaffected.
+    #[arg(long = "no-test-entries", action = ArgAction::SetTrue)]
+    pub no_test_entries: bool,
+
     /// Print the framework-coverage table even when nothing was
     /// recognised. By default the table is printed only when at least
     /// one framework was detected; the gap list is never suppressed.

@@ -162,6 +162,7 @@ def analyze(
     reference_edges: bool = ...,
     guess_unique_names: bool = ...,
     entry_nodes: bool = ...,
+    test_entries: bool = ...,
     include_tests: bool = ...,
     dead_code: bool = ...,
     dead_code_confidence: Confidence = ...,

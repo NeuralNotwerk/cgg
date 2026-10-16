@@ -1222,11 +1222,20 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // switched off, because an entry node is not node-only: it adds an
     // inbound edge to a real callable, which can only ever mark
     // something live.
-    let framework_out = if opts.no_entry_nodes {
+    let mut framework_out = if opts.no_entry_nodes {
         cgg_resolve::frameworks::FrameworkOutcome::default()
     } else {
         cgg_resolve::frameworks::detect(&graph, &all_facts, &config.frameworks)
     };
+    // `--no-test-entries`: a harness case keeps its test-root mark but
+    // mints no node, so the graph loses one `entry` arrow per case.
+    if opts.no_test_entries {
+        for e in &mut framework_out.entries {
+            if e.kind == cgg_core::frameworks::TrustKind::Test {
+                e.node = false;
+            }
+        }
+    }
     // Only the entries that mint no node. A node-bearing entry already
     // says "the framework calls this" *in the graph*, and proving
     // liveness through it is strictly more informative — `--why-live`

@@ -91,6 +91,13 @@ fn unsupported(opts: &RunOptions) -> Vec<(&'static str, &'static str)> {
              holds whatever the original run analyzed",
         ));
     }
+    if opts.no_test_entries {
+        out.push((
+            "--no-test-entries",
+            "suppresses harness nodes at synthesis time; the saved graph \
+             already has whatever the original run decided",
+        ));
+    }
     if opts.no_entry_nodes {
         out.push((
             "--no-entry-nodes",

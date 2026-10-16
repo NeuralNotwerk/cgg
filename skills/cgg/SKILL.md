@@ -286,7 +286,11 @@ of a `#name;` sequence becomes `#35;`, a leading backtick becomes
 
 These are **INFERRED, not observed** — nothing in the source says the
 call happens; cgg says so itself in the `%%` banner above the graph.
-Say so when relaying them. `--no-entry-nodes` opts out.
+Say so when relaying them. `--no-entry-nodes` opts out. Test, benchmark
+and fuzz cases hang off one `<framework-entry>::test::<harness>` node per
+harness (`cargo-test`, `junit`, `pytest`, …): an arrow from it means "the
+test runner calls this". For a whole-tree graph, `--no-test-entries` drops
+those arrows (a few percent of the output) and keeps every other entry.
 
 The kind is part of the name, which makes the security query expressible:
 

@@ -226,6 +226,7 @@ test("options match the equivalent CLI flags", { skip: !haveBin && `no binary at
     [{ dynamicDispatch: true }, ["--dynamic-dispatch"]],
     [{ referenceEdges: true }, ["--reference-edges"]],
     [{ entryNodes: false }, ["--no-entry-nodes"]],
+    [{ testEntries: false }, ["--no-test-entries"]],
     [{ lang: ["rust"] }, ["--lang", "rust"]],
     [{ includeTests: true }, ["--include-tests"]],
     [{ skipMinified: true }, ["--skip-minified"]],

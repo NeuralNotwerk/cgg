@@ -150,6 +150,7 @@ def test_parity_with_cli_under_options(tree: Path) -> None:
             {"dynamic_dispatch": True, "reference_edges": True},
         ),
         (["--no-entry-nodes"], {"entry_nodes": False}),
+        (["--no-test-entries"], {"test_entries": False}),
         (["--lang", "python"], {"lang": ["python"]}),
         (["--filter", "caller_1", "-n", "1"], {"filter": ["caller_1"], "hops": 1}),
         (["--exclude-partial", "orphan"], {"exclude_partial": ["orphan"]}),

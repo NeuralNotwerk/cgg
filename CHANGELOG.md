@@ -95,6 +95,12 @@ otherwise change the default graph.
 
 ### Added
 
+- **`--no-test-entries`** (Python `test_entries=False`, Node
+  `testEntries: false`, C ABI `"no_test_entries": true`). Drops the
+  harness nodes and their one-arrow-per-case fan from the graph — on
+  neurosymbolic_kb, 603 KB of mermaid becomes 571 KB (−5.3%) — while the
+  cases stay test roots, so `--dead-code` reports the same findings with
+  or without it. Framework entries are untouched.
 - **Test, benchmark and fuzz harnesses, and framework-invoked functions
   without a web route, are entries (WS18).** What a harness or framework
   calls now hangs off a `<framework-entry>` origin node with an `entry`

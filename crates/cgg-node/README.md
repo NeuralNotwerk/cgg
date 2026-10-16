@@ -75,8 +75,9 @@ Rust, so they cannot drift from what the module actually exposes.
 ## Options
 
 Every option that changes the graph is a key on the second argument, with
-one rename from the CLI — `entryNodes: true` rather than
-`--no-entry-nodes`. Same default; a keyword has no reason to be a double
+two renames from the CLI — `entryNodes: true` rather than
+`--no-entry-nodes`, and `testEntries: true` rather than
+`--no-test-entries`. Same defaults; a keyword has no reason to be a double
 negative.
 
 ```js
