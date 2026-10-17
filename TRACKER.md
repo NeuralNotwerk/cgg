@@ -113,3 +113,21 @@ the box). Baselines: target/remediation/bins/. Results: ab/, perf/, logs/.
 - 2026-10-15 14:26: WS16 started (pre-0.11.0 fixes from version-comparison audit + nkb consumer review); before = bins/WS16-before. Version bump parked in target/compare/bump-0.11.0.patch.
 - 2026-10-15: WS16 committed 9886b63 + docs fc893cc (A/B v6; edgeless dropped sites: cap 2,467→197, one-qn 2,270→17). Orchestrator slip: first commit ran without CGG_INSTALL_DIR="" — PATH cgg restored byte-exact from /storage/glitch/data/shared/bin/cgg.
 - 2026-10-15: WS17 committed (74a76a6), marker merged (32d5def) + fixes/docs (8be891e). Merge broke 10 exact-text tests (marker branch never ran workspace gates); dyn/entry/ext/std arrows now exempt from `?` (constant-low tags). Next: release prep (bump-0.11.0.patch, release.sh) pending user go-ahead.
+
+## Parity remediation (planned 2026-10-17)
+
+Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
+
+| # | Workstream | Gaps | Status | Commit | Notes |
+|---|---|---|---|---|---|
+| WS19 | Confidence honesty: weak receiver intra-file, lone nested def, closure params, return-type map key, include-style copies | 1,2,3,4,9 | PLANNED | | gaps 1,2 reproduced; 4 needs a fixture |
+| WS20 | Dead-code FPs: override markers, py async, unreachable regions, Rust cfg(test), gtest/libFuzzer, test-file arms | 5,6,11,15,21,23 | PLANNED | | 6 reproduced |
+| WS21 | Constructor + super/this/base delegation edges | 12,13 | PLANNED | | |
+| WS22 | abstract tagging, JS/TS class-field arrows, ObjC C calls | 7,8,24 | PLANNED | | |
+| WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | PLANNED | | 10 reproduced (no edge at all); after WS19 |
+| WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | PLANNED | | |
+| WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | PLANNED | | |
+| WS26 | Function values as references, per plugin | 25 | PLANNED | | one language per commit |
+| WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
+| WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
+| WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
