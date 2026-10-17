@@ -1,0 +1,9 @@
+// dev_docs holds generated analysis: wide evidence tables and file:line
+// citations. Line length, inline HTML (<br> in cells) and table pipe
+// alignment are relaxed here; structural rules still apply.
+{
+  "MD013": false,
+  "MD033": false,
+  "MD060": false,
+  "MD036": false
+}
