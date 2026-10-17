@@ -973,18 +973,30 @@ fn is_dunder(name: &str) -> bool {
 /// rejects vulture's `*test*` glob, which swallows `latest`, `contest`
 /// and `protest`.
 fn is_test_name(lang: &str, name: &str) -> bool {
+    // `Test` then a word boundary: `TestFoo`, `Test_foo`, `Test2`, never
+    // `Testing`, `Tester` or PowerShell's `Test-Path` verb form.
+    let word_after = |prefix: &str| {
+        name.strip_prefix(prefix)
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(|c| !c.is_lowercase() && c != '-')
+    };
     match lang {
+        // `go test`'s own rule: the suffix must not start with a
+        // lowercase letter.
         "go" => {
-            (name.starts_with("Test")
-                || name.starts_with("Benchmark")
-                || name.starts_with("Fuzz")
-                || name.starts_with("Example"))
-                && name.len() > 4
+            word_after("Test")
+                || word_after("Benchmark")
+                || word_after("Fuzz")
+                || name == "Example"
+                || word_after("Example")
         }
         "python" => name.starts_with("test_") || name == "setUp" || name == "tearDown",
         "ruby" => name.starts_with("test_"),
         "rust" => false, // covered by #[test]; a bare `test_` fn is not a test
-        _ => name.starts_with("test_") || name.starts_with("Test"),
+        // Pester tests are `Describe`/`It` blocks, never functions, and
+        // `Test-*` is an approved verb for production functions.
+        "powershell" => false,
+        _ => name.starts_with("test_") || name == "Test" || word_after("Test"),
     }
 }
 
@@ -1157,6 +1169,12 @@ mod tests {
     fn go_test_naming_requires_more_than_the_prefix() {
         assert!(is_test_name("go", "TestFoo"));
         assert!(!is_test_name("go", "Test"));
+        assert!(!is_test_name("go", "Testing"));
+        assert!(is_test_name("go", "Test_foo"));
+        assert!(is_test_name("go", "ExampleFoo"));
+        assert!(!is_test_name("powershell", "Test-Connection"));
+        assert!(!is_test_name("java", "Tester"));
+        assert!(is_test_name("java", "TestFoo"));
         assert!(
             !is_test_name("python", "latest"),
             "vulture's *test* glob bug"

@@ -248,6 +248,26 @@ impl<'a> DartWalker<'a> {
         None
     }
 
+    /// `["@override"]` when a member carries Dart's `@override`
+    /// annotation: a child of the `method_declaration`, or of the
+    /// `class_member` holding a bodiless `declaration`. Only that marker
+    /// is recorded; Dart does not declare attribute capture.
+    fn override_marker(&self, node: Node) -> Vec<String> {
+        let holders = [
+            Some(node),
+            node.parent().filter(|p| p.kind() == "class_member"),
+        ];
+        let marked = holders.into_iter().flatten().any(|h| {
+            h.children(&mut h.walk())
+                .any(|c| c.kind() == "annotation" && self.text(c).trim() == "@override")
+        });
+        if marked {
+            vec!["@override".to_string()]
+        } else {
+            Vec::new()
+        }
+    }
+
     fn record_def(&mut self, name: &str, node: Node, variant: DefVariant) {
         let qn = self.qn(name);
         let (sl, el) = (
@@ -264,7 +284,7 @@ impl<'a> DartWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            attributes: self.override_marker(node),
             base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
@@ -538,6 +558,27 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS20 gap 5: the `override` marker is recorded so dead-code can
+    // cap an override of an out-of-tree base at medium.
+    #[test]
+    fn override_modifier_is_recorded() {
+        let f = extract(
+            "class A extends Ext {\n  @override\n  void hook() {}\n  @override\n  int get g => 1;\n  void plain() {}\n}\n",
+        );
+        let marked = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .attributes
+                .iter()
+                .any(|a| a == "@override")
+        };
+        assert!(marked("hook"));
+        assert!(marked("g"), "an overriding getter");
+        assert!(!marked("plain"));
+    }
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();

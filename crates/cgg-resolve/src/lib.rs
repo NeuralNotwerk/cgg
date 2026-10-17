@@ -26,6 +26,7 @@ pub mod names;
 mod scope;
 pub mod stack_graphs_resolver;
 pub mod type_hints;
+pub mod unreachable;
 pub mod value_refs;
 
 use cgg_core::{CallableId, FileId};

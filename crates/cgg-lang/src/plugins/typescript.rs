@@ -96,6 +96,26 @@ mod tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
+    // WS20 gap 5: the `override` marker is recorded so dead-code can
+    // cap an override of an out-of-tree base at medium.
+    #[test]
+    fn override_modifier_is_recorded() {
+        let f = extract(
+            "class A extends Ext {\n  override hook() { return 1; }\n  plain() { return 2; }\n}\n",
+        );
+        let marked = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .attributes
+                .iter()
+                .any(|a| a == "override")
+        };
+        assert!(marked("hook"));
+        assert!(!marked("plain"));
+    }
+
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_typescript::LANGUAGE_TSX.into())

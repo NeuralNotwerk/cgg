@@ -66,6 +66,49 @@ otherwise change the default graph.
     module returns (`return { check = check_phase }`), which `m.check(…)`
     now reaches too.
 
+- **Dead-code false positives (WS20).** Six ways live code was reported
+  dead, or reported `high`:
+  - *Override markers were recorded for Java, C# and Groovy only.* The
+    Kotlin, Swift, Scala and TypeScript `override` modifier, Dart's
+    `@override` and C++'s `override`/`final` specifiers are now recorded
+    (as the `override` attribute; Dart as `@override`), and PHP 8.3's
+    `#[\Override]` now matches. An override of a base outside the tree
+    carries `implements-external-contract` and caps at `medium`.
+  - *A Python `async def` method skipped that cap*, because it was told
+    apart from a function by its kind, and async methods are recorded as
+    functions. A definition is now a method when its owner is a class.
+  - *Calls after `return`/`throw`/`break` kept their target live.* The
+    unreachable regions eight plugins compute under `--dead-code` are now
+    read: such a call keeps nothing alive (its callee reports
+    `incoming-only-from-unreachable-code`), and its edge is capped at
+    `medium` in a `--dead-code` run. Go regions were never found
+    (tree-sitter-go nests a block's statements in a `statement_list`); a
+    region now ends before a `goto` label nested in a later statement, and
+    a Rust block with `#[cfg(…)]` statements is conditional compilation,
+    never a region.
+  - *Rust items under `#[cfg(test)]`* (a `mod tests`, any nested module,
+    `#[cfg(all(test, …))]`, a file-level `#![cfg(test)]`, and attributed
+    items) are now test code, not production dead code.
+  - *C++ gtest and libFuzzer harnesses were reported dead.* `TEST`,
+    `TEST_F`, `TEST_P`, `TYPED_TEST` and `TYPED_TEST_P` bodies in a test
+    file or one including gtest enter through the `gtest` harness node;
+    `SetUp`/`TearDown` (and the suite hooks) of a class deriving from
+    `testing::Test`/`TestWithParam` through the `gtest-fixture` node; and
+    C/C++ `LLVMFuzzerTestOneInput` and its optional hooks through
+    `libfuzzer`. A base written `::testing::Test` is now read as
+    `testing::Test`.
+  - *Test-file and test-name conventions were uneven.* New test-file arms:
+    Perl `*.t`, Groovy `*Spec`/`*Test(s).groovy`, Lua `_spec`/`_test`,
+    PowerShell `*.Tests.ps1`, Solidity `*.t.sol`, Objective-C
+    `*Test(s).m(m)`, Haskell `*Spec`/`*Test(s).hs`, R `test-*`/`test_*`,
+    Clojure `_test.clj(s/c)`, Terraform `*.tftest.hcl`, Bash `_test.sh`,
+    Zig `_test.zig`, Julia `runtests.jl`, and JS/TS `.test.mts`/`.cts`,
+    `.spec.mjs`/`.cjs`/`.mts`/`.cts`. A test name now needs a word boundary
+    after `Test` (`Testing`, `Tester`, `Testimonials` are not tests), Go
+    follows `go test`'s rule for `Test`/`Benchmark`/`Fuzz`/`Example`
+    (`FuzzyMatch` is not a fuzz test), and a PowerShell `Test-*` function
+    is never a test.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -92,6 +135,26 @@ The default graph changes (full corpus, 283 repositories, none excluded):
   copy in Erlang, Dart and Bash.
 
 No dead-code finding changes confidence.
+
+WS20 (dead-code fixes; full corpus, 283 repositories, none excluded):
+
+- The default graph gains 5,546 `low` framework-entry edges and no other
+  change: gtest (5,255 cases and 77 fixture hooks), libFuzzer (102
+  entry points) and 112 XCTest cases in Objective-C test files now
+  classified as such. The JSON `attributes` of overriding members in
+  Kotlin, Swift, Scala, TypeScript, Dart and C++ now include `override`
+  (`@override` in Dart).
+- Under `--dead-code`, 7,001 findings leave the report (6 `high`, 6,675
+  `medium`, 320 `low`: gtest/libFuzzer roots and the code they reach,
+  Groovy, Objective-C, Perl, Zig, Clojure, Lua and Bash test files, Rust
+  `#[cfg(test)]` code) and 3 move `high` → `medium` (Python async
+  overrides). 26 are newly reported, none `high`: 8 PowerShell `Test-*`
+  functions (`low`), 16 callables named `Tester…`/`Testable…`/
+  `Testimonials`/`TestsFor…` and Go `Fuzzy…` functions and their callees,
+  previously rooted as tests by name, and 2 Go methods whose only call is
+  after a `return`.
+- In a `--dead-code` run, an edge from an unreachable call site is
+  `medium`.
 
 ## [0.11.0] - 2026-10-16
 

@@ -88,10 +88,16 @@ pub fn classify_test_file(path: &Path, language: &str) -> Option<TestFileReason>
             ".test.tsx",
             ".test.mjs",
             ".test.cjs",
+            ".test.mts",
+            ".test.cts",
             ".spec.js",
             ".spec.jsx",
             ".spec.ts",
             ".spec.tsx",
+            ".spec.mjs",
+            ".spec.cjs",
+            ".spec.mts",
+            ".spec.cts",
         ]
         .iter()
         .any(|s| lower.ends_with(s)),
@@ -116,6 +122,44 @@ pub fn classify_test_file(path: &Path, language: &str) -> Option<TestFileReason>
                 || lower.contains("_unittest.")
         }
         "scala" => name.ends_with("Spec.scala") || name.ends_with("Test.scala"),
+        // Spock specifications and JUnit-style classes.
+        "groovy" => {
+            name.ends_with("Spec.groovy")
+                || name.ends_with("Test.groovy")
+                || name.ends_with("Tests.groovy")
+        }
+        // `prove` runs `t/*.t`.
+        "perl" => lower.ends_with(".t"),
+        // busted.
+        "lua" => lower.ends_with("_spec.lua") || lower.ends_with("_test.lua"),
+        // Pester.
+        "powershell" => lower.ends_with(".tests.ps1"),
+        // Foundry.
+        "solidity" => lower.ends_with(".t.sol"),
+        // XCTest.
+        "objc" => ["Tests.m", "Test.m", "Tests.mm", "Test.mm"]
+            .iter()
+            .any(|s| name.ends_with(s)),
+        // hspec / tasty.
+        "haskell" => ["Spec.hs", "Test.hs", "Tests.hs"]
+            .iter()
+            .any(|s| name.ends_with(s)),
+        // testthat: `tests/testthat/test-*.R`.
+        "r" => {
+            (lower.starts_with("test-") || lower.starts_with("test_"))
+                && lower.ends_with(".r")
+        }
+        // clojure.test.
+        "clojure" => ["_test.clj", "_test.cljs", "_test.cljc"]
+            .iter()
+            .any(|s| lower.ends_with(s)),
+        // `terraform test`.
+        "hcl" => lower.ends_with(".tftest.hcl"),
+        // shUnit2.
+        "bash" => lower.ends_with("_test.sh"),
+        "zig" => lower.ends_with("_test.zig"),
+        // `Pkg.test` runs `test/runtests.jl`.
+        "julia" => name == "runtests.jl",
         _ => false,
     };
     if by_name {
@@ -180,6 +224,41 @@ mod tests {
         );
         // An inline `mod tests` lives in an ordinary source file.
         assert_eq!(c("crates/x/src/lib.rs", "rust"), None);
+    }
+
+    #[test]
+    fn per_language_test_file_conventions() {
+        for (p, l) in [
+            ("t/basic.t", "perl"),
+            ("src/FooSpec.groovy", "groovy"),
+            ("spec/foo_spec.lua", "lua"),
+            ("Foo.Tests.ps1", "powershell"),
+            ("src/Counter.t.sol", "solidity"),
+            ("App/FooTests.m", "objc"),
+            ("src/FooSpec.hs", "haskell"),
+            ("pkg/test-foo.R", "r"),
+            ("src/app/core_test.clj", "clojure"),
+            ("main.tftest.hcl", "hcl"),
+            ("lib/util_test.sh", "bash"),
+            ("src/parse_test.zig", "zig"),
+            ("runtests.jl", "julia"),
+            ("src/a.test.mts", "typescript"),
+            ("src/a.spec.cjs", "javascript"),
+        ] {
+            assert_eq!(c(p, l), Some(TestFileReason::FileName), "{p}");
+        }
+        // Near misses: production names that merely contain the word.
+        for (p, l) in [
+            ("lib/Foo.pm", "perl"),
+            ("src/Inspect.groovy", "groovy"),
+            ("Test-Thing.ps1", "powershell"),
+            ("src/Counter.sol", "solidity"),
+            ("R/latest.R", "r"),
+            ("main.tf", "hcl"),
+            ("src/Contest.hs", "haskell"),
+        ] {
+            assert_eq!(c(p, l), None, "{p}");
+        }
     }
 
     #[test]

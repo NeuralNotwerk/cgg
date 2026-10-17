@@ -357,7 +357,10 @@ impl<'a> ScalaWalker<'a> {
             // Java, and the shared collector reads them the same way.
             // Recorded from 0.6.8; before that no attribute rule could
             // match this language at all.
-            attributes: super::attrs::collect_with_preceding(node, self.source),
+            attributes: super::attrs::with_override_marker(
+                node,
+                super::attrs::collect_with_preceding(node, self.source),
+            ),
             ..Default::default()
         });
     }
@@ -491,6 +494,26 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS20 gap 5: the `override` marker is recorded so dead-code can
+    // cap an override of an out-of-tree base at medium.
+    #[test]
+    fn override_modifier_is_recorded() {
+        let f = extract(
+            "class A extends Ext {\n  override def hook(): Unit = {}\n  def plain(): Unit = {}\n}\n",
+        );
+        let marked = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .attributes
+                .iter()
+                .any(|a| a == "override")
+        };
+        assert!(marked("hook"));
+        assert!(!marked("plain"));
+    }
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();

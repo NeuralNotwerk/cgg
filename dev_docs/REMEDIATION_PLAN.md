@@ -68,9 +68,9 @@ memory, restated so each WS is self-contained:
    after), push to origin and backup, then `tools/push_state.sh`, then
    update the TRACKER row.
 
-**Release:** WS19 and WS20 change many edges and dead findings, so the
-release that carries them is a minor bump (**0.12.0**) per the
-versioning policy.
+**Release:** WS19 and WS20 change many edges and dead findings, but
+they are bug fixes, so they ship as a patch (**0.11.x**) with a
+Compatibility note. Only a wholly new feature warrants 0.12.0.
 
 ---
 
@@ -235,6 +235,9 @@ Separately (S): let cross-file Java/Scala overloads narrowed to one by arity rea
 
 **Suggested release cuts:**
 
-- **0.12.0:** WS19–WS22. Confidence and dead-code correctness, plus the cheap edge additions.
-- **0.13.0:** WS23–WS25.
-- **WS26–WS28:** ship per language as they land.
+All of WS19–WS29 are bug fixes (wrong or missing edges, false dead
+findings), so they ship as 0.11.x patches with Compatibility notes:
+
+- **0.11.1:** WS19–WS22. Confidence and dead-code correctness, plus the cheap edge additions.
+- **0.11.2:** WS23–WS25.
+- **WS26–WS28:** ship per language as they land, as further patches.

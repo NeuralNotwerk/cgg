@@ -154,6 +154,55 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
     out
 }
 
+/// The marker [`with_override_marker`] records.
+pub(crate) const OVERRIDE_MARKER: &str = "override";
+
+/// Node kinds that may hold a definition's `override` keyword: modifier
+/// containers (Kotlin/Swift `modifiers` > `member_modifier`, Scala
+/// `modifiers`, TypeScript `override_modifier`) and C++'s declarator,
+/// whose `virtual_specifier` carries `override`/`final`.
+const OVERRIDE_HOLDER_KINDS: &[&str] = &[
+    "modifiers",
+    "member_modifier",
+    "override_modifier",
+    "function_declarator",
+    "pointer_declarator",
+    "reference_declarator",
+];
+
+/// Whether a definition says it overrides a base member, by grammar
+/// shape alone: the `override` keyword token among its modifiers, or a
+/// C++ `virtual_specifier` (`override`, `final`). Bodies are never
+/// entered, so an `override` inside a nested declaration does not count.
+pub(crate) fn has_override_modifier(node: Node) -> bool {
+    fn walk(n: Node, depth: u8) -> bool {
+        let mut c = n.walk();
+        for ch in n.children(&mut c) {
+            match ch.kind() {
+                "override" | "virtual_specifier" | "override_modifier" => return true,
+                k if depth < 3 && OVERRIDE_HOLDER_KINDS.contains(&k) => {
+                    if walk(ch, depth + 1) {
+                        return true;
+                    }
+                }
+                _ => {}
+            }
+        }
+        false
+    }
+    walk(node, 0)
+}
+
+/// `attrs` plus [`OVERRIDE_MARKER`] when the definition carries an
+/// `override` modifier the attribute capture does not see (it is a
+/// keyword, not an annotation), as `csharp.rs` records it.
+pub(crate) fn with_override_marker(node: Node, mut attrs: Vec<String>) -> Vec<String> {
+    if has_override_modifier(node) && !attrs.iter().any(|a| a == OVERRIDE_MARKER) {
+        attrs.push(OVERRIDE_MARKER.to_string());
+    }
+    attrs
+}
+
 /// Field names holding a supertype list, across grammars.
 const BASE_FIELDS: &[&str] =
     &["superclass", "interfaces", "bases", "superclasses", "type"];
@@ -312,7 +361,8 @@ fn split_type_list(raw: &str) -> Vec<String> {
         .collect()
 }
 
-/// Strip `public` / `virtual` / `extends` prefixes until none remain.
+/// Strip `public` / `virtual` / `extends` prefixes (and a leading `::`)
+/// until none remain.
 ///
 /// C++ writes both `public virtual Shape` and `virtual public Shape`.
 /// One pass left the second as `public Shape`, which `is_type_name`
@@ -326,7 +376,10 @@ fn strip_leading_type_kws(s: &str) -> String {
             .or_else(|| t.strip_prefix("public"))
             .or_else(|| t.strip_prefix("private"))
             .or_else(|| t.strip_prefix("protected"))
-            .or_else(|| t.strip_prefix("virtual"));
+            .or_else(|| t.strip_prefix("virtual"))
+            // C++/Ruby global-scope qualifier: `::testing::Test` is
+            // `testing::Test`.
+            .or_else(|| t.strip_prefix("::"));
         let Some(rest) = next else {
             return t;
         };
@@ -402,6 +455,14 @@ fn is_type_name(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_global_scope_qualifier_is_not_part_of_the_base() {
+        assert_eq!(
+            split_type_list(": public ::testing::Test"),
+            vec!["testing::Test".to_string()]
+        );
+    }
 
     #[test]
     fn constructor_arguments_after_a_base_are_not_part_of_it() {

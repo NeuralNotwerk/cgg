@@ -1212,6 +1212,15 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         });
     }
 
+    // A call after `return`/`throw` never runs: its edge is not
+    // structurally certain. Regions exist only under `--dead-code`.
+    {
+        let moved =
+            cgg_resolve::unreachable::cap_unreachable_edges(&mut graph, &all_facts);
+        metrics.confidence_histogram.high -= moved;
+        metrics.confidence_histogram.medium += moved;
+    }
+
     // Synthesize external/stdlib exit nodes from the *post-reconciliation*
     // buckets, so calls that a later resolver bound are not surfaced.
     if opts.include_external || opts.include_stdlib {

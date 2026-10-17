@@ -176,7 +176,7 @@ impl<'a> SwiftWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            attributes: super::attrs::with_override_marker(node, Vec::new()),
             base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
@@ -355,6 +355,26 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS20 gap 5: the `override` marker is recorded so dead-code can
+    // cap an override of an out-of-tree base at medium.
+    #[test]
+    fn override_modifier_is_recorded() {
+        let f = extract(
+            "class A: ExtBase {\n    override func hook() { }\n    func plain() { }\n}\n",
+        );
+        let marked = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .attributes
+                .iter()
+                .any(|a| a == "override")
+        };
+        assert!(marked("hook"));
+        assert!(!marked("plain"));
+    }
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();

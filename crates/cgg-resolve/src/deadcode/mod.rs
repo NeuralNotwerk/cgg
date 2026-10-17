@@ -109,6 +109,36 @@ fn counts_for_liveness(e: &cgg_core::graph::CallEdge) -> bool {
     !matches!(e.via, Via::External | Via::Stdlib)
 }
 
+/// The adjacency liveness is proved over: the edges that
+/// [`counts_for_liveness`], minus those whose call site control flow
+/// cannot reach (a call after `return` never runs, so it keeps nothing
+/// alive).
+fn liveness_adjacency(graph: &Graph, facts: &[FileFacts]) -> Adj {
+    let unreachable = crate::unreachable::UnreachableIndex::build(facts);
+    Adj::build(graph, &|e| {
+        counts_for_liveness(e) && !unreachable.covers(graph, e)
+    })
+}
+
+/// Callee -> how many of its call sites lie in unreachable code (edges
+/// [`liveness_adjacency`] leaves out).
+fn unreachable_sites(
+    graph: &Graph,
+    facts: &[FileFacts],
+) -> std::collections::HashMap<CallableId, u32> {
+    let unreachable = crate::unreachable::UnreachableIndex::build(facts);
+    let mut out = std::collections::HashMap::new();
+    if unreachable.is_empty() {
+        return out;
+    }
+    for e in &graph.edges {
+        if counts_for_liveness(e) && unreachable.covers(graph, e) {
+            *out.entry(e.dst).or_insert(0u32) += 1;
+        }
+    }
+    out
+}
+
 /// Search cost of traversing an edge when proving liveness.
 ///
 /// A proof built from resolved direct calls is worth more than one that
@@ -405,8 +435,23 @@ impl<'a> TraitSurfaces<'a> {
 /// Markers a plugin records on a member that implements one its class's
 /// base declares: Java's `@Override`, the `override` modifier (C#, and
 /// the plugin's spelling of a C# explicit interface implementation),
-/// Dart's `@override`. Language keywords and annotations, never names.
-const OVERRIDE_MARKERS: &[&str] = &["@Override", "override", "@override"];
+/// Dart's `@override`, PHP 8.3's `#[\Override]` (read through
+/// [`override_marker_text`]). Language keywords and annotations, never
+/// names.
+const OVERRIDE_MARKERS: &[&str] = &["@Override", "override", "@override", "Override"];
+
+/// An attribute as [`OVERRIDE_MARKERS`] spells it: PHP's attribute-group
+/// brackets (`#[…]`) and a leading namespace separator (`\Override`)
+/// stripped. Other spellings pass through trimmed.
+fn override_marker_text(a: &str) -> &str {
+    let a = a.trim();
+    let a = a
+        .strip_prefix("#[")
+        .and_then(|x| x.strip_suffix(']'))
+        .unwrap_or(a)
+        .trim();
+    a.strip_prefix('\\').unwrap_or(a)
+}
 
 /// The class hierarchy as dead-code needs it: what a member overrides,
 /// what overrides it, and whether a contract it implements lies outside
@@ -497,12 +542,14 @@ impl<'a> Contracts<'a> {
         let marked = nd
             .attributes
             .iter()
-            .any(|a| OVERRIDE_MARKERS.contains(&a.trim()));
+            .any(|a| OVERRIDE_MARKERS.contains(&override_marker_text(a)));
         // Python marks nothing: any method of a class deriving from an
         // outside base may be the hook that base calls. A name-mangled
         // `__m` cannot be: the base would have to spell this class's name.
+        // A method is a definition whose owner is a class, whatever its
+        // kind: `async def` methods are recorded with kind `function`.
         let mangled = name.starts_with("__") && !name.ends_with("__");
-        let python = lang == "python" && !mangled && nd.kind != CallableKind::Function;
+        let python = lang == "python" && !mangled && self.hierarchy.declares(lang, owner);
         if !marked && !python {
             return None;
         }
@@ -608,7 +655,8 @@ pub fn analyze(
     facts: &[FileFacts],
     opts: &DeadCodeOptions,
 ) -> DeadCodeReport {
-    let adjacency = Adj::build(graph, &counts_for_liveness);
+    let adjacency = liveness_adjacency(graph, facts);
+    let unreachable_sites = unreachable_sites(graph, facts);
     let n = adjacency.n as usize;
     let measured = caps::measure(graph, &opts.language_signals);
     let unresolved = UnresolvedIndex::build(graph, file_audits);
@@ -836,7 +884,12 @@ pub fn analyze(
         let mut ev: Vec<Evidence> = Vec::new();
         let indeg = adjacency.in_degree(i);
         if indeg == 0 {
-            ev.push(Evidence::NoIncomingEdges);
+            match unreachable_sites.get(&nd.id) {
+                Some(&sites) => {
+                    ev.push(Evidence::IncomingOnlyFromUnreachableCode { sites })
+                }
+                None => ev.push(Evidence::NoIncomingEdges),
+            }
         } else {
             let dead_callers: Vec<CallableId> = adjacency
                 .pred(i)
@@ -1267,7 +1320,7 @@ pub fn why_live(
     opts: &DeadCodeOptions,
     targets: &[CallableId],
 ) -> Vec<LivenessProof> {
-    let adjacency = Adj::build(graph, &counts_for_liveness);
+    let adjacency = liveness_adjacency(graph, facts);
     let root_set = roots::discover(graph, facts, &opts.user_roots, &opts.framework_roots);
 
     let mut all_roots = root_set.production.clone();
@@ -1380,7 +1433,7 @@ pub fn why_live(
 mod tests {
     use super::*;
     use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
-    use testutil::{graph_with, link, node};
+    use testutil::{edge, graph_with, link, node};
 
     fn opts() -> DeadCodeOptions {
         DeadCodeOptions {
@@ -2241,6 +2294,108 @@ mod tests {
             Evidence::ImplementsExternalContract { contract } if contract == "Handler"
         )));
         assert_eq!(finding(&r, "p.Ext.unused").confidence, Confidence::High);
+    }
+
+    // WS20 gap 6: an `async def` method is kind `function`; the owner
+    // decides that it is a method.
+    #[test]
+    fn a_python_async_method_of_an_outside_base_class_is_not_high() {
+        let mut hook = member(1, "python", "P", "_ahook", &[]);
+        hook.kind = CallableKind::Function;
+        // Near miss: a module-level async function has no class owner.
+        let mut free = node(2, "p.helpers._free", "_free", "python");
+        free.vis = Vis::Private;
+        free.start_byte = 200;
+        free.end_byte = 250;
+        let facts = facts_for(
+            "python",
+            vec![def_of(&hook, &["external.Base"]), def_of(&free, &[])],
+        );
+        let g = graph_with(vec![node(0, "p.main", "main", "python"), hook, free]);
+        let r = analyze(&g, &[], &facts, &opts_full("python"));
+        let f = finding(&r, "p.P._ahook");
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(
+            !finding(&r, "p.helpers._free")
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "implements-external-contract")
+        );
+    }
+
+    // WS20 gap 5: PHP 8.3 writes the marker `#[\Override]`.
+    #[test]
+    fn php_override_attribute_matches_in_any_spelling() {
+        for a in ["#[\\Override]", "\\Override", "Override", "#[Override]"] {
+            assert!(OVERRIDE_MARKERS.contains(&override_marker_text(a)), "{a}");
+        }
+        assert!(!OVERRIDE_MARKERS.contains(&override_marker_text("#[Route]")));
+        let h = member(1, "php", "Ctl", "handle", &["\\Override"]);
+        let plain = member(2, "php", "Ctl", "other", &[]);
+        let facts = facts_for(
+            "php",
+            vec![
+                def_of(&h, &["Vendor\\Base"]),
+                def_of(&plain, &["Vendor\\Base"]),
+            ],
+        );
+        let g = graph_with(vec![node(0, "p.main", "main", "php"), h, plain]);
+        let r = analyze(&g, &[], &facts, &opts_full("php"));
+        let has = |qn: &str| {
+            finding(&r, qn)
+                .evidence
+                .iter()
+                .any(|e| e.slug() == "implements-external-contract")
+        };
+        assert!(has("p.Ctl.handle"));
+        // PHP methods are not hooks by mere membership.
+        assert!(!has("p.Ctl.other"));
+    }
+
+    // WS20 gap 11: a call after `return` keeps nothing alive.
+    #[test]
+    fn a_call_in_unreachable_code_does_not_keep_its_target_live() {
+        let mut main = node(0, "crate::main", "main", "rust");
+        main.start_byte = 0;
+        main.end_byte = 100;
+        let mut dead = node(1, "crate::target", "target", "rust");
+        dead.start_byte = 200;
+        dead.end_byte = 250;
+        let mut live = node(2, "crate::live", "live", "rust");
+        live.start_byte = 300;
+        live.end_byte = 350;
+        let mut g = graph_with(vec![main, dead, live]);
+        let mut e = edge(0, 1);
+        e.site_byte = 60;
+        g.edges.push(e);
+        // Near miss: a call before the terminator.
+        let mut e = edge(0, 2);
+        e.site_byte = 20;
+        g.edges.push(e);
+        let mut f = FileFacts::new(
+            cgg_core::ids::FileId::new(0),
+            std::path::PathBuf::from("t.src"),
+            "rust",
+        );
+        f.unreachable.push(cgg_core::UnreachableRegion {
+            start_line: 5,
+            end_line: 6,
+            start_byte: 50,
+            end_byte: 90,
+            cause: "after-return".into(),
+        });
+        let facts = vec![f];
+        let r = analyze(&g, &[], &facts, &opts_full("rust"));
+        let t = finding(&r, "crate::target");
+        assert!(t.evidence.iter().any(|e| matches!(
+            e,
+            Evidence::IncomingOnlyFromUnreachableCode { sites: 1 }
+        )));
+        assert!(!r.findings.iter().any(|f| f.qualified_name == "crate::live"));
+        // The graph edge is not structurally certain any more.
+        assert_eq!(crate::unreachable::cap_unreachable_edges(&mut g, &facts), 1);
+        assert_eq!(g.edges[0].confidence, Confidence::Medium);
+        assert_eq!(g.edges[1].confidence, Confidence::High);
     }
 
     #[test]

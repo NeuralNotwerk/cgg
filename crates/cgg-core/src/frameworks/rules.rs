@@ -67,6 +67,15 @@ pub struct RuleSpec {
 
 const NONE: &[&str] = &[];
 
+/// libFuzzer's engine-called entry points (`LLVMFuzzerTestOneInput` and
+/// its optional hooks), C ABI in both C and C++.
+const LIBFUZZER_HOOKS: &[&str] = &[
+    "LLVMFuzzerTestOneInput",
+    "LLVMFuzzerInitialize",
+    "LLVMFuzzerCustomMutator",
+    "LLVMFuzzerCustomCrossOver",
+];
+
 /// HTTP verbs, lowercase. Matching is case-insensitive so this one list
 /// covers Go's `GET`, Rails' `get` and NestJS's `Get`.
 const HTTP_VERBS: &[&str] = &[
@@ -7886,10 +7895,76 @@ pub const SPECS: &[RuleSpec] = &[
         attributes: NONE,
         registrars: NONE,
         base_types: NONE,
-        methods: NONE,
+        // tree-sitter-cpp reads `TEST(Suite, Name) { … }` as a function
+        // definition named for the macro. Name-only, so it applies only
+        // in a test file or one that includes gtest.
+        methods: &["TEST", "TEST_F", "TEST_P", "TYPED_TEST", "TYPED_TEST_P"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for gtest. Its runtime-invoked methods (TEST, TEST_F, TEST_P, TYPED_TEST, TYPED_TEST_P, SetUp, TearDown, SetUpTestSuite) are named too commonly to match on name alone: cgg would have to claim every callable with those names in the whole tree, and cpp carries no base type cgg can constrain them with. Inspect those methods by hand.",
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // The fixture hooks gtest calls around each TEST_F/TEST_P, on a class
+    // deriving (directly or through the tree) from `testing::Test`.
+    RuleSpec {
+        id: "gtest-fixture",
+        language: "cpp",
+        kind: TrustKind::Test,
+        detect: &["gtest", "gmock", "gtest/gtest.h", "gmock/gmock.h"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: &["testing::Test", "testing::TestWithParam"],
+        methods: &[
+            "SetUp",
+            "TearDown",
+            "SetUpTestSuite",
+            "TearDownTestSuite",
+            "SetUpTestCase",
+            "TearDownTestCase",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // libFuzzer's entry points: fixed C symbols the fuzzing engine calls.
+    // No include names the engine, so the defined name is the evidence
+    // (see `Detection::scan`'s defined-hook branch).
+    RuleSpec {
+        id: "libfuzzer",
+        language: "c",
+        kind: TrustKind::Test,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: LIBFUZZER_HOOKS,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    RuleSpec {
+        id: "libfuzzer",
+        language: "cpp",
+        kind: TrustKind::Test,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: LIBFUZZER_HOOKS,
+        string_targets: false,
+        node: true,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -11860,6 +11935,17 @@ pub fn signature_methods_for(id: &str, language: &str) -> &'static [SignatureMet
     }
 }
 
+/// Rules whose exact method names match case-sensitively. The default is
+/// case-insensitive so one list covers Go's `GET` and Rails' `get`; a
+/// macro-named C++ test case (`TEST`) or a fixed C symbol must not also
+/// take a `test` helper.
+pub fn methods_case_sensitive(id: &str, language: &str) -> bool {
+    matches!(
+        (id, language),
+        ("gtest", "cpp") | ("gtest-fixture", "cpp") | ("libfuzzer", "c" | "cpp")
+    )
+}
+
 /// Call names that alone prove a framework is present, for ecosystems
 /// with no import records. Returned separately from [`FrameworkRule`]
 /// because it is a detection input, not a matcher, and a user-authored
@@ -11982,6 +12068,8 @@ mod tests {
                     | "dotnet-ffi-export"
                     | "xaml"
                     | "razor"
+                    // WS20: a fixed engine-called symbol, by its exact name.
+                    | "libfuzzer"
             );
             assert!(
                 detectable || marker_is_the_evidence,

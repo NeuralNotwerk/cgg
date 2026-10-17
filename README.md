@@ -531,7 +531,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4059 callables, 13030 edges, 4056 cross-file, 484ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4100 callables, 13178 edges, 4104 cross-file, 446ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -620,10 +620,11 @@ flowchart LR
   N75["cgg_resolve::type_hints::settle_assoc_call_locals"]
   N76["cgg_resolve::type_hints::settle_closure_args"]
   N77["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N78["cgg_resolve::value_refs::prune"]
-  N79["cgg_resolve::value_refs::prune_paren_less"]
-  N80["cgg_resolve::value_refs::tag_reference_edges"]
-  N81["cgg_walk::walk"]
+  N78["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N79["cgg_resolve::value_refs::prune"]
+  N80["cgg_resolve::value_refs::prune_paren_less"]
+  N81["cgg_resolve::value_refs::tag_reference_edges"]
+  N82["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -648,7 +649,7 @@ flowchart LR
   N3 --> N46
   N3 --> N45
   N3 --> N40
-  N3 --> N81
+  N3 --> N82
   N3 --> N50
   N3 --> N43
   N3 --> N53
@@ -677,8 +678,8 @@ flowchart LR
   N3 --> N67
   N3 --> N30
   N3 --> N35
-  N3 --> N78
   N3 --> N79
+  N3 --> N80
   N3 --> N73
   N3 --> N68
   N3 --> N69
@@ -696,7 +697,8 @@ flowchart LR
   N3 --> N60
   N3 --> N64
   N3 --> N61
-  N3 --> N80
+  N3 --> N81
+  N3 --> N78
   N3 --> N65
   N3 --> N62
   N3 -->|2x| N37

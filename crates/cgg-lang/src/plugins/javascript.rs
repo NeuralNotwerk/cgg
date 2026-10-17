@@ -347,7 +347,10 @@ impl<'a> JsWalker<'a> {
             vis: class_member_vis(node),
             // TypeScript decorators (`@Get('/users')`) are shape A and
             // carry the whole NestJS routing surface.
-            attributes: super::attrs::collect_with_preceding(node, self.source),
+            attributes: super::attrs::with_override_marker(
+                node,
+                super::attrs::collect_with_preceding(node, self.source),
+            ),
             base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });

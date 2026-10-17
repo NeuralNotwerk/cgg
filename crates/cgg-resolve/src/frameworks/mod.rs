@@ -318,6 +318,18 @@ impl Detection {
                             .iter()
                             .any(|b| kinds.contains(&b.kind.as_str()));
                     }
+                    // Nor does a rule whose methods are fixed symbols an
+                    // engine calls (libFuzzer's `LLVMFuzzerTestOneInput`):
+                    // defining one, by its exact name, is the evidence.
+                    if !hit
+                        && !rule.methods.is_empty()
+                        && rule.methods.iter().all(|m| !m.contains('*'))
+                    {
+                        hit = f
+                            .definitions
+                            .iter()
+                            .any(|d| rule.methods.contains(&d.simple_name));
+                    }
                     // A visibility rule has nothing to import either: the
                     // keyword on the definition is the evidence.
                     if !hit {
@@ -565,6 +577,22 @@ fn contains_ci(list: &[String], needle: &str) -> bool {
 /// does not take `Testing` and `test*` does not take `tests`.
 fn matches_ci_or_pattern(list: &[String], needle: &str) -> bool {
     list.iter().any(|m| name_pattern_matches(m, needle))
+}
+
+/// A callable's name against a rule's `methods`: [`name_pattern_matches`],
+/// except that an exact name is compared case-sensitively for the rules
+/// [`rules::methods_case_sensitive`] lists.
+fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
+    if rules::methods_case_sensitive(&rule.id, &rule.language) {
+        return rule.methods.iter().any(|m| {
+            if m.starts_with('*') || m.ends_with('*') {
+                name_pattern_matches(m, name)
+            } else {
+                m == name
+            }
+        });
+    }
+    matches_ci_or_pattern(&rule.methods, name)
 }
 
 pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
@@ -893,8 +921,8 @@ fn match_base_types(
         let Some(hit) = find_in_base_chain(types, by_owner, &rule.base_types) else {
             continue;
         };
-        let named = rule.methods.is_empty()
-            || matches_ci_or_pattern(&rule.methods, &node.simple_name);
+        let named =
+            rule.methods.is_empty() || method_name_matches(rule, &node.simple_name);
         // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
         // class's other members (helpers, fixtures by another name) are
         // test code its cases reach through `self`/`$this` across the
@@ -1020,7 +1048,7 @@ fn match_methods(
         if rule.kind == TrustKind::Test && !harness_file {
             continue;
         }
-        if !matches_ci_or_pattern(&rule.methods, &node.simple_name) {
+        if !method_name_matches(rule, &node.simple_name) {
             continue;
         }
         out.push(FrameworkEntry {
@@ -2407,6 +2435,71 @@ mod tests {
         let out = detect(&g, &[f0, f1], &[]);
         let ids: Vec<u32> = out.entries.iter().map(|e| e.target.as_u32()).collect();
         assert_eq!(ids, vec![0], "{:?}", out.entries);
+    }
+
+    // WS20 gap 21: gtest's TEST bodies (parsed as functions named for
+    // the macro) and fixture hooks, and libFuzzer's engine entry point.
+    #[test]
+    fn gtest_cases_fixture_hooks_and_libfuzzer_entries() {
+        let mut f = facts_with_import("cpp", "foo_test.cc", "gtest/gtest.h");
+        let mut nodes = Vec::new();
+        for (i, (qn, name, bases)) in [
+            ("TEST", "TEST", vec![]),
+            ("Fix::SetUp", "SetUp", vec!["testing::Test".to_string()]),
+            ("Fix::helper", "helper", vec!["testing::Test".to_string()]),
+            // Near miss: `SetUp` on a class with no gtest base.
+            ("Other::SetUp", "SetUp", vec!["Widget".to_string()]),
+            // Near miss: a lowercase `test` (a SFINAE probe) is not `TEST`.
+            ("is_map::test", "test", vec![]),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut n = node(i as u32, qn, name, "cpp");
+            n.start_byte = i as u32 * 10;
+            f.definitions.push(DefRecord {
+                simple_name: name.into(),
+                qualified_name: qn.into(),
+                start_byte: n.start_byte,
+                base_types: bases,
+                ..Default::default()
+            });
+            nodes.push(n);
+        }
+        let out = detect(&graph_with(nodes), &[f], &[]);
+        let got: Vec<(u32, &str)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.framework.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![(0, "gtest"), (1, "gtest-fixture")],
+            "{:?}",
+            out.entries
+        );
+
+        // libFuzzer: no include names the engine; the defined hook does.
+        let mut f = FileFacts::new(FileId::new(0), PathBuf::from("fuzz.c"), "c");
+        let mut nodes = Vec::new();
+        for (i, name) in ["LLVMFuzzerTestOneInput", "parse"].iter().enumerate() {
+            let mut n = node(i as u32, name, name, "c");
+            n.start_byte = i as u32 * 10;
+            f.definitions.push(DefRecord {
+                simple_name: name.to_string(),
+                qualified_name: name.to_string(),
+                start_byte: n.start_byte,
+                ..Default::default()
+            });
+            nodes.push(n);
+        }
+        let out = detect(&graph_with(nodes), &[f], &[]);
+        let got: Vec<(u32, &str)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.framework.as_str()))
+            .collect();
+        assert_eq!(got, vec![(0, "libfuzzer")], "{:?}", out.entries);
     }
 
     fn test_class(lang: &str, path: &str, import: &str) -> (Graph, Vec<FileFacts>) {

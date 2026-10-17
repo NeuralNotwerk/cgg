@@ -40,6 +40,10 @@ const SCRIPT_DRIVEN: &[&str] = &[
 /// contract whose consumers are by definition in another repository.
 const DESCRIPTOR: &[&str] = &["smithy", "proto", "graphql", "openapi", "asyncapi"];
 
+/// The override markers plugins record from a keyword (Swift, Scala,
+/// Dart) rather than from attribute capture.
+const OVERRIDE_KEYWORD_MARKERS: &[&str] = &["override", "@override"];
+
 /// Known blind spots worth naming explicitly in the report.
 const BLIND_SPOTS: &[(&str, &[&str])] = &[
     (
@@ -131,7 +135,12 @@ pub(crate) fn measure(
         if !n.visibility.is_empty() {
             vis.insert(n.language.clone(), true);
         }
-        if !n.attributes.is_empty() {
+        // An `override` keyword marker is recorded by plugins that do
+        // not capture attributes; it is not evidence that they do.
+        if n.attributes
+            .iter()
+            .any(|a| !OVERRIDE_KEYWORD_MARKERS.contains(&a.as_str()))
+        {
             attrs.insert(n.language.clone(), true);
         }
         if n.trait_impl_target.is_some() {

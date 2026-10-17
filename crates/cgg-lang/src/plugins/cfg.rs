@@ -90,7 +90,8 @@ pub const PYTHON: TerminatorSpec = TerminatorSpec {
 };
 
 pub const GO: TerminatorSpec = TerminatorSpec {
-    block_kinds: &["block"],
+    // tree-sitter-go puts a block's statements in a `statement_list`.
+    block_kinds: &["block", "statement_list"],
     terminator_kinds: &[
         "return_statement",
         "break_statement",
@@ -149,6 +150,23 @@ pub const JS: TerminatorSpec = TerminatorSpec {
     ],
 };
 
+/// Statement kinds control can enter other than from the statement
+/// before them.
+const JUMP_TARGETS: &[&str] = &["labeled_statement", "case_statement"];
+
+/// True if the subtree holds a `goto` label.
+fn has_label(node: Node) -> bool {
+    let mut stack = vec![node];
+    while let Some(n) = stack.pop() {
+        if n.kind() == "labeled_statement" {
+            return true;
+        }
+        let mut c = n.walk();
+        stack.extend(n.children(&mut c));
+    }
+    false
+}
+
 fn cause_of(kind: &str) -> &'static str {
     if kind.contains("return") {
         "after-return"
@@ -200,6 +218,12 @@ pub fn unreachable_after_terminator(
         if has_preproc(n) {
             continue;
         }
+        // Rust `#[cfg(…)]` on a statement is conditional compilation, as
+        // a preprocessor branch is: `#[cfg(unix)] return …;` leaves the
+        // `#[cfg(windows)]` statement after it reachable on Windows.
+        if kids.iter().any(|k| k.kind() == "attribute_item") {
+            continue;
+        }
 
         let stmts: Vec<Node> = kids
             .iter()
@@ -221,9 +245,25 @@ pub fn unreachable_after_terminator(
                 None
             };
             let Some(term_kind) = term_kind else { continue };
+            // A label (`L:` for `goto`, a `case` label) can be jumped to,
+            // so the region ends before the first one after the
+            // terminator; it never spans reachable code.
+            // A `goto` may also jump to a label nested inside a later
+            // statement (`goto L; while (…) { L: … }`): the region ends
+            // before the statement holding it.
+            let label_at = kids
+                .iter()
+                .filter(|k| {
+                    k.start_byte() > s.start_byte()
+                        && (JUMP_TARGETS.contains(&k.kind()) || has_label(**k))
+                })
+                .map(|k| k.start_byte())
+                .min()
+                .unwrap_or(usize::MAX);
             let rest: Vec<&Node> = stmts
                 .iter()
                 .skip(i + 1)
+                .take_while(|r| r.start_byte() < label_at)
                 .filter(|r| !spec.hoisted_kinds.contains(&r.kind()))
                 .collect();
             let (Some(first), Some(last)) = (rest.first(), rest.last()) else {
@@ -301,6 +341,44 @@ mod tests {
         );
         let t2 = parse("javascript", "function f(){ return 1; console.log(2); }");
         assert_eq!(unreachable_after_terminator(&t2, &JS).len(), 1);
+    }
+
+    #[test]
+    fn go_statement_lists_are_scanned() {
+        let t = parse("go", "package m\nfunc f() {\n\ta()\n\treturn\n\tb()\n}\n");
+        let r = unreachable_after_terminator(&t, &GO);
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].start_line, 5);
+    }
+
+    #[test]
+    fn a_goto_label_ends_the_region() {
+        // `L:` is reachable through the `goto`; only `a()` is not.
+        let src = "void f(){ goto L; a(); L: b(); c(); }";
+        let t = parse("c", src);
+        let r = unreachable_after_terminator(&t, &C_LIKE);
+        assert_eq!(r.len(), 1);
+        let a = src.find("a()").unwrap() as u32;
+        let l = src.find("L:").unwrap() as u32;
+        assert_eq!(r[0].start_byte, a);
+        assert!(r[0].end_byte <= l, "{:?}", r[0]);
+        // A label nested in a later statement is a jump target too.
+        let src = "void f(){ goto L; a(); while (x) { L: b(); } c(); }";
+        let r = unreachable_after_terminator(&parse("c", src), &C_LIKE);
+        assert!(
+            r.iter()
+                .all(|r| r.end_byte <= src.find("while").unwrap() as u32),
+            "{r:?}"
+        );
+        // Nothing but the label follows: no region at all.
+        let t = parse("c", "void f(){ goto L; L: b(); }");
+        assert!(unreachable_after_terminator(&t, &C_LIKE).is_empty());
+    }
+
+    #[test]
+    fn rust_cfg_statements_are_conditional_compilation() {
+        let src = "fn f() { #[cfg(unix)] return 1; #[cfg(windows)] g() }";
+        assert!(unreachable_after_terminator(&parse("rust", src), &RUST).is_empty());
     }
 
     #[test]

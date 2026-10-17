@@ -104,6 +104,7 @@ impl LanguagePlugin for RustPlugin {
             },
             expanding: false,
             parser: None,
+            cfg_test: 0,
         };
         walker.walk(tree.root_node());
         // Post-pass: emit synthetic LocalTypes of the form
@@ -487,6 +488,10 @@ struct Walker<'a> {
     expanding: bool,
     /// One parser for every expansion in the file, made on first use.
     parser: Option<tree_sitter::Parser>,
+    /// Depth of enclosing `#[cfg(test)]` containers (`mod`, `impl`,
+    /// `trait`, or a file-level `#![cfg(test)]`): everything inside is
+    /// compiled only for tests.
+    cfg_test: u32,
 }
 
 impl<'a> Walker<'a> {
@@ -502,6 +507,15 @@ impl<'a> Walker<'a> {
             // serde calls; recorded as a mention (never an edge) and the
             // attribute is then walked exactly as before.
             "attribute_item" | "inner_attribute_item" => {
+                // `#![cfg(test)]` at the top of a file: the whole file is
+                // compiled only for tests (a `mod tests;` declared under
+                // `#[cfg(test)]` elsewhere usually says it this way too).
+                if kind == "inner_attribute_item"
+                    && node.parent().is_some_and(|p| p.kind() == "source_file")
+                    && is_cfg_test_attr(self.text(node))
+                {
+                    self.cfg_test += 1;
+                }
                 self.record_attr_mentions(node);
             }
             // `mod foo { ... }` / `mod foo;`
@@ -525,7 +539,10 @@ impl<'a> Walker<'a> {
                 if !name.is_empty() {
                     self.scope.push(ScopeSegment::Mod(name));
                 }
+                let test_only = is_cfg_test_container(node, self.source);
+                self.cfg_test += u32::from(test_only);
                 self.walk_children(node);
+                self.cfg_test -= u32::from(test_only);
                 if !self
                     .scope
                     .last()
@@ -566,7 +583,10 @@ impl<'a> Walker<'a> {
                 // strips `<…>` itself, and the full form is what a
                 // reader of the audit log needs to see.
                 self.bases.push(trait_name.clone().into_iter().collect());
+                let test_only = is_cfg_test_container(node, self.source);
+                self.cfg_test += u32::from(test_only);
                 self.walk_children(node);
+                self.cfg_test -= u32::from(test_only);
                 self.bases.pop();
                 self.scope.pop();
                 return;
@@ -582,7 +602,10 @@ impl<'a> Walker<'a> {
                 if pushed {
                     self.scope.push(ScopeSegment::Trait(name));
                 }
+                let test_only = is_cfg_test_container(node, self.source);
+                self.cfg_test += u32::from(test_only);
                 self.walk_children(node);
+                self.cfg_test -= u32::from(test_only);
                 if pushed {
                     self.scope.pop();
                 }
@@ -823,7 +846,10 @@ impl<'a> Walker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: signature,
             vis,
-            test_role: rust_test_role(&attributes),
+            test_role: rust_test_role(&attributes).or_else(|| {
+                (self.cfg_test > 0 || attributes.iter().any(|a| is_cfg_test_attr(a)))
+                    .then_some(cgg_core::TestRole::Support)
+            }),
             visibility,
             attributes,
             base_types: self.bases.last().cloned().unwrap_or_default(),
@@ -1719,6 +1745,7 @@ impl<'a> Walker<'a> {
                 macros: std::collections::HashMap::new(),
                 expanding: true,
                 parser: None,
+                cfg_test: self.cfg_test,
             };
             w.walk(tree.root_node());
             std::mem::swap(&mut sub_fields, &mut w.struct_fields);
@@ -2902,6 +2929,72 @@ fn enclosing_fn_range(node: Node) -> Option<(usize, usize)> {
     None
 }
 
+/// Whether an attribute compiles its item only for tests: `#[cfg(test)]`,
+/// or an `all(…)` whose direct arguments include `test`. `any(test, …)`
+/// and `not(test)` are compiled outside tests too, so they do not count.
+fn is_cfg_test_attr(attr: &str) -> bool {
+    let compact: String = attr.chars().filter(|c| !c.is_whitespace()).collect();
+    let inner = compact
+        .strip_prefix("#![")
+        .or_else(|| compact.strip_prefix("#["))
+        .and_then(|x| x.strip_suffix(']'))
+        .unwrap_or(&compact);
+    let Some(pred) = inner.strip_prefix("cfg(").and_then(|x| x.strip_suffix(')')) else {
+        return false;
+    };
+    if pred == "test" {
+        return true;
+    }
+    let Some(args) = pred.strip_prefix("all(").and_then(|x| x.strip_suffix(')')) else {
+        return false;
+    };
+    // Split on top-level commas only, so `all(feature = "a,test", …)` and
+    // nested `not(test)` are never read as a bare `test`.
+    let (mut depth, mut start, mut in_str) = (0i32, 0usize, false);
+    let bytes = args.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        match b {
+            b'"' => in_str = !in_str,
+            b'(' if !in_str => depth += 1,
+            b')' if !in_str => depth -= 1,
+            b',' if !in_str && depth == 0 => {
+                if &args[start..i] == "test" {
+                    return true;
+                }
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    &args[start..] == "test"
+}
+
+/// Whether a `mod`/`impl`/`trait` is test-only: an outer `#[cfg(test)]`,
+/// or an inner `#![cfg(test)]` at the head of its body.
+fn is_cfg_test_container(node: Node, source: &[u8]) -> bool {
+    if collect_attributes(node, source)
+        .iter()
+        .any(|a| is_cfg_test_attr(a))
+    {
+        return true;
+    }
+    let Some(body) = node.child_by_field_name("body") else {
+        return false;
+    };
+    let mut c = body.walk();
+    body.named_children(&mut c)
+        .take_while(|ch| {
+            matches!(
+                ch.kind(),
+                "inner_attribute_item" | "line_comment" | "block_comment"
+            )
+        })
+        .any(|ch| {
+            ch.kind() == "inner_attribute_item"
+                && is_cfg_test_attr(ch.utf8_text(source).unwrap_or(""))
+        })
+}
+
 fn collect_attributes(node: Node, source: &[u8]) -> Vec<String> {
     // Attributes appear as preceding siblings of `function_item` in
     // `declaration_list`; they look like `#[attr]` or `#![attr]`.
@@ -3102,6 +3195,38 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS20 gap 15: everything compiled only for tests is test code.
+    #[test]
+    fn cfg_test_items_and_modules_are_test_support() {
+        let f = extract(
+            "fn prod() {}\n\
+             #[cfg(test)]\nfn helper() {}\n\
+             #[cfg(test)]\nmod tests {\n    fn inner() {}\n    mod deeper { fn deep() {} }\n}\n\
+             #[cfg(all(test, feature = \"x\"))]\nmod gated { fn g() {} }\n\
+             #[cfg(not(test))]\nfn not_test() {}\n\
+             #[cfg(any(test, feature = \"x\"))]\nfn any_test() {}\n\
+             mod after { fn back_in_prod() {} }\n",
+        );
+        let role = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .test_role
+        };
+        for n in ["helper", "inner", "deep", "g"] {
+            assert_eq!(role(n), Some(cgg_core::TestRole::Support), "{n}");
+        }
+        for n in ["prod", "not_test", "any_test", "back_in_prod"] {
+            assert_eq!(role(n), None, "{n}");
+        }
+        let whole = extract("#![cfg(test)]\nfn h() {}\n");
+        assert_eq!(
+            whole.definitions[0].test_role,
+            Some(cgg_core::TestRole::Support)
+        );
+    }
 
     // WS18: path-qualified and `*_test` test attributes are tests; a
     // `test`-named helper and `#[cfg(test)]` are not.

@@ -173,6 +173,9 @@ pub enum Evidence {
     NoIncomingEdges,
     /// Every caller is itself dead.
     IncomingOnlyFromDeadCode { callers: u32, example: CallableId },
+    /// Every call site naming it lies after an unconditional `return`,
+    /// `throw`, `break` or `continue`, where control flow cannot reach.
+    IncomingOnlyFromUnreachableCode { sites: u32 },
     /// Member of a strongly-connected component.
     InCycle { scc_size: u32 },
     /// Member of a connected group of unreferenced callables.
@@ -356,6 +359,7 @@ impl Evidence {
         match self {
             Evidence::NoIncomingEdges
             | Evidence::IncomingOnlyFromDeadCode { .. }
+            | Evidence::IncomingOnlyFromUnreachableCode { .. }
             | Evidence::InCycle { .. }
             | Evidence::InRegion { .. } => Polarity::Neutral,
 
@@ -376,6 +380,9 @@ impl Evidence {
         match self {
             Evidence::NoIncomingEdges => "no-incoming-edges",
             Evidence::IncomingOnlyFromDeadCode { .. } => "incoming-only-from-dead-code",
+            Evidence::IncomingOnlyFromUnreachableCode { .. } => {
+                "incoming-only-from-unreachable-code"
+            }
             Evidence::InCycle { .. } => "in-cycle",
             Evidence::InRegion { .. } => "in-region",
             Evidence::NameMatchesUnresolvedSite { .. } => "name-matches-unresolved-site",

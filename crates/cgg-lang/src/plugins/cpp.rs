@@ -335,6 +335,7 @@ impl<'a> CppWalker<'a> {
         if is_virtual_method(node, self.source) {
             attributes.push("virtual".to_string());
         }
+        let attributes = super::attrs::with_override_marker(node, attributes);
         self.facts.definitions.push(DefRecord {
             simple_name: info.simple,
             qualified_name: qn,
@@ -1363,7 +1364,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     }
     let mut drop_at: Vec<(usize, usize)> = Vec::new();
     let mut unified: Vec<(usize, String, String)> = Vec::new();
-    let mut merges: Vec<(usize, usize, bool, Vec<String>)> = Vec::new();
+    let mut merges: Vec<(usize, usize, Vec<&'static str>, Vec<String>)> = Vec::new();
     for (file_idx, facts) in files.iter().enumerate() {
         if !cgg_core::same_family(&facts.language, "c") {
             continue;
@@ -1413,10 +1414,15 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             {
                 continue;
             }
-            let virt = def.attributes.iter().any(|a| a == "virtual");
+            // `virtual` and `override` are written on the in-class
+            // declaration only; the out-of-class body inherits them.
+            let carried: Vec<&'static str> = ["virtual", super::attrs::OVERRIDE_MARKER]
+                .into_iter()
+                .filter(|m| def.attributes.iter().any(|a| a == m))
+                .collect();
             let bases = def.base_types.clone();
             for h in &hits {
-                merges.push((h.file, h.def_idx, virt, bases.clone()));
+                merges.push((h.file, h.def_idx, carried.clone(), bases.clone()));
             }
             // The body may live in a file the caller never includes; keep
             // the header's claim to the name so `#include` still reaches it.
@@ -1430,10 +1436,12 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             drop_at.push((file_idx, def_idx));
         }
     }
-    for (file, def_idx, virt, bases) in merges {
+    for (file, def_idx, carried, bases) in merges {
         let def = &mut files[file].definitions[def_idx];
-        if virt && !def.attributes.iter().any(|a| a == "virtual") {
-            def.attributes.push("virtual".into());
+        for m in carried {
+            if !def.attributes.iter().any(|a| a == m) {
+                def.attributes.push(m.into());
+            }
         }
         for b in bases {
             if !def.base_types.contains(&b) {
@@ -1782,6 +1790,27 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    // WS20 gap 5: the `override` marker is recorded so dead-code can
+    // cap an override of an out-of-tree base at medium.
+    #[test]
+    fn override_modifier_is_recorded() {
+        let f = extract(
+            "class A : public Ext {\npublic:\n    void hook() override {}\n    void fin() final {}\n    void plain() {}\n};\n",
+        );
+        let marked = |n: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.simple_name == n)
+                .unwrap_or_else(|| panic!("{n} not extracted"))
+                .attributes
+                .iter()
+                .any(|a| a == "override")
+        };
+        assert!(marked("hook"));
+        assert!(marked("fin"), "final is an override specifier");
+        assert!(!marked("plain"));
+    }
 
     fn extract(src: &str) -> FileFacts {
         extract_at(src, "/tmp/__cgg_test__/x.cpp")

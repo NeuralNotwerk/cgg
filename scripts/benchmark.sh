@@ -215,7 +215,7 @@ APPS=(
     "csharp-mediatr|https://github.com/jbogard/MediatR.git|mediatr,~csharp-disposable,~csharp-runtime,~xunit"
     "elixir-phoenix|https://github.com/phoenixframework/phoenix.git|mix-task,otp,otp-application,phoenix,phoenix-channel,phoenix-socket,plug,plug-router,~jest"
     "erlang-otp|https://github.com/erlang/otp.git|erlang-gen-server,~java-closeable,~c-runtime,~common-test,~cpp-runtime,~erlang-application,~erlang-otp-lifecycle,~java-runtime"
-    "groovy-gradle|https://github.com/gradle/gradle.git|android-activity,compose,gradle-plugin,java-closeable,java-concurrent,junit,servlet,~android-fragment,~spring,~android-compose,~c-runtime,~cpp-runtime,gradle-task,~gtest,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~kotlinx-coroutines,~play-mvc,~scalatest,~spock,xctest,gradle-model-rules,java-serialization,testng,gradle-services,gradle-task-annotations"
+    "groovy-gradle|https://github.com/gradle/gradle.git|android-activity,compose,gradle-plugin,java-closeable,java-concurrent,junit,servlet,~android-fragment,~spring,~android-compose,~c-runtime,~cpp-runtime,gradle-task,gtest,~java-runtime,~java-serviceloader,~junit-params,~kotlin-runtime,~kotlinx-coroutines,~play-mvc,~scalatest,~spock,xctest,gradle-model-rules,java-serialization,testng,gradle-services,gradle-task-annotations"
     "haskell-hspec|https://github.com/hspec/hspec.git|hspec,~haskell-main"
     "haskell-pandoc|https://github.com/jgm/pandoc.git|tasty,~haskell-main,~nix,~servant,~wai"
     "js-polka|https://github.com/lukeed/polka.git|express,polka,react,~apollo-server,~fastify,~nextjs,~nuxt,~react-hooks,~socket-io"
@@ -322,7 +322,7 @@ APPS=(
     "app-neorv32-vhdl|https://github.com/stnolting/neorv32.git|~vhdl-toplevel"
     "app-fpm-fortran|https://github.com/fortran-lang/fpm.git|~fortran-program"
     "app-waybar-catch2|https://github.com/Alexays/Waybar.git|py-signal,~py-argparse,~cpp-test-macros"
-    "app-kythe-bazel|https://github.com/kythe/kythe.git|go-encoding,java-closeable,junit,net-http,~cocoa-delegate,~java-concurrent,~py-argparse,~py-context-manager,~bazel"
+    "app-kythe-bazel|https://github.com/kythe/kythe.git|gtest,gtest-fixture,go-encoding,java-closeable,junit,net-http,~cocoa-delegate,~java-concurrent,~py-argparse,~py-context-manager,~bazel"
     # Every corpus directory is an APPS entry, so framework coverage and the
     # manifest sync measure all of them. Claims are measured, not hand-written
     # (scripts/sync-app-manifest.py).
@@ -347,13 +347,13 @@ APPS=(
     "asm-xv6|https://github.com/mit-pdos/xv6-public.git|"
     "asyncapi-spec|https://github.com/asyncapi/spec.git|"
     "bash-acme|https://github.com/acmesh-official/acme.sh.git|"
-    "c-jq|https://github.com/jqlang/jq.git|"
+    "c-jq|https://github.com/jqlang/jq.git|libfuzzer"
     "c-redis|https://github.com/redis/redis.git|py-threading,~py-argparse,~py-signal,c-callbacks"
     "clojure-compojure|https://github.com/weavejester/compojure.git|compojure"
     "clojure-ring|https://github.com/ring-clojure/ring.git|"
     "cloudflare-worker-examples|https://github.com/cloudflare/worker-template.git|"
     "cmake-kitware|https://github.com/Kitware/CMake.git|android-activity,cocoa-delegate,cuda,ffi-export,py-threading,py-unittest,uikit-appdelegate,uikit-lifecycle,~csharp-disposable,~java-closeable,~py-argparse,~rust-std-traits"
-    "cpp-nlohmann-json|https://github.com/nlohmann/json.git|py-threading,~py-argparse,~py-context-manager"
+    "cpp-nlohmann-json|https://github.com/nlohmann/json.git|libfuzzer,py-threading,~py-argparse,~py-context-manager"
     "cpp-spdlog|https://github.com/gabime/spdlog.git|"
     "csharp-newtonsoft|https://github.com/JamesNK/Newtonsoft.Json.git|csharp-disposable,dotnet-serialization,nunit-runner,benchmarkdotnet"
     "csharp-serilog|https://github.com/serilog/serilog.git|csharp-disposable,xunit-data"
