@@ -1,0 +1,2024 @@
+{
+"click": [
+"app-fastapi-dispatch",
+"app-flaskbb-flask",
+"app-black-click",
+"app-litestar-fullstack",
+"py-quart",
+"app-annif-connexion",
+"app-hypothesis-pyramid",
+"py-litestar",
+"python-flask",
+"app-brightsky-huey"
+],
+"fastapi": [
+"app-fastapi-dispatch",
+"app-immich-nestjs",
+"py-apscheduler",
+"app-sdwebui-gradio",
+"app-wiregui-nicegui",
+"app-jupyterhub-tornado",
+"py-dash",
+"app-brightsky-huey",
+"app-bugbug-gcpfunctions"
+],
+"py-signal": [
+"app-fastapi-dispatch",
+"app-black-click",
+"~app-torch-ultralytics",
+"~app-immich-nestjs",
+"~app-actix-examples",
+"py-dramatiq",
+"~py-falcon",
+"py-huey",
+"py-quart",
+"py-robyn",
+"~app-arduinoagent-goa",
+"app-sdwebui-gradio",
+"app-wiregui-nicegui",
+"app-jupyterhub-tornado",
+"app-waybar-catch2",
+"app-carvera-firmware-cpp",
+"app-katrain-kivy",
+"app-mimic-kivy",
+"app-smoothie-kivy",
+"app-smoothieware-cpp",
+"~c-redis",
+"~dart-flame",
+"~dart-flutter",
+"py-dash",
+"py-scrapy",
+"scala-spark",
+"app-bugbug-gcpfunctions"
+],
+"pydantic": [
+"app-fastapi-dispatch",
+"app-saleor-celery",
+"~app-immich-nestjs",
+"app-pydantic-core",
+"app-powertools-lambda",
+"~app-litestar-fullstack",
+"~py-robyn",
+"app-oldata-dagster",
+"~app-sdwebui-gradio",
+"~app-wiregui-nicegui",
+"app-basedosdados-prefect",
+"app-jupyterhub-tornado",
+"app-zenplayer-kivy",
+"~py-dash",
+"py-litestar",
+"app-brightsky-huey",
+"app-bugbug-gcpfunctions"
+],
+"py-context-manager": [
+"~app-fastapi-dispatch",
+"~app-django-netbox",
+"~app-flaskbb-flask",
+"app-saleor-celery",
+"~app-black-click",
+"app-torch-ultralytics",
+"app-immich-nestjs",
+"~app-actix-examples",
+"~app-cuda-samples",
+"app-powertools-lambda",
+"~app-litestar-fullstack",
+"~app-storm-starter",
+"py-apscheduler",
+"~py-dramatiq",
+"py-falcon",
+"py-huey",
+"py-quart",
+"~app-annif-connexion",
+"app-oldata-dagster",
+"app-sdwebui-gradio",
+"app-wiregui-nicegui",
+"~app-xrviz-panel",
+"app-basedosdados-prefect",
+"~app-hypothesis-pyramid",
+"~app-jupyterhub-tornado",
+"~app-ghostty-zig",
+"~app-kythe-bazel",
+"~app-snlquest-kivy",
+"~cpp-nlohmann-json",
+"py-dash",
+"py-litestar",
+"py-scrapy",
+"python-flask",
+"python-httpie",
+"~rust-bat",
+"scala-spark",
+"~smithy-protocol-tests",
+"~app-amurex-robyn",
+"app-brightsky-huey",
+"app-bugbug-gcpfunctions"
+],
+"py-threading": [
+"~app-fastapi-dispatch",
+"~app-django-netbox",
+"~app-saleor-celery",
+"~app-black-click",
+"app-torch-ultralytics",
+"~app-immich-nestjs",
+"~app-cuda-samples",
+"app-powertools-lambda",
+"~app-dash-sample-apps",
+"~app-litestar-fullstack",
+"kivy-carvera",
+"~py-apscheduler",
+"py-dramatiq",
+"py-falcon",
+"py-huey",
+"~py-quart",
+"py-robyn",
+"~app-annif-connexion",
+"app-oldata-dagster",
+"app-sdwebui-gradio",
+"app-apisix-openresty",
+"~app-basedosdados-prefect",
+"~app-jupyterhub-tornado",
+"app-tigerbeetle-zig",
+"app-carvera-firmware-cpp",
+"app-katrain-kivy",
+"app-mimic-kivy",
+"~app-pywallet-kivy",
+"app-smoothie-kivy",
+"app-smoothieware-cpp",
+"app-snlquest-kivy",
+"app-zenplayer-kivy",
+"c-redis",
+"cmake-kitware",
+"cpp-nlohmann-json",
+"~dart-flutter",
+"py-dash",
+"~py-litestar",
+"py-scrapy",
+"python-httpie",
+"~rust-bat",
+"~rust-ripgrep",
+"scala-spark",
+"~app-amurex-robyn",
+"~app-brightsky-huey",
+"app-bugbug-gcpfunctions"
+],
+"py-unittest": [
+"~app-fastapi-dispatch",
+"app-django-netbox",
+"~app-saleor-celery",
+"app-black-click",
+"~app-torch-ultralytics",
+"~app-immich-nestjs",
+"app-homebox-chi",
+"app-pydantic-core",
+"~app-powertools-lambda",
+"~app-litestar-fullstack",
+"~kivy-carvera",
+"app-storm-starter",
+"~py-apscheduler",
+"~py-dramatiq",
+"py-falcon",
+"py-huey",
+"~py-quart",
+"~py-robyn",
+"~app-annif-connexion",
+"~app-oldata-dagster",
+"~app-marquez-dropwizard",
+"~app-wiregui-nicegui",
+"~app-basedosdados-prefect",
+"~app-hypothesis-pyramid",
+"app-jobserver-spark",
+"~app-jupyterhub-tornado",
+"~app-katrain-kivy",
+"app-pywallet-kivy",
+"cmake-kitware",
+"dart-flutter",
+"py-dash",
+"~py-litestar",
+"py-scrapy",
+"~python-httpie",
+"scala-spark",
+"smithy-protocol-tests",
+"~app-brightsky-huey",
+"~app-bugbug-gcpfunctions",
+"app-libchecker-gradle",
+"app-socialhome-dramatiq"
+],
+"react": [
+"~app-fastapi-dispatch",
+"app-ghost-express",
+"~app-immich-nestjs",
+"app-calcom-nextjs",
+"app-druid-jaxrs",
+"app-memos-echo",
+"~app-fiber-recipes",
+"app-rails-mastodon",
+"app-plausible-phoenix",
+"~app-hono-examples",
+"~app-litestar-fullstack",
+"app-metabase-compojure",
+"app-salvo-examples",
+"~app-shuttle-examples",
+"~app-blazor-samples",
+"~app-rn-expensify",
+"js-polka",
+"~py-robyn",
+"app-casdoor-beego",
+"~app-marquez-dropwizard",
+"~app-marktext-electron",
+"app-insights-feathers",
+"~app-toiletmap-yoga",
+"~app-wificonnect-iron",
+"app-yapi-koa",
+"~app-wishlist-remix",
+"~app-swate-saturn",
+"app-clashverge-tauri",
+"~app-jupyterhub-tornado",
+"~app-quack-oak",
+"py-dash",
+"~rust-bat",
+"~ts-typeorm",
+"~ts-zod",
+"~app-bugbug-gcpfunctions",
+"~app-domainwatchdog-symfony",
+"app-papercups-phoenix"
+],
+"django": [
+"app-django-netbox",
+"app-saleor-celery",
+"py-falcon",
+"py-huey",
+"app-socialhome-dramatiq"
+],
+"django-admin": [
+"app-django-netbox",
+"app-saleor-celery",
+"~py-falcon",
+"py-huey",
+"app-socialhome-dramatiq"
+],
+"rq": [
+"app-django-netbox",
+"~app-bugbug-gcpfunctions"
+],
+"py-argparse": [
+"~app-django-netbox",
+"~app-black-click",
+"~app-torch-ultralytics",
+"~app-immich-nestjs",
+"~app-druid-jaxrs",
+"~app-axum-cratesio",
+"~app-actix-examples",
+"~app-vaultwarden-rocket",
+"~app-cuda-samples",
+"~app-nextcloud-android",
+"~app-cdk-examples",
+"~app-firebase-samples",
+"~app-dash-sample-apps",
+"~app-litestar-fullstack",
+"~kivy-carvera",
+"~app-jabref-javafx",
+"~app-storm-starter",
+"~py-dramatiq",
+"~py-falcon",
+"~py-robyn",
+"~app-oldata-dagster",
+"~app-sdwebui-gradio",
+"~app-ksql-kafkastreams",
+"~app-basedosdados-prefect",
+"~app-hypothesis-pyramid",
+"~app-ora-swifttesting",
+"~app-jupyterhub-tornado",
+"~app-ghostty-zig",
+"~app-waybar-catch2",
+"~app-kythe-bazel",
+"~app-carvera-firmware-cpp",
+"~app-mimic-kivy",
+"~app-smoothie-kivy",
+"~app-smoothieware-cpp",
+"~c-redis",
+"~cmake-kitware",
+"~cpp-nlohmann-json",
+"~dart-flutter",
+"~fortran-stdlib",
+"~hcl-terraform-aws",
+"~kivy-kivymd",
+"~lua-kong",
+"~nix-home-manager",
+"~py-dash",
+"~py-litestar",
+"~py-scrapy",
+"~python-httpie",
+"~rust-bat",
+"~rust-ripgrep",
+"~scala-spark",
+"~smithy-protocol-tests",
+"~vhdl-uvvm",
+"~app-bugbug-gcpfunctions",
+"~app-libchecker-gradle"
+],
+"celery": [
+"app-flaskbb-flask",
+"app-saleor-celery",
+"~py-dramatiq",
+"app-hypothesis-pyramid",
+"py-dash",
+"python-flask"
+],
+"flask": [
+"app-flaskbb-flask",
+"app-torch-ultralytics",
+"app-cdk-examples",
+"app-firebase-samples",
+"~app-dash-sample-apps",
+"app-serverless-examples",
+"py-apscheduler",
+"py-falcon",
+"py-huey",
+"py-quart",
+"app-annif-connexion",
+"app-jupyterhub-tornado",
+"app-zenplayer-kivy",
+"py-dash",
+"python-flask",
+"app-bugbug-gcpfunctions"
+],
+"sqlalchemy-events": [
+"app-flaskbb-flask"
+],
+"rust-std-traits": [
+"app-torch-ultralytics",
+"app-axum-cratesio",
+"app-lemmy-actix",
+"app-actix-examples",
+"app-vaultwarden-rocket",
+"app-pydantic-core",
+"app-cloudflare-workers",
+"~app-deno-std",
+"app-salvo-examples",
+"app-shuttle-examples",
+"py-robyn",
+"rust-ntex",
+"rust-rtic",
+"app-concordium-gotham",
+"~app-aiproxy-hangfire",
+"app-wificonnect-iron",
+"app-clashverge-tauri",
+"app-realworld-tide",
+"app-tigerbeetle-zig",
+"~cmake-kitware",
+"lua-kong",
+"rust-bat",
+"rust-ripgrep",
+"app-nanocl-ntex",
+"~app-workerstunnel-cloudflare"
+],
+"torch": [
+"app-torch-ultralytics",
+"app-immich-nestjs",
+"~app-cuda-samples",
+"~app-dash-sample-apps",
+"app-annif-connexion",
+"app-sdwebui-gradio",
+"scala-spark"
+],
+"express": [
+"app-ghost-express",
+"app-ghostfolio-nestjs",
+"app-immich-nestjs",
+"app-calcom-nextjs",
+"app-thingsboard-concurrent",
+"app-rails-mastodon",
+"app-plausible-phoenix",
+"app-cdk-examples",
+"app-gcp-functions",
+"app-firebase-samples",
+"app-shopping-loopback",
+"app-metabase-compojure",
+"app-serverless-examples",
+"app-storm-starter",
+"js-polka",
+"app-marquez-dropwizard",
+"app-betting-expressgateway",
+"app-insights-feathers",
+"js-loopback"
+],
+"node-event-emitter": [
+"app-ghost-express",
+"app-immich-nestjs",
+"app-calcom-nextjs",
+"~app-vaultwarden-rocket",
+"app-deno-std",
+"app-metabase-compojure",
+"app-serverless-examples",
+"js-restify",
+"~app-metacpan-catalyst",
+"app-marktext-electron",
+"~app-wishlist-remix",
+"app-humhub-yii",
+"app-quack-oak",
+"js-loopback",
+"ts-typeorm"
+],
+"worker-threads": [
+"app-ghost-express",
+"app-immich-nestjs",
+"app-calcom-nextjs",
+"app-cdk-examples",
+"~app-deno-std"
+],
+"angular": [
+"app-ghostfolio-nestjs",
+"app-thingsboard-concurrent",
+"app-ombi-quartz",
+"app-metabase-compojure",
+"app-kubepi-iris"
+],
+"angular-host": [
+"app-ghostfolio-nestjs",
+"app-thingsboard-concurrent",
+"~app-ombi-quartz",
+"~app-metabase-compojure",
+"~app-kubepi-iris"
+],
+"angular-router": [
+"app-ghostfolio-nestjs",
+"app-thingsboard-concurrent",
+"app-ombi-quartz",
+"~app-metabase-compojure",
+"~app-kubepi-iris"
+],
+"bullmq": [
+"app-ghostfolio-nestjs",
+"app-immich-nestjs",
+"app-calcom-nextjs"
+],
+"nestjs": [
+"app-ghostfolio-nestjs",
+"app-immich-nestjs",
+"app-calcom-nextjs",
+"app-serverless-examples"
+],
+"nestjs-schedule": [
+"app-ghostfolio-nestjs",
+"~app-immich-nestjs"
+],
+"android-broadcastreceiver": [
+"app-immich-nestjs",
+"app-nextcloud-android",
+"app-rn-expensify",
+"app-wordpress-android",
+"app-kotlinconf-ktor",
+"~app-kori-ktorclient",
+"app-quack-oak",
+"dart-flutter",
+"app-libchecker-gradle"
+],
+"android-worker": [
+"app-immich-nestjs",
+"app-nextcloud-android",
+"app-wordpress-android"
+],
+"cocoa-delegate": [
+"app-immich-nestjs",
+"~kivy-carvera",
+"~app-orleans-samples",
+"~app-rn-expensify",
+"app-codeedit-combine",
+"~app-darkness-flame",
+"~app-arduinoagent-goa",
+"~app-kori-ktorclient",
+"~app-dartpad-shelf",
+"app-ora-swifttesting",
+"~app-alarik-vapor",
+"~app-ghostty-zig",
+"~app-kythe-bazel",
+"cmake-kitware",
+"dart-flutter",
+"objc-afnetworking",
+"~rust-bat",
+"swift-alamofire",
+"~zig-zig"
+],
+"compose": [
+"app-immich-nestjs",
+"app-nextcloud-android",
+"app-wordpress-android",
+"groovy-gradle",
+"app-kotlinconf-ktor",
+"app-kori-ktorclient",
+"dart-flutter"
+],
+"uikit-appdelegate": [
+"app-immich-nestjs",
+"~kivy-carvera",
+"app-orleans-samples",
+"app-rn-expensify",
+"app-codeedit-combine",
+"app-darkness-flame",
+"~app-arduinoagent-goa",
+"app-kori-ktorclient",
+"app-dartpad-shelf",
+"app-ora-swifttesting",
+"app-ghostty-zig",
+"cmake-kitware",
+"dart-flutter",
+"objc-afnetworking",
+"~rust-bat",
+"swift-alamofire",
+"zig-zig"
+],
+"android-activity": [
+"~app-immich-nestjs",
+"app-nextcloud-android",
+"app-orleans-samples",
+"~app-rn-expensify",
+"~app-wordpress-android",
+"groovy-gradle",
+"~app-darkness-flame",
+"~app-kotlinconf-ktor",
+"~app-kori-ktorclient",
+"~app-quack-oak",
+"cmake-kitware",
+"dart-flutter",
+"~java-okhttp",
+"~app-libchecker-gradle"
+],
+"android-application": [
+"~app-immich-nestjs",
+"app-nextcloud-android",
+"~app-rn-expensify",
+"~app-wordpress-android",
+"~app-kotlinconf-ktor",
+"~app-kori-ktorclient",
+"~dart-flutter",
+"~java-okhttp",
+"~app-libchecker-gradle"
+],
+"java-closeable": [
+"~app-immich-nestjs",
+"~app-spring-mall",
+"app-thingsboard-concurrent",
+"~app-akka-samples",
+"app-druid-jaxrs",
+"~app-micronaut-graalapp",
+"~app-nextcloud-android",
+"~app-cdk-examples",
+"app-jabref-javafx",
+"~app-rn-expensify",
+"~app-serverless-examples",
+"app-storm-starter",
+"~app-wordpress-android",
+"~erlang-otp",
+"groovy-gradle",
+"app-kapua-camel",
+"app-marquez-dropwizard",
+"~app-flinkplatform-flink",
+"~app-saplib-jenkins",
+"app-dataverse-jsf",
+"app-ksql-kafkastreams",
+"~app-apisix-openresty",
+"~app-cljdoc-pedestal",
+"~app-jobserver-spark",
+"~app-bamboobsc-struts",
+"~app-bambufarm-vaadin",
+"app-tigerbeetle-zig",
+"app-kythe-bazel",
+"~cmake-kitware",
+"dart-flutter",
+"java-gson",
+"java-okhttp",
+"~java-spring-batch",
+"~kotlin-okio",
+"~rust-bat",
+"scala-play",
+"scala-spark",
+"smithy-protocol-tests",
+"app-libchecker-gradle",
+"~app-newscrawl-storm"
+],
+"uikit-lifecycle": [
+"~app-immich-nestjs",
+"kivy-carvera",
+"app-orleans-samples",
+"app-rn-expensify",
+"app-codeedit-combine",
+"app-darkness-flame",
+"~app-arduinoagent-goa",
+"~app-kori-ktorclient",
+"app-dartpad-shelf",
+"app-ora-swifttesting",
+"app-ghostty-zig",
+"cmake-kitware",
+"dart-flutter",
+"objc-afnetworking",
+"rust-bat",
+"swift-alamofire",
+"~zig-zig"
+],
+"wordpress": [
+"app-calcom-nextjs",
+"app-wordpress",
+"~app-symfony-messenger",
+"~app-shlink-roadrunner",
+"~php-laravel"
+],
+"junit": [
+"app-spring-mall",
+"app-thingsboard-concurrent",
+"app-akka-samples",
+"app-druid-jaxrs",
+"app-micronaut-graalapp",
+"app-nextcloud-android",
+"app-cdk-examples",
+"app-gs-batch-processing",
+"app-jabref-javafx",
+"app-storm-starter",
+"app-wordpress-android",
+"groovy-gradle",
+"app-kapua-camel",
+"app-marquez-dropwizard",
+"app-flinkplatform-flink",
+"app-saplib-jenkins",
+"app-dataverse-jsf",
+"app-ksql-kafkastreams",
+"app-kotlinconf-ktor",
+"app-kori-ktorclient",
+"app-bamboobsc-struts",
+"app-tigerbeetle-zig",
+"app-kythe-bazel",
+"app-quack-oak",
+"dart-flutter",
+"java-gson",
+"java-okhttp",
+"java-spring-batch",
+"kotlin-okio",
+"scala-play",
+"scala-spark",
+"smithy-protocol-tests",
+"app-libchecker-gradle",
+"app-newscrawl-storm"
+],
+"servlet": [
+"app-spring-mall",
+"app-thingsboard-concurrent",
+"app-druid-jaxrs",
+"app-storm-starter",
+"groovy-gradle",
+"app-kapua-camel",
+"app-marquez-dropwizard",
+"~app-flinkplatform-flink",
+"app-saplib-jenkins",
+"app-dataverse-jsf",
+"app-bamboobsc-struts",
+"~app-bambufarm-vaadin",
+"scala-spark"
+],
+"spring": [
+"app-spring-mall",
+"app-thingsboard-concurrent",
+"~app-gs-batch-processing",
+"~groovy-gradle",
+"~app-kapua-camel",
+"app-flinkplatform-flink",
+"app-saplib-jenkins",
+"~app-bamboobsc-struts"
+],
+"spring-jobs": [
+"app-spring-mall",
+"app-thingsboard-concurrent",
+"app-flinkplatform-flink",
+"~app-bamboobsc-struts",
+"java-spring-batch"
+],
+"spring-messaging": [
+"app-spring-mall",
+"~java-spring-batch"
+],
+"java-concurrent": [
+"~app-spring-mall",
+"app-thingsboard-concurrent",
+"~app-akka-samples",
+"app-druid-jaxrs",
+"app-nextcloud-android",
+"app-jabref-javafx",
+"~app-rn-expensify",
+"app-storm-starter",
+"~app-wordpress-android",
+"groovy-gradle",
+"app-kapua-camel",
+"app-marquez-dropwizard",
+"app-flinkplatform-flink",
+"~app-saplib-jenkins",
+"app-dataverse-jsf",
+"app-ksql-kafkastreams",
+"~app-apisix-openresty",
+"app-bamboobsc-struts",
+"~app-bambufarm-vaadin",
+"app-tigerbeetle-zig",
+"~app-kythe-bazel",
+"dart-flutter",
+"java-gson",
+"java-okhttp",
+"java-spring-batch",
+"~kotlin-okio",
+"~scala-play",
+"scala-spark",
+"smithy-protocol-tests"
+],
+"hibernate-listeners": [
+"app-thingsboard-concurrent",
+"~app-bamboobsc-struts",
+"~scala-play"
+],
+"aws-lambda": [
+"~app-thingsboard-concurrent",
+"~app-rails-mastodon",
+"app-powertools-lambda",
+"app-cdk-examples",
+"app-serverless-examples"
+],
+"jpa-lifecycle": [
+"~app-thingsboard-concurrent",
+"app-kapua-camel",
+"app-dataverse-jsf",
+"~app-bamboobsc-struts",
+"~java-spring-batch",
+"~scala-play"
+],
+"jsr250-lifecycle": [
+"app-thingsboard-concurrent"
+],
+"spring-context": [
+"app-thingsboard-concurrent"
+],
+"testng": [
+"app-thingsboard-concurrent",
+"groovy-gradle"
+],
+"jackson": [
+"app-thingsboard-concurrent",
+"app-druid-jaxrs"
+],
+"akka": [
+"app-akka-samples"
+],
+"jakarta-rs": [
+"app-druid-jaxrs",
+"app-jabref-javafx",
+"app-storm-starter",
+"app-kapua-camel",
+"app-marquez-dropwizard",
+"app-dataverse-jsf",
+"~app-ksql-kafkastreams",
+"app-bamboobsc-struts",
+"app-bambufarm-vaadin",
+"~scala-spark"
+],
+"guice": [
+"app-druid-jaxrs"
+],
+"junit-sources": [
+"app-druid-jaxrs",
+"app-jabref-javafx"
+],
+"micronaut": [
+"app-micronaut-graalapp"
+],
+"chi": [
+"app-gin-photoprism",
+"app-homebox-chi",
+"go-caddy"
+],
+"gin": [
+"app-gin-photoprism",
+"app-arduinoagent-goa",
+"app-ferry-machinery"
+],
+"go-encoding": [
+"app-gin-photoprism",
+"~app-memos-echo",
+"~app-fiber-recipes",
+"app-homebox-chi",
+"~app-temporal-samples",
+"app-awslambda-go",
+"~app-cdk-examples",
+"~app-hertz-examples",
+"~app-serverless-examples",
+"app-casdoor-beego",
+"~app-golangflow-buffalo",
+"app-ghcli-cobra",
+"app-micromdm-gokit",
+"~app-arduinoagent-goa",
+"~app-kubepi-iris",
+"app-saplib-jenkins",
+"app-moon-kratos",
+"app-ferry-machinery",
+"~app-apisix-openresty",
+"~app-mediom-revel",
+"~app-tigerbeetle-zig",
+"app-kythe-bazel",
+"go-caddy",
+"~go-fzf",
+"go-hertz",
+"hcl-terraform-aws",
+"~app-pixlserv-martini"
+],
+"gorilla-mux": [
+"app-gin-photoprism",
+"~app-ghcli-cobra",
+"app-micromdm-gokit",
+"app-kubepi-iris",
+"app-saplib-jenkins",
+"~app-moon-kratos"
+],
+"net-http": [
+"app-gin-photoprism",
+"app-memos-echo",
+"app-fiber-recipes",
+"~app-homebox-chi",
+"app-temporal-samples",
+"app-awslambda-go",
+"app-hertz-examples",
+"~app-serverless-examples",
+"app-casdoor-beego",
+"app-ghcli-cobra",
+"app-micromdm-gokit",
+"app-arduinoagent-goa",
+"app-kubepi-iris",
+"app-saplib-jenkins",
+"~app-moon-kratos",
+"~app-ferry-machinery",
+"app-apisix-openresty",
+"~app-mediom-revel",
+"app-kythe-bazel",
+"go-caddy",
+"go-hertz",
+"go-martini",
+"~hcl-terraform-aws",
+"~app-pixlserv-martini"
+],
+"robfig-cron": [
+"app-gin-photoprism",
+"app-casdoor-beego",
+"~app-moon-kratos"
+],
+"echo": [
+"app-memos-echo"
+],
+"asynq": [
+"app-fiber-recipes"
+],
+"fiber": [
+"app-fiber-recipes"
+],
+"hono": [
+"app-fiber-recipes",
+"app-hono-examples"
+],
+"cloudflare-workers": [
+"~app-fiber-recipes",
+"~app-hono-examples",
+"app-cloudflare-workers",
+"app-workerstunnel-cloudflare"
+],
+"temporal": [
+"app-temporal-samples"
+],
+"aspnet-minimal": [
+"app-eshop-aspnet",
+"~app-masstransit-sample",
+"~app-ombi-quartz",
+"~app-azure-functions-dotnet",
+"app-blazor-samples",
+"~app-orleans-samples",
+"~app-aiproxy-hangfire"
+],
+"aspnet-mvc": [
+"app-eshop-aspnet",
+"app-masstransit-sample",
+"app-ombi-quartz",
+"~app-azure-functions-dotnet",
+"app-blazor-samples",
+"app-orleans-samples",
+"app-aiproxy-hangfire"
+],
+"csharp-disposable": [
+"app-eshop-aspnet",
+"~app-masstransit-sample",
+"app-ombi-quartz",
+"app-unity-gamekit",
+"~app-cdk-examples",
+"~app-azure-functions-dotnet",
+"app-avalonia-samples",
+"app-monogame-samples",
+"~app-godot-demos",
+"app-blazor-samples",
+"app-orleans-samples",
+"~app-serverless-examples",
+"~csharp-mediatr",
+"~app-aiproxy-hangfire",
+"app-tigerbeetle-zig",
+"app-unity-boat",
+"~cmake-kitware",
+"csharp-newtonsoft",
+"csharp-serilog",
+"fsharp-paket"
+],
+"dotnet-hosting": [
+"app-eshop-aspnet",
+"app-masstransit-sample",
+"~app-ombi-quartz",
+"~app-azure-functions-dotnet",
+"~app-blazor-samples",
+"app-orleans-samples"
+],
+"ef-core": [
+"app-eshop-aspnet",
+"app-ombi-quartz",
+"app-blazor-samples",
+"app-aiproxy-hangfire"
+],
+"mstest": [
+"app-eshop-aspnet",
+"app-orleans-samples",
+"app-tigerbeetle-zig"
+],
+"mvvm-toolkit": [
+"app-eshop-aspnet",
+"app-avalonia-samples"
+],
+"blazor-lifecycle": [
+"~app-eshop-aspnet",
+"app-blazor-samples",
+"~app-orleans-samples"
+],
+"masstransit": [
+"app-masstransit-sample"
+],
+"quartz": [
+"app-ombi-quartz"
+],
+"signalr": [
+"app-ombi-quartz",
+"app-blazor-samples",
+"~app-orleans-samples"
+],
+"nunit-runner": [
+"app-ombi-quartz",
+"csharp-newtonsoft"
+],
+"axum": [
+"app-axum-cratesio",
+"app-cloudflare-workers",
+"app-shuttle-examples"
+],
+"actix-web": [
+"app-lemmy-actix",
+"app-actix-examples",
+"app-shuttle-examples",
+"~py-robyn"
+],
+"actix-actor": [
+"app-actix-examples",
+"py-robyn"
+],
+"async-graphql": [
+"app-actix-examples"
+],
+"juniper": [
+"app-actix-examples"
+],
+"cargo-test": [
+"app-actix-examples",
+"rust-ntex"
+],
+"rocket": [
+"app-vaultwarden-rocket",
+"app-shuttle-examples"
+],
+"rails": [
+"app-rails-mastodon",
+"app-resque-sinatra",
+"app-terminus-hanami",
+"app-diaspora-sidekiq",
+"app-lobsters-puma",
+"app-barong-grape"
+],
+"rails-callbacks": [
+"app-rails-mastodon",
+"~app-resque-sinatra",
+"~app-grape-swagger",
+"app-diaspora-sidekiq",
+"app-lobsters-puma",
+"app-barong-grape"
+],
+"sidekiq": [
+"app-rails-mastodon",
+"~app-terminus-hanami",
+"~app-diaspora-sidekiq",
+"~app-itunesweb-padrino",
+"app-lobsters-puma",
+"app-barong-grape"
+],
+"actioncable": [
+"~app-rails-mastodon",
+"~app-resque-sinatra",
+"~app-diaspora-sidekiq",
+"~app-lobsters-puma",
+"~app-barong-grape"
+],
+"minitest": [
+"app-resque-sinatra",
+"app-tigerbeetle-zig",
+"go-fzf",
+"ruby-jekyll",
+"~app-barong-grape"
+],
+"sinatra": [
+"app-resque-sinatra",
+"app-serverless-examples",
+"app-itunesweb-padrino"
+],
+"grape": [
+"app-grape-swagger"
+],
+"laravel": [
+"app-monica-laravel",
+"php-laravel"
+],
+"laravel-lifecycle": [
+"app-monica-laravel",
+"php-laravel"
+],
+"phpunit": [
+"app-monica-laravel",
+"app-symfony-demo",
+"app-symfony-messenger",
+"app-passbolt-cakephp",
+"app-opensocial-drupal",
+"app-elasticsuite-magento",
+"app-shlink-roadrunner",
+"app-mineadmin-swoole",
+"~app-humhub-yii",
+"php-laravel",
+"app-domainwatchdog-symfony"
+],
+"symfony": [
+"~app-monica-laravel",
+"app-symfony-demo",
+"app-symfony-messenger",
+"app-opensocial-drupal",
+"php-laravel",
+"app-domainwatchdog-symfony"
+],
+"codeigniter": [
+"app-codeigniter-starter"
+],
+"cuda": [
+"app-cuda-samples",
+"cmake-kitware"
+],
+"cpp-callbacks": [
+"app-cuda-samples"
+],
+"solidity-public": [
+"solidity-openzeppelin",
+"rust-bat"
+],
+"ffi-export": [
+"app-pydantic-core",
+"app-cloudflare-workers",
+"app-deno-std",
+"py-robyn",
+"app-concordium-gotham",
+"cmake-kitware"
+],
+"android-contentprovider": [
+"app-nextcloud-android",
+"~app-wordpress-android",
+"~app-kori-ktorclient",
+"~dart-flutter",
+"~app-libchecker-gradle"
+],
+"android-fragment": [
+"app-nextcloud-android",
+"app-wordpress-android",
+"~groovy-gradle",
+"~app-kotlinconf-ktor",
+"dart-flutter",
+"~app-libchecker-gradle"
+],
+"android-service": [
+"app-nextcloud-android",
+"~app-rn-expensify",
+"app-wordpress-android",
+"~app-quack-oak",
+"~dart-flutter",
+"~app-libchecker-gradle"
+],
+"android-service-bind": [
+"app-nextcloud-android",
+"app-rn-expensify",
+"app-wordpress-android",
+"app-quack-oak",
+"~dart-flutter",
+"app-libchecker-gradle"
+],
+"android-service-start": [
+"app-nextcloud-android",
+"app-rn-expensify",
+"app-wordpress-android",
+"app-quack-oak",
+"~dart-flutter",
+"app-libchecker-gradle"
+],
+"dagger": [
+"app-nextcloud-android",
+"app-wordpress-android"
+],
+"eventbus": [
+"app-nextcloud-android",
+"app-jabref-javafx",
+"app-wordpress-android"
+],
+"jsr330-inject": [
+"app-nextcloud-android",
+"app-wordpress-android"
+],
+"mix-task": [
+"app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"otp": [
+"app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"otp-application": [
+"app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"phoenix": [
+"app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"phoenix-liveview": [
+"app-plausible-phoenix"
+],
+"plug": [
+"app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"phoenix-channel": [
+"~app-plausible-phoenix",
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"unity": [
+"app-unity-gamekit",
+"app-unity-boat"
+],
+"aws-cdk": [
+"app-powertools-lambda",
+"app-cdk-examples"
+],
+"aws-lambda-powertools": [
+"app-powertools-lambda"
+],
+"aws-lambda-go": [
+"app-awslambda-go",
+"app-cdk-examples",
+"app-serverless-examples"
+],
+"gcp-functions": [
+"app-gcp-functions",
+"app-bugbug-gcpfunctions"
+],
+"firebase-functions": [
+"app-firebase-samples"
+],
+"azure-functions": [
+"app-azure-functions-js",
+"app-azure-functions-dotnet",
+"~app-orleans-samples"
+],
+"deno-http": [
+"app-deno-std",
+"app-bewcloud-deno",
+"~app-edrys-oak"
+],
+"scrapy": [
+"app-quotesbot-scrapy",
+"py-scrapy"
+],
+"dash": [
+"app-dash-sample-apps",
+"py-dash"
+],
+"loopback": [
+"app-shopping-loopback",
+"js-loopback"
+],
+"hertz": [
+"app-hertz-examples",
+"go-hertz"
+],
+"go-runtime": [
+"~app-hertz-examples",
+"~app-serverless-examples"
+],
+"go-signal": [
+"~app-hertz-examples"
+],
+"go-testing": [
+"~app-hertz-examples",
+"~app-serverless-examples"
+],
+"litestar": [
+"app-litestar-fullstack",
+"py-litestar"
+],
+"pytest": [
+"~app-litestar-fullstack",
+"py-apscheduler",
+"py-dramatiq",
+"py-falcon",
+"py-quart",
+"py-robyn"
+],
+"react-hooks": [
+"~app-litestar-fullstack",
+"~app-metabase-compojure",
+"~app-salvo-examples",
+"~app-shuttle-examples",
+"~app-blazor-samples",
+"~app-rn-expensify",
+"~js-polka",
+"~py-robyn"
+],
+"vitest": [
+"~app-litestar-fullstack",
+"~app-metabase-compojure"
+],
+"spring-batch": [
+"app-gs-batch-processing",
+"java-spring-batch"
+],
+"compojure": [
+"app-metabase-compojure",
+"clojure-compojure"
+],
+"bun-serve": [
+"~app-metabase-compojure",
+"~app-rn-expensify"
+],
+"clojure-test": [
+"~app-metabase-compojure",
+"~app-storm-starter"
+],
+"nextjs": [
+"~app-metabase-compojure",
+"~app-shuttle-examples",
+"~js-polka",
+"~py-robyn"
+],
+"ring": [
+"~app-metabase-compojure"
+],
+"kivy": [
+"kivy-carvera",
+"app-katrain-kivy",
+"app-mimic-kivy",
+"app-pywallet-kivy",
+"app-smoothie-kivy",
+"app-snlquest-kivy",
+"app-zenplayer-kivy",
+"kivy-kivymd"
+],
+"salvo": [
+"app-salvo-examples",
+"app-shuttle-examples"
+],
+"criterion": [
+"~app-salvo-examples"
+],
+"rust-runtime": [
+"~app-salvo-examples",
+"~app-shuttle-examples",
+"~py-robyn",
+"~rust-ntex",
+"~rust-rtic"
+],
+"serde": [
+"~app-salvo-examples",
+"~app-shuttle-examples",
+"~app-serverless-examples",
+"~py-robyn",
+"~rust-ntex"
+],
+"avalonia": [
+"app-avalonia-samples"
+],
+"avalonia-xaml": [
+"~app-avalonia-samples"
+],
+"csharp-runtime": [
+"~app-avalonia-samples",
+"~app-monogame-samples",
+"~app-godot-demos",
+"~app-blazor-samples",
+"~app-orleans-samples",
+"~app-serverless-examples",
+"~csharp-mediatr"
+],
+"fsharp-entrypoint": [
+"~app-avalonia-samples",
+"~app-orleans-samples"
+],
+"nunit": [
+"~app-avalonia-samples",
+"~app-orleans-samples"
+],
+"xunit": [
+"~app-avalonia-samples",
+"~app-orleans-samples",
+"~app-serverless-examples",
+"~csharp-mediatr"
+],
+"monogame": [
+"app-monogame-samples"
+],
+"godot": [
+"app-godot-demos"
+],
+"godot-signal": [
+"~app-godot-demos"
+],
+"godot-rpc": [
+"app-godot-demos"
+],
+"javafx": [
+"app-jabref-javafx"
+],
+"swing": [
+"app-jabref-javafx",
+"app-bamboobsc-struts"
+],
+"java-runtime": [
+"~app-jabref-javafx",
+"~app-rn-expensify",
+"~app-serverless-examples",
+"~app-storm-starter",
+"~app-wordpress-android",
+"~erlang-otp",
+"~groovy-gradle"
+],
+"java-serviceloader": [
+"~app-jabref-javafx",
+"~app-storm-starter",
+"~groovy-gradle"
+],
+"junit-params": [
+"~app-jabref-javafx",
+"~app-storm-starter",
+"~app-wordpress-android",
+"~groovy-gradle"
+],
+"kotlin-runtime": [
+"~app-jabref-javafx",
+"~app-rn-expensify",
+"~app-wordpress-android",
+"~groovy-gradle"
+],
+"nix": [
+"~app-jabref-javafx",
+"~haskell-pandoc"
+],
+"shuttle": [
+"app-shuttle-examples"
+],
+"poem": [
+"~app-shuttle-examples"
+],
+"warp": [
+"~app-shuttle-examples"
+],
+"rmcp": [
+"app-shuttle-examples"
+],
+"blazor-jsinterop": [
+"app-blazor-samples"
+],
+"blazor": [
+"~app-blazor-samples",
+"~app-orleans-samples"
+],
+"maui": [
+"~app-blazor-samples"
+],
+"dotnet-ffi-export": [
+"app-blazor-samples"
+],
+"razor": [
+"app-blazor-samples"
+],
+"orleans": [
+"app-orleans-samples"
+],
+"c-runtime": [
+"~app-orleans-samples",
+"~app-storm-starter",
+"~erlang-otp",
+"~groovy-gradle"
+],
+"cpp-runtime": [
+"~app-orleans-samples",
+"~erlang-otp",
+"~groovy-gradle"
+],
+"fsharp-nunit": [
+"~app-orleans-samples"
+],
+"objc-main": [
+"~app-orleans-samples",
+"~app-rn-expensify"
+],
+"objc-selector": [
+"~app-orleans-samples",
+"~app-rn-expensify"
+],
+"wcf": [
+"~app-orleans-samples"
+],
+"wpf-winforms": [
+"~app-orleans-samples"
+],
+"xaml": [
+"app-orleans-samples"
+],
+"android-jobservice": [
+"app-rn-expensify",
+"app-wordpress-android"
+],
+"react-native": [
+"app-rn-expensify"
+],
+"jest": [
+"~app-rn-expensify",
+"~elixir-phoenix"
+],
+"swiftui": [
+"~app-rn-expensify"
+],
+"lambda-runtime": [
+"app-serverless-examples"
+],
+"mediatr": [
+"app-serverless-examples",
+"csharp-mediatr"
+],
+"apollo-server": [
+"~app-serverless-examples",
+"~js-polka"
+],
+"playwright": [
+"~app-serverless-examples"
+],
+"storm": [
+"app-storm-starter",
+"app-newscrawl-storm"
+],
+"java-serialization": [
+"app-storm-starter",
+"groovy-gradle"
+],
+"symfony-messenger": [
+"app-symfony-messenger",
+"~app-domainwatchdog-symfony"
+],
+"android-compose": [
+"~app-wordpress-android",
+"~groovy-gradle"
+],
+"kotlinx-coroutines": [
+"~app-wordpress-android",
+"~groovy-gradle"
+],
+"phoenix-socket": [
+"elixir-phoenix",
+"app-papercups-phoenix"
+],
+"plug-router": [
+"elixir-phoenix"
+],
+"erlang-gen-server": [
+"erlang-otp",
+"app-vernemq-cowboy",
+"app-rebar3-eunit"
+],
+"common-test": [
+"~erlang-otp"
+],
+"erlang-application": [
+"~erlang-otp"
+],
+"erlang-otp-lifecycle": [
+"~erlang-otp"
+],
+"gradle-plugin": [
+"groovy-gradle"
+],
+"gradle-task": [
+"groovy-gradle"
+],
+"gtest": [
+"groovy-gradle",
+"app-kythe-bazel"
+],
+"play-mvc": [
+"~groovy-gradle"
+],
+"scalatest": [
+"~groovy-gradle"
+],
+"spock": [
+"~groovy-gradle"
+],
+"xctest": [
+"groovy-gradle"
+],
+"gradle-model-rules": [
+"groovy-gradle"
+],
+"gradle-services": [
+"groovy-gradle"
+],
+"gradle-task-annotations": [
+"groovy-gradle"
+],
+"hspec": [
+"haskell-hspec",
+"~app-concordium-gotham",
+"app-realworld-scotty",
+"app-hadolint-hspec"
+],
+"haskell-main": [
+"~haskell-hspec",
+"~haskell-pandoc"
+],
+"tasty": [
+"haskell-pandoc"
+],
+"servant": [
+"~haskell-pandoc"
+],
+"wai": [
+"~haskell-pandoc"
+],
+"polka": [
+"js-polka",
+"~app-caninclude-polka"
+],
+"fastify": [
+"~js-polka"
+],
+"nuxt": [
+"~js-polka"
+],
+"socket-io": [
+"~js-polka",
+"~js-restify"
+],
+"restify": [
+"js-restify",
+"app-reggie-restify"
+],
+"julia-base-dispatch": [
+"julia-flux",
+"julia-genie",
+"~app-alphapem-genie",
+"~app-crnn-flux"
+],
+"julia-module-init": [
+"~julia-flux",
+"julia-genie",
+"app-alphapem-genie",
+"~app-crnn-flux"
+],
+"flux": [
+"~julia-flux"
+],
+"julia-test": [
+"~julia-flux",
+"~julia-genie"
+],
+"genie": [
+"~julia-genie"
+],
+"dancer2": [
+"perl-dancer2",
+"app-perlmaven-dancer2"
+],
+"plack": [
+"~perl-dancer2"
+],
+"test-more": [
+"~perl-dancer2",
+"~perl-mojolicious"
+],
+"mojolicious": [
+"perl-mojolicious",
+"app-ravada-mojolicious"
+],
+"apscheduler": [
+"py-apscheduler",
+"py-dramatiq",
+"~app-socialhome-dramatiq"
+],
+"py-atexit": [
+"~py-apscheduler",
+"py-dramatiq",
+"py-falcon",
+"py-huey"
+],
+"starlette": [
+"~py-apscheduler"
+],
+"dramatiq": [
+"py-dramatiq",
+"app-socialhome-dramatiq"
+],
+"py-setuptools-entrypoints": [
+"~py-dramatiq",
+"~py-falcon",
+"~py-huey"
+],
+"falcon": [
+"py-falcon",
+"~app-brightsky-huey",
+"app-oncall-falcon"
+],
+"bottle": [
+"~py-falcon"
+],
+"huey": [
+"py-huey",
+"app-brightsky-huey"
+],
+"quart": [
+"py-quart",
+"py-dash",
+"app-dailynotes-quart"
+],
+"robyn": [
+"py-robyn",
+"app-amurex-robyn"
+],
+"r-package-hooks": [
+"r-ggplot2",
+"~app-dataverse-jsf",
+"~app-arcos-plumber",
+"~app-basedosdados-prefect",
+"scala-spark"
+],
+"r-s3-dispatch": [
+"~r-ggplot2"
+],
+"testthat": [
+"~r-ggplot2"
+],
+"ntex": [
+"rust-ntex",
+"app-nanocl-ntex"
+],
+"cargo-bench": [
+"rust-ntex"
+],
+"embedded-rt": [
+"rust-rtic"
+],
+"clap": [
+"~rust-rtic"
+],
+"rtic": [
+"rust-rtic"
+],
+"adonisjs": [
+"~app-adocasts-adonisjs"
+],
+"beego": [
+"~app-casdoor-beego"
+],
+"buffalo": [
+"~app-golangflow-buffalo"
+],
+"cakephp": [
+"~app-passbolt-cakephp"
+],
+"camel": [
+"~app-kapua-camel"
+],
+"cucumber": [
+"app-kapua-camel"
+],
+"catalyst": [
+"~app-metacpan-catalyst"
+],
+"cobra": [
+"~app-ghcli-cobra"
+],
+"combine": [
+"~app-codeedit-combine"
+],
+"connexion": [
+"~app-annif-connexion"
+],
+"cowboy": [
+"~app-vernemq-cowboy"
+],
+"dagster": [
+"~app-oldata-dagster"
+],
+"marimo": [
+"app-oldata-dagster"
+],
+"dropwizard": [
+"~app-marquez-dropwizard"
+],
+"drupal": [
+"~app-opensocial-drupal"
+],
+"electron": [
+"app-marktext-electron",
+"app-insights-feathers",
+"~app-swate-saturn"
+],
+"expecto": [
+"~app-fsautocomplete-expecto"
+],
+"express-gateway": [
+"~app-betting-expressgateway"
+],
+"feathers": [
+"~app-insights-feathers"
+],
+"flame": [
+"~app-darkness-flame"
+],
+"flink": [
+"~app-flinkplatform-flink"
+],
+"giraffe": [
+"~app-cardmgmt-giraffe"
+],
+"go-kit": [
+"~app-micromdm-gokit"
+],
+"goa": [
+"~app-arduinoagent-goa"
+],
+"gotham": [
+"~app-concordium-gotham"
+],
+"gradio": [
+"~app-sdwebui-gradio"
+],
+"grails": [
+"~app-streama-grails"
+],
+"graphql-yoga": [
+"~app-toiletmap-yoga"
+],
+"hanami": [
+"~app-terminus-hanami"
+],
+"hangfire": [
+"~app-aiproxy-hangfire"
+],
+"hapi": [
+"~app-pa11y-hapi"
+],
+"http-kit": [
+"~app-riemann-httpkit"
+],
+"http4s": [
+"~app-watchlistarr-http4s"
+],
+"iris": [
+"~app-kubepi-iris"
+],
+"iron": [
+"~app-wificonnect-iron"
+],
+"jenkins-pipeline": [
+"~app-saplib-jenkins"
+],
+"jsf": [
+"~app-dataverse-jsf"
+],
+"kafka-streams": [
+"~app-ksql-kafkastreams"
+],
+"koa": [
+"~app-yapi-koa"
+],
+"kong": [
+"~app-circuitbreaker-kong"
+],
+"kratos": [
+"~app-moon-kratos"
+],
+"ktor": [
+"~app-kotlinconf-ktor"
+],
+"ktor-client": [
+"~app-kori-ktorclient"
+],
+"machinery": [
+"~app-ferry-machinery"
+],
+"magento": [
+"~app-elasticsuite-magento"
+],
+"meteor": [
+"~app-4minitz-meteor"
+],
+"nicegui": [
+"~app-wiregui-nicegui"
+],
+"openresty": [
+"~app-apisix-openresty"
+],
+"opium": [
+"~app-zpool-opium"
+],
+"panel": [
+"~app-xrviz-panel"
+],
+"pedestal": [
+"~app-cljdoc-pedestal"
+],
+"pester": [
+"~app-importexcel-pester"
+],
+"powershell-module": [
+"~app-importexcel-pester"
+],
+"play-module": [
+"~app-riffraff-play"
+],
+"plumber": [
+"~app-arcos-plumber"
+],
+"prefect": [
+"~app-basedosdados-prefect"
+],
+"pyramid": [
+"~app-hypothesis-pyramid"
+],
+"reitit": [
+"~app-lipas-reitit"
+],
+"remix": [
+"~app-wishlist-remix"
+],
+"revel": [
+"~app-mediom-revel"
+],
+"roadrunner": [
+"~app-shlink-roadrunner"
+],
+"roda": [
+"~app-html2rss-roda"
+],
+"sanic": [
+"~app-owllook-sanic"
+],
+"saturn": [
+"~app-swate-saturn"
+],
+"scotty": [
+"~app-realworld-scotty"
+],
+"shelf": [
+"~app-dartpad-shelf"
+],
+"shiny": [
+"~app-tweetconf-shiny"
+],
+"sidekiq-lifecycle": [
+"~app-diaspora-sidekiq"
+],
+"slim": [
+"~app-grocy-slim"
+],
+"spark": [
+"~app-jobserver-spark"
+],
+"specs2": [
+"~app-facto-specs2"
+],
+"struts": [
+"~app-bamboobsc-struts"
+],
+"jpa-mapping": [
+"app-bamboobsc-struts"
+],
+"suave": [
+"~app-fssnip-suave"
+],
+"swift-testing": [
+"~app-ora-swifttesting"
+],
+"swoole": [
+"~app-mineadmin-swoole"
+],
+"tauri": [
+"app-clashverge-tauri"
+],
+"tide": [
+"~app-realworld-tide"
+],
+"tornado": [
+"~app-jupyterhub-tornado"
+],
+"vaadin": [
+"~app-bambufarm-vaadin"
+],
+"vapor": [
+"~app-alarik-vapor"
+],
+"yesod": [
+"~app-stackage-yesod"
+],
+"yii": [
+"~app-humhub-yii"
+],
+"zig-build": [
+"~app-ghostty-zig"
+],
+"zig-export": [
+"~app-libxev-zig"
+],
+"zig-main": [
+"~app-zls-zig"
+],
+"zig-test": [
+"~app-tigerbeetle-zig"
+],
+"vhdl-toplevel": [
+"~app-neorv32-vhdl"
+],
+"fortran-program": [
+"~app-fpm-fortran"
+],
+"cpp-test-macros": [
+"~app-waybar-catch2"
+],
+"gtest-fixture": [
+"app-kythe-bazel"
+],
+"bazel": [
+"~app-kythe-bazel"
+],
+"powershell-dsc": [
+"app-networkingdsc-dsc"
+],
+"eunit": [
+"app-rebar3-eunit"
+],
+"unity-editor": [
+"app-unity-boat"
+],
+"libfuzzer": [
+"c-jq",
+"cpp-nlohmann-json"
+],
+"c-callbacks": [
+"c-redis"
+],
+"dotnet-serialization": [
+"csharp-newtonsoft"
+],
+"benchmarkdotnet": [
+"csharp-newtonsoft"
+],
+"xunit-data": [
+"csharp-serilog"
+],
+"caliper": [
+"java-gson"
+],
+"moshi": [
+"java-okhttp"
+],
+"jmh": [
+"smithy-protocol-tests"
+],
+"martini": [
+"app-pixlserv-martini"
+]
+}

@@ -1,0 +1,2 @@
+medium M.target g11_unreach/M.java:2 incoming-only-from-dead-code,language-signals-complete,no-unresolved-site-with-name,private-visibility
+high   M.other g11_unreach/M.java:11 no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility

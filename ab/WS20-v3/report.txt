@@ -1,0 +1,19 @@
+old=target/remediation/bins/WS20-before
+new=target/remediation/bins/WS20-after-v3
+repos=283 elapsed=353s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 13
+  app-axum-cratesio: edges 12949->12949 (-0 +0 ~0) callables 3482->3482 unresolved 8003->8003 files 900->900 deadhigh 5->4 
+  app-cloudflare-workers: edges 3656->3656 (-0 +0 ~0) callables 2158->2158 unresolved 1727->1727 files 228->228 deadhigh 4->2 
+  app-immich-nestjs: edges 18161->18161 (-0 +0 ~0) callables 10830->10830 unresolved 20819->20819 files 1981->1981 deadhigh 2->1 
+  app-jupyterhub-tornado: edges 4722->4722 (-0 +0 ~0) callables 2321->2321 unresolved 5733->5733 files 207->207 deadhigh 4->3 
+  app-kythe-bazel: edges 21689->22102 (-0 +413 ~0) callables 13541->13543 unresolved 7823->7823 files 1715->1715 deadhigh 4->4 
+  c-jq: edges 5648->5656 (-0 +8 ~0) callables 914->915 unresolved 909->909 files 69->69 deadhigh 0->0 
+  c-redis: edges 62364->62365 (-0 +1 ~0) callables 13920->13921 unresolved 9933->9933 files 950->950 deadhigh 0->0 
+  cmake-kitware: edges 131196->131338 (-0 +142 ~0) callables 37244->37246 unresolved 114924->114924 files 16047->16047 deadhigh 0->0 
+  cpp-nlohmann-json: edges 14206->14308 (-0 +102 ~0) callables 5313->5315 unresolved 28012->28012 files 509->509 deadhigh 0->0 
+  dart-flutter: edges 570738->575574 (-0 +4836 ~0) callables 120080->120082 unresolved 325448->325448 files 10771->10771 deadhigh 19->19 
+  groovy-gradle: edges 167403->167447 (-0 +44 ~0) callables 106827->106828 unresolved 253498->253498 files 24272->24272 deadhigh 44->44 
+  py-scrapy: edges 15555->15555 (-0 +0 ~0) callables 5847->5847 unresolved 10415->10415 files 482->482 deadhigh 2->1 
+  rust-ripgrep: edges 8680->8680 (-0 +0 ~0) callables 2975->2975 unresolved 6331->6331 files 108->108 deadhigh 31->28 
+by language: see by_language.tsv

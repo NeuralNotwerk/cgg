@@ -1,0 +1,3 @@
+medium LLVMFuzzerTestOneInput g21_gtest/fuzz/fuzz.cc:6 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium TEST_like_name g21_gtest/prod.cc:1 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium prod_dead g21_gtest/prod.cc:2 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name

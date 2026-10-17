@@ -1,0 +1,3 @@
+low    Get-Thing ./Prod.ps1:2 language-is-script-driven,language-lacks-attributes,language-lacks-dispatch-model,language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium prod.Testing ./prod.go:3 language-lacks-attributes,language-lacks-dispatch-model,public-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium zigprod ./src/main.zig:1 language-lacks-attributes,language-lacks-dispatch-model,language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name

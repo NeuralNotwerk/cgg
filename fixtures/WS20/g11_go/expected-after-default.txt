@@ -1,0 +1,1 @@
+medium main.target g11_go/m.go:3 language-lacks-attributes,language-lacks-dispatch-model,incoming-only-from-unreachable-code,no-unresolved-site-with-name,private-visibility

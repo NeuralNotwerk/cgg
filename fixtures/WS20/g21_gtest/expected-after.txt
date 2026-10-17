@@ -1,0 +1,4 @@
+medium TEST_like_name g21_gtest/prod.cc:1 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium prod_dead g21_gtest/prod.cc:2 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium FooFixture::unused_fixture_member g21_gtest/tests/foo_test.cc:13 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+medium is_probe::test g21_gtest/tests/foo_test.cc:29 language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name

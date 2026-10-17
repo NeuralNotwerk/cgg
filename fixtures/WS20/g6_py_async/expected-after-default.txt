@@ -1,0 +1,3 @@
+medium a.P._ahook g6_py_async/a.py:5 implements-external-contract,no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+medium a.P._shook g6_py_async/a.py:8 implements-external-contract,no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+medium a.free_async g6_py_async/a.py:12 public-visibility,no-incoming-edges,language-signals-complete,no-unresolved-site-with-name

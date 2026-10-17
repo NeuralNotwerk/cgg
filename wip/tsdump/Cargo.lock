@@ -64,7 +64,7 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
 name = "cgg-core"
-version = "0.10.2"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "cgg-lang"
-version = "0.10.2"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "cc",

@@ -1,0 +1,6 @@
+high   M.target ./M.java:2 no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+high   M.other ./M.java:11 no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+high   a._target ./a.py:1 no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+medium target ./m.c:1 language-lacks-attributes,language-lacks-dispatch-model,language-lacks-value-references,language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
+high   crate::target ./m.rs:1 no-incoming-edges,language-signals-complete,no-unresolved-site-with-name,private-visibility
+medium target ./m.ts:1 language-lacks-visibility,no-incoming-edges,no-unresolved-site-with-name
