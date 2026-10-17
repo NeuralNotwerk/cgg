@@ -18,6 +18,9 @@ use cgg_core::{
 };
 use std::collections::HashMap;
 
+/// Per language: lowercased return type → `(function, return type)`.
+type ByLowerRet<'a> = HashMap<&'a str, HashMap<String, Vec<(&'a str, &'a str)>>>;
+
 /// `return_types`, pre-indexed by the lowercased return type.
 ///
 /// Strategy 4 asks, for one receiver name, "which functions return a
@@ -28,29 +31,35 @@ use std::collections::HashMap;
 /// and a `format!`. The lowercasing depends only on the map, so it is
 /// hoisted here and done once per run instead of once per receiver.
 ///
-/// Keys are the lowercased return type. A receiver `configs` finds
-/// exact matches under `configs` and plural matches under `config`,
-/// which is the same two-way test the filter did inline.
+/// Keys are the language, then the lowercased return type. A receiver
+/// `configs` finds exact matches under `configs` and plural matches under
+/// `config`, which is the same two-way test the filter did inline. A
+/// receiver is only ever typed from its own language's functions.
 #[derive(Debug, Default)]
 pub struct ReturnTypeIndex<'a> {
-    by_lower_ret: HashMap<String, Vec<(&'a str, &'a str)>>,
+    by_lower_ret: ByLowerRet<'a>,
     empty: bool,
 }
 
 impl<'a> ReturnTypeIndex<'a> {
-    pub fn build(return_types: &HashMap<&'a str, &'a str>) -> Self {
-        let mut by_lower_ret: HashMap<String, Vec<(&'a str, &'a str)>> = HashMap::new();
-        for (&f, &r) in return_types {
+    /// `return_types` maps `(language, function simple name)` to the
+    /// return type every definition of that name in the language declares
+    /// ([`build_return_type_map`]).
+    pub fn build(return_types: &HashMap<(&'a str, &'a str), &'a str>) -> Self {
+        let mut by_lower_ret: ByLowerRet<'a> = HashMap::new();
+        for (&(lang, f), &r) in return_types {
             by_lower_ret
+                .entry(lang)
+                .or_default()
                 .entry(r.to_lowercase())
                 .or_default()
                 .push((f, r));
         }
         // Sorted once, here, rather than per lookup. The old code sorted
         // each candidate list by function name after filtering; function
-        // names are unique in the map, so sorting each bucket once gives
-        // every lookup the same order it used to compute.
-        for v in by_lower_ret.values_mut() {
+        // names are unique per language in the map, so sorting each bucket
+        // once gives every lookup the same order it used to compute.
+        for v in by_lower_ret.values_mut().flat_map(|m| m.values_mut()) {
             v.sort_unstable_by(|a, b| a.0.cmp(b.0));
         }
         Self {
@@ -73,11 +82,16 @@ impl<'a> ReturnTypeIndex<'a> {
     /// concatenated in that order reproduce it exactly, and a candidate
     /// cannot land in both: that would need `rl == rh_lower` and
     /// `rl + "s" == rh_lower` simultaneously.
-    fn candidates(&self, rh_lower: &str) -> impl Iterator<Item = (&'a str, &'a str)> {
-        let exact = self.by_lower_ret.get(rh_lower);
+    fn candidates(
+        &self,
+        lang: &str,
+        rh_lower: &str,
+    ) -> impl Iterator<Item = (&'a str, &'a str)> {
+        let by_ret = self.by_lower_ret.get(lang);
+        let exact = by_ret.and_then(|m| m.get(rh_lower));
         let plural = rh_lower
             .strip_suffix('s')
-            .and_then(|stem| self.by_lower_ret.get(stem));
+            .and_then(|stem| by_ret.and_then(|m| m.get(stem)));
         exact
             .into_iter()
             .flatten()
@@ -267,23 +281,51 @@ fn capitalize_type(ty: String) -> Option<String> {
     }
 }
 
-/// Build a map of function_simple_name -> return_type from all
-/// definitions across all files. Parses return types from signature_hint.
+/// The named type a definition's signature declares it returns, if any
+/// (a primitive or unit is none).
+fn declared_return<'a>(lang: &str, def: &'a DefRecord) -> Option<&'a str> {
+    extract_return_type(lang, &def.signature_hint)
+        .filter(|ret| ret.starts_with(char::is_uppercase) && !is_primitive(ret))
+}
+
+/// Folds one more definition of a name into what its definitions agree
+/// on: `Some(ty)` while each declared `ty`, `None` once one declares
+/// another type or none at all.
+fn agree<'a>(slot: &mut Option<Option<&'a str>>, ret: Option<&'a str>) {
+    *slot = match *slot {
+        None => Some(ret),
+        Some(prev) if prev == ret => Some(prev),
+        Some(_) => Some(None),
+    };
+}
+
+/// Build a map of `(language, function simple name)` -> return type from
+/// all definitions across all files. Parses return types from
+/// signature_hint.
+///
+/// A name is typed only when every definition of it in the language
+/// declares the same return type (WS19). The map used to be keyed by the
+/// bare name, first definition wins: a Swift `make() -> Service` typed a
+/// Python `service = make()` whose own `make` returns something else, and
+/// of two Python `make`s the one that happened to be read first decided
+/// for both.
 pub fn build_return_type_map<'a>(
     all_facts: &'a [FileFacts],
-) -> HashMap<&'a str, &'a str> {
-    let mut map: HashMap<&'a str, &'a str> = HashMap::new();
+) -> HashMap<(&'a str, &'a str), &'a str> {
+    let mut seen: HashMap<(&'a str, &'a str), Option<Option<&'a str>>> = HashMap::new();
     for facts in all_facts {
         for def in &facts.definitions {
-            if let Some(ret) = extract_return_type(&facts.language, &def.signature_hint)
-                && ret.starts_with(char::is_uppercase)
-                && !is_primitive(ret)
-            {
-                map.entry(def.simple_name.as_str()).or_insert(ret);
-            }
+            let ret = declared_return(&facts.language, def);
+            agree(
+                seen.entry((facts.language.as_str(), def.simple_name.as_str()))
+                    .or_default(),
+                ret,
+            );
         }
     }
-    map
+    seen.into_iter()
+        .filter_map(|(k, v)| v.flatten().map(|ret| (k, ret)))
+        .collect()
 }
 
 /// Per-language tally names for the type propagator.
@@ -555,6 +597,19 @@ pub fn propagate_types_with_fields(
     // scope (see `RefRecord::weak_receiver_type`): indices into `rewrites`'
     // reference positions.
     let mut weak: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    // The calling file's own functions' return types, built on first use
+    // by Strategy 4 (see there).
+    type OwnReturns<'f> = (HashMap<&'f str, Option<Option<&'f str>>>, bool);
+    let own_returns: std::cell::OnceCell<OwnReturns<'_>> = std::cell::OnceCell::new();
+    // Kotlin: each property a class declares (`private lateinit var vm:
+    // Vm`, `val x: T = …`, a constructor's `val`/`var` parameter), with
+    // the span of the class, or the file's own top-level ones. A Kotlin
+    // class is recorded as a constructor spanning its body, so
+    // `lookup_local_type` read such a declaration as some function's local
+    // and the file-wide reading as a guess. It is a declaration, scoped to
+    // its class (WS19): see [`kotlin_property_at`].
+    let kotlin_fields_cell: std::cell::OnceCell<Vec<KotlinProperty>> =
+        std::cell::OnceCell::new();
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
         // A cast or construction receiver is already its type.
@@ -798,6 +853,21 @@ pub fn propagate_types_with_fields(
                             })
                     })
                 })
+                .or_else(|| {
+                    // A Kotlin property of the class around the site (or
+                    // the file's own) is declared, not guessed.
+                    kotlin
+                        .then(|| {
+                            kotlin_property_at(
+                                kotlin_fields_cell
+                                    .get_or_init(|| kotlin_properties(facts)),
+                                rh,
+                                rref.site_byte,
+                            )
+                        })
+                        .flatten()
+                        .inspect(|_| scoped_reading = true)
+                })
                 .or_else(|| local_type_map.get(rh).copied())
         } else {
             local_type_map.get(rh).copied()
@@ -827,7 +897,22 @@ pub fn propagate_types_with_fields(
         // this ref, and the ref's name matches our receiver.
         // Simplified: just check if receiver_hint matches a known
         // function name's return type (covers `let x = getService(); x.run()`)
-        if !return_types.is_empty() {
+        // A name the calling file itself defines is that definition (its
+        // return type, or untyped when it declares none or its
+        // definitions disagree); only a name it does not define is read
+        // from the language's run-wide map.
+        let (own, own_has_returns) = own_returns.get_or_init(|| {
+            let mut m: HashMap<&str, Option<Option<&str>>> = HashMap::new();
+            for d in &facts.definitions {
+                agree(
+                    m.entry(d.simple_name.as_str()).or_default(),
+                    declared_return(&facts.language, d),
+                );
+            }
+            let any = m.values().any(|v| v.flatten().is_some());
+            (m, any)
+        });
+        if !return_types.is_empty() || *own_has_returns {
             let _s4 = cgg_core::profile::span("types::strategy4");
             cgg_core::profile::count(t.s4_entered, 1);
             // Check if there's a ref earlier in this file that calls
@@ -845,7 +930,29 @@ pub fn propagate_types_with_fields(
             // flags. `ReturnTypeIndex::candidates` yields exact matches
             // before plural ones, each bucket sorted by function name,
             // which is the order the old filter-then-sort computed.
-            for (fn_name, ret_type) in return_types.candidates(&rh_lower) {
+            let plural_of = |ret: &str| {
+                let l = ret.to_lowercase();
+                if l == rh_lower {
+                    Some(false)
+                } else if rh_lower.strip_suffix('s') == Some(l.as_str()) {
+                    Some(true)
+                } else {
+                    None
+                }
+            };
+            let mut cands: Vec<(bool, &str, &str)> = return_types
+                .candidates(&facts.language, &rh_lower)
+                .filter(|(f, _)| !own.contains_key(f))
+                .filter_map(|(f, r)| plural_of(r).map(|p| (p, f, r)))
+                .collect();
+            if *own_has_returns {
+                cands.extend(own.iter().filter_map(|(f, r)| {
+                    let r = (*r).flatten()?;
+                    plural_of(r).map(|p| (p, *f, r))
+                }));
+                cands.sort_unstable();
+            }
+            for (_, fn_name, ret_type) in cands {
                 cgg_core::profile::count(t.s4_inner_scan, 1);
                 // Verify this function is actually called in this scope.
                 let called = called_before(fn_name, rref.site_byte);
@@ -943,6 +1050,91 @@ pub fn propagate_types_with_fields(
         facts.references[i].weak_receiver_type = weak.contains(&i);
         facts.references[i].receiver_hint = ty;
     }
+}
+
+/// A Kotlin property: name, declared type, and the span of the class
+/// declaring it (`None` for a top-level one).
+type KotlinProperty = (String, String, Option<(u32, u32)>);
+
+/// The properties a Kotlin file declares: class-body and top-level
+/// declarations (`local_types` outside every function — a class is
+/// recorded as a constructor spanning its body), and a primary
+/// constructor's `val`/`var` parameters.
+fn kotlin_properties(facts: &FileFacts) -> Vec<KotlinProperty> {
+    let is_class = |d: &&DefRecord| d.variant == cgg_core::DefVariant::Constructor;
+    let class_at = |byte: u32| {
+        facts
+            .definitions
+            .iter()
+            .filter(is_class)
+            .filter(|d| d.start_byte <= byte && byte < d.end_byte)
+            .min_by_key(|d| d.end_byte - d.start_byte)
+            .map(|d| (d.start_byte, d.end_byte))
+    };
+    let mut out: Vec<KotlinProperty> = facts
+        .local_types
+        .iter()
+        .filter(|lt| !lt.type_name.is_empty())
+        .filter(|lt| {
+            !facts.definitions.iter().any(|d| {
+                !is_class(&d)
+                    && d.start_byte <= lt.scope_byte
+                    && lt.scope_byte < d.end_byte
+            })
+        })
+        .map(|lt| {
+            (
+                lt.var_name.clone(),
+                lt.type_name.clone(),
+                class_at(lt.scope_byte),
+            )
+        })
+        .collect();
+    for d in facts.definitions.iter().filter(is_class) {
+        let Some(params) = param_list(&d.signature_hint) else {
+            continue;
+        };
+        for piece in param_pieces(params, false) {
+            let piece = piece.trim();
+            let Some((name, ty)) = parse_colon_param("kotlin", piece) else {
+                continue;
+            };
+            // Only a `val`/`var` parameter is a property; a plain one is
+            // the constructor's alone.
+            let property = piece
+                .split_whitespace()
+                .take_while(|t| !t.starts_with(name))
+                .any(|t| t == "val" || t == "var");
+            if property {
+                out.push((
+                    name.to_string(),
+                    ty.trim_end_matches('?').to_string(),
+                    Some((d.start_byte, d.end_byte)),
+                ));
+            }
+        }
+    }
+    out
+}
+
+/// The declared type of the Kotlin property `name` visible at `site`: the
+/// innermost class around the site that declares one, else the file's
+/// top-level one — only when every declaration there agrees.
+fn kotlin_property_at<'f>(
+    props: &'f [KotlinProperty],
+    name: &str,
+    site: u32,
+) -> Option<&'f str> {
+    let width = |o: &Option<(u32, u32)>| o.map_or(u32::MAX, |(a, b)| b - a);
+    let visible: Vec<&KotlinProperty> = props
+        .iter()
+        .filter(|(n, _, o)| n == name && o.is_none_or(|(a, b)| a <= site && site < b))
+        .collect();
+    let innermost = visible.iter().map(|(_, _, o)| width(o)).min()?;
+    let mut at = visible.iter().filter(|(_, _, o)| width(o) == innermost);
+    let first = at.next()?;
+    at.all(|(_, t, _)| *t == first.1)
+        .then_some(first.1.as_str())
 }
 
 /// What an associated function's declared return type says about the
@@ -2884,6 +3076,7 @@ mod tests {
             start_byte: start,
             end_byte: end,
             decl_byte: decl,
+            param: false,
         };
         // typed `let r` at 10 (decl 18, in scope 40..500), a block-local
         // `r` (decl 60, in scope 70..90), the shadowing `let r` (decl
@@ -2927,6 +3120,7 @@ mod tests {
             start_byte: start,
             end_byte: end,
             decl_byte: decl,
+            param: false,
         };
         f.locals = vec![
             bind("args", 5, 5, 100),
@@ -3096,14 +3290,106 @@ mod tests {
         assert_eq!(got, vec!["pp", "pp.New()", "pp"]);
     }
 
+    /// WS19 gap 4: the return-type map is keyed by language and name,
+    /// and a name is typed only when every definition of it in the
+    /// language declares the same type. It used to be keyed by the bare
+    /// name, first definition wins: a Swift `make() -> Service` typed a
+    /// Python `service = make()`, and of two Python `make`s whichever was
+    /// read first decided for both.
+    #[test]
+    fn the_return_type_map_is_per_language_and_needs_agreement() {
+        let file = |id: u32, lang: &str, defs: Vec<DefRecord>| {
+            let mut f =
+                FileFacts::new(FileId::new(id), PathBuf::from(format!("f{id}")), lang);
+            f.definitions = defs;
+            f
+        };
+        let all = vec![
+            file(
+                0,
+                "swift",
+                vec![mk_def("make", "func make() -> Service", 0, 10)],
+            ),
+            file(
+                1,
+                "python",
+                vec![mk_def("make", "def make() -> Worker", 0, 10)],
+            ),
+            file(
+                2,
+                "python",
+                vec![mk_def("make", "def make() -> Service", 0, 10)],
+            ),
+            file(
+                3,
+                "python",
+                vec![mk_def("load", "def load() -> Config", 0, 10)],
+            ),
+            file(
+                4,
+                "python",
+                vec![mk_def("load", "def load() -> Config", 0, 10)],
+            ),
+            // An untyped definition leaves the name's type unknown.
+            file(5, "rust", vec![mk_def("open", "fn open() -> Conn", 0, 10)]),
+            file(6, "rust", vec![mk_def("open", "fn open()", 0, 10)]),
+        ];
+        let map = build_return_type_map(&all);
+        assert_eq!(map.get(&("swift", "make")), Some(&"Service"));
+        assert_eq!(map.get(&("python", "make")), None, "{map:?}");
+        assert_eq!(map.get(&("python", "load")), Some(&"Config"));
+        assert_eq!(map.get(&("rust", "open")), None, "{map:?}");
+    }
+
+    /// WS19 gap 4: a receiver is typed only from its own language's
+    /// functions, and a function the calling file defines is read from
+    /// that definition, not the run-wide map. Near miss: a name only
+    /// another file of the language defines still types it.
+    #[test]
+    fn strategy_four_reads_the_callers_language_and_file_first() {
+        let mut ret: HashMap<(&str, &str), &str> = HashMap::new();
+        ret.insert(("swift", "make"), "Service");
+        ret.insert(("python", "build"), "Service");
+        let index = ReturnTypeIndex::build(&ret);
+        let call = |name: &str, recv: &str, at: u32| RefRecord {
+            name: name.into(),
+            receiver_hint: recv.into(),
+            site_byte: at,
+            ..Default::default()
+        };
+        let run = |own: Vec<DefRecord>, called: &str| {
+            let mut defs = vec![mk_def("main", "def main()", 0, 100)];
+            defs.extend(own);
+            let mut facts =
+                mk_facts(defs, vec![call(called, "", 10), call("run", "service", 20)]);
+            facts.language = "python".into();
+            propagate_types_with_returns(&mut facts, &index);
+            (
+                facts.references[1].receiver_hint.clone(),
+                facts.references[1].weak_receiver_type,
+            )
+        };
+        // Swift's `make` says nothing about a Python call of `make`.
+        assert_eq!(run(vec![], "make").0, "service");
+        // Python's `build` does (weakly, as ever).
+        assert_eq!(run(vec![], "build"), ("Service".to_string(), true));
+        // The file's own untyped `build` is the one it calls.
+        let own = mk_def("build", "def build()", 200, 300);
+        assert_eq!(run(vec![own], "build").0, "service");
+        // The file's own typed `make` types it.
+        let own = mk_def("make", "def make() -> Service", 200, 300);
+        assert_eq!(run(vec![own], "make"), ("Service".to_string(), true));
+    }
+
     /// FINDINGS R14: an Erlang receiver is the module of `m:f(…)`; the
     /// return-type heuristic that turns a `file` receiver into a `File`
     /// some function returns never applies to it. The near miss: the same
     /// shape in another language is still rewritten.
     #[test]
     fn erlang_module_receivers_are_never_typed() {
-        let mut ret: HashMap<&str, &str> = HashMap::new();
-        ret.insert("file", "File");
+        let mut ret: HashMap<(&str, &str), &str> = HashMap::new();
+        ret.insert(("erlang", "file"), "File");
+        ret.insert(("python", "file"), "File");
         let index = ReturnTypeIndex::build(&ret);
         for (lang, want) in [("erlang", "file"), ("python", "File")] {
             let defs = vec![mk_def("m:run", "run(Fd) -> ok", 0, 100)];

@@ -13,8 +13,21 @@ use std::collections::HashMap;
 use cgg_core::{FileFacts, RefRecord};
 
 /// A binding's span, the index of its innermost enclosing span of the
-/// same name, and where its declaration starts.
-type Span = (u32, u32, Option<usize>, u32);
+/// same name, where its declaration starts, and whether it is a
+/// parameter ([`cgg_core::LocalBinding::param`]).
+type Span = (u32, u32, Option<usize>, u32, bool);
+
+/// The binding of a name in scope at a site (see
+/// [`FileLocals::binding_decl_at`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Binding {
+    pub(crate) start: u32,
+    pub(crate) end: u32,
+    /// Where its declaration starts.
+    pub(crate) decl: u32,
+    /// A parameter (of a function, lambda or closure), not a local.
+    pub(crate) param: bool,
+}
 
 /// One file's value bindings, by name.
 #[derive(Debug, Default)]
@@ -48,7 +61,7 @@ impl FileLocals {
                 }
             }
         }
-        let mut raw: HashMap<String, Vec<(u32, u32, u32)>> = HashMap::new();
+        let mut raw: HashMap<String, Vec<(u32, u32, u32, bool)>> = HashMap::new();
         for l in &facts.locals {
             let is_the_import = import_sites.get(l.name.as_str()).is_some_and(|sites| {
                 sites.iter().any(|b| l.decl_byte <= *b && *b < l.start_byte)
@@ -60,22 +73,28 @@ impl FileLocals {
                 l.start_byte,
                 l.end_byte,
                 l.decl_byte,
+                l.param,
             ));
         }
         let mut spans: HashMap<String, Vec<Span>> = HashMap::new();
         for (name, mut v) in raw {
-            v.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
+            v.sort_by(|a, b| {
+                a.0.cmp(&b.0)
+                    .then(b.1.cmp(&a.1))
+                    .then(a.2.cmp(&b.2))
+                    .then(a.3.cmp(&b.3))
+            });
             v.dedup();
             let mut out: Vec<Span> = Vec::with_capacity(v.len());
             let mut open: Vec<usize> = Vec::new();
-            for (s, e, d) in v {
+            for (s, e, d, p) in v {
                 while open
                     .last()
                     .is_some_and(|&o| !(out[o].0 <= s && e <= out[o].1))
                 {
                     open.pop();
                 }
-                out.push((s, e, open.last().copied(), d));
+                out.push((s, e, open.last().copied(), d, p));
                 open.push(out.len() - 1);
             }
             spans.insert(name, out);
@@ -86,22 +105,23 @@ impl FileLocals {
 
     /// The innermost binding of `name` in scope at `site`, as its span.
     pub(crate) fn binding_at(&self, name: &str, site: u32) -> Option<(u32, u32)> {
-        self.binding_decl_at(name, site).map(|(s, e, _)| (s, e))
+        self.binding_decl_at(name, site).map(|b| (b.start, b.end))
     }
 
     /// [`Self::binding_at`] with where the binding's declaration starts.
-    pub(crate) fn binding_decl_at(
-        &self,
-        name: &str,
-        site: u32,
-    ) -> Option<(u32, u32, u32)> {
+    pub(crate) fn binding_decl_at(&self, name: &str, site: u32) -> Option<Binding> {
         let v = self.spans.get(name)?;
-        let pos = v.partition_point(|(s, _, _, _)| *s <= site);
+        let pos = v.partition_point(|(s, _, _, _, _)| *s <= site);
         let mut cur = pos.checked_sub(1);
         while let Some(i) = cur {
-            let (s, e, parent, d) = v[i];
+            let (s, e, parent, d, p) = v[i];
             if s <= site && site < e {
-                return Some((s, e, d));
+                return Some(Binding {
+                    start: s,
+                    end: e,
+                    decl: d,
+                    param: p,
+                });
             }
             cur = parent;
         }
@@ -151,12 +171,14 @@ mod tests {
                 start_byte: 10,
                 end_byte: 50,
                 decl_byte: 10,
+                param: false,
             },
             LocalBinding {
                 name: "c".into(),
                 start_byte: 10,
                 end_byte: 50,
                 decl_byte: 10,
+                param: false,
             },
         ];
         f

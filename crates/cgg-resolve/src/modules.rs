@@ -1325,7 +1325,22 @@ impl<'a> ModuleIndex<'a> {
                 })
             })
             .collect();
+        // A field of the table the file returns that names one of its
+        // file-level functions (`return { check = check_phase }`).
+        if let Some(f) = self.facts.get(&file) {
+            for (_, local) in f.module_returns.iter().filter(|(k, _)| k == name) {
+                out.extend(
+                    self.by_file_simple
+                        .get(&(file, local.as_str()))
+                        .into_iter()
+                        .flatten()
+                        .copied()
+                        .filter(|id| self.qn_of.get(id).is_some_and(|qn| qn == local)),
+                );
+            }
+        }
         out.sort();
+        out.dedup();
         out
     }
 
@@ -1391,11 +1406,20 @@ pub(crate) struct FileModules {
     own_defs: HashSet<String>,
     /// Lua: local name → the module a `require` bound to it.
     lua: HashMap<String, String>,
-    /// C family: the files the calling file's `#include` closure reaches.
-    /// A name the closure declares is read from these files, never from a
-    /// same-named definition elsewhere in the tree.
+    /// The files the calling file's include-style imports reach: the C
+    /// family's `#include` closure, and the files a Bash `source`, Ruby
+    /// `require`, R `source()`, PowerShell dot-source, Solidity `import`,
+    /// Starlark `load` or CMake `include` names (WS19). A name the
+    /// closure declares is read from these files, never from a same-named
+    /// definition elsewhere in the tree.
     /// Keyed as the closure walk left it (file → remaining depth).
-    pub(crate) c_includes: HashMap<cgg_core::FileId, u8>,
+    pub(crate) includes: HashMap<cgg_core::FileId, u8>,
+    /// Of `includes`, the files an include reached only through a path
+    /// suffix several files share (`require 'helper'` with two
+    /// `helper.rb`): the include could name any of them, so a binding
+    /// into one is a guess, never `high`. Never set for the C family,
+    /// which keeps its lowest-id pick.
+    pub(crate) uncertain_includes: HashSet<cgg_core::FileId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

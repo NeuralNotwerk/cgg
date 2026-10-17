@@ -694,16 +694,18 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         cgg_resolve::value_refs::prune_paren_less(&mut all_facts);
     }
     let link_started = Instant::now();
-    let return_types_owned: HashMap<String, String> = {
+    let return_types_owned: HashMap<(String, String), String> = {
         let _s = cgg_core::profile::span("resolve::type-hints");
         cgg_resolve::type_hints::build_return_type_map(&all_facts)
             .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|((lang, name), v)| {
+                ((lang.to_string(), name.to_string()), v.to_string())
+            })
             .collect()
     };
-    let return_types: HashMap<&str, &str> = return_types_owned
+    let return_types: HashMap<(&str, &str), &str> = return_types_owned
         .iter()
-        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .map(|((lang, name), v)| ((lang.as_str(), name.as_str()), v.as_str()))
         .collect();
     // Indexed once for the whole run, not once per receiver. The
     // lowercasing Strategy 4 needs depends only on this map, and doing
@@ -1050,6 +1052,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // constructor of the class that name constructs (`Widget(3)` binds
     // `Widget.__init__`).
     let mut resolved_names: HashMap<(FileId, u32), HashSet<String>> = HashMap::new();
+    // A function a module returns under another key (Lua `return { check =
+    // check_phase }`) is called by that key.
+    let returned_as: HashMap<FileId, &[(String, String)]> = all_facts
+        .iter()
+        .filter(|f| !f.module_returns.is_empty())
+        .map(|f| (f.file, f.module_returns.as_slice()))
+        .collect();
     for e in &graph.edges {
         let (Some(src), Some(dst)) =
             (graph.callables.get(&e.src), graph.callables.get(&e.dst))
@@ -1058,6 +1067,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         };
         let slot = resolved_names.entry((src.file, e.site_byte)).or_default();
         slot.insert(dst.simple_name.clone());
+        if let Some(rets) = returned_as.get(&dst.file) {
+            for (key, local) in rets.iter() {
+                if *local == dst.qualified_name {
+                    slot.insert(key.clone());
+                }
+            }
+        }
         let segs: Vec<&str> = dst
             .qualified_name
             .split(['.', ':'])

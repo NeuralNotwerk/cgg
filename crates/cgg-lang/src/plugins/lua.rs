@@ -37,7 +37,83 @@ impl LanguagePlugin for LuaPlugin {
             scope: Vec::new(),
         };
         w.walk(tree.root_node());
+        chunk_bindings(tree.root_node(), source, &mut facts);
         facts
+    }
+}
+
+/// File-scope facts the resolver reads (WS19): the fields of a returned
+/// table that name a file-level function (`return { check = check_phase }`),
+/// and `local a = m.b` member aliases.
+fn chunk_bindings(root: Node, source: &[u8], facts: &mut FileFacts) {
+    let text = |n: Node| n.utf8_text(source).unwrap_or("").trim().to_string();
+    let mut c = root.walk();
+    for stmt in root.named_children(&mut c) {
+        match stmt.kind() {
+            "return_statement" => {
+                let mut rc = stmt.walk();
+                let tables = stmt
+                    .named_children(&mut rc)
+                    .filter(|n| n.kind() == "expression_list")
+                    .flat_map(|l| {
+                        let mut lc = l.walk();
+                        l.named_children(&mut lc).collect::<Vec<_>>()
+                    })
+                    .filter(|n| n.kind() == "table_constructor");
+                for t in tables.collect::<Vec<_>>() {
+                    let mut tc = t.walk();
+                    for f in t.named_children(&mut tc).filter(|f| f.kind() == "field") {
+                        if let (Some(k), Some(v)) = (
+                            f.child_by_field_name("name"),
+                            f.child_by_field_name("value"),
+                        ) && k.kind() == "identifier"
+                            && v.kind() == "identifier"
+                        {
+                            facts.module_returns.push((text(k), text(v)));
+                        }
+                    }
+                }
+            }
+            "variable_declaration" => {
+                let mut sc = stmt.walk();
+                let Some(a) = stmt
+                    .named_children(&mut sc)
+                    .find(|n| n.kind() == "assignment_statement")
+                else {
+                    continue;
+                };
+                let mut ac = a.walk();
+                let kids: Vec<Node> = a.named_children(&mut ac).collect();
+                let (Some(names), Some(values)) = (
+                    kids.iter().find(|k| k.kind() == "variable_list"),
+                    kids.iter().find(|k| k.kind() == "expression_list"),
+                ) else {
+                    continue;
+                };
+                let mut nc = names.walk();
+                let names: Vec<Node> = names.named_children(&mut nc).collect();
+                let mut vc = values.walk();
+                let values: Vec<Node> = values.named_children(&mut vc).collect();
+                for (n, v) in names.iter().zip(values.iter()) {
+                    if n.kind() != "identifier" || v.kind() != "dot_index_expression" {
+                        continue;
+                    }
+                    if let (Some(t), Some(f)) = (
+                        v.child_by_field_name("table"),
+                        v.child_by_field_name("field"),
+                    ) && t.kind() == "identifier"
+                    {
+                        facts.member_aliases.push(cgg_core::MemberAlias {
+                            name: text(*n),
+                            head: text(t),
+                            member: text(f),
+                            decl_byte: stmt.start_byte() as u32,
+                        });
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -397,5 +473,27 @@ mod tests {
         let f = extract(src);
         // Some parsers may not extract all references; just verify extraction works
         let _ = f.references;
+    }
+
+    /// WS19: a returned table's fields that name file-level functions, and
+    /// file-scope `local a = m.b` member aliases, are recorded.
+    #[test]
+    fn returned_table_fields_and_member_aliases_are_recorded() {
+        let f = extract(
+            "local pc = require \"p\"\nlocal check_phase = pc.check\nlocal log = ngx.log\nlocal n = 1\nlocal function chk() end\nreturn {\n  check = chk,\n  n = 3,\n}\n",
+        );
+        assert_eq!(
+            f.module_returns,
+            vec![("check".to_string(), "chk".to_string())]
+        );
+        let got: Vec<(&str, &str, &str)> = f
+            .member_aliases
+            .iter()
+            .map(|a| (a.name.as_str(), a.head.as_str(), a.member.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![("check_phase", "pc", "check"), ("log", "ngx", "log")]
+        );
     }
 }

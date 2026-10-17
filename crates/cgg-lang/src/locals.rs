@@ -441,6 +441,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
                 break;
             }
             if !cursor.goto_parent() {
+                if lang == "lua" {
+                    lua_chunk_locals(tree, source, &mut out);
+                }
                 out.sort_by_key(|b| (b.start_byte, b.end_byte));
                 out.dedup();
                 return out;
@@ -450,6 +453,90 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
             {
                 functions -= 1;
             }
+        }
+    }
+}
+
+/// Lua `local` declarations at file scope (WS19): in scope from the end of
+/// the statement to the end of the file. `local log = ngx.log` is a value
+/// the file holds, so a bare `log(…)` is never some required module's
+/// `log`. A local that reads the same-named member of a call's result
+/// (`local f = require(…).f`) or of an earlier file-scope local holding
+/// one (`local t = require(…)` then `local eq = t.eq`) is another name for
+/// that member, and is not recorded: the module reading of `eq(…)`
+/// stands. Neither is a local declared without a value.
+fn lua_chunk_locals(tree: &Tree, source: &[u8], out: &mut Vec<LocalBinding>) {
+    let root = tree.root_node();
+    let end = root.end_byte() as u32;
+    // Names of earlier file-scope locals whose value is a call.
+    let mut call_held: Vec<String> = Vec::new();
+    let text = |n: Node<'_>| n.utf8_text(source).unwrap_or("").trim().to_string();
+    let mut c = root.walk();
+    for stmt in root.named_children(&mut c) {
+        if stmt.kind() != "variable_declaration" {
+            continue;
+        }
+        let mut sc = stmt.walk();
+        let inner = stmt.named_children(&mut sc).next();
+        let (names, values) = match inner {
+            Some(a) if a.kind() == "assignment_statement" => {
+                let mut ac = a.walk();
+                let kids: Vec<Node<'_>> = a.named_children(&mut ac).collect();
+                let names = kids.iter().find(|k| k.kind() == "variable_list").copied();
+                let values = kids.iter().find(|k| k.kind() == "expression_list").copied();
+                (names, values)
+            }
+            Some(l) if l.kind() == "variable_list" => (Some(l), None),
+            _ => continue,
+        };
+        let Some(names) = names else { continue };
+        let mut nc = names.walk();
+        let names: Vec<Node<'_>> = names
+            .named_children(&mut nc)
+            .filter(|n| n.kind() == "identifier")
+            .collect();
+        let values: Vec<Node<'_>> = values
+            .map(|v| {
+                let mut vc = v.walk();
+                v.named_children(&mut vc).collect()
+            })
+            .unwrap_or_default();
+        for (i, name) in names.iter().enumerate() {
+            let name = text(*name);
+            if name.is_empty() || name == "_" {
+                continue;
+            }
+            // `local x` alone, assigned later (often inside a function):
+            // what it will hold is not known here.
+            let Some(value) = values.get(i).copied() else {
+                continue;
+            };
+            let value = Some(value);
+            if let Some(v) = value
+                && matches!(v.kind(), "dot_index_expression" | "method_index_expression")
+            {
+                let field = v
+                    .child_by_field_name("field")
+                    .or_else(|| v.child_by_field_name("method"))
+                    .map(text);
+                let table = v.child_by_field_name("table");
+                let held = table.is_some_and(|t| {
+                    t.kind() == "function_call" || call_held.contains(&text(t))
+                });
+                if field.as_deref() == Some(name.as_str()) && held {
+                    continue;
+                }
+            }
+            if value.is_some_and(|v| v.kind() == "function_call") {
+                call_held.push(name.clone());
+            }
+            out.push(LocalBinding {
+                name,
+                start_byte: stmt.end_byte() as u32,
+                end_byte: end,
+                decl_byte: stmt.start_byte() as u32,
+                param: false,
+            });
         }
     }
 }
@@ -522,6 +609,18 @@ fn binding(
                 start_byte: start,
                 end_byte: end,
                 decl_byte: decl.min(start),
+                // A parameter list, a lambda that holds its parameters
+                // directly (JS `x => …`, a Scala lambda), or a declaration
+                // inside a parameter list (a Kotlin lambda's `{ x: T -> }`
+                // is a `variable_declaration` under `lambda_parameters`):
+                // a parameter, whose scope is that callable.
+                param: binder.scope == Scope::Param
+                    || spec.functions.contains(&binder.kind)
+                    || grand.is_some_and(|g| {
+                        spec.binders
+                            .iter()
+                            .any(|b| b.kind == g.kind() && b.scope == Scope::Param)
+                    }),
             });
         }
         if spec.binders.iter().any(|b| b.kind == parent.kind())
@@ -920,5 +1019,87 @@ mod tests {
                 assert!(!got.contains(&n.to_string()), "{lang}: {n} not in {got:?}");
             }
         }
+    }
+
+    /// WS19 gap 3: a lambda's or closure's parameter is marked a
+    /// parameter, like a named function's; a local bound by assignment
+    /// is not.
+    #[test]
+    fn closure_parameters_are_marked_parameters() {
+        let cases: Vec<(&str, tree_sitter::Language, &str)> = vec![
+            (
+                "javascript",
+                tree_sitter_javascript::LANGUAGE.into(),
+                "function f(p) { const loc = 1; xs.map((go) => go()); xs.map(z => z()); }",
+            ),
+            (
+                "python",
+                tree_sitter_python::LANGUAGE.into(),
+                "def f(p):\n    loc = 1\n    g = lambda go: go()\n",
+            ),
+            (
+                "rust",
+                tree_sitter_rust::LANGUAGE.into(),
+                "fn f(p: u8) { let loc = 1; let g = |go: fn()| go(); }",
+            ),
+            (
+                "ocaml",
+                tree_sitter_ocaml::LANGUAGE_OCAML.into(),
+                "let f p = let loc = 1 in let g = fun go -> go () in g",
+            ),
+            (
+                "kotlin",
+                tree_sitter_kotlin_sg::LANGUAGE.into(),
+                "fun f(p: Int) { val loc = 1; val g = { go: () -> Unit -> go() } }",
+            ),
+            (
+                "scala",
+                tree_sitter_scala::LANGUAGE.into(),
+                "object O { def f(p: Int): Unit = { val loc = 1; val g = (go: () => Unit) => go() } }",
+            ),
+        ];
+        for (lang, ts, src) in cases {
+            let mut p = tree_sitter::Parser::new();
+            p.set_language(&ts).unwrap();
+            let tree = p.parse(src, None).unwrap();
+            let got = collect(lang, &tree, src.as_bytes());
+            let param = |n: &str| {
+                got.iter()
+                    .filter(|b| b.name == n)
+                    .map(|b| b.param)
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(param("p"), vec![true], "{lang}: {got:?}");
+            assert_eq!(param("go"), vec![true], "{lang}: {got:?}");
+            if lang != "ocaml" {
+                assert_eq!(param("loc"), vec![false], "{lang}: {got:?}");
+            }
+            if lang == "javascript" {
+                assert_eq!(param("z"), vec![true], "{lang}: {got:?}");
+            }
+        }
+    }
+
+    /// WS19: Lua file-scope `local`s are bindings from the end of their
+    /// statement to the end of the file; a same-named member read of an
+    /// earlier local holding a call's result is an alias, not a binding.
+    #[test]
+    fn lua_file_scope_locals() {
+        let src = "local t = require('m')\nlocal log = ngx.log\nlocal eq = t.eq\nlocal g = require('m').g\nlocal n = 1\nlocal later\nfunction f() log(1) end\n";
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_lua::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let got = collect("lua", &tree, src.as_bytes());
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in ["t", "log", "n"] {
+            assert!(names.contains(&want), "{want} in {got:?}");
+        }
+        for not in ["eq", "g", "later"] {
+            assert!(!names.contains(&not), "{not} in {got:?}");
+        }
+        let log = got.iter().find(|b| b.name == "log").unwrap();
+        assert_eq!(log.start_byte as usize, src.find("\nlocal eq").unwrap());
+        assert_eq!(log.end_byte as usize, src.len());
+        assert!(!log.param);
     }
 }

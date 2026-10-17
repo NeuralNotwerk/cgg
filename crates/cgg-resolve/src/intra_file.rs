@@ -274,27 +274,35 @@ pub fn link_file_with_cap(
         // function — still is (WS14).
         let mut shadowed_by_local = false;
         if locals.shadows_bare_call(rref)
-            && let Some((ls, le, decl)) =
-                locals.binding_decl_at(&rref.name, rref.site_byte)
+            && let Some(binding) = locals.binding_decl_at(&rref.name, rref.site_byte)
         {
+            let (ls, le, decl) = (binding.start, binding.end, binding.decl);
+            // A parameter's scope is its whole function — a named one, or
+            // a lambda or closure (`(go) => go()`, `lambda go: go()`,
+            // `|go| go()`, `fun go -> go ()`), which `locals` marks as
+            // such: only a definition inside that callable can be what
+            // the caller passed. A local is bound by an assignment, and
+            // may hold a closure another function of the file returns
+            // (`is_valid = is_valid_factory(x)` then `is_valid(i)` enters
+            // the nested `is_valid`): a definition nested in some other
+            // function stays a candidate for it.
+            let is_param = binding.param;
             // The function the binding lives in: a definition nested in it
             // is a value the binding may hold (Python `def f` in one branch
             // and `f = g` in another), one outside it is shadowed.
-            let (fs, fe) = nesting
-                .innermost(&facts.definitions, ls)
-                .map(|i| {
-                    (
-                        facts.definitions[i].start_byte,
-                        facts.definitions[i].end_byte,
-                    )
-                })
-                .unwrap_or((ls, le));
-            // A parameter's scope is its whole function. A local is bound
-            // by an assignment, and may hold a closure another function of
-            // the file returns (`is_valid = is_valid_factory(x)` then
-            // `is_valid(i)` enters the nested `is_valid`): a definition
-            // nested in some other function stays a candidate for it.
-            let is_param = fs == ls;
+            let (fs, fe) = if is_param {
+                (ls, le)
+            } else {
+                nesting
+                    .innermost(&facts.definitions, ls)
+                    .map(|i| {
+                        (
+                            facts.definitions[i].start_byte,
+                            facts.definitions[i].end_byte,
+                        )
+                    })
+                    .unwrap_or((ls, le))
+            };
             let before = candidates.len();
             candidates.retain(|(i, d)| {
                 (fs <= d.start_byte && d.start_byte < fe)
@@ -357,6 +365,13 @@ pub fn link_file_with_cap(
         // `obj.name()` calls: a nested function escapes its scope when
         // passed as a value (`XMODEM(getc, putc)` then `self.getc()`),
         // and name lookup is the only thing that finds it there.
+        //
+        // A lone candidate is checked too (WS19): a function nested in
+        // another that does not enclose the site is not visible there by
+        // name. It is kept — a closure that function returns, called
+        // through a same-named local, is real (see `is_param` above) —
+        // but it is a guess, so it binds at medium, never high.
+        let mut lexically_hidden = false;
         if rref.receiver_hint.is_empty()
             && (!rref.dot_call || facts.language == "python")
             && lexically_scoped(&facts.language)
@@ -364,7 +379,7 @@ pub fn link_file_with_cap(
             // bundle records none and keeps its old reading).
             && (!matches!(facts.language.as_str(), "javascript" | "typescript")
                 || !facts.locals.is_empty())
-            && candidates.len() > 1
+            && !candidates.is_empty()
         {
             // A definition whose span is a whole type (a Kotlin primary
             // constructor recorded over its class) is not a lexical scope:
@@ -381,6 +396,7 @@ pub fn link_file_with_cap(
                 .map(|c| (*c, parent_span(c.0)))
                 .filter(|(_, parent)| parent.is_none_or(|(a, b)| a <= site && site < b))
                 .collect();
+            lexically_hidden = candidates.len() == 1 && visible.is_empty();
             // Innermost enclosing scope first: the smallest parent span,
             // and module level (no parent) last.
             if let Some(best) = visible
@@ -630,12 +646,20 @@ pub fn link_file_with_cap(
                     continue;
                 };
                 let dst_id = def_ids[&(facts.file, *cand_idx)];
+                // One candidate is certain only through a receiver whose
+                // type is known rather than guessed (`weak_receiver_type`,
+                // as cross-file requires) and a name that is in scope.
+                let confidence = if rref.weak_receiver_type || lexically_hidden {
+                    Confidence::Medium
+                } else {
+                    Confidence::High
+                };
                 out.edges.push(CallEdge {
                     src: src_id,
                     dst: dst_id,
                     site_line: rref.site_line,
                     site_byte: rref.site_byte,
-                    confidence: Confidence::High,
+                    confidence,
                     via: Via::Direct,
                     resolver: resolver_id.clone(),
                     weight: 1,
@@ -654,7 +678,7 @@ pub fn link_file_with_cap(
                         .iter()
                         .all(|(_, d)| d.qualified_name == first.qualified_name) =>
             {
-                let (targets, confidence) = if is_clause_language(&facts.language) {
+                let (targets, mut confidence) = if is_clause_language(&facts.language) {
                     clause_targets(&facts.language, &candidates, rref.arity)
                 } else {
                     // The argument count leaves one overload: the others
@@ -690,6 +714,11 @@ pub fn link_file_with_cap(
                         },
                     ));
                     continue;
+                }
+                // The set is reached through a receiver whose type was
+                // guessed: which overload is known, the method is not.
+                if rref.weak_receiver_type {
+                    confidence = Confidence::Medium;
                 }
                 let src_id = src.expect("guarded above");
                 for cand_idx in targets {
@@ -1090,6 +1119,14 @@ mod tests {
             start_byte: start,
             end_byte: end,
             decl_byte: start,
+            param: false,
+        }
+    }
+
+    fn param(name: &str, start: u32, end: u32) -> cgg_core::LocalBinding {
+        cgg_core::LocalBinding {
+            param: true,
+            ..local(name, start, end)
         }
     }
 
@@ -1108,7 +1145,7 @@ mod tests {
         ];
         let refs = vec![mk_ref("cb", 50), mk_ref("cb", 450), mk_ref("cb", 250)];
         let mut facts = facts_with_lang("javascript", defs, refs);
-        facts.locals = vec![local("cb", 0, 100), local("cb", 405, 500)];
+        facts.locals = vec![param("cb", 0, 100), local("cb", 405, 500)];
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
         let dsts: Vec<(u32, u32)> = out
@@ -1173,11 +1210,170 @@ mod tests {
             start_byte: 230,
             end_byte: 300,
             decl_byte: 210,
+            param: false,
         }];
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
         let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
         assert_eq!(dsts, vec![1], "{:?}", out);
+        // Kept, but `is_valid` is not visible by name in `run`: a guess.
+        assert_eq!(out.edges[0].confidence, Confidence::Medium);
+    }
+
+    /// WS19 gap 1: a receiver whose type propagation only guessed
+    /// (`service = mk()` typed `Service` because the file declares one)
+    /// binds its one same-file candidate at medium, never high — as
+    /// cross-file already required. Near miss: the same receiver typed
+    /// from a declaration stays high.
+    #[test]
+    fn a_guessed_receiver_type_never_binds_high_in_the_file() {
+        for (weak, want) in [(true, Confidence::Medium), (false, Confidence::High)] {
+            let defs = vec![
+                mk_def("run", "Service.run", DefVariant::InherentMethod, (0, 20)),
+                mk_def("main", "main", DefVariant::FreeFunction, (30, 80)),
+            ];
+            let mut call = mk_ref("run", 50);
+            call.receiver_hint = "Service".into();
+            call.dot_call = true;
+            call.weak_receiver_type = weak;
+            for lang in ["python", "java", "swift", "go", "rust"] {
+                let facts = facts_with_lang(lang, defs.clone(), vec![call.clone()]);
+                let out = link_file(&facts, &mk_map(&facts));
+                assert_eq!(out.edges.len(), 1, "{lang}: {:?}", out);
+                assert_eq!(out.edges[0].confidence, want, "{lang} weak={weak}");
+            }
+        }
+    }
+
+    /// WS19 gap 1, overload sets: an argument count that leaves one
+    /// overload makes the overload certain, not the receiver's type.
+    #[test]
+    fn a_guessed_receiver_type_keeps_an_arity_narrowed_overload_medium() {
+        for (weak, want) in [(true, Confidence::Medium), (false, Confidence::High)] {
+            let mut one = mk_def("put", "Box.put", DefVariant::InherentMethod, (0, 20));
+            one.signature_hint = "void put(int a)".into();
+            let mut two = mk_def("put", "Box.put", DefVariant::InherentMethod, (20, 40));
+            two.signature_hint = "void put(int a, int b)".into();
+            let main = mk_def("main", "main", DefVariant::FreeFunction, (50, 90));
+            let mut call = mk_ref("put", 60);
+            call.receiver_hint = "Box".into();
+            call.dot_call = true;
+            call.arity = Some(1);
+            call.weak_receiver_type = weak;
+            let facts = facts_with_lang("java", vec![one, two, main], vec![call]);
+            let out = link_file(&facts, &mk_map(&facts));
+            let got: Vec<(u32, Confidence)> = out
+                .edges
+                .iter()
+                .map(|e| (e.dst.as_u32(), e.confidence))
+                .collect();
+            assert_eq!(got, vec![(0, want)], "weak={weak}");
+        }
+    }
+
+    /// WS19 gap 2: a lone function nested in another is visible by name
+    /// only inside it. Called from elsewhere it is kept (a closure may
+    /// escape) but at medium; called inside its parent it stays high.
+    /// Every lexically scoped language.
+    #[test]
+    fn a_lone_nested_function_called_from_outside_its_parent_is_medium() {
+        let langs = [
+            "python",
+            "javascript",
+            "typescript",
+            "lua",
+            "ocaml",
+            "fsharp",
+            "scala",
+            "kotlin",
+            "swift",
+            "rust",
+            "dart",
+            "haskell",
+            "julia",
+        ];
+        for lang in langs {
+            let defs = vec![
+                mk_def("outer", "outer", DefVariant::FreeFunction, (0, 100)),
+                mk_def("helper", "outer.helper", DefVariant::FreeFunction, (10, 40)),
+                mk_def("other", "other", DefVariant::FreeFunction, (200, 300)),
+            ];
+            let refs = vec![mk_ref("helper", 60), mk_ref("helper", 250)];
+            let mut facts = facts_with_lang(lang, defs, refs);
+            // JS/TS narrow only where the file's scopes were read.
+            facts.locals = vec![param("a", 0, 100)];
+            let out = link_file(&facts, &mk_map(&facts));
+            let got: Vec<(u32, u32, Confidence)> = out
+                .edges
+                .iter()
+                .map(|e| (e.site_byte, e.dst.as_u32(), e.confidence))
+                .collect();
+            assert_eq!(
+                got,
+                vec![(60, 1, Confidence::High), (250, 1, Confidence::Medium)],
+                "{lang}"
+            );
+        }
+        // Near miss: a language whose functions do not nest lexically
+        // keeps its reading.
+        let defs = vec![
+            mk_def("outer", "outer", DefVariant::FreeFunction, (0, 100)),
+            mk_def("helper", "outer.helper", DefVariant::FreeFunction, (10, 40)),
+            mk_def("other", "other", DefVariant::FreeFunction, (200, 300)),
+        ];
+        let facts = facts_with_lang("c", defs, vec![mk_ref("helper", 250)]);
+        let out = link_file(&facts, &mk_map(&facts));
+        assert_eq!(out.edges[0].confidence, Confidence::High);
+    }
+
+    /// WS19 gap 3: a lambda or closure parameter (`(go) => go()`,
+    /// `lambda go: go()`, `|go| go()`, `fun go -> go ()`) is a parameter:
+    /// a function nested in some other function is never what the caller
+    /// passed. Its scope is the lambda, not a definition, which the old
+    /// "scope equals the innermost definition" test missed. Near miss: a
+    /// local bound by assignment may still hold that nested function.
+    #[test]
+    fn a_closure_parameter_shadows_nested_functions_elsewhere() {
+        for lang in [
+            "python",
+            "javascript",
+            "typescript",
+            "lua",
+            "ocaml",
+            "scala",
+            "kotlin",
+            "swift",
+            "rust",
+            "dart",
+        ] {
+            let defs = vec![
+                mk_def("outer", "outer", DefVariant::FreeFunction, (0, 100)),
+                mk_def("go", "outer.go", DefVariant::FreeFunction, (10, 40)),
+                mk_def("other", "other", DefVariant::FreeFunction, (200, 300)),
+            ];
+            // `f = (go) => go()` in `other`: the lambda spans 220..260.
+            let mut facts = facts_with_lang(lang, defs.clone(), vec![mk_ref("go", 240)]);
+            facts.locals = vec![param("go", 220, 260)];
+            let out = link_file(&facts, &mk_map(&facts));
+            assert!(out.edges.is_empty(), "{lang}: {:?}", out.edges);
+            assert!(
+                out.unresolved
+                    .iter()
+                    .any(|u| u.reason == UnresolvedReason::ShadowedByLocal),
+                "{lang}: {:?}",
+                out.unresolved
+            );
+            // Near miss: `go = outer()` then `go()` — a local.
+            let mut facts = facts_with_lang(lang, defs, vec![mk_ref("go", 240)]);
+            facts.locals = vec![local("go", 220, 300)];
+            let out = link_file(&facts, &mk_map(&facts));
+            let got: Vec<(u32, Confidence)> = out
+                .edges
+                .iter()
+                .map(|e| (e.dst.as_u32(), e.confidence))
+                .collect();
+            assert_eq!(got, vec![(1, Confidence::Medium)], "{lang}");
+        }
     }
 
     /// WS14: lexical scope beyond Python. Three OCaml functions each

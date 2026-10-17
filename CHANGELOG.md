@@ -7,6 +7,92 @@ removing edges a better resolver shows were wrong, and says what changed
 under *Compatibility*. A patch release (0.x.y) fixes bugs and does not
 otherwise change the default graph.
 
+## [Unreleased]
+
+### Fixed
+
+- **`high` no longer reports a guess as certain, nor a certainty as a
+  guess (WS19).** Seven ways the `?` marker was wrong:
+  - *A guessed receiver type bound its same-file candidate at `high`*
+    (19 languages). `service = mk(); service.run()` was typed `Service`
+    only because the file declares a `Service`, and intra-file resolution
+    ignored the `weak_receiver_type` flag cross-file already honoured. The
+    single-candidate, arity-narrowed overload and clause arms now bind at
+    `medium` through such a receiver. The same flag now also gates the
+    cross-file module-alias arm.
+  - *A lone nested function was bound from any function at `high`*
+    (Python, JS, TS, Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Haskell,
+    Julia). Lexical narrowing ran only with two or more candidates; a
+    single function nested in another that does not enclose the call is
+    now kept (a returned closure may be called through a same-named local)
+    but at `medium`.
+  - *Lambda and closure parameters did not shadow* (`(go) => go()`,
+    `lambda go: go()`, `|go| go()`, `fun go -> go ()`, Kotlin
+    `{ go: T -> }`). `FileFacts::locals` now marks parameters
+    (`LocalBinding::param`); a call through one is never a function nested
+    in some other function, and is recorded `shadowed-by-local`.
+  - *The return-type map was keyed by bare name, first definition wins.*
+    A Swift `make() -> Service` typed a Python `service = make()`, and of
+    two Python `make`s the first read decided for both. It is now keyed by
+    `(language, name)`, a name is typed only when every definition of it
+    in the language declares the same type, and a name the calling file
+    defines is read from that definition.
+  - *Include-style imports bound an arbitrary same-named copy at `high`*
+    (Bash `source`, Ruby `require`, R `source()`, PowerShell dot-source,
+    Solidity `import`, Starlark `load`, CMake `include`, Lua `require`): the
+    last copy indexed won, whatever the include named. A call now binds the
+    copy in the file the include names (as `c_include_copies` does for C).
+    An include written as a path suffix several files share (`require
+    'helper'` with two `helper.rb`) expands each and binds at `medium`; a
+    bare imported name whose qualified name another file also carries
+    (vendored copies, `.pyi` stubs) is `medium` unless the copy is in the
+    caller's include closure. A Lua `local function` is no longer put in
+    a requiring file's scope.
+
+  - *A Kotlin property's declared type read as a guess.* A class is
+    recorded as a constructor spanning its body, so `lateinit var vm: Vm`,
+    `val x = Vm()` and a constructor's `val`/`var` parameter looked like
+    another function's local and the receiver's type like a guess. A
+    property's type is now read as a declaration, scoped to the class that
+    declares it (two classes of one file declaring `vm` with different
+    types each bind their own; a disagreement stays a guess).
+  - *Lua file-scope `local`s were not bindings.* `local log = ngx.log` at
+    the top of a file did not shadow, so a bare `log(…)` bound a required
+    module's `log` at `high`. File-scope `local`s are now recorded; a
+    same-named member of a required module (`local feed = t.feed`,
+    `local f = require(…).f`) is still that member, and a file-scope
+    `local a = m.b` with `m` a `require` is the call `m.b(…)`: it binds
+    through the required module, including a field of the table the
+    module returns (`return { check = check_phase }`), which `m.check(…)`
+    now reaches too.
+
+### Compatibility
+
+The default graph changes (full corpus, 283 repositories, none excluded):
+
+- 10,381 edges move `high` → `medium`: 6,417 through a guessed receiver
+  type, 1,417 to a nested function not visible at the call, the rest
+  through an import whose name another file also carries (`.pyi` stubs,
+  vendored copies), an include that names several files (Clojure, CMake)
+  or an anonymous subclass's receiver (Java).
+- 19,483 move `medium` → `high`: 19,471 Kotlin calls through a property
+  whose declared type is now read as declared (46 read across 11
+  repositories, all to the declared type's member), 12 Lua calls bound
+  through the file a `require` names.
+- 8,315 edges are removed (660 `high`): calls through closure parameters
+  and Lua file-scope locals (`local fmt = string.format`) now
+  `shadowed-by-local`, include bindings to the wrong copy, Kotlin duck
+  fan-out decoys and wrong same-file self-calls replaced by the
+  property's type, and receivers no longer typed by another language's or
+  a disagreeing function's return type.
+- 10,458 edges are added (1,235 `high`): 832 Kotlin calls to the declared
+  property type's member; 364 Lua calls bound through the required
+  module — its returned table's fields, member aliases, and `log(…)` on a
+  required logging module reaching its `_M.log`; and the include's own
+  copy in Erlang, Dart and Bash.
+
+No dead-code finding changes confidence.
+
 ## [0.11.0] - 2026-10-16
 
 ### Changed

@@ -1588,7 +1588,7 @@ pub fn resolve(
             // Scoped to this file: a header is expanded once per
             // translation unit, which is exactly C's own semantics
             // under include guards.
-            let mut include_visited: HashMap<FileId, u8> = HashMap::new();
+            let mut include_visited = IncludeClosure::default();
             let _sp_imports = cgg_core::profile::span("xfile::import-table");
             let mut module_aliases: HashMap<String, String> = HashMap::new();
             // Namespace prefixes that bring symbols into scope unqualified —
@@ -2234,9 +2234,8 @@ pub fn resolve(
                 std::collections::BTreeSet::new()
             };
             let mut file_mods = crate::modules::FileModules::build(&modix, facts, &vocab);
-            if cgg_core::same_family(&lang, "c") {
-                file_mods.c_includes = std::mem::take(&mut include_visited);
-            }
+            file_mods.includes = std::mem::take(&mut include_visited.visited);
+            file_mods.uncertain_includes = std::mem::take(&mut include_visited.uncertain);
 
             drop(_sp_imports);
             let _sp_refs = cgg_core::profile::span("xfile::ref-loop");
@@ -2423,6 +2422,40 @@ pub fn resolve(
                                     resolver: resolver_id.clone(),
                                     weight: 1,
                                 });
+                            }
+                        }
+                        continue;
+                    }
+                    // Lua `local a = m.b` at file scope, `m` a `require`: a
+                    // bare `a(…)` is the call `m.b(…)`, resolved exactly as
+                    // that call is — through the module and the table it
+                    // returns, at that call's confidence (WS19).
+                    if let Some(cids_conf) = member_alias_call(
+                        graph,
+                        facts,
+                        r,
+                        locals,
+                        &modix,
+                        &file_mods,
+                        enclosing,
+                    ) {
+                        let (cids, confidence) = cids_conf;
+                        if let Some(src) = enclosing {
+                            for cid in cids {
+                                if cid != src
+                                    && !existing_edges.contains(&(src, cid, r.site_byte))
+                                {
+                                    out.edges.push(CallEdge {
+                                        src,
+                                        dst: cid,
+                                        site_line: r.site_line,
+                                        site_byte: r.site_byte,
+                                        confidence,
+                                        via: Via::Direct,
+                                        resolver: resolver_id.clone(),
+                                        weight: 1,
+                                    });
+                                }
                             }
                         }
                         continue;
@@ -2725,13 +2758,32 @@ pub fn resolve(
                     {
                         Confidence::High
                     }
+                    // A bare name the file imports or includes, bound to the
+                    // one callable that carries it — or, when copies share
+                    // its name (WS19: a sourced or loaded file's function
+                    // beside a decoy elsewhere), to the copy in the file or
+                    // the files its includes name, never to an arbitrary
+                    // one. A call through a module alias, not through a
+                    // guessed receiver type.
                     Some(cids)
                         if cids.len() == 1
+                            && !r.weak_receiver_type
                             && (r.receiver_hint.is_empty()
                                 && direct_imports.contains_key(&r.name)
+                                && import_binding_certain(
+                                    graph,
+                                    cids[0],
+                                    facts.file,
+                                    &qn_collisions,
+                                    &by_simple,
+                                    &file_mods,
+                                )
                                 || !r.receiver_hint.is_empty()
                                     && module_aliases
-                                        .contains_key(r.receiver_hint.as_str())) =>
+                                        .contains_key(r.receiver_hint.as_str())
+                                    && graph.callables.get(&cids[0]).is_some_and(|n| {
+                                        !file_mods.uncertain_includes.contains(&n.file)
+                                    })) =>
                     {
                         Confidence::High
                     }
@@ -3412,7 +3464,7 @@ fn collect_include_defs(
     // pushed N times inflated `direct_imports`, and step 1d rejects a
     // name with more than three candidates — so a diamond could push a
     // genuinely unique symbol over the cap and stop it resolving at all.
-    visited: &mut HashMap<FileId, u8>,
+    closure: &mut IncludeClosure,
 ) {
     if depth == 0 {
         return;
@@ -3454,47 +3506,110 @@ fn collect_include_defs(
     // few files sharing the include's last segment rather than all of
     // them — pre-sorted by FileId, so `find` yields the same lowest-id
     // winner the old scan did.
-    let target: Option<&FileFacts> = include_by_exact
-        .get(resolved.as_path())
-        .copied()
-        .or_else(|| {
-            let last = std::path::Path::new(include_path).file_name()?;
+    //
+    // Outside the C family (WS19) a suffix several files share is not
+    // resolved to one of them: the include could name any, so each is
+    // expanded and marked uncertain, and a binding into one is a guess.
+    let c_family = cgg_core::same_family(&includer_facts.language, "c");
+    let targets: Vec<&FileFacts> = match include_by_exact.get(resolved.as_path()) {
+        Some(f) => vec![*f],
+        None => {
+            let Some(candidates) = std::path::Path::new(include_path)
+                .file_name()
+                .and_then(|last| include_by_last.get(last))
+            else {
+                return;
+            };
             // `Path::ends_with` never matches a `..` component, so the
             // suffix is the include path with its leading `./`/`../`s off.
-            let candidates = include_by_last.get(last)?;
-            if !dotted {
-                return candidates
-                    .iter()
-                    .find(|f| f.path.ends_with(include_path))
-                    .copied();
-            }
-            let suffix: std::path::PathBuf = std::path::Path::new(include_path)
-                .components()
-                .skip_while(|c| {
-                    matches!(
-                        c,
-                        std::path::Component::CurDir | std::path::Component::ParentDir
-                    )
-                })
-                .collect();
-            candidates
+            let stripped: Option<std::path::PathBuf> = dotted.then(|| {
+                std::path::Path::new(include_path)
+                    .components()
+                    .skip_while(|c| {
+                        matches!(
+                            c,
+                            std::path::Component::CurDir
+                                | std::path::Component::ParentDir
+                        )
+                    })
+                    .collect()
+            });
+            let suffix = stripped
+                .as_deref()
+                .unwrap_or(std::path::Path::new(include_path));
+            let matching: Vec<&FileFacts> = candidates
                 .iter()
-                .find(|f| f.path.ends_with(&suffix))
+                .filter(|f| f.path.ends_with(suffix))
                 .copied()
-        });
-    let Some(target) = target else { return };
+                .collect();
+            // A suffix that a crowd of files shares (CMake's `CMakeLists.txt`
+            // fallback) names none of them in particular: the lowest-id one
+            // is expanded, as before, but still uncertain.
+            if c_family {
+                matching.into_iter().take(1).collect()
+            } else if matching.len() > DEFAULT_FANOUT_CAP {
+                closure.uncertain.extend(matching.first().map(|f| f.file));
+                matching.into_iter().take(1).collect()
+            } else {
+                matching
+            }
+        }
+    };
+    let uncertain = targets.len() > 1;
+    for target in targets {
+        if uncertain {
+            closure.uncertain.insert(target.file);
+        }
+        expand_include(
+            target,
+            include_by_exact,
+            include_by_last,
+            direct_imports,
+            depth,
+            closure,
+        );
+    }
+}
+
+/// The files a calling file's include-style imports reach (see
+/// [`collect_include_defs`]).
+#[derive(Default)]
+struct IncludeClosure {
+    /// File → the best remaining depth it was expanded at.
+    visited: HashMap<FileId, u8>,
+    /// Files reached only through a path suffix several files share.
+    uncertain: std::collections::HashSet<FileId>,
+}
+
+/// [`collect_include_defs`] for one file the include resolved to.
+fn expand_include(
+    target: &FileFacts,
+    include_by_exact: &HashMap<&std::path::Path, &FileFacts>,
+    include_by_last: &HashMap<&std::ffi::OsStr, Vec<&FileFacts>>,
+    direct_imports: &mut HashMap<String, Vec<String>>,
+    depth: u8,
+    closure: &mut IncludeClosure,
+) {
     // Expand a header again only when this path has more budget left
     // than the one that reached it first.
-    match visited.get(&target.file) {
+    match closure.visited.get(&target.file) {
         Some(&best) if best >= depth => return,
         _ => {
-            visited.insert(target.file, depth);
+            closure.visited.insert(target.file, depth);
         }
     }
     // Import all definitions from the target, plus the C++ declarations
     // it made whose prototypes were merged into a body elsewhere — the
     // header still declares them, so an includer still sees them.
     for d in &target.definitions {
+        // Lua: a `local function` is private to its file; requiring the
+        // file never puts it in the caller's scope (WS19 — a caller's own
+        // `local log = ngx.log` was bound to a required module's private
+        // `log`). Table members stay: `local feed = n.feed` at module
+        // level is the idiom that calls them by bare name.
+        if target.language == "lua" && d.signature_hint.starts_with("local ") {
+            continue;
+        }
         direct_imports
             .entry(d.simple_name.clone())
             .or_default()
@@ -3518,7 +3633,7 @@ fn collect_include_defs(
                 include_by_last,
                 direct_imports,
                 depth - 1,
-                visited,
+                closure,
             );
         }
     }
@@ -5714,12 +5829,10 @@ fn try_resolve_ref(
             // it; each distinct qualified name is looked up once.
             let mut seen_qns: Vec<&str> = Vec::new();
             for qn in qns {
-                if c_family {
-                    if seen_qns.contains(&qn.as_str()) {
-                        continue;
-                    }
-                    seen_qns.push(qn.as_str());
+                if seen_qns.contains(&qn.as_str()) {
+                    continue;
                 }
+                seen_qns.push(qn.as_str());
                 // C family: several definitions carry the name the include
                 // closure declares (a `#define ASSERT` per test program, a
                 // stub beside the real function). The one the call reaches
@@ -5737,6 +5850,33 @@ fn try_resolve_ref(
                         file_mods,
                     )
                 {
+                    for c in scoped {
+                        if !cids.contains(&c) {
+                            cids.push(c);
+                        }
+                    }
+                    continue;
+                }
+                // Every other include-style language the same (WS19): a
+                // Bash `source`, Ruby `require`, R `source()`, PowerShell
+                // dot-source, Solidity `import`, Starlark `load` or CMake
+                // `include` names the file whose definition the call
+                // reaches; `by_qn` keeps an arbitrary same-named copy.
+                if !c_family
+                    && let Some(scoped) = included_copies(
+                        graph,
+                        lang,
+                        &r.name,
+                        qn,
+                        caller_file,
+                        by_simple,
+                        file_mods,
+                    )
+                {
+                    if scoped.len() > fanout_cap {
+                        *capped = scoped.len() as u32;
+                        return None;
+                    }
                     for c in scoped {
                         if !cids.contains(&c) {
                             cids.push(c);
@@ -7294,7 +7434,7 @@ fn c_include_copies(
     let (inside, outside): (Vec<CallableId>, Vec<CallableId>) =
         copies.into_iter().partition(|c| {
             graph.callables.get(c).is_some_and(|n| {
-                n.file == caller_file || file_mods.c_includes.contains_key(&n.file)
+                n.file == caller_file || file_mods.includes.contains_key(&n.file)
             })
         });
     // A prototype the closure declares (`int f(int);`, its text ending at
@@ -7349,6 +7489,132 @@ fn c_include_copies(
         }
     }
     Some(per_file.into_iter().map(|(_, c, _)| c).collect())
+}
+
+/// A bare call through a file-scope member alias (`local a = m.b`, see
+/// `FileFacts::member_aliases`) that is the binding in scope at the site:
+/// the call `m.b(…)`, resolved by the module pass. `None` when no such
+/// alias is in scope or the module pass binds nothing — the shadowing
+/// refusal then stands.
+fn member_alias_call(
+    graph: &Graph,
+    facts: &FileFacts,
+    r: &cgg_core::RefRecord,
+    locals: &crate::scope::FileLocals,
+    modix: &crate::modules::ModuleIndex<'_>,
+    file_mods: &crate::modules::FileModules,
+    enclosing: Option<CallableId>,
+) -> Option<(Vec<CallableId>, Confidence)> {
+    if facts.member_aliases.is_empty() {
+        return None;
+    }
+    let binding = locals.binding_decl_at(&r.name, r.site_byte)?;
+    let alias = facts
+        .member_aliases
+        .iter()
+        .find(|a| a.name == r.name && a.decl_byte == binding.decl)?;
+    let call = cgg_core::RefRecord {
+        name: alias.member.clone(),
+        receiver_hint: alias.head.clone(),
+        dot_call: true,
+        ..r.clone()
+    };
+    let sig = enclosing
+        .and_then(|id| graph.callables.get(&id))
+        .map(|c| c.signature_hint.as_str());
+    match file_mods.resolve(
+        modix,
+        &facts.language,
+        facts.file,
+        &call,
+        sig,
+        constructor_names(&facts.language),
+        &|_, _| None,
+    )? {
+        crate::modules::Scoped::Bound { cids, certain } if !cids.is_empty() => {
+            let confidence = if cids.len() == 1 && certain && !r.weak_receiver_type {
+                Confidence::High
+            } else {
+                Confidence::Medium
+            };
+            Some((cids, confidence))
+        }
+        _ => None,
+    }
+}
+
+/// Whether a binding through an import, include or alias table names its
+/// callable unambiguously: no callable in another file carries its
+/// qualified name (one file's overloads of it are one method, narrowed
+/// by the call's arity before this), or the copy bound is the one in the
+/// calling file or a file its include closure certainly reaches.
+fn import_binding_certain(
+    graph: &Graph,
+    cid: CallableId,
+    caller_file: FileId,
+    qn_collisions: &std::collections::HashSet<(String, String)>,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    file_mods: &crate::modules::FileModules,
+) -> bool {
+    graph.callables.get(&cid).is_some_and(|n| {
+        let in_closure =
+            n.file == caller_file || file_mods.includes.contains_key(&n.file);
+        let copied_elsewhere = || {
+            qn_collisions.contains(&(n.language.clone(), n.qualified_name.clone()))
+                && by_simple
+                    .get(&(n.language.clone(), n.simple_name.clone()))
+                    .is_some_and(|v| {
+                        v.iter().filter_map(|c| graph.callables.get(c)).any(|o| {
+                            o.file != n.file && o.qualified_name == n.qualified_name
+                        })
+                    })
+        };
+        // The C family narrows its copies itself (`c_include_copies`).
+        !file_mods.uncertain_includes.contains(&n.file)
+            && (in_closure
+                || cgg_core::same_family(&n.language, "c")
+                || !copied_elsewhere())
+    })
+}
+
+/// Outside the C family: when more than one callable carries `qn`, the
+/// copies in the calling file or a file its include-style imports reach
+/// (one per file — the last definition, which is the one a file sourced
+/// or loaded twice leaves bound). `None` when the name is unique, or no
+/// copy is in the closure, so the exact lookup stands.
+fn included_copies(
+    graph: &Graph,
+    lang: &str,
+    name: &str,
+    qn: &str,
+    caller_file: FileId,
+    by_simple: &HashMap<(String, String), Vec<CallableId>>,
+    file_mods: &crate::modules::FileModules,
+) -> Option<Vec<CallableId>> {
+    if file_mods.includes.is_empty() {
+        return None;
+    }
+    let copies: Vec<&cgg_core::graph::CallableNode> = by_simple
+        .get(&(lang.to_string(), name.to_string()))?
+        .iter()
+        .filter_map(|c| graph.callables.get(c))
+        .filter(|n| n.qualified_name == qn)
+        .collect();
+    if copies.len() < 2 {
+        return None;
+    }
+    let mut per_file: Vec<(FileId, CallableId, u32)> = Vec::new();
+    for n in copies {
+        if n.file != caller_file && !file_mods.includes.contains_key(&n.file) {
+            continue;
+        }
+        match per_file.iter_mut().find(|(f, _, _)| *f == n.file) {
+            Some(slot) if n.start_byte >= slot.2 => *slot = (n.file, n.id, n.start_byte),
+            Some(_) => {}
+            None => per_file.push((n.file, n.id, n.start_byte)),
+        }
+    }
+    (!per_file.is_empty()).then(|| per_file.into_iter().map(|(_, c, _)| c).collect())
 }
 
 fn lookup_with_reexports(
@@ -13698,6 +13964,7 @@ mod tests {
                 start_byte: 0,
                 end_byte: 100,
                 decl_byte: 0,
+                param: false,
             }];
         });
         // Byte 0 is inside the binding; byte 600 (still in `main`) is not.

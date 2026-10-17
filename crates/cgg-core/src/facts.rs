@@ -602,6 +602,17 @@ pub struct FileFacts {
     /// level).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub type_spans: Vec<TypeSpan>,
+    /// The table a module file returns, as `(key, local)` for each field
+    /// naming a file-level function (Lua `return { check = check_phase }`):
+    /// a caller's `m.check()` through a `require` of the file runs
+    /// `check_phase`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub module_returns: Vec<(String, String)>,
+    /// File-scope locals bound to a member of another file-scope name
+    /// (Lua `local check_phase = phase_checker.check`): a bare call through
+    /// one is the call `head.member(…)`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub member_aliases: Vec<MemberAlias>,
     /// Containers whose own attribute exposes their members to a
     /// framework (`#[pymethods] impl`, `#[Object] impl`): the span of the
     /// container and its attributes as written. Read only by framework
@@ -719,6 +730,20 @@ pub struct AttributedContainer {
     pub attributes: Vec<String>,
 }
 
+/// A file-scope local bound to a member of another name (see
+/// [`FileFacts::member_aliases`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemberAlias {
+    /// The local (`check_phase`).
+    pub name: String,
+    /// The name whose member it reads (`phase_checker`).
+    pub head: String,
+    /// The member (`check`).
+    pub member: String,
+    /// Where the declaration starts (the binding's `decl_byte`).
+    pub decl_byte: u32,
+}
+
 /// A container type's name and body span (see [`FileFacts::type_spans`]).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeSpan {
@@ -744,7 +769,7 @@ pub struct TypeSpan {
 
 /// A name bound to a value over `start_byte..end_byte` (see
 /// [`FileFacts::locals`]).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocalBinding {
     pub name: String,
     pub start_byte: u32,
@@ -754,6 +779,13 @@ pub struct LocalBinding {
     /// declaration itself makes lies in `decl_byte..start_byte`.
     #[serde(default)]
     pub decl_byte: u32,
+    /// The binding is a parameter — of a named function, or of a lambda
+    /// or closure (`(x) =>`, `lambda x:`, `|x|`, `fun x ->`). Its value
+    /// comes from the caller, so no definition outside its span is what
+    /// a call through it runs, while a local bound by an assignment may
+    /// hold a closure some other function of the file returned.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub param: bool,
 }
 
 /// A class-level `name = Type(...)` assignment.
@@ -889,6 +921,8 @@ impl FileFacts {
             packages: Vec::new(),
             locals: Vec::new(),
             type_spans: Vec::new(),
+            module_returns: Vec::new(),
+            member_aliases: Vec::new(),
             attributed_containers: Vec::new(),
             markup_bindings: Vec::new(),
             scoped_types: Vec::new(),

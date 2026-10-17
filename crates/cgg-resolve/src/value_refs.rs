@@ -80,7 +80,9 @@ fn shadowed(
     if !locals.shadows_bare_call(r) {
         return false;
     }
-    let Some((start, _, decl)) = locals.binding_decl_at(&r.name, r.site_byte) else {
+    let Some(crate::scope::Binding { start, decl, .. }) =
+        locals.binding_decl_at(&r.name, r.site_byte)
+    else {
         return true;
     };
     !defs
@@ -246,6 +248,7 @@ mod tests {
             start_byte: 35,
             end_byte: 50,
             decl_byte: 32,
+            param: false,
         }];
         let mut b = facts("scala", 2, &["size", "m"], vec![]);
         b.definitions[0].signature_hint = "def size: Int".into();
@@ -283,6 +286,7 @@ mod tests {
             start_byte: 40,
             end_byte: 100,
             decl_byte: 20,
+            param: false,
         }];
         let mut all = vec![a];
         prune(&mut all);
