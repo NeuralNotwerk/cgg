@@ -60,14 +60,16 @@ pointers — line numbers drift, re-locate by symbol).
    regression (a correct edge lost, a wrong edge gained, a correct dead
    finding hidden) must be fixed or explicitly justified. Re-run the A/B
    after any further change. Excluded (timed-out) repos are named.
-6. Perf, BEFORE vs AFTER, on a subset: choose 1–3 repos per language your
-   change affects (prefer repos taking ≥1 s so a ≥1 s deviation is visible;
-   include the largest affected repo), then, with nothing else running:
-   `bash target/remediation/tools/perf_subset.sh target/remediation/bins/<WS>-before target/release/cgg 5 <repos…> | tee target/remediation/perf/<WS>.md`
-   A deviation ≥1 s is investigated (re-run once; if it persists, find the
-   cause and fix it or justify it). Under 1 s: report, do not chase.
+6. Perf, BEFORE vs AFTER, over the WHOLE corpus (rule since 2026-10-16:
+   the 9-repo subset hid 0.11.0's +2.7 s regression for three days). With
+   nothing else running (after the A/B finishes), in the background:
+   `python3 scripts/compare-release.py target/remediation/bins/<WS>-before target/release/cgg --jobs 1 --out target/remediation/perf/<WS>.json > target/remediation/perf/<WS>.log 2>&1`
+   (~10 min). Report total, median per-repo delta, and every repo moving
+   ≥1 s. A deviation ≥1 s is investigated (re-run that repo alone; if it
+   persists, find the cause and fix it or justify it). Under 1 s: report,
+   do not chase.
 7. Add a CHANGELOG.md entry under `## [Unreleased]` (create the section
-   above `## [0.10.2]` if absent): what was wrong, what changed, which
+   above the latest released version if absent): what was wrong, what changed, which
    languages, and a *Compatibility* note if default-graph edges drop.
    Keep it factual; numbers from step 5.
 8. Final report (≤ 700 words): findings fixed (by FINDINGS id), files
