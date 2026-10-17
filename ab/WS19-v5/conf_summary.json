@@ -1,0 +1,21 @@
+{
+ "lua": {
+  "drop": {
+   "high": 4040,
+   "medium": 189
+  },
+  "add": {
+   "medium": 443
+  },
+  "chg": {
+   "high->medium": 323,
+   "medium->high": 1
+  },
+  "fate": {
+   "now unresolved: not-in-scope-for-bare-call": 2,
+   "now unresolved: candidates-in-other-files": 3797,
+   "rebound to another target": 424,
+   "external/stdlib or still bound (same name, kept target)": 6
+  }
+ }
+}

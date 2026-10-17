@@ -1,0 +1,24 @@
+{
+ "lua": {
+  "drop": {
+   "high": 252,
+   "medium": 644
+  },
+  "add": {
+   "high": 364,
+   "medium": 33
+  },
+  "chg": {
+   "high->medium": 237,
+   "medium->high": 12
+  },
+  "fate": {
+   "now unresolved: not-in-scope-for-bare-call": 1,
+   "now unresolved: no-candidate-in-file": 2,
+   "rebound to another target": 80,
+   "now unresolved: shadowed-by-local": 800,
+   "now unresolved: fanout-cap-exceeded": 1,
+   "external/stdlib or still bound (same name, kept target)": 12
+  }
+ }
+}

@@ -1,0 +1,207 @@
+{
+ "bash": {
+  "drop": {
+   "high": 4
+  },
+  "add": {
+   "high": 4
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 4
+  }
+ },
+ "c": {
+  "drop": {},
+  "add": {
+   "medium": 10
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "clojure": {
+  "drop": {},
+  "add": {
+   "medium": 1286
+  },
+  "chg": {
+   "high->medium": 1275
+  },
+  "fate": {}
+ },
+ "cmake": {
+  "drop": {
+   "medium": 5
+  },
+  "add": {
+   "medium": 789
+  },
+  "chg": {
+   "high->medium": 6
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 5
+  }
+ },
+ "dart": {
+  "drop": {
+   "high": 9
+  },
+  "add": {
+   "high": 9
+  },
+  "chg": {
+   "high->medium": 325
+  },
+  "fate": {
+   "rebound to another target": 9
+  }
+ },
+ "erlang": {
+  "drop": {
+   "high": 24
+  },
+  "add": {
+   "high": 24
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 24
+  }
+ },
+ "go": {
+  "drop": {},
+  "add": {
+   "high": 2,
+   "medium": 54
+  },
+  "chg": {
+   "high->medium": 691
+  },
+  "fate": {}
+ },
+ "java": {
+  "drop": {},
+  "add": {
+   "medium": 2
+  },
+  "chg": {
+   "high->medium": 2335
+  },
+  "fate": {}
+ },
+ "javascript": {
+  "drop": {
+   "high": 188
+  },
+  "add": {
+   "medium": 213
+  },
+  "chg": {
+   "high->medium": 1572
+  },
+  "fate": {
+   "now unresolved: shadowed-by-local": 188
+  }
+ },
+ "lua": {
+  "drop": {
+   "high": 1518,
+   "medium": 105
+  },
+  "add": {
+   "high": 25,
+   "medium": 356
+  },
+  "chg": {
+   "high->medium": 353,
+   "medium->high": 79
+  },
+  "fate": {
+   "rebound to another target": 362,
+   "now unresolved: candidates-in-other-files": 1180,
+   "now unresolved: not-in-scope-for-bare-call": 1,
+   "external/stdlib or still bound (same name, kept target)": 80
+  }
+ },
+ "ocaml": {
+  "drop": {
+   "high": 41
+  },
+  "add": {},
+  "chg": {
+   "high->medium": 355
+  },
+  "fate": {
+   "now unresolved: shadowed-by-local": 41
+  }
+ },
+ "python": {
+  "drop": {
+   "medium": 83
+  },
+  "add": {
+   "medium": 131
+  },
+  "chg": {
+   "high->medium": 724
+  },
+  "fate": {
+   "now unresolved: fanout-cap-exceeded": 48,
+   "now unresolved: candidates-in-other-files": 35
+  }
+ },
+ "rust": {
+  "drop": {},
+  "add": {
+   "medium": 8
+  },
+  "chg": {
+   "high->medium": 622
+  },
+  "fate": {}
+ },
+ "scala": {
+  "drop": {
+   "medium": 779,
+   "high": 7
+  },
+  "add": {
+   "medium": 353
+  },
+  "chg": {
+   "high->medium": 419
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 405,
+   "now unresolved: fanout-cap-exceeded": 319,
+   "now unresolved: candidates-in-other-files": 54,
+   "now unresolved: shadowed-by-local": 7,
+   "rebound to another target": 1
+  }
+ },
+ "swift": {
+  "drop": {
+   "medium": 2
+  },
+  "add": {},
+  "chg": {
+   "high->medium": 73
+  },
+  "fate": {
+   "now unresolved: fanout-cap-exceeded": 2
+  }
+ },
+ "typescript": {
+  "drop": {
+   "high": 77
+  },
+  "add": {},
+  "chg": {
+   "high->medium": 137
+  },
+  "fate": {
+   "now unresolved: shadowed-by-local": 77
+  }
+ }
+}

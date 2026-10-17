@@ -1,0 +1,54 @@
+{
+ "java": {
+  "drop": {},
+  "add": {
+   "medium": 2
+  },
+  "chg": {
+   "high->medium": 2335
+  },
+  "fate": {}
+ },
+ "kotlin": {
+  "drop": {
+   "medium": 6142,
+   "high": 58
+  },
+  "add": {
+   "high": 832,
+   "medium": 6344
+  },
+  "chg": {
+   "medium->high": 19471,
+   "high->medium": 685
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 5343,
+   "now unresolved: candidates-in-other-files": 772,
+   "rebound to another target": 85
+  }
+ },
+ "lua": {
+  "drop": {
+   "high": 745,
+   "medium": 720
+  },
+  "add": {
+   "medium": 71,
+   "high": 56
+  },
+  "chg": {
+   "high->medium": 235,
+   "medium->high": 7
+  },
+  "fate": {
+   "now unresolved: shadowed-by-local": 1368,
+   "now unresolved: not-in-scope-for-bare-call": 2,
+   "now unresolved: candidates-in-other-files": 2,
+   "now unresolved: fanout-cap-exceeded": 4,
+   "rebound to another target": 80,
+   "now unresolved: ambiguous-in-file": 2,
+   "external/stdlib or still bound (same name, kept target)": 7
+  }
+ }
+}

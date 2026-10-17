@@ -1,0 +1,42 @@
+{
+ "kotlin": {
+  "drop": {
+   "medium": 6142,
+   "high": 58
+  },
+  "add": {
+   "high": 832,
+   "medium": 6344
+  },
+  "chg": {
+   "medium->high": 19471,
+   "high->medium": 685
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 5343,
+   "now unresolved: candidates-in-other-files": 772,
+   "rebound to another target": 85
+  }
+ },
+ "lua": {
+  "drop": {
+   "high": 335,
+   "medium": 644
+  },
+  "add": {
+   "high": 52,
+   "medium": 32
+  },
+  "chg": {
+   "high->medium": 236,
+   "medium->high": 12
+  },
+  "fate": {
+   "now unresolved: not-in-scope-for-bare-call": 1,
+   "now unresolved: shadowed-by-local": 885,
+   "rebound to another target": 80,
+   "now unresolved: fanout-cap-exceeded": 1,
+   "external/stdlib or still bound (same name, kept target)": 12
+  }
+ }
+}

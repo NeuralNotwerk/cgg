@@ -1,0 +1,31 @@
+WS19 follow-up (NOT applied): Kotlin class properties are flagged weak_receiver_type.
+A Kotlin class is recorded as a Constructor def spanning its body, so lookup_local_type
+reads `private lateinit var vm: Vm` as some function's local and the file-wide reading
+is marked a guess. Applying the block below (inside propagate_types_with_fields, plus
+`&& !(kotlin && kotlin_fields().contains(&(rh, ty)))` in the weak condition) moved
+15,010 Kotlin edges medium->high in ab/WS19-v3 (unreviewed). Needs per-name type agreement
+across classes of one file before applying.
+
+    // Kotlin: the `(name, type)` of each property a class body declares
+    // (`private lateinit var vm: Vm`). A Kotlin class is recorded as a
+    // constructor spanning its body, so `lookup_local_type` reads such a
+    // declaration as some function's local; it is a field, and a receiver
+    // the file-wide map types from it is declared, not guessed (WS19).
+    let kotlin_fields_cell: std::cell::OnceCell<std::collections::HashSet<(&str, &str)>> =
+        std::cell::OnceCell::new();
+    let kotlin_fields = || {
+        kotlin_fields_cell.get_or_init(|| {
+            facts
+                .local_types
+                .iter()
+                .filter(|lt| {
+                    !facts.definitions.iter().any(|d| {
+                        d.variant != cgg_core::DefVariant::Constructor
+                            && d.start_byte <= lt.scope_byte
+                            && lt.scope_byte < d.end_byte
+                    })
+                })
+                .map(|lt| (lt.var_name.as_str(), lt.type_name.as_str()))
+                .collect()
+        })
+    };
