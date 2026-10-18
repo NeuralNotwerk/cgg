@@ -253,35 +253,9 @@ impl<'a> CWalker<'a> {
         }
     }
 
-    /// The function a declarator declares, looking through the pointer,
-    /// parenthesis and attribute layers a return type wraps around its
-    /// `function_declarator` (`char *f(void)`, `int (*f(void))(int)`).
-    /// Empty when the identifier is not the direct declarator of a
-    /// function declarator: `int (*fp)(int);` declares a pointer variable,
-    /// not a function.
+    /// See [`fn_name_from_declarator`].
     fn fn_name_from_declarator(&self, decl: Node) -> String {
-        fn inner(n: Node) -> Option<Node> {
-            n.child_by_field_name("declarator")
-                .or_else(|| n.named_children(&mut n.walk()).last())
-        }
-        match decl.kind() {
-            "function_declarator" => match decl.child_by_field_name("declarator") {
-                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
-                Some(d) => self.fn_name_from_declarator(d),
-                None => String::new(),
-            },
-            // `int (f)(int)` declares the function `f` (a macro-built name
-            // `RET NAME_MACRO(f)(…)` parses so); `int (*fp)(int)` does not.
-            "parenthesized_declarator" => match inner(decl) {
-                Some(d) if d.kind() == "identifier" => self.text(d).to_string(),
-                Some(d) => self.fn_name_from_declarator(d),
-                None => String::new(),
-            },
-            "pointer_declarator" | "attributed_declarator" => {
-                inner(decl).map_or_else(String::new, |d| self.fn_name_from_declarator(d))
-            }
-            _ => String::new(),
-        }
+        fn_name_from_declarator(decl, self.source)
     }
 
     fn record_macro_def(&mut self, node: Node) {
@@ -352,35 +326,76 @@ impl<'a> CWalker<'a> {
     }
 
     fn record_call(&mut self, node: Node) {
-        let Some(func) = node.child_by_field_name("function") else {
-            return;
-        };
-        let (name, recv) = match func.kind() {
-            "identifier" => (self.text(func).to_string(), String::new()),
-            "field_expression" => {
-                let arg = func
-                    .child_by_field_name("argument")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
-                let field = func
-                    .child_by_field_name("field")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
-                (field, arg)
-            }
-            _ => return,
-        };
-        if name.is_empty() {
-            return;
+        if let Some(r) = call_ref(node, self.source) {
+            self.facts.references.push(r);
         }
-        self.facts.references.push(RefRecord {
-            name,
-            receiver_hint: recv,
-            site_line: (node.start_position().row as u32) + 1,
-            site_byte: node.start_byte() as u32,
-            ..Default::default()
-        });
     }
+}
+
+/// The function a declarator declares, looking through the pointer,
+/// parenthesis and attribute layers a return type wraps around its
+/// `function_declarator` (`char *f(void)`, `int (*f(void))(int)`).
+/// Empty when the identifier is not the direct declarator of a
+/// function declarator: `int (*fp)(int);` declares a pointer variable,
+/// not a function. Shared with the Objective-C plugin, whose functions
+/// are C's.
+pub(crate) fn fn_name_from_declarator(decl: Node, src: &[u8]) -> String {
+    fn inner(n: Node) -> Option<Node> {
+        n.child_by_field_name("declarator")
+            .or_else(|| n.named_children(&mut n.walk()).last())
+    }
+    let text = |n: Node| n.utf8_text(src).unwrap_or("").to_string();
+    match decl.kind() {
+        "function_declarator" => match decl.child_by_field_name("declarator") {
+            Some(d) if d.kind() == "identifier" => text(d),
+            Some(d) => fn_name_from_declarator(d, src),
+            None => String::new(),
+        },
+        // `int (f)(int)` declares the function `f` (a macro-built name
+        // `RET NAME_MACRO(f)(…)` parses so); `int (*fp)(int)` does not.
+        "parenthesized_declarator" => match inner(decl) {
+            Some(d) if d.kind() == "identifier" => text(d),
+            Some(d) => fn_name_from_declarator(d, src),
+            None => String::new(),
+        },
+        "pointer_declarator" | "attributed_declarator" => {
+            inner(decl).map_or_else(String::new, |d| fn_name_from_declarator(d, src))
+        }
+        _ => String::new(),
+    }
+}
+
+/// The call a C `call_expression` makes: `f(…)` by name, `s.f(…)` /
+/// `p->f(…)` through a field. Shared with the Objective-C plugin, whose
+/// plain function calls are C's.
+pub(crate) fn call_ref(node: Node, src: &[u8]) -> Option<RefRecord> {
+    let func = node.child_by_field_name("function")?;
+    let text = |n: Node| n.utf8_text(src).unwrap_or("").to_string();
+    let (name, recv) = match func.kind() {
+        "identifier" => (text(func), String::new()),
+        "field_expression" => {
+            let arg = func
+                .child_by_field_name("argument")
+                .map(text)
+                .unwrap_or_default();
+            let field = func
+                .child_by_field_name("field")
+                .map(text)
+                .unwrap_or_default();
+            (field, arg)
+        }
+        _ => return None,
+    };
+    if name.is_empty() {
+        return None;
+    }
+    Some(RefRecord {
+        name,
+        receiver_hint: recv,
+        site_line: (node.start_position().row as u32) + 1,
+        site_byte: node.start_byte() as u32,
+        ..Default::default()
+    })
 }
 
 fn line_range(n: Node) -> (u32, u32) {

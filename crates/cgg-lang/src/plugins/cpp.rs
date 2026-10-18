@@ -340,6 +340,11 @@ impl<'a> CppWalker<'a> {
         if is_virtual_method(node, self.source) {
             attributes.push("virtual".to_string());
         }
+        // A pure virtual (`= 0`) member: a declaration its overrides
+        // implement, not a prototype some body completes.
+        if !has_body && is_pure_virtual(node, self.source) {
+            attributes.push(super::attrs::ABSTRACT_MARKER.to_string());
+        }
         let attributes = super::attrs::with_override_marker(node, attributes);
         self.facts.definitions.push(DefRecord {
             simple_name: info.simple,
@@ -997,6 +1002,16 @@ fn unwrap_function_declarator(node: Node) -> Option<Node> {
 fn has_child_kind(node: Node, kind: &str) -> bool {
     let mut c = node.walk();
     node.children(&mut c).any(|ch| ch.kind() == kind)
+}
+
+/// Whether a member declaration ends `= 0`: the grammar's
+/// `pure_virtual_clause`, or a `default_value` of literal `0`.
+fn is_pure_virtual(node: Node, source: &[u8]) -> bool {
+    has_child_kind(node, "pure_virtual_clause")
+        || node.child_by_field_name("default_value").is_some_and(|v| {
+            v.kind() == "number_literal"
+                && v.utf8_text(source).is_ok_and(|t| t.trim() == "0")
+        })
 }
 
 fn is_virtual_method(node: Node, source: &[u8]) -> bool {
@@ -2823,6 +2838,27 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
             refs.contains(&("Other", "super", Some(1), false)),
             "{refs:?}"
         );
+    }
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a pure virtual (`= 0`) member is a declaration; a
+    // plain prototype, completed by a body elsewhere, is not.
+    #[test]
+    fn pure_virtual_members_are_tagged_abstract() {
+        let f = extract(
+            "struct S {\n  virtual double area() = 0;\n  virtual int n() const = 0;\n  virtual void v();\n  void p();\n};\n",
+        );
+        assert_eq!(abstract_tags(&f, "S::area"), vec![true]);
+        assert_eq!(abstract_tags(&f, "S::n"), vec![true]);
+        assert_eq!(abstract_tags(&f, "S::v"), vec![false]);
+        assert_eq!(abstract_tags(&f, "S::p"), vec![false]);
     }
 }
 

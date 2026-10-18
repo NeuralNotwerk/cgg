@@ -157,6 +157,30 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
 /// The marker [`with_override_marker`] records.
 pub(crate) const OVERRIDE_MARKER: &str = "override";
 
+/// The marker a bodiless interface or abstract member carries: a
+/// declaration its implementations are dispatched from, not a body a
+/// call runs. Duck-typed fan-out and intra-file narrowing drop it when a
+/// concrete candidate survives.
+pub(crate) const ABSTRACT_MARKER: &str = "abstract";
+
+/// Tag every definition pushed onto `defs` since it held `from` records
+/// [`ABSTRACT_MARKER`] when `bodiless` holds. Nothing is tagged when the
+/// recorder pushed nothing.
+pub(crate) fn mark_abstract_from(
+    defs: &mut [cgg_core::DefRecord],
+    from: usize,
+    bodiless: bool,
+) {
+    if !bodiless {
+        return;
+    }
+    for d in defs.iter_mut().skip(from) {
+        if !d.attributes.iter().any(|a| a == ABSTRACT_MARKER) {
+            d.attributes.push(ABSTRACT_MARKER.to_string());
+        }
+    }
+}
+
 /// Node kinds that may hold a definition's `override` keyword: modifier
 /// containers (Kotlin/Swift `modifiers` > `member_modifier`, Scala
 /// `modifiers`, TypeScript `override_modifier`) and C++'s declarator,

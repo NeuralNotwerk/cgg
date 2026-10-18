@@ -448,7 +448,9 @@ impl<'a> Walker<'a> {
                     signature_hint: self.text(spec).trim().to_string(),
                     visibility: String::new(),
                     vis,
-                    attributes: Vec::new(),
+                    // A method spec is a declaration its implementations
+                    // satisfy, never a body a call runs.
+                    attributes: vec![super::attrs::ABSTRACT_MARKER.to_string()],
                     ..Default::default()
                 });
             }
@@ -1230,5 +1232,25 @@ func Helper() {}
         );
         let calls = calls_of(&f);
         assert!(calls.is_empty(), "{calls:?}");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: an interface method spec is a declaration; a method
+    // with a body is not.
+    #[test]
+    fn interface_method_specs_are_tagged_abstract() {
+        let f = extract(
+            "package a\ntype S interface { Area() float64 }\ntype Q struct{}\nfunc (q Q) Area() float64 { return 1 }\n",
+        );
+        assert_eq!(abstract_tags(&f, "a.S.Area"), vec![true]);
+        assert_eq!(abstract_tags(&f, "a.Q.Area"), vec![false]);
     }
 }

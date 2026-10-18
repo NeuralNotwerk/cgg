@@ -79,10 +79,15 @@ impl<'a> ObjcWalker<'a> {
                 return;
             }
             "function_definition" => {
+                // A C function, named as the C plugin names one: through
+                // the pointer layers of its return type (`char *f(void)`).
+                // A declarator with no function declarator in it is no
+                // function: error recovery reads `if (error) { … }` after an
+                // `#if` as a definition of `error`.
                 let name = node
                     .child_by_field_name("declarator")
-                    .and_then(|d| d.child_by_field_name("declarator"))
-                    .map(|n| self.text(n).to_string())
+                    .filter(|d| declares_a_function(*d))
+                    .map(|d| super::c::fn_name_from_declarator(d, self.source))
                     .unwrap_or_default();
                 if !name.is_empty() {
                     let (sl, el) = (
@@ -103,6 +108,18 @@ impl<'a> ObjcWalker<'a> {
                         has_body: true,
                         ..Default::default()
                     });
+                }
+                self.walk_children(node);
+                return;
+            }
+            // A plain C call (`helper(x)`, `NSLog(@"…")`), read as the C
+            // plugin reads one. A call through a field (`self.block(x)`,
+            // `s->fp(x)`) is a block or function pointer, never a method.
+            "call_expression" => {
+                if let Some(r) = super::c::call_ref(node, self.source)
+                    .filter(|r| r.receiver_hint.is_empty())
+                {
+                    self.facts.references.push(r);
                 }
                 self.walk_children(node);
                 return;
@@ -221,12 +238,36 @@ impl<'a> ObjcWalker<'a> {
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            // A `@protocol` requirement is a declaration its adopters
+            // implement.
+            attributes: if node
+                .parent()
+                .is_some_and(|p| p.kind() == "protocol_declaration")
+            {
+                vec![super::attrs::ABSTRACT_MARKER.to_string()]
+            } else {
+                Vec::new()
+            },
             // `@implementation` methods are bodies. A declaration in an
             // `@interface` stays a prototype so unification can absorb it.
             has_body: node.kind() == "method_definition",
             ..Default::default()
         });
+    }
+}
+
+/// Whether a definition's declarator, through the pointer, attribute
+/// and parenthesis layers a return type wraps around it, holds a
+/// `function_declarator`.
+fn declares_a_function(decl: Node) -> bool {
+    match decl.kind() {
+        "function_declarator" => true,
+        "pointer_declarator" | "attributed_declarator" | "parenthesized_declarator" => {
+            decl.child_by_field_name("declarator")
+                .or_else(|| decl.named_children(&mut decl.walk()).last())
+                .is_some_and(declares_a_function)
+        }
+        _ => false,
     }
 }
 
@@ -315,5 +356,54 @@ mod tests {
             .collect();
         assert!(refs.contains(&("initWithX", "Box", true)), "{refs:?}");
         assert!(refs.contains(&("init", "[b copy]", false)), "{refs:?}");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a `@protocol` requirement is a declaration; an
+    // `@interface` declaration is a prototype, not tagged.
+    #[test]
+    fn protocol_methods_are_tagged_abstract() {
+        let f = extract(
+            "@protocol P\n- (int)area;\n@end\n@interface K : NSObject\n- (int)size;\n@end\n",
+        );
+        assert_eq!(abstract_tags(&f, "area"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K::size"), vec![false]);
+    }
+
+    // WS22 gap 24: plain C calls are recorded as the C plugin records
+    // them, and a pointer-returning function is named by its identifier.
+    #[test]
+    fn plain_c_calls_and_pointer_returning_functions() {
+        let f = extract(
+            "static char *label(void) { return 0; }\n@implementation K\n- (void)run { helper(1); NSLog(@\"x\"); self.block(2); [self done]; }\n@end\n",
+        );
+        assert!(f.definitions.iter().any(|d| d.qualified_name == "label"));
+        // Near miss: error recovery's `if (error) { … }` is no function.
+        // `int (f)(int)` is the function `f`.
+        let g = extract("T (error) { done(); }\nint (f)(int a) { return a; }\n");
+        let names: Vec<&str> = g
+            .definitions
+            .iter()
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert_eq!(names, vec!["f"]);
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(refs.contains(&("helper", "")), "{refs:?}");
+        assert!(refs.contains(&("NSLog", "")), "{refs:?}");
+        assert!(refs.contains(&("done", "self")), "{refs:?}");
+        // Near miss: a call through a property is a block, never a method.
+        assert!(!refs.iter().any(|(n, _)| *n == "block"), "{refs:?}");
     }
 }

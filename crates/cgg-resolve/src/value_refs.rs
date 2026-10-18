@@ -135,7 +135,11 @@ pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
     for f in all_facts.iter() {
         let set = names.entry(f.language.clone()).or_default();
         for d in &f.definitions {
-            if declares_no_parameters(&d.signature_hint, &d.simple_name) {
+            // A constructor is never called paren-less: its name written
+            // bare is the type or its companion object.
+            if d.variant != cgg_core::DefVariant::Constructor
+                && declares_no_parameters(&d.signature_hint, &d.simple_name)
+            {
                 set.insert(d.simple_name.clone());
             }
         }
@@ -265,6 +269,28 @@ mod tests {
         assert_eq!(kept, vec![("size", 10)]);
         assert!(declares_no_parameters("def get[T]: T", "get"));
         assert!(!declares_no_parameters("def get[T](k: K): T", "get"));
+    }
+
+    // WS22: a constructor is never what a bare `Foo` calls, even one
+    // whose header reads as parameterless (`class Foo @Inject() (…)`); a
+    // parameterless method is.
+    #[test]
+    fn a_paren_less_name_never_calls_a_constructor() {
+        let pl = |name: &str, byte: u32| RefRecord {
+            name: name.into(),
+            site_byte: byte,
+            paren_less: true,
+            ..Default::default()
+        };
+        let a = facts("scala", 1, &["go"], vec![pl("Foo", 10), pl("tick", 20)]);
+        let mut b = facts("scala", 2, &["Foo", "tick"], vec![]);
+        b.definitions[0].signature_hint = "class Foo @Inject() (x: Int)".into();
+        b.definitions[0].variant = cgg_core::DefVariant::Constructor;
+        b.definitions[1].signature_hint = "def tick: Int".into();
+        let mut all = vec![a, b];
+        prune_paren_less(&mut all);
+        let kept: Vec<&str> = all[0].references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(kept, vec!["tick"]);
     }
 
     #[test]

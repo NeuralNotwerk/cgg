@@ -320,6 +320,11 @@ struct TraitSurfaces<'a> {
     /// Callables with at least one incoming edge that is not the
     /// declaration -> impl fan-out itself.
     called: std::collections::HashSet<CallableId>,
+    /// (file, simple name) -> callables, for files declaring a bodiless
+    /// (`abstract`-tagged) member: the bodies an enum constant or an
+    /// anonymous class in that file gives the member.
+    same_file_named:
+        std::collections::HashMap<(cgg_core::ids::FileId, &'a str), Vec<CallableId>>,
 }
 
 impl<'a> TraitSurfaces<'a> {
@@ -343,10 +348,31 @@ impl<'a> TraitSurfaces<'a> {
             .filter(|e| !matches!(e.via, Via::Dynamic))
             .map(|e| e.dst)
             .collect();
+        let abstract_files: std::collections::HashSet<cgg_core::ids::FileId> = graph
+            .callables
+            .values()
+            .filter(|c| c.attributes.iter().any(|a| a == ABSTRACT_MARKER))
+            .map(|c| c.file)
+            .collect();
+        let mut same_file_named: std::collections::HashMap<
+            (cgg_core::ids::FileId, &str),
+            Vec<CallableId>,
+        > = std::collections::HashMap::new();
+        if !abstract_files.is_empty() {
+            for c in graph.callables.values() {
+                if abstract_files.contains(&c.file) {
+                    same_file_named
+                        .entry((c.file, c.simple_name.as_str()))
+                        .or_default()
+                        .push(c.id);
+                }
+            }
+        }
         TraitSurfaces {
             impls,
             implemented,
             called,
+            same_file_named,
         }
     }
 
@@ -364,6 +390,30 @@ impl<'a> TraitSurfaces<'a> {
     ) -> Option<Evidence> {
         if nd.trait_impl_target.is_some() || nd.qualified_name.contains(" as ") {
             return None;
+        }
+        // A bodiless declaration whose bodies an enum constant or an
+        // anonymous class of its own file provides (`abstract boolean f();`
+        // beside `CONST { boolean f() { … } }`): calls bind to those bodies,
+        // so the declaration's own in-degree of zero says nothing once one
+        // of them is called.
+        if nd.attributes.iter().any(|a| a == ABSTRACT_MARKER)
+            && let Some(named) = self
+                .same_file_named
+                .get(&(nd.file, nd.simple_name.as_str()))
+        {
+            let bodies: Vec<CallableId> =
+                named.iter().copied().filter(|c| *c != nd.id).collect();
+            let called_impls =
+                bodies.iter().filter(|c| self.called.contains(c)).count() as u32;
+            let unresolved_sites = unresolved.sites_named(&nd.language, &nd.simple_name);
+            if !bodies.is_empty() && (called_impls > 0 || unresolved_sites > 0) {
+                return Some(Evidence::ImplementedTraitSurface {
+                    trait_name: owner_stem(&nd.qualified_name).unwrap_or("").to_string(),
+                    impls: bodies.len() as u32,
+                    unresolved_sites,
+                    called_impls,
+                });
+            }
         }
         // A member of a class that classes below it override: the same
         // dispatch surface, read off the declared bases. Callers typed to
@@ -431,6 +481,9 @@ impl<'a> TraitSurfaces<'a> {
         })
     }
 }
+
+/// The marker plugins put on a bodiless interface or abstract member.
+const ABSTRACT_MARKER: &str = "abstract";
 
 /// Markers a plugin records on a member that implements one its class's
 /// base declares: Java's `@Override`, the `override` modifier (C#, and
@@ -1737,6 +1790,49 @@ mod tests {
         link(&mut g, 0, 2);
         let r = analyze(&g, &[], &[], &opts_rust_full());
         assert_eq!(decl_finding(&r).confidence, Confidence::Medium);
+    }
+
+    // WS22: a bodiless declaration whose bodies an enum constant or an
+    // anonymous class of the same file provides is capped once one of
+    // those bodies is called; with none called it stays `high`.
+    #[test]
+    fn an_abstract_declaration_with_a_called_same_file_body_is_capped() {
+        let build = |called: bool| {
+            let mut decl = vis_node(1, "crate::E::f", "f", "", Vis::Private);
+            decl.kind = CallableKind::Method;
+            decl.attributes = vec!["abstract".into()];
+            let mut body = vis_node(2, "crate::E::f", "f", "", Vis::Private);
+            body.kind = CallableKind::Method;
+            let mut g =
+                graph_with(vec![node(0, "crate::main", "main", "rust"), decl, body]);
+            if called {
+                link(&mut g, 0, 2);
+            }
+            analyze(&g, &[], &[], &opts_rust_full())
+        };
+        let r = build(true);
+        let f = r
+            .findings
+            .iter()
+            .find(|f| f.qualified_name == "crate::E::f")
+            .expect("the declaration is reported");
+        assert_eq!(f.confidence, Confidence::Medium, "{:?}", f.evidence);
+        assert!(
+            f.evidence
+                .iter()
+                .any(|e| e.slug() == "implemented-trait-surface")
+        );
+        // Near miss: no body is called, so nothing doubts the finding.
+        let r = build(false);
+        assert!(
+            r.findings
+                .iter()
+                .filter(|f| f.qualified_name == "crate::E::f")
+                .all(|f| !f
+                    .evidence
+                    .iter()
+                    .any(|e| e.slug() == "implemented-trait-surface"))
+        );
     }
 
     #[test]

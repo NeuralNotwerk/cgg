@@ -168,7 +168,14 @@ impl<'a> PhpWalker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !name.is_empty() {
+                    let from = self.facts.definitions.len();
                     self.record_def(&name, node, DefVariant::InherentMethod);
+                    // An interface or `abstract` method: a declaration.
+                    super::attrs::mark_abstract_from(
+                        &mut self.facts.definitions,
+                        from,
+                        node.child_by_field_name("body").is_none(),
+                    );
                 }
                 self.walk_children(node);
                 return;
@@ -570,5 +577,25 @@ mod tests {
                 ("__construct", "self"),
             ]
         );
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: an interface or `abstract` method is a declaration.
+    #[test]
+    fn bodiless_interface_and_abstract_methods_are_tagged_abstract() {
+        let f = extract(
+            "<?php\ninterface I { public function a(); }\nabstract class K { abstract public function b(); public function c() {} }\n",
+        );
+        assert_eq!(abstract_tags(&f, "I::a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K::b"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K::c"), vec![false]);
     }
 }

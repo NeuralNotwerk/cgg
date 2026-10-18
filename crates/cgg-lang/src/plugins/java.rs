@@ -231,58 +231,10 @@ impl<'a> JavaWalker<'a> {
         }
     }
 
-    /// `this(…)` calls one of the class's own constructors, named after
-    /// the class as `new Box(…)` is; `super(…)` one of the superclass's,
-    /// recorded as the `super` call it is so the base chain resolves it.
-    /// Neither is ever the constructor it is written in.
     fn record_constructor_delegation(&mut self, node: Node) {
-        let Some(kw) = node.child_by_field_name("constructor") else {
-            return;
-        };
-        let Some(ctor) = std::iter::successors(node.parent(), |n| n.parent())
-            .find(|n| n.kind() == "constructor_declaration")
-        else {
-            return;
-        };
-        let Some(class) = ctor.parent().and_then(|b| b.parent()).filter(|c| {
-            matches!(
-                c.kind(),
-                "class_declaration" | "enum_declaration" | "record_declaration"
-            )
-        }) else {
-            return;
-        };
-        let (name, receiver_hint) = match kw.kind() {
-            "this" => {
-                let Some(n) = class.child_by_field_name("name") else {
-                    return;
-                };
-                (self.text(n).to_string(), String::new())
-            }
-            "super" => {
-                let Some(sup) = class
-                    .child_by_field_name("superclass")
-                    .and_then(|s| s.named_child(0))
-                else {
-                    return;
-                };
-                let name = crate::receiver::type_simple_name(self.text(sup)).to_string();
-                (name, "super".to_string())
-            }
-            _ => return,
-        };
-        if name.is_empty() {
-            return;
+        if let Some(r) = constructor_delegation(node, self.source) {
+            self.facts.references.push(r);
         }
-        self.facts.references.push(RefRecord {
-            name,
-            receiver_hint,
-            site_line: (node.start_position().row as u32) + 1,
-            site_byte: node.start_byte() as u32,
-            arity: node.child_by_field_name("arguments").map(super::arg_count),
-            not_def: Some(ctor.start_byte() as u32),
-            ..Default::default()
-        });
     }
 
     fn record_method(&mut self, node: Node) {
@@ -305,7 +257,16 @@ impl<'a> JavaWalker<'a> {
         } else {
             DefVariant::InherentMethod
         };
+        let from = self.facts.definitions.len();
         self.record_def(node, &simple, variant);
+        // An interface method without a `default` body, or an `abstract`
+        // one: a declaration. A `native` method's body is out of tree,
+        // not absent.
+        super::attrs::mark_abstract_from(
+            &mut self.facts.definitions,
+            from,
+            node.child_by_field_name("body").is_none() && !has_native_modifier(node),
+        );
     }
 
     fn record_def(&mut self, node: Node, simple: &str, variant: DefVariant) {
@@ -610,6 +571,50 @@ fn java_vis(node: Node) -> cgg_core::Vis {
         // package-private, which is exactly `Vis::Internal`.
         _ => cgg_core::Vis::Internal,
     }
+}
+
+/// `this(…)` calls one of the class's own constructors, named after
+/// the class as `new Box(…)` is; `super(…)` one of the superclass's,
+/// recorded as the `super` call it is so the base chain resolves it.
+/// Neither is ever the constructor it is written in. Shared with the
+/// Groovy plugin, whose grammar writes these nodes as Java's does.
+pub(super) fn constructor_delegation(node: Node, src: &[u8]) -> Option<RefRecord> {
+    let text = |n: Node| n.utf8_text(src).unwrap_or("");
+    let kw = node.child_by_field_name("constructor")?;
+    let ctor = std::iter::successors(node.parent(), |n| n.parent())
+        .find(|n| n.kind() == "constructor_declaration")?;
+    let class = ctor.parent().and_then(|b| b.parent()).filter(|c| {
+        matches!(
+            c.kind(),
+            "class_declaration" | "enum_declaration" | "record_declaration"
+        )
+    })?;
+    let (name, receiver_hint) = match kw.kind() {
+        "this" => (
+            text(class.child_by_field_name("name")?).to_string(),
+            String::new(),
+        ),
+        "super" => {
+            let sup = class
+                .child_by_field_name("superclass")
+                .and_then(|s| s.named_child(0))?;
+            let name = crate::receiver::type_simple_name(text(sup)).to_string();
+            (name, "super".to_string())
+        }
+        _ => return None,
+    };
+    if name.is_empty() {
+        return None;
+    }
+    Some(RefRecord {
+        name,
+        receiver_hint,
+        site_line: (node.start_position().row as u32) + 1,
+        site_byte: node.start_byte() as u32,
+        arity: node.child_by_field_name("arguments").map(super::arg_count),
+        not_def: Some(ctor.start_byte() as u32),
+        ..Default::default()
+    })
 }
 
 #[cfg(test)]
@@ -1028,5 +1033,29 @@ mod tests {
         assert!(refs.contains(&("B", "super", Some(1), true)), "{refs:?}");
         // Near miss: no superclass, so `super()` is `Object`'s.
         assert_eq!(refs.len(), 2, "{refs:?}");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a bodiless interface or `abstract` method is a
+    // declaration; a `default`, `native` or concrete one is not.
+    #[test]
+    fn bodiless_interface_and_abstract_methods_are_tagged_abstract() {
+        let f = extract(
+            "interface I { void a(); default void b() {} }\n\
+             abstract class K { abstract void c(); native void d(); void e() {} }\n",
+        );
+        assert_eq!(abstract_tags(&f, "I.a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "I.b"), vec![false]);
+        assert_eq!(abstract_tags(&f, "K.c"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.d"), vec![false]);
+        assert_eq!(abstract_tags(&f, "K.e"), vec![false]);
     }
 }

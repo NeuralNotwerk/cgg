@@ -416,9 +416,13 @@ pub fn link_file_with_cap(
             // ML-style `let` (and Lua's `local function`): a later binding
             // of the name in the same scope shadows an earlier one, so the
             // call is the last one bound before it (two `let pkgVer` in two
-            // `do` blocks of one test).
+            // `do` blocks of one test). Constructors of one type are an
+            // overload set, never bindings that shadow each other.
             if candidates.len() > 1
                 && matches!(facts.language.as_str(), "ocaml" | "fsharp" | "lua")
+                && !candidates
+                    .iter()
+                    .all(|(_, d)| d.variant == DefVariant::Constructor)
             {
                 if let Some(last) = candidates
                     .iter()
@@ -597,13 +601,42 @@ pub fn link_file_with_cap(
         }
 
         // A bodiless interface/abstract member a plugin tagged `abstract`
-        // (TypeScript, Swift, Scala, Dart) is a declaration, not a body
+        // is a declaration, not a body
         // the call runs: when a concrete same-file candidate survives the
         // narrowing above, the declaration is dropped. One-sided — a set
-        // of declarations only stands.
+        // of declarations only stands. The calling definition itself is
+        // no survivor: its self-edge is never drawn, so keeping only it
+        // would leave the site with nothing.
+        // A bare or `this`/`self` call to a member its own class declares
+        // abstract is a call of that declaration, dispatched from there:
+        // it is not a duck guess among same-named bodies elsewhere.
         if candidates.len() > 1 {
             let is_decl = |d: &DefRecord| d.attributes.iter().any(|a| a == "abstract");
-            if candidates.iter().any(|(_, d)| !is_decl(d))
+            let caller = enclosing.map(|i| i as u32);
+            let own_owner = enclosing
+                .and_then(|i| owner_from_qn(&facts.definitions[i].qualified_name));
+            let self_call = matches!(
+                rref.receiver_hint.as_str(),
+                "" | "this" | "self" | "Self" | "$this"
+            );
+            let own_declaration = self_call
+                && own_owner.is_some()
+                && candidates.iter().any(|(_, d)| {
+                    is_decl(d) && owner_from_qn(&d.qualified_name) == own_owner
+                });
+            // A survivor the call's argument count rules out is none.
+            let fits_arity = |d: &DefRecord| {
+                !(rref.arity.is_some()
+                    && crate::type_hints::OVERLOAD_ARITY_LANGS
+                        .contains(&facts.language.as_str())
+                    && rref.arity.and_then(|n| {
+                        crate::type_hints::accepts_arity(&d.signature_hint, n)
+                    }) == Some(false))
+            };
+            if !own_declaration
+                && candidates
+                    .iter()
+                    .any(|(i, d)| !is_decl(d) && Some(*i) != caller && fits_arity(d))
                 && candidates.iter().any(|(_, d)| is_decl(d))
             {
                 candidates.retain(|(_, d)| !is_decl(d));

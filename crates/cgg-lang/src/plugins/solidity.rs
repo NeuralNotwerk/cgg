@@ -104,7 +104,16 @@ impl<'a> SolidityWalker<'a> {
                 return;
             }
             "function_definition" | "modifier_definition" => {
+                let from = self.facts.definitions.len();
                 self.record_function(node, false);
+                // An interface function, or an abstract contract's
+                // unimplemented `virtual` one: a declaration.
+                super::attrs::mark_abstract_from(
+                    &mut self.facts.definitions,
+                    from,
+                    node.kind() == "function_definition"
+                        && node.child_by_field_name("body").is_none(),
+                );
                 self.walk_children(node);
                 return;
             }
@@ -475,5 +484,26 @@ mod tests {
         assert!(refs.contains(&("constructor", "C", true)), "{refs:?}");
         // Near miss: a modifier is not a base, and `new uint[]` no contract.
         assert_eq!(refs.len(), 2, "{refs:?}");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: an interface function, or an abstract contract's
+    // unimplemented one, is a declaration.
+    #[test]
+    fn bodiless_functions_are_tagged_abstract() {
+        let f = extract(
+            "interface I { function a() external; }\nabstract contract K { function b() public virtual; function c() public {} }\n",
+        );
+        assert_eq!(abstract_tags(&f, "I.a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.b"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.c"), vec![false]);
     }
 }

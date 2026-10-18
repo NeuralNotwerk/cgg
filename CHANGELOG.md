@@ -141,9 +141,52 @@ otherwise change the default graph.
     (`candidates-in-other-files`): Ruby bases and receiver types are
     matched by their last segment, so such a guess landed on a same-named
     class of another namespace about half the time.
-  - Not changed: Scala, Groovy and F# primary constructors and Groovy and
-    F# constructors are not extracted as callables, so their
-    constructions still have nothing to reach.
+  - Scala, Groovy and F# constructors were not extracted as callables,
+    so their constructions had nothing to reach; fixed by WS22 below.
+
+- **Callables missing from the graph, and declarations counted as call
+  targets (WS22).** Four extraction gaps:
+  - *Bodiless interface and abstract members were not tagged `abstract`*
+    in Java, C#, Kotlin, Groovy, Go (interface method specs), PHP, C++
+    (`= 0`), Objective-C (`@protocol`), Solidity, Fortran (`interface`
+    bodies) and Rust (trait methods without a default body), so duck-typed
+    fan-out kept the declaration beside its implementations. They are now
+    tagged as TypeScript, Swift, Scala and Dart members already were. The
+    narrowing stays one-sided, and never leaves only the calling method
+    itself or only candidates whose parameter list rejects the argument
+    count: such a set keeps its declarations. A bare or `this` call to a
+    member the caller's own class declares abstract binds to that
+    declaration, not to same-named bodies of anonymous classes or enum
+    constants; and a declaration whose bodies an enum constant or an
+    anonymous class of its file provides is capped at `medium` in the
+    dead-code report once one of them is called.
+  - *JS/TS class fields holding a function* (`handleClick = () => {…}`,
+    `static make = function () {…}`, `private save = (x) => {…}`) were no
+    callable, so their calls had no enclosing function and
+    `this.handleClick()` bound nothing. They are now methods of the class.
+  - *Objective-C recorded no plain C calls*: `helper(x)`, `NSLog(…)` and
+    every C function a `.m`/`.mm` file defines read as uncalled. Calls are
+    now read as the C plugin reads them (a call through a field, a block
+    property, is not a method call). A pointer-returning C function in
+    such a file is named by its identifier (`label`, not `label(void)`),
+    and a definition error recovery reads out of `if (x) { … }` is no
+    function.
+  - *Groovy, Scala and F# constructors* are now callables named after
+    their type: Groovy `Box(…) { }`, the Scala primary constructor
+    (spanning the class header, its parameters and base-constructor
+    arguments) and `def this(…)`, and the F# primary constructor and
+    `new(…) =`. `new Box(…)` (Groovy, Scala), `Box(…)` (Scala, F#), Groovy
+    `this(…)`/`super(…)`, Scala `this(…)` and `extends Base(x)`, and F#
+    `inherit Base(x)` reach them, never the constructor they are written
+    in. Groovy joins arity narrowing for constructions, and F# records the
+    `inherit` base. A Scala class without a parameter list has no
+    constructor node.
+  - A Java, Kotlin or Groovy variable named like the last segment of an
+    imported package (`import a.gui.preferences.Gui;` then
+    `preferences.get()`) was read as a call through that package and its
+    lone candidate bound at `high`; such a call is now certain only when
+    the callable is a member of what the alias names (a class aliased by
+    importing its nested type).
 
 ### Compatibility
 
@@ -209,6 +252,39 @@ excluded):
   Objective-C 122, TypeScript 54, JavaScript 48, Solidity 6, PowerShell 1;
   2,519 callables reached only through them); 279 move `medium` → `low`,
   2 `low` → `medium`, and none are newly reported.
+
+WS22 (callable extraction; full corpus, 283 repositories, none excluded):
+
+- 54,226 edges to bodiless declarations are removed from duck-typed
+  fan-out (15 `high`): Java 36,313, Go 11,057, C++ 2,318, Kotlin 2,035,
+  C# 1,188, Rust 775, Groovy 303, PHP 238, Solidity 51. Without the
+  declarations, 14,551 call sites that were refused as
+  `fanout-cap-exceeded` now fan out (about 48,000 `medium` edges, Java
+  33,877, Go 8,290, Kotlin 2,673, C++ 2,587). No site in these languages
+  is newly refused.
+- 22,134 edges reach the new Groovy, Scala and F# constructors (10,464
+  `high`); 11,204 callables are added (Scala 8,670, Groovy 2,407, F# 127).
+  Constructions of a type with no constructor node in the tree (an
+  outside class, a Scala class without a parameter list) are now
+  recorded as unresolved sites: Scala 105,293, Groovy 10,765.
+- 5,786 JS/TS edges are added from or to class-field methods (3,275
+  `high`; 2,555 new callables), and 308 JS/TS call sites that bound by
+  name are refused as `fanout-cap-exceeded` because the new methods add
+  candidates.
+- 1,323 Objective-C edges are added from plain C calls (1,129 `high`, 667
+  of them into C++ headers the file imports). 15 Objective-C functions
+  are renamed (`f(args)` → `f`), and their edges move with them; 14 C
+  header prototypes of such functions are now absorbed by their bodies.
+- 2,129 Java, Kotlin and Groovy edges move `high` → `medium` (calls
+  through a variable named like an imported package), 202 Scala edges
+  `high` → `medium` (a call into an abstract overload of the caller's own
+  trait now keeps that declaration), 99 edges `medium` → `high`. 170 Scala
+  `high` edges rebind from an implementation to the caller's own trait
+  declaration; 51 Scala sites whose every concrete candidate rejects the
+  argument count are refused instead of fanned out.
+- Under `--dead-code`, 240 Objective-C C functions leave the report (all
+  `medium`), no finding becomes `high`, one `high` finding moves to
+  `medium`, and one leaves the report through a new `medium` fan-out edge.
 
 ## [0.11.0] - 2026-10-16
 

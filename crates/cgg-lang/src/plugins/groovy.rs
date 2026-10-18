@@ -105,6 +105,33 @@ impl<'a> GroovyWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `Box(int x) { … }`: a constructor, named after its class as
+            // Java's is, so `new Box(…)` and `this(…)` reach it.
+            "constructor_declaration" => {
+                if let Some(n) = node.child_by_field_name("name") {
+                    let name = self.text(n).to_string();
+                    if !name.is_empty() {
+                        self.record_def(node, &name, DefVariant::Constructor);
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `this(…)` / `super(…)` as a constructor's first statement.
+            "explicit_constructor_invocation" => {
+                if let Some(r) = super::java::constructor_delegation(node, self.source) {
+                    self.facts.references.push(r);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `new Box(…)`: a call of `Box`'s constructor, looked up on the
+            // type as a construction receiver is.
+            "object_creation_expression" => {
+                self.record_construction(node);
+                self.walk_children(node);
+                return;
+            }
             "function_definition" => {
                 let name = node
                     .child_by_field_name("name")
@@ -164,7 +191,18 @@ impl<'a> GroovyWalker<'a> {
         } else {
             DefVariant::InherentMethod
         };
+        let from = self.facts.definitions.len();
         self.record_def(node, &simple, variant);
+        // An interface or `abstract` method: a declaration.
+        let native = node
+            .children(&mut node.walk())
+            .filter(|c| c.kind() == "modifiers")
+            .any(|m| m.children(&mut m.walk()).any(|t| t.kind() == "native"));
+        super::attrs::mark_abstract_from(
+            &mut self.facts.definitions,
+            from,
+            node.child_by_field_name("body").is_none() && !native,
+        );
     }
 
     fn record_def(&mut self, node: Node, simple: &str, variant: DefVariant) {
@@ -190,6 +228,30 @@ impl<'a> GroovyWalker<'a> {
             // Recorded from 0.6.8; before that no attribute rule could
             // match this language at all.
             attributes: super::attrs::collect_with_preceding(node, self.source),
+            ..Default::default()
+        });
+    }
+
+    /// `new Box(…)` / `new pkg.Box<T>(…)`: the constructor is named after
+    /// the type and looked up on it, as a typed receiver is. An anonymous
+    /// class body (`new Base() { … }`) still constructs `Base`.
+    fn record_construction(&mut self, node: Node) {
+        let Some(ty) = node.child_by_field_name("type") else {
+            return;
+        };
+        let path = self.text(ty);
+        let path = path.split('<').next().unwrap_or(path).trim().to_string();
+        let name = crate::receiver::type_simple_name(&path).to_string();
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: path,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            typed_receiver: true,
+            arity: node.child_by_field_name("arguments").map(super::arg_count),
             ..Default::default()
         });
     }
@@ -397,5 +459,67 @@ mod tests {
     fn malformed_source_does_not_panic() {
         let f = extract("class Broken {\n  void f( {\n");
         let _ = defs(&f);
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: interface and `abstract` methods are declarations.
+    #[test]
+    fn bodiless_interface_and_abstract_methods_are_tagged_abstract() {
+        let f = extract(
+            "interface I { int a() }\nabstract class K { abstract int b()\n int c() { 1 } }\n",
+        );
+        assert_eq!(abstract_tags(&f, "I.a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.b"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.c"), vec![false]);
+    }
+
+    // WS22 (WS21 carry-over): constructors are callables named after
+    // their class; `new` and `this(…)`/`super(…)` call them.
+    #[test]
+    fn constructors_and_constructions_are_recorded() {
+        let f = extract(
+            "class B { B(int n) { } }\nclass C extends B {\n  C(int x) { super(x) }\n  C() { this(1) }\n}\n\
+             class P { P() { super() } }\nclass M { void run() { new C(1); new java.util.ArrayList<String>() } }\n",
+        );
+        let ctors: Vec<&str> = f
+            .definitions
+            .iter()
+            .filter(|d| d.variant == DefVariant::Constructor)
+            .map(|d| d.qualified_name.as_str())
+            .collect();
+        assert_eq!(ctors, vec!["B.B", "C.C", "C.C", "P.P"]);
+        let refs: Vec<(&str, &str, Option<u32>, bool)> = f
+            .references
+            .iter()
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.arity,
+                    r.typed_receiver,
+                )
+            })
+            .collect();
+        assert!(refs.contains(&("B", "super", Some(1), false)), "{refs:?}");
+        assert!(refs.contains(&("C", "", Some(1), false)), "{refs:?}");
+        assert!(refs.contains(&("C", "C", Some(1), true)), "{refs:?}");
+        assert!(
+            refs.contains(&("ArrayList", "java.util.ArrayList", Some(0), true)),
+            "{refs:?}"
+        );
+        // Near miss: `super()` in a class with no superclass calls nothing
+        // in the tree.
+        assert!(
+            !refs.iter().any(|r| r.1 == "super" && r.0 != "B"),
+            "{refs:?}"
+        );
     }
 }

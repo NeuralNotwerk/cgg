@@ -839,3 +839,311 @@ fn an_outside_base_or_type_binds_no_same_named_member() {
         .collect();
     assert_eq!(out, vec!["T.Thing.Thing"], "{edges:#?}");
 }
+
+/// WS22 (gap 7): a bodiless interface or abstract member is a
+/// declaration. Duck-typed fan-out keeps only the implementations when
+/// one survives, and a call whose only candidate is the declaration still
+/// binds to it.
+#[test]
+fn duck_fan_out_drops_bodiless_declarations_when_an_implementation_survives() {
+    let edges = graph(&[
+        (
+            "A.java",
+            "interface Shape { double area(); }\nclass Sq implements Shape { public double area() { return 1; } }\nclass Ci implements Shape { public double area() { return 3; } }\nclass Use { void run() { this.holder.item.area(); } }\n",
+        ),
+        (
+            "a.go",
+            "package a\ntype Shape interface { Area() float64 }\ntype Sq struct{}\nfunc (s Sq) Area() float64 { return 1 }\nfunc run() { holder.item.Area() }\n",
+        ),
+        (
+            "a.cpp",
+            "struct Shape { virtual double area() = 0; };\nstruct Sq : Shape { double area() override { return 1; } };\nvoid run() { holder.item->area(); }\n",
+        ),
+        (
+            "B.java",
+            "interface Only { void lone(); }\nclass UseOnly { void go() { this.thing.other.lone(); } }\n",
+        ),
+    ]);
+    let dsts = |src: &str| -> Vec<String> {
+        let mut v: Vec<String> = edges
+            .iter()
+            .filter(|e| e.src == src)
+            .map(|e| e.dst.clone())
+            .collect();
+        v.sort();
+        v
+    };
+    assert_eq!(dsts("Use.run"), vec!["Ci.area", "Sq.area"], "{edges:#?}");
+    assert_eq!(dsts("a.run"), vec!["a.Sq.Area"], "{edges:#?}");
+    assert_eq!(dsts("run"), vec!["Sq::area"], "{edges:#?}");
+    // Near miss: the declaration is the only candidate, so it stands.
+    assert_eq!(dsts("UseOnly.go"), vec!["Only.lone"], "{edges:#?}");
+}
+
+/// WS22 (gap 8): a JS/TS class field holding a function is a method of
+/// its class: `this.handler()` binds to it and its body's calls are its.
+#[test]
+fn a_class_field_function_is_a_method() {
+    let edges = graph(&[
+        (
+            "a.js",
+            "class Panel {\n  state = { open: false };\n  handle = () => { this.go(); };\n  go() { this.handle(); }\n}\n",
+        ),
+        (
+            "b.ts",
+            "class Comp {\n  private save = (x: number): void => { this.persist(x); };\n  persist(x: number) { this.save(x); }\n}\n",
+        ),
+    ]);
+    assert_eq!(
+        conf(&edges, "Panel.handle", "Panel.go"),
+        high(),
+        "{edges:#?}"
+    );
+    assert_eq!(
+        conf(&edges, "Panel.go", "Panel.handle"),
+        high(),
+        "{edges:#?}"
+    );
+    assert_eq!(
+        conf(&edges, "Comp.save", "Comp.persist"),
+        high(),
+        "{edges:#?}"
+    );
+    assert_eq!(
+        conf(&edges, "Comp.persist", "Comp.save"),
+        high(),
+        "{edges:#?}"
+    );
+    // Near miss: a field holding data is no callable.
+    assert!(!edges.iter().any(|e| e.dst == "Panel.state"), "{edges:#?}");
+}
+
+/// WS22 (gap 24): an Objective-C file's plain C calls reach the C
+/// functions it defines, including one returning a pointer.
+#[test]
+fn objective_c_records_plain_c_calls() {
+    let edges = graph(&[(
+        "a.m",
+        "static int square(int x) { return x * x; }\nstatic char *label(void) { return \"x\"; }\n@implementation Calc\n- (int)run:(int)v {\n  label();\n  self.block(v);\n  return square(v);\n}\n@end\n",
+    )]);
+    assert_eq!(conf(&edges, "Calc::run", "square"), high(), "{edges:#?}");
+    assert_eq!(conf(&edges, "Calc::run", "label"), high(), "{edges:#?}");
+    // Near miss: a call through a property is a block, not a method.
+    assert!(
+        !edges.iter().any(|e| e.dst.ends_with("block")),
+        "{edges:#?}"
+    );
+}
+
+/// WS22 (WS21 carry-over): Groovy, Scala and F# constructors are
+/// callables; constructions and delegation reach them, never the
+/// constructor a delegation is written in.
+#[test]
+fn groovy_scala_and_fsharp_constructions_reach_their_constructors() {
+    let edges = graph(&[
+        (
+            "a.groovy",
+            "class GBase {\n  GBase(int n) { }\n}\nclass GBox extends GBase {\n  GBox(int x) { super(x) }\n  GBox() { this(1) }\n}\nclass GMain {\n  static void run() { def b = new GBox(1) }\n}\n",
+        ),
+        (
+            "a.scala",
+            "class SBase(n: Int)\nclass SBox(x: Int) extends SBase(x) {\n  def this() = this(1)\n}\nclass SPlain {\n  def go(): Unit = ()\n}\nobject SMain {\n  def run(): Unit = { val b = new SBox(); val q = new SPlain() }\n}\n",
+        ),
+        (
+            "a.fs",
+            "module M\ntype FBase(n: int) =\n  member this.N = n\ntype FBox(x: int) =\n  inherit FBase(x)\n  new() = FBox(1)\n  member this.X = x\nlet make () = FBox(2)\n",
+        ),
+    ]);
+    let lines = |src: &str, dst: &str| {
+        edges
+            .iter()
+            .filter(|e| e.src == src && e.dst == dst)
+            .count()
+    };
+    assert_eq!(lines("GMain.run", "GBox.GBox"), 1, "{edges:#?}");
+    assert_eq!(lines("GBox.GBox", "GBase.GBase"), 1, "{edges:#?}");
+    // `this(1)` reaches the one-argument constructor, not itself.
+    assert_eq!(lines("GBox.GBox", "GBox.GBox"), 1, "{edges:#?}");
+    assert_eq!(lines("SMain::run", "SBox::SBox"), 1, "{edges:#?}");
+    assert_eq!(lines("SBox::SBox", "SBase::SBase"), 1, "{edges:#?}");
+    assert_eq!(lines("SBox::SBox", "SBox::SBox"), 1, "{edges:#?}");
+    // Near miss: a class with no parameter list has no constructor node.
+    assert!(
+        !edges.iter().any(|e| e.dst.starts_with("SPlain::SPlain")),
+        "{edges:#?}"
+    );
+    assert_eq!(lines("FBox.FBox", "FBase.FBase"), 1, "{edges:#?}");
+    assert_eq!(lines("FBox.FBox", "FBox.FBox"), 1, "{edges:#?}");
+    assert_eq!(lines("make", "FBox.FBox"), 2, "{edges:#?}");
+}
+
+/// WS22: narrowing a fan-out to its concrete candidates never leaves only
+/// the calling method itself, whose self-edge is not drawn: the site
+/// keeps the declarations it reached before.
+#[test]
+fn declaration_narrowing_never_leaves_only_the_caller() {
+    let edges = graph(&[
+        (
+            "m/Mapper.java",
+            "package m;\npublic interface Mapper { void del(Long id); }\n",
+        ),
+        (
+            "s/Service.java",
+            "package s;\npublic interface Service { void del(Long id); }\n",
+        ),
+        (
+            "s/impl/Impl.java",
+            "package s.impl;\nimport m.Mapper;\nimport s.Service;\npublic class Impl implements Service {\n  private Mapper mapper;\n  public void del(Long id) { mapper.del(id); }\n}\n",
+        ),
+    ]);
+    let mut out: Vec<&str> = edges
+        .iter()
+        .filter(|e| e.src == "s.impl.Impl.del")
+        .map(|e| e.dst.as_str())
+        .collect();
+    out.sort();
+    assert_eq!(out, vec!["m.Mapper.del", "s.Service.del"], "{edges:#?}");
+}
+
+/// WS22: a bare call to a member the caller's own class declares
+/// abstract is a call of that declaration, never a guess among the
+/// anonymous bodies of the same file that implement it.
+#[test]
+fn a_call_to_an_own_abstract_member_keeps_the_declaration() {
+    let edges = graph(&[(
+        "S.java",
+        "class Sup {\n  abstract static class It {\n    void find() { boolean b = next(1); }\n    abstract boolean next(int v);\n  }\n  It a() { return new It() { boolean next(int v) { return true; } }; }\n}\n",
+    )]);
+    let out: Vec<(&str, &str)> = edges
+        .iter()
+        .filter(|e| e.src == "Sup.It.find")
+        .map(|e| (e.dst.as_str(), e.confidence.as_str()))
+        .collect();
+    assert_eq!(out, vec![("Sup.It.next", "high")], "{edges:#?}");
+}
+
+/// WS22: a concrete candidate the call's argument count rules out is no
+/// survivor either: the site keeps the declaration it reached.
+#[test]
+fn declaration_narrowing_ignores_survivors_the_arity_rules_out() {
+    let edges = graph(&[
+        (
+            "m/Daos.java",
+            "package m;\npublic interface Daos { Object rows(); }\n",
+        ),
+        (
+            "api/Stats.java",
+            "package api;\npublic class Stats { public Object rows(int a) { return null; } }\n",
+        ),
+        (
+            "m/Fetchers.java",
+            "package m;\npublic class Fetchers {\n  private Daos dao;\n  public Object rows() { return dao.rows(); }\n}\n",
+        ),
+    ]);
+    let out: Vec<&str> = edges
+        .iter()
+        .filter(|e| e.src == "m.Fetchers.rows")
+        .map(|e| e.dst.as_str())
+        .collect();
+    assert_eq!(out, vec!["m.Daos.rows"], "{edges:#?}");
+}
+
+/// WS22: the cap still applies to the implementations a duck-typed
+/// fan-out keeps once its declarations are dropped.
+#[test]
+fn the_fan_out_cap_applies_after_declarations_are_dropped() {
+    let mut files: Vec<(String, String)> = vec![(
+        "I.java".into(),
+        "interface I { void go(); }\nclass Use { void run() { this.a.b.go(); } }\n"
+            .into(),
+    )];
+    for i in 0..6 {
+        files.push((
+            format!("C{i}.java"),
+            format!("class C{i} implements I {{ public void go() {{}} }}\n"),
+        ));
+    }
+    let refs: Vec<(&str, &str)> = files
+        .iter()
+        .map(|(a, b)| (a.as_str(), b.as_str()))
+        .collect();
+    let edges = graph(&refs);
+    assert!(!edges.iter().any(|e| e.src == "Use.run"), "{edges:#?}");
+}
+
+/// WS22: a Java variable named like the last segment of an imported
+/// package (`import g.preferences.GuiPreferences;` then
+/// `preferences.getAi()`) is no call through that package: the lone
+/// implementation in another package is a guess, never `high`.
+#[test]
+fn a_variable_named_like_an_imported_package_is_no_module_alias() {
+    let edges = graph(&[
+        (
+            "l/preferences/CliPreferences.java",
+            "package l.preferences;\npublic interface CliPreferences { String getAi(); }\n",
+        ),
+        (
+            "l/preferences/JabRefCliPreferences.java",
+            "package l.preferences;\npublic class JabRefCliPreferences implements CliPreferences { public String getAi() { return \"\"; } }\n",
+        ),
+        (
+            "g/preferences/GuiPreferences.java",
+            "package g.preferences;\nimport l.preferences.CliPreferences;\npublic interface GuiPreferences extends CliPreferences { }\n",
+        ),
+        (
+            "g/ui/View.java",
+            "package g.ui;\nimport g.preferences.GuiPreferences;\npublic class View { private GuiPreferences preferences; void init() { preferences.getAi(); } }\n",
+        ),
+    ]);
+    assert_eq!(
+        conf(
+            &edges,
+            "g.ui.View.init",
+            "l.preferences.JabRefCliPreferences.getAi"
+        ),
+        medium(),
+        "{edges:#?}"
+    );
+    // Nor when the imported package is the implementation's own.
+    let edges = graph(&[
+        (
+            "l/preferences/CliPreferences.java",
+            "package l.preferences;\npublic interface CliPreferences { String getAi(); }\n",
+        ),
+        (
+            "l/preferences/JabRefCliPreferences.java",
+            "package l.preferences;\npublic class JabRefCliPreferences implements CliPreferences { public String getAi() { return \"\"; } }\n",
+        ),
+        (
+            "g/ui/View.java",
+            "package g.ui;\nimport l.preferences.CliPreferences;\npublic class View { private CliPreferences preferences; void init() { preferences.getAi(); } }\n",
+        ),
+    ]);
+    assert!(
+        conf(
+            &edges,
+            "g.ui.View.init",
+            "l.preferences.JabRefCliPreferences.getAi"
+        )
+        .iter()
+        .all(|c| c != "high"),
+        "{edges:#?}"
+    );
+    // Near miss: importing a nested type (`a.Tracker.Stat`) aliases its
+    // class, and a static call through that class is its member: `high`.
+    let edges = graph(&[
+        (
+            "a/Tracker.java",
+            "package a;\npublic class Tracker {\n  public enum Stat { X }\n  public static void track(Stat s) {}\n  public static void track(Stat s, String p) {}\n}\n",
+        ),
+        (
+            "b/U.java",
+            "package b;\nimport a.Tracker;\nimport a.Tracker.Stat;\npublic class U { void m() { Tracker.track(Stat.X); } }\n",
+        ),
+    ]);
+    assert_eq!(
+        conf(&edges, "b.U.m", "a.Tracker.track"),
+        high(),
+        "{edges:#?}"
+    );
+}

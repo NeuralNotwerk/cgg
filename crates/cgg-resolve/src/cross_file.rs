@@ -1153,7 +1153,9 @@ pub fn resolve(
 
     // Declarations rather than implementations: a `typing.Protocol`
     // member, an `@abstractmethod`, or a bodiless interface/abstract
-    // member a plugin tags `abstract` (TypeScript, Swift, Scala, Dart). They carry no body worth entering,
+    // member a plugin tags `abstract` (an interface method, an `abstract`
+    // or pure virtual member, a protocol requirement, a trait method
+    // without a default body). They carry no body worth entering,
     // so counting them as call targets inflates "how many things does
     // this reach" — three implementations where two exist. Dropped from
     // duck-typed fan-out only when a concrete candidate survives, so a
@@ -2781,10 +2783,17 @@ pub fn resolve(
                                 )
                                 || !r.receiver_hint.is_empty()
                                     && module_aliases
-                                        .contains_key(r.receiver_hint.as_str())
-                                    && graph.callables.get(&cids[0]).is_some_and(|n| {
-                                        !file_mods.uncertain_includes.contains(&n.file)
-                                    })) =>
+                                        .get(r.receiver_hint.as_str())
+                                        .is_some_and(|target| {
+                                            graph.callables.get(&cids[0]).is_some_and(|n| {
+                                                !file_mods.uncertain_includes.contains(&n.file)
+                                                    && alias_owns_callee(
+                                                        lang.as_str(),
+                                                        target,
+                                                        &n.qualified_name,
+                                                    )
+                                            })
+                                        })) =>
                     {
                         Confidence::High
                     }
@@ -4996,6 +5005,21 @@ pub(crate) fn narrow_by_arity(
     if fits.is_empty() { cids } else { fits }
 }
 
+/// A JVM import registers the last segment of what precedes the
+/// imported name as a module alias: a package (`import a.gui.prefs.P;`
+/// → `prefs`) or, for a nested type, its enclosing class
+/// (`import a.Tracker.Stat;` → `Tracker`). Java, Kotlin and Groovy never
+/// call through a package segment, so a receiver spelled like one
+/// (`prefs.get()`) is a variable, and the alias says nothing about what
+/// it reaches; a call through the class (`Tracker.track()`) is a member
+/// of that class. A call through the alias is certain only when the
+/// callable's owner is the alias target itself. Other languages' module
+/// aliases name the module the call is written through.
+fn alias_owns_callee(lang: &str, target: &str, qn: &str) -> bool {
+    !matches!(lang, "java" | "kotlin" | "groovy")
+        || crate::names::split_last_segment(qn).is_some_and(|(owner, _)| owner == target)
+}
+
 /// JVM languages and Ruby: a typed receiver's owner is looked up by its bare name,
 /// so `Response.Builder` reaches every class named `Builder`. Several
 /// distinct owners narrow, one-sidedly, to the one the receiver names: the
@@ -7131,11 +7155,32 @@ fn try_resolve_ref(
                 // cannot tolerate.
                 // Prefer concrete implementations. A Protocol member
                 // or an @abstractmethod is a declaration, not a target.
+                // The calling callable itself is no survivor: its
+                // self-edge is never drawn, so a set narrowed to it alone
+                // would leave the site with no edge and no record.
                 let concrete: Vec<CallableId> = cids
                     .iter()
                     .copied()
                     .filter(|c| !stub_ids.contains(c))
                     .collect();
+                // Nor is one the call's argument count rules out, which
+                // the arity narrowing after this step drops: a set whose
+                // only concrete survivors are those keeps its declarations.
+                let viable = |c: &CallableId| {
+                    Some(*c) != caller_id
+                        && !(r.arity.is_some()
+                            && crate::type_hints::OVERLOAD_ARITY_LANGS.contains(&lang)
+                            && signatures.get(c).is_some_and(|sig| {
+                                r.arity.and_then(|n| {
+                                    crate::type_hints::accepts_arity(sig, n)
+                                }) == Some(false)
+                            }))
+                };
+                let concrete = if concrete.iter().any(viable) {
+                    concrete
+                } else {
+                    Vec::new()
+                };
                 let cids = if concrete.is_empty() {
                     cids.clone()
                 } else {

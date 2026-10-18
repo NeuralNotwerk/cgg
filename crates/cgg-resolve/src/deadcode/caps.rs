@@ -40,9 +40,11 @@ const SCRIPT_DRIVEN: &[&str] = &[
 /// contract whose consumers are by definition in another repository.
 const DESCRIPTOR: &[&str] = &["smithy", "proto", "graphql", "openapi", "asyncapi"];
 
-/// The override markers plugins record from a keyword (Swift, Scala,
-/// Dart) rather than from attribute capture.
-const OVERRIDE_KEYWORD_MARKERS: &[&str] = &["override", "@override"];
+/// The markers plugins record from a keyword or the shape of a
+/// declaration rather than from attribute capture: `override` (Swift,
+/// Scala, Dart) and `abstract` (a bodiless interface or abstract member,
+/// tagged in plugins that capture no attributes at all, such as Go's).
+const KEYWORD_MARKERS: &[&str] = &["override", "@override", "abstract"];
 
 /// Known blind spots worth naming explicitly in the report.
 const BLIND_SPOTS: &[(&str, &[&str])] = &[
@@ -135,11 +137,11 @@ pub(crate) fn measure(
         if !n.visibility.is_empty() {
             vis.insert(n.language.clone(), true);
         }
-        // An `override` keyword marker is recorded by plugins that do
-        // not capture attributes; it is not evidence that they do.
+        // An `override` or `abstract` marker is recorded by plugins that
+        // do not capture attributes; it is not evidence that they do.
         if n.attributes
             .iter()
-            .any(|a| !OVERRIDE_KEYWORD_MARKERS.contains(&a.as_str()))
+            .any(|a| !KEYWORD_MARKERS.contains(&a.as_str()))
         {
             attrs.insert(n.language.clone(), true);
         }
@@ -227,6 +229,19 @@ mod tests {
         assert_eq!(java.visibility, SignalSupport::None);
         assert_eq!(java.attributes, SignalSupport::None);
         assert!(!java.signals_complete(), "must not qualify for High");
+    }
+
+    // WS22: the `abstract` marker a plugin derives from a bodiless
+    // declaration is not evidence that the plugin captures attributes.
+    #[test]
+    fn an_abstract_marker_is_not_attribute_capture() {
+        let mut n = node(0, "a.I.M", "M", "go");
+        n.attributes = vec!["abstract".into()];
+        let mut r = node(1, "crate::f", "f", "rust");
+        r.attributes = vec!["abstract".into(), "#[inline]".into()];
+        let m = measure(&graph_with(vec![n, r]), &BTreeMap::new());
+        assert_eq!(m["go"].attributes, SignalSupport::None);
+        assert_eq!(m["rust"].attributes, SignalSupport::Full);
     }
 
     #[test]

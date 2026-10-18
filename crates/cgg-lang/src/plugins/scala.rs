@@ -106,6 +106,7 @@ impl<'a> ScalaWalker<'a> {
             // `new T { … }`: an anonymous class extending `T`; its members
             // see `T`'s (WS14b).
             "instance_expression" => {
+                self.record_construction(node);
                 let mut c = node.walk();
                 let has_body = node.children(&mut c).any(|n| n.kind() == "template_body");
                 if has_body {
@@ -159,6 +160,9 @@ impl<'a> ScalaWalker<'a> {
                 if !name.is_empty() {
                     self.scope.push(name);
                     self.bases.push(class_bases.clone());
+                    if node.kind() == "class_definition" {
+                        self.record_primary_constructor(node);
+                    }
                     self.walk_children(node);
                     self.bases.pop();
                     self.scope.pop();
@@ -174,8 +178,17 @@ impl<'a> ScalaWalker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                if !name.is_empty() {
-                    self.record_def(&name, node, DefVariant::FreeFunction);
+                // `def this(…) = …`: an auxiliary constructor, named after
+                // its class as the primary one is.
+                match self.scope.last() {
+                    Some(class) if name == "this" => {
+                        let class = class.clone();
+                        self.record_def(&class, node, DefVariant::Constructor);
+                    }
+                    _ if !name.is_empty() => {
+                        self.record_def(&name, node, DefVariant::FreeFunction);
+                    }
+                    _ => {}
                 }
                 self.walk_children(node);
                 return;
@@ -432,9 +445,16 @@ impl<'a> ScalaWalker<'a> {
         // of the enclosing class (the primary one, or another `def this`
         // the arguments select): a construction of that class, never a
         // by-name match of the `this` members (WS14b).
+        // It is never the constructor it is written in.
+        let mut not_def = None;
         let func = if func == "this" {
             match self.scope.last() {
-                Some(class) => class.clone(),
+                Some(class) => {
+                    not_def = std::iter::successors(node.parent(), |n| n.parent())
+                        .find(|n| n.kind() == "function_definition")
+                        .map(|d| d.start_byte() as u32);
+                    class.clone()
+                }
                 None => return,
             }
         } else {
@@ -447,6 +467,110 @@ impl<'a> ScalaWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             arity: self.call_arity(node),
+            not_def,
+            ..Default::default()
+        });
+    }
+
+    /// `class Box(x: Int) extends Base(x)`: the primary constructor,
+    /// named after the class and spanning its header — the parameters
+    /// and the base-constructor arguments it evaluates — but not the
+    /// body, whose members are callables of their own. A class written
+    /// without a parameter list has none. `Base(x)` in the header is the
+    /// `super` call it makes, resolved through the base chain.
+    fn record_primary_constructor(&mut self, class: Node) {
+        let Some(params) = class.child_by_field_name("class_parameters") else {
+            return;
+        };
+        let Some(name) = self.scope.last().cloned() else {
+            return;
+        };
+        let extend = class.child_by_field_name("extend");
+        let end =
+            extend.map_or(params.end_byte(), |e| e.end_byte().max(params.end_byte()));
+        let header = &self.source[class.start_byte()..end];
+        let header = std::str::from_utf8(header).unwrap_or("");
+        let bases = self.bases.last().cloned().unwrap_or_default();
+        self.facts.definitions.push(DefRecord {
+            base_types: bases,
+            simple_name: name.clone(),
+            qualified_name: self.qn(&name),
+            variant: DefVariant::Constructor,
+            start_line: (class.start_position().row as u32) + 1,
+            end_line: (extend.unwrap_or(params).end_position().row as u32) + 1,
+            start_byte: class.start_byte() as u32,
+            end_byte: end as u32,
+            signature_hint: super::extract_signature(header),
+            visibility: String::new(),
+            attributes: super::attrs::collect_with_preceding(class, self.source),
+            ..Default::default()
+        });
+        // `extends Base(x)`: the base constructor the arguments select.
+        let Some(extend) = extend else { return };
+        let mut c = extend.walk();
+        let kids: Vec<Node> = extend.named_children(&mut c).collect();
+        let Some(args_at) = kids.iter().position(|k| k.kind() == "arguments") else {
+            return;
+        };
+        let Some(ty) = kids[..args_at].last() else {
+            return;
+        };
+        let ty = if ty.kind() == "generic_type" {
+            ty.child_by_field_name("type").unwrap_or(*ty)
+        } else {
+            *ty
+        };
+        let base = crate::receiver::type_simple_name(self.text(ty)).to_string();
+        if base.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name: base,
+            receiver_hint: "super".to_string(),
+            site_line: (ty.start_position().row as u32) + 1,
+            site_byte: ty.start_byte() as u32,
+            arity: Some(super::arg_count(kids[args_at])),
+            not_def: Some(class.start_byte() as u32),
+            ..Default::default()
+        });
+    }
+
+    /// `new Box(1)` / `new Box[Int]()` / `new Base(3) { … }`: a call of
+    /// the constructed type's constructor, named after the type and looked
+    /// up on it as a construction receiver is. An anonymous class body
+    /// runs its base's constructor first.
+    fn record_construction(&mut self, node: Node) {
+        let mut c = node.walk();
+        let Some(ty) = node.named_children(&mut c).find(|c| {
+            matches!(
+                c.kind(),
+                "type_identifier" | "generic_type" | "stable_type_identifier"
+            )
+        }) else {
+            return;
+        };
+        let ty = if ty.kind() == "generic_type" {
+            ty.child_by_field_name("type").unwrap_or(ty)
+        } else {
+            ty
+        };
+        let path: String = self.text(ty).split_whitespace().collect();
+        let name = crate::receiver::type_simple_name(&path).to_string();
+        if name.is_empty() {
+            return;
+        }
+        let mut c = node.walk();
+        let arity = node
+            .named_children(&mut c)
+            .find(|c| c.kind() == "arguments")
+            .map(super::arg_count);
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: path,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            typed_receiver: true,
+            arity,
             ..Default::default()
         });
     }
@@ -681,5 +805,56 @@ mod tests {
         assert_eq!(t.bases, vec!["Compactible[Entry]", "Mixin"]);
         let h = f.references.iter().find(|r| r.name == "h").unwrap();
         assert_eq!(h.arity, Some(2));
+    }
+
+    // WS22 (WS21 carry-over): the primary constructor spans the class
+    // header, `def this` is a constructor named after its class, and
+    // `new` / `extends Base(…)` / `this(…)` call them.
+    #[test]
+    fn constructors_and_constructions_are_recorded() {
+        let f = extract(
+            "class B(n: Int)\nclass C(x: Int) extends B(x) with T {\n  def this() = this(1)\n  def m(): Int = x\n}\nclass P { def go(): Unit = () }\nobject O { def r() = new C(1) }\n",
+        );
+        let ctors: Vec<(&str, u32)> = f
+            .definitions
+            .iter()
+            .filter(|d| d.variant == DefVariant::Constructor)
+            .map(|d| (d.qualified_name.as_str(), d.start_line))
+            .collect();
+        assert_eq!(ctors, vec![("B::B", 1), ("C::C", 2), ("C::C", 3)]);
+        let primary = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "C::C")
+            .unwrap();
+        let m = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "C::m")
+            .unwrap();
+        assert!(
+            primary.end_byte <= m.start_byte,
+            "the body is not the constructor's"
+        );
+        let refs: Vec<(&str, &str, Option<u32>, bool)> = f
+            .references
+            .iter()
+            .filter(|r| !r.paren_less)
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.arity,
+                    r.not_def.is_some(),
+                )
+            })
+            .collect();
+        assert!(refs.contains(&("B", "super", Some(1), true)), "{refs:?}");
+        assert!(refs.contains(&("C", "", Some(1), true)), "{refs:?}");
+        assert!(refs.contains(&("C", "C", Some(1), false)), "{refs:?}");
+        // Near miss: a trait mixed in without arguments is no call, and a
+        // class without a parameter list has no constructor node.
+        assert!(!refs.iter().any(|r| r.0 == "T"), "{refs:?}");
+        assert!(!f.definitions.iter().any(|d| d.qualified_name == "P::P"));
     }
 }

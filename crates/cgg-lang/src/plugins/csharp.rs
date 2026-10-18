@@ -197,6 +197,7 @@ impl<'a> Walker<'a> {
                 return;
             }
             "method_declaration" | "local_function_statement" => {
+                let from = self.facts.definitions.len();
                 self.record_method(node, DefVariant::InherentMethod);
                 // `partial void OnLoaded();` and its implementing part: a
                 // hook whose other half is often generated (designer
@@ -208,6 +209,21 @@ impl<'a> Walker<'a> {
                 {
                     d.attributes.push(PARTIAL_DECLARATION.to_string());
                 }
+                // An interface member without a default body, or an
+                // `abstract` one: a declaration. An `extern` method's body
+                // is out of tree and a `partial` part's in its other half.
+                let bodiless = node.kind() == "method_declaration"
+                    && node.child_by_field_name("body").is_none()
+                    && !node
+                        .children(&mut node.walk())
+                        .any(|c| c.kind() == "arrow_expression_clause")
+                    && !has_modifier(node, "extern")
+                    && !has_modifier(node, "partial");
+                super::attrs::mark_abstract_from(
+                    &mut self.facts.definitions,
+                    from,
+                    bodiless,
+                );
                 self.walk_children(node);
                 return;
             }
@@ -1406,5 +1422,32 @@ namespace A.B.C {
         assert!(refs.contains(&("P", "N.P", true, false)), "{refs:?}");
         // An anonymous object is no construction of a named type.
         assert_eq!(f.references.len(), 5, "{refs:?}");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a bodiless interface or `abstract` method is a
+    // declaration; a default-bodied, expression-bodied, `extern` or
+    // `partial` one is not.
+    #[test]
+    fn bodiless_interface_and_abstract_methods_are_tagged_abstract() {
+        let f = extract(
+            "interface I { void A(); void B() {} }\n\
+             abstract class K { public abstract void C(); int D() => 1; \
+             static extern void E(); partial void F(); void G() {} }\n",
+        );
+        assert_eq!(abstract_tags(&f, "I.A"), vec![true]);
+        assert_eq!(abstract_tags(&f, "I.B"), vec![false]);
+        assert_eq!(abstract_tags(&f, "K.C"), vec![true]);
+        for m in ["K.D", "K.E", "K.F", "K.G"] {
+            assert_eq!(abstract_tags(&f, m), vec![false], "{m}");
+        }
     }
 }

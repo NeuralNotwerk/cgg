@@ -186,6 +186,14 @@ impl<'a> JsWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `handleClick = () => { … }` / `static make = function () { … }`
+            // in a class body: a method held in a field, called as one
+            // (`this.handleClick()`) and owning the calls in its body.
+            "field_definition" | "public_field_definition" => {
+                self.try_record_field_fn(node);
+                self.walk_children(node);
+                return;
+            }
             // TypeScript `interface I extends J { m(): void }`: a type
             // whose members are declarations. Owned like a class's, so a
             // call typed `I` binds to `I.m` — the declaration the
@@ -347,6 +355,70 @@ impl<'a> JsWalker<'a> {
             vis: class_member_vis(node),
             // TypeScript decorators (`@Get('/users')`) are shape A and
             // carry the whole NestJS routing surface.
+            attributes: super::attrs::with_override_marker(
+                node,
+                super::attrs::collect_with_preceding(node, self.source),
+            ),
+            base_types: self.bases.last().cloned().unwrap_or_default(),
+            ..Default::default()
+        });
+    }
+
+    /// A class field whose value is a function (`handler = () => {…}`,
+    /// `static make = function () {…}`): recorded as the method it is
+    /// used as, spanning the field so the calls in its body are its own.
+    /// A field holding anything else, or named by a computed key, is not
+    /// a callable.
+    fn try_record_field_fn(&mut self, node: Node) {
+        if node.parent().map(|p| p.kind()) != Some("class_body") || self.scope.is_empty()
+        {
+            return;
+        }
+        let Some(name_node) = node
+            .child_by_field_name("name")
+            .or_else(|| node.child_by_field_name("property"))
+            .filter(|n| {
+                matches!(
+                    n.kind(),
+                    "property_identifier" | "private_property_identifier"
+                )
+            })
+        else {
+            return;
+        };
+        let Some(value) = node.child_by_field_name("value") else {
+            return;
+        };
+        if !matches!(
+            value.kind(),
+            "arrow_function" | "function_expression" | "function" | "generator_function"
+        ) {
+            return;
+        }
+        let simple = self.text(name_node).to_string();
+        if simple.is_empty() {
+            return;
+        }
+        let is_static = node
+            .children(&mut node.walk())
+            .any(|c| c.kind() == "static");
+        let qn = self.qn(&simple);
+        let (sl, el) = line_range(node);
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple,
+            qualified_name: qn,
+            variant: if is_static {
+                DefVariant::StaticMethod
+            } else {
+                DefVariant::InherentMethod
+            },
+            start_line: sl,
+            end_line: el,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            vis: class_member_vis(node),
             attributes: super::attrs::with_override_marker(
                 node,
                 super::attrs::collect_with_preceding(node, self.source),
@@ -1382,6 +1454,7 @@ fn class_member_vis(node: Node) -> cgg_core::Vis {
         Some("public") => cgg_core::Vis::Public,
         _ if node
             .child_by_field_name("name")
+            .or_else(|| node.child_by_field_name("property"))
             .is_some_and(|n| n.kind() == "private_property_identifier") =>
         {
             cgg_core::Vis::Private
@@ -1635,5 +1708,40 @@ class Service {
             .collect();
         assert!(refs.contains(&("constructor", "super")), "{refs:?}");
         assert!(refs.contains(&("m", "super")), "{refs:?}");
+    }
+
+    // WS22 gap 8: a class field holding a function is a method of the
+    // class; a field holding data, and an object-literal property, are not.
+    #[test]
+    fn class_field_functions_are_methods() {
+        let f = extract(
+            "class P {\n  state = {};\n  onClick = () => { this.go(); };\n  static make = function () {};\n  #hid = async () => {};\n  go() {}\n}\nconst o = { h: () => 1 };\n",
+        );
+        let got: Vec<(&str, DefVariant, cgg_core::Vis)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.qualified_name.as_str(), d.variant, d.vis))
+            .collect();
+        assert!(
+            got.contains(&(
+                "P.onClick",
+                DefVariant::InherentMethod,
+                cgg_core::Vis::Public
+            )),
+            "{got:?}"
+        );
+        assert!(
+            got.contains(&("P.make", DefVariant::StaticMethod, cgg_core::Vis::Public)),
+            "{got:?}"
+        );
+        assert!(
+            got.contains(&("P.#hid", DefVariant::InherentMethod, cgg_core::Vis::Private)),
+            "{got:?}"
+        );
+        assert!(
+            !got.iter()
+                .any(|g| g.0 == "P.state" || g.0.ends_with(".h") || g.0 == "h"),
+            "{got:?}"
+        );
     }
 }

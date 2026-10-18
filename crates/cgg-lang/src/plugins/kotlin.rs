@@ -235,7 +235,23 @@ impl<'a> KtWalker<'a> {
                 return;
             }
             "function_declaration" => {
+                let recorded = self.facts.definitions.len();
                 self.record_function(node);
+                // A member of an interface or abstract class with no
+                // body: a declaration. An `external` (out-of-tree body)
+                // or `expect` (body in the `actual`) one is not.
+                {
+                    let bodiless = !self.scope.is_empty()
+                        && !node
+                            .children(&mut node.walk())
+                            .any(|c| c.kind() == "function_body")
+                        && !has_modifier_token(node, &["external", "expect"]);
+                    super::attrs::mark_abstract_from(
+                        &mut self.facts.definitions,
+                        recorded,
+                        bodiless,
+                    );
+                }
                 self.implicit.push(String::new());
                 self.walk_children(node);
                 self.implicit.pop();
@@ -647,6 +663,21 @@ fn nav_suffix_name<'s>(nav: Node, source: &'s [u8]) -> Option<&'s str> {
 /// expression) as one space.
 fn collapse_ws(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Whether one of `node`'s `modifiers` is a token of one of `kinds`.
+fn has_modifier_token(node: Node, kinds: &[&str]) -> bool {
+    fn any_token(n: Node, kinds: &[&str]) -> bool {
+        if kinds.contains(&n.kind()) {
+            return true;
+        }
+        let mut c = n.walk();
+        n.children(&mut c).any(|ch| any_token(ch, kinds))
+    }
+    let mut c = node.walk();
+    node.children(&mut c)
+        .filter(|c| c.kind() == "modifiers")
+        .any(|m| any_token(m, kinds))
 }
 
 /// Project the declaration's visibility modifier onto the shared
@@ -1103,5 +1134,29 @@ mod tests {
             ],
             "{got:?}"
         );
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a bodiless interface or `abstract` member is a
+    // declaration; a member with a body, and an `external` one, is not.
+    #[test]
+    fn bodiless_interface_and_abstract_members_are_tagged_abstract() {
+        let f = extract(
+            "interface I {\n  fun a(): Int\n  fun b(): Int { return 1 }\n}\n\
+             abstract class K {\n  abstract fun c()\n  external fun d()\n  fun e() = 2\n}\n",
+        );
+        assert_eq!(abstract_tags(&f, "I.a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "I.b"), vec![false]);
+        assert_eq!(abstract_tags(&f, "K.c"), vec![true]);
+        assert_eq!(abstract_tags(&f, "K.d"), vec![false]);
+        assert_eq!(abstract_tags(&f, "K.e"), vec![false]);
     }
 }

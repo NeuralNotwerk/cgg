@@ -73,7 +73,21 @@ impl<'a> FortranWalker<'a> {
             // body, not just the header line — needed for intra-file
             // edges to attribute call sites to their containing routine.
             "function" | "subroutine" | "program" => {
+                let from = self.facts.definitions.len();
                 self.record_callable(node);
+                // A body inside an `interface` block declares a routine
+                // defined elsewhere (or an abstract interface): a
+                // declaration, not the routine.
+                let in_interface = std::iter::successors(node.parent(), |n| n.parent())
+                    .take_while(|n| {
+                        !matches!(n.kind(), "function" | "subroutine" | "program")
+                    })
+                    .any(|n| n.kind() == "interface");
+                super::attrs::mark_abstract_from(
+                    &mut self.facts.definitions,
+                    from,
+                    in_interface,
+                );
                 self.walk_children(node);
             }
             "call_expression" | "subroutine_call" => {
@@ -233,5 +247,24 @@ mod tests {
         }
         assert!(!f.definitions.is_empty(), "Expected definitions, got none");
         assert_eq!(f.definitions[0].simple_name, "add");
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a routine body in an `interface` block declares a
+    // routine; the module procedure is the routine.
+    #[test]
+    fn interface_bodies_are_tagged_abstract() {
+        let f = extract(
+            "module m\n  interface\n    function g(x) result(r)\n      real :: x, r\n    end function g\n  end interface\ncontains\n  function g(x) result(r)\n    real :: x, r\n    r = x\n  end function g\nend module m\n",
+        );
+        assert_eq!(abstract_tags(&f, "m::g"), vec![true, false]);
     }
 }

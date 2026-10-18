@@ -622,7 +622,16 @@ impl<'a> Walker<'a> {
             // `fn foo(...);` — trait method signatures without bodies
             // appear inside trait_item as function_signature_item.
             "function_signature_item" => {
+                let recorded = self.facts.definitions.len();
                 self.record_function(node, /* sig only */ false);
+                // A trait method without a default body is a declaration
+                // its impls provide; an `extern` block's is not.
+                let in_trait = matches!(self.scope.last(), Some(ScopeSegment::Trait(_)));
+                super::attrs::mark_abstract_from(
+                    &mut self.facts.definitions,
+                    recorded,
+                    in_trait,
+                );
                 // No body to descend into.
                 return;
             }
@@ -4378,6 +4387,32 @@ fn worker() {}
                 ("n", "=Some:meter"),
                 ("v", "=Ok:self.res")
             ]
+        );
+    }
+
+    /// The definitions named `qn` and whether each is tagged `abstract`.
+    fn abstract_tags(f: &FileFacts, qn: &str) -> Vec<bool> {
+        f.definitions
+            .iter()
+            .filter(|d| d.qualified_name == qn)
+            .map(|d| d.attributes.iter().any(|a| a == "abstract"))
+            .collect()
+    }
+
+    // WS22 gap 7: a trait method without a default body is a declaration;
+    // a default method and an `extern` block's function are not.
+    #[test]
+    fn trait_method_signatures_are_tagged_abstract() {
+        let f = extract(
+            "pub trait T { fn a(&self); fn b(&self) {} }\nextern \"C\" { fn c(); }\n",
+        );
+        assert_eq!(abstract_tags(&f, "crate::T::a"), vec![true]);
+        assert_eq!(abstract_tags(&f, "crate::T::b"), vec![false]);
+        assert!(
+            f.definitions
+                .iter()
+                .filter(|d| d.simple_name == "c")
+                .all(|d| !d.attributes.iter().any(|a| a == "abstract"))
         );
     }
 }

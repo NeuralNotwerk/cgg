@@ -1776,9 +1776,10 @@ fn param_list(sig: &str) -> Option<&str> {
 
 /// Languages that overload by parameter count and whose plugins record a
 /// call's argument count ([`cgg_core::RefRecord::arity`]).
-/// C# records the count for constructions and constructor initializers
-/// only.
-pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] = &["java", "scala", "cpp", "csharp"];
+/// C# and Groovy record the count for constructions and constructor
+/// delegation only.
+pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] =
+    &["java", "scala", "cpp", "csharp", "groovy"];
 
 /// Whether a callable declared with signature `sig` can take `arity`
 /// positional arguments: `Some(false)` only when its parameter list is

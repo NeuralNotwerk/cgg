@@ -349,4 +349,20 @@ class Singleton { private constructor() {} }
         assert!(f.definitions.iter().all(|d| d.simple_name != "z"));
         assert!(f.definitions.iter().all(|d| d.simple_name != "size"));
     }
+
+    // WS22 gap 8: a TypeScript class field holding a function is a
+    // method, with its accessibility read.
+    #[test]
+    fn class_field_functions_are_methods() {
+        let f = extract(
+            "class C {\n  private save = (x: number): void => {};\n  count: number = 0;\n}\n",
+        );
+        let save = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "C.save")
+            .expect("C.save");
+        assert_eq!(save.vis, cgg_core::Vis::Private);
+        assert!(!f.definitions.iter().any(|d| d.qualified_name == "C.count"));
+    }
 }
