@@ -148,3 +148,4 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - (WS25) CMake commands are case-insensitive but are matched case-sensitively (`apply_standard_settings` vs `APPLY_STANDARD_SETTINGS`).
 - (WS25) `nix-shell -i <interp>` on a script's second `#!` line is not read.
 - (WS25) Rake tasks have no entry rule; Rakefile helpers show as medium dead.
+- (WS26) JS/TS cross-file coincidental by-name roots from top-level value refs (~4.8k findings hidden); narrowing dropped because targets are mostly live via JSX element use, framework hooks and member values cgg can't see. Model JSX element usage first. Import-following half (wip/WS26-js2-v2-src) could ship alone.

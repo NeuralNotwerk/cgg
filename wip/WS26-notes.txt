@@ -20,3 +20,12 @@ module-scope site. 4,801 of 25,169 JS/TS falls came only from a module-scope val
 in ANOTHER file. Tried same-file preference for JS/TS (saved as
 target/remediation/wip/WS26-roots.rs.same-file-narrowing): round 3 raised 20,145 findings (calls too),
 net +5.4k, reverted. Needs its own WS, probably value-ref-sites-only.
+
+Part 1 (2026-10-18): .bind kept (JS_FUNCTION_VALUE_ADAPTERS in stdlib.rs). Narrowing (a)
+dropped: round 2 source saved in target/remediation/wip/WS26-js2-v2-src/ (roots.rs
+module_scope_value_sites + imported_value via ModuleIndex::js_imported_value,
+FileFacts::value_refs_unread). Its import-following half only ADDS roots (~1,063 direct
+falls in round 2) and could ship alone. Known label issue: `f.bind(x)` value ref for f
+shares the call's start byte, so tag_reference_edges relabels that call's direct edges
+(15 in corpus) as reference.
+Tools: scratchpad classify_raised.py / classify_fallen.py (withheld gate aware).

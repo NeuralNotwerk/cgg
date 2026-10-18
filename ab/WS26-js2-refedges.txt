@@ -1,0 +1,8 @@
+repos 283 excluded []
+added 575
+  ('javascript', '{"kind": "reference"}', 'high') 335
+  ('javascript', '{"kind": "reference"}', 'medium') 22
+  ('typescript', '{"kind": "reference"}', 'high') 203
+  ('typescript', '{"kind": "reference"}', 'medium') 15
+dropped 15
+  ('typescript', '{"kind": "direct"}', 'medium') 15

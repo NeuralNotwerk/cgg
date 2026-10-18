@@ -1,0 +1,7 @@
+old=target/remediation/bins/WS26-go-before
+new=target/release/cgg
+repos=283 elapsed=369s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
+
