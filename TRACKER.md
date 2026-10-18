@@ -124,10 +124,19 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS20 | Dead-code FPs: override markers, py async, unreachable regions, Rust cfg(test), gtest/libFuzzer, test-file arms | 5,6,11,15,21,23 | DONE (52e2c7a) | | 6 reproduced |
 | WS21 | Constructor + super/this/base delegation edges | 12,13 | DONE (4033f2a) | | |
 | WS22 | abstract tagging, JS/TS class-field arrows, ObjC C calls | 7,8,24 | DONE (71a3611) | | |
-| WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | PLANNED | | 10 reproduced (no edge at all); after WS19 |
+| WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | PLANNED | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | PLANNED | | |
 | WS26 | Function values as references, per plugin | 25 | PLANNED | | one language per commit |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
+
+### Open items carried from WS23 (2026-10-18)
+
+- Dart typed receivers miss methods inherited through method-less classes (no `ClassDecl`) and Dart 3 extension-type members (393 sites medium→unresolved).
+- Go embedded types from other packages match by bare base name; misses fall back to by-name fan-out.
+- C# methods with no recorded arity bind one arbitrary overload in typed cross-file lookups (fold into WS28).
+- Kotlin `val t = make()` / `make().work()` untyped; matrix 05 claim is wrong (fix in WS29 docs, or WS28).
+- JS CommonJS default-exported classes: inherited methods through `new X()` refused `not-in-imported-module` (7 sites).
+- graph_ab.py does not flag dead-code-run timeouts (seen on zig-zig in WS20).

@@ -1,0 +1,180 @@
+{
+ "c": {
+  "drop": {
+   "medium": 14
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 14
+  }
+ },
+ "cpp": {
+  "drop": {
+   "medium": 183
+  },
+  "add": {
+   "medium": 226,
+   "high": 160
+  },
+  "chg": {
+   "medium->high": 450
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 173,
+   "rebound to another target": 10
+  }
+ },
+ "csharp": {
+  "drop": {
+   "medium": 35
+  },
+  "add": {
+   "medium": 19,
+   "high": 19
+  },
+  "chg": {
+   "medium->high": 15
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 18,
+   "external/stdlib or still bound (same name, kept target)": 17
+  }
+ },
+ "dart": {
+  "drop": {
+   "medium": 1095
+  },
+  "add": {
+   "high": 453,
+   "medium": 224
+  },
+  "chg": {
+   "medium->high": 426
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 457,
+   "external/stdlib or still bound (same name, kept target)": 587,
+   "rebound to another target": 51
+  }
+ },
+ "go": {
+  "drop": {
+   "medium": 7440,
+   "high": 4
+  },
+  "add": {
+   "high": 7826,
+   "medium": 901
+  },
+  "chg": {
+   "medium->high": 13636
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 5359,
+   "rebound to another target": 1460,
+   "now unresolved: candidates-in-other-files": 625
+  }
+ },
+ "groovy": {
+  "drop": {
+   "medium": 3808,
+   "high": 2
+  },
+  "add": {
+   "medium": 867,
+   "high": 9
+  },
+  "chg": {
+   "medium->high": 242,
+   "high->medium": 11
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 3084,
+   "now unresolved: candidates-in-other-files": 253,
+   "rebound to another target": 392,
+   "now unresolved: fanout-cap-exceeded": 67,
+   "now unresolved: no-candidate-in-file": 9,
+   "now unresolved: ambiguous-in-file": 5
+  }
+ },
+ "java": {
+  "drop": {
+   "medium": 5160,
+   "high": 9
+  },
+  "add": {
+   "medium": 14404,
+   "high": 2669
+  },
+  "chg": {
+   "medium->high": 2151
+  },
+  "fate": {
+   "rebound to another target": 1931,
+   "external/stdlib or still bound (same name, kept target)": 2383,
+   "now unresolved: no-candidate-in-file": 3,
+   "now unresolved: candidates-in-other-files": 852
+  }
+ },
+ "javascript": {
+  "drop": {
+   "medium": 669
+  },
+  "add": {
+   "high": 48,
+   "medium": 12
+  },
+  "chg": {
+   "medium->high": 314
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 331,
+   "now unresolved: candidates-in-other-files": 331,
+   "now unresolved: not-in-imported-module": 7
+  }
+ },
+ "objc": {
+  "drop": {},
+  "add": {
+   "medium": 3,
+   "high": 5
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "swift": {
+  "drop": {
+   "medium": 1721
+  },
+  "add": {
+   "medium": 869
+  },
+  "chg": {
+   "medium->high": 95
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1713,
+   "now unresolved: no-candidate-in-file": 2,
+   "now unresolved: fanout-cap-exceeded": 5,
+   "rebound to another target": 1
+  }
+ },
+ "typescript": {
+  "drop": {
+   "medium": 2232
+  },
+  "add": {
+   "high": 503,
+   "medium": 281
+  },
+  "chg": {
+   "medium->high": 937
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 753,
+   "external/stdlib or still bound (same name, kept target)": 1434,
+   "rebound to another target": 45
+  }
+ }
+}
